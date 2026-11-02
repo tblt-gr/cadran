@@ -55,6 +55,10 @@ const MetricPolicyPage = lazyComponent(
   () => import('@/features/metric-policy/MetricPolicyPage'),
   'MetricPolicyPage',
 );
+const InterfaceSettingsPage = lazyComponent(
+  () => import('@/features/settings/interface/InterfaceSettingsPage'),
+  'InterfaceSettingsPage',
+);
 const ProfileSettingsPage = lazyComponent(
   () => import('@/features/settings/ProfileSettingsPage'),
   'ProfileSettingsPage',
@@ -182,7 +186,7 @@ export function buildAuthenticatedRoutes(
       render: () => <RouteRedirect to="/parameters/product-models" />,
     },
     {
-      pattern: /^\/settings\/(profile|metric-policy)$/,
+      pattern: /^\/settings\/(interface|profile|metric-policy)$/,
       redirect: true,
       render: (match) => <RouteRedirect to={`/parameters/${match[1]}`} />,
     },
@@ -245,6 +249,11 @@ export function buildAuthenticatedRoutes(
           <MonthlyBudgetPage periodKey={resolved.periodKey} />
         );
       },
+    },
+    {
+      pattern: /^\/parameters\/interface$/,
+      preload: InterfaceSettingsPage.preload,
+      render: () => <InterfaceSettingsPage />,
     },
     {
       pattern: /^\/parameters\/profile$/,

@@ -139,6 +139,17 @@ interface TransactionRepository
     public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int;
 
     /**
+     * Identifiers of the pending rows carrying the booking marker whose date has
+     * come ($today included), oldest first, bounded. Rows imported or under
+     * reconciliation review never carry the marker, so they are never listed.
+     *
+     * @param list<string> $excludedIds rows a run already found unbookable, so they cannot starve newer ones
+     *
+     * @return list<string>
+     */
+    public function listAutoBookDueIds(WorkspaceScope $workspace, \DateTimeImmutable $today, int $limit, array $excludedIds = []): array;
+
+    /**
      * The live row of one account already claiming this external identifier,
      * whatever its state. A settled or reviewed movement must be recognised
      * before a redelivery tries to create a second row for the same money.

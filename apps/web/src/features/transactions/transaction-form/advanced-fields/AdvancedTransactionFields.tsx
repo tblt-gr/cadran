@@ -20,6 +20,8 @@ interface AdvancedTransactionFieldsProps {
   split: ReactNode;
   /** Why the state cannot change any more, or `null` while it can. */
   stateLockedHint: string | null;
+  /** The date is later this month: the row can only be pending, the hint sits under the date. */
+  statePlanned?: boolean;
   values: Pick<TransactionFormValues, LabelledField | 'splitMode'>;
 }
 
@@ -42,6 +44,7 @@ export function AdvancedTransactionFields({
   showErrors,
   split,
   stateLockedHint,
+  statePlanned = false,
   values,
 }: AdvancedTransactionFieldsProps) {
   const { t } = useTranslation();
@@ -75,9 +78,15 @@ export function AdvancedTransactionFields({
         <label>
           <span>{t('transactions.fields.state')}</span>
           <select
-            aria-describedby={stateLockedHint ? 'transaction-state-hint' : undefined}
+            aria-describedby={
+              stateLockedHint
+                ? 'transaction-state-hint'
+                : statePlanned
+                  ? 'transaction-upcoming-hint'
+                  : undefined
+            }
             aria-label={t('transactions.fields.state')}
-            disabled={stateLockedHint !== null}
+            disabled={stateLockedHint !== null || statePlanned}
             onChange={(event) =>
               onChange('state', event.target.value as TransactionFormValues['state'])
             }

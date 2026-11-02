@@ -38,6 +38,9 @@ interface TransactionRecurrenceOccurrenceRepository
 
     public function findByMatchedTransaction(WorkspaceScope $workspace, string $transactionId): ?TransactionRecurrenceOccurrence;
 
+    /** The instalment whose generated transaction this is, whatever its settlement. */
+    public function findByGeneratedTransaction(WorkspaceScope $workspace, string $transactionId): ?TransactionRecurrenceOccurrence;
+
     /** Settles the instalment; false when it was already settled by another movement. */
     public function claim(WorkspaceScope $workspace, string $occurrenceId, string $transactionId, \DateTimeImmutable $matchedAt): bool;
 

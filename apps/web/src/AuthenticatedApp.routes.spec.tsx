@@ -47,8 +47,10 @@ describe('AuthenticatedApp route table', () => {
       '/budget/00000000-0000-7000-8000-000000000001',
       '/budget/2026',
       '/budget/2026/03',
+      '/settings/interface',
       '/settings/profile',
       '/settings/metric-policy',
+      '/parameters/interface',
       '/parameters/profile',
       '/parameters/metric-policy',
     ];
@@ -90,7 +92,12 @@ describe('AuthenticatedApp route table', () => {
   });
 
   it('redirects the legacy catalog, product model and settings paths under /parameters', () => {
-    for (const path of ['/catalog', '/product-models', '/settings/profile']) {
+    for (const path of [
+      '/catalog',
+      '/product-models',
+      '/settings/profile',
+      '/settings/interface',
+    ]) {
       expect(matchAuthenticatedRoute(routes, path)?.route.redirect, path).toBe(true);
     }
   });

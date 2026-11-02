@@ -10,11 +10,12 @@ use App\Module\Foundation\Domain\ExactDecimal;
 /** Filters one budget scope around the single built-in monthly KPI policy. */
 final class MonthlyBudgetActualCalculator
 {
-    public const string POLICY_DESCRIPTION = 'BOOKED non-voided EXPENSE, FEE and REFUND split amounts on accounts inside the cash perimeter of the governing metric policy, in budget-included categories; PENDING rows are counted but excluded from sums; TRANSFER and ADJUSTMENT rows are excluded.';
+    public const string POLICY_DESCRIPTION = 'BOOKED non-voided EXPENSE, FEE and REFUND split amounts on accounts inside the cash perimeter of the governing metric policy, in budget-included categories; PENDING rows are counted but excluded from sums, except the planned (upcoming) ones, which are added as if booked on their date only when the caller asks for them; TRANSFER and ADJUSTMENT rows are excluded.';
 
     /**
      * @param list<MonthlyMovement>       $booked
      * @param list<MonthlyMovement>       $pending
+     * @param list<MonthlyMovement>       $planned                  the planned (upcoming) movements, added to the sum as if booked
      * @param array<string, bool>         $budgetIncludedByCategory
      * @param array<string, list<string>> $ancestorIdsByCategory
      */
@@ -27,13 +28,19 @@ final class MonthlyBudgetActualCalculator
         string $scopeId,
         string $fallbackAsset,
         bool $hasAccounts,
+        array $planned = [],
     ): MonthlyBudgetActual {
         $sum = '0';
+        $upcomingSum = '0';
+        $upcomingCount = 0;
+        /** @var array<string, true> $upcomingIds */
+        $upcomingIds = [];
         /** @var array<string, true> $assets */
         $assets = [];
         /** @var array<string, MonthlyBudgetActualSource> $sources */
         $sources = [];
-        foreach ($booked as $movement) {
+        foreach ([...$booked, ...$planned] as $position => $movement) {
+            $isUpcoming = $position >= count($booked);
             $selected = self::selectedSplits(
                 $movement,
                 $budgetIncludedByCategory,
@@ -49,6 +56,13 @@ final class MonthlyBudgetActualCalculator
             foreach ($selected as $split) {
                 $sum = ExactDecimal::addForResponse($sum, $split->amount->toString());
                 $selectedAmount = ExactDecimal::addForResponse($selectedAmount, $split->amount->toString());
+                if ($isUpcoming) {
+                    $upcomingSum = ExactDecimal::addForResponse($upcomingSum, $split->amount->toString());
+                }
+            }
+            if ($isUpcoming) {
+                $upcomingIds[$movement->transactionId] = true;
+                ++$upcomingCount;
             }
             if (isset($sources[$movement->transactionId])) {
                 if (!$sources[$movement->transactionId]->asset->equals($movement->asset)) {
@@ -63,6 +77,7 @@ final class MonthlyBudgetActualCalculator
                 $movement->transactionId,
                 $selectedAmount,
                 $movement->asset,
+                isset($upcomingIds[$movement->transactionId]),
             );
         }
 
@@ -83,14 +98,17 @@ final class MonthlyBudgetActualCalculator
         $sources = array_values($sources);
 
         if (!$hasAccounts) {
-            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::NO_ACCOUNT, $sources, $pendingCount);
+            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::NO_ACCOUNT, $sources, $pendingCount, null, $upcomingCount);
         }
         if (count($assets) > 1) {
-            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCount);
+            return new MonthlyBudgetActual(null, null, MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCount, null, $upcomingCount);
         }
         $asset = AssetCode::fromString([] === $assets ? $fallbackAsset : (string) array_key_first($assets));
 
-        return new MonthlyBudgetActual(ExactDecimal::negateForResponse($sum), $asset, null, $sources, $pendingCount);
+        return new MonthlyBudgetActual(
+            ExactDecimal::negateForResponse($sum), $asset, null, $sources, $pendingCount,
+            0 === $upcomingCount ? null : ExactDecimal::negateForResponse($upcomingSum), $upcomingCount,
+        );
     }
 
     /**

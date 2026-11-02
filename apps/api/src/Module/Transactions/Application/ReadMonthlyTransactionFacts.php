@@ -24,7 +24,11 @@ final readonly class ReadMonthlyTransactionFacts
     {
     }
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month): MonthlyTransactionFacts
+    /**
+     * With $includeUpcoming the planned rows (pending, carrying the booking marker) are returned
+     * apart in `upcoming` and leave `pending`; without it they stay pending like any other pending row.
+     */
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, bool $includeUpcoming = false): MonthlyTransactionFacts
     {
         $rows = $this->transactions->search(
             $workspace,
@@ -40,20 +44,21 @@ final readonly class ReadMonthlyTransactionFacts
             throw new MonthlyTransactionScopeTooLarge(sprintf('A monthly projection reads at most %d transactions.', self::MAX_TRANSACTIONS));
         }
 
-        $pending = array_values(array_filter(
-            $rows,
-            static fn (Transaction $transaction): bool => TransactionState::PENDING === $transaction->state,
-        ));
-        $booked = array_values(array_filter(
-            $rows,
-            static fn (Transaction $transaction): bool => TransactionState::BOOKED === $transaction->state,
-        ));
+        $booked = [];
+        $pending = [];
+        $upcoming = [];
+        foreach ($rows as $transaction) {
+            $fact = self::fact($transaction);
+            if (TransactionState::BOOKED === $transaction->state) {
+                $booked[] = $fact;
+            } elseif ($includeUpcoming && $fact->autoBook) {
+                $upcoming[] = $fact;
+            } else {
+                $pending[] = $fact;
+            }
+        }
 
-        return new MonthlyTransactionFacts(
-            array_map(self::fact(...), $booked),
-            array_map(self::fact(...), $pending),
-            count($pending),
-        );
+        return new MonthlyTransactionFacts($booked, $pending, count($pending), $upcoming);
     }
 
     private static function fact(Transaction $transaction): MonthlyTransactionFact
@@ -71,6 +76,7 @@ final readonly class ReadMonthlyTransactionFacts
                 $split->amount->value,
                 array_map(static fn ($axis): string => $axis->value, $split->analyticAxes),
             ), $transaction->splits),
+            $transaction->autoBook,
         );
     }
 }

@@ -1834,6 +1834,7 @@
   },
   "dashboard": {
     "currentMonth": "Mois en cours : {{month}}",
+    "withUpcoming": "{{period}} (à venir inclus)",
     "allocation": {
       "description": "Répartition exclusive par groupe de comptes",
       "empty": "Aucun groupe de comptes de premier niveau. Créez-en un pour répartir votre patrimoine.",
@@ -1929,6 +1930,26 @@
   },
   "settings": {
     "loading": "Chargement du profil…",
+    "interface": {
+      "title": "Chiffres du mois",
+      "loading": "Chargement des préférences d’interface…",
+      "includeUpcoming": {
+        "label": "Inclure l’à venir dans les chiffres du mois en cours",
+        "help": "Quand c’est activé, les transactions planifiées du mois en cours comptent dans le budget, les revenus, les dépenses et l’excédent, avec la mention « (à venir) ». Le patrimoine et les soldes ne changent pas."
+      },
+      "notice": {
+        "includes_one": "Inclut {{count}} transaction à venir.",
+        "includes_other": "Inclut {{count}} transactions à venir.",
+        "link": "Modifier ce réglage"
+      },
+      "saved": "La préférence a été enregistrée.",
+      "stale": "Ce réglage a été modifié ailleurs. La valeur actuelle est affichée, réessayez.",
+      "saveError": "L’enregistrement a échoué. La valeur précédente est conservée.",
+      "error": {
+        "title": "Préférences indisponibles",
+        "description": "Les préférences d’interface n’ont pas pu être chargées."
+      }
+    },
     "version": {
       "label": "Version",
       "value": "Version {{version}}"
@@ -1997,6 +2018,7 @@
     },
     "tabs": {
       "label": "Sections des paramètres",
+      "interface": "Interface",
       "profile": "Profil",
       "metricPolicy": "Politique d’indicateurs",
       "catalog": "Catalogue",
@@ -2116,7 +2138,8 @@
       "PENDING": "En attente",
       "BOOKED": "Comptabilisée",
       "VOIDED": "Annulée",
-      "REJECTED": "Rejetée"
+      "REJECTED": "Rejetée",
+      "planned": "Prévue le {{date}}"
     },
     "paymentMethods": {
       "CARD": "Carte",
@@ -2130,7 +2153,7 @@
       "account": "Choisissez un compte actif de cet espace.",
       "amount": "Saisissez un montant exact non nul, avec le signe qui correspond à la nature.",
       "nature": "Le signe du montant doit correspondre à la nature.",
-      "bookedOn": "La date comptable doit tomber entre l’ouverture du compte et aujourd’hui.",
+      "bookedOn": "La date comptable doit tomber entre l’ouverture du compte et aujourd’hui, ou la fin du mois en cours pour une transaction en attente.",
       "valueOn": "La date de valeur doit rester à 90 jours de la date comptable.",
       "authorizedOn": "La date d’autorisation ne peut pas être postérieure à la date comptable.",
       "rawLabel": "Le libellé est obligatoire et ne peut pas dépasser 140 caractères.",
@@ -2209,6 +2232,7 @@
       "save": "Enregistrer",
       "saving": "Enregistrement…",
       "accountLocked": "Pour changer de compte, annulez cette transaction puis recréez-la.",
+      "upcomingHint": "Date à venir : la transaction est enregistrée en attente puis comptabilisée automatiquement à cette date.",
       "stateLocked": "Une transaction comptabilisée ne revient pas en attente. Utilisez l’action Annuler si nécessaire.",
       "rawLabelLocked": "Ce libellé provient d’une source externe (import ou banque) et reste inchangé pour la traçabilité. Seul le libellé affiché est modifiable ; le vider rétablit ce libellé.",
       "noCategory": "Sans catégorie",
@@ -3193,6 +3217,7 @@
         "in": "Entrée depuis {{account}}",
         "out": "Sortie vers {{account}}",
         "pending": "en attente",
+        "upcoming": "à venir",
         "edit": "Modifier le mouvement {{label}} du {{date}}, {{amount}}",
         "editLoading": "Chargement du mouvement…",
         "editError": "Impossible de charger ce mouvement."
@@ -3392,6 +3417,8 @@
       "variance": "Écart restant",
       "pending_one": "{{count}} transaction en attente",
       "pending_other": "{{count}} transactions en attente",
+      "upcoming": "à venir",
+      "upcomingAmount": "dont {{amount}} à venir",
       "sources_one": "{{count}} transaction incluse",
       "sources_other": "{{count}} transactions incluses",
       "policy": {

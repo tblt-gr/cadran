@@ -25,6 +25,21 @@ describe('SettingsTabs', () => {
     );
   });
 
+  it('lists the tabs in order, Interface first, and links it', () => {
+    render(<SettingsTabs path="/parameters/interface" />);
+
+    const links = screen.getAllByRole('link');
+    expect(links.map((link) => link.textContent)).toEqual([
+      'Interface',
+      'Catalogue',
+      'Modèles',
+      'Politique d’indicateurs',
+      'Profil',
+    ]);
+    expect(links[0]!.getAttribute('href')).toBe('/parameters/interface');
+    expect(links[0]!.getAttribute('aria-current')).toBe('page');
+  });
+
   it('navigates client-side without a page load', () => {
     const seen: string[] = [];
     window.addEventListener('popstate', () => seen.push(window.location.pathname), { once: true });

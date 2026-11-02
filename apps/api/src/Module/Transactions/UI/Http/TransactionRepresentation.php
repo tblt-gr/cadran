@@ -46,6 +46,7 @@ final readonly class TransactionRepresentation
             'reviewReason' => $transaction->reviewReason,
             'reconciliationCandidateIds' => $transaction->reconciliationCandidateIds,
             'reconciledIntoId' => $transaction->reconciledIntoId,
+            'autoBook' => $transaction->autoBook,
         ];
     }
 

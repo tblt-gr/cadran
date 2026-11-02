@@ -32,6 +32,8 @@ final readonly class MonthlyKpiExplanationView
         public string $quality,
         public int $pendingCount,
         public MetricPolicyReference $metricPolicy,
+        public bool $includesUpcoming = false,
+        public int $upcomingCount = 0,
     ) {
     }
 }

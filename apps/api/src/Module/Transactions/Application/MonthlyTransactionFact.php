@@ -19,6 +19,7 @@ final readonly class MonthlyTransactionFact
         public string $bookedOn,
         public string $rawLabel,
         public array $splits,
+        public bool $autoBook = false,
     ) {
     }
 }

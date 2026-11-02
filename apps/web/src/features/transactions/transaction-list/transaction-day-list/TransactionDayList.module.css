@@ -56,6 +56,15 @@
   color: var(--text-pending);
 }
 
+.planned .primary,
+.planned .primary button,
+.planned .primary small,
+.planned .amount [data-sign],
+.planned .category,
+.planned .account {
+  color: var(--text-muted);
+}
+
 .pending .category > * {
   filter: grayscale(1);
 }

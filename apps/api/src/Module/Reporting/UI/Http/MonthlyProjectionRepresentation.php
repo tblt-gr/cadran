@@ -21,6 +21,8 @@ final class MonthlyProjectionRepresentation
             'state' => $view->state,
             'quality' => $view->quality,
             'pendingCount' => $view->pendingCount,
+            'includesUpcoming' => $view->includesUpcoming,
+            'upcomingCount' => $view->upcomingCount,
             'cashIncome' => self::metric($view->cashIncome),
             'nonCashBenefits' => self::metric($view->nonCashBenefits),
             'benefitSpending' => self::metric($view->benefitSpending),

@@ -19,7 +19,12 @@ export function DashboardMetrics() {
   const timeZone = useWorkspaceTimeZone();
   const month = workspaceToday(new Date(), timeZone).slice(0, 7);
   const report = useMonthlyReport(month);
-  const period = t('dashboard.currentMonth', { month: formatMonthLabel(month, i18n.language) });
+  const monthLabel = t('dashboard.currentMonth', { month: formatMonthLabel(month, i18n.language) });
+  // The cards carry the mention themselves: a planned row is in these figures, not yet booked.
+  const period =
+    report.data?.includesUpcoming && report.data.upcomingCount > 0
+      ? t('dashboard.withUpcoming', { period: monthLabel })
+      : monthLabel;
 
   function toValue(metric: MonthlyProjectionMetric | undefined, rate: boolean): CardValue {
     if (report.isPending) return { kind: 'loading' };

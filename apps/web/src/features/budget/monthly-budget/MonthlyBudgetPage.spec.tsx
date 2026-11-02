@@ -12,6 +12,7 @@ const api = vi.hoisted(() => ({
   getTransaction: vi.fn(),
   listAccounts: vi.fn(),
   listCategories: vi.fn(),
+  readInterfacePreferences: vi.fn(),
   readMonthlyBounds: vi.fn(),
   readMonthlyLedger: vi.fn(),
   readMonthlyLedgerMovements: vi.fn(),
@@ -38,6 +39,8 @@ const projectionMetric = (value: string | null) => ({
   reason: null,
 });
 const projection = {
+  includesUpcoming: false,
+  upcomingCount: 0,
   month: '2026-03',
   periodStart: '2026-03-01',
   periodEnd: '2026-03-31',
@@ -58,6 +61,8 @@ const projection = {
   netSavingsRate: { value: '0.25', assetCode: null, reason: null },
 };
 const ledger = {
+  includesUpcoming: false,
+  upcomingCount: 0,
   month: '2026-03',
   periodStart: '2026-03-01',
   periodEnd: '2026-03-31',
@@ -347,6 +352,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyBounds.mockReturnValue(
       ok({ firstDataMonth: '2025-06', currentMonth: '2026-03' }),
     );
+    api.readInterfacePreferences.mockReturnValue(ok({ includeUpcoming: true, version: 0 }));
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
     api.readMonthlyProjection.mockReturnValue(ok(projection));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
@@ -433,6 +439,55 @@ describe('MonthlyBudgetPage', () => {
     );
     expect(api.createTransfer).toHaveBeenCalledOnce();
     expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
+  });
+
+  it('reads the stored setting before any read and shows the upcoming notice with its link', async () => {
+    api.readInterfacePreferences.mockReturnValue(ok({ includeUpcoming: true, version: 2 }));
+    api.readMonthlyLedger.mockReturnValue(
+      ok({ ...ledger, includesUpcoming: true, upcomingCount: 2 }),
+    );
+    renderPage();
+
+    expect(await screen.findByText(/Inclut 2 transactions à venir/)).toBeTruthy();
+    const link = screen.getByRole('link', { name: 'Modifier ce réglage' });
+    expect(link.getAttribute('href')).toBe('/parameters/interface');
+    expect(api.readMonthlyLedger).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { month: '2026-03', includeUpcoming: true } }),
+    );
+  });
+
+  it('shows the notice in the totals card when the projection counts upcoming rows', async () => {
+    api.readMonthlyProjection.mockReturnValue(
+      ok({ ...projection, includesUpcoming: true, upcomingCount: 1 }),
+    );
+    renderPage();
+
+    await screen.findByRole('heading', { name: 'Synthèse des flux' });
+    await waitFor(() => {
+      const totals = screen.getByRole('heading', { name: 'Synthèse des flux' }).closest('section')!;
+      expect(within(totals).getByText(/Inclut 1 transaction à venir/)).toBeTruthy();
+    });
+  });
+
+  it('passes false with the setting off and shows no notice when none is counted', async () => {
+    api.readInterfacePreferences.mockReturnValue(ok({ includeUpcoming: false, version: 3 }));
+    renderPage();
+
+    await waitFor(() =>
+      expect(api.readMonthlyLedger).toHaveBeenCalledWith(
+        expect.objectContaining({ query: { month: '2026-03', includeUpcoming: false } }),
+      ),
+    );
+    await screen.findByText('Paie mars').catch(() => undefined);
+    expect(screen.queryByText(/transactions? à venir/)).toBeNull();
+  });
+
+  it('keeps its skeleton and reads nothing while the setting loads', async () => {
+    api.readInterfacePreferences.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+
+    expect(await screen.findByTestId('monthly-budget-skeleton')).toBeTruthy();
+    expect(api.readMonthlyLedger).not.toHaveBeenCalled();
   });
 
   it('replaces its one named cold-load skeleton and keeps the ledger during a refetch', async () => {
@@ -975,7 +1030,7 @@ describe('MonthlyBudgetPage', () => {
     expect(api.readMonthlyLedgerMovements).toHaveBeenCalledWith(
       expect.objectContaining({
         path: { id: incomeId, kind: 'income' },
-        query: { month: '2026-03' },
+        query: { includeUpcoming: true, month: '2026-03' },
       }),
     );
     expect(await screen.findByText('Paie mars')).toBeTruthy();
@@ -1016,7 +1071,9 @@ describe('MonthlyBudgetPage', () => {
 
     await waitFor(() => expect(api.readMonthlyLedgerMovements).toHaveBeenCalledTimes(2));
     expect(api.readMonthlyLedgerMovements.mock.calls[1]?.[0]).toEqual(
-      expect.objectContaining({ query: { cursor: 'next-page', month: '2026-03' } }),
+      expect.objectContaining({
+        query: { cursor: 'next-page', includeUpcoming: true, month: '2026-03' },
+      }),
     );
   });
 
@@ -1033,7 +1090,9 @@ describe('MonthlyBudgetPage', () => {
       '/budget/2026/02?axis=ESSENTIAL',
     );
     expect(api.readMonthlyLedger).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { axis: 'ESSENTIAL', month: '2026-03' } }),
+      expect.objectContaining({
+        query: { axis: 'ESSENTIAL', includeUpcoming: true, month: '2026-03' },
+      }),
     );
   });
 

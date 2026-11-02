@@ -48,6 +48,7 @@ final readonly class Transaction
         public ?string $lastEditorId,
         public ?ReviewReason $reviewReason = null,
         public ?string $userLabel = null,
+        public bool $autoBook = false,
     ) {
         self::identifier($id, 'transaction');
         self::identifier($accountId, 'account');
@@ -70,6 +71,11 @@ final readonly class Transaction
             // A review reason is the reason a movement is *not* booked yet. On
             // any other state it would advertise a decision already taken.
             throw new InvalidTransaction('Only a pending transaction awaits reconciliation review.');
+        }
+        if ($autoBook && (TransactionState::PENDING !== $state || null !== $reviewReason)) {
+            // The booking marker only means "book me on my date": a settled row,
+            // or one held for reconciliation review, must never be booked by date.
+            throw new InvalidTransaction('Auto booking requires a pending transaction without a review reason.');
         }
         if ((TransactionState::VOIDED === $state) !== (null !== $voidedAt)) {
             throw new InvalidTransaction('Only a voided transaction carries a voiding timestamp.');
@@ -112,6 +118,7 @@ final readonly class Transaction
         array $splits,
         \DateTimeImmutable $updatedAt,
         ?string $lastEditorId,
+        ?bool $autoBook = null,
     ): self {
         if ($this->state->isTerminal()) {
             throw new InvalidTransaction('A terminal transaction cannot be edited.');
@@ -138,6 +145,7 @@ final readonly class Transaction
             $state, $nature, $this->source, $this->sourceRef, $bookedOn, $valueOn, $authorizedOn, $rawLabel,
             $counterparty, $note, $paymentMethod, $mcc, $maskedCard, $bankReference, $splits, $this->version + 1,
             $this->createdAt, $updatedAt, null, $lastEditorId, $this->reviewReason, $this->userLabel,
+            TransactionState::PENDING === $state && ($autoBook ?? $this->autoBook),
         );
     }
 
@@ -154,7 +162,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $userLabel,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $userLabel, $this->autoBook,
         );
     }
 
@@ -180,7 +188,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, null, $this->userLabel,
+            $this->voidedAt, $this->lastEditorId, null, $this->userLabel, $this->autoBook,
         );
     }
 
@@ -208,7 +216,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel, $this->autoBook,
         );
     }
 
@@ -229,7 +237,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, null, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version, $this->createdAt, $this->updatedAt,
-            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel,
+            $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel, $this->autoBook,
         );
     }
 
@@ -244,7 +252,7 @@ final readonly class Transaction
             TransactionState::VOIDED, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty, $this->note, $this->paymentMethod, $this->mcc,
             $this->maskedCard, $this->bankReference, $this->splits, $this->version + 1, $this->createdAt, $voidedAt,
-            $voidedAt, $lastEditorId, null, $this->userLabel,
+            $voidedAt, $lastEditorId, null, $this->userLabel, false,
         );
     }
 
@@ -260,7 +268,7 @@ final readonly class Transaction
             $this->state, $this->nature, $this->source, $this->sourceRef, $this->bookedOn, $this->valueOn,
             $this->authorizedOn, $this->rawLabel, $this->counterparty ?? $counterparty, $this->note, $this->paymentMethod,
             $this->mcc, $this->maskedCard, $this->bankReference, [$split], $this->version + ($incrementVersion ? 1 : 0), $this->createdAt,
-            $updatedAt, $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel,
+            $updatedAt, $this->voidedAt, $this->lastEditorId, $this->reviewReason, $this->userLabel, $this->autoBook,
         );
     }
 

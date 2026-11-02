@@ -20,9 +20,9 @@ final readonly class ReadBudgetKpiExplanation
     ) {
     }
 
-    public function __invoke(string $planId, string $targetId): MonthlyKpiExplanationView
+    public function __invoke(string $planId, string $targetId, bool $includeUpcoming = false): MonthlyKpiExplanationView
     {
-        $comparisons = ($this->comparisons)($planId);
+        $comparisons = ($this->comparisons)($planId, $includeUpcoming);
         $comparison = null;
         foreach ($comparisons->comparisons as $candidate) {
             if ($candidate->targetId === $targetId) {
@@ -48,8 +48,9 @@ final readonly class ReadBudgetKpiExplanation
             assetCode: $comparisons->assetCode,
             reason: $reason,
             reasonExplanation: MonthlyKpiReasonExplanation::for($reason),
-            formula: 'budget variance = resolved target - scoped actual',
-            scope: sprintf('%s budget scope “%s” in the caller workspace.', $comparison->scopeType, $comparison->scopeLabel),
+            formula: 'budget variance = resolved target - scoped actual'.($includeUpcoming ? '; the scoped actual includes the planned upcoming transactions of the month as if booked on their date' : ''),
+            scope: sprintf('%s budget scope “%s” in the caller workspace.', $comparison->scopeType, $comparison->scopeLabel)
+                .($includeUpcoming ? ' Planned upcoming transactions (pending, booked automatically on their date) are included.' : ''),
             periodStart: $month->firstDay()->format('Y-m-d'),
             periodEnd: $month->lastDay()->format('Y-m-d'),
             sourceTransactionIds: $sourceTransactionIds,
@@ -60,6 +61,8 @@ final readonly class ReadBudgetKpiExplanation
             quality: $comparison->status,
             pendingCount: $comparison->pendingCount,
             metricPolicy: $comparisons->metricPolicy,
+            includesUpcoming: $includeUpcoming,
+            upcomingCount: $comparison->upcomingCount,
         );
     }
 }

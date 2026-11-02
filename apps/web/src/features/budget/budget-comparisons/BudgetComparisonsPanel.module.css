@@ -131,3 +131,9 @@
   max-width: 100%;
   height: var(--font-size-label);
 }
+
+.upcoming {
+  display: block;
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}

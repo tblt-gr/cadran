@@ -70,6 +70,7 @@ final class BudgetRepresentation
             'status' => $view->status,
             'reason' => $view->reason,
             'comparisons' => array_map(self::comparison(...), $view->comparisons),
+            'includesUpcoming' => $view->includesUpcoming,
             'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
         ];
     }
@@ -107,8 +108,11 @@ final class BudgetRepresentation
                 'rawLabel' => $source->rawLabel,
                 'amount' => $source->amount,
                 'assetCode' => $source->assetCode,
+                'upcoming' => $source->upcoming,
             ], $comparison->includedTransactions),
             'pendingCount' => $comparison->pendingCount,
+            'upcomingAmount' => $comparison->upcomingAmount,
+            'upcomingCount' => $comparison->upcomingCount,
             'overlapping' => $comparison->overlapping,
             'policy' => $comparison->policy,
         ];

@@ -18,7 +18,7 @@ final readonly class ReadMonthlyProjection
     ) {
     }
 
-    public function __invoke(string $requestedMonth): MonthlyProjectionView
+    public function __invoke(string $requestedMonth, bool $includeUpcoming = false): MonthlyProjectionView
     {
         try {
             $month = CalendarMonth::fromString($requestedMonth);
@@ -26,6 +26,6 @@ final readonly class ReadMonthlyProjection
             throw new InvalidMonthlyProjectionQuery($exception->getMessage(), previous: $exception);
         }
 
-        return ($this->compute)($this->caller->resolve(), $month, $this->calendar->today());
+        return ($this->compute)($this->caller->resolve(), $month, $this->calendar->today(), $includeUpcoming);
     }
 }

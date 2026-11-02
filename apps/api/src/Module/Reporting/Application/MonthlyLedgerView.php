@@ -27,6 +27,8 @@ final readonly class MonthlyLedgerView
         public array $incomeCategories,
         public array $expenseCategories,
         public array $accounts,
+        public bool $includesUpcoming = false,
+        public int $upcomingCount = 0,
     ) {
     }
 }

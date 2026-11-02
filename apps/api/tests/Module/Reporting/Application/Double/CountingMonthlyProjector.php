@@ -13,7 +13,7 @@ final class CountingMonthlyProjector implements MonthlyProjector
 {
     public int $calls = 0;
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today): MonthlyProjectionView
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView
     {
         ++$this->calls;
 

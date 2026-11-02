@@ -9,6 +9,7 @@ const api = vi.hoisted(() => ({
   readNetWorth: vi.fn(),
   readNetWorthHistory: vi.fn(),
   readMonthlyProjection: vi.fn(),
+  readInterfacePreferences: vi.fn(),
 }));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
@@ -154,8 +155,12 @@ function monthlyReport() {
   };
 }
 
-function renderDashboard(report: object = monthlyReport()) {
+function renderDashboard(
+  report: object = monthlyReport(),
+  preferences = { includeUpcoming: true, version: 0 },
+) {
   api.readMonthlyProjection.mockImplementation(() => success(report));
+  api.readInterfacePreferences.mockImplementation(() => success(preferences));
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -729,13 +734,42 @@ describe('DashboardPage', () => {
     await waitFor(() => expect(income?.textContent).toContain(`4${NARROW}320,00${NBSP}€`));
     const month = new Date().toISOString().slice(0, 7);
     expect(api.readMonthlyProjection).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { month } }),
+      expect.objectContaining({ query: { month, includeUpcoming: true } }),
     );
     expect(income?.textContent).toContain('Mois en cours :');
     const spending = screen.getByRole('heading', { name: 'Dépenses' }).closest('section');
     expect(spending?.textContent).toContain(`2${NARROW}860,00${NBSP}€`);
     const saving = screen.getByRole('heading', { name: 'Taux d’épargne' }).closest('section');
     expect(saving?.textContent).toContain('33,80 %');
+  });
+
+  it('marks the current month cards when planned transactions are counted', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard({ ...monthlyReport(), includesUpcoming: true, upcomingCount: 2 });
+    await loaded();
+
+    const income = (await screen.findByRole('heading', { name: 'Revenus' })).closest('section');
+    await waitFor(() => expect(income?.textContent).toContain('(à venir inclus)'));
+  });
+
+  it('passes the stored setting to the monthly read and says nothing when none is counted', async () => {
+    api.readNetWorth.mockReturnValue(success(netWorth));
+    api.readNetWorthHistory.mockReturnValue(success(history));
+
+    renderDashboard(
+      { ...monthlyReport(), includesUpcoming: false, upcomingCount: 0 },
+      { includeUpcoming: false, version: 3 },
+    );
+    await loaded();
+
+    const income = (await screen.findByRole('heading', { name: 'Revenus' })).closest('section');
+    await waitFor(() => expect(income?.textContent).toContain(`4${NARROW}320,00${NBSP}€`));
+    expect(api.readMonthlyProjection).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ includeUpcoming: false }) }),
+    );
+    expect(income?.textContent).not.toContain('à venir');
   });
 
   it('keeps a non computable month as a dash-like label, never zero', async () => {

@@ -43,6 +43,7 @@ describe('global breadcrumb', () => {
     ['/goals', ['Accueil', 'Objectifs']],
     ['/parameters/catalog', ['Accueil', 'Paramètres', 'Catalogue produits']],
     ['/parameters/product-models', ['Accueil', 'Paramètres', 'Modèles de produits']],
+    ['/parameters/interface', ['Accueil', 'Paramètres', 'Interface']],
     ['/parameters/profile', ['Accueil', 'Paramètres', 'Profil']],
     ['/parameters/metric-policy', ['Accueil', 'Paramètres', 'Politique d’indicateurs']],
     ['/unknown', ['Accueil', 'Page introuvable']],
@@ -63,6 +64,19 @@ describe('global breadcrumb', () => {
     expect(current?.textContent).toBe(labels.at(-1));
     expect(current?.tagName).toBe('SPAN');
     expect(within(nav).getByRole('list').tagName).toBe('OL');
+  });
+
+  it('opens Interface from the settings root of the breadcrumb', () => {
+    render(
+      <AppShell path="/parameters/profile" setPath={vi.fn()}>
+        <p>Content</p>
+      </AppShell>,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
+
+    expect(within(nav).getByRole('link', { name: 'Paramètres' }).getAttribute('href')).toBe(
+      '/parameters/interface',
+    );
   });
 
   it('hangs a portfolio under Comptes and keeps its name as the current page', () => {

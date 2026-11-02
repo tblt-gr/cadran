@@ -6,6 +6,7 @@ namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\IncludeUpcomingQuery;
 use App\Module\Reporting\Application\InvalidMonthlyLedgerQuery;
 use App\Module\Reporting\Application\MonthlyLedgerRowNotFound;
 use App\Module\Reporting\Application\MonthlyProjectionScopeTooLarge;
@@ -28,8 +29,12 @@ final readonly class MonthlyLedgerController
     #[Route('/api/v1/reports/monthly/ledger', name: 'api_v1_reports_monthly_ledger', methods: ['GET'])]
     public function summary(Request $request, ReadMonthlyLedger $read): Response
     {
+        $includeUpcoming = IncludeUpcomingQuery::of($request);
+        if (null === $includeUpcoming) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+        }
         try {
-            $view = $read($request->query->getString('month'), self::optional($request, 'axis'));
+            $view = $read($request->query->getString('month'), self::optional($request, 'axis'), $includeUpcoming);
         } catch (InvalidMonthlyLedgerQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
         } catch (MonthlyProjectionScopeTooLarge) {
@@ -53,6 +58,10 @@ final readonly class MonthlyLedgerController
         Request $request,
         ReadMonthlyLedgerMovements $read,
     ): Response {
+        $includeUpcoming = IncludeUpcomingQuery::of($request);
+        if (null === $includeUpcoming) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+        }
         try {
             $page = $read(
                 $kind,
@@ -61,6 +70,7 @@ final readonly class MonthlyLedgerController
                 self::optional($request, 'axis'),
                 self::optional($request, 'cursor'),
                 self::optional($request, 'pageSize'),
+                $includeUpcoming,
             );
         } catch (InvalidMonthlyLedgerQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');

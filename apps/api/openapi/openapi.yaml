@@ -164,6 +164,72 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/interface-preferences:
+    get:
+      operationId: readInterfacePreferences
+      summary: Read the interface preferences of the calling workspace
+      description: >-
+        With no stored row the response carries the defaults (`includeUpcoming`
+        true) at version 0. The server never reads this setting itself: the web
+        client reads it and passes `includeUpcoming` on the monthly reads, so
+        those reads stay deterministic and cacheable by their parameters.
+      tags: [Profile]
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: The stored or default preferences.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InterfacePreferences' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/WorkspaceForbidden' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+    put:
+      operationId: saveInterfacePreferences
+      x-cadran-idempotency: 'The body states the resulting preferences and the version it was read at, so a replay is refused as stale rather than applied twice.'
+      summary: Store the interface preferences of the calling workspace
+      description: >-
+        A save at version 0 inserts the row, any other version updates it under
+        an optimistic check. The mutation requires the same-origin CSRF token.
+      tags: [Profile]
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InterfacePreferencesInput' }
+      responses:
+        '200':
+          description: The stored preferences and their new version.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InterfacePreferences' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403':
+          description: >-
+            The CSRF / Origin check failed (`type: /problems/csrf-token`), or
+            the session belongs to no workspace or not to its owner.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '409':
+          description: The stored preferences moved past the version the caller read.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: The body is not exactly a boolean `includeUpcoming` and an integer `version`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/profile:
     get:
       operationId: getOwnerProfile
@@ -1453,6 +1519,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: id
           in: path
           required: true
@@ -1480,6 +1547,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: id
           in: path
           required: true
@@ -4772,6 +4840,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: month
           in: query
           required: true
@@ -4835,6 +4904,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: month
           in: query
           required: true
@@ -4875,6 +4945,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: kind
           in: path
           required: true
@@ -4936,6 +5007,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: kpi
           in: path
           required: true
@@ -4997,6 +5069,7 @@ paths:
       security:
         - sessionCookie: []
       parameters:
+        - $ref: '#/components/parameters/IncludeUpcoming'
         - name: month
           in: query
           required: true
@@ -8483,6 +8556,19 @@ components:
         type: string
         const: '1'
   parameters:
+    IncludeUpcoming:
+      name: includeUpcoming
+      in: query
+      required: false
+      description: >-
+        When `true`, the planned (upcoming) transactions of the month, pending
+        rows the booking job will book on their date, are counted as if booked
+        and reported apart. Defaults to `false`: they are then treated like any
+        other pending row. Net worth and balances never include them. Any other
+        value is refused with 400.
+      schema:
+        type: boolean
+        default: false
     PeriodMonth:
       name: period
       in: path
@@ -11245,8 +11331,18 @@ components:
           pendingCount,
           overlapping,
           policy,
+          upcomingAmount,
+          upcomingCount,
         ]
       properties:
+        upcomingAmount:
+          description: >-
+            The part of `actual` coming from planned (upcoming) transactions,
+            negated like `actual`; null when none falls in the scope.
+          oneOf:
+            - $ref: '#/components/schemas/BudgetExactDecimal'
+            - type: 'null'
+        upcomingCount: { type: integer, minimum: 0, maximum: 500 }
         targetId: { type: string, format: uuid }
         scopeType: { $ref: '#/components/schemas/BudgetScopeType' }
         scopeId: { type: string, minLength: 1, maxLength: 64 }
@@ -11290,8 +11386,11 @@ components:
     BudgetComparisonTransaction:
       type: object
       additionalProperties: false
-      required: [id, bookedOn, rawLabel, amount, assetCode]
+      required: [id, bookedOn, rawLabel, amount, assetCode, upcoming]
       properties:
+        upcoming:
+          type: boolean
+          description: True when this source is a planned transaction counted as if booked on its date.
         id:
           type: string
           format: uuid
@@ -11311,8 +11410,10 @@ components:
     BudgetComparisons:
       type: object
       additionalProperties: false
-      required: [planId, period, assetCode, status, reason, comparisons, metricPolicy]
+      required:
+        [planId, period, assetCode, status, reason, comparisons, metricPolicy, includesUpcoming]
       properties:
+        includesUpcoming: { type: boolean }
         metricPolicy: { $ref: '#/components/schemas/MetricPolicyReference' }
         planId: { type: string, format: uuid }
         period: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
@@ -15483,7 +15584,16 @@ components:
         - quality
         - pendingCount
         - metricPolicy
+        - includesUpcoming
+        - upcomingCount
       properties:
+        includesUpcoming:
+          type: boolean
+          description: True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+        upcomingCount:
+          type: integer
+          minimum: 0
+          description: Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
         metricPolicy: { $ref: '#/components/schemas/MetricPolicyReference' }
         kpi:
           type: string
@@ -15727,8 +15837,17 @@ components:
           incomeCategories,
           expenseCategories,
           accounts,
+          includesUpcoming,
+          upcomingCount,
         ]
       properties:
+        includesUpcoming:
+          type: boolean
+          description: True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+        upcomingCount:
+          type: integer
+          minimum: 0
+          description: Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
         month:
           type: string
           pattern: '^\d{4}-(0[1-9]|1[0-2])$'
@@ -15785,8 +15904,14 @@ components:
           counterpartAccountId,
           counterpartAccountLabel,
           pending,
+          upcoming,
         ]
       properties:
+        upcoming:
+          type: boolean
+          description: >-
+            True for a planned movement counted as if booked on its date; it is
+            part of the totals of a read that asked for upcoming transactions.
         id: { type: string, format: uuid }
         transactionId: { type: [string, 'null'], format: uuid }
         transferId: { type: [string, 'null'], format: uuid }
@@ -15874,7 +15999,16 @@ components:
         - accounts
         - reconciliationStatus
         - metricPolicy
+        - includesUpcoming
+        - upcomingCount
       properties:
+        includesUpcoming:
+          type: boolean
+          description: True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+        upcomingCount:
+          type: integer
+          minimum: 0
+          description: Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
         month:
           type: string
           pattern: '^\d{4}-(0[1-9]|1[0-2])$'
@@ -16438,7 +16572,16 @@ components:
         - totals
         - metricPolicy
         - portfolioCosts
+        - includesUpcoming
+        - upcomingCount
       properties:
+        includesUpcoming:
+          type: boolean
+          description: True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+        upcomingCount:
+          type: integer
+          minimum: 0
+          description: Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
         metricPolicy:
           $ref: '#/components/schemas/MetricPolicyReference'
         portfolioCosts:
@@ -16496,6 +16639,31 @@ components:
         visibleAxes:
           $ref: '#/components/schemas/AnalyticAxes'
         version:
+          type: integer
+          minimum: 0
+    InterfacePreferences:
+      type: object
+      additionalProperties: false
+      required: [includeUpcoming, version]
+      properties:
+        includeUpcoming:
+          description: >-
+            Whether the planned (upcoming) transactions of the current month
+            count in the monthly budget and report figures.
+          type: boolean
+        version:
+          description: 0 when the workspace never saved a preference.
+          type: integer
+          minimum: 0
+    InterfacePreferencesInput:
+      type: object
+      additionalProperties: false
+      required: [includeUpcoming, version]
+      properties:
+        includeUpcoming:
+          type: boolean
+        version:
+          description: The version the caller last read. A stale one is refused with 409.
           type: integer
           minimum: 0
     MonthlyRecapPreferencesInput:
@@ -17753,6 +17921,7 @@ components:
         - reviewReason
         - reconciliationCandidateIds
         - reconciledIntoId
+        - autoBook
       properties:
         id:
           type: string
@@ -17930,6 +18099,12 @@ components:
             - type: string
               format: uuid
             - type: 'null'
+        autoBook:
+          type: boolean
+          description: >-
+            Read-only. True on a pending row planned for a later day of the
+            current month: the booking job books it on its date. Computed by
+            the server; a request body carrying it is refused.
     TransactionReviewReason:
       type: string
       enum:

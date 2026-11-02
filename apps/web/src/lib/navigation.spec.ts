@@ -9,7 +9,7 @@ describe('navigationItems', () => {
       '/budget',
       '/goals',
       '/transactions',
-      '/parameters/profile',
+      '/parameters/interface',
     ]);
     expect(navigationItems.filter((item) => item.mobile).map((item) => item.href)).toEqual([
       '/',
@@ -19,7 +19,7 @@ describe('navigationItems', () => {
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
       '/goals',
-      '/parameters/profile',
+      '/parameters/interface',
     ]);
   });
 
@@ -35,7 +35,7 @@ describe('navigationItems', () => {
     ['/transactions/categories', '/transactions'],
     ['/transactions/categories/rules', '/transactions'],
     ['/transactions/recurrences', '/transactions'],
-    ['/parameters/metric-policy', '/parameters/profile'],
+    ['/parameters/metric-policy', '/parameters/interface'],
   ])('selects only %s parent %s', (path, parent) => {
     expect(navigationItems.filter((item) => item.match(path)).map((item) => item.href)).toEqual([
       parent,
@@ -67,7 +67,7 @@ describe('navigationItems', () => {
     expect(getRouteTitleKey('/parameters/metric-policy')).toBe('routes.metricPolicy');
     expect(
       navigationItems
-        .find((item) => item.href === '/parameters/profile')
+        .find((item) => item.href === '/parameters/interface')
         ?.match('/parameters/metric-policy'),
     ).toBe(true);
   });

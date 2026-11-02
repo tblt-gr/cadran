@@ -14,6 +14,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { MetricExplanationModal } from './MetricExplanationModal';
+import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useMonthlyReport } from '@/features/reports/useMonthlyReport';
 import { RATE_KPIS, RECAP_KPIS, type RecapKpi } from './recapKpis';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -171,6 +172,10 @@ export function TotalsCard({
           {owner ? <RecapSettingsButton onClick={onConfigure} /> : null}
         </div>
       </header>
+      <UpcomingNotice
+        includesUpcoming={projection.data?.includesUpcoming ?? false}
+        upcomingCount={projection.data?.upcomingCount ?? 0}
+      />
       <ul className={styles.rows}>
         {RECAP_KPIS.map((kpi) => {
           const own =

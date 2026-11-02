@@ -28,6 +28,8 @@ final readonly class MonthlyRecapView
         public MonthlyRecapTotalsView $totals,
         public MetricPolicyReference $metricPolicy,
         public ?MonthlyPortfolioCosts $portfolioCosts = null,
+        public bool $includesUpcoming = false,
+        public int $upcomingCount = 0,
     ) {
     }
 }

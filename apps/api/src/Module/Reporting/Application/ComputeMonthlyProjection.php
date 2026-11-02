@@ -47,14 +47,15 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
     ) {
     }
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today): MonthlyProjectionView
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView
     {
         $policy = ($this->metricPolicy)($workspace, $month);
         // N−1 is the last day of the preceding month, and an unfinished month
         // stops on the day the workspace is living in. See MonthlyRecapWindow.
         $window = MonthlyRecapWindow::of($month, $today);
         try {
-            $transactionFacts = ($this->transactions)($workspace, $month);
+            $transactionFacts = ($this->transactions)($workspace, $month, $includeUpcoming);
+            $bookedFacts = $transactionFacts->bookedWithUpcoming();
             $transferPairFacts = ($this->transferPairs)($workspace, $month);
             $accountFacts = ($this->accounts)($workspace, $month, $window->currentAsOf);
             $categoryFacts = ($this->categories)($workspace);
@@ -83,18 +84,18 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             $fact->id,
             $accountsById[$fact->accountId]->kind ?? null,
         );
-        $movements = array_map($toMovement, $transactionFacts->booked);
+        $movements = array_map($toMovement, $bookedFacts);
         $pendingMovements = array_map($toMovement, $transactionFacts->pending);
         $categoryFlags = [];
         foreach ($categoryFacts as $category) {
             $categoryFlags[$category->id] = $category->budgetIncluded;
         }
         $ledgerEntries = MonthlyLedgerFacts::entries(array_values(array_filter(
-            $transactionFacts->booked,
+            $bookedFacts,
             static fn (MonthlyTransactionFact $fact): bool => !($policy->policy?->isExcluded($accountsById[$fact->accountId]->kind ?? null) ?? false),
         )));
         $benefitEntries = null === $policy->policy ? [] : MonthlyLedgerFacts::entries(array_values(array_filter(
-            $transactionFacts->booked,
+            $bookedFacts,
             static fn (MonthlyTransactionFact $fact): bool => $policy->policy->isExcluded($accountsById[$fact->accountId]->kind ?? null),
         )));
         $childrenOf = [];
@@ -178,7 +179,7 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             $window->previousAsOf->format('Y-m-d'),
             $window->currentAsOf->format('Y-m-d'),
             $window->provisional,
-            self::state(count($transactionFacts->booked), $transactionFacts->pendingCount),
+            self::state(count($bookedFacts), $transactionFacts->pendingCount),
             self::quality($netWorth),
             $transactionFacts->pendingCount,
             MonthlyMetricView::fromMetric($metrics->cashIncome),
@@ -205,6 +206,8 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
             $policy->reference(),
             self::budgetExpenseCategoryIds($categoryFacts, $categoryMetrics),
             $categoryRollups,
+            $includeUpcoming,
+            count($transactionFacts->upcoming),
         );
     }
 

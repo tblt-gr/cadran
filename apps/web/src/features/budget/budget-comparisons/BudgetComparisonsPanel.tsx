@@ -5,6 +5,8 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { budgetRequestError } from '@/features/budget/budgetError';
+import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
+import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 import { BudgetComparisonsPanelSkeleton } from './BudgetComparisonsPanelSkeleton';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './BudgetComparisonsPanel.module.css';
@@ -58,6 +60,14 @@ function ComparisonCard({
           <dt>{t('budget.comparisons.actual')}</dt>
           <dd>
             <Figure assetCode={assetCode} language={i18n.language} value={comparison.actual} />
+            {comparison.upcomingAmount !== null &&
+            !/^-?0(?:\.0+)?$/.test(comparison.upcomingAmount) ? (
+              <small className={styles.upcoming}>
+                {t('budget.comparisons.upcomingAmount', {
+                  amount: formatAmount(comparison.upcomingAmount, assetCode, i18n.language),
+                })}
+              </small>
+            ) : null}
           </dd>
         </div>
         <div>
@@ -110,7 +120,10 @@ function ComparisonCard({
               <time dateTime={transaction.bookedOn}>
                 {formatCalendarDay(transaction.bookedOn, i18n.language)}
               </time>
-              <span>{transaction.rawLabel}</span>
+              <span>
+                {transaction.rawLabel}
+                {transaction.upcoming ? ` (${t('budget.comparisons.upcoming')})` : ''}
+              </span>
               <MoneyValue
                 value={formatAmount(transaction.amount, transaction.assetCode, i18n.language)}
               />
@@ -125,12 +138,15 @@ function ComparisonCard({
 /** Server-owned comparison figures: this component never derives financial values. */
 export function BudgetComparisonsPanel({ planId }: { planId: string }) {
   const { t } = useTranslation();
+  const upcoming = useIncludeUpcoming();
   const comparisons = useQuery({
-    queryKey: ['budget-comparisons', planId],
+    enabled: upcoming.ready,
+    queryKey: ['budget-comparisons', planId, upcoming.includeUpcoming],
     queryFn: async ({ signal }) => {
       const result = await readBudgetComparisons({
         ...authApiOptions(),
         path: { id: planId },
+        query: { includeUpcoming: upcoming.includeUpcoming },
         signal,
       });
       if (requestFailed(result)) throw budgetRequestError(result);
@@ -164,8 +180,21 @@ export function BudgetComparisonsPanel({ planId }: { planId: string }) {
     );
   }
 
+  // The API counts upcoming rows per comparison; one row can sit in several scopes, so count it once.
+  const upcomingSources = new Set(
+    comparisons.data.comparisons.flatMap((comparison) =>
+      comparison.includedTransactions
+        .filter((transaction) => transaction.upcoming)
+        .map((transaction) => transaction.id),
+    ),
+  );
+
   return (
     <div className={styles.list}>
+      <UpcomingNotice
+        includesUpcoming={comparisons.data.includesUpcoming}
+        upcomingCount={upcomingSources.size}
+      />
       {comparisons.data.comparisons.map((comparison) => (
         <ComparisonCard
           assetCode={comparisons.data!.assetCode}

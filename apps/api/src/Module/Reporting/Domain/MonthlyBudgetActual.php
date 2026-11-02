@@ -15,6 +15,9 @@ final readonly class MonthlyBudgetActual
         public ?MonthlyProjectionReason $reason,
         public array $sources,
         public int $pendingCount,
+        /** Negated like the amount; null when no planned movement falls in the scope. */
+        public ?string $upcomingAmount = null,
+        public int $upcomingCount = 0,
     ) {
         if ((null === $amount) === (null === $reason) || (null === $amount) !== (null === $asset)) {
             throw new \InvalidArgumentException('A monthly budget actual carries either an amount and asset or a reason.');

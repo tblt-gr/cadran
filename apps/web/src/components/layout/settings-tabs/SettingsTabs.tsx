@@ -6,10 +6,11 @@ interface SettingsTabsProps {
 }
 
 const tabs = [
-  { href: '/parameters/profile', labelKey: 'settings.tabs.profile' },
-  { href: '/parameters/metric-policy', labelKey: 'settings.tabs.metricPolicy' },
+  { href: '/parameters/interface', labelKey: 'settings.tabs.interface' },
   { href: '/parameters/catalog', labelKey: 'settings.tabs.catalog' },
   { href: '/parameters/product-models', labelKey: 'settings.tabs.productModels' },
+  { href: '/parameters/metric-policy', labelKey: 'settings.tabs.metricPolicy' },
+  { href: '/parameters/profile', labelKey: 'settings.tabs.profile' },
 ] as const;
 
 /** Sub-navigation shared by every settings page. */

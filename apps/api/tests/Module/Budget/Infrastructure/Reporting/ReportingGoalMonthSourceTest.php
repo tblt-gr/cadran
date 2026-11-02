@@ -114,7 +114,7 @@ final readonly class FixedIncomeProjector implements MonthlyProjector
     {
     }
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today): MonthlyProjectionView
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView
     {
         $income = array_key_exists($month->key(), $this->incomes) ? $this->incomes[$month->key()] : '2500.00';
         if (null === $income) {

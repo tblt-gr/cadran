@@ -20,6 +20,7 @@ use App\Module\Budget\Application\ReadBudgetPlan;
 use App\Module\Budget\Application\UpdateBudgetPlan;
 use App\Module\Budget\Application\UpdateBudgetPlanInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\IncludeUpcomingQuery;
 use App\Module\Reporting\UI\Http\MonthlyKpiExplanationRepresentation;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -94,13 +95,17 @@ final readonly class BudgetPlanController
     }
 
     #[Route('/api/v1/budget-plans/{id}/comparisons', name: 'api_v1_budget_plan_comparisons', methods: ['GET'])]
-    public function comparisons(string $id, ReadBudgetComparisons $read): Response
+    public function comparisons(string $id, Request $request, ReadBudgetComparisons $read): Response
     {
         if (!$this->envelope->isIdentifier($id)) {
             return $this->notFound();
         }
+        $includeUpcoming = IncludeUpcomingQuery::of($request);
+        if (null === $includeUpcoming) {
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_budget_query');
+        }
         try {
-            $result = $read($id);
+            $result = $read($id, $includeUpcoming);
         } catch (BudgetPlanNotFound) {
             return $this->notFound();
         } catch (BudgetComparisonUnavailable) {
@@ -115,13 +120,17 @@ final readonly class BudgetPlanController
     }
 
     #[Route('/api/v1/budget-plans/{id}/comparisons/{targetId}/explain', name: 'api_v1_budget_comparison_explain', methods: ['GET'])]
-    public function explainComparison(string $id, string $targetId, ReadBudgetKpiExplanation $read): Response
+    public function explainComparison(string $id, string $targetId, Request $request, ReadBudgetKpiExplanation $read): Response
     {
         if (!$this->envelope->isIdentifier($id) || !$this->envelope->isIdentifier($targetId)) {
             return $this->notFound();
         }
+        $includeUpcoming = IncludeUpcomingQuery::of($request);
+        if (null === $includeUpcoming) {
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_budget_query');
+        }
         try {
-            $result = $read($id, $targetId);
+            $result = $read($id, $targetId, $includeUpcoming);
         } catch (BudgetPlanNotFound|BudgetKpiExplanationNotFound) {
             return $this->notFound();
         } catch (BudgetComparisonUnavailable) {

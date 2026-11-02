@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
 import { MovementDateGroup } from './MovementDateGroup';
@@ -29,14 +30,17 @@ export function MovementDetails({
   rowId,
 }: MovementDetailsProps) {
   const { t } = useTranslation();
+  const upcoming = useIncludeUpcoming();
   const query = useInfiniteQuery({
-    queryKey: ['monthly-ledger-movements', month, axis, kind, rowId],
+    enabled: upcoming.ready,
+    queryKey: ['monthly-ledger-movements', month, axis, kind, rowId, upcoming.includeUpcoming],
     queryFn: async ({ pageParam, signal }) => {
       const result = await readMonthlyLedgerMovements({
         ...authApiOptions(),
         path: { id: rowId, kind },
         query: {
           month,
+          includeUpcoming: upcoming.includeUpcoming,
           ...(kind === 'expense' && axis ? { axis } : {}),
           ...(pageParam ? { cursor: pageParam } : {}),
         },

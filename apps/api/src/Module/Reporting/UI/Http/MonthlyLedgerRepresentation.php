@@ -26,6 +26,8 @@ final class MonthlyLedgerRepresentation
             'timezone' => $view->timezone,
             'firstDataMonth' => $view->firstDataMonth,
             'pendingCount' => $view->pendingCount,
+            'includesUpcoming' => $view->includesUpcoming,
+            'upcomingCount' => $view->upcomingCount,
             'closed' => $view->closed,
             'actionsAllowed' => $view->actionsAllowed,
             'actionReason' => $view->actionReason,
@@ -94,6 +96,7 @@ final class MonthlyLedgerRepresentation
             'counterpartAccountId' => $movement->counterpartAccountId,
             'counterpartAccountLabel' => $movement->counterpartAccountLabel,
             'pending' => $movement->pending,
+            'upcoming' => $movement->upcoming,
         ];
     }
 

@@ -215,6 +215,7 @@ describe('App', () => {
     ['/life-insurance/demo', 'Assurance-vie'],
     ['/budget/2026', 'Rapport 2026'],
     ['/goals', 'Objectifs'],
+    ['/parameters/interface', 'Paramètres'],
     ['/parameters/profile', 'Paramètres'],
     ['/parameters/catalog', 'Catalogue produits'],
     ['/parameters/product-models', 'Modèles de produits'],

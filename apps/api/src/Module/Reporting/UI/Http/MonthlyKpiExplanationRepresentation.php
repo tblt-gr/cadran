@@ -34,6 +34,8 @@ final class MonthlyKpiExplanationRepresentation
             'quality' => $view->quality,
             'pendingCount' => $view->pendingCount,
             'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
+            'includesUpcoming' => $view->includesUpcoming,
+            'upcomingCount' => $view->upcomingCount,
         ];
     }
 }

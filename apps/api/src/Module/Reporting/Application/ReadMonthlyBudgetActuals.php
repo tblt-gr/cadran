@@ -39,8 +39,9 @@ final readonly class ReadMonthlyBudgetActuals
         CalendarMonth $month,
         array $scopes,
         string $expectedAsset,
+        bool $includeUpcoming = false,
     ): MonthlyBudgetActualsView {
-        $transactionFacts = ($this->transactions)($workspace, $month);
+        $transactionFacts = ($this->transactions)($workspace, $month, $includeUpcoming);
         $accountFacts = ($this->accounts)($workspace, $month);
         $categoryFacts = ($this->categories)($workspace);
         $policy = ($this->metricPolicy)($workspace, $month);
@@ -59,13 +60,19 @@ final readonly class ReadMonthlyBudgetActuals
             static fn (MonthlyTransactionFact $fact): MonthlyMovement => self::movement($fact, $accountsById),
             $transactionFacts->pending,
         ), $inCashPerimeter));
+        $allPlanned = array_map(
+            static fn (MonthlyTransactionFact $fact): MonthlyMovement => self::movement($fact, $accountsById),
+            $transactionFacts->upcoming,
+        );
+        $planned = array_values(array_filter($allPlanned, $inCashPerimeter));
         $bookedFactsById = [];
-        foreach ($transactionFacts->booked as $fact) {
+        foreach ($transactionFacts->bookedWithUpcoming() as $fact) {
             $bookedFactsById[$fact->id] = $fact;
         }
         $accountAssets = array_map(static fn (MonthlyAccountFact $account): string => $account->assetCode, $accountFacts->accounts);
         [$flags, $ancestors] = self::categoryMaps($categoryFacts);
-        $cashIncome = MonthlyBudgetCashIncomeCalculator::compute($accountAssets, $allBooked, $policy->policy);
+        // Ratio targets resolve against the cash income of the month, planned income included when asked for.
+        $cashIncome = MonthlyBudgetCashIncomeCalculator::compute($accountAssets, [...$allBooked, ...$allPlanned], $policy->policy);
 
         $actuals = [];
         foreach ($scopes as $scope) {
@@ -80,6 +87,7 @@ final readonly class ReadMonthlyBudgetActuals
                     $scope->id,
                     $expectedAsset,
                     [] !== $accountFacts->accounts,
+                    $planned,
                 );
             $actuals[$scope->key] = new MonthlyBudgetActualView(
                 new MonthlyMetricView($actual->amount, $actual->asset?->toString(), $actual->reason?->value),
@@ -94,11 +102,14 @@ final readonly class ReadMonthlyBudgetActuals
                             $fact->rawLabel,
                             $source->amount,
                             $source->asset->toString(),
+                            $source->upcoming,
                         );
                     },
                     $actual->sources,
                 ),
                 $actual->pendingCount,
+                $actual->upcomingAmount,
+                $actual->upcomingCount,
             );
         }
 

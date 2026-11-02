@@ -39,6 +39,8 @@ final class MonthlyRecapRepresentation
             'totals' => self::totals($view->totals),
             'metricPolicy' => MetricPolicyRepresentation::reference($view->metricPolicy),
             'portfolioCosts' => self::portfolioCosts($view->portfolioCosts),
+            'includesUpcoming' => $view->includesUpcoming,
+            'upcomingCount' => $view->upcomingCount,
         ];
     }
 

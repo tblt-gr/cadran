@@ -16,3 +16,17 @@ export function workspaceToday(now: Date, timeZone: string): string {
 
   return `${part('year')}-${part('month')}-${part('day')}`;
 }
+
+/** The last day (`YYYY-MM-DD`) of the month a `YYYY-MM-DD` day belongs to. */
+export function lastDayOfMonth(day: string): string {
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  const last = new Date(Date.UTC(year, month, 0)).getUTCDate();
+
+  return `${day.slice(0, 7)}-${String(last).padStart(2, '0')}`;
+}
+
+/** A day after `today` and no later than the end of its month: a plannable upcoming date. */
+export function isUpcomingDay(day: string, today: string): boolean {
+  return day > today && day <= lastDayOfMonth(today);
+}

@@ -18,6 +18,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSplit;
+use App\Module\Transactions\Domain\TransactionState;
 
 final readonly class TransactionReferences
 {
@@ -34,7 +35,7 @@ final readonly class TransactionReferences
         TransactionDraft $draft,
         \DateTimeImmutable $today,
         \DateTimeImmutable $now,
-        bool $allowFutureDate = false,
+        bool $keepsPlannedDate = false,
     ): Account {
         $account = $this->accounts->findForUpdate($workspace, $accountId);
         if (null === $account) {
@@ -43,7 +44,7 @@ final readonly class TransactionReferences
         if (null !== $account->archivedAt || $account->isClosed()) {
             throw new InvalidTransactionInput('A new transaction requires an active account.');
         }
-        $this->assertAccountAndDates($account, $draft, $today, $allowFutureDate);
+        $this->assertAccountAndDates($account, $draft, $today, $keepsPlannedDate);
 
         $used = $account->markUsed($now);
         if ($used !== $account && !$this->accounts->update($used, $account->version)) {
@@ -58,13 +59,13 @@ final readonly class TransactionReferences
         string $accountId,
         TransactionDraft $draft,
         \DateTimeImmutable $today,
-        bool $allowFutureDate = false,
+        bool $keepsPlannedDate = false,
     ): Account {
         $account = $this->accounts->find($workspace, $accountId);
         if (null === $account) {
             throw new TransactionNotFound();
         }
-        $this->assertAccountAndDates($account, $draft, $today, $allowFutureDate);
+        $this->assertAccountAndDates($account, $draft, $today, $keepsPlannedDate);
 
         return $account;
     }
@@ -265,7 +266,21 @@ final readonly class TransactionReferences
         }
     }
 
-    private function assertAccountAndDates(Account $account, TransactionDraft $draft, \DateTimeImmutable $today, bool $allowFutureDate = false): void
+    /**
+     * The latest day a draft may carry: a pending ordinary movement may be planned up to the last
+     * day of the current month, anything else (booked, transfer leg, refund, portfolio account)
+     * stops at today. $keepsPlannedDate lets a planned row be rejected without moving its date.
+     */
+    private static function latestDate(Account $account, TransactionDraft $draft, \DateTimeImmutable $today, bool $keepsPlannedDate): \DateTimeImmutable
+    {
+        $plannable = (TransactionState::PENDING === $draft->state || $keepsPlannedDate)
+            && AccountValuationMode::PORTFOLIO !== $account->valuationMode
+            && !in_array($draft->nature, [TransactionNature::TRANSFER, TransactionNature::REFUND], true);
+
+        return $plannable ? $today->modify('last day of this month') : $today;
+    }
+
+    private function assertAccountAndDates(Account $account, TransactionDraft $draft, \DateTimeImmutable $today, bool $keepsPlannedDate = false): void
     {
         if (AccountValuationMode::PORTFOLIO === $account->valuationMode
             && in_array($draft->nature, [TransactionNature::INCOME, TransactionNature::EXPENSE, TransactionNature::REFUND, TransactionNature::FEE], true)) {
@@ -274,7 +289,7 @@ final readonly class TransactionReferences
         if ($account->assetCode->toString() !== $draft->amount->asset->toString()) {
             throw new InvalidTransactionInput('The transaction asset must match its account asset.');
         }
-        if ($draft->bookedOn < $account->openedOn || ($draft->bookedOn > $today && !$allowFutureDate)) {
+        if ($draft->bookedOn < $account->openedOn || $draft->bookedOn > self::latestDate($account, $draft, $today, $keepsPlannedDate)) {
             throw new InvalidTransactionInput('The booked date is outside the account and workspace bounds.');
         }
     }

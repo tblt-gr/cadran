@@ -34,7 +34,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(TransactionRepository::class)]
 final readonly class DbalTransactionRepository implements BookedMovementTotals, CategoryClassificationCounter, TransactionRepository
 {
-    private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id, user_label, review_reason';
+    private const string COLUMNS = 'id, workspace_id, account_id, asset_code, amount_value, amount_scale, original_amount_value, original_amount_scale, original_asset_code, exchange_rate, state, nature, source, source_ref, booked_on, value_on, authorized_on, raw_label, counterparty, note, payment_method, mcc, masked_card, bank_reference, version, created_at, updated_at, voided_at, last_editor_id, user_label, review_reason, auto_book';
 
     public function __construct(private Connection $connection)
     {
@@ -434,6 +434,19 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
         ));
     }
 
+    public function listAutoBookDueIds(WorkspaceScope $workspace, \DateTimeImmutable $today, int $limit, array $excludedIds = []): array
+    {
+        // Oldest first so a backlog beyond the bound is cleared in date order over successive runs.
+        $ids = $this->connection->fetchFirstColumn(
+            "SELECT t.id FROM transaction_transactions t WHERE t.workspace_id = :workspace_id AND t.auto_book AND t.state = 'PENDING' "
+            .'AND t.review_reason IS NULL AND t.booked_on <= :today AND t.id::text <> ALL(:excluded::text[]) ORDER BY t.booked_on, t.id LIMIT :limit',
+            ['workspace_id' => $workspace->id, 'today' => $today->format('Y-m-d'), 'excluded' => self::postgresArray($excludedIds), 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(TransactionRow::text(...), $ids);
+    }
+
     /** @param list<string> $values */
     private static function postgresArray(array $values): string
     {
@@ -489,7 +502,7 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
             'raw_label' => $transaction->rawLabel,
             'created_at' => $transaction->createdAt->format('Y-m-d H:i:s.uP'),
             ...TransactionRow::mutableColumns($transaction),
-        ]);
+        ], ['auto_book' => ParameterType::BOOLEAN]);
         $this->replaceSplits($transaction);
     }
 
@@ -533,6 +546,7 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
                 ...TransactionRow::mutableColumns($transaction),
             ],
             ['workspace_id' => $transaction->workspace->id, 'id' => $transaction->id, 'version' => $expectedVersion],
+            ['auto_book' => ParameterType::BOOLEAN],
         );
         if ($written) {
             $this->replaceSplits($transaction);

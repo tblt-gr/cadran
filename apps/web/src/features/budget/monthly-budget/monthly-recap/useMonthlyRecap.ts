@@ -8,14 +8,22 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { budgetRequestError } from '@/features/budget/budgetError';
+import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 
 const RECAP_PREFERENCES_QUERY_KEY = ['monthly-recap-preferences'];
 
 export function useMonthlyRecap(month: string) {
+  const upcoming = useIncludeUpcoming();
+
   return useQuery({
-    queryKey: ['monthly-recap', month],
+    enabled: upcoming.ready,
+    queryKey: ['monthly-recap', month, upcoming.includeUpcoming],
     queryFn: async ({ signal }) => {
-      const result = await readMonthlyRecap({ ...authApiOptions(), query: { month }, signal });
+      const result = await readMonthlyRecap({
+        ...authApiOptions(),
+        query: { month, includeUpcoming: upcoming.includeUpcoming },
+        signal,
+      });
       if (!result.response?.ok || !result.data) throw budgetRequestError(result);
       return result.data;
     },

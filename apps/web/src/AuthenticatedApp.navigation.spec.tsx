@@ -34,9 +34,9 @@ vi.mock('@/features/transactions/TransactionsPage', async () => {
   await gates.transactions.opened;
   return { TransactionsPage: () => <p>Contenu des transactions</p> };
 });
-vi.mock('@/features/settings/ProfileSettingsPage', async () => {
+vi.mock('@/features/settings/interface/InterfaceSettingsPage', async () => {
   await gates.settings.opened;
-  return { ProfileSettingsPage: () => <p>Contenu des paramètres</p> };
+  return { InterfaceSettingsPage: () => <p>Contenu des paramètres</p> };
 });
 vi.mock('@/features/accounts/AccountsPage', async () => {
   await gates.accounts.opened;

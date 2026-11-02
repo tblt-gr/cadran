@@ -4,10 +4,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { MovementDetails } from './MovementDetails';
 
-const api = vi.hoisted(() => ({ readMovements: vi.fn() }));
-vi.mock('@cadran/api-client', () => ({ readMonthlyLedgerMovements: api.readMovements }));
+const api = vi.hoisted(() => ({ readMovements: vi.fn(), readPreferences: vi.fn() }));
+vi.mock('@cadran/api-client', () => ({
+  readInterfacePreferences: api.readPreferences,
+  readMonthlyLedgerMovements: api.readMovements,
+}));
 beforeEach(() => {
   api.readMovements.mockReset().mockImplementation(() => new Promise(() => undefined));
+  api.readPreferences.mockReset().mockResolvedValue({
+    data: { includeUpcoming: true, version: 0 },
+    response: new Response('{}', { status: 200 }),
+  });
 });
 
 afterEach(cleanup);
@@ -71,6 +78,7 @@ describe('MovementDetails loading structure', () => {
       counterpartAccountId: null,
       counterpartAccountLabel: null,
       pending: false,
+      upcoming: false,
     });
     const result = (items: ReturnType<typeof movement>[], hasMore: boolean) => ({
       data: { items, hasMore, nextCursor: hasMore ? 'next' : null },
@@ -180,4 +188,48 @@ describe('MovementDetails loading structure', () => {
       expect(booked.firstElementChild?.className).not.toContain('pending');
     },
   );
+
+  it('marks a planned movement "(à venir)" and asks for upcoming rows with the setting', async () => {
+    api.readMovements.mockResolvedValueOnce({
+      data: {
+        items: [
+          {
+            id: 'u',
+            transactionId: 'tx-u',
+            transferId: null,
+            bookedOn: '2026-11-20',
+            label: 'Internet',
+            amount: { value: '-29.99', assetCode: 'EUR' },
+            direction: null,
+            counterpartAccountId: null,
+            counterpartAccountLabel: null,
+            pending: false,
+            upcoming: true,
+          },
+        ],
+        hasMore: false,
+        nextCursor: null,
+      },
+      response: new Response('{}', { status: 200 }),
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MovementDetails
+          axis={null}
+          editable
+          kind="expense"
+          language="fr"
+          month="2026-11"
+          rowId="row-1"
+          onEditTransaction={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+
+    expect(await screen.findByText('(à venir)')).toBeTruthy();
+    expect(api.readMovements).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ includeUpcoming: true }) }),
+    );
+  });
 });

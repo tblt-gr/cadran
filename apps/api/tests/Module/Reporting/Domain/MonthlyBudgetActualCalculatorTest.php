@@ -204,6 +204,85 @@ final class MonthlyBudgetActualCalculatorTest extends TestCase
         self::assertNull($empty->reason);
     }
 
+    /** Worked example 1 of the planning ticket: -13.99 booked, -29.99 planned in the same category. */
+    public function testPlannedMovementsAreAddedAsIfBookedAndReportedApart(): void
+    {
+        $booked = [self::movement('b1', '-13.99', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-13.99', [])])];
+        $planned = [self::movement('p1', '-29.99', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-29.99', [])])];
+
+        $actual = MonthlyBudgetActualCalculator::compute(
+            $booked, [], [self::FOOD => true], [], 'CATEGORY', self::FOOD, 'EUR', true, $planned,
+        );
+
+        self::assertSame('43.98', $actual->amount);
+        self::assertSame('29.99', $actual->upcomingAmount);
+        self::assertSame(1, $actual->upcomingCount);
+        self::assertSame(0, $actual->pendingCount);
+        self::assertSame(['b1' => false, 'p1' => true], array_column(array_map(
+            static fn ($source): array => [$source->transactionId, $source->upcoming],
+            $actual->sources,
+        ), 1, 0));
+    }
+
+    public function testPlannedRowsLeftInThePendingListCountNowhereButAsPending(): void
+    {
+        $booked = [self::movement('b1', '-13.99', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-13.99', [])])];
+        $pending = [self::movement('p1', '-29.99', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-29.99', [])])];
+
+        $actual = MonthlyBudgetActualCalculator::compute($booked, $pending, [self::FOOD => true], [], 'CATEGORY', self::FOOD, 'EUR', true);
+
+        self::assertSame('13.99', $actual->amount);
+        self::assertNull($actual->upcomingAmount);
+        self::assertSame(0, $actual->upcomingCount);
+        self::assertSame(1, $actual->pendingCount);
+    }
+
+    public function testBookingAPlannedRowChangesNoFigure(): void
+    {
+        $row = static fn (): MonthlyMovement => self::movement('p1', '-29.99', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-29.99', [])]);
+        $before = MonthlyBudgetActualCalculator::compute([], [], [self::FOOD => true], [], 'CATEGORY', self::FOOD, 'EUR', true, [$row()]);
+        $after = MonthlyBudgetActualCalculator::compute([$row()], [], [self::FOOD => true], [], 'CATEGORY', self::FOOD, 'EUR', true);
+
+        self::assertSame($before->amount, $after->amount);
+        self::assertNull($after->upcomingAmount);
+    }
+
+    public function testAPlannedMovementOutsideTheScopeIsNotCounted(): void
+    {
+        $planned = [self::movement('p1', '-29.99', MonthlyMovementKind::EXPENSE, [self::split(self::LEISURE, '-29.99', [])])];
+
+        $actual = MonthlyBudgetActualCalculator::compute([], [], [self::FOOD => true, self::LEISURE => false], [], 'CATEGORY', self::FOOD, 'EUR', true, $planned);
+
+        self::assertSame('0', $actual->amount);
+        self::assertNull($actual->upcomingAmount);
+        self::assertSame(0, $actual->upcomingCount);
+    }
+
+    public function testPlannedAmountsKeepEveryDigitOfAVeryLargeDecimal(): void
+    {
+        $large = '1234567890123456789012.123456789012345678901234';
+        $booked = [self::movement('b1', '-'.$large, MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-'.$large, [])])];
+        $planned = [self::movement('p1', '-'.$large, MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-'.$large, [])])];
+
+        $actual = MonthlyBudgetActualCalculator::compute($booked, [], [self::FOOD => true], [], 'CATEGORY', self::FOOD, 'EUR', true, $planned);
+
+        self::assertSame('2469135780246913578024.246913578024691357802468', $actual->amount);
+        self::assertSame($large, $actual->upcomingAmount);
+    }
+
+    public function testPlannedRowsInAnotherAssetMakeTheActualNonCalculableWithoutLosingTheCount(): void
+    {
+        $booked = [self::movement('b1', '-10.00', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-10.00', [])])];
+        $planned = [self::movement('p1', '-5.00', MonthlyMovementKind::EXPENSE, [self::split(self::FOOD, '-5.00', [])], 'USD')];
+
+        $actual = MonthlyBudgetActualCalculator::compute($booked, [], [self::FOOD => true], [], 'CATEGORY', self::FOOD, 'EUR', true, $planned);
+
+        self::assertNull($actual->amount);
+        self::assertSame('MIXED_ASSETS', $actual->reason?->value);
+        self::assertNull($actual->upcomingAmount);
+        self::assertSame(1, $actual->upcomingCount);
+    }
+
     /** @param list<MonthlySplit> $splits */
     private static function movement(
         string $id,

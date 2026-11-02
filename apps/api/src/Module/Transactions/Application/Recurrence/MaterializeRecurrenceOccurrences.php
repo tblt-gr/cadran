@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Recurrence;
 
-use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Application\PeriodClosed;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -16,11 +15,8 @@ use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
-use App\Module\Transactions\Application\TransactionAuditEvents;
-use App\Module\Transactions\Application\TransactionAuditFingerprint;
 use App\Module\Transactions\Application\TransactionConflict;
 use App\Module\Transactions\Application\TransactionNotFound;
-use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrence;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrence;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrenceRepository;
@@ -31,7 +27,7 @@ use App\Module\Transactions\Domain\TransactionState;
 
 /**
  * Creates, for every live auto-create recurrence, the transactions of the
- * current calendar month only, then books the ones whose day has come.
+ * current calendar month only, then books, through {@see BookDueTransactions}, the planned rows whose day has come.
  *
  * Every step is expressed as "what is still missing", so repeating a run, or
  * racing two of them, produces nothing twice: the recurrence row is locked
@@ -51,10 +47,10 @@ final readonly class MaterializeRecurrenceOccurrences
         private TransactionRepository $transactions,
         private OccurrenceGenerator $generator,
         private CreateTransaction $createTransaction,
-        private AssertPeriodOpen $assertPeriodOpen,
         private TransactionBoundary $boundary,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
+        private BookDueTransactions $bookDue,
     ) {
     }
 
@@ -72,9 +68,17 @@ final readonly class MaterializeRecurrenceOccurrences
                     return new MaterializationTally();
                 }
 
-                return $this->forRecurrence($context, $current, $today);
+                return $this->forRecurrence($context, $current, $today, book: false);
             }));
         }
+
+        // Planned rows are booked once per run, whether or not the workspace has an automatic recurrence.
+        $total->add($this->boundary->transactional(function () use ($context, $today): MaterializationTally {
+            $tally = new MaterializationTally();
+            ($this->bookDue)($context, $today, $tally);
+
+            return $tally;
+        }));
 
         return new MaterializeRecurrencesResult(
             $examined, $total->created, $total->booked, $total->skippedClosedPeriod, $total->skippedRefused,
@@ -86,7 +90,7 @@ final readonly class MaterializeRecurrenceOccurrences
      * One locked recurrence, inside its caller's transaction: also the entry
      * point of a save that turns the setting on.
      */
-    public function forRecurrence(WorkspaceContext $context, TransactionRecurrence $recurrence, \DateTimeImmutable $today): MaterializationTally
+    public function forRecurrence(WorkspaceContext $context, TransactionRecurrence $recurrence, \DateTimeImmutable $today, bool $book = true): MaterializationTally
     {
         $tally = new MaterializationTally();
         $this->generator->extendToHorizon($recurrence, $today);
@@ -96,7 +100,9 @@ final readonly class MaterializeRecurrenceOccurrences
         foreach ($pending as $occurrence) {
             $this->create($context, $recurrence, $occurrence, $today, $tally);
         }
-        $this->bookDue($context, $recurrence, $today, $tally);
+        if ($book) {
+            ($this->bookDue)($context, $today, $tally);
+        }
         $this->recurrences->advanceNextExpectedOn(
             $recurrence->workspace, $recurrence->id, $this->generator->pointer($recurrence, $today),
         );
@@ -174,45 +180,6 @@ final readonly class MaterializeRecurrenceOccurrences
             return;
         }
         $this->occurrences->recordGenerated($recurrence->workspace, $occurrence->id, $existing->id, $existing->version);
-    }
-
-    private function bookDue(WorkspaceContext $context, TransactionRecurrence $recurrence, \DateTimeImmutable $today, MaterializationTally $tally): void
-    {
-        $workspace = $recurrence->workspace;
-        foreach ($this->occurrences->listGeneratedPendingDue($workspace, $recurrence->id, $today, self::MAX_INSTALMENTS) as $occurrence) {
-            $transaction = null === $occurrence->generatedTransactionId
-                ? null
-                : $this->transactions->findForUpdate($workspace, $occurrence->generatedTransactionId);
-            if (null === $transaction || TransactionState::PENDING !== $transaction->state) {
-                continue;
-            }
-            try {
-                ($this->assertPeriodOpen)($workspace, $transaction->bookedOn);
-                $booked = $transaction->edit(
-                    $transaction->amount, $transaction->nature, TransactionState::BOOKED, $transaction->bookedOn,
-                    $transaction->valueOn, $transaction->authorizedOn, $transaction->rawLabel, $transaction->counterparty,
-                    $transaction->note, $transaction->paymentMethod, $transaction->mcc, $transaction->maskedCard,
-                    $transaction->bankReference, $transaction->splits, $this->calendar->now(), $context->actorId,
-                );
-            } catch (PeriodClosed) {
-                ++$tally->skippedClosedPeriod;
-
-                continue;
-            } catch (InvalidTransaction) {
-                ++$tally->skippedRefused;
-
-                continue;
-            }
-            if (!$this->transactions->update($booked, $transaction->version)) {
-                continue;
-            }
-            ($this->audit)(new AuditEventRecord(
-                $workspace, $context->actorId, TransactionAuditEvents::UPDATED, TransactionAuditEvents::ENTITY, $booked->id,
-                AuditDiff::change(TransactionAuditFingerprint::of($transaction), TransactionAuditFingerprint::changed($transaction, $booked)),
-            ));
-            $this->occurrences->claim($workspace, $occurrence->id, $booked->id, $this->calendar->now());
-            ++$tally->booked;
-        }
     }
 
     private static function monthStart(\DateTimeImmutable $today): \DateTimeImmutable

@@ -8,6 +8,7 @@ import type {
 } from '@cadran/api-client';
 import { categoryContradictsAmount } from '@/features/transactions/categorySign';
 import { compareDecimals, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
+import { lastDayOfMonth } from '@/lib/workspaceTime';
 import {
   resolveDirection,
   toSignedAmount,
@@ -168,14 +169,13 @@ export function validateTransactionValues(
     }
   }
 
-  // A recurrence's pending row is dated in the future by design: it may keep that date while it
-  // stays pending or is rejected, but booking it early stays refused, like the server does.
-  const futureAllowed =
-    transaction?.source === 'RECURRENCE' &&
-    transaction.state === 'PENDING' &&
-    (values.state === 'PENDING' || values.state === 'REJECTED');
+  // Only a pending row may be planned, up to the end of the current month; a row being rejected
+  // keeps the date it was planned on.
+  const planning =
+    values.state === 'PENDING' || (values.state === 'REJECTED' && transaction?.state === 'PENDING');
+  const latest = planning ? lastDayOfMonth(today) : today;
 
-  if (!ISO_DAY.test(values.bookedOn) || (values.bookedOn > today && !futureAllowed)) {
+  if (!ISO_DAY.test(values.bookedOn) || values.bookedOn > latest) {
     errors.bookedOn = true;
   } else if (account !== undefined && values.bookedOn < account.openedOn) {
     errors.bookedOn = true;

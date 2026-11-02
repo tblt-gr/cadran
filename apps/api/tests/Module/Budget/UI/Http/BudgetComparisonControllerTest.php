@@ -110,6 +110,7 @@ final class BudgetComparisonControllerTest extends WebTestCase
                     'rawLabel' => 'Budget 02',
                     'amount' => '-125.00',
                     'assetCode' => 'EUR',
+                    'upcoming' => false,
                 ],
                 [
                     'id' => '00000000-0000-7000-8000-000000000103',
@@ -117,6 +118,7 @@ final class BudgetComparisonControllerTest extends WebTestCase
                     'rawLabel' => 'Budget 03',
                     'amount' => '25.00',
                     'assetCode' => 'EUR',
+                    'upcoming' => false,
                 ],
             ], $comparison['includedTransactions']);
             self::assertArrayNotHasKey('includedTransactionIds', $comparison);
