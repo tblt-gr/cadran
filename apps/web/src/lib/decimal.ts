@@ -172,6 +172,15 @@ export function formatCalendarDayMonth(value: string, locale: string): string {
   }).format(new Date(`${value}T12:00:00Z`));
 }
 
+/** Day and month of an ISO 8601 calendar day in the locale's short numeric form (`20/11` in French). */
+export function formatCalendarShortDay(value: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    day: '2-digit',
+    month: '2-digit',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T12:00:00Z`));
+}
+
 /**
  * Prints an ISO 8601 calendar day as `dd/mm/yyyy` from its parts, so a
  * timezone can never shift it to the day before.

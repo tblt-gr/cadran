@@ -38,6 +38,7 @@ final readonly class ReadMonthlyLedgerMovements
         ?string $requestedAxis,
         ?string $encodedCursor,
         ?string $requestedPageSize = null,
+        bool $includeUpcoming = false,
     ): MonthlyLedgerMovementPageView {
         $pageSize = self::pageSize($requestedPageSize);
         if (!in_array($kind, ['income', 'expense', 'account'], true) || !self::uuid($id)) {
@@ -60,7 +61,7 @@ final readonly class ReadMonthlyLedgerMovements
         try {
             $items = 'account' === $kind
                 ? $this->accountItems($workspace, $month, $id)
-                : $this->categoryItems($workspace, $month, $kind, $id, $axis?->value);
+                : $this->categoryItems($workspace, $month, $kind, $id, $axis?->value, $includeUpcoming);
         } catch (MonthlyTransactionScopeTooLarge|NetWorthScopeTooLarge|BudgetCategoryScopeTooLarge $exception) {
             throw new MonthlyProjectionScopeTooLarge('The monthly ledger scope exceeds its bounds.', previous: $exception);
         }
@@ -108,6 +109,7 @@ final readonly class ReadMonthlyLedgerMovements
         string $kind,
         string $id,
         ?string $axis,
+        bool $includeUpcoming,
     ): array {
         $categories = ($this->categories)($workspace);
         $expectedType = 'income' === $kind ? 'INCOME' : 'EXPENSE';
@@ -115,7 +117,8 @@ final readonly class ReadMonthlyLedgerMovements
         if (!$exists) {
             throw new MonthlyLedgerRowNotFound('The ledger category does not exist in this workspace.');
         }
-        $transactions = ($this->transactions)($workspace, $month);
+        $transactions = ($this->transactions)($workspace, $month, $includeUpcoming);
+        $upcomingIds = array_flip(array_map(static fn ($fact): string => $fact->id, $transactions->upcoming));
         $view = static fn (bool $pending): \Closure => static fn (MonthlyLedgerSource $source): MonthlyLedgerMovementView => new MonthlyLedgerMovementView(
             $source->id,
             $source->transactionId,
@@ -125,9 +128,10 @@ final readonly class ReadMonthlyLedgerMovements
             $source->amount->toString(),
             $source->asset->toString(),
             pending: $pending,
+            upcoming: isset($upcomingIds[$source->transactionId]),
         );
         $booked = array_map($view(false), MonthlyLedgerCalculator::categorySources(
-            MonthlyLedgerFacts::entries($transactions->booked),
+            MonthlyLedgerFacts::entries($transactions->bookedWithUpcoming()),
             $expectedType,
             $id,
             $axis,

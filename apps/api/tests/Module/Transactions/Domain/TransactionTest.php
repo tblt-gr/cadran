@@ -267,6 +267,58 @@ final class TransactionTest extends TestCase
         $this->transaction('-42.90', TransactionNature::EXPENSE, reviewReason: ReviewReason::NO_MATCH);
     }
 
+    public function testTheBookingMarkerRequiresAPendingTransactionWithoutAReviewReason(): void
+    {
+        $planned = $this->transaction('-29.99', TransactionNature::EXPENSE, state: TransactionState::PENDING, autoBook: true);
+        self::assertTrue($planned->autoBook);
+
+        foreach ([TransactionState::BOOKED, TransactionState::REJECTED] as $state) {
+            try {
+                $this->transaction('-29.99', TransactionNature::EXPENSE, state: $state, autoBook: true);
+                self::fail('A marker on a '.$state->value.' row must be refused.');
+            } catch (InvalidTransaction) {
+                self::addToAssertionCount(1);
+            }
+        }
+
+        $this->expectException(InvalidTransaction::class);
+        $this->transaction('-29.99', TransactionNature::EXPENSE, state: TransactionState::PENDING, reviewReason: ReviewReason::NO_MATCH, autoBook: true);
+    }
+
+    public function testTheBookingMarkerSurvivesAPendingEditAndEveryNonDestructiveCopy(): void
+    {
+        $planned = $this->transaction('-29.99', TransactionNature::EXPENSE, state: TransactionState::PENDING, autoBook: true);
+
+        $edited = self::editTo($planned, TransactionState::PENDING);
+
+        self::assertTrue($edited->autoBook);
+        self::assertSame(2, $edited->version);
+        self::assertTrue($edited->withUserLabel('Internet')->autoBook);
+        self::assertTrue($planned->adoptSourceRef('abc')->autoBook);
+        self::assertFalse(self::editTo($planned, TransactionState::PENDING, autoBook: false)->autoBook);
+    }
+
+    public function testTheBookingMarkerIsClearedWhenTheRowLeavesPending(): void
+    {
+        $planned = $this->transaction('-29.99', TransactionNature::EXPENSE, state: TransactionState::PENDING, autoBook: true);
+
+        self::assertFalse(self::editTo($planned, TransactionState::BOOKED)->autoBook);
+        self::assertFalse(self::editTo($planned, TransactionState::REJECTED)->autoBook);
+        self::assertFalse($planned->void(new \DateTimeImmutable('2026-03-15T10:00:00+00:00'), WorkspaceFixture::OWNER_ID)->autoBook);
+        self::assertTrue($planned->autoBook);
+    }
+
+    private static function editTo(Transaction $transaction, TransactionState $state, ?bool $autoBook = null): Transaction
+    {
+        return $transaction->edit(
+            amount: $transaction->amount, nature: $transaction->nature, state: $state,
+            bookedOn: $transaction->bookedOn, valueOn: null, authorizedOn: null, rawLabel: $transaction->rawLabel,
+            counterparty: null, note: null, paymentMethod: null, mcc: null, maskedCard: null, bankReference: null,
+            splits: [], updatedAt: new \DateTimeImmutable('2026-03-16T10:00:00+00:00'),
+            lastEditorId: WorkspaceFixture::OWNER_ID, autoBook: $autoBook,
+        );
+    }
+
     public function testSplitsSummingExactlyToTheAmountAreAccepted(): void
     {
         $transaction = $this->transactionWithSplits('-87.40', TransactionNature::EXPENSE, [
@@ -352,6 +404,7 @@ final class TransactionTest extends TestCase
         TransactionSource $source = TransactionSource::MANUAL,
         TransactionState $state = TransactionState::BOOKED,
         ?ReviewReason $reviewReason = null,
+        bool $autoBook = false,
     ): Transaction {
         $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
 
@@ -363,7 +416,7 @@ final class TransactionTest extends TestCase
             valueOn: null, authorizedOn: null, rawLabel: 'CB CARREFOUR 1234', counterparty: null,
             note: null, paymentMethod: null, mcc: null, maskedCard: null, bankReference: null,
             splits: [], version: 1, createdAt: $now, updatedAt: $now, voidedAt: null,
-            lastEditorId: WorkspaceFixture::OWNER_ID, reviewReason: $reviewReason,
+            lastEditorId: WorkspaceFixture::OWNER_ID, reviewReason: $reviewReason, autoBook: $autoBook,
         );
     }
 

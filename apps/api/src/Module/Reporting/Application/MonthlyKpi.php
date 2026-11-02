@@ -43,9 +43,9 @@ enum MonthlyKpi: string
         };
     }
 
-    public function formula(): string
+    public function formula(bool $includeUpcoming = false): string
     {
-        return match ($this) {
+        return self::withUpcomingNote(match ($this) {
             self::CASH_INCOME => 'cash income = sum of booked INCOME amounts on accounts inside the cash perimeter',
             self::NON_CASH_BENEFITS => 'non-cash benefits = sum of booked INCOME amounts on accounts outside the cash perimeter',
             self::BENEFIT_SPENDING => 'benefit spending = negative sum of booked EXPENSE, FEE and REFUND amounts on accounts outside the cash perimeter',
@@ -61,12 +61,12 @@ enum MonthlyKpi: string
             self::BEGINNING_NET_WORTH => 'beginning net worth = sum of eligible signed account valuations on the last calendar day of the preceding month',
             self::END_NET_WORTH => 'end net worth = sum of eligible signed account valuations on the effective end day of the month',
             self::NET_WORTH_DELTA => 'net worth delta = end net worth - beginning net worth',
-        };
+        }, $includeUpcoming, 'formula');
     }
 
-    public function scope(): string
+    public function scope(bool $includeUpcoming = false): string
     {
-        return match ($this) {
+        return self::withUpcomingNote(match ($this) {
             self::CASH_INCOME => 'Booked, non-voided INCOME transactions on accounts inside the cash perimeter of the governing metric policy, in the caller workspace and month.',
             self::NON_CASH_BENEFITS => 'Booked, non-voided INCOME transactions on accounts outside the cash perimeter of the governing metric policy, in the caller workspace and month.',
             self::BENEFIT_SPENDING => 'Booked, non-voided EXPENSE, FEE and REFUND transactions on accounts outside the cash perimeter of the governing metric policy, in the caller workspace and month.',
@@ -79,6 +79,24 @@ enum MonthlyKpi: string
             self::BEGINNING_NET_WORTH => 'Eligible accounts and their latest valid valuation on the last calendar day of the month preceding the requested one, in the caller workspace.',
             self::END_NET_WORTH => 'Eligible accounts and their latest valid valuation on the last calendar day of the requested month in the caller workspace, or on the workspace-local current day while that month is still running.',
             self::NET_WORTH_DELTA => 'The exact beginning and end net-worth views for the caller workspace and month.',
-        };
+        }, $includeUpcoming, 'scope');
+    }
+
+    /**
+     * Without the upcoming parameter the text is the one that predates planned transactions. With it,
+     * the flow KPIs state that planned rows count as if booked on their date; the net worth KPIs state
+     * that they never do.
+     */
+    private function withUpcomingNote(string $text, bool $includeUpcoming, string $part): string
+    {
+        if (!$includeUpcoming) {
+            return $text;
+        }
+        $flow = !in_array($this, [self::BEGINNING_NET_WORTH, self::END_NET_WORTH, self::NET_WORTH_DELTA], true);
+        $note = $flow
+            ? 'planned upcoming transactions (pending, booked automatically on their date) are included as if booked on their date'
+            : 'planned upcoming transactions are never included';
+
+        return $text.('scope' === $part ? ' Note: '.$note.'.' : '; '.$note);
     }
 }

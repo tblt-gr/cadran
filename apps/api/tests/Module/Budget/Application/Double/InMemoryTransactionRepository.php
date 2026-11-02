@@ -130,6 +130,12 @@ final class InMemoryTransactionRepository implements TransactionRepository, Book
         throw new \LogicException('Not needed by the Budget module.');
     }
 
+    /** @param list<string> $excludedIds */
+    public function listAutoBookDueIds(WorkspaceScope $workspace, \DateTimeImmutable $today, int $limit, array $excludedIds = []): array
+    {
+        throw new \LogicException('Not needed by the Budget module.');
+    }
+
     public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
     {
         throw new \LogicException('Not needed by the Budget module.');

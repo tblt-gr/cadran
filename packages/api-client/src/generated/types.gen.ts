@@ -1273,6 +1273,11 @@ export type BudgetPlanDetail = {
 };
 
 export type BudgetComparison = {
+    /**
+     * The part of `actual` coming from planned (upcoming) transactions, negated like `actual`; null when none falls in the scope.
+     */
+    upcomingAmount: BudgetExactDecimal | null;
+    upcomingCount: number;
     targetId: string;
     scopeType: BudgetScopeType;
     scopeId: string;
@@ -1300,6 +1305,10 @@ export type BudgetComparison = {
 
 export type BudgetComparisonTransaction = {
     /**
+     * True when this source is a planned transaction counted as if booked on its date.
+     */
+    upcoming: boolean;
+    /**
      * Stable internal key for rendering; the interface presents the readable transaction fields instead.
      */
     id: string;
@@ -1316,6 +1325,7 @@ export type BudgetComparisonTransaction = {
 };
 
 export type BudgetComparisons = {
+    includesUpcoming: boolean;
     metricPolicy: MetricPolicyReference;
     planId: string;
     period: string;
@@ -2970,6 +2980,14 @@ export type MonthlyProjectionMetric = {
 };
 
 export type MonthlyKpiExplanation = {
+    /**
+     * True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+     */
+    includesUpcoming: boolean;
+    /**
+     * Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
+     */
+    upcomingCount: number;
     metricPolicy: MetricPolicyReference;
     kpi: 'cashIncome' | 'nonCashBenefits' | 'benefitSpending' | 'budgetExpenses' | 'uncategorizedExpenses' | 'budgetSurplus' | 'savingsTransfers' | 'cashSavingsRate' | 'savingsInflows' | 'savingsWithdrawals' | 'netSavingsTransfers' | 'netSavingsRate' | 'beginningNetWorth' | 'endNetWorth' | 'netWorthDelta' | 'budgetComparison';
     value: string | null;
@@ -3057,6 +3075,14 @@ export type MonthlyBounds = {
 };
 
 export type MonthlyLedger = {
+    /**
+     * True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+     */
+    includesUpcoming: boolean;
+    /**
+     * Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
+     */
+    upcomingCount: number;
     month: string;
     periodStart: string;
     periodEnd: string;
@@ -3081,6 +3107,10 @@ export type MonthlyLedger = {
 };
 
 export type MonthlyLedgerMovement = {
+    /**
+     * True for a planned movement counted as if booked on its date; it is part of the totals of a read that asked for upcoming transactions.
+     */
+    upcoming: boolean;
     id: string;
     transactionId: string | null;
     transferId: string | null;
@@ -3117,6 +3147,14 @@ export type MonthlyProjectionAccount = {
 };
 
 export type MonthlyProjection = {
+    /**
+     * True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+     */
+    includesUpcoming: boolean;
+    /**
+     * Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
+     */
+    upcomingCount: number;
     month: string;
     periodStart: string;
     periodEnd: string;
@@ -3341,6 +3379,14 @@ export type StaleValuation = {
  * The account, wealth and totals recap of one month. `previousAsOf` is the last calendar day of the preceding month. `currentAsOf` is the month's calendar end, or the workspace-local current day while the month is still running, in which case `provisional` is true.
  */
 export type MonthlyRecap = {
+    /**
+     * True when the caller asked for the planned (upcoming) transactions of the month to be counted.
+     */
+    includesUpcoming: boolean;
+    /**
+     * Number of planned transactions counted in the figures; 0 unless `includesUpcoming`.
+     */
+    upcomingCount: number;
     metricPolicy: MetricPolicyReference;
     portfolioCosts: MonthlyPortfolioCosts | null;
     month: string;
@@ -3364,6 +3410,25 @@ export type MonthlyRecap = {
 export type MonthlyRecapPreferences = {
     visibleCategoryIds: Array<string>;
     visibleAxes: AnalyticAxes;
+    version: number;
+};
+
+export type InterfacePreferences = {
+    /**
+     * Whether the planned (upcoming) transactions of the current month count in the monthly budget and report figures.
+     */
+    includeUpcoming: boolean;
+    /**
+     * 0 when the workspace never saved a preference.
+     */
+    version: number;
+};
+
+export type InterfacePreferencesInput = {
+    includeUpcoming: boolean;
+    /**
+     * The version the caller last read. A stale one is refused with 409.
+     */
     version: number;
 };
 
@@ -4126,6 +4191,10 @@ export type Transaction = {
      * Read-only. Set on a voided reviewed movement: the transaction a human confirmed it settles.
      */
     reconciledIntoId: string | null;
+    /**
+     * Read-only. True on a pending row planned for a later day of the current month: the booking job books it on its date. Computed by the server; a request body carrying it is refused.
+     */
+    autoBook: boolean;
 };
 
 export type TransactionReviewReason = 'AMBIGUOUS_MATCH' | 'NO_MATCH';
@@ -5602,6 +5671,11 @@ export type LifeInsuranceSummary = {
 };
 
 /**
+ * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+ */
+export type IncludeUpcoming = boolean;
+
+/**
  * A calendar month written `YYYY-MM`.
  */
 export type PeriodMonth = string;
@@ -5821,6 +5895,98 @@ export type DefineInitialPasswordResponses = {
 };
 
 export type DefineInitialPasswordResponse = DefineInitialPasswordResponses[keyof DefineInitialPasswordResponses];
+
+export type ReadInterfacePreferencesData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/v1/interface-preferences';
+};
+
+export type ReadInterfacePreferencesErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadInterfacePreferencesError = ReadInterfacePreferencesErrors[keyof ReadInterfacePreferencesErrors];
+
+export type ReadInterfacePreferencesResponses = {
+    /**
+     * The stored or default preferences.
+     */
+    200: InterfacePreferences;
+};
+
+export type ReadInterfacePreferencesResponse = ReadInterfacePreferencesResponses[keyof ReadInterfacePreferencesResponses];
+
+export type SaveInterfacePreferencesData = {
+    body: InterfacePreferencesInput;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/interface-preferences';
+};
+
+export type SaveInterfacePreferencesErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The CSRF / Origin check failed (`type: /problems/csrf-token`), or the session belongs to no workspace or not to its owner.
+     */
+    403: Problem;
+    /**
+     * The stored preferences moved past the version the caller read.
+     */
+    409: Problem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The body is not exactly a boolean `includeUpcoming` and an integer `version`.
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type SaveInterfacePreferencesError = SaveInterfacePreferencesErrors[keyof SaveInterfacePreferencesErrors];
+
+export type SaveInterfacePreferencesResponses = {
+    /**
+     * The stored preferences and their new version.
+     */
+    200: InterfacePreferences;
+};
+
+export type SaveInterfacePreferencesResponse = SaveInterfacePreferencesResponses[keyof SaveInterfacePreferencesResponses];
 
 export type GetOwnerProfileData = {
     body?: never;
@@ -7560,7 +7726,12 @@ export type ReadBudgetComparisonsData = {
     path: {
         id: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
+    };
     url: '/api/v1/budget-plans/{id}/comparisons';
 };
 
@@ -7604,7 +7775,12 @@ export type ExplainBudgetComparisonData = {
         id: string;
         targetId: string;
     };
-    query?: never;
+    query?: {
+        /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
+    };
     url: '/api/v1/budget-plans/{id}/comparisons/{targetId}/explain';
 };
 
@@ -11128,6 +11304,10 @@ export type ReadMonthlyProjectionData = {
     path?: never;
     query: {
         /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
+        /**
          * The bounded calendar month to compute.
          */
         month: string;
@@ -11206,6 +11386,10 @@ export type ReadMonthlyLedgerData = {
     body?: never;
     path?: never;
     query: {
+        /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
         month: string;
         /**
          * Filters expense splits by their booked analytic axis.
@@ -11256,6 +11440,10 @@ export type ReadMonthlyLedgerMovementsData = {
         id: string;
     };
     query: {
+        /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
         month: string;
         axis?: 'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE';
         cursor?: string;
@@ -11308,6 +11496,10 @@ export type ExplainMonthlyKpiData = {
         kpi: 'cashIncome' | 'nonCashBenefits' | 'benefitSpending' | 'budgetExpenses' | 'uncategorizedExpenses' | 'budgetSurplus' | 'savingsTransfers' | 'cashSavingsRate' | 'savingsInflows' | 'savingsWithdrawals' | 'netSavingsTransfers' | 'netSavingsRate' | 'beginningNetWorth' | 'endNetWorth' | 'netWorthDelta';
     };
     query: {
+        /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
         month: string;
     };
     url: '/api/v1/reports/monthly/{kpi}/explain';
@@ -11351,6 +11543,10 @@ export type ReadMonthlyRecapData = {
     body?: never;
     path?: never;
     query: {
+        /**
+         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
+         */
+        includeUpcoming?: boolean;
         /**
          * The bounded calendar month to recap.
          */

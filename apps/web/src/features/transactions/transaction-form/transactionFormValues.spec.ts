@@ -16,6 +16,85 @@ const account = {
   isPrimary: true,
 } as Account;
 
+describe('upcoming transaction dates', () => {
+  const today = '2026-11-10';
+  const draft = () => ({
+    ...initialTransactionValues(undefined, [account], today),
+    amountValue: '29.99',
+    nature: 'EXPENSE' as const,
+    rawLabel: 'Internet',
+  });
+
+  it('accepts a pending date up to the last day of the current month', () => {
+    expect(
+      validateTransactionValues(
+        { ...draft(), bookedOn: '2026-11-30', state: 'PENDING' },
+        [account],
+        today,
+      ),
+    ).not.toHaveProperty('bookedOn');
+  });
+
+  it('refuses a pending date after the end of the month', () => {
+    expect(
+      validateTransactionValues(
+        { ...draft(), bookedOn: '2026-12-01', state: 'PENDING' },
+        [account],
+        today,
+      ),
+    ).toMatchObject({ bookedOn: true });
+  });
+
+  it('refuses a booked date after today', () => {
+    expect(
+      validateTransactionValues(
+        { ...draft(), bookedOn: '2026-11-12', state: 'BOOKED' },
+        [account],
+        today,
+      ),
+    ).toMatchObject({ bookedOn: true });
+  });
+
+  it('knows the month end of a leap February and a December', () => {
+    expect(
+      validateTransactionValues(
+        { ...draft(), bookedOn: '2028-02-29', state: 'PENDING' },
+        [account],
+        '2028-02-10',
+      ),
+    ).not.toHaveProperty('bookedOn');
+    expect(
+      validateTransactionValues(
+        { ...draft(), bookedOn: '2026-12-31', state: 'PENDING' },
+        [account],
+        '2026-12-01',
+      ),
+    ).not.toHaveProperty('bookedOn');
+  });
+
+  it('lets a pending row be rejected without moving its planned date', () => {
+    const planned = {
+      ...transaction,
+      state: 'PENDING' as const,
+      bookedOn: '2026-11-20',
+    } as Transaction;
+    const values = {
+      ...initialTransactionValues(planned, [account], today),
+      state: 'REJECTED' as const,
+    };
+    expect(validateTransactionValues(values, [account], today, planned)).not.toHaveProperty(
+      'bookedOn',
+    );
+  });
+
+  it('never sends autoBook', () => {
+    const request = transactionRequest({ ...draft(), bookedOn: '2026-11-20', state: 'PENDING' }, [
+      account,
+    ]);
+    expect(request).not.toHaveProperty('autoBook');
+  });
+});
+
 const transaction = {
   id: 'transaction-1',
   accountId: account.id,
@@ -48,6 +127,7 @@ const transaction = {
   refundOriginalLabel: null,
   refundedAmount: null,
   reviewReason: null,
+  autoBook: false,
   reconciliationCandidateIds: [],
   reconciledIntoId: null,
 } as Transaction;
@@ -418,7 +498,7 @@ describe('transactionFormValues', () => {
       ).toEqual({});
     });
 
-    it('still refuses booking it early or dating another pending row in the future', () => {
+    it('still refuses booking it early or dating a pending row after the month end', () => {
       const values = initialTransactionValues(generated, [account], '2026-09-08');
 
       expect(
@@ -430,12 +510,13 @@ describe('transactionFormValues', () => {
         ),
       ).toMatchObject({ bookedOn: true });
       const manual = { ...generated, source: 'MANUAL' as const } as Transaction;
-      expect(validateTransactionValues(values, [account], '2026-09-08', manual)).toMatchObject({
-        bookedOn: true,
-      });
-      const booked = { ...generated, state: 'BOOKED' as const } as Transaction;
       expect(
-        validateTransactionValues({ ...values, state: 'PENDING' }, [account], '2026-09-08', booked),
+        validateTransactionValues(
+          { ...values, bookedOn: '2026-10-02' },
+          [account],
+          '2026-09-08',
+          manual,
+        ),
       ).toMatchObject({ bookedOn: true });
     });
   });

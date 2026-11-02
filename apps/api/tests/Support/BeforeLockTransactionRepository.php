@@ -85,6 +85,12 @@ final class BeforeLockTransactionRepository implements TransactionRepository
         return $this->inner->countPendingInWorkspace($workspace, $from, $to);
     }
 
+    /** @param list<string> $excludedIds */
+    public function listAutoBookDueIds(\App\Module\Foundation\Domain\WorkspaceScope $workspace, \DateTimeImmutable $today, int $limit, array $excludedIds = []): array
+    {
+        return $this->inner->listAutoBookDueIds($workspace, $today, $limit, $excludedIds);
+    }
+
     public function findBySourceRef(\App\Module\Foundation\Domain\WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
     {
         return $this->inner->findBySourceRef($workspace, $accountId, $sourceRef, $lock);

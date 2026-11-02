@@ -75,12 +75,8 @@ final readonly class CreateTransaction
             $now = $this->clock->now();
             ($this->assertPeriodOpen)($context->workspace, $draft->bookedOn);
             $today = $this->calendar->today();
-            // An instalment dated later this month is created pending: that is the only future
-            // date the system writes, and never as a booked row.
-            $this->references->accountForNew(
-                $context->workspace, $input->accountId, $draft, $today, $now,
-                TransactionSource::RECURRENCE === $source && TransactionState::PENDING === $draft->state,
-            );
+            // A pending row may be dated later this month (planned); a booked one never.
+            $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
             $match = $input->reconcile
                 ? ($this->matchIncomingMovement)($context->workspace, $input->accountId, $input->sourceRef, $draft->amount, $draft->bookedOn)
                 : null;
@@ -111,6 +107,7 @@ final readonly class CreateTransaction
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
                     splits: $splits, version: 1, createdAt: $now, updatedAt: $now,
                     voidedAt: null, lastEditorId: $context->actorId, reviewReason: $match?->reviewReason,
+                    autoBook: self::plans($draft->state, $source, $match?->reviewReason, $draft->bookedOn, $today) && null === $match,
                 );
                 if ($input->automation && null === $input->splits && null === $input->categoryId) {
                     $transaction = ($this->autoCategorize)($transaction, $context->actorId, $now);
@@ -141,6 +138,21 @@ final readonly class CreateTransaction
 
             return $this->presentTransaction->one($transaction);
         });
+    }
+
+    /**
+     * The server alone decides the booking marker: a pending manual or recurrence row dated after
+     * today, free of any reconciliation review, is booked by the job on its date.
+     */
+    private static function plans(
+        TransactionState $state,
+        TransactionSource $source,
+        ?\App\Module\Transactions\Domain\Reconciliation\ReviewReason $reviewReason,
+        \DateTimeImmutable $bookedOn,
+        \DateTimeImmutable $today,
+    ): bool {
+        return TransactionState::PENDING === $state && null === $reviewReason && $bookedOn > $today
+            && in_array($source, [TransactionSource::MANUAL, TransactionSource::RECURRENCE], true);
     }
 
     /** @return list<TransactionSplit> */

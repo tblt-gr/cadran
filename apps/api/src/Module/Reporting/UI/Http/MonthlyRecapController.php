@@ -6,6 +6,7 @@ namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\IncludeUpcomingQuery;
 use App\Module\Reporting\Application\InvalidMonthlyProjectionQuery;
 use App\Module\Reporting\Application\MonthlyProjectionScopeTooLarge;
 use App\Module\Reporting\Application\ReadMonthlyRecap;
@@ -29,8 +30,13 @@ final readonly class MonthlyRecapController
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_projection_query');
         }
 
+        $includeUpcoming = IncludeUpcomingQuery::of($request);
+        if (null === $includeUpcoming) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_projection_query');
+        }
+
         try {
-            $recap = $read($month);
+            $recap = $read($month, $includeUpcoming);
         } catch (InvalidMonthlyProjectionQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_projection_query');
         } catch (MonthlyProjectionScopeTooLarge) {

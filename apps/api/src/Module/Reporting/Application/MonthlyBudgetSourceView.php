@@ -12,6 +12,7 @@ final readonly class MonthlyBudgetSourceView
         public string $rawLabel,
         public string $amount,
         public string $assetCode,
+        public bool $upcoming = false,
     ) {
     }
 }

@@ -43,7 +43,7 @@ final readonly class ReadBudgetComparisons
     ) {
     }
 
-    public function __invoke(string $planId): BudgetComparisonsView
+    public function __invoke(string $planId, bool $includeUpcoming = false): BudgetComparisonsView
     {
         $workspace = $this->caller->resolve();
         $plan = $this->plans->find($workspace, $planId);
@@ -67,6 +67,7 @@ final readonly class ReadBudgetComparisons
                 BudgetComparisonReason::MISSING_TARGET->value,
                 [],
                 ($this->metricPolicy)($workspace, CalendarMonth::fromString($plan->period->key()))->reference(),
+                $includeUpcoming,
             );
         }
 
@@ -100,6 +101,7 @@ final readonly class ReadBudgetComparisons
                 CalendarMonth::fromString($plan->period->key()),
                 $scopes,
                 $plan->assetCode->toString(),
+                $includeUpcoming,
             );
         } catch (MonthlyTransactionScopeTooLarge|BudgetCategoryScopeTooLarge|NetWorthScopeTooLarge $exception) {
             throw new BudgetComparisonScopeTooLarge('The monthly budget comparison scope exceeds its bounds.', previous: $exception);
@@ -130,6 +132,8 @@ final readonly class ReadBudgetComparisons
                 $actual->pendingCount,
                 $overlaps[$target->id] ?? false,
                 MonthlyBudgetActualCalculator::POLICY_DESCRIPTION,
+                $actual->upcomingAmount,
+                $actual->upcomingCount,
             );
         }
 
@@ -141,6 +145,7 @@ final readonly class ReadBudgetComparisons
             null,
             $views,
             $actuals->metricPolicy,
+            $includeUpcoming,
         );
     }
 

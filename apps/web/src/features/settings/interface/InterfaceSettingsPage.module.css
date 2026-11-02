@@ -1,0 +1,53 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.section {
+  display: flex;
+  max-width: 40rem;
+  flex-direction: column;
+  padding: var(--spacing-6);
+  gap: var(--spacing-3);
+}
+
+.section header h3,
+.help,
+.state h2,
+.state p {
+  margin: var(--spacing-none);
+}
+
+.section header h3 {
+  font-size: var(--font-size-card-title);
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  font-size: var(--font-size-body);
+}
+
+.help {
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-body);
+}
+
+.state {
+  display: flex;
+  min-height: 14rem;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--spacing-8);
+  gap: var(--spacing-3);
+}
+
+@media (max-width: 42rem) {
+  .state,
+  .section {
+    padding: var(--spacing-4);
+  }
+}

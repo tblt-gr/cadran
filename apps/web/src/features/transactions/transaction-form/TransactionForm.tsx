@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
-import { workspaceToday } from '@/lib/workspaceTime';
+import { isUpcomingDay, workspaceToday } from '@/lib/workspaceTime';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
 import { SplitAxes } from '@/features/transactions/split-editor/split-axes/SplitAxes';
@@ -96,7 +96,7 @@ export function TransactionForm({
     values.categoryDefaultAxes,
   );
   const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
-  const resolved =
+  const withAccount =
     !transaction && !accountChosen
       ? {
           ...values,
@@ -108,9 +108,17 @@ export function TransactionForm({
             '',
         }
       : values;
+  // A date later this month can only be a planned (pending) row: the chosen state is kept aside
+  // and comes back when the date returns to today or earlier. A booked row stays bound to today.
+  const upcoming =
+    isUpcomingDay(values.bookedOn, today) &&
+    transaction?.state !== 'BOOKED' &&
+    values.state !== 'REJECTED';
+  const resolved = upcoming ? { ...withAccount, state: 'PENDING' as const } : withAccount;
   const errors = validateTransactionValues(resolved, accounts, today, transaction);
   const editing = transaction !== undefined;
   const stateLocked = editing && transaction.state !== 'PENDING';
+
   const rawLabelLocked = editing && transaction.source !== 'MANUAL';
   const direction = transactionDirection(values);
   const signedAmount = signedTransactionValues(values).amountValue;
@@ -192,12 +200,24 @@ export function TransactionForm({
         <label>
           <span>{t('transactions.fields.bookedOn')}</span>
           <input
-            aria-describedby={showErrors && errors.bookedOn ? `${errorId}-bookedOn` : undefined}
+            aria-describedby={
+              [
+                upcoming ? 'transaction-upcoming-hint' : undefined,
+                showErrors && errors.bookedOn ? `${errorId}-bookedOn` : undefined,
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             aria-invalid={showErrors && errors.bookedOn ? true : undefined}
             onChange={(event) => set('bookedOn', event.target.value)}
             type="date"
             value={values.bookedOn}
           />
+          {upcoming ? (
+            <small className={styles.hint} id="transaction-upcoming-hint">
+              {t('transactions.form.upcomingHint')}
+            </small>
+          ) : null}
           {showErrors && errors.bookedOn ? (
             <small id={`${errorId}-bookedOn`}>{t('transactions.validation.bookedOn')}</small>
           ) : null}
@@ -377,7 +397,8 @@ export function TransactionForm({
             />
           }
           stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}
-          values={values}
+          statePlanned={upcoming}
+          values={resolved}
         />
       </div>
 

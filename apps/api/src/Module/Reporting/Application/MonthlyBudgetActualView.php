@@ -11,6 +11,8 @@ final readonly class MonthlyBudgetActualView
         public MonthlyMetricView $amount,
         public array $sources,
         public int $pendingCount,
+        public ?string $upcomingAmount = null,
+        public int $upcomingCount = 0,
     ) {
     }
 }

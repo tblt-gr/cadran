@@ -52,6 +52,8 @@ final readonly class MonthlyProjectionView
         public array $budgetExpenseCategoryIds = [],
         /** @var list<MonthlyRecapCategoryView>|null */
         public ?array $categoryRollups = null,
+        public bool $includesUpcoming = false,
+        public int $upcomingCount = 0,
     ) {
     }
 

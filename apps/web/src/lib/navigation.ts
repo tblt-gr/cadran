@@ -56,7 +56,7 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/parameters/profile',
+    href: '/parameters/interface',
     icon: 'settings',
     labelKey: 'navigation.settings',
     match: (path) => path.startsWith('/parameters/'),

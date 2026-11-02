@@ -77,6 +77,7 @@ export const routeCases = [
   'multi-year',
   '/goals',
   '/portfolios/instruments',
+  '/parameters/interface',
   '/parameters/profile',
   '/parameters/metric-policy',
   '/settings/profile',

@@ -24,6 +24,8 @@ final readonly class BudgetComparisonView
         public int $pendingCount,
         public bool $overlapping,
         public string $policy,
+        public ?string $upcomingAmount = null,
+        public int $upcomingCount = 0,
     ) {
     }
 }

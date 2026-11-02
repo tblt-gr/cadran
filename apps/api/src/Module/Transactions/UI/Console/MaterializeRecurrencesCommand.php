@@ -16,7 +16,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'cadran:transactions:materialize-recurrences',
-    description: 'Create the current month transactions of the auto-create recurrences and book the due ones.',
+    description: 'Create the current month transactions of the auto-create recurrences and book the due planned transactions.',
 )]
 final class MaterializeRecurrencesCommand extends Command
 {

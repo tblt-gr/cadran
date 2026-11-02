@@ -5,13 +5,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { BudgetComparisonsPanel } from './BudgetComparisonsPanel';
 
-const api = vi.hoisted(() => ({ readBudgetComparisons: vi.fn() }));
+const api = vi.hoisted(() => ({
+  readBudgetComparisons: vi.fn(),
+  readInterfacePreferences: vi.fn(),
+}));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
   ...api,
 }));
 
 const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons => ({
+  includesUpcoming: false,
   planId: '00000000-0000-7000-8000-000000000001',
   period: '2026-03',
   metricPolicy: { version: 1, label: 'Définition de trésorerie' },
@@ -20,6 +24,8 @@ const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons =
   reason: null,
   comparisons: [
     {
+      upcomingAmount: null,
+      upcomingCount: 0,
       targetId: '00000000-0000-7000-8000-000000000002',
       scopeType: 'AXIS',
       scopeId: 'ESSENTIAL',
@@ -32,6 +38,7 @@ const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons =
       status: 'WITHIN_TARGET',
       includedTransactions: [
         {
+          upcoming: false,
           id: '00000000-0000-7000-8000-000000000003',
           bookedOn: '2026-03-12',
           rawLabel: 'Courses du marché',
@@ -47,7 +54,11 @@ const result = (overrides: Partial<BudgetComparisons> = {}): BudgetComparisons =
   ...overrides,
 });
 
-function mount() {
+function mount(includeUpcoming = true) {
+  api.readInterfacePreferences.mockResolvedValue({
+    data: { includeUpcoming, version: 0 },
+    response: new Response('{}', { status: 200 }),
+  });
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
@@ -93,6 +104,7 @@ describe('BudgetComparisonsPanel', () => {
 
     expect(screen.getByTestId('budget-comparisons-skeleton')).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
+    await waitFor(() => expect(resolveComparisons).toBeDefined());
     resolveComparisons?.({ data: result(), response: new Response('{}', { status: 200 }) });
     expect(await screen.findByText(/^42,50/)).toBeTruthy();
     expect(screen.queryByTestId('budget-comparisons-skeleton')).toBeNull();
@@ -102,6 +114,51 @@ describe('BudgetComparisonsPanel', () => {
     await waitFor(() => expect(api.readBudgetComparisons).toHaveBeenCalledTimes(2));
     expect(screen.getByText(/^42,50/)).toBeTruthy();
     expect(screen.queryByTestId('budget-comparisons-skeleton')).toBeNull();
+  });
+
+  it('asks for upcoming transactions with the stored setting and says how much of the actual is upcoming', async () => {
+    const data = result({ includesUpcoming: true });
+    data.comparisons[0] = {
+      ...data.comparisons[0]!,
+      actual: '43.98',
+      upcomingAmount: '29.99',
+      upcomingCount: 1,
+      includedTransactions: [
+        { ...data.comparisons[0]!.includedTransactions[0]!, upcoming: false },
+        {
+          id: '00000000-0000-7000-8000-000000000004',
+          bookedOn: '2026-11-20',
+          rawLabel: 'Internet',
+          amount: '-29.99',
+          assetCode: 'EUR',
+          upcoming: true,
+        },
+      ],
+    };
+    api.readBudgetComparisons.mockResolvedValue({ data, response: new Response('{}') });
+    mount(true);
+
+    expect(await screen.findByText(/^dont 29,99.* à venir$/)).toBeTruthy();
+    expect(screen.getByText('Internet (à venir)')).toBeTruthy();
+    expect(screen.getByText(/Inclut 1 transaction à venir/)).toBeTruthy();
+    expect(screen.getByText('Courses du marché')).toBeTruthy();
+    expect(api.readBudgetComparisons).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { includeUpcoming: true } }),
+    );
+  });
+
+  it('passes false when the setting is off and shows no upcoming mention for a zero amount', async () => {
+    const data = result();
+    data.comparisons[0] = { ...data.comparisons[0]!, upcomingAmount: '0.00' };
+    api.readBudgetComparisons.mockResolvedValue({ data, response: new Response('{}') });
+    mount(false);
+
+    expect(await screen.findByText(/^42,50/)).toBeTruthy();
+    expect(screen.queryByText(/à venir/)).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Modifier ce réglage' })).toBeNull();
+    expect(api.readBudgetComparisons).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { includeUpcoming: false } }),
+    );
   });
 
   it('replaces the skeleton with an error state after a failed cold read', async () => {

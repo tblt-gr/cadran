@@ -48,6 +48,7 @@ final readonly class TransactionView
         /** @var list<string> */
         public array $reconciliationCandidateIds,
         public ?string $reconciledIntoId,
+        public bool $autoBook = false,
     ) {
     }
 
@@ -127,6 +128,7 @@ final readonly class TransactionView
             reviewReason: $transaction->reviewReason?->value,
             reconciliationCandidateIds: $reconciliationCandidateIds,
             reconciledIntoId: $reconciledIntoId,
+            autoBook: $transaction->autoBook,
         );
     }
 }

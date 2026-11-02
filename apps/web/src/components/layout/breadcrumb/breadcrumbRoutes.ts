@@ -30,7 +30,7 @@ export function breadcrumbItems(
   const categories = item('routes.categories', '/transactions/categories');
   const budget = item('navigation.budget', '/budget');
   const plans = item('routes.budgetPlans', '/budget/plans');
-  const settings = item('navigation.settings', '/parameters/profile');
+  const settings = item('navigation.settings', '/parameters/interface');
   const staticRoutes: Record<string, BreadcrumbItem[]> = {
     '/': [],
     '/accounts': [accounts],
@@ -49,6 +49,7 @@ export function breadcrumbItems(
     '/budget': [budget],
     '/budget/plans': [budget, plans],
     '/goals': [item('navigation.goals')],
+    '/parameters/interface': [settings, item('settings.tabs.interface')],
     '/parameters/profile': [settings, item('settings.tabs.profile')],
     '/parameters/metric-policy': [settings, item('routes.metricPolicy')],
     '/parameters/catalog': [settings, item('navigation.catalog')],

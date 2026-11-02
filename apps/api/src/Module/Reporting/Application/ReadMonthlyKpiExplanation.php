@@ -16,14 +16,14 @@ final readonly class ReadMonthlyKpiExplanation
     ) {
     }
 
-    public function __invoke(string $requestedMonth, string $requestedKpi): MonthlyKpiExplanationView
+    public function __invoke(string $requestedMonth, string $requestedKpi, bool $includeUpcoming = false): MonthlyKpiExplanationView
     {
         $kpi = MonthlyKpi::tryFrom($requestedKpi);
         if (null === $kpi) {
             throw new InvalidMonthlyKpiExplanationQuery('The requested monthly KPI is not supported.');
         }
 
-        $projection = ($this->projection)($requestedMonth);
+        $projection = ($this->projection)($requestedMonth, $includeUpcoming);
         $metric = $kpi->metric($projection);
 
         return new MonthlyKpiExplanationView(
@@ -32,8 +32,8 @@ final readonly class ReadMonthlyKpiExplanation
             assetCode: $metric->assetCode,
             reason: $metric->reason,
             reasonExplanation: MonthlyKpiReasonExplanation::for($metric->reason),
-            formula: $kpi->formula(),
-            scope: $kpi->scope(),
+            formula: $kpi->formula($includeUpcoming),
+            scope: $kpi->scope($includeUpcoming),
             periodStart: $projection->periodStart,
             periodEnd: $projection->periodEnd,
             sourceTransactionIds: $metric->sourceTransactionIds,
@@ -44,6 +44,8 @@ final readonly class ReadMonthlyKpiExplanation
             quality: $projection->quality,
             pendingCount: $metric->pendingCount,
             metricPolicy: $projection->metricPolicy,
+            includesUpcoming: $projection->includesUpcoming,
+            upcomingCount: $projection->upcomingCount,
         );
     }
 }

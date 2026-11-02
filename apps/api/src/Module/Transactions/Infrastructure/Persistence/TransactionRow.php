@@ -69,6 +69,7 @@ final readonly class TransactionRow
             lastEditorId: self::nullableText($row['last_editor_id'] ?? null),
             userLabel: self::nullableText($row['user_label'] ?? null),
             reviewReason: null === ($row['review_reason'] ?? null) ? null : ReviewReason::from(self::text($row['review_reason'])),
+            autoBook: (bool) ($row['auto_book'] ?? false),
         );
     }
 
@@ -95,6 +96,7 @@ final readonly class TransactionRow
             'last_editor_id' => $transaction->lastEditorId,
             'review_reason' => $transaction->reviewReason?->value,
             'user_label' => $transaction->userLabel,
+            'auto_book' => $transaction->autoBook,
         ];
     }
 

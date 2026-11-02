@@ -73,7 +73,7 @@ describe('AppShell', () => {
       within(sidebar)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/', '/accounts', '/budget', '/goals', '/transactions', '/parameters/profile']);
+    ).toEqual(['/', '/accounts', '/budget', '/goals', '/transactions', '/parameters/interface']);
     expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
     expect(within(mobile).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
@@ -139,7 +139,7 @@ describe('AppShell', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
     fireEvent.pointerEnter(within(sheet).getByRole('link', { name: 'Paramètres' }));
-    expect(onNavigationIntent).toHaveBeenLastCalledWith('/parameters/profile');
+    expect(onNavigationIntent).toHaveBeenLastCalledWith('/parameters/interface');
   });
 
   it('marks the content busy only while navigating', () => {

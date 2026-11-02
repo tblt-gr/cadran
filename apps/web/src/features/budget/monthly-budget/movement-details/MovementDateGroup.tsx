@@ -52,6 +52,7 @@ export function MovementDateGroup({
               ? null
               : formatAmount(movement.amount.value, movement.amount.assetCode, language);
           const pending = movement?.pending === true;
+          const upcoming = movement?.upcoming === true;
           const content = (
             <div className={styles.movementLine}>
               <strong title={label ?? undefined}>
@@ -60,6 +61,12 @@ export function MovementDateGroup({
               {pending ? (
                 <span className={styles.pendingMarker}>
                   ({t('budget.monthly.movements.pending')})
+                </span>
+              ) : null}
+
+              {upcoming ? (
+                <span className={styles.pendingMarker}>
+                  ({t('budget.monthly.movements.upcoming')})
                 </span>
               ) : null}
 

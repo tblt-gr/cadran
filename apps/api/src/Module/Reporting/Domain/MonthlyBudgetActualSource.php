@@ -12,6 +12,7 @@ final readonly class MonthlyBudgetActualSource
         public string $transactionId,
         public string $amount,
         public AssetCode $asset,
+        public bool $upcoming = false,
     ) {
     }
 }

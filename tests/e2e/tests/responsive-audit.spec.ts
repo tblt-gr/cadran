@@ -53,6 +53,7 @@ function routes(): string[] {
     `/portfolios/${ids.portfolioId}?tab=account`,
     `/portfolios/${ids.portfolioId}?tab=positions`,
     `/portfolios/${ids.portfolioId}?tab=operations`,
+    '/parameters/interface',
     '/parameters/profile',
     '/parameters/metric-policy',
   ];
@@ -117,6 +118,7 @@ const PATTERNS = [
   '/portfolios/:portfolio?tab=account',
   '/portfolios/:portfolio?tab=positions',
   '/portfolios/:portfolio?tab=operations',
+  '/parameters/interface',
   '/parameters/profile',
   '/parameters/metric-policy',
 ];

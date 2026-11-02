@@ -1,12 +1,15 @@
 import type { MonthlyLedgerCategoryRow } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { LedgerRow } from './LedgerRow';
 
-const api = vi.hoisted(() => ({ readMovements: vi.fn() }));
-vi.mock('@cadran/api-client', () => ({ readMonthlyLedgerMovements: api.readMovements }));
+const api = vi.hoisted(() => ({ readMovements: vi.fn(), readPreferences: vi.fn() }));
+vi.mock('@cadran/api-client', () => ({
+  readInterfacePreferences: api.readPreferences,
+  readMonthlyLedgerMovements: api.readMovements,
+}));
 
 function category(overrides: Partial<MonthlyLedgerCategoryRow> = {}): MonthlyLedgerCategoryRow {
   return {
@@ -48,6 +51,10 @@ function renderRow(row: MonthlyLedgerCategoryRow) {
 
 beforeEach(() => {
   api.readMovements.mockReset().mockImplementation(() => new Promise(() => undefined));
+  api.readPreferences.mockReset().mockResolvedValue({
+    data: { includeUpcoming: true, version: 0 },
+    response: new Response('{}', { status: 200 }),
+  });
 });
 afterEach(cleanup);
 
@@ -71,7 +78,7 @@ describe('LedgerRow pending movements', () => {
     expect(within(item).getByRole('button', { name: /Afficher les mouvements/ })).toBeTruthy();
   });
 
-  it('greys a pending-only row, with no marker, and shows the pending amount as usual', () => {
+  it('greys a pending-only row, with no marker, and shows the pending amount as usual', async () => {
     const item = renderRow(
       category({
         total: { value: '0.00', assetCode: 'EUR', reason: null },
@@ -91,7 +98,7 @@ describe('LedgerRow pending movements', () => {
     expect(amount?.textContent).not.toMatch(/[()]/);
     expect(item.querySelectorAll('[data-visual-mask]')).toHaveLength(1);
     fireEvent.click(within(item).getByRole('button', { name: /Afficher les mouvements/ }));
-    expect(api.readMovements).toHaveBeenCalledOnce();
+    await waitFor(() => expect(api.readMovements).toHaveBeenCalledOnce());
   });
 
   it('shows the usual non-calculable dash when pending amounts are of mixed assets', () => {

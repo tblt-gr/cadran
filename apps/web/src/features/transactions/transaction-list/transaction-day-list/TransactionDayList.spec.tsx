@@ -163,4 +163,36 @@ describe('TransactionDayList', () => {
     expect(booked.className).not.toContain('pending');
     expect(within(booked).queryByText('En attente')).toBeNull();
   });
+
+  it('says "Prévue le jj/mm" for a planned pending row and keeps "En attente" for the others', () => {
+    render(
+      <TransactionDayList
+        accounts={accounts}
+        transactions={[
+          tx('p', '2026-11-20', '-29.99', { state: 'PENDING', autoBook: true }),
+          tx('q', '2026-11-08', '-5.00', { state: 'PENDING', autoBook: false }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('Prévue le 20/11')).toBeTruthy();
+    expect(screen.getAllByText('En attente')).toHaveLength(1);
+    const planned = screen.getByText('Prévue le 20/11').closest('[data-state]');
+    expect(planned?.getAttribute('data-state')).toBe('PENDING');
+    expect(planned?.className).toMatch(/planned/);
+    expect(screen.getByText('En attente').closest('[data-state]')?.className).not.toMatch(
+      /planned/,
+    );
+  });
+
+  it('drops the mention once the row is booked', () => {
+    render(
+      <TransactionDayList
+        accounts={accounts}
+        transactions={[tx('p', '2026-11-20', '-29.99', { state: 'BOOKED', autoBook: false })]}
+      />,
+    );
+
+    expect(screen.queryByText(/Prévue le/)).toBeNull();
+  });
 });

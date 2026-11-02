@@ -89,6 +89,16 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
         return false === $row ? null : TransactionRecurrenceRow::hydrateOccurrence($row, $workspace);
     }
 
+    public function findByGeneratedTransaction(WorkspaceScope $workspace, string $transactionId): ?TransactionRecurrenceOccurrence
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT '.TransactionRecurrenceRow::OCCURRENCE_COLUMNS.' FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND o.generated_transaction_id = :transaction_id',
+            ['workspace_id' => $workspace->id, 'transaction_id' => $transactionId],
+        );
+
+        return false === $row ? null : TransactionRecurrenceRow::hydrateOccurrence($row, $workspace);
+    }
+
     public function claim(WorkspaceScope $workspace, string $occurrenceId, string $transactionId, \DateTimeImmutable $matchedAt): bool
     {
         // The `matched_transaction_id IS NULL` predicate is the arbitration: two

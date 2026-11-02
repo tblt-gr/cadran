@@ -17,6 +17,7 @@ final readonly class BudgetComparisonsView
         public ?string $reason,
         public array $comparisons,
         public MetricPolicyReference $metricPolicy,
+        public bool $includesUpcoming = false,
     ) {
     }
 }

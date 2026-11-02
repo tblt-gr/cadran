@@ -93,6 +93,7 @@ const transaction: Transaction = {
   refundOriginalLabel: null,
   refundedAmount: null,
   reviewReason: null,
+  autoBook: false,
   reconciliationCandidateIds: [],
   reconciledIntoId: null,
 };

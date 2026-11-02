@@ -33,9 +33,9 @@ final readonly class ReadMonthlyRecap
     ) {
     }
 
-    public function __invoke(string $requestedMonth): MonthlyRecapView
+    public function __invoke(string $requestedMonth, bool $includeUpcoming = false): MonthlyRecapView
     {
-        $projection = ($this->projection)($requestedMonth);
+        $projection = ($this->projection)($requestedMonth, $includeUpcoming);
         $workspace = $this->caller->resolve();
 
         $comparedOn = new \DateTimeImmutable($projection->netWorthComparedOn, new \DateTimeZone('UTC'));
@@ -74,6 +74,8 @@ final readonly class ReadMonthlyRecap
             totals: MonthlyRecapTotalsView::of($projection, $sourceTransactionsById),
             metricPolicy: $projection->metricPolicy,
             portfolioCosts: ($this->portfolioCosts)($workspace, CalendarMonth::fromString($projection->month)),
+            includesUpcoming: $projection->includesUpcoming,
+            upcomingCount: $projection->upcomingCount,
         );
     }
 

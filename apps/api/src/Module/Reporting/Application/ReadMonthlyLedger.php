@@ -37,12 +37,12 @@ final readonly class ReadMonthlyLedger
     ) {
     }
 
-    public function __invoke(string $requestedMonth, ?string $requestedAxis): MonthlyLedgerView
+    public function __invoke(string $requestedMonth, ?string $requestedAxis, bool $includeUpcoming = false): MonthlyLedgerView
     {
         [$month, $axis] = self::query($requestedMonth, $requestedAxis);
         $workspace = $this->caller->resolve();
         try {
-            $transactions = ($this->transactions)($workspace, $month);
+            $transactions = ($this->transactions)($workspace, $month, $includeUpcoming);
             $transfers = ($this->transfers)($workspace, $month);
             $accounts = ($this->accounts)($workspace, $month);
             $categories = ($this->categories)($workspace);
@@ -50,7 +50,7 @@ final readonly class ReadMonthlyLedger
             throw new MonthlyProjectionScopeTooLarge('The monthly ledger scope exceeds its bounds.', previous: $exception);
         }
 
-        $entries = MonthlyLedgerFacts::entries($transactions->booked);
+        $entries = MonthlyLedgerFacts::entries($transactions->bookedWithUpcoming());
         $pendingEntries = MonthlyLedgerFacts::entries($transactions->pending);
         $incomeRows = self::categoryRows($categories, $entries, $pendingEntries, 'INCOME', null);
         $expenseRows = self::categoryRows($categories, $entries, $pendingEntries, 'EXPENSE', $axis?->value);
@@ -85,7 +85,7 @@ final readonly class ReadMonthlyLedger
             $axis?->value,
             match (true) {
                 $transactions->pendingCount > 0 => 'PENDING',
-                [] === $transactions->booked => 'EMPTY',
+                [] === $transactions->bookedWithUpcoming() => 'EMPTY',
                 default => 'COMPLETE',
             },
             $invalidTransfer ? 'MISSING' : 'CURRENT',
@@ -98,6 +98,8 @@ final readonly class ReadMonthlyLedger
             $incomeRows,
             $expenseRows,
             $accountRows,
+            $includeUpcoming,
+            count($transactions->upcoming),
         );
     }
 

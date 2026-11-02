@@ -373,6 +373,12 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->countPendingInWorkspace($workspace, $from, $to);
     }
 
+    /** @param list<string> $excludedIds */
+    public function listAutoBookDueIds(WorkspaceScope $workspace, \DateTimeImmutable $today, int $limit, array $excludedIds = []): array
+    {
+        return $this->inner->listAutoBookDueIds($workspace, $today, $limit, $excludedIds);
+    }
+
     public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
     {
         return $this->inner->findBySourceRef($workspace, $accountId, $sourceRef, $lock);

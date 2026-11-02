@@ -92,12 +92,11 @@ final readonly class UpdateTransaction
             }
             $now = $this->clock->now();
             $today = $this->calendar->today();
-            // A pending row a recurrence created may sit later in the month, and may be rejected there;
-            // it can never be booked in the future.
+            // A planned row may sit later in the month, and may be rejected there; it can never be
+            // booked in the future.
             $this->references->accountForExisting(
                 $context->workspace, $current->accountId, $draft, $today,
-                TransactionSource::RECURRENCE === $current->source && TransactionState::PENDING === $current->state
-                    && in_array($draft->state, [TransactionState::PENDING, TransactionState::REJECTED], true),
+                $current->autoBook && TransactionState::REJECTED === $draft->state,
             );
             if (null === $input->splits && count($current->splits) > 1) {
                 // The categoryId shorthand always replaces the whole allocation with
@@ -126,6 +125,10 @@ final readonly class UpdateTransaction
                     paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
                     splits: $splits, updatedAt: $now, lastEditorId: $context->actorId,
+                    autoBook: $current->autoBook || (
+                        TransactionState::PENDING === $draft->state && null === $current->reviewReason && $draft->bookedOn > $today
+                        && in_array($current->source, [TransactionSource::MANUAL, TransactionSource::RECURRENCE], true)
+                    ),
                 )->withUserLabel(self::userLabel($input->userLabel));
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The requested transaction edit is invalid.', previous: $exception);

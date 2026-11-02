@@ -8,6 +8,8 @@ import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
+import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { monthHref, parseBudgetMonth, readAxis, type BudgetAxis } from './budgetPeriod';
@@ -57,13 +59,22 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     month: parsed.kind === 'valid' ? parsed.month : null,
     hrefFor: (first) => monthHref(first, axis),
   });
+  const upcoming = useIncludeUpcoming();
   const ledger = useQuery({
-    enabled: parsed.kind === 'valid' && history.status === 'ready' && !history.pendingCorrection,
-    queryKey: ['monthly-ledger', queryMonth, axis],
+    enabled:
+      parsed.kind === 'valid' &&
+      history.status === 'ready' &&
+      !history.pendingCorrection &&
+      upcoming.ready,
+    queryKey: ['monthly-ledger', queryMonth, axis, upcoming.includeUpcoming],
     queryFn: async ({ signal }) => {
       const result = await readMonthlyLedger({
         ...authApiOptions(),
-        query: { month: queryMonth, ...(axis ? { axis } : {}) },
+        query: {
+          month: queryMonth,
+          includeUpcoming: upcoming.includeUpcoming,
+          ...(axis ? { axis } : {}),
+        },
         signal,
       });
       if (!result.response?.ok || !result.data) throw new Error('monthly-ledger');
@@ -197,6 +208,10 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         </section>
       ) : (
         <div className={styles.workbook}>
+          <UpcomingNotice
+            includesUpcoming={ledger.data.includesUpcoming}
+            upcomingCount={ledger.data.upcomingCount}
+          />
           <LedgerPanels
             activeAccountIds={activeAccountIds}
             axis={axis}
