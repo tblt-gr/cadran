@@ -1,6 +1,7 @@
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
 import { AccountTab } from './account-tab/AccountTab';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePortfolioSourceReturnFocus } from './usePortfolioSourceReturnFocus';
 import { PortfolioAccountTabContent, type PortfolioCreation } from './PortfolioAccountTabContent';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
@@ -27,6 +28,7 @@ import { useAccountHeader } from '@/features/accounts/account-header/useAccountH
  * Entry actions open their modal on the tab that lists the resulting record.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
+  const { t } = useTranslation();
   const account = useAccountDetail(accountId);
   const label = !account.isError && account.data?.id === accountId ? account.data.label : null;
   useBreadcrumbAccount(`/portfolios/${accountId}`, label, account.isPending);
@@ -131,6 +133,11 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
       />
+      {current.status !== 'ACTIVE' ? (
+        <p className={styles.notice} role="status">
+          {t(`accounts.detail.actions.unavailable.${current.status}`)}
+        </p>
+      ) : null}
       {eligible && shown === 'account' ? (
         <AccountTab account={current} today={today}>
           <PortfolioOverview

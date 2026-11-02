@@ -292,6 +292,7 @@ const MODALS: ModalCase[] = [
     open: async (page, ids) => {
       await page.goto(`/portfolios/${ids.portfolioId}`);
       await settled(page);
+      await page.getByRole('button', { name: /^Actions du compte/ }).click();
       await page.getByRole('button', { name: 'Nouvelle valorisation' }).click();
       return 'Continuer';
     },

@@ -25,7 +25,7 @@ for (const width of [1440, 360]) {
     await cursor.press('Home');
     await expect(cursor).not.toHaveAttribute('aria-valuetext', latestDate!);
     await expect(page.getByText('Identité', { exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Voir les règles' })).toHaveText('');
+    await expect(page.getByRole('button', { name: /^Actions du compte/ })).toHaveText('');
     await page.screenshot({
       path: `${process.env.E2E_OUTPUT_DIR ?? 'test-results'}/current-account-${width}.png`,
       fullPage: true,

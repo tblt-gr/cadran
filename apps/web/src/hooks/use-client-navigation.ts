@@ -23,7 +23,7 @@ export function handleClientNavigation(
   return true;
 }
 
-function navigateFromPage(href: string) {
+export function navigateFromPage(href: string) {
   window.history.pushState({}, '', href);
   window.dispatchEvent(new PopStateEvent('popstate'));
 }

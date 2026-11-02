@@ -891,15 +891,31 @@
         "clearPeriod": "Voir tout l’historique"
       },
       "actions": {
-        "addTransaction": "Nouvelle transaction",
-        "more": "Autres actions",
-        "addTransfer": "Nouveau virement",
-        "rules": "Voir les règles",
-        "reconcile": "Rapprocher",
+        "addTransaction": "Nouvelle opération",
         "unavailable": {
           "CLOSED": "Ce compte est clôturé : aucun nouveau mouvement ne peut y être enregistré. Rouvrez-le depuis la liste des comptes pour en ajouter un.",
           "ARCHIVED": "Ce compte est archivé et n’accepte plus de nouveau mouvement."
         }
+      },
+      "actionsMenu": {
+        "open": "Actions du compte {{label}}",
+        "openPending": "Actions du compte",
+        "addTransfer": "Nouveau virement",
+        "recordBalance": "Enregistrer un solde",
+        "reconcile": "Rapprocher",
+        "rules": "Voir les règles",
+        "recordValuation": "Nouvelle valorisation",
+        "instruments": "Gérer les instruments",
+        "edit": "Modifier",
+        "archive": "Archiver",
+        "unavailable": "{{action}} ({{reason}})",
+        "reasons": {
+          "ARCHIVED": "compte archivé",
+          "CLOSED": "compte clôturé",
+          "READ_ONLY": "compte en lecture seule",
+          "NOTHING_TO_RECONCILE": "rien à rapprocher"
+        },
+        "contractFirst": "Renseignez d'abord le contrat"
       },
       "toasts": {
         "transactionSaved": "La transaction a été enregistrée.",

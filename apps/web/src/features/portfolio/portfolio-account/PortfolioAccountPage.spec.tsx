@@ -15,7 +15,15 @@ import { AppShell } from '@/components/layout/app-shell/AppShell';
 import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 
+/** The shared account menu item, opening the three-dot menu first when it is closed. */
+function menuItem(name: string | RegExp) {
+  const trigger = screen.getByRole('button', { name: /^Actions du compte/ });
+  if (trigger.getAttribute('aria-expanded') !== 'true') fireEvent.click(trigger);
+  return screen.getAllByRole('button', { name }).at(-1) as HTMLButtonElement;
+}
+
 const api = vi.hoisted(() => ({
+  archiveAccount: vi.fn(),
   correctPortfolioOperation: vi.fn(),
   getSession: vi.fn(),
   listInstruments: vi.fn(),
@@ -58,6 +66,7 @@ const account = {
   kind: 'PORTFOLIO',
   valuationMode: 'PORTFOLIO',
   status: 'ACTIVE',
+  editable: true,
   institution: 'Courtier Démo',
   maskedIdentifier: null,
   productCode: null,
@@ -154,9 +163,7 @@ describe('portfolio shell breadcrumb', () => {
     expect(api.readAccount).toHaveBeenCalledTimes(1);
     expect(window.location.search).toBe('?tab=operations&asOf=2026-03-10&operationId=op-1');
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
-    expect(screen.getByRole('link', { name: 'Gérer les instruments' }).getAttribute('href')).toBe(
-      '/portfolios/instruments',
-    );
+    expect(menuItem('Gérer les instruments').disabled).toBe(false);
     expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
       'page',
     );
@@ -534,9 +541,9 @@ describe('PortfolioAccountPage', () => {
     expect(screen.getByRole('link', { name: 'Valorisations' }).getAttribute('aria-current')).toBe(
       'page',
     );
-    expect(screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled')).toBe(
-      true,
-    );
+    expect(
+      (screen.getByRole('button', { name: 'Actions du compte' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
     expect(screen.getByRole('columnheader', { name: 'Complétude' })).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
@@ -563,8 +570,66 @@ describe('PortfolioAccountPage', () => {
     api.readAccount.mockImplementation(() => ok({ ...account, status: 'CLOSED' }));
     renderPage();
     await screen.findByText(/Gain/);
-    for (const name of ['Nouvelle valorisation', 'Nouvelle opération'])
-      expect(screen.getByRole('button', { name }).matches(':disabled')).toBe(true);
+    expect(
+      (screen.getByRole('button', { name: 'Nouvelle opération' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    const item = menuItem(/^Nouvelle valorisation/);
+    expect(item.disabled).toBe(true);
+    expect(item.getAttribute('aria-label')).toMatch(/compte clôturé/);
+    expect(screen.getAllByRole('button', { name: /^Nouvelle opération/ })).toHaveLength(1);
+    expect(menuItem('Voir les règles').disabled).toBe(false);
+    expect(screen.getByText(/Ce compte est clôturé/)).toBeTruthy();
+  });
+
+  it.each(['CLOSED', 'ARCHIVED'] as const)(
+    'explains a %s account with a notice',
+    async (status) => {
+      window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+      api.readAccount.mockImplementation(() => ok({ ...account, status, editable: false }));
+      renderPage();
+      await screen.findByText(/Gain/);
+
+      expect(
+        screen.getByText(status === 'CLOSED' ? /Ce compte est clôturé/ : /Ce compte est archivé/),
+      ).toBeTruthy();
+      const item = menuItem(/^Modifier/);
+      expect(item.disabled).toBe(true);
+      expect(item.textContent).toMatch(status === 'CLOSED' ? /compte clôturé/ : /compte archivé/);
+    },
+  );
+
+  it('disables the writing items of an active but read-only portfolio', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+    api.readAccount.mockImplementation(() => ok({ ...account, editable: false }));
+    renderPage();
+    await screen.findByText(/Gain/);
+
+    for (const name of [/^Nouvelle valorisation/, /^Modifier/, /^Archiver/]) {
+      const item = menuItem(name);
+      expect(item.disabled).toBe(true);
+      expect(item.getAttribute('aria-label')).toMatch(/lecture seule/);
+    }
+  });
+
+  it('archives from the menu, refetches and shows the archived notice', async () => {
+    let archived = false;
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+    api.readAccount.mockImplementation(() =>
+      ok(archived ? { ...account, status: 'ARCHIVED', editable: false } : account),
+    );
+    api.archiveAccount.mockImplementation(() => {
+      archived = true;
+      return ok({});
+    });
+    renderPage();
+    await screen.findByText(/Gain/);
+
+    fireEvent.click(menuItem(/^Archiver/));
+    const dialog = await screen.findByRole('dialog', { name: 'Archiver le compte' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archiver' }));
+
+    expect(await screen.findByText(/Ce compte est archivé/)).toBeTruthy();
+    expect(await screen.findByText('Le compte a été archivé.')).toBeTruthy();
   });
 
   it('answers a former allocation link with Positions and retries a failed allocation', async () => {
@@ -591,11 +656,9 @@ describe('PortfolioAccountPage', () => {
     renderPage();
     await screen.findByText('Aucune position à cette date');
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
-      ).toBe(false),
+      expect(menuItem(/^Nouvelle valorisation/).matches(':disabled')).toBe(false),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
+    fireEvent.click(menuItem(/^Nouvelle valorisation/));
 
     expect(new URLSearchParams(window.location.search).get('tab')).toBe('valuations');
     const dialog = await screen.findByRole('dialog', { name: 'Nouvelle valorisation' });
@@ -675,10 +738,8 @@ describe('PortfolioAccountPage', () => {
     ).toBe(true);
     expect(screen.getByRole('link', { name: 'Opérations' })).toBeTruthy();
     expect(
-      (
-        screen.getByRole('link', { name: 'Gérer les instruments' }) as HTMLAnchorElement
-      ).getAttribute('href'),
-    ).toBe('/portfolios/instruments');
+      (screen.getByRole('button', { name: 'Actions du compte' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
     expect(
       within(screen.getByTestId('operations-skeleton')).getAllByRole('columnheader', {
         name: 'Date',
@@ -689,11 +750,7 @@ describe('PortfolioAccountPage', () => {
     expect(await loadedOperationsTable()).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
-    expect(
-      (
-        screen.getByRole('link', { name: 'Gérer les instruments' }) as HTMLAnchorElement
-      ).getAttribute('href'),
-    ).toBe('/portfolios/instruments');
+    expect(menuItem('Gérer les instruments').disabled).toBe(false);
   });
 
   it('answers a missing account with the not found state', async () => {
@@ -752,7 +809,7 @@ describe('PortfolioAccountPage', () => {
     renderPage();
     expect(await screen.findByRole('heading', { level: 3, name: account.label })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Mouvements' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Voir les règles' })).toBeTruthy();
+    expect(menuItem('Voir les règles')).toBeTruthy();
   });
 
   it('reads a former contract link of a securities account as its account tab', async () => {
@@ -1119,9 +1176,7 @@ it.each(['performance', 'operations', 'positions', 'valuations', 'contract'] as 
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
-      ).toBe(false),
+      expect(menuItem(/^Nouvelle valorisation/).matches(':disabled')).toBe(false),
     );
     const expected = {
       positions: 'Supports du contrat',
@@ -1154,9 +1209,7 @@ it.each(['positions', 'valuations'] as const)(
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
     await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: 'Nouvelle valorisation' }).matches(':disabled'),
-      ).toBe(false),
+      expect(menuItem(/^Nouvelle valorisation/).matches(':disabled')).toBe(false),
     );
     if (tab === 'positions') {
       expect(await screen.findByLabelText('Afficher les positions soldées')).toBeTruthy();

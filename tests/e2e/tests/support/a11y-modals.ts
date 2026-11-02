@@ -143,6 +143,10 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
       name === 'budget target edit'
         ? page.getByRole('row').getByRole('button', { name: 'Modifier', exact: true }).first()
         : button(trigger).first();
+    if (trigger === 'Nouvelle valorisation') {
+      // The valuation action lives in the account menu at the end of the shell header.
+      await button(/^Actions du compte/).click();
+    }
     await expect(target).toBeVisible();
     await target.click();
   }
