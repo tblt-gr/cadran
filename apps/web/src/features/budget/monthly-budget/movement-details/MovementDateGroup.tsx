@@ -1,7 +1,6 @@
 import type { MonthlyLedgerMovement } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
 import { formatAmount, formatCalendarDay, formatCalendarDayMonth } from '@/lib/decimal';
@@ -59,8 +58,11 @@ export function MovementDateGroup({
                 {label ?? <SkeletonBlock className={styles.skeletonLabel} />}
               </strong>
               {pending ? (
-                <StatusBadge tone="neutral">{t('budget.monthly.movements.pending')}</StatusBadge>
+                <span className={styles.pendingMarker}>
+                  ({t('budget.monthly.movements.pending')})
+                </span>
               ) : null}
+
               <MoneyValue skeletonClassName={styles.skeletonAmount} value={amount} />
             </div>
           );

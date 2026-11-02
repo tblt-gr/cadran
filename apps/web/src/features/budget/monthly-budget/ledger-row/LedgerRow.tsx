@@ -67,9 +67,6 @@ export function LedgerRow({
           <span className={styles.labelText} title={row.label}>
             {row.label}
           </span>
-          {pendingOnly ? (
-            <span className={styles.pendingMarker}>({t('budget.monthly.pendingMarker')})</span>
-          ) : null}
           {row.movementCount > 1 ? (
             <>
               <span aria-hidden="true" className={styles.meta}>

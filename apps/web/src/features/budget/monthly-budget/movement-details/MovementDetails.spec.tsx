@@ -172,11 +172,11 @@ describe('MovementDetails loading structure', () => {
       const waiting = (await screen.findByText('Libellé waiting')).closest('li')!;
       const booked = screen.getByText('Libellé booked').closest('li')!;
       expect(waiting.getAttribute('data-pending')).toBe('true');
-      expect(within(waiting).getByText('En attente')).toBeTruthy();
+      expect(within(waiting).getByText('(en attente)')).toBeTruthy();
       expect(waiting.querySelector('[data-visual-mask]')?.textContent).toMatch(/50,00/);
       expect(waiting.firstElementChild?.className).toContain('pending');
       expect(booked.hasAttribute('data-pending')).toBe(false);
-      expect(within(booked).queryByText('En attente')).toBeNull();
+      expect(within(booked).queryByText('(en attente)')).toBeNull();
       expect(booked.firstElementChild?.className).not.toContain('pending');
     },
   );

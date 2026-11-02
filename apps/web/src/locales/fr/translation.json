@@ -3166,7 +3166,6 @@
       "pending_one": "{{count}} transaction en attente",
       "pending_other": "{{count}} transactions en attente",
       "noMovement": "Aucun mouvement",
-      "pendingMarker": "en attente",
       "pendingNotCalculable": "Montant en attente non calculable",
       "showEmptyAccounts": "Afficher les comptes sans mouvement",
       "hideEmptyAccounts": "Masquer les comptes sans mouvement",
@@ -3193,7 +3192,7 @@
         "loadingMore": "Chargement…",
         "in": "Entrée depuis {{account}}",
         "out": "Sortie vers {{account}}",
-        "pending": "En attente",
+        "pending": "en attente",
         "edit": "Modifier le mouvement {{label}} du {{date}}, {{amount}}",
         "editLoading": "Chargement du mouvement…",
         "editError": "Impossible de charger ce mouvement."

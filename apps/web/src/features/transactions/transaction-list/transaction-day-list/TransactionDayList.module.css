@@ -42,12 +42,22 @@
   row-gap: var(--spacing-1);
 }
 
-/* Every cell but the state badge, which must stay fully readable to carry the meaning. */
+/*
+ * Every cell but the state badge, which must stay fully readable to carry the meaning.
+ * Text is muted by colour, never by opacity, which would pull it under AA contrast; only the
+ * category fill, whose ink is computed from it, is greyed.
+ */
 .pending .primary,
-.pending .amount,
+.pending .primary button,
+.pending .primary small,
+.pending .amount [data-sign],
 .pending .category,
 .pending .account {
-  opacity: var(--opacity-pending);
+  color: var(--text-pending);
+}
+
+.pending .category > * {
+  filter: grayscale(1);
 }
 
 .selectable {

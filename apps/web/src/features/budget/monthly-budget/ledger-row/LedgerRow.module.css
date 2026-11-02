@@ -51,18 +51,10 @@
   color: var(--text-muted);
 }
 
-.rowPending .identity,
+/* Muted by colour, never by opacity: opacity would pull the text under AA contrast. */
+.rowPending .name,
 .rowPending .amount {
-  opacity: var(--opacity-pending);
-}
-
-/* Plain small text after the label: the label truncates before the marker does. */
-.pendingMarker {
-  flex: 0 0 auto;
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-normal);
-  white-space: nowrap;
+  color: var(--text-pending);
 }
 
 .toggle:hover,

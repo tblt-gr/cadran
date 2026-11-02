@@ -71,7 +71,7 @@ describe('LedgerRow pending movements', () => {
     expect(within(item).getByRole('button', { name: /Afficher les mouvements/ })).toBeTruthy();
   });
 
-  it('greys a pending-only row, marks it in plain text and shows the pending amount as usual', () => {
+  it('greys a pending-only row, with no marker, and shows the pending amount as usual', () => {
     const item = renderRow(
       category({
         total: { value: '0.00', assetCode: 'EUR', reason: null },
@@ -84,7 +84,7 @@ describe('LedgerRow pending movements', () => {
 
     expect(item.className).toContain('rowPending');
     expect(item.className).not.toContain('rowEmpty');
-    expect(within(item).getByText('(en attente)')).toBeTruthy();
+    expect(within(item).queryByText('(en attente)')).toBeNull();
     // The pending amount is in the amount cell, in the booked amount's format, with no parentheses.
     const amount = item.querySelector('[data-visual-mask]');
     expect(amount?.textContent).toMatch(/40,00/);
@@ -106,7 +106,7 @@ describe('LedgerRow pending movements', () => {
     );
 
     expect(within(item).getByText('Montant en attente non calculable')).toBeTruthy();
-    expect(within(item).getByText('(en attente)')).toBeTruthy();
+    expect(within(item).queryByText('(en attente)')).toBeNull();
   });
 
   it('keeps a row without any movement empty and not expandable', () => {

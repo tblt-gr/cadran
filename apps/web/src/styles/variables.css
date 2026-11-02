@@ -21,6 +21,8 @@
   --text-primary: #f7f7f7;
   --text-secondary: #a1a1a6;
   --text-muted: #929296;
+  /* Text of a movement not yet booked: dimmer than muted yet AA (4.63:1 on --bg-surface-hover, 5.25:1 on --bg-surface-1). */
+  --text-pending: #85858a;
   --positive: #28a870;
   --positive-soft: rgba(40, 168, 112, 0.12);
   --negative: #f07878;
@@ -51,9 +53,6 @@
   --glow-cta: 0 0 1.5rem rgba(241, 192, 134, 0.18);
   --shadow-mobile-navigation: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
   --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
-
-  /* A movement that has not happened yet: dimmed, never hidden. */
-  --opacity-pending: 0.55;
 
   /* Layout dimensions */
   --sidebar-width: 13.5rem;
