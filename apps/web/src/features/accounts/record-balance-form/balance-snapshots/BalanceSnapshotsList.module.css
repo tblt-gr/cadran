@@ -39,12 +39,6 @@
   color: var(--text-secondary);
 }
 
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-2);
-}
-
 .notice,
 .alert {
   margin: var(--spacing-none);

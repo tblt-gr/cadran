@@ -1,11 +1,10 @@
 import type { AccountBalanceSnapshot } from '@cadran/api-client';
-import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import { accountErrorKind } from '@/features/accounts/accountError';
 import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
-import { useBalanceSnapshots, useWithdrawBalance } from './useBalanceSnapshots';
+import { BalanceRowActions } from './BalanceRowActions';
+import { useBalanceSnapshots } from './useBalanceSnapshots';
+import { useBalanceWithdrawal } from './useBalanceWithdrawal';
 import styles from './BalanceSnapshotsList.module.css';
 
 /**
@@ -24,24 +23,12 @@ export function BalanceSnapshotsList({
 }) {
   const { t, i18n } = useTranslation();
   const snapshots = useBalanceSnapshots(accountId);
-  const withdraw = useWithdrawBalance(accountId);
-  const [confirmingId, setConfirming] = useState<string | null>(null);
-  const withdrawError = accountErrorKind(withdraw.error, withdraw.isError);
   const pending = snapshots.isPending;
   const items = snapshots.data?.items ?? null;
   const total = snapshots.data?.total ?? 0;
-  // A row withdrawn elsewhere no longer carries a confirmation.
-  const confirming = items?.find((item) => item.id === confirmingId && item.active)?.id ?? null;
-  const confirmRef = useRef<HTMLButtonElement>(null);
-  const hintId = useId();
+  const withdrawal = useBalanceWithdrawal(accountId, items);
+  const hintId = withdrawal.hintId;
   const empty = !pending && items !== null && items.length === 0;
-
-  // The button that opened the confirmation is replaced, so focus moves to the new one.
-  useEffect(() => {
-    if (confirming !== null) {
-      confirmRef.current?.focus();
-    }
-  }, [confirming]);
 
   if (snapshots.isError) {
     return (
@@ -63,12 +50,12 @@ export function BalanceSnapshotsList({
           {t('accounts.snapshots.truncated', { shown: items?.length ?? 0, total })}
         </p>
       ) : null}
-      {withdrawError ? (
+      {withdrawal.error ? (
         <p className={styles.alert} role="alert">
-          {t(`accounts.balances.errors.${withdrawError}`)}
+          {t(`accounts.balances.errors.${withdrawal.error}`)}
         </p>
       ) : null}
-      {confirming !== null ? (
+      {withdrawal.confirmingId !== null ? (
         <p className={styles.notice} id={hintId}>
           {t('accounts.snapshots.confirmHint')}
         </p>
@@ -126,73 +113,12 @@ export function BalanceSnapshotsList({
                   )}
                 </td>
                 <td>
-                  {snapshot?.active && snapshot.source !== 'CALCULATED' ? (
-                    confirming === snapshot.id ? (
-                      <div className={styles.actions}>
-                        <button
-                          aria-describedby={hintId}
-                          className="primary-action"
-                          ref={confirmRef}
-                          disabled={withdraw.isPending}
-                          onClick={() =>
-                            withdraw.mutate(snapshot, { onSuccess: () => setConfirming(null) })
-                          }
-                          type="button"
-                        >
-                          {t(
-                            withdraw.isPending
-                              ? 'accounts.snapshots.confirming'
-                              : 'accounts.snapshots.confirmAction',
-                          )}
-                        </button>
-                        <button
-                          className="secondary-action"
-                          disabled={withdraw.isPending}
-                          onClick={() => {
-                            withdraw.reset();
-                            setConfirming(null);
-                          }}
-                          type="button"
-                        >
-                          {t('actions.cancel')}
-                        </button>
-                      </div>
-                    ) : (
-                      <div className={styles.actions}>
-                        <ActionMenu
-                          items={[
-                            ...(onEdit && snapshot.source === 'MANUAL'
-                              ? [
-                                  {
-                                    id: 'edit',
-                                    icon: 'edit' as const,
-                                    label: t('accounts.snapshots.editOf', {
-                                      date: formatCalendarNumericDay(snapshot.asOf),
-                                    }),
-                                    text: t('accounts.snapshots.edit'),
-                                    onSelect: () => onEdit(snapshot),
-                                  },
-                                ]
-                              : []),
-                            {
-                              id: 'withdraw',
-                              icon: 'delete' as const,
-                              label: t('accounts.snapshots.withdrawOf', {
-                                date: formatCalendarNumericDay(snapshot.asOf),
-                              }),
-                              text: t('accounts.snapshots.withdraw'),
-                              onSelect: () => {
-                                withdraw.reset();
-                                setConfirming(snapshot.id);
-                              },
-                            },
-                          ]}
-                          label={t('accounts.snapshots.actionsOf', {
-                            date: formatCalendarNumericDay(snapshot.asOf),
-                          })}
-                        />
-                      </div>
-                    )
+                  {snapshot ? (
+                    <BalanceRowActions
+                      onEdit={onEdit}
+                      snapshot={snapshot}
+                      withdrawal={withdrawal}
+                    />
                   ) : null}
                 </td>
               </tr>

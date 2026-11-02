@@ -28,6 +28,7 @@ const api = vi.hoisted(() => ({
   readAccount: vi.fn(),
   readAccountValuationHistory: vi.fn(),
   readAccountRules: vi.fn(),
+  listAccountBalances: vi.fn(),
 }));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
@@ -219,6 +220,9 @@ describe('AccountDetailPage', () => {
     api.getTransaction.mockImplementation(() => success(movement));
     api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
     api.readAccount.mockImplementation(() => success(account));
+    api.listAccountBalances.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
     api.listTransactions.mockImplementation(() =>
       success({ items: [movement], nextCursor: null, hasMore: false, pageSize: 50 }),
     );
@@ -860,6 +864,28 @@ describe('AccountDetailPage', () => {
     expect(window.history.length).toBe(before);
     expect(screen.getByTestId('account-detail-skeleton')).toBeTruthy();
     expect(api.listTransactions).not.toHaveBeenCalled();
+    window.history.replaceState({}, '', '/');
+  });
+
+  it('opens the balance tab from ?tab=balance and reads only this account balances', async () => {
+    renderPage(account.id, '?tab=balance');
+    expect(await screen.findByText('Aucun solde enregistré')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Solde' }).getAttribute('aria-current')).toBe('page');
+    expect(api.listAccountBalances).toHaveBeenCalledWith(
+      expect.objectContaining({ path: { id: account.id } }),
+    );
+    expect(screen.queryByRole('heading', { level: 3, name: 'Livret A Banque X' })).toBeNull();
+    expect(api.listTransactions).not.toHaveBeenCalled();
+  });
+
+  it('never mounts the balance tab on a portfolio-valued account', async () => {
+    api.readAccount.mockImplementation(() =>
+      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
+    );
+    renderPage(account.id, '?tab=balance');
+    await waitFor(() => expect(window.location.pathname).toBe(`/portfolios/${account.id}`));
+    expect(screen.queryByRole('button', { name: 'Enregistrer un solde' })).toBeNull();
+    expect(api.listAccountBalances).not.toHaveBeenCalled();
     window.history.replaceState({}, '', '/');
   });
 

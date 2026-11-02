@@ -930,6 +930,21 @@
         "MIXED_ASSETS": "Actifs incompatibles"
       }
     },
+    "balanceTab": {
+      "navLabel": "Solde",
+      "caption": "Soldes enregistrés sur ce compte",
+      "loading": "Chargement des soldes…",
+      "record": "Enregistrer un solde",
+      "reconciliation": "Rapprochement",
+      "reconciled": "Rapproché",
+      "unreconciled": "Non rapproché",
+      "nonComputable": "Non calculable",
+      "actions": "Actions",
+      "emptyTitle": "Aucun solde enregistré",
+      "emptyDescription": "Enregistrez le solde du compte à une date pour ancrer son calcul.",
+      "errorTitle": "Les soldes sont indisponibles",
+      "recordUnavailable": "Un compte archivé ou clôturé n’accepte plus de nouveau solde."
+    },
     "snapshots": {
       "title": "Relevés enregistrés",
       "description": "Un relevé ancre le solde à sa date. Les mouvements strictement postérieurs s’y ajoutent. Retirer un relevé le garde dans le fil, et le solde repart du relevé actif précédent.",
