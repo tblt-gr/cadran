@@ -53,7 +53,7 @@
   height: var(--icon-size-md);
   padding: var(--spacing-none);
   border: var(--border-none);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-circle);
   color: var(--text-secondary);
   background: var(--color-transparent);
   place-items: center;
@@ -84,7 +84,6 @@
 .primary-action {
   color: var(--text-on-primary);
   background: var(--gradient-cta);
-  box-shadow: var(--glow-cta);
 }
 
 .primary-action:hover {

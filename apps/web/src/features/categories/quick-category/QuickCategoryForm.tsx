@@ -1,3 +1,5 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type { CategoryType } from '@cadran/api-client';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -62,7 +64,7 @@ export function QuickCategoryForm({
         </p>
       ) : null}
 
-      <div className={styles.fields}>
+      <FormGrid>
         <label>
           <span>{t('categories.fields.label')}</span>
           <input
@@ -104,13 +106,13 @@ export function QuickCategoryForm({
 
         {/* A parent only fits one type: remounting drops the picker's stale search and choice. */}
         <ParentCategoryField key={type} onChange={setParentId} type={type} value={parentId} />
-      </div>
+      </FormGrid>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'categories.quick.creating' : 'categories.quick.create')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

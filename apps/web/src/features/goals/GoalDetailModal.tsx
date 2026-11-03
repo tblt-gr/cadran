@@ -22,7 +22,7 @@ export function GoalDetailModal({
     <EmptyValue label={t(`goals.reasons.${status.reason ?? 'MISSING_MONTH_VALUE'}`)} />
   );
   return (
-    <Modal close={close} title={t('goals.detailTitle')}>
+    <Modal intent="detail" close={close} title={t('goals.detailTitle')}>
       {annual?.months?.length ? (
         <div className={styles.statusTableWrap}>
           <table className={styles.statusTable}>

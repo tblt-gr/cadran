@@ -322,6 +322,7 @@ export function GoalsPage() {
       )}
       {editor ? (
         <Modal
+          intent={editor === 'create' ? 'create' : 'edit'}
           close={() => {
             setEditor(null);
             save.reset();
@@ -392,7 +393,11 @@ export function GoalsPage() {
       ) : null}
       {historyTarget ? (
         history.isPending ? (
-          <Modal close={() => setHistoryTarget(null)} title={t('goals.history.title')}>
+          <Modal
+            intent="detail"
+            close={() => setHistoryTarget(null)}
+            title={t('goals.history.title')}
+          >
             <GoalHistoryTableSkeleton />
           </Modal>
         ) : history.data ? (
@@ -402,14 +407,18 @@ export function GoalsPage() {
             items={history.data.items}
           />
         ) : (
-          <Modal close={() => setHistoryTarget(null)} title={t('goals.history.title')}>
+          <Modal
+            intent="detail"
+            close={() => setHistoryTarget(null)}
+            title={t('goals.history.title')}
+          >
             <p role="alert">{t('goals.error')}</p>
           </Modal>
         )
       ) : null}
       {detailTarget ? (
         statusDetail.isPending ? (
-          <Modal close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
+          <Modal intent="detail" close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
             <GoalStatusTableSkeleton />
           </Modal>
         ) : statusDetail.data ? (
@@ -419,13 +428,14 @@ export function GoalsPage() {
             status={statusDetail.data}
           />
         ) : (
-          <Modal close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
+          <Modal intent="detail" close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
             <p role="alert">{t('goals.error')}</p>
           </Modal>
         )
       ) : null}
       {closeTarget ? (
         <Modal
+          intent="archive"
           close={() => {
             setCloseTarget(null);
             close.reset();
@@ -433,6 +443,10 @@ export function GoalsPage() {
           title={t('goals.closeTitle')}
         >
           <CloseGoalDialog
+            onCancel={() => {
+              setCloseTarget(null);
+              close.reset();
+            }}
             error={goalErrorKind(close.error, close.isError)}
             goal={closeTarget}
             onConfirm={() => close.mutate(closeTarget)}

@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AccountKind, CreateMetricPolicyRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,14 +23,12 @@ const ACCOUNT_KINDS = (Object.keys(ACCOUNT_KIND_ORDER) as AccountKind[]).sort(
 const MAX_LABEL_LENGTH = 80;
 
 interface CreateMetricPolicyFormProps {
-  onCancel: () => void;
   onSubmit: (body: CreateMetricPolicyRequest) => void;
   pending: boolean;
   submitError: MetricPolicyErrorKind | null;
 }
 
 export function CreateMetricPolicyForm({
-  onCancel,
   onSubmit,
   pending,
   submitError,
@@ -95,14 +94,11 @@ export function CreateMetricPolicyForm({
           </label>
         ))}
       </fieldset>
-      <div className={styles.actions}>
-        <button className="secondary-action" onClick={onCancel} type="button">
-          {t('actions.cancel')}
-        </button>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t('metricPolicy.create.submit')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

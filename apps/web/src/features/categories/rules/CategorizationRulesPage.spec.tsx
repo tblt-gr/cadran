@@ -68,6 +68,20 @@ describe('CategorizationRulesPage', () => {
     cleanup();
     vi.clearAllMocks();
   });
+  it.each(['Archiver', 'Désactiver'])('cancels %s without mutating a rule', async (action) => {
+    api.listAccounts.mockImplementation(() => success({ items: [] }));
+    api.listCategorizationRules.mockImplementation(() =>
+      success({ items: [rule], page: 1, pageSize: 100, total: 1 }),
+    );
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: /Actions de la règle/ }));
+    fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${action}`) }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(api.archiveCategorizationRule).not.toHaveBeenCalled();
+    expect(api.updateCategorizationRule).not.toHaveBeenCalled();
+  });
   it('shows the named skeleton only during the initial rules request', async () => {
     api.listAccounts.mockImplementation(() => success({ items: [] }));
     let resolveRules: ((value: unknown) => void) | undefined;

@@ -151,9 +151,7 @@ export function CategoryPage() {
       {editor ? (
         <Modal
           close={closeEditor}
-          eyebrow={t(
-            editor === 'create' ? 'categories.form.createEyebrow' : 'categories.form.editEyebrow',
-          )}
+          intent={editor === 'create' ? 'create' : 'edit'}
           title={t(
             editor === 'create' ? 'categories.form.createTitle' : 'categories.form.editTitle',
           )}
@@ -172,7 +170,13 @@ export function CategoryPage() {
       {lifecycle.target ? (
         <Modal
           close={lifecycle.close}
-          eyebrow={t(`categories.lifecycle.${lifecycle.target.operation}.eyebrow`)}
+          intent={
+            lifecycle.target.operation === 'ARCHIVE'
+              ? 'archive'
+              : lifecycle.target.operation === 'DELETE'
+                ? 'delete'
+                : 'confirm'
+          }
           title={t(`categories.lifecycle.${lifecycle.target.operation}.title`)}
         >
           <CategoryLifecycleDialog

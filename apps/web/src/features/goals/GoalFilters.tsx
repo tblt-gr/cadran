@@ -84,7 +84,12 @@ export function GoalFilters({
         </button>
       </HeaderActions>
       {open ? (
-        <Modal close={() => setOpen(false)} returnFocus={trigger} title={t('goals.filtersTitle')}>
+        <Modal
+          intent="settings"
+          close={() => setOpen(false)}
+          returnFocus={trigger}
+          title={t('goals.filtersTitle')}
+        >
           <div className={styles.fields}>
             <div className={styles.period}>
               <label>

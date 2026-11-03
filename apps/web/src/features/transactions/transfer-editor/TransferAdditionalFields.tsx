@@ -1,4 +1,5 @@
-import { useId } from 'react';
+import { useId, useState, useEffect } from 'react';
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { useTranslation } from 'react-i18next';
 import type { TransferFormErrors, TransferFormValues } from './transferFormValues';
 import formStyles from '@/features/transactions/transaction-form/TransactionForm.module.css';
@@ -21,6 +22,10 @@ export function TransferAdditionalFields({
 }) {
   const { t } = useTranslation();
   const errorId = useId();
+  const [open, setOpen] = useState(values.note !== '' || values.hasFee);
+  useEffect(() => {
+    if (showErrors && (errors.note || errors.feeValue)) setOpen(true);
+  }, [showErrors, errors.note, errors.feeValue]);
   return (
     <>
       <label>
@@ -52,49 +57,53 @@ export function TransferAdditionalFields({
         ) : null}
       </label>
 
-      <label>
-        <span>{t('transactions.transfer.fields.note')}</span>
-        <input
-          disabled={disabled}
-          aria-describedby={showErrors && errors.note ? `${errorId}-note` : undefined}
-          aria-invalid={showErrors && errors.note ? true : undefined}
-          onChange={(event) => set('note', event.target.value)}
-          value={values.note}
-        />
-        {showErrors && errors.note ? (
-          <small id={`${errorId}-note`}>{t('transactions.transfer.validation.note')}</small>
-        ) : null}
-      </label>
-
-      <div>
-        <label className={formStyles.checkboxLabel}>
+      <FormSection title={t('transactions.form.advanced')} open={open} onToggle={setOpen}>
+        <label>
+          <span>{t('transactions.transfer.fields.note')}</span>
           <input
             disabled={disabled}
-            checked={values.hasFee}
-            onChange={(event) => set('hasFee', event.target.checked)}
-            type="checkbox"
+            aria-describedby={showErrors && errors.note ? `${errorId}-note` : undefined}
+            aria-invalid={showErrors && errors.note ? true : undefined}
+            onChange={(event) => set('note', event.target.value)}
+            value={values.note}
           />
-          <span>{t('transactions.transfer.fields.hasFee')}</span>
+          {showErrors && errors.note ? (
+            <small id={`${errorId}-note`}>{t('transactions.transfer.validation.note')}</small>
+          ) : null}
         </label>
-        {values.hasFee ? (
-          <label>
-            <span>{withAssetCode(t('transactions.transfer.fields.fee'), sourceAsset)}</span>
+
+        <div data-span="full">
+          <label className={formStyles.checkboxLabel}>
             <input
               disabled={disabled}
-              aria-describedby={showErrors && errors.feeValue ? `${errorId}-feeValue` : undefined}
-              aria-invalid={showErrors && errors.feeValue ? true : undefined}
-              autoComplete="off"
-              inputMode="decimal"
-              onChange={(event) => set('feeValue', event.target.value)}
-              spellCheck={false}
-              value={values.feeValue}
+              checked={values.hasFee}
+              onChange={(event) => set('hasFee', event.target.checked)}
+              type="checkbox"
             />
-            {showErrors && errors.feeValue ? (
-              <small id={`${errorId}-feeValue`}>{t('transactions.transfer.validation.fee')}</small>
-            ) : null}
+            <span>{t('transactions.transfer.fields.hasFee')}</span>
           </label>
-        ) : null}
-      </div>
+          {values.hasFee ? (
+            <label>
+              <span>{withAssetCode(t('transactions.transfer.fields.fee'), sourceAsset)}</span>
+              <input
+                disabled={disabled}
+                aria-describedby={showErrors && errors.feeValue ? `${errorId}-feeValue` : undefined}
+                aria-invalid={showErrors && errors.feeValue ? true : undefined}
+                autoComplete="off"
+                inputMode="decimal"
+                onChange={(event) => set('feeValue', event.target.value)}
+                spellCheck={false}
+                value={values.feeValue}
+              />
+              {showErrors && errors.feeValue ? (
+                <small id={`${errorId}-feeValue`}>
+                  {t('transactions.transfer.validation.fee')}
+                </small>
+              ) : null}
+            </label>
+          ) : null}
+        </div>
+      </FormSection>
     </>
   );
 }

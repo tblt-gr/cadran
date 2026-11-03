@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { reorderPortfolioOperations } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -100,6 +101,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
 
   return (
     <Modal
+      intent="edit"
       close={onClose}
       title={`Réordonner la journée du ${formatCalendarNumericDay(tradeDate)}`}
     >
@@ -159,7 +161,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
                 );
               })}
             </ol>
-            <div className={styles.actions}>
+            <ModalActions>
               <button
                 className="secondary-action"
                 disabled={saving}
@@ -176,7 +178,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
               >
                 {saving ? 'Enregistrement…' : 'Enregistrer l’ordre'}
               </button>
-            </div>
+            </ModalActions>
           </>
         )}
       </div>

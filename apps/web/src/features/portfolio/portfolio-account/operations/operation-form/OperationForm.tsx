@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { PortfolioOperation, PortfolioOperationRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import {
@@ -111,7 +113,7 @@ export function OperationForm({
           {saveMessage}
         </p>
       ) : null}
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <OperationTypeSelect
           accountKind={account.kind}
           value={type}
@@ -229,7 +231,7 @@ export function OperationForm({
             />
           </OperationField>
         ) : null}
-      </div>
+      </FormGrid>
       <OperationExtraFields errors={errors} onChange={set} values={values} />
       <OperationPreviewLine
         type={type}
@@ -237,11 +239,11 @@ export function OperationForm({
         preview={built.request ? preview.data : undefined}
         showResidual={type === 'BUY' || type === 'SELL'}
       />
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

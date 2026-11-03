@@ -22,13 +22,6 @@
   color: var(--text-secondary);
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-4);
-}
-
 .alert {
   padding: var(--spacing-3) var(--spacing-4);
   border: var(--border-line-subtle);

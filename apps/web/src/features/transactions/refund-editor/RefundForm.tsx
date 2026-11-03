@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateRefundRequest, RefundableTransaction } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -189,11 +190,11 @@ export function RefundForm({
           total={amount}
         />
       </div>
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={!valid || pending} type="submit">
           {pending ? t('transactions.refund.saving') : t('transactions.refund.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

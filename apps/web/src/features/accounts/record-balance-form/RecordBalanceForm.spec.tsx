@@ -81,6 +81,12 @@ function renderForm() {
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => cleanup());
 
+it('folds the optional comment under advanced fields for a new balance', () => {
+  listing([]);
+  renderForm();
+  expect(screen.getByText('Champs avancés').closest('details')?.open).toBe(false);
+});
+
 it('amends the listed snapshot in place instead of recording another one', async () => {
   listing([snapshot]);
   api.correctAccountBalance.mockImplementation(() =>

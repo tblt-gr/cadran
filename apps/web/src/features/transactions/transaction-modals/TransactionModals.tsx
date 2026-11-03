@@ -108,12 +108,9 @@ export function TransactionModals({
       ) : null}
 
       {voiding ? (
-        <Modal
-          close={closeVoiding}
-          eyebrow={t('transactions.void.eyebrow')}
-          title={t('transactions.void.title')}
-        >
+        <Modal close={closeVoiding} intent="confirm" title={t('transactions.void.title')}>
           <VoidTransactionDialog
+            onCancel={closeVoiding}
             onConfirm={() => voidMutation.mutate(voiding)}
             pending={voidMutation.isPending}
             submitError={voidError}

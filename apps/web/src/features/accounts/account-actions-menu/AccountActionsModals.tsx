@@ -53,10 +53,9 @@ export function AccountActionsModals({
     <>
       {editor ? (
         <Modal
+          intent={editor === 'create' ? 'create' : 'edit'}
           close={closeEditor}
-          eyebrow={t(
-            editor === 'create' ? 'accounts.form.createEyebrow' : 'accounts.form.editEyebrow',
-          )}
+
           title={t(editor === 'create' ? 'accounts.form.createTitle' : 'accounts.form.editTitle')}
         >
           {editor === 'create' ? (
@@ -81,6 +80,7 @@ export function AccountActionsModals({
 
       {recording ? (
         <Modal
+          intent="create"
           close={closeRecording}
           title={t('accounts.balances.title', { label: recording.label })}
         >
@@ -99,8 +99,9 @@ export function AccountActionsModals({
 
       {archiving ? (
         <Modal
+          intent="archive"
           close={closeArchive}
-          eyebrow={t('accounts.archive.eyebrow')}
+
           title={t('accounts.archive.title')}
         >
           <ArchiveAccountDialog

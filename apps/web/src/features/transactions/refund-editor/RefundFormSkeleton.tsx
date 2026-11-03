@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonField, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './RefundForm.module.css';
@@ -30,11 +31,11 @@ export function RefundFormSkeleton() {
         <p>{t('transactions.refund.allocation')}</p>
         <SkeletonBlock className={styles.skeletonSplits} />
       </div>
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled type="button">
           {t('transactions.refund.save')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

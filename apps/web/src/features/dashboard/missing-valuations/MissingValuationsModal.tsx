@@ -25,7 +25,7 @@ export function MissingValuationsModal({ close, contributions }: MissingValuatio
   return (
     <Modal
       close={close}
-      eyebrow={t('dashboard.missingValuations.eyebrow')}
+      intent={recording ? 'create' : 'detail'}
       title={
         recording
           ? t('accounts.balances.title', { label: recording.label })

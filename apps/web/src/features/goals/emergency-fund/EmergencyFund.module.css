@@ -130,6 +130,9 @@
   flex-direction: column;
   gap: var(--spacing-4);
 }
+.frozen {
+  display: contents;
+}
 .group > label {
   display: flex;
   align-items: flex-start;
@@ -140,7 +143,7 @@
   font-weight: var(--font-weight-semibold);
 }
 .group > label input {
-  width: auto;
+  width: 100%;
   max-width: 100%;
   font-weight: var(--font-weight-normal);
 }
@@ -158,11 +161,13 @@
   width: fit-content;
 }
 .radios,
-.radios label {
+.form .radios label {
   display: flex;
   gap: var(--spacing-3);
 }
 .radios {
+  min-inline-size: 0;
+  margin: var(--spacing-none);
   flex-direction: column;
   padding: var(--spacing-none);
   border: var(--border-none);
@@ -173,7 +178,8 @@
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-semibold);
 }
-.radios label {
+.form .radios label {
+  flex-direction: row;
   align-items: center;
   color: var(--text-primary);
   font-size: var(--font-size-body);

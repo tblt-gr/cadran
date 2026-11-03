@@ -48,11 +48,14 @@ export function WithdrawValuationModal({
 
   return (
     <Modal
+      intent="delete"
       close={onClose}
-      eyebrow={`Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}`}
+
       title="Retirer la valorisation"
     >
+      <p>{`Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}`}</p>
       <WithdrawValuationDialog
+        onCancel={onClose}
         error={valuationSaveMessage(withdraw.error)}
         onConfirm={() => withdraw.mutate()}
         pending={withdraw.isPending}

@@ -56,11 +56,7 @@ export function RefundEditor({ accounts, close, onSaved, transaction }: RefundEd
   });
 
   return (
-    <Modal
-      close={close}
-      eyebrow={t('transactions.refund.eyebrow')}
-      title={t('transactions.refund.title')}
-    >
+    <Modal close={close} intent="create" title={t('transactions.refund.title')}>
       {refundable.isPending ? <RefundFormSkeleton /> : null}
       {refundable.isError ? <p role="alert">{t('transactions.refund.error')}</p> : null}
       {refundable.data ? (

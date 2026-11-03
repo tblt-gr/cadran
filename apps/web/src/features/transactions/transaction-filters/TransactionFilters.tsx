@@ -137,6 +137,7 @@ export function TransactionFilters({
 
       {open ? (
         <Modal
+          intent="settings"
           close={() => setOpen(false)}
           returnFocus={trigger}
           title={t('transactions.filters.title')}

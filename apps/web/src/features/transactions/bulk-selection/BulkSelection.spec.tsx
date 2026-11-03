@@ -232,12 +232,14 @@ describe('bulk selection', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Changer la catégorie' }));
 
     const dialog = screen.getByRole('dialog', { name: 'Changer la catégorie' });
+    expect(within(dialog).getByText('Modification', { exact: true })).toBeTruthy();
     const confirm = within(dialog).getByRole('button', { name: 'Confirmer' }) as HTMLButtonElement;
     expect(confirm.disabled).toBe(true);
     await chooseCategory();
     fireEvent.click(confirm);
 
     await waitFor(() => expect(within(dialog).getByText('1 mouvement modifié')).toBeTruthy());
+    expect(within(dialog).getByText('Détail', { exact: true })).toBeTruthy();
     expect(api.bulkCategorizeTransactions).toHaveBeenCalledWith(
       expect.objectContaining({
         body: { categoryId: CATEGORY, scope: { type: 'IDS', ids: [FIRST, SECOND] } },

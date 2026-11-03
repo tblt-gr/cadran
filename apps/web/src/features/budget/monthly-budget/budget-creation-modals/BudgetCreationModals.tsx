@@ -83,7 +83,7 @@ export function BudgetCreationModals({
     return (
       <Modal
         close={close}
-        eyebrow={t('transactions.form.createEyebrow')}
+        intent="create"
         title={t(
           draft.kind === 'account'
             ? 'transactions.transfer.title'

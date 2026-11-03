@@ -1,3 +1,6 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { PortfolioValuationDraft, PortfolioValuationRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -32,6 +35,7 @@ export function ValuationForm({
 }) {
   const { i18n } = useTranslation();
   const [values, setValues] = useState<ValuationFormValues>(() => valuesFromDraft(draft));
+  const [advancedOpen, setAdvancedOpen] = useState(Boolean(values.note));
   const [submitted, setSubmitted] = useState(false);
   const built = buildValuationRequest(values, draft.valuedOn, assetCode, version);
   const errors = { ...(submitted ? built.errors : null), ...fieldErrors };
@@ -94,7 +98,7 @@ export function ValuationForm({
         ))}
       </fieldset>
       {total ? (
-        <div className={styles.fields}>
+        <FormGrid className={styles.fields}>
           <DecimalInput
             error={errors['/totalValue']}
             hint={
@@ -107,7 +111,7 @@ export function ValuationForm({
             value={values.totalValue}
           />
           {cashField}
-        </div>
+        </FormGrid>
       ) : (
         <>
           {draft.positions.length === 0 ? (
@@ -142,21 +146,27 @@ export function ValuationForm({
           </div>
         </>
       )}
-      <FormField error={errors['/note']} label="Note" wide>
-        {(attributes) => (
-          <input
-            {...attributes}
-            maxLength={200}
-            onChange={(event) => set('note', event.target.value)}
-            value={values.note}
-          />
-        )}
-      </FormField>
-      <div className={styles.actions}>
+      <FormSection
+        title="Champs avancés"
+        open={advancedOpen || Boolean(errors['/note'])}
+        onToggle={setAdvancedOpen}
+      >
+        <FormField error={errors['/note']} label="Note" wide>
+          {(attributes) => (
+            <input
+              {...attributes}
+              maxLength={200}
+              onChange={(event) => set('note', event.target.value)}
+              value={values.note}
+            />
+          )}
+        </FormField>
+      </FormSection>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

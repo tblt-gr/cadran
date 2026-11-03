@@ -230,6 +230,7 @@ describe('RecurrencesPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
     expect(screen.getByRole('dialog', { name: 'Nouvelle récurrence' })).toBeTruthy();
+    expect(screen.getByText('Création')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 

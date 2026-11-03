@@ -74,7 +74,7 @@ export function CashWarnings({
         <StatusBadge tone="warning">{`À vérifier (${warnings.length})`}</StatusBadge>
       </button>
       {open ? (
-        <Modal close={() => setOpen(false)} title="Contrôle des espèces">
+        <Modal intent="detail" close={() => setOpen(false)} title="Contrôle des espèces">
           <div className={styles.content}>
             <ul className={styles.list}>{warnings.map((warning) => row(warning, cash))}</ul>
             {infos.length > 0 ? (

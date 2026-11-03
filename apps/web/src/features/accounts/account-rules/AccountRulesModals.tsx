@@ -119,10 +119,11 @@ export function AccountRulesModals({
   if (overriding) {
     return (
       <Modal
+        intent="create"
         close={closeOverride}
         key="override"
         returnFocus={opener}
-        eyebrow={t('accounts.overrides.eyebrow')}
+
         title={t('accounts.overrides.title', { label: account.label })}
       >
         <AccountRuleOverrideForm
@@ -141,10 +142,11 @@ export function AccountRulesModals({
   if (withdrawing) {
     return (
       <Modal
+        intent="delete"
         close={closeWithdraw}
         key="withdraw"
         returnFocus={opener}
-        eyebrow={t('accounts.overrides.eyebrow')}
+
         title={t('accounts.overrides.withdrawTitle')}
       >
         <WithdrawOverrideDialog
@@ -161,8 +163,9 @@ export function AccountRulesModals({
 
   return (
     <Modal
+      intent="detail"
       close={close}
-      eyebrow={t('accounts.rules.eyebrow')}
+
       key="rules"
       returnFocus={opener}
       title={t('accounts.rules.title', { label: account.label })}

@@ -26,16 +26,21 @@ const instrument: Instrument = {
 describe('InstrumentStatusDialog', () => {
   it('shows the lifecycle error and retries through the confirm action', () => {
     const onConfirm = vi.fn();
+    const onCancel = vi.fn();
     render(
       <InstrumentStatusDialog
         error
         instrument={instrument}
         pending={false}
+        onCancel={onCancel}
         onConfirm={onConfirm}
       />,
     );
     expect(screen.getByRole('alert').textContent).toContain('La modification est indisponible');
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(onConfirm).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(onCancel).toHaveBeenCalledOnce();
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 });

@@ -43,13 +43,6 @@
   background: var(--negative-soft);
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-4);
-}
-
 @media (max-width: 42rem) {
   .fields {
     grid-template-columns: 1fr;

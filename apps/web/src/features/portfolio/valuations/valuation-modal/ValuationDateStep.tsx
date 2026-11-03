@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { FormEvent } from 'react';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import styles from './ValuationForm.module.css';
@@ -29,11 +30,11 @@ export function ValuationDateStep({
         today={today}
         value={value}
       />
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" type="submit">
           Continuer
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

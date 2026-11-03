@@ -16,7 +16,7 @@ export function GoalHistoryModal({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal close={close} title={t('goals.history.title')}>
+    <Modal intent="detail" close={close} title={t('goals.history.title')}>
       {items.length === 0 ? (
         <p className={styles.empty}>{t('goals.history.empty')}</p>
       ) : (

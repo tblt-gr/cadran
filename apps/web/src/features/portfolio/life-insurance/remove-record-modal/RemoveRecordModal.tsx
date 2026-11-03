@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { removeLifeInsuranceFeeTerms, removeEuroFundRate } from '@cadran/api-client';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -27,7 +28,11 @@ export function RemoveRecordModal({
     onClose,
   );
   return (
-    <Modal title={kind === 'fee' ? 'Supprimer le barème' : 'Supprimer le taux'} close={onClose}>
+    <Modal
+      intent="delete"
+      title={kind === 'fee' ? 'Supprimer le barème' : 'Supprimer le taux'}
+      close={onClose}
+    >
       <div className={styles.form}>
         <p>
           Confirmez la suppression de {kind === 'fee' ? 'ce barème de frais' : 'ce taux servi'}.
@@ -38,7 +43,7 @@ export function RemoveRecordModal({
             {lifeInsuranceError(remove.error)}
           </p>
         ) : null}
-        <div className={styles.actions}>
+        <ModalActions>
           <button className="secondary-action" type="button" onClick={onClose}>
             Conserver
           </button>
@@ -50,7 +55,7 @@ export function RemoveRecordModal({
           >
             {remove.isPending ? 'Suppression…' : 'Supprimer'}
           </button>
-        </div>
+        </ModalActions>
       </div>
     </Modal>
   );

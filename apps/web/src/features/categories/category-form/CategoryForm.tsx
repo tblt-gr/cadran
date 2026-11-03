@@ -1,3 +1,5 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type {
   Category,
   CategoryType,
@@ -94,7 +96,7 @@ export function CategoryForm({
         </p>
       ) : null}
 
-      <div className={styles.fields}>
+      <FormGrid>
         <label>
           <span>{t('categories.fields.type')}</span>
           <select
@@ -153,7 +155,7 @@ export function CategoryForm({
             <small id={`${errorId}-order`}>{t('categories.validation.order')}</small>
           ) : null}
         </label>
-      </div>
+      </FormGrid>
 
       <CategoryIdentityPreview color={color} icon={icon} label={cleanLabel} />
       <CategoryColorPicker onChange={setColor} value={color} />
@@ -183,11 +185,11 @@ export function CategoryForm({
         <span>{t('categories.fields.budgetIncluded')}</span>
       </label>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'categories.form.saving' : 'categories.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

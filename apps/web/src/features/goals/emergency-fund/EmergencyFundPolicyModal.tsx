@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { goalErrorKind } from '@/features/goals/goalError';
 import { EmergencyFundPolicyForm } from './EmergencyFundPolicyForm';
 import styles from './EmergencyFund.module.css';
@@ -11,11 +12,17 @@ export function EmergencyFundPolicyModal({ close }: { close: () => void }) {
   const policy = useEmergencyFundPolicy(true);
   const save = useUpdateEmergencyFundPolicy();
   return (
-    <Modal close={close} title={t('goals.emergencyFund.policyTitle')}>
+    <Modal intent="settings" close={close} title={t('goals.emergencyFund.policyTitle')}>
       {policy.isPending ? (
-        <p aria-busy="true" className={styles.hint} role="status">
-          {t('goals.emergencyFund.loading')}
-        </p>
+        <div aria-busy="true" className={styles.frozen} data-testid="emergency-policy-skeleton">
+          <SkeletonStatus>{t('goals.emergencyFund.loading')}</SkeletonStatus>
+          <EmergencyFundPolicyForm
+            policy={null}
+            pending
+            onSubmit={() => undefined}
+            submitError={null}
+          />
+        </div>
       ) : policy.data ? (
         <EmergencyFundPolicyForm
           onSubmit={(body) => save.mutate(body, { onSuccess: close })}

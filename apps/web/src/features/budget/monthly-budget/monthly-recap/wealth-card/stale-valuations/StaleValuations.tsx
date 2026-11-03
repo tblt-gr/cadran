@@ -10,7 +10,7 @@ import styles from './StaleValuations.module.css';
 interface StaleValuationsProps {
   /** The quality sentence itself: it is the accessible name of the button. */
   sentence: string;
-  /** Month the valuations are read for, as an eyebrow of the modal. */
+  /** Month the valuations are read for. */
   period: string | null;
   /** Rows from the API, already sorted oldest first; the count in the sentence equals their number. */
   rows: StaleValuation[];
@@ -41,10 +41,11 @@ export function StaleValuations({ sentence, period, rows }: StaleValuationsProps
       {open ? (
         <Modal
           close={() => setOpen(false)}
-          eyebrow={period ?? undefined}
+          intent="detail"
           returnFocus={trigger}
           title={t('budget.monthly.recap.wealth.staleList.title')}
         >
+          {period ? <p className={styles.secondary}>{period}</p> : null}
           {rows.length === 0 ? (
             <p className={styles.empty}>{t('budget.monthly.recap.wealth.staleList.empty')}</p>
           ) : (

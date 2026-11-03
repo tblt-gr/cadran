@@ -46,8 +46,22 @@ describe('EmergencyFundPolicyModal', () => {
     vi.clearAllMocks();
   });
 
+  it('keeps policy fields and save visible but disabled while loading', () => {
+    api.readEmergencyFundPolicy.mockImplementation(() => new Promise(() => {}));
+    renderModal();
+    expect(screen.getByText('Paramétrage')).toBeTruthy();
+    const skeleton = screen.getByTestId('emergency-policy-skeleton');
+    expect(skeleton.querySelector('[data-skeleton]')).toBeTruthy();
+    expect(skeleton.querySelector('input:checked')).toBeNull();
+    expect(
+      (screen.getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement).closest('fieldset')
+        ?.disabled,
+    ).toBe(true);
+  });
+
   it('saves the default policy at version 0 and closes', async () => {
     const close = renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.change(screen.getByLabelText(/objectif en mois/i), { target: { value: '4,5' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -67,6 +81,7 @@ describe('EmergencyFundPolicyModal', () => {
 
   it('saves a fixed amount in the workspace currency', async () => {
     const close = renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('radio', { name: 'Montant fixe' }));
     expect(screen.queryByLabelText(/objectif en mois/i)).toBeNull();
@@ -82,6 +97,7 @@ describe('EmergencyFundPolicyModal', () => {
 
   it('saves a share of the annual income as an exact ratio', async () => {
     const close = renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('radio', { name: 'Part du revenu annuel' }));
     fireEvent.change(screen.getByLabelText(/Part du revenu annuel \(en %\)/), {
@@ -98,6 +114,7 @@ describe('EmergencyFundPolicyModal', () => {
 
   it('refuses an empty fixed amount without calling the API', async () => {
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('radio', { name: 'Montant fixe' }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -107,6 +124,7 @@ describe('EmergencyFundPolicyModal', () => {
 
   it('refuses an out-of-range target without calling the API', async () => {
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     fireEvent.change(await screen.findByLabelText(/objectif en mois/i), {
       target: { value: '60.5' },
     });
@@ -117,6 +135,7 @@ describe('EmergencyFundPolicyModal', () => {
 
   it('bounds the trailing months from 1 to 24', async () => {
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('radio', { name: /derniers mois complets/i }));
     fireEvent.change(screen.getByLabelText(/nombre de mois/i), { target: { value: '25' } });
@@ -127,6 +146,7 @@ describe('EmergencyFundPolicyModal', () => {
 
   it('requires a category in categories mode', async () => {
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('radio', { name: /catégories choisies/i }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -154,6 +174,7 @@ describe('EmergencyFundPolicyModal', () => {
       respond({ code: 'version_conflict' }, 409),
     );
     const close = renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(await screen.findByText(/modifiée ailleurs/)).toBeTruthy();
@@ -165,6 +186,7 @@ describe('EmergencyFundPolicyModal', () => {
       respond({ code: 'version_conflict' }, 409),
     );
     const close = renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     const target = await screen.findByLabelText(/objectif en mois/i);
     fireEvent.change(target, { target: { value: '8' } });
     api.readEmergencyFundPolicy.mockImplementation(() => respond({ ...defaultPolicy, version: 4 }));
@@ -185,6 +207,7 @@ describe('EmergencyFundPolicyModal', () => {
       respond({ code: 'invalid_emergency_fund_category' }, 422),
     );
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(await screen.findByText(/n’est pas éligible/)).toBeTruthy();
@@ -208,6 +231,7 @@ describe('EmergencyFundPolicyModal', () => {
       }),
     );
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('radio', { name: /catégories choisies/i }));
     fireEvent.focus(screen.getByRole('combobox'));
@@ -218,6 +242,7 @@ describe('EmergencyFundPolicyModal', () => {
   it('shows a generic refusal on a 422', async () => {
     api.updateEmergencyFundPolicy.mockImplementation(() => respond({ code: 'invalid' }, 422));
     renderModal();
+    await waitFor(() => expect(screen.queryByTestId('emergency-policy-skeleton')).toBeNull());
     await screen.findByLabelText(/objectif en mois/i);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(await screen.findByText(/politique est refusée/)).toBeTruthy();

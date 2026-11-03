@@ -54,7 +54,7 @@ export function ValuationDetailModal({
     valuation ? render(valuation) : block;
 
   return (
-    <Modal returnFocus={returnFocus} close={onClose} eyebrow="Portefeuille" title={title}>
+    <Modal intent="detail" returnFocus={returnFocus} close={onClose} title={title}>
       {query.isError ? (
         <div role="alert">
           <p className={styles.error}>La valorisation est indisponible.</p>

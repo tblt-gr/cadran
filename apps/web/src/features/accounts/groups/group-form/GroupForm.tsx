@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   AccountGroup,
   CreateAccountGroupRequest,
@@ -75,7 +77,7 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
         </p>
       ) : null}
 
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <label htmlFor="account-group-label">
           <span>{t('accountGroups.fields.label')}</span>
           <input
@@ -100,13 +102,13 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
         />
 
         <ParentGroupField currentId={group?.id} onChange={changeParent} value={parentId} />
-      </div>
+      </FormGrid>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'accountGroups.form.saving' : 'accountGroups.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

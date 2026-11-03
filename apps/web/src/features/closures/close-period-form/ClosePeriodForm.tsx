@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   ClosePeriodRequest,
   PeriodClosingBlocker,
@@ -115,14 +116,14 @@ export function ClosePeriodForm({
           {t(`closures.errors.${errorKind}`)}
         </p>
       ) : null}
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="secondary-action" onClick={onBack} ref={backButton} type="button">
           {t('closures.back')}
         </button>
         <button className="primary-action" disabled={!ready || pending} type="submit">
           {t('closures.close.submit')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

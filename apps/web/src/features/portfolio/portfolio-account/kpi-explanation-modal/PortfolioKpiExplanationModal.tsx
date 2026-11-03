@@ -29,7 +29,7 @@ export function PortfolioKpiExplanationModal({
   const { t } = useTranslation();
   const day = formatCalendarNumericDay;
   return (
-    <Modal close={onClose} title={kpiLabels[code]}>
+    <Modal intent="detail" close={onClose} title={kpiLabels[code]}>
       <div className={explanation.content}>
         <ExplanationFigure
           meta={

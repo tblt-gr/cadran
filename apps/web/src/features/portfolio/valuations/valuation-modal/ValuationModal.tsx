@@ -103,7 +103,7 @@ export function ValuationModal({
       : `Valorisation du ${formatCalendarNumericDay(confirmed)}`;
 
   return (
-    <Modal close={onClose} eyebrow="Portefeuille" title={title}>
+    <Modal intent={replacing ? 'edit' : 'create'} close={onClose} title={title}>
       {confirmed === null ? (
         <ValuationDateStep
           onChange={setValuedOn}

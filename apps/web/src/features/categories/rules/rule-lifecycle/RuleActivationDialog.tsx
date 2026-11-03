@@ -1,9 +1,11 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { CategorizationRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import type { CategorizationRuleErrorKind } from '@/features/categories/rules/categorizationRuleError';
 import styles from './RuleArchiveDialog.module.css';
 
 interface RuleActivationDialogProps {
+  onCancel: () => void;
   onConfirm: () => void;
   pending: boolean;
   rule: CategorizationRule;
@@ -11,6 +13,7 @@ interface RuleActivationDialogProps {
 }
 
 export function RuleActivationDialog({
+  onCancel,
   onConfirm,
   pending,
   rule,
@@ -26,7 +29,10 @@ export function RuleActivationDialog({
           {t(`categorizationRules.errors.${submitError}`)}
         </p>
       ) : null}
-      <div className={styles.actions}>
+      <ModalActions>
+        <button className="secondary-action" disabled={pending} onClick={onCancel} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(
             pending
@@ -34,7 +40,7 @@ export function RuleActivationDialog({
               : `categorizationRules.lifecycle.${key}.confirm`,
           )}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

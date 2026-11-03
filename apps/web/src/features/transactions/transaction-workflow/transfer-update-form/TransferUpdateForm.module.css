@@ -1,33 +1,52 @@
-.details,
 .form {
-  display: grid;
-  gap: var(--spacing-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
 }
 
-.details {
+.form fieldset {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  gap: var(--spacing-6);
+}
+
+.notice,
+.legs {
   margin: var(--spacing-none);
 }
 
-.details > div,
-.form label {
-  display: grid;
-  gap: var(--spacing-2);
-}
-
-.details dt {
+.notice {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
 
-.details dd {
-  margin: var(--spacing-none);
-  overflow-wrap: anywhere;
+/* The legs share the form grid's columns; the fee row spans both. */
+.legs {
+  display: grid;
+  grid-template-columns: subgrid;
+  gap: var(--spacing-4);
 }
 
-.form fieldset {
-  display: grid;
-  gap: var(--spacing-4);
+.legs > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1-5);
+}
+
+.legs > [data-span='full'] {
+  grid-column: 1 / -1;
+}
+
+.legs dt {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.legs dd {
   margin: var(--spacing-none);
-  padding: var(--spacing-none);
-  border: var(--border-none);
+  overflow-wrap: anywhere;
 }

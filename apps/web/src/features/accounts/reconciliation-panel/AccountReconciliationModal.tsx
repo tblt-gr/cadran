@@ -23,8 +23,9 @@ export function AccountReconciliationModal({
 
   return (
     <Modal
+      intent="confirm"
       close={close}
-      eyebrow={t('accounts.reconciliation.eyebrow')}
+
       title={t('accounts.reconciliation.title', { label: account.label })}
     >
       <ReconciliationPanel account={account} onReconciled={onReconciled} />

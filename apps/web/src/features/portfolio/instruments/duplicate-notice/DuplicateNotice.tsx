@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { InstrumentCandidate } from '@cadran/api-client';
 import styles from './DuplicateNotice.module.css';
 export function DuplicateNotice({
@@ -22,14 +23,14 @@ export function DuplicateNotice({
           </li>
         ))}
       </ul>
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="secondary-action" onClick={onCancel} type="button">
           Annuler
         </button>
         <button className="primary-action" onClick={onConfirm} type="button">
           {editing ? 'Enregistrer quand même' : 'Créer quand même'}
         </button>
-      </div>
+      </ModalActions>
     </section>
   );
 }

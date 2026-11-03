@@ -1,3 +1,5 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type {
   AccountKind,
   AccountValuationMode,
@@ -87,7 +89,7 @@ export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
         </p>
       ) : null}
 
-      <div className={styles.fields}>
+      <FormGrid>
         <FieldRow
           error={has('name') ? t('productModels.form.errors.name') : undefined}
           label={t('productModels.form.name')}
@@ -205,7 +207,7 @@ export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
             </select>
           )}
         </FieldRow>
-      </div>
+      </FormGrid>
 
       <CapabilitySelect
         invalid={has('capabilities')}
@@ -216,11 +218,11 @@ export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
         valuationMode={values.valuationMode}
       />
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.form.saving' : 'productModels.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

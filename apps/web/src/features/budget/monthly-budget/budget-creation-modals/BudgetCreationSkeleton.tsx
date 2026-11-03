@@ -25,7 +25,7 @@ export function BudgetCreationSkeleton({
   return (
     <Modal
       close={close}
-      eyebrow={t(transfer ? 'transactions.transfer.eyebrow' : 'transactions.form.createEyebrow')}
+      intent="create"
       title={t(transfer ? 'transactions.transfer.title' : 'transactions.form.createTitle')}
     >
       <div aria-busy="true" className={styles.frozen} data-testid="budget-creation-skeleton">

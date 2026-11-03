@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { periodClosureErrorKind } from '@/features/closures/periodClosureError';
@@ -50,14 +51,14 @@ export function ReopenPeriodForm({
           {t(`closures.errors.${periodClosureErrorKind(error)}`)}
         </p>
       ) : null}
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="secondary-action" onClick={onBack} ref={backButton} type="button">
           {t('closures.back')}
         </button>
         <button className="primary-action" disabled={!ready || pending} type="submit">
           {t('closures.reopen.submit')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

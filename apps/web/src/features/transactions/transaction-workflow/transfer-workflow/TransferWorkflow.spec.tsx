@@ -157,3 +157,74 @@ it('binds the draft to its original version when an authoritative background ref
   expect(close).not.toHaveBeenCalled();
   expect(onSaved).not.toHaveBeenCalled();
 });
+
+it('names the edit intent and lays the legs, essential fields and folded fields out', async () => {
+  api.getTransfer.mockImplementation(() => success({ ...transfer, fee: null }));
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  const dialog = screen.getByRole('dialog', { name: 'Modifier le virement' });
+  expect(dialog.textContent).toContain('Modification');
+  expect(screen.getByText('Montant débité')).toBeTruthy();
+  expect(screen.getByText('Montant reçu')).toBeTruthy();
+  expect(screen.getByText('Frais', { selector: 'dt' })).toBeTruthy();
+  expect(screen.getByText('Les comptes et les montants du virement sont conservés.')).toBeTruthy();
+  const details = dialog.querySelector('details')!;
+  expect(details.open).toBe(false);
+  expect(details.textContent).toContain('Champs avancés');
+  expect(details.contains(screen.getByLabelText('Note'))).toBe(true);
+  expect(details.contains(screen.getByLabelText('Libellé'))).toBe(false);
+});
+
+it('opens the advanced fields when the transfer already holds a note', async () => {
+  api.getTransfer.mockImplementation(() =>
+    success({ ...transfer, fee: null, source: { ...transfer.source, note: 'À garder' } }),
+  );
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  expect(document.querySelector('details')!.open).toBe(true);
+});
+
+it('opens the advanced fields when the transfer holds a fee', async () => {
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  expect(document.querySelector('details')!.open).toBe(true);
+});
+
+it('keeps an already voided transfer read-only', async () => {
+  api.getTransfer.mockImplementation(() =>
+    success({ ...transfer, voidedAt: '2026-09-13T12:00:00Z' }),
+  );
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  expect(screen.getByRole('dialog').querySelector('fieldset')!.disabled).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+  expect(api.updateTransfer).not.toHaveBeenCalled();
+});
+
+it('shows the same layout with a disabled fieldset while the transfer loads', () => {
+  api.getTransfer.mockImplementation(() => new Promise(() => {}));
+  setup();
+  const dialog = screen.getByRole('dialog', { name: 'Modifier le virement' });
+  expect(dialog.textContent).toContain('Montant débité');
+  expect(dialog.querySelector('fieldset')!.disabled).toBe(true);
+  expect(
+    dialog.querySelectorAll('dd [aria-hidden="true"], dd [data-skeleton]').length,
+  ).toBeGreaterThan(0);
+});
+
+it('confirms a void with Annuler first and read-only legs', async () => {
+  const close = vi.fn();
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <TransferWorkflow id="pair" voiding close={close} onSaved={vi.fn(async () => {})} />
+    </QueryClientProvider>,
+  );
+  await screen.findByText('Les deux mouvements et les frais du virement seront annulés ensemble.');
+  const dialog = screen.getByRole('dialog');
+  expect(dialog.textContent).toContain('Confirmation');
+  const buttons = Array.from(dialog.querySelectorAll('fieldset button')).map((b) => b.textContent);
+  expect(buttons[0]).toBe('Annuler');
+  fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+  expect(close).toHaveBeenCalledOnce();
+});

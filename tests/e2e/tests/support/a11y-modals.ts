@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import type { AuditFixtures } from './a11y';
-import { movementRows, settled, uniqueLabel } from './page';
+import { settled, uniqueLabel } from './page';
+import { openMovementEditModal } from './edit-movement';
 
 export const modalCases = [
   'transaction create',
@@ -8,6 +9,7 @@ export const modalCases = [
   'transaction error',
   'quick category',
   'transfer create',
+  'transfer edit',
   'transfer error',
   'account step 1',
   'account step 2',
@@ -57,23 +59,8 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
   await settled(page);
   const button = (label: string | RegExp) =>
     page.getByRole('button', { name: label, exact: typeof label === 'string' });
-  if (name === 'transaction edit') {
-    // Earlier projects may have just created a transfer, whose legs cannot be edited.
-    // Create and select our own ordinary transaction instead of depending on list order.
-    const label = uniqueLabel('A11Y transaction modifiable');
-    await button('Nouvelle transaction').click();
-    await settled(page);
-    const creation = page.getByRole('dialog', { name: 'Nouvelle transaction' });
-    await creation.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
-    await creation.getByLabel('Montant', { exact: true }).fill('-1.00');
-    await creation.getByLabel('Libellé', { exact: true }).fill(label);
-    await creation.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-    await expect(creation).toBeHidden();
-    await settled(page);
-    const row = movementRows(page, label);
-    await expect(row).toHaveCount(1);
-    await row.getByRole('button', { name: /^Actions de la transaction/ }).click();
-    await button(/^Modifier/).click();
+  if (name === 'transaction edit' || name === 'transfer edit') {
+    await openMovementEditModal(page, name === 'transfer edit' ? 'transfer' : 'transaction');
   } else if (
     name === 'category edit' ||
     name === 'account edit' ||

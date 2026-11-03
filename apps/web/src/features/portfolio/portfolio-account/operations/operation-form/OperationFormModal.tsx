@@ -98,8 +98,8 @@ export function OperationFormModal({
 
   return (
     <Modal
+      intent={operation ? 'edit' : 'create'}
       close={onClose}
-      eyebrow="Portefeuille"
       title={operation ? 'Modifier l’opération' : 'Nouvelle opération'}
     >
       <OperationForm

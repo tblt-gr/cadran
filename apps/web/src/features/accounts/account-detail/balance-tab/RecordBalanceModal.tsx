@@ -19,7 +19,11 @@ export function RecordBalanceModal({
   const record = useRecordBalance(account.id, close);
 
   return (
-    <Modal close={close} title={t('accounts.balances.title', { label: account.label })}>
+    <Modal
+      intent={correcting ? 'edit' : 'create'}
+      close={close}
+      title={t('accounts.balances.title', { label: account.label })}
+    >
       <RecordBalanceForm
         account={account}
         initialEditing={correcting}

@@ -35,7 +35,7 @@ export function TransactionInspection({
     retry: false,
   });
   return (
-    <Modal close={close} title={t('transactions.workflow.details')}>
+    <Modal intent="detail" close={close} title={t('transactions.workflow.details')}>
       {query.isPending ? <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus> : null}
       {query.isError ? (
         <div role="alert">

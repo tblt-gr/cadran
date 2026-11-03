@@ -82,7 +82,7 @@ export function ContractFigureExplanation({
           : 'Valorisation complète'
       : 'Montants enregistrés';
   return (
-    <Modal close={onClose} title={figureLabels[figure]}>
+    <Modal intent="detail" close={onClose} title={figureLabels[figure]}>
       <div className={explanation.content}>
         <ExplanationFigure
           meta={

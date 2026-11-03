@@ -27,11 +27,7 @@
   align-items: center;
   gap: var(--spacing-2);
 }
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-3);
-}
+
 .error {
   color: var(--negative);
   margin: var(--spacing-none);
@@ -39,8 +35,5 @@
 @media (max-width: 42rem) {
   .fields {
     grid-template-columns: 1fr;
-  }
-  .actions {
-    flex-direction: column;
   }
 }

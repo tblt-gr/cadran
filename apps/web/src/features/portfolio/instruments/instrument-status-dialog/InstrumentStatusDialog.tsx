@@ -1,14 +1,17 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Instrument } from '@cadran/api-client';
 import styles from './InstrumentStatusDialog.module.css';
 export function InstrumentStatusDialog({
   error,
   instrument,
   pending,
+  onCancel,
   onConfirm,
 }: {
   error?: boolean;
   instrument: Instrument;
   pending: boolean;
+  onCancel?: () => void;
   onConfirm: () => void;
 }) {
   const deactivate = instrument.status === 'ACTIVE';
@@ -26,15 +29,22 @@ export function InstrumentStatusDialog({
           : 'Cet instrument sera de nouveau proposé lors des nouvelles opérations.'}
       </p>
       {error ? <p role="alert">La modification est indisponible. Réessayez.</p> : null}
-      <button className="primary-action" disabled={pending} type="submit">
-        {pending
-          ? 'Enregistrement…'
-          : error
-            ? 'Réessayer'
-            : deactivate
-              ? 'Désactiver'
-              : 'Réactiver'}
-      </button>
+      <ModalActions>
+        {onCancel ? (
+          <button className="secondary-action" type="button" onClick={onCancel}>
+            Annuler
+          </button>
+        ) : null}
+        <button className="primary-action" disabled={pending} type="submit">
+          {pending
+            ? 'Enregistrement…'
+            : error
+              ? 'Réessayer'
+              : deactivate
+                ? 'Désactiver'
+                : 'Réactiver'}
+        </button>
+      </ModalActions>
     </form>
   );
 }

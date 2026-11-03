@@ -192,9 +192,7 @@ export function BudgetPage({ planId }: { planId?: string }) {
             setPlanEditor(null);
             planSave.reset();
           }}
-          eyebrow={t(
-            planEditor === 'create' ? 'budget.form.createEyebrow' : 'budget.form.editEyebrow',
-          )}
+          intent={planEditor === 'create' ? 'create' : 'edit'}
           title={t(planEditor === 'create' ? 'budget.form.createTitle' : 'budget.form.editTitle')}
         >
           <BudgetPlanForm
@@ -211,9 +209,7 @@ export function BudgetPage({ planId }: { planId?: string }) {
             setTargetEditor(null);
             targetSave.reset();
           }}
-          eyebrow={t(
-            targetEditor === 'create' ? 'budget.target.createEyebrow' : 'budget.target.editEyebrow',
-          )}
+          intent={targetEditor === 'create' ? 'create' : 'edit'}
           title={t(
             targetEditor === 'create' ? 'budget.target.createTitle' : 'budget.target.editTitle',
           )}

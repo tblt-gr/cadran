@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { TransferAdditionalFields } from './TransferAdditionalFields';
@@ -101,7 +103,7 @@ export function TransferForm({
       <p>{t('transactions.transfer.notice')}</p>
       {followsPortfolio ? <p>{t('transactions.transfer.portfolioNotice')}</p> : null}
 
-      <div className={formStyles.fields}>
+      <FormGrid>
         <label>
           <span>{t('transactions.transfer.fields.sourceAccount')}</span>
           <select
@@ -224,13 +226,13 @@ export function TransferForm({
           sourceAsset={sourceAsset}
           set={set}
         />
-      </div>
+      </FormGrid>
 
-      <div className={formStyles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'transactions.transfer.saving' : 'transactions.transfer.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

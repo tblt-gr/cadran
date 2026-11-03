@@ -36,11 +36,13 @@ export function GroupCompositionModal({
 
   return (
     <Modal
+      intent="detail"
       close={close}
-      eyebrow={formatCalendarNumericDay(asOf)}
+
       returnFocus={returnFocus}
       title={t('accounts.composition.title', { label })}
     >
+      <p>{formatCalendarNumericDay(asOf)}</p>
       {composition.isError ? (
         <div className={styles.error} role="alert">
           <p>{t('accounts.composition.error')}</p>

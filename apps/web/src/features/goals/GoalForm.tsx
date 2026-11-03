@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   CreateGoalRequest,
   GoalKind,
@@ -204,7 +206,7 @@ export function GoalForm({
         </p>
       ) : null}
       <div className={styles.group}>
-        <div className={styles.row}>
+        <FormGrid>
           <label>
             <span>{t('goals.label')}</span>
             <input
@@ -230,10 +232,10 @@ export function GoalForm({
               </label>
             ))}
           </fieldset>
-        </div>
+        </FormGrid>
       </div>
       <div className={styles.group}>
-        <div className={styles.row}>
+        <FormGrid>
           <label>
             <span>{t('goals.metric')}</span>
             <select
@@ -276,7 +278,7 @@ export function GoalForm({
               />
             </label>
           )}
-        </div>
+        </FormGrid>
         <GoalScopeField
           goal={goal}
           scope={scope}
@@ -287,7 +289,7 @@ export function GoalForm({
         />
       </div>
       <div className={styles.group}>
-        <div className={styles.row}>
+        <FormGrid>
           {!futureGoal ? (
             <label>
               <span>{t(kind === 'ANNUAL' ? 'goals.targetAmount' : 'goals.ratio')}</span>
@@ -326,7 +328,7 @@ export function GoalForm({
               />
             </label>
           ) : null}
-        </div>
+        </FormGrid>
         {goal && !futureGoal ? (
           <>
             {retroactive ? (
@@ -367,11 +369,11 @@ export function GoalForm({
           {t('goals.validation.form')}
         </p>
       ) : null}
-      <div className={styles.formActions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'goals.saving' : 'goals.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
 import type {
   LifeInsuranceContract,
@@ -53,7 +55,7 @@ export function ContractForm({
           {error}
         </p>
       ) : null}
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <label>
           Assureur
           <input
@@ -138,7 +140,7 @@ export function ContractForm({
             ))}
           </select>
         </label>
-      </div>
+      </FormGrid>
       {contract ? (
         <label className={styles.check}>
           <input
@@ -150,11 +152,11 @@ export function ContractForm({
           Effacer le numéro
         </label>
       ) : null}
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" type="submit" disabled={pending}>
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

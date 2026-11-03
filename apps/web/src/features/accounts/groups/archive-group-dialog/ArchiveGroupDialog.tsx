@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AccountGroup } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import type { GroupErrorKind } from '@/features/accounts/groups/groupError';
@@ -15,7 +16,7 @@ export function ArchiveGroupDialog({
   group,
   pending,
   submitError,
-  onCancel: _onCancel,
+  onCancel,
   onConfirm,
 }: ArchiveGroupDialogProps) {
   const { t } = useTranslation();
@@ -29,11 +30,14 @@ export function ArchiveGroupDialog({
       ) : null}
       <p>{t('accountGroups.archive.description', { label: group.label })}</p>
       <p className={styles.hint}>{t('accountGroups.archive.consequences')}</p>
-      <div className={styles.actions}>
+      <ModalActions>
+        <button className="secondary-action" onClick={onCancel} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accountGroups.archive.confirming' : 'accountGroups.archive.confirm')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

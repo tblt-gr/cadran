@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useTranslation } from 'react-i18next';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
 import styles from './WithdrawOverrideDialog.module.css';
@@ -23,7 +24,7 @@ interface WithdrawOverrideDialogProps {
  */
 export function WithdrawOverrideDialog({
   description,
-  onCancel: _onCancel,
+  onCancel,
   onConfirm,
   pending,
   reason,
@@ -42,11 +43,14 @@ export function WithdrawOverrideDialog({
       <p className={styles.subject}>{description}</p>
       <p className={styles.quote}>{reason}</p>
       <p className={styles.hint}>{t('accounts.overrides.withdrawConsequences')}</p>
-      <div className={styles.actions}>
+      <ModalActions>
+        <button className="secondary-action" onClick={onCancel} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accounts.overrides.withdrawing' : 'accounts.overrides.withdrawConfirm')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

@@ -90,7 +90,7 @@ export function CategorizationRulesPage() {
       {archiveWorkflow.target ? (
         <Modal
           close={archiveWorkflow.close}
-          eyebrow={t('categorizationRules.archive.eyebrow')}
+          intent="archive"
           title={t('categorizationRules.archive.title')}
         >
           <RuleArchiveDialog
@@ -109,7 +109,7 @@ export function CategorizationRulesPage() {
       {activationWorkflow.target ? (
         <Modal
           close={activationWorkflow.close}
-          eyebrow={t('categorizationRules.lifecycle.eyebrow')}
+          intent="confirm"
           title={t(
             activationWorkflow.target.active
               ? 'categorizationRules.lifecycle.deactivate.title'
@@ -117,6 +117,7 @@ export function CategorizationRulesPage() {
           )}
         >
           <RuleActivationDialog
+            onCancel={activationWorkflow.close}
             onConfirm={() => activationWorkflow.activation.mutate(activationWorkflow.target!)}
             pending={activationWorkflow.activation.isPending}
             rule={activationWorkflow.target}
@@ -131,7 +132,7 @@ export function CategorizationRulesPage() {
       {previewWorkflow.target !== undefined ? (
         <Modal
           close={previewWorkflow.close}
-          eyebrow={t('categorizationRules.preview.eyebrow')}
+          intent="confirm"
           title={t('categorizationRules.preview.title')}
         >
           <RulePreviewDialog

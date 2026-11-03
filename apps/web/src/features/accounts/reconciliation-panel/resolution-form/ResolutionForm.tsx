@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AccountReconciliation, AccountReconciliationResolution } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -94,11 +95,11 @@ export function ResolutionForm({ pending, reconciliation, onSubmit }: Resolution
         </p>
       ) : null}
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'accounts.reconciliation.reconciling' : 'accounts.reconciliation.reconcile')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

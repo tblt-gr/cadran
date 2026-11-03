@@ -24,7 +24,11 @@ export function RecapInfo({ pending, policy }: RecapInfoProps) {
         onClick={() => setOpen(true)}
       />
       {open ? (
-        <Modal close={() => setOpen(false)} title={t('budget.monthly.recap.info.title')}>
+        <Modal
+          intent="detail"
+          close={() => setOpen(false)}
+          title={t('budget.monthly.recap.info.title')}
+        >
           <div className={styles.content}>
             <p>
               <MetricPolicyBadge policy={policy} />
