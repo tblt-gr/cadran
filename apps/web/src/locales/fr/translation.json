@@ -2076,19 +2076,34 @@
     "cancel": "Annuler",
     "conditions": {
       "UNRECONCILED_ACCOUNT": {
-        "confirm": "Je confirme clôturer avec {{count}} compte non rapproché.",
-        "reason": "Motif : compte non rapproché"
+        "summary_one": "{{count}} compte non rapproché sur ce mois.",
+        "summary_other": "{{count}} comptes non rapprochés sur ce mois.",
+        "confirm_one": "Je confirme clôturer avec {{count}} compte non rapproché.",
+        "confirm_other": "Je confirme clôturer avec {{count}} comptes non rapprochés.",
+        "reason": "Motif : compte non rapproché",
+        "link": "Rapprocher les comptes"
       },
       "UNEXPLAINED_DISCREPANCY": {
-        "confirm": "Je confirme clôturer avec {{count}} écart non expliqué.",
-        "reason": "Motif : écart non expliqué"
+        "summary_one": "{{count}} écart de solde non expliqué.",
+        "summary_other": "{{count}} écarts de solde non expliqués.",
+        "confirm_one": "Je confirme clôturer avec {{count}} écart non expliqué.",
+        "confirm_other": "Je confirme clôturer avec {{count}} écarts non expliqués.",
+        "reason": "Motif : écart non expliqué",
+        "link": "Voir les comptes"
       },
       "PENDING_TRANSACTIONS": {
-        "confirm": "Je confirme clôturer avec {{count}} transaction en attente.",
-        "reason": "Motif : transactions en attente"
+        "summary_one": "{{count}} transaction en attente dans ce mois.",
+        "summary_other": "{{count}} transactions en attente dans ce mois.",
+        "confirm_one": "Je confirme clôturer avec {{count}} transaction en attente.",
+        "confirm_other": "Je confirme clôturer avec {{count}} transactions en attente.",
+        "reason": "Motif : transactions en attente",
+        "link": "Voir les transactions en attente"
       },
       "MISSING_PORTFOLIO_VALUATION": {
-        "confirm": "Je confirme clôturer avec {{count}} portefeuille(s) sans valorisation de fin de mois.",
+        "summary_one": "{{count}} portefeuille sans valorisation de fin de mois.",
+        "summary_other": "{{count}} portefeuilles sans valorisation de fin de mois.",
+        "confirm_one": "Je confirme clôturer avec {{count}} portefeuille sans valorisation de fin de mois.",
+        "confirm_other": "Je confirme clôturer avec {{count}} portefeuilles sans valorisation de fin de mois.",
         "reason": "Motif : valorisation de portefeuille manquante",
         "link": "Voir les portefeuilles"
       }

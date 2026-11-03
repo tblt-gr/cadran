@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { useSession } from '@/features/auth/useSession';
 import { ClosePeriodForm } from '@/features/closures/close-period-form/ClosePeriodForm';
+import { ClosureBlockerList } from '@/features/closures/closure-blocker-list/ClosureBlockerList';
 import { ReopenPeriodForm } from '@/features/closures/reopen-period-form/ReopenPeriodForm';
 import { usePeriodClosure } from '@/features/closures/usePeriodClosure';
 import { PeriodClosurePanelSkeleton } from './PeriodClosurePanelSkeleton';
@@ -97,6 +98,7 @@ export function PeriodClosurePanel({
           onNavigate={closeModal}
           onSubmit={(body) => close.mutate(body)}
           pending={close.isPending}
+          period={period}
         />
       ) : dialog === 'reopen' && data?.closure ? (
         <ReopenPeriodForm
@@ -153,6 +155,14 @@ export function PeriodClosurePanel({
                   </span>
                 ) : null}
               </div>
+
+              {!data.closed ? (
+                <ClosureBlockerList
+                  blockers={data.blockers}
+                  onNavigate={closeModal}
+                  period={period}
+                />
+              ) : null}
 
               {owner ? (
                 data.closed && data.closure ? (
