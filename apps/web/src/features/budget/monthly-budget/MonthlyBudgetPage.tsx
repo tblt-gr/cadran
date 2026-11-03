@@ -181,7 +181,8 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
           <Icon name="budget" size={18} />
         </a>
         <MonthlyBudgetActions
-          disabled={ledger.isPending && ledger.data === undefined}
+          // Failed bounds keep the ledger disabled, hence pending forever; the closure does not need it.
+          disabled={history.status !== 'error' && ledger.isPending && ledger.data === undefined}
           month={month}
           onClosureChanged={() => void refreshMonth()}
         />

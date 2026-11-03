@@ -429,6 +429,18 @@ describe('MonthlyBudgetPage', () => {
       expect(trigger.disabled).toBe(false);
     });
 
+    it('keeps the closure reachable when the month bounds fail and the ledger never starts', async () => {
+      api.readMonthlyBounds.mockReturnValue(
+        Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+      );
+      renderPage();
+
+      await screen.findByRole('button', { name: 'Réessayer' });
+      expect(api.readMonthlyLedger).not.toHaveBeenCalled();
+      const trigger = screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement;
+      expect(trigger.disabled).toBe(false);
+    });
+
     it('keeps the trigger visible and disabled while the ledger loads', () => {
       api.readMonthlyLedger.mockReturnValue(new Promise(() => undefined));
       renderPage();
