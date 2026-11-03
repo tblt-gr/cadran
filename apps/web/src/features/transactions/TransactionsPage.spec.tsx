@@ -192,26 +192,21 @@ describe('TransactionsPage', () => {
     expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
   });
 
-  it('opens the monthly closure flow from the header overflow menu', async () => {
+  it('lists only the category and recurrence entries in the header overflow menu', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
     api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
     renderPage();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
-    expect(screen.getByRole('button', { name: 'Gérer les catégories' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Gérer les récurrences' })).toBeTruthy();
-    expect(screen.queryByRole('dialog', { name: 'Clôture du mois' })).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Clôture du mois' }));
-
-    const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
-    expect(within(dialog).getByLabelText('Mois')).toBeTruthy();
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog', { name: 'Clôture du mois' })).toBeNull(),
-    );
+    const trigger = screen.getByRole('button', { name: 'Autres actions' });
+    fireEvent.click(trigger);
+    const menu = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
+    expect(
+      within(menu!)
+        .getAllByRole('button')
+        .map((item) => item.getAttribute('aria-label') ?? item.textContent),
+    ).toEqual(['Gérer les catégories', 'Gérer les récurrences']);
   });
 
   it('offers every category, expenses first, whatever the nature or the sign', async () => {

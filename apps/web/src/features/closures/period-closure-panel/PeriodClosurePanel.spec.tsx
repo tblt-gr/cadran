@@ -62,12 +62,12 @@ function session(role: 'OWNER' | null) {
   );
 }
 
-function renderPanel(close = vi.fn()) {
+function renderPanel(close = vi.fn(), onChanged?: () => void) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <PeriodClosurePanel close={close} initialPeriod="2026-08" />
+        <PeriodClosurePanel close={close} initialPeriod="2026-08" onChanged={onChanged} />
       </QueryClientProvider>,
     ),
     queryClient,
@@ -135,6 +135,23 @@ describe('PeriodClosurePanel', () => {
         expect.objectContaining({ path: { period: '2026-08' }, body: { overrides: {} } }),
       ),
     );
+  });
+
+  it('reports a successful closing through onChanged, and nothing on a refusal', async () => {
+    api.readPeriodStatus.mockResolvedValue(ok(status()));
+    api.closePeriod.mockResolvedValueOnce(problem(409, 'about:blank'));
+    const onChanged = vi.fn();
+    renderPanel(vi.fn(), onChanged);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Clôturer le mois' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+    await waitFor(() => expect(api.closePeriod).toHaveBeenCalledTimes(1));
+    expect(onChanged).not.toHaveBeenCalled();
+
+    api.closePeriod.mockResolvedValueOnce(ok(closure, 201));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
   });
 
   it('returns from the confirmation to the month status in the same dialog', async () => {

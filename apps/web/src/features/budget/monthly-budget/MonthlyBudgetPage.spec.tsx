@@ -5,6 +5,8 @@ import '@/i18n';
 import { MonthlyBudgetPage } from './MonthlyBudgetPage';
 
 const api = vi.hoisted(() => ({
+  closePeriod: vi.fn(),
+  readPeriodStatus: vi.fn(),
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
   recordPortfolioOperation: vi.fn(),
@@ -395,6 +397,99 @@ describe('MonthlyBudgetPage', () => {
     cleanup();
     vi.clearAllMocks();
     window.history.replaceState({}, '', '/');
+  });
+
+  describe('monthly closure menu', () => {
+    it('lists only the closure entry in the overflow menu after the plans link', async () => {
+      renderPage();
+      await loaded();
+
+      const header = screen.getByRole('link', { name: 'Gérer les plans et objectifs' });
+      const trigger = screen.getByRole('button', { name: 'Autres actions' });
+      expect(
+        header.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+      fireEvent.click(trigger);
+      const menu = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
+      expect(
+        within(menu!)
+          .getAllByRole('button')
+          .map((item) => item.getAttribute('aria-label') ?? item.textContent),
+      ).toEqual(['Clôturer ce mois']);
+    });
+
+    it('keeps the closure reachable when the ledger fails to load', async () => {
+      api.readMonthlyLedger.mockReturnValue(
+        Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+      );
+      renderPage();
+
+      await screen.findByRole('alert');
+      const trigger = screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement;
+      expect(trigger.disabled).toBe(false);
+    });
+
+    it('keeps the trigger visible and disabled while the ledger loads', () => {
+      api.readMonthlyLedger.mockReturnValue(new Promise(() => undefined));
+      renderPage();
+
+      const trigger = screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement;
+      expect(trigger.disabled).toBe(true);
+    });
+
+    it('opens the closure panel on the displayed month and returns focus to the trigger', async () => {
+      api.readPeriodStatus.mockReturnValue(
+        ok({ period: '2026-03', closed: false, ended: false, closure: null, blockers: [] }),
+      );
+      renderPage();
+      await loaded();
+
+      const trigger = screen.getByRole('button', { name: 'Autres actions' });
+      fireEvent.click(trigger);
+      fireEvent.click(screen.getByRole('button', { name: 'Clôturer ce mois' }));
+
+      const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+      expect((within(dialog).getByLabelText('Mois') as HTMLInputElement).value).toBe('2026-03');
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Fermer' }));
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+    });
+
+    it('refreshes the month queries, without a saved toast, after a successful closing', async () => {
+      api.readPeriodStatus.mockReturnValue(
+        ok({ period: '2026-03', closed: false, ended: true, closure: null, blockers: [] }),
+      );
+      api.closePeriod.mockReturnValue(
+        ok({
+          id: 'c1',
+          period: '2026-03',
+          closedAt: '2026-04-02T08:00:00Z',
+          closedBy: 'u1',
+          reopenedAt: null,
+          reopenReason: null,
+          active: true,
+          version: 1,
+        }),
+      );
+      const { queryClient } = renderPage();
+      await loaded();
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clôturer ce mois' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+      fireEvent.click(await within(dialog).findByRole('button', { name: 'Clôturer le mois' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+
+      await waitFor(() => {
+        const keys = invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+        expect(keys).toContainEqual(['monthly-ledger', '2026-03']);
+        expect(keys).toContainEqual(['monthly-ledger-movements', '2026-03']);
+        expect(keys).toContainEqual(['monthly-recap', '2026-03']);
+        expect(keys).toContainEqual(['monthly-bounds']);
+      });
+      expect(screen.queryByText('Budget enregistré')).toBeNull();
+    });
   });
 
   it('closes the shared transfer modal once a transfer into a portfolio is saved, with no client-side deposit', async () => {

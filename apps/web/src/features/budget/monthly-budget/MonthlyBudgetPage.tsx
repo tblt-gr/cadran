@@ -22,6 +22,7 @@ import { ExpenseDonut } from './expense-donut/ExpenseDonut';
 import { LedgerPanels } from './ledger-panels/LedgerPanels';
 import { useBoundedMonth } from './useBoundedMonth';
 import { formatMonthLabel } from '@/lib/monthLabel';
+import { MonthlyBudgetActions } from './monthly-budget-actions/MonthlyBudgetActions';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
 import { MonthlyBudgetPageSkeleton } from './MonthlyBudgetPageSkeleton';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
@@ -151,14 +152,18 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     window.dispatchEvent(new PopStateEvent('popstate'));
   }
 
-  async function refreshAfterSave() {
-    setSaved(true);
+  async function refreshMonth() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['monthly-bounds'] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger-movements', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-recap', month] }),
     ]);
+  }
+
+  async function refreshAfterSave() {
+    setSaved(true);
+    await refreshMonth();
   }
 
   return (
@@ -175,6 +180,11 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         >
           <Icon name="budget" size={18} />
         </a>
+        <MonthlyBudgetActions
+          disabled={ledger.isPending && ledger.data === undefined}
+          month={month}
+          onClosureChanged={() => void refreshMonth()}
+        />
       </HeaderActions>
 
       <MonthNavigator

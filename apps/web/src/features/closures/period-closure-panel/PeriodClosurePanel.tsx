@@ -13,6 +13,8 @@ interface PeriodClosurePanelProps {
   close: () => void;
   /** `YYYY-MM`; defaults to the last calendar month, the latest that can have ended. */
   initialPeriod?: string;
+  /** Called once a closing or reopening has succeeded, so the caller can refresh what it shows. */
+  onChanged?: () => void;
   returnFocus?: RefObject<HTMLElement | null>;
 }
 
@@ -33,6 +35,7 @@ type Dialog = 'close' | 'reopen' | null;
 export function PeriodClosurePanel({
   close: closeModal,
   initialPeriod,
+  onChanged,
   returnFocus,
 }: PeriodClosurePanelProps) {
   const { i18n, t } = useTranslation();
@@ -43,7 +46,10 @@ export function PeriodClosurePanel({
   const previousDialog = useRef<Dialog>(null);
   const session = useSession();
   const owner = session.data?.workspace?.role === 'OWNER';
-  const { close, reopen, status } = usePeriodClosure(period, () => setDialog(null));
+  const { close, reopen, status } = usePeriodClosure(period, () => {
+    setDialog(null);
+    onChanged?.();
+  });
   const label = new Intl.DateTimeFormat(i18n.language, {
     month: 'long',
     timeZone: 'UTC',

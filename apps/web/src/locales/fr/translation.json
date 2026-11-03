@@ -3178,6 +3178,8 @@
     "monthly": {
       "title": "Budget de {{month}}",
       "managePlans": "Gérer les plans et objectifs",
+      "moreActions": "Autres actions",
+      "closeMonth": "Clôturer ce mois",
       "year": "Année",
       "months": "Mois du budget",
       "annualReport": "Rapport",

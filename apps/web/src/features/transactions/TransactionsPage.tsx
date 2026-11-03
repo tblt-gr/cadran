@@ -4,7 +4,6 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
-import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
 import { useBulkSelection } from './bulk-selection/useBulkSelection';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
@@ -28,7 +27,6 @@ export function TransactionsPage() {
   const { t } = useTranslation();
   const [editor, setEditor] = useState<Editor>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
-  const [periodClosureOpen, setPeriodClosureOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
 
   const listing = useTransactionsListing();
@@ -136,13 +134,6 @@ export function TransactionsPage() {
           <ActionMenu
             items={[
               {
-                icon: 'lock',
-                id: 'closure',
-                label: t('closures.title'),
-                onSelect: () => setPeriodClosureOpen(true),
-                text: t('closures.title'),
-              },
-              {
                 icon: 'categories',
                 id: 'categories',
                 label: t('transactions.manageCategories'),
@@ -187,10 +178,6 @@ export function TransactionsPage() {
           voidMutation={mutations.voidMutation}
           voiding={null}
         />
-
-        {periodClosureOpen ? (
-          <PeriodClosurePanel close={() => setPeriodClosureOpen(false)} />
-        ) : null}
 
         {!impossible &&
         !(transactions.isPending && transactions.data === undefined) &&
