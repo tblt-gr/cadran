@@ -76,6 +76,9 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   }
 
   const arrived = account.data?.id === accountId && redirect === null;
+  useArrivalAction('transaction', arrived, () => {
+    if (account.data?.status === 'ACTIVE' && account.data.editable) openEditor('transaction');
+  });
   useArrivalAction('transfer', arrived, () => {
     if (account.data?.status === 'ACTIVE' && account.data.editable) openEditor('transfer');
   });

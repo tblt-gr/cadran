@@ -649,6 +649,23 @@ describe('PortfolioAccountPage', () => {
     expect(screen.queryByRole('button', { name: /^Rapprocher/ })).toBeNull();
   });
 
+  it('opens the operation creation on arrival with ?action=operation, once', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&action=operation`);
+    renderPage();
+
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle opération' })).toBeTruthy();
+    expect(window.location.search).not.toContain('action=');
+  });
+
+  it('strips ?action=operation without opening anything while the contract is missing', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&action=operation`);
+    api.readAccount.mockImplementation(() => ok({ ...account, kind: 'INSURANCE_CONTRACT' }));
+    renderPage();
+
+    await waitFor(() => expect(window.location.search).not.toContain('action='));
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
   it('opens a new valuation on arrival with ?action=valuation, once', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account&action=valuation`);
     renderPage();

@@ -9,6 +9,7 @@ type MenuAccount = Pick<
 >;
 
 export type AccountMenuItemId =
+  | 'operation'
   | 'transfer'
   | 'recordBalance'
   | 'reconcile'
@@ -23,6 +24,8 @@ export type AccountMenuItemId =
  * never exists as a silent no-op. Rules, edit and archive are available everywhere.
  */
 export interface AccountMenuHandlers {
+  /** Only the accounts list supplies it: the pages keep their primary button instead. */
+  onAddOperation?: () => void;
   onAddTransfer?: () => void;
   onArchive: () => void;
   onEdit: () => void;
@@ -35,12 +38,14 @@ export interface AccountMenuHandlers {
 
 export const INSTRUMENTS_HREF = '/portfolios/instruments';
 
+export type ArrivalAction = 'transaction' | 'transfer' | 'operation' | 'valuation';
+
 /** Account page that opens the modal of a transfer or a valuation once on arrival. */
-export function accountActionHref(
-  account: Pick<Account, 'id'>,
-  action: 'transfer' | 'valuation',
-): string {
-  const base = action === 'valuation' ? `/portfolios/${account.id}` : `/accounts/${account.id}`;
+export function accountActionHref(account: Pick<Account, 'id'>, action: ArrivalAction): string {
+  const base =
+    action === 'valuation' || action === 'operation'
+      ? `/portfolios/${account.id}`
+      : `/accounts/${account.id}`;
   return `${base}?action=${action}`;
 }
 
@@ -104,8 +109,11 @@ export function accountMenuItems({
   ];
   const [rules, edit, archive] = common;
 
+  const operation = item('operation', 'add', handlers.onAddOperation, locked);
+
   if (valuedByPortfolio(account)) {
     return [
+      ...operation,
       ...item('valuation', 'balance', handlers.onRecordValuation, locked),
       rules,
       ...item('instruments', 'chart-line', handlers.onInstruments),
@@ -115,6 +123,7 @@ export function accountMenuItems({
   }
 
   return [
+    ...operation,
     ...item('transfer', 'transfer', handlers.onAddTransfer, locked),
     ...item('recordBalance', 'balance', handlers.onRecordBalance, locked),
     ...item(

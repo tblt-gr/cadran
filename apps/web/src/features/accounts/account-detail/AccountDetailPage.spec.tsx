@@ -991,6 +991,13 @@ describe('AccountDetailPage', () => {
     }
   });
 
+  it('opens the transaction editor on arrival with ?action=transaction, once', async () => {
+    renderPage(account.id, '?tab=account&action=transaction');
+
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    expect(window.location.search).not.toContain('action=');
+  });
+
   it('opens the transfer modal on arrival with ?action=transfer, once', async () => {
     renderPage(account.id, '?tab=account&action=transfer');
 

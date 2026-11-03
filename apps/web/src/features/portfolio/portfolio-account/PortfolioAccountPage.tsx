@@ -69,6 +69,15 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     }
     setCreating(creation);
   }
+  function openCreate() {
+    if (operationBlocked) return;
+    openOn('operations', 'operation');
+  }
+  useArrivalAction('operation', account.data?.id === accountId, () => {
+    const loaded = account.data;
+    if (loaded && loaded.status === 'ACTIVE' && loaded.editable && valuedByPortfolio(loaded))
+      openCreate();
+  });
   useArrivalAction('valuation', account.data?.id === accountId, () => {
     const loaded = account.data;
     if (loaded && loaded.status === 'ACTIVE' && loaded.editable && valuedByPortfolio(loaded))
@@ -106,11 +115,6 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const current = account.data;
   const eligible = valuedByPortfolio(current);
   const shown = tabForKind(active, current.kind);
-
-  function openCreate() {
-    if (operationBlocked) return;
-    openOn('operations', 'operation');
-  }
 
   return (
     <div className={styles.page}>

@@ -247,6 +247,13 @@ export function AccountList({
                             items={accountMenuItems({
                               account,
                               handlers: {
+                                onAddOperation: () =>
+                                  navigateFromPage(
+                                    accountActionHref(
+                                      account,
+                                      valuedByPortfolio(account) ? 'operation' : 'transaction',
+                                    ),
+                                  ),
                                 onAddTransfer: () =>
                                   navigateFromPage(accountActionHref(account, 'transfer')),
                                 onArchive: () => onArchive(account),
@@ -267,6 +274,9 @@ export function AccountList({
                                   label: account.label,
                                 }),
                                 reconcile: t('accounts.list.reconcileOfAccount', {
+                                  label: account.label,
+                                }),
+                                operation: t('accounts.list.operationOfAccount', {
                                   label: account.label,
                                 }),
                                 recordBalance: t('accounts.list.recordBalanceOfAccount', {

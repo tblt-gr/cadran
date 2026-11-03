@@ -1203,6 +1203,7 @@ describe('AccountsPage', () => {
       );
     expect(texts().filter((text) => text !== undefined && text !== null)).toEqual(
       expect.arrayContaining([
+        'Nouvelle opération',
         'Nouveau virement',
         'Enregistrer un solde',
         'Rapprocher',
@@ -1212,7 +1213,14 @@ describe('AccountsPage', () => {
       ]),
     );
     expect(screen.queryByRole('button', { name: /Nouvelle valorisation/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: /Nouvelle opération/ })).toBeNull();
+    expect(texts().indexOf('Nouvelle opération')).toBe(texts().indexOf('Nouveau virement') - 1);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nouvelle opération sur Livret A Banque X' }),
+    );
+    expect(window.location.pathname + window.location.search).toBe(
+      `/accounts/${account.id}?action=transaction`,
+    );
+    await openAccountActions('Livret A Banque X');
     fireEvent.click(
       screen.getByRole('button', { name: 'Nouveau virement depuis Livret A Banque X' }),
     );
@@ -1227,6 +1235,11 @@ describe('AccountsPage', () => {
     expect(
       screen.getByRole('button', { name: 'Gérer les instruments depuis PEA Banque X' }),
     ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération sur PEA Banque X' }));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/portfolios/${portfolio.id}?action=operation`,
+    );
+    await openAccountActions('PEA Banque X');
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation de PEA Banque X' }));
     expect(window.location.pathname + window.location.search).toBe(
       `/portfolios/${portfolio.id}?action=valuation`,
