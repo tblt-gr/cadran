@@ -79,6 +79,7 @@ final class MonthlyLedgerRepresentation
             'hasMovements' => $row->hasMovements,
             'pendingAmount' => null === $row->pendingAmount || null === $row->pendingAssetCode ? null : ['value' => $row->pendingAmount, 'assetCode' => $row->pendingAssetCode],
             'pendingCount' => $row->pendingCount,
+            'primaryGroupColor' => $row->primaryGroupColor,
         ];
     }
 

@@ -3059,6 +3059,10 @@ export type MonthlyLedgerAccountRow = {
     label: string;
     assetCode: string;
     kind: AccountKind;
+    /**
+     * Effective color of the account's primary group (archived groups included), as the accounts overview shows it. Null without a primary group. A display accent only: never an input of any amount.
+     */
+    primaryGroupColor: string | null;
     total: MonthlyLedgerMetric;
     movementCount: number;
     hasMovements: boolean;

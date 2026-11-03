@@ -15,6 +15,7 @@ final readonly class MonthlyAccountFact
         public MonthlyAccountValuationFact $beginning,
         public MonthlyAccountValuationFact $end,
         public string $reconciliationStatus,
+        public ?string $primaryGroupColor,
     ) {
     }
 }

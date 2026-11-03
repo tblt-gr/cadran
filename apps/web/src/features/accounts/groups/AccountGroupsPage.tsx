@@ -96,6 +96,7 @@ export function AccountGroupsPage() {
       await queryClient.invalidateQueries({ queryKey: ['net-worth'] });
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
+      await queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     },
     onError: (error) => {
       void refreshOnStaleState(error);
@@ -123,6 +124,7 @@ export function AccountGroupsPage() {
       await queryClient.invalidateQueries({ queryKey: ['net-worth'] });
       await queryClient.invalidateQueries({ queryKey: ['accounts'] });
       await queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
+      await queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     },
     onError: (error) => {
       void refreshOnStaleState(error);

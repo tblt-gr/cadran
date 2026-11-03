@@ -17,6 +17,7 @@ const ORDERED_QUERIES = [
   'accounts',
   'net-worth',
   'monthly-recap',
+  'monthly-ledger',
   'annual-report-catalogue',
 ];
 

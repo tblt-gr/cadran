@@ -134,4 +134,12 @@ final class AccountGroupColorsTest extends TestCase
         self::assertSame(1, AccountGroup::nextColorSlot([0, 2, 3]));
         self::assertSame(1, AccountGroup::nextColorSlot([2, 0, 0]));
     }
+
+    public function testForIdReadsNothingWithoutAGroupOrForAnUnknownOne(): void
+    {
+        $colors = AccountGroupColors::of([]);
+
+        self::assertNull($colors->forId(null));
+        self::assertNull($colors->forId('00000000-0000-7000-8000-0000000000b9'));
+    }
 }

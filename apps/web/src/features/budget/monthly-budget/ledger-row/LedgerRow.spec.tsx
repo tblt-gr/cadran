@@ -1,4 +1,4 @@
-import type { MonthlyLedgerCategoryRow } from '@cadran/api-client';
+import type { MonthlyLedgerAccountRow, MonthlyLedgerCategoryRow } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -28,7 +28,26 @@ function category(overrides: Partial<MonthlyLedgerCategoryRow> = {}): MonthlyLed
   };
 }
 
-function renderRow(row: MonthlyLedgerCategoryRow) {
+function account(overrides: Partial<MonthlyLedgerAccountRow> = {}): MonthlyLedgerAccountRow {
+  return {
+    id: 'acc-1',
+    label: 'Livret A',
+    assetCode: 'EUR',
+    kind: 'SAVINGS',
+    primaryGroupColor: null,
+    total: { value: '100.00', assetCode: 'EUR', reason: null },
+    movementCount: 1,
+    hasMovements: true,
+    pendingAmount: null,
+    pendingCount: 0,
+    ...overrides,
+  };
+}
+
+function renderRow(
+  row: MonthlyLedgerCategoryRow | MonthlyLedgerAccountRow,
+  kind: 'expense' | 'account' = 'expense',
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   render(
     <QueryClientProvider client={client}>
@@ -36,7 +55,7 @@ function renderRow(row: MonthlyLedgerCategoryRow) {
         <LedgerRow
           actionsAllowed
           axis={null}
-          kind="expense"
+          kind={kind}
           language="fr"
           month="2026-10"
           onAdd={vi.fn()}
@@ -127,5 +146,31 @@ describe('LedgerRow pending movements', () => {
 
     expect(item.className).toContain('rowEmpty');
     expect(within(item).queryByRole('button', { name: /mouvements/ })).toBeNull();
+  });
+});
+
+describe('LedgerRow left border color', () => {
+  it('uses the effective group color on an account row', () => {
+    const item = renderRow(account({ primaryGroupColor: '#2F9E6E' }), 'account');
+
+    expect(item.style.borderInlineStartColor).toBe('rgb(47, 158, 110)');
+  });
+
+  it('leaves the border untouched for an account without a group color', () => {
+    const item = renderRow(account(), 'account');
+
+    expect(item.getAttribute('style')).toBeNull();
+  });
+
+  it('ignores a malformed account color instead of falling back to a muted token', () => {
+    const item = renderRow(account({ primaryGroupColor: 'red' }), 'account');
+
+    expect(item.getAttribute('style')).toBeNull();
+  });
+
+  it('keeps the category color on category rows', () => {
+    const item = renderRow(category({ color: '#58B8C0' }));
+
+    expect(item.style.borderInlineStartColor).toBe('rgb(88, 184, 192)');
   });
 });
