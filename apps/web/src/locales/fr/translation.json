@@ -933,6 +933,10 @@
     },
     "history": {
       "title": "Historique du solde",
+      "titleSnapshots": "Historique de la valeur",
+      "tableSnapshots": "Valeurs du compte par date",
+      "valueSnapshots": "Valeur exacte",
+      "manualPortfolioNotice": "Valeur saisie manuellement, sans détail des positions.",
       "nonCalculable": "Aucun solde calculable à tracer. Les raisons sont disponibles dans le tableau.",
       "loading": "Chargement de l’historique du solde…",
       "period": "Période de l’historique",

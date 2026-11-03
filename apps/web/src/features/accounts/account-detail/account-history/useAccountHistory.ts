@@ -5,7 +5,7 @@ import { accountRequestError, requestFailed } from '@/features/accounts/accountE
 
 type History = NonNullable<Awaited<ReturnType<typeof readAccountValuationHistory>>['data']>;
 
-export function useSavingsHistory(accountId: string, from: string | undefined, to: string) {
+export function useAccountHistory(accountId: string, from: string | undefined, to: string) {
   return useQuery({
     queryKey: ['account-valuation-history', accountId, from ?? 'all', to],
     queryFn: async ({ signal }) => {

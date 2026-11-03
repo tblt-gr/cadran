@@ -246,6 +246,7 @@ describe('AccountDetailPage', () => {
 
   afterEach(() => {
     cleanup();
+    window.history.replaceState({}, '', '/');
   });
 
   it('filters operations by date, type and voided status without widening the account scope', async () => {
@@ -279,6 +280,34 @@ describe('AccountDetailPage', () => {
     renderPage(account.id, '?tab=account');
     expect(await screen.findByRole('heading', { name: 'Historique du solde' })).toBeTruthy();
     await waitFor(() => expect(api.readAccountValuationHistory).toHaveBeenCalled());
+  });
+
+  it.each([
+    ['PORTFOLIO', 'SNAPSHOTS', 'Historique de la valeur'],
+    ['EMPLOYEE_BENEFIT', 'SNAPSHOTS', 'Historique de la valeur'],
+    ['CASH', 'TRANSACTIONS', 'Historique du solde'],
+    ['REAL_ASSET', 'SNAPSHOTS', 'Historique de la valeur'],
+    ['LIABILITY', 'TRANSACTIONS', 'Historique du solde'],
+  ] as const)('shows one value history for a %s account in %s mode', async (kind, mode, title) => {
+    api.readAccount.mockImplementation(() => success({ ...account, kind, valuationMode: mode }));
+    renderPage(account.id, '?tab=account');
+    expect(await screen.findByRole('heading', { name: title })).toBeTruthy();
+    await waitFor(() => expect(api.readAccountValuationHistory).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen.getByRole('heading', { name: title }).closest('section')?.getAttribute('aria-busy'),
+      ).toBe('false'),
+    );
+  });
+
+  it('does not mount the account history for a portfolio-valued account', async () => {
+    api.readAccount.mockImplementation(() =>
+      success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
+    );
+    renderPage(account.id, '?tab=account');
+    await waitFor(() => expect(window.location.pathname).toBe(`/portfolios/${account.id}`));
+    expect(screen.queryAllByRole('heading', { name: /^Historique/ })).toHaveLength(0);
+    expect(api.readAccountValuationHistory).not.toHaveBeenCalled();
   });
 
   it('inspects authoritative details and restores keyboard focus to the row', async () => {
@@ -1232,6 +1261,14 @@ describe('AccountDetailPage', () => {
   it('mounts savings history independently of the account identity read', async () => {
     renderPage(account.id, '?tab=account');
     expect(await screen.findByRole('heading', { name: 'Historique du solde' })).toBeTruthy();
-    expect(api.readAccountValuationHistory).toHaveBeenCalled();
+    await waitFor(() => expect(api.readAccountValuationHistory).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('heading', { name: 'Historique du solde' })
+          .closest('section')
+          ?.getAttribute('aria-busy'),
+      ).toBe('false'),
+    );
   });
 });

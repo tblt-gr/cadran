@@ -2,19 +2,32 @@ import type { AccountValuationHistoryPoint } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { CurveChart } from '@/components/ui/charts/curve-chart/CurveChart';
 import { formatCalendarNumericDay } from '@/lib/decimal';
-import { historyAmount, historyQuality, historyProvenance } from './savingsHistoryLabels';
+import {
+  historyAmount,
+  historyKeys,
+  type HistoryAccount,
+  historyQuality,
+  historyProvenance,
+} from './accountHistoryLabels';
 
-export function SavingsHistoryChart({ points }: { points: AccountValuationHistoryPoint[] }) {
+export function AccountHistoryChart({
+  account,
+  points,
+}: {
+  account: HistoryAccount;
+  points: AccountValuationHistoryPoint[];
+}) {
   const { t, i18n } = useTranslation();
+  const keys = historyKeys(account);
   if (points.every((point) => point.amount === null))
     return <p role="status">{t('accounts.history.nonCalculable')}</p>;
   return (
     <CurveChart
       interpolation="step-after"
       interaction="series"
-      label={t('accounts.history.title')}
+      label={t(keys.title)}
       timeAxisLabel={t('accounts.history.date')}
-      valueAxisLabel={t('accounts.history.balance')}
+      valueAxisLabel={t(keys.amount)}
       points={points.map((point) => ({
         key: point.date,
         date: point.date,

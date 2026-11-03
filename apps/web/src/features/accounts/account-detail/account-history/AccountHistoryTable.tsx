@@ -2,27 +2,35 @@ import type { AccountValuationHistoryPoint } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarNumericDay } from '@/lib/decimal';
-import { historyAmount, historyQuality, historyProvenance } from './savingsHistoryLabels';
-import styles from './SavingsHistoryPanel.module.css';
+import {
+  historyAmount,
+  historyKeys,
+  type HistoryAccount,
+  historyQuality,
+  historyProvenance,
+} from './accountHistoryLabels';
+import styles from './AccountHistoryPanel.module.css';
 
 /** Missing points are retained with their reason; table figures keep every server digit. */
-export function SavingsHistoryTable({ points }: { points: AccountValuationHistoryPoint[] | null }) {
+export function AccountHistoryTable({
+  account,
+  points,
+}: {
+  account: HistoryAccount | null;
+  points: AccountValuationHistoryPoint[] | null;
+}) {
   const { t, i18n } = useTranslation();
+  const keys = historyKeys(account);
   const columns = [
     t('accounts.history.date'),
-    t('accounts.history.balance'),
+    t(keys.amount),
     t('accounts.history.quality'),
     t('accounts.history.provenance'),
   ];
   return (
-    <div
-      className={styles.scroll}
-      role="region"
-      aria-label={t('accounts.history.table')}
-      tabIndex={0}
-    >
+    <div className={styles.scroll} role="region" aria-label={t(keys.table)} tabIndex={0}>
       <table>
-        <caption className="sr-only">{t('accounts.history.table')}</caption>
+        <caption className="sr-only">{t(keys.table)}</caption>
         <thead>
           <tr>
             {columns.map((label) => (

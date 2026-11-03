@@ -15,7 +15,7 @@ import { AccountDetailActions } from './account-detail-actions/AccountDetailActi
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountLedger, type LedgerEditor } from './account-ledger/AccountLedger';
 import { BalanceTab } from './balance-tab/BalanceTab';
-import { SavingsHistoryPanel } from './savings-history/SavingsHistoryPanel';
+import { AccountHistoryPanel } from './account-history/AccountHistoryPanel';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { useAccountDetail } from './useAccountDetail';
@@ -85,7 +85,11 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
 
   if (account.isPending || redirect !== null) {
     return (
-      <AccountDetailPageSkeleton accountId={accountId} status={t('accounts.detail.loading')} />
+      <AccountDetailPageSkeleton
+        accountId={accountId}
+        account={account.data?.id === accountId ? account.data : null}
+        status={t('accounts.detail.loading')}
+      />
     );
   }
 
@@ -144,8 +148,8 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
       ) : null}
 
       {tab === 'account' ? <AccountIdentityCard account={current} /> : null}
-      {tab === 'account' && (current.kind === 'SAVINGS' || current.kind === 'CURRENT') ? (
-        <SavingsHistoryPanel accountId={accountId} today={today} />
+      {tab === 'account' && !valuedByPortfolio(current) ? (
+        <AccountHistoryPanel account={current} today={today} />
       ) : null}
 
       {tab === 'balance' ? <BalanceTab account={current} /> : null}
