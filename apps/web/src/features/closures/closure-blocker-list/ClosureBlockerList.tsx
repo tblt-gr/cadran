@@ -4,7 +4,7 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './ClosureBlockerList.module.css';
 
 /** Where each blocking condition is resolved; `period` is `YYYY-MM`. */
-export function closureBlockerHref(condition: PeriodClosingCondition, period: string): string {
+function closureBlockerHref(condition: PeriodClosingCondition, period: string): string {
   if (condition !== 'PENDING_TRANSACTIONS') return '/accounts';
 
   const [year, month] = period.split('-').map(Number) as [number, number];
