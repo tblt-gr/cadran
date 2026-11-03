@@ -2322,7 +2322,9 @@
       "remaining": "Montant encore remboursable",
       "amountTooHigh": "Le montant ne peut pas dépasser le solde remboursable affiché.",
       "allocation": "Répartition proposée",
-      "allocationOutOfDate": "La répartition affichée correspond au solde intégral : ajustez-la à la main pour ce montant réduit.",
+      "allocationOutOfDate": "La répartition correspond encore au montant intégral. Modifiez les lignes ou utilisez « Assigner le reste à cette ligne » pour atteindre le montant du remboursement.",
+      "allocationInvalid": "Pour créer le remboursement, la somme des lignes doit être égale au montant et chaque ligne doit avoir une catégorie valide.",
+      "requiredFields": "Pour créer le remboursement, renseignez le compte, un montant valide, la date comptable et le libellé.",
       "save": "Créer le remboursement",
       "saving": "Création…"
     },
@@ -3275,6 +3277,7 @@
       "addFreeExpense": "Ajouter une dépense",
       "closedReason": "Cette période est clôturée.",
       "accountUnavailable": "Ce compte est clos : aucun virement n'est possible.",
+      "refundHint": "Un remboursement réduit les dépenses du mois où il est reçu, même si la dépense date d’un autre mois.",
       "movements": {
         "loading": "Chargement des mouvements…",
         "empty": "Aucun mouvement comptabilisé pour cette ligne.",

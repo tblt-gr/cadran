@@ -64,6 +64,7 @@ export function RefundFormSkeleton() {
           </div>
         </div>
       </FormGrid>
+      <p className={styles.hint}>{t('transactions.refund.requiredFields')}</p>
       <ModalActions>
         <button className="primary-action" disabled type="button">
           {t('transactions.refund.save')}

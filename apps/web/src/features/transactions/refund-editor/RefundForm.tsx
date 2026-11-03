@@ -203,6 +203,15 @@ export function RefundForm({
           />
         </div>
       </FormGrid>
+      {!valid && !pending ? (
+        <p className={styles.hint}>
+          {t(
+            accountId === '' || bookedOn === '' || rawLabel.trim() === '' || amountInvalid
+              ? 'transactions.refund.requiredFields'
+              : 'transactions.refund.allocationInvalid',
+          )}
+        </p>
+      ) : null}
       <ModalActions>
         <button className="primary-action" disabled={!valid || pending} type="submit">
           {pending ? t('transactions.refund.saving') : t('transactions.refund.save')}

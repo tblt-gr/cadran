@@ -105,7 +105,8 @@ export function CategoryPicker({
           label: selectedLabel,
         }
       : null;
-  const [query, setQuery] = useState(initialChoice?.label ?? '');
+  const [query, setQuery] = useState('');
+  const searchStartedSelected = useRef(value !== NONE);
   const [expanded, setExpanded] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const [chosen, setChosen] = useState<CategoryChoice | null>(initialChoice);
@@ -123,7 +124,12 @@ export function CategoryPicker({
       ? undefined
       : { color: selectedColor, icon: selectedIcon, label: selectedLabel ?? '' });
 
-  const selectedText = value !== NONE ? (identity?.label ?? selectedLabel ?? query) : query;
+  const hasSelection = !expanded && value !== NONE;
+  const selectedText = expanded
+    ? query
+    : value !== NONE
+      ? (identity?.label ?? selectedLabel ?? '')
+      : query;
   const selectedFill =
     value === NONE
       ? null
@@ -153,10 +159,7 @@ export function CategoryPicker({
     undefined === emptyOptionLabel
       ? matches
       : [{ id: NONE, kind: 'category', label: emptyOptionLabel }, ...matches];
-  const hasSelection = chosen !== null || value !== NONE;
-  // Once a category is selected the field shows its label, not a search: offering to
-  // create it again would only meet the sibling-uniqueness refusal.
-  const createLabel = hasSelection ? '' : query.trim();
+  const createLabel = expanded ? query.trim() : '';
   const createChoice: CategoryChoice = {
     id: CREATE_ID,
     kind: 'create',
@@ -170,9 +173,23 @@ export function CategoryPicker({
   const loading = undefined === candidates.data && !candidates.isError;
   const active = choices[Math.min(activeIndex, Math.max(choices.length - 1, 0))];
 
+  function openSearch() {
+    if (!expanded) {
+      searchStartedSelected.current = value !== NONE;
+      if (value !== NONE) setQuery('');
+      setActiveIndex(0);
+      setExpanded(true);
+    }
+  }
+
+  function dismissSearch() {
+    setExpanded(false);
+    if (searchStartedSelected.current) setQuery('');
+  }
+
   function choose(choice: CategoryChoice) {
     if (choice.kind === 'create') {
-      setExpanded(false);
+      dismissSearch();
       setActiveIndex(0);
       skipFocusOpen.current = true;
       onCreateRequest?.(createLabel);
@@ -180,7 +197,7 @@ export function CategoryPicker({
     }
 
     setChosen(choice.id === NONE ? null : choice);
-    setQuery(choice.id === NONE ? '' : choice.label);
+    setQuery('');
     setExpanded(false);
     setActiveIndex(0);
     onChange(
@@ -193,14 +210,14 @@ export function CategoryPicker({
     if (event.key === 'Escape' && expanded) {
       event.preventDefault();
       event.stopPropagation();
-      setExpanded(false);
+      dismissSearch();
       return;
     }
 
     if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
       event.preventDefault();
       if (!expanded) {
-        setExpanded(true);
+        openSearch();
         return;
       }
 
@@ -218,7 +235,7 @@ export function CategoryPicker({
     }
   }
 
-  const searching = expanded && !hasSelection;
+  const searching = expanded;
   const status = !searching
     ? null
     : loading
@@ -246,14 +263,14 @@ export function CategoryPicker({
           for another element on selection would remount the input and drop focus. */}
       <div className={styles.control} data-invalid={error ? 'true' : undefined}>
         <span
-          className={value !== NONE ? `${styles.chip} ${styles.selected}` : styles.chip}
+          className={hasSelection ? `${styles.chip} ${styles.selected}` : styles.chip}
           style={
-            value === NONE || selectedFill === null || selectedInk === null
+            !hasSelection || selectedFill === null || selectedInk === null
               ? undefined
               : { background: selectedFill, color: selectedInk }
           }
         >
-          {value !== NONE ? (
+          {hasSelection ? (
             <CategorySwatch icon={listed ? listed.effectiveIcon : identity?.icon} />
           ) : null}
           <input
@@ -269,16 +286,13 @@ export function CategoryPicker({
             onBlur={() => {
               // A pointer selection lands after the blur, so the list stays open long
               // enough for the click on it to register.
-              blurTimeout.current = window.setTimeout(() => setExpanded(false), 120);
+              blurTimeout.current = window.setTimeout(dismissSearch, 120);
             }}
             onChange={(event) => {
+              if (!expanded) searchStartedSelected.current = value !== NONE;
               setQuery(event.target.value);
               setExpanded(true);
               setActiveIndex(0);
-              if (chosen !== null || value !== NONE) {
-                setChosen(null);
-                onChange(NONE, null);
-              }
             }}
             onFocus={() => {
               window.clearTimeout(blurTimeout.current);
@@ -286,19 +300,19 @@ export function CategoryPicker({
                 skipFocusOpen.current = false;
                 return;
               }
-              setExpanded(true);
+              openSearch();
             }}
             onKeyDown={onKeyDown}
             onMouseDown={(event) => {
               // A pointer on the field asks for the list, even when it already has focus.
               skipFocusOpen.current = false;
-              if (document.activeElement === event.currentTarget) setExpanded(true);
+              if (document.activeElement === event.currentTarget) openSearch();
             }}
             placeholder={placeholder ?? t('categories.picker.placeholder')}
             ref={ref}
             role="combobox"
             type="text"
-            style={value !== NONE ? { width: `${selectedText.length + 1}ch` } : undefined}
+            style={hasSelection ? { width: `${selectedText.length + 1}ch` } : undefined}
             value={selectedText}
           />
         </span>

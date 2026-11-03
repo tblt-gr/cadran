@@ -24,6 +24,18 @@ test.describe('transaction entry', () => {
     await expect(quick).toBeHidden();
     await expect(editor.getByRole('combobox', { name: 'Catégorie' })).toHaveValue(category);
     await expect(editor.getByLabel('Montant')).toHaveValue('-12.34');
+    const picker = editor.getByRole('combobox', { name: 'Catégorie' });
+    await expect(picker).toBeFocused();
+    await picker.click();
+    await expect(picker).toHaveValue('');
+    await picker.fill('Recherche abandonnée');
+    await picker.press('Escape');
+    await expect(editor).toBeVisible();
+    await expect(picker).toHaveValue(category);
+    await picker.click();
+    await picker.fill('Autre recherche abandonnée');
+    await editor.getByLabel('Libellé').click();
+    await expect(picker).toHaveValue(category);
 
     await editor.getByRole('button', { name: 'Enregistrer' }).click();
     await expect(editor).toBeHidden();

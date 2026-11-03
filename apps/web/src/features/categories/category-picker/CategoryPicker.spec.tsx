@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Category } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -41,16 +42,26 @@ function success<T>(data: T) {
 
 function renderPicker(onChange = vi.fn(), onCreateRequest?: (label: string) => void) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  render(
-    <QueryClientProvider client={queryClient}>
+  function Host() {
+    const [selection, setSelection] = useState({ id: '', label: '' });
+    return (
       <CategoryPicker
         excludeId="00000000-0000-7000-8000-0000000000c1"
         label="Catégorie qui reçoit l’historique"
-        onChange={onChange}
+        onChange={(id, category) => {
+          onChange(id, category);
+          setSelection({ id, label: category?.label ?? '' });
+        }}
         onCreateRequest={onCreateRequest}
+        selectedLabel={selection.label}
         type="EXPENSE"
-        value=""
+        value={selection.id}
       />
+    );
+  }
+  render(
+    <QueryClientProvider client={queryClient}>
+      <Host />
     </QueryClientProvider>,
   );
 
@@ -61,6 +72,134 @@ describe('CategoryPicker', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+  });
+
+  function renderSelected(onChange = vi.fn(), onCreateRequest?: (label: string) => void) {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    function Host() {
+      const [selection, setSelection] = useState(candidate);
+      return (
+        <CategoryPicker
+          label="Catégorie"
+          value={selection.id}
+          selectedLabel={selection.label}
+          selectedColor="#112233"
+          selectedIcon="utensils"
+          onCreateRequest={onCreateRequest}
+          onChange={(id, category) => {
+            onChange(id, category);
+            if (category) setSelection(category);
+          }}
+        />
+      );
+    }
+    render(
+      <QueryClientProvider client={queryClient}>
+        <Host />
+      </QueryClientProvider>,
+    );
+    return onChange;
+  }
+
+  it('starts an empty search on focus and restores the committed selection on Escape', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [candidate], page: 1, pageSize: 50, total: 1 }),
+    );
+    const changed = renderSelected();
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement;
+    expect(picker.value).toBe('Sorties');
+    fireEvent.focus(picker);
+    expect(picker.value).toBe('');
+    expect(picker.parentElement?.querySelector('[data-icon]')).toBeNull();
+    fireEvent.change(picker, { target: { value: 'Autre' } });
+    expect(changed).not.toHaveBeenCalled();
+    fireEvent.keyDown(picker, { key: 'Escape' });
+    expect(picker.value).toBe('Sorties');
+    expect(picker.parentElement?.querySelector('[data-icon="utensils"]')).toBeTruthy();
+    expect(changed).not.toHaveBeenCalled();
+    // The pointer can start a fresh search while the input keeps focus.
+    picker.focus();
+    fireEvent.keyDown(picker, { key: 'Escape' });
+    fireEvent.mouseDown(picker);
+    expect(picker.value).toBe('');
+    expect(picker.getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('restores the committed selection on blur without clearing its identifier', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [candidate], page: 1, pageSize: 50, total: 1 }),
+    );
+    const changed = renderSelected();
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement;
+    fireEvent.focus(picker);
+    fireEvent.change(picker, { target: { value: 'Autre' } });
+    fireEvent.blur(picker);
+    await waitFor(() => expect(picker.getAttribute('aria-expanded')).toBe('false'));
+    expect(picker.value).toBe('Sorties');
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it('offers both types during a selected search and commits a replacement with the keyboard', async () => {
+    const income = { ...candidate, id: 'income', label: 'Salaire', type: 'INCOME' as const };
+    api.listCategories.mockImplementation(() =>
+      success({ items: [candidate, income], page: 1, pageSize: 50, total: 2 }),
+    );
+    const changed = renderSelected();
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement;
+    fireEvent.focus(picker);
+    await screen.findByRole('option', { name: 'Salaire' });
+    expect(screen.getByRole('group', { name: 'Dépenses' })).toBeTruthy();
+    expect(screen.getByRole('group', { name: 'Revenus' })).toBeTruthy();
+    fireEvent.keyDown(picker, { key: 'ArrowDown' });
+    fireEvent.keyDown(picker, { key: 'Enter' });
+    expect(changed).toHaveBeenCalledExactlyOnceWith(income.id, income);
+    expect(picker.value).toBe('Salaire');
+  });
+
+  it('passes a new search to creation and retains the previous selection when creation returns focus', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    const create = vi.fn();
+    const changed = renderSelected(vi.fn(), create);
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement;
+    fireEvent.focus(picker);
+    fireEvent.change(picker, { target: { value: ' Boulangerie ' } });
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Créer « Boulangerie »' }));
+    expect(create).toHaveBeenCalledExactlyOnceWith('Boulangerie');
+    expect(changed).not.toHaveBeenCalled();
+    fireEvent.focus(picker);
+    expect(picker.value).toBe('Sorties');
+    expect(picker.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('displays an external replacement and clears the cached choice when the parent clears value', () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const changed = vi.fn();
+    const props = { label: 'Catégorie', onChange: changed };
+    const { rerender } = render(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPicker {...props} value={candidate.id} selectedLabel={candidate.label} />
+      </QueryClientProvider>,
+    );
+    const picker = screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement;
+    expect(picker.value).toBe('Sorties');
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPicker {...props} value="new" selectedLabel="Salaire" />
+      </QueryClientProvider>,
+    );
+    expect(picker.value).toBe('Salaire');
+    rerender(
+      <QueryClientProvider client={queryClient}>
+        <CategoryPicker {...props} value="" />
+      </QueryClientProvider>,
+    );
+    expect(picker.value).toBe('');
+    expect(changed).not.toHaveBeenCalled();
   });
 
   it('narrows the choices from a bounded server search', async () => {
@@ -258,6 +397,8 @@ describe('CategoryPicker', () => {
       'rgb(17, 34, 51)',
     );
     expect(option.querySelector('[data-icon="utensils"]')).toBeTruthy();
+    expect(combobox.parentElement?.querySelector('[data-icon="utensils"]')).toBeNull();
+    fireEvent.keyDown(combobox, { key: 'Escape' });
     expect(combobox.parentElement?.querySelector('[data-icon="utensils"]')).toBeTruthy();
   });
 

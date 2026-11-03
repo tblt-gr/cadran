@@ -60,14 +60,19 @@ export function RecurrenceForm({
     label: values.label.trim() === '' || values.label.trim().length > 80,
   };
   // The sign typed in the amount decides when no direction is chosen, like the server does.
-  const effectiveDirection = direction ?? (expectedAmount.startsWith('-') ? 'OUTFLOW' : 'INFLOW');
+  const effectiveDirection =
+    direction ??
+    (baseErrors.expectedAmount ? '' : expectedAmount.startsWith('-') ? 'OUTFLOW' : 'INFLOW');
   const expectedCategoryType = categoryTypeFor(effectiveDirection);
   const saved = useRecurrenceCategory(recurrence?.categoryId ?? null);
   const categoryType = values.categoryType ?? (values.categoryId === saved?.id ? saved.type : null);
   const errors = {
     ...baseErrors,
     categoryId:
-      values.categoryId !== '' && categoryType !== null && categoryType !== expectedCategoryType,
+      values.categoryId !== '' &&
+      categoryType !== null &&
+      expectedCategoryType !== undefined &&
+      categoryType !== expectedCategoryType,
   };
   const invalid = Object.values(errors).some(Boolean);
 
