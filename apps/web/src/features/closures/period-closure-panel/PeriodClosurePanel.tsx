@@ -4,6 +4,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { useSession } from '@/features/auth/useSession';
 import { ClosePeriodForm } from '@/features/closures/close-period-form/ClosePeriodForm';
+import { ClosureBlockerList } from '@/features/closures/closure-blocker-list/ClosureBlockerList';
 import { ReopenPeriodForm } from '@/features/closures/reopen-period-form/ReopenPeriodForm';
 import { usePeriodClosure } from '@/features/closures/usePeriodClosure';
 import { PeriodClosurePanelSkeleton } from './PeriodClosurePanelSkeleton';
@@ -13,6 +14,8 @@ interface PeriodClosurePanelProps {
   close: () => void;
   /** `YYYY-MM`; defaults to the last calendar month, the latest that can have ended. */
   initialPeriod?: string;
+  /** Called once a closing or reopening has succeeded, so the caller can refresh what it shows. */
+  onChanged?: () => void;
   returnFocus?: RefObject<HTMLElement | null>;
 }
 
@@ -33,6 +36,7 @@ type Dialog = 'close' | 'reopen' | null;
 export function PeriodClosurePanel({
   close: closeModal,
   initialPeriod,
+  onChanged,
   returnFocus,
 }: PeriodClosurePanelProps) {
   const { i18n, t } = useTranslation();
@@ -43,7 +47,10 @@ export function PeriodClosurePanel({
   const previousDialog = useRef<Dialog>(null);
   const session = useSession();
   const owner = session.data?.workspace?.role === 'OWNER';
-  const { close, reopen, status } = usePeriodClosure(period, () => setDialog(null));
+  const { close, reopen, status } = usePeriodClosure(period, () => {
+    setDialog(null);
+    onChanged?.();
+  });
   const label = new Intl.DateTimeFormat(i18n.language, {
     month: 'long',
     timeZone: 'UTC',
@@ -91,6 +98,7 @@ export function PeriodClosurePanel({
           onNavigate={closeModal}
           onSubmit={(body) => close.mutate(body)}
           pending={close.isPending}
+          period={period}
         />
       ) : dialog === 'reopen' && data?.closure ? (
         <ReopenPeriodForm
@@ -147,6 +155,14 @@ export function PeriodClosurePanel({
                   </span>
                 ) : null}
               </div>
+
+              {!data.closed ? (
+                <ClosureBlockerList
+                  blockers={data.blockers}
+                  onNavigate={closeModal}
+                  period={period}
+                />
+              ) : null}
 
               {owner ? (
                 data.closed && data.closure ? (

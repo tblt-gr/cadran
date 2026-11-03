@@ -22,8 +22,6 @@ test.describe('period closure', () => {
     const target = monthsAgo(2);
     const targetLabel = frenchMonthYear(target);
 
-    await navigateTo(page, 'Transactions');
-
     // Only one modal is ever open at a time in this flow, so an unnamed
     // `dialog` role locator stays valid across its title change (the panel
     // relabels itself "Clôturer <mois>" / "Rouvrir <mois>" once a sub-form
@@ -75,6 +73,7 @@ test.describe('period closure', () => {
     await expect(closurePanel).toBeHidden();
 
     await test.step('a transaction dated in the closed month is refused with the shared reason', async () => {
+      await navigateTo(page, 'Transactions');
       await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
       const editor = page.getByRole('dialog');
       await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
@@ -104,10 +103,11 @@ test.describe('period closure', () => {
   });
 });
 
-/** The closure panel lives in the page header's overflow menu. */
+/** The closure panel lives in the monthly Budget page's header overflow menu. */
 async function openClosurePanel(page: Page): Promise<void> {
+  await navigateTo(page, 'Budget');
   await page.getByRole('button', { name: 'Autres actions' }).click();
-  await page.getByRole('button', { name: 'Clôture du mois' }).click();
+  await page.getByRole('button', { name: 'Clôturer ce mois' }).click();
 }
 
 /** `YYYY-MM` for the first day of the month `count` months before today. */

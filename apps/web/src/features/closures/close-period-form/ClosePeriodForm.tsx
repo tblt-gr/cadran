@@ -5,11 +5,11 @@ import type {
 } from '@cadran/api-client';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ClosureBlockerLink } from '@/features/closures/closure-blocker-list/ClosureBlockerList';
 import {
   periodClosureErrorKind,
   type PeriodClosureErrorKind,
 } from '@/features/closures/periodClosureError';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './ClosePeriodForm.module.css';
 
 interface ClosePeriodFormProps {
@@ -21,6 +21,8 @@ interface ClosePeriodFormProps {
   onNavigate?: () => void;
   onSubmit: (body: ClosePeriodRequest) => void;
   pending: boolean;
+  /** `YYYY-MM`: scopes the links that resolve each blocker. */
+  period: string;
 }
 
 /**
@@ -35,6 +37,7 @@ export function ClosePeriodForm({
   onNavigate,
   onSubmit,
   pending,
+  period,
 }: ClosePeriodFormProps) {
   const { t } = useTranslation();
   const backButton = useRef<HTMLButtonElement>(null);
@@ -89,17 +92,7 @@ export function ClosePeriodForm({
                 />
                 <span>{t(`closures.conditions.${condition}.confirm`, { count })}</span>
               </label>
-              {condition === 'MISSING_PORTFOLIO_VALUATION' ? (
-                <a
-                  className={styles.link}
-                  href="/accounts"
-                  onClick={(event) => {
-                    if (handleClientNavigation(event, '/accounts')) onNavigate?.();
-                  }}
-                >
-                  {t('closures.conditions.MISSING_PORTFOLIO_VALUATION.link')}
-                </a>
-              ) : null}
+              <ClosureBlockerLink condition={condition} onNavigate={onNavigate} period={period} />
               {confirmed.has(condition) ? (
                 <label className={styles.reason}>
                   <span>{t(`closures.conditions.${condition}.reason`)}</span>

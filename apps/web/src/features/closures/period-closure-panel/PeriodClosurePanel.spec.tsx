@@ -62,12 +62,12 @@ function session(role: 'OWNER' | null) {
   );
 }
 
-function renderPanel(close = vi.fn()) {
+function renderPanel(close = vi.fn(), onChanged?: () => void) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <PeriodClosurePanel close={close} initialPeriod="2026-08" />
+        <PeriodClosurePanel close={close} initialPeriod="2026-08" onChanged={onChanged} />
       </QueryClientProvider>,
     ),
     queryClient,
@@ -137,6 +137,23 @@ describe('PeriodClosurePanel', () => {
     );
   });
 
+  it('reports a successful closing through onChanged, and nothing on a refusal', async () => {
+    api.readPeriodStatus.mockResolvedValue(ok(status()));
+    api.closePeriod.mockResolvedValueOnce(problem(409, 'about:blank'));
+    const onChanged = vi.fn();
+    renderPanel(vi.fn(), onChanged);
+
+    const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+    fireEvent.click(await within(dialog).findByRole('button', { name: 'Clôturer le mois' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+    await waitFor(() => expect(api.closePeriod).toHaveBeenCalledTimes(1));
+    expect(onChanged).not.toHaveBeenCalled();
+
+    api.closePeriod.mockResolvedValueOnce(ok(closure, 201));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+  });
+
   it('returns from the confirmation to the month status in the same dialog', async () => {
     api.readPeriodStatus.mockResolvedValue(ok(status()));
     renderPanel();
@@ -166,6 +183,49 @@ describe('PeriodClosurePanel', () => {
     expect(screen.queryByRole('button', { name: 'Clôturer le mois' })).toBeNull();
   });
 
+  it('explains each blocker in the overview and links to where it is resolved', async () => {
+    api.readPeriodStatus.mockResolvedValue(
+      ok(
+        status({
+          blockers: [
+            { condition: 'UNRECONCILED_ACCOUNT', count: 1 },
+            { condition: 'PENDING_TRANSACTIONS', count: 2 },
+          ],
+        }),
+      ),
+    );
+    const close = vi.fn();
+    renderPanel(close);
+
+    expect(await screen.findByText('2 points bloquants à confirmer pour clôturer.')).toBeTruthy();
+    expect(screen.getByText('1 compte non rapproché sur ce mois.')).toBeTruthy();
+    expect(screen.getByText('2 transactions en attente dans ce mois.')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Rapprocher les comptes' }).getAttribute('href')).toBe(
+      '/accounts',
+    );
+    fireEvent.click(screen.getByRole('link', { name: 'Voir les transactions en attente' }));
+    expect(`${window.location.pathname}${window.location.search}`).toBe(
+      '/transactions?period=custom&from=2026-08-01&to=2026-08-31&state=PENDING',
+    );
+    expect(close).toHaveBeenCalledTimes(1);
+  });
+
+  it('lists no blocker once the month is closed', async () => {
+    api.readPeriodStatus.mockResolvedValue(
+      ok(
+        status({
+          closed: true,
+          closure,
+          blockers: [{ condition: 'PENDING_TRANSACTIONS', count: 2 }],
+        }),
+      ),
+    );
+    renderPanel();
+
+    expect(await screen.findByText('Mois clôturé')).toBeTruthy();
+    expect(screen.queryByRole('list')).toBeNull();
+  });
+
   it('requires one confirmation and one reason per blocking condition', async () => {
     api.readPeriodStatus.mockResolvedValue(
       ok(
@@ -187,7 +247,7 @@ describe('PeriodClosurePanel', () => {
 
     expect(
       within(dialog).getByRole('group', {
-        name: 'Je confirme clôturer avec 2 compte non rapproché.',
+        name: 'Je confirme clôturer avec 2 comptes non rapprochés.',
       }),
     ).toBeTruthy();
     expect(
@@ -235,7 +295,7 @@ describe('PeriodClosurePanel', () => {
     const dialog = await screen.findByRole('dialog', { name: /Clôturer/ });
     expect(
       within(dialog).getByRole('group', {
-        name: 'Je confirme clôturer avec 2 portefeuille(s) sans valorisation de fin de mois.',
+        name: 'Je confirme clôturer avec 2 portefeuilles sans valorisation de fin de mois.',
       }),
     ).toBeTruthy();
     const link = within(dialog).getByRole('link', { name: 'Voir les portefeuilles' });
