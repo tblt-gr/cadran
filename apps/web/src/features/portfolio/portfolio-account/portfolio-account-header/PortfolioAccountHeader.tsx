@@ -1,13 +1,18 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AccountRulesModals } from '@/features/accounts/account-rules/AccountRulesModals';
 import type { Account } from '@cadran/api-client';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
+import { AccountActionsMenu } from '@/features/accounts/account-actions-menu/AccountActionsMenu';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './PortfolioAccountHeader.module.css';
 
-/** Shared shell actions stay available while tabs change; pending account actions are disabled. */
+/**
+ * Shared shell actions stay available while tabs change: the primary operation and the shared
+ * three-dot menu. Pending account actions are disabled.
+ */
 export function PortfolioAccountHeader({
   account,
   accountId,
@@ -23,8 +28,8 @@ export function PortfolioAccountHeader({
   contractRequired?: boolean;
   operationBlocked?: boolean;
 }) {
+  const { t } = useTranslation();
   const [rulesOpen, setRulesOpen] = useState(false);
-  const instrumentsHref = '/portfolios/instruments';
   const writable =
     account !== undefined && account.status === 'ACTIVE' && valuedByPortfolio(account);
   const contractHref = `/portfolios/${accountId}?tab=contract`;
@@ -41,48 +46,24 @@ export function PortfolioAccountHeader({
       ) : null}
       <HeaderActions>
         <button
-          aria-label="Nouvelle opération"
+          aria-label={t('accounts.detail.actions.addTransaction')}
           className={`primary-action ${styles.add}`}
           disabled={!writable || contractRequired || operationBlocked}
           onClick={onCreate}
           type="button"
         >
           <Icon name="add" size={18} />
-          <span className={styles.addLabel}>Nouvelle opération</span>
+          <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
         </button>
-        <button
-          aria-label="Nouvelle valorisation"
-          className={`secondary-action ${styles.add}`}
-          disabled={!writable}
-          onClick={onRecordValuation}
-          type="button"
-        >
-          <Icon name="balance" size={18} />
-          <span className={styles.addLabel}>Nouvelle valorisation</span>
-        </button>
-        <button
-          className="icon-button"
-          aria-label="Voir les règles"
-          title="Voir les règles"
-          disabled={!account}
-          onClick={() => setRulesOpen(true)}
-          type="button"
-        >
-          <Icon name="sliders" />
-        </button>
-        <a
-          aria-label="Gérer les instruments"
-          className="icon-button"
-          href={instrumentsHref}
-          onClick={(event) => handleClientNavigation(event, instrumentsHref)}
-          title="Gérer les instruments"
-        >
-          <Icon name="chart-line" />
-        </a>
+        <AccountActionsMenu
+          account={account}
+          onRecordValuation={onRecordValuation}
+          onRules={() => setRulesOpen(true)}
+        />
       </HeaderActions>
       {contractRequired ? (
         <a href={contractHref} onClick={(event) => handleClientNavigation(event, contractHref)}>
-          Renseignez d'abord le contrat
+          {t('accounts.detail.actionsMenu.contractFirst')}
         </a>
       ) : null}
     </>

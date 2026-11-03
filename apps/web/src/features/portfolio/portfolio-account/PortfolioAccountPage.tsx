@@ -1,6 +1,8 @@
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
+import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { AccountTab } from './account-tab/AccountTab';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { usePortfolioSourceReturnFocus } from './usePortfolioSourceReturnFocus';
 import { PortfolioAccountTabContent, type PortfolioCreation } from './PortfolioAccountTabContent';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
@@ -27,6 +29,7 @@ import { useAccountHeader } from '@/features/accounts/account-header/useAccountH
  * Entry actions open their modal on the tab that lists the resulting record.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
+  const { t } = useTranslation();
   const account = useAccountDetail(accountId);
   const label = !account.isError && account.data?.id === accountId ? account.data.label : null;
   useBreadcrumbAccount(`/portfolios/${accountId}`, label, account.isPending);
@@ -58,6 +61,28 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     window.addEventListener('popstate', updateTab);
     return () => window.removeEventListener('popstate', updateTab);
   }, [today]);
+
+  function openOn(tab: PortfolioTab, creation: PortfolioCreation) {
+    if (active !== tab) {
+      window.history.pushState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=${asOf}`);
+      setActive(tab);
+    }
+    setCreating(creation);
+  }
+  function openCreate() {
+    if (operationBlocked) return;
+    openOn('operations', 'operation');
+  }
+  useArrivalAction('operation', account.data?.id === accountId, () => {
+    const loaded = account.data;
+    if (loaded && loaded.status === 'ACTIVE' && loaded.editable && valuedByPortfolio(loaded))
+      openCreate();
+  });
+  useArrivalAction('valuation', account.data?.id === accountId, () => {
+    const loaded = account.data;
+    if (loaded && loaded.status === 'ACTIVE' && loaded.editable && valuedByPortfolio(loaded))
+      openOn('valuations', 'valuation');
+  });
 
   if (account.isPending) {
     return (
@@ -91,18 +116,6 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const eligible = valuedByPortfolio(current);
   const shown = tabForKind(active, current.kind);
 
-  function openOn(tab: PortfolioTab, creation: PortfolioCreation) {
-    if (active !== tab) {
-      window.history.pushState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=${asOf}`);
-      setActive(tab);
-    }
-    setCreating(creation);
-  }
-  function openCreate() {
-    if (operationBlocked) return;
-    openOn('operations', 'operation');
-  }
-
   return (
     <div className={styles.page}>
       <PortfolioTabs
@@ -131,6 +144,11 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
       />
+      {current.status !== 'ACTIVE' ? (
+        <p className={styles.notice} role="status">
+          {t(`accounts.detail.actions.unavailable.${current.status}`)}
+        </p>
+      ) : null}
       {eligible && shown === 'account' ? (
         <AccountTab account={current} today={today}>
           <PortfolioOverview

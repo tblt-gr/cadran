@@ -583,6 +583,10 @@
       "reconcileOfAccount": "Rapprocher le compte {{label}}",
       "recordBalance": "Enregistrer un solde",
       "recordBalanceOfAccount": "Enregistrer un solde sur {{label}}",
+      "operationOfAccount": "Nouvelle opération sur {{label}}",
+      "transferOfAccount": "Nouveau virement depuis {{label}}",
+      "valuationOfAccount": "Nouvelle valorisation de {{label}}",
+      "instrumentsOfAccount": "Gérer les instruments depuis {{label}}",
       "openActions": "Actions du compte {{label}}"
     },
     "reconciliation": {
@@ -891,15 +895,32 @@
         "clearPeriod": "Voir tout l’historique"
       },
       "actions": {
-        "addTransaction": "Nouvelle transaction",
-        "more": "Autres actions",
-        "addTransfer": "Nouveau virement",
-        "rules": "Voir les règles",
-        "reconcile": "Rapprocher",
+        "addTransaction": "Nouvelle opération",
         "unavailable": {
           "CLOSED": "Ce compte est clôturé : aucun nouveau mouvement ne peut y être enregistré. Rouvrez-le depuis la liste des comptes pour en ajouter un.",
           "ARCHIVED": "Ce compte est archivé et n’accepte plus de nouveau mouvement."
         }
+      },
+      "actionsMenu": {
+        "open": "Actions du compte {{label}}",
+        "openPending": "Actions du compte",
+        "operation": "Nouvelle opération",
+        "transfer": "Nouveau virement",
+        "recordBalance": "Enregistrer un solde",
+        "reconcile": "Rapprocher",
+        "rules": "Voir les règles",
+        "valuation": "Nouvelle valorisation",
+        "instruments": "Gérer les instruments",
+        "edit": "Modifier",
+        "archive": "Archiver",
+        "unavailable": "{{action}} ({{reason}})",
+        "reasons": {
+          "ARCHIVED": "compte archivé",
+          "CLOSED": "compte clôturé",
+          "READ_ONLY": "compte en lecture seule",
+          "NOTHING_TO_RECONCILE": "rien à rapprocher"
+        },
+        "contractFirst": "Renseignez d'abord le contrat"
       },
       "toasts": {
         "transactionSaved": "La transaction a été enregistrée.",

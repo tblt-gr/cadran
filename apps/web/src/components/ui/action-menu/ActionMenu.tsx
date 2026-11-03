@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom';
 import { Icon, type IconName } from '@/components/ui/icon/Icon';
 import styles from './ActionMenu.module.css';
 
-interface ActionMenuItem {
+export interface ActionMenuItem {
   /** Checkable items keep the menu open while the selection changes. */
   checked?: boolean;
   disabled?: boolean;
+  /** Visible secondary line, e.g. why a disabled item is unavailable. */
+  hint?: string;
   icon: IconName;
   id: string;
   label: string;
@@ -207,7 +209,10 @@ export function ActionMenu({
                   ) : (
                     <Icon name={item.icon} size={16} />
                   )}
-                  <span>{item.text}</span>
+                  <span>
+                    {item.text}
+                    {item.hint ? <small className={styles.hint}>{item.hint}</small> : null}
+                  </span>
                 </button>
               ))}
             </div>,

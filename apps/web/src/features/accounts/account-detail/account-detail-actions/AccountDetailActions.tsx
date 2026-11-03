@@ -2,12 +2,13 @@ import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
+import { AccountActionsMenu } from '@/features/accounts/account-actions-menu/AccountActionsMenu';
 import styles from './AccountDetailActions.module.css';
 
 /**
- * Account-level actions, rendered in the shell header: one primary action and
- * frequent actions as icon buttons. A portfolio account never shows them: its
- * page is the portfolio page.
+ * Account-level actions, rendered in the shell header: the primary action and the
+ * shared three-dot menu, last on the right. A portfolio account never shows them:
+ * its page is the portfolio page.
  */
 export function AccountDetailActions({
   account,
@@ -38,35 +39,12 @@ export function AccountDetailActions({
         <Icon name="add" size={18} />
         <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
       </button>
-      <button
-        aria-label={t('accounts.detail.actions.addTransfer')}
-        className="icon-button"
-        disabled={!creatable}
-        onClick={onAddTransfer}
-        title={t('accounts.detail.actions.addTransfer')}
-        type="button"
-      >
-        <Icon name="transfer" />
-      </button>
-      <button
-        aria-label={t('accounts.detail.actions.rules')}
-        className="icon-button"
-        onClick={onOpenRules}
-        title={t('accounts.detail.actions.rules')}
-        type="button"
-      >
-        <Icon name="sliders" />
-      </button>
-      <button
-        aria-label={t('accounts.detail.actions.reconcile')}
-        className="icon-button"
-        disabled={account.valuation.snapshotId === null}
-        onClick={onReconcile}
-        title={t('accounts.detail.actions.reconcile')}
-        type="button"
-      >
-        <Icon name="check-circle" />
-      </button>
+      <AccountActionsMenu
+        account={account}
+        onAddTransfer={onAddTransfer}
+        onReconcile={onReconcile}
+        onRules={onOpenRules}
+      />
     </HeaderActions>
   );
 }
@@ -86,33 +64,7 @@ export function AccountDetailActionsSkeleton() {
         <Icon name="add" size={18} />
         <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
       </button>
-      <button
-        aria-label={t('accounts.detail.actions.addTransfer')}
-        className="icon-button"
-        disabled
-        title={t('accounts.detail.actions.addTransfer')}
-        type="button"
-      >
-        <Icon name="transfer" />
-      </button>
-      <button
-        aria-label={t('accounts.detail.actions.rules')}
-        className="icon-button"
-        disabled
-        title={t('accounts.detail.actions.rules')}
-        type="button"
-      >
-        <Icon name="sliders" />
-      </button>
-      <button
-        aria-label={t('accounts.detail.actions.reconcile')}
-        className="icon-button"
-        disabled
-        title={t('accounts.detail.actions.reconcile')}
-        type="button"
-      >
-        <Icon name="check-circle" />
-      </button>
+      <AccountActionsMenu onRules={() => undefined} />
     </HeaderActions>
   );
 }

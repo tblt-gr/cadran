@@ -48,6 +48,13 @@
   background: var(--bg-surface-2);
 }
 
+.hint {
+  display: block;
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
+}
+
 .item:disabled {
   color: var(--text-muted);
   cursor: not-allowed;

@@ -10,6 +10,7 @@ import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountRulesModals } from '@/features/accounts/account-rules/AccountRulesModals';
 import { AccountReconciliationModal } from '@/features/accounts/reconciliation-panel/AccountReconciliationModal';
 import { portfolioAccountHref, valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
+import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { AccountDetailActions } from './account-detail-actions/AccountDetailActions';
 import { AccountIdentityCard } from './account-identity/AccountIdentityCard';
 import { AccountLedger, type LedgerEditor } from './account-ledger/AccountLedger';
@@ -73,6 +74,14 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
     setSaved(null);
     setEditor(next);
   }
+
+  const arrived = account.data?.id === accountId && redirect === null;
+  useArrivalAction('transaction', arrived, () => {
+    if (account.data?.status === 'ACTIVE' && account.data.editable) openEditor('transaction');
+  });
+  useArrivalAction('transfer', arrived, () => {
+    if (account.data?.status === 'ACTIVE' && account.data.editable) openEditor('transfer');
+  });
 
   if (account.isPending || redirect !== null) {
     return (

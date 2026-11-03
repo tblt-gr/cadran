@@ -5,15 +5,9 @@ import type {
   UpdateAccountRequest,
 } from '@cadran/api-client';
 import type { UseMutationResult } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
-import { Modal } from '@/components/ui/modal/Modal';
-import { AccountEditor } from '@/features/accounts/account-editor/AccountEditor';
+import { AccountActionsModals } from '@/features/accounts/account-actions-menu/AccountActionsModals';
 import { AccountRulesModals } from '@/features/accounts/account-rules/AccountRulesModals';
-import { AccountWizard } from '@/features/accounts/account-wizard/AccountWizard';
-import { ArchiveAccountDialog } from '@/features/accounts/archive-account-dialog/ArchiveAccountDialog';
 import { AccountReconciliationModal } from '@/features/accounts/reconciliation-panel/AccountReconciliationModal';
-import { RecordBalanceForm } from '@/features/accounts/record-balance-form/RecordBalanceForm';
-import { accountErrorKind } from '@/features/accounts/accountError';
 
 type Editor = Account | 'create' | null;
 
@@ -67,37 +61,20 @@ export function AccountsPageModals({
   setInspecting: (account: Account | null) => void;
   setReconciling: (account: Account | null) => void;
 }) {
-  const { t } = useTranslation();
-
   return (
     <>
-      {editor ? (
-        <Modal
-          close={closeEditor}
-          eyebrow={t(
-            editor === 'create' ? 'accounts.form.createEyebrow' : 'accounts.form.editEyebrow',
-          )}
-          title={t(editor === 'create' ? 'accounts.form.createTitle' : 'accounts.form.editTitle')}
-        >
-          {editor === 'create' ? (
-            <AccountWizard
-              onCancel={closeEditor}
-              onCreate={(body) => save.mutate(body)}
-              pending={save.isPending}
-              submitError={accountErrorKind(save.error, save.isError)}
-            />
-          ) : (
-            <AccountEditor
-              account={editor}
-              key={editor.id}
-              onCancel={closeEditor}
-              onSubmit={(body) => save.mutate(body)}
-              pending={save.isPending}
-              submitError={accountErrorKind(save.error, save.isError)}
-            />
-          )}
-        </Modal>
-      ) : null}
+      <AccountActionsModals
+        archive={archive}
+        archiving={archiving}
+        closeArchive={closeArchive}
+        closeEditor={closeEditor}
+        closeRecording={closeRecording}
+        editor={editor}
+        onBalanceCorrected={onBalanceCorrected}
+        recordBalance={recordBalance}
+        recording={recording}
+        save={save}
+      />
 
       {inspecting ? (
         <AccountRulesModals
@@ -109,24 +86,6 @@ export function AccountsPageModals({
         />
       ) : null}
 
-      {recording ? (
-        <Modal
-          close={closeRecording}
-          title={t('accounts.balances.title', { label: recording.label })}
-        >
-          <RecordBalanceForm
-            account={recording}
-            key={recording.id}
-            onCancel={closeRecording}
-            onCorrected={onBalanceCorrected}
-            onSubmit={(body) => recordBalance.mutate({ account: recording, body })}
-            pending={recordBalance.isPending}
-            submitError={accountErrorKind(recordBalance.error, recordBalance.isError)}
-            valuation={recording.valuation}
-          />
-        </Modal>
-      ) : null}
-
       {reconciling ? (
         <AccountReconciliationModal
           account={reconcilingLive ?? reconciling}
@@ -134,22 +93,6 @@ export function AccountsPageModals({
           key={reconciling.id}
           onReconciled={onReconciled}
         />
-      ) : null}
-
-      {archiving ? (
-        <Modal
-          close={closeArchive}
-          eyebrow={t('accounts.archive.eyebrow')}
-          title={t('accounts.archive.title')}
-        >
-          <ArchiveAccountDialog
-            account={archiving}
-            onCancel={closeArchive}
-            onConfirm={() => archive.mutate(archiving)}
-            pending={archive.isPending}
-            submitError={accountErrorKind(archive.error, archive.isError)}
-          />
-        </Modal>
       ) : null}
     </>
   );

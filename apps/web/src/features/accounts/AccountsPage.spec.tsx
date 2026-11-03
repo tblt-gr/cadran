@@ -1172,14 +1172,78 @@ describe('AccountsPage', () => {
     });
     // Editing an archived account is refused, but reading what applied to it
     // changes nothing and stays available.
-    const edit = screen.getByRole('button', { name: 'Modifier le compte Livret A clos' });
+    const edit = screen.getByRole('button', { name: /^Modifier le compte Livret A clos/ });
     expect((edit as HTMLButtonElement).disabled).toBe(true);
+    expect(edit.textContent).toMatch(/compte archivé/);
     expect((rules as HTMLButtonElement).disabled).toBe(false);
     fireEvent.click(rules);
 
     expect(screen.getByRole('dialog', { name: 'Règles de « Livret A clos »' })).toBeTruthy();
     expect(await screen.findByText(/22\s950,00\s€/)).toBeTruthy();
     expect(api.readAccountRules.mock.calls[0]?.[0].path).toEqual({ id: archived.id });
+  });
+
+  it('offers the same typed row actions as the account header menu', async () => {
+    const portfolio = {
+      ...account,
+      id: '00000000-0000-7000-8000-0000000000d4',
+      label: 'PEA Banque X',
+      kind: 'PORTFOLIO' as const,
+      valuationMode: 'PORTFOLIO' as const,
+    };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account, portfolio], page: 1, pageSize: 50, total: 2 }),
+    );
+    renderPage();
+
+    await openAccountActions('Livret A Banque X');
+    const texts = () =>
+      Array.from(document.body.querySelectorAll('button[aria-label] > span')).map(
+        (node) => node.firstChild?.textContent,
+      );
+    expect(texts().filter((text) => text !== undefined && text !== null)).toEqual(
+      expect.arrayContaining([
+        'Nouvelle opération',
+        'Nouveau virement',
+        'Enregistrer un solde',
+        'Rapprocher',
+        'Voir les règles',
+        'Modifier',
+        'Archiver',
+      ]),
+    );
+    expect(screen.queryByRole('button', { name: /Nouvelle valorisation/ })).toBeNull();
+    expect(texts().indexOf('Nouvelle opération')).toBe(texts().indexOf('Nouveau virement') - 1);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nouvelle opération sur Livret A Banque X' }),
+    );
+    expect(window.location.pathname + window.location.search).toBe(
+      `/accounts/${account.id}?action=transaction`,
+    );
+    await openAccountActions('Livret A Banque X');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Nouveau virement depuis Livret A Banque X' }),
+    );
+    expect(window.location.pathname + window.location.search).toBe(
+      `/accounts/${account.id}?action=transfer`,
+    );
+
+    await openAccountActions('PEA Banque X');
+    expect(screen.queryByRole('button', { name: /Enregistrer un solde/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Rapprocher/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Nouveau virement/ })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Gérer les instruments depuis PEA Banque X' }),
+    ).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération sur PEA Banque X' }));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/portfolios/${portfolio.id}?action=operation`,
+    );
+    await openAccountActions('PEA Banque X');
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation de PEA Banque X' }));
+    expect(window.location.pathname + window.location.search).toBe(
+      `/portfolios/${portfolio.id}?action=valuation`,
+    );
   });
 
   it('records a claim against a rule and hands it back to the rules it came from', async () => {

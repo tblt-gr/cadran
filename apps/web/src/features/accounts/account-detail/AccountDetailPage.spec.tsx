@@ -6,7 +6,18 @@ import '@/i18n';
 import { AccountDetailPage } from './AccountDetailPage';
 import { AppShell } from '@/components/layout/app-shell/AppShell';
 
+/** The shared account menu item, opening the three-dot menu first when it is closed. */
+async function menuItem(name: string | RegExp) {
+  const trigger = (await screen.findByRole('button', {
+    name: /^Actions du compte/,
+  })) as HTMLButtonElement;
+  await waitFor(() => expect(trigger.disabled).toBe(false));
+  if (trigger.getAttribute('aria-expanded') !== 'true') fireEvent.click(trigger);
+  return (await screen.findAllByRole('button', { name })).at(-1) as HTMLButtonElement;
+}
+
 const api = vi.hoisted(() => ({
+  archiveAccount: vi.fn(),
   getTransaction: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
@@ -712,7 +723,7 @@ describe('AccountDetailPage', () => {
     );
     renderPage();
     await loaded();
-    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+    fireEvent.click(await menuItem('Nouveau virement'));
     const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
     await within(within(dialog).getByLabelText('Compte de destination')).findByRole('option', {
       name: destination.label,
@@ -768,7 +779,7 @@ describe('AccountDetailPage', () => {
       );
       renderPage();
       await loaded();
-      fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+      fireEvent.click(await menuItem('Nouveau virement'));
       const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
       await within(within(dialog).getByLabelText('Compte de destination')).findByRole('option', {
         name: destination.label,
@@ -806,7 +817,7 @@ describe('AccountDetailPage', () => {
       expect(screen.queryAllByRole('heading', { name: account.label })).toHaveLength(0),
     );
     expect(screen.getByRole('alert')).toBeTruthy();
-    expect(screen.queryByRole('button', { name: 'Nouveau virement' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
   });
 
   it('replaces its one named cold-load skeleton and keeps the account during a refetch', async () => {
@@ -848,8 +859,9 @@ describe('AccountDetailPage', () => {
   it('keeps its own actions for an account outside portfolio mode', async () => {
     renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
-    expect(screen.getByRole('button', { name: 'Rapprocher' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Voir les règles' })).toBeTruthy();
+    expect(await menuItem(/^Rapprocher/)).toBeTruthy();
+    expect(await menuItem('Voir les règles')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Nouvelle valorisation' })).toBeNull();
     expect(window.location.pathname).toBe(`/accounts/${account.id}`);
   });
 
@@ -920,8 +932,87 @@ describe('AccountDetailPage', () => {
     ).toBeTruthy();
     expect(screen.getByText(/archivé et n’accepte plus de nouveau mouvement/)).toBeTruthy();
     expect(
-      (screen.getByRole('button', { name: 'Nouvelle transaction' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Nouvelle opération' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+    for (const name of [/^Nouveau virement/, /^Enregistrer un solde/, /^Modifier/, /^Archiver/]) {
+      const item = await menuItem(name);
+      expect(item.disabled).toBe(true);
+      expect(item.getAttribute('aria-label')).toMatch(/compte archivé/);
+    }
+    expect((await menuItem('Voir les règles')).disabled).toBe(false);
+  });
+
+  it('archives from the menu, refetches and shows the archived state', async () => {
+    let archived = false;
+    api.readAccount.mockImplementation(() =>
+      success(archived ? { ...account, status: 'ARCHIVED', editable: false } : account),
+    );
+    api.archiveAccount.mockImplementation(() => {
+      archived = true;
+      return success({});
+    });
+    renderPage(account.id, '?tab=account');
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
+
+    fireEvent.click(await menuItem(/^Archiver/));
+    const dialog = await screen.findByRole('dialog', { name: 'Archiver le compte' });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archiver' }));
+
+    expect(await screen.findByText(/archivé et n’accepte plus de nouveau mouvement/)).toBeTruthy();
+    expect(await screen.findByText('Le compte a été archivé.')).toBeTruthy();
+    expect(api.archiveAccount).toHaveBeenCalledOnce();
+  });
+
+  it('disables the writing items of a closed account and explains why', async () => {
+    api.readAccount.mockImplementation(() =>
+      success({ ...account, status: 'CLOSED', editable: false }),
+    );
+    renderPage(account.id, '?tab=account');
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
+
+    for (const name of [/^Nouveau virement/, /^Modifier/, /^Archiver/]) {
+      const item = await menuItem(name);
+      expect(item.disabled).toBe(true);
+      expect(item.getAttribute('aria-label')).toMatch(/compte clôturé/);
+      expect(item.textContent).toMatch(/compte clôturé/);
+    }
+    expect((await menuItem('Voir les règles')).disabled).toBe(false);
+  });
+
+  it('disables the writing items of an active but read-only account', async () => {
+    api.readAccount.mockImplementation(() => success({ ...account, editable: false }));
+    renderPage(account.id, '?tab=account');
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
+
+    for (const name of [/^Nouveau virement/, /^Enregistrer un solde/, /^Modifier/, /^Archiver/]) {
+      const item = await menuItem(name);
+      expect(item.disabled).toBe(true);
+      expect(item.getAttribute('aria-label')).toMatch(/lecture seule/);
+    }
+  });
+
+  it('opens the transaction editor on arrival with ?action=transaction, once', async () => {
+    renderPage(account.id, '?tab=account&action=transaction');
+
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle transaction' })).toBeTruthy();
+    expect(window.location.search).not.toContain('action=');
+  });
+
+  it('opens the transfer modal on arrival with ?action=transfer, once', async () => {
+    renderPage(account.id, '?tab=account&action=transfer');
+
+    expect(await screen.findByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(window.location.search).not.toContain('action=');
+  });
+
+  it('opens the shared edit modal from the menu', async () => {
+    renderPage(account.id, '?tab=account');
+    await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
+
+    const item = await menuItem('Modifier');
+    fireEvent.click(item);
+
+    expect(await screen.findByRole('dialog', { name: 'Modifier le compte' })).toBeTruthy();
   });
 
   it('shows a missing-valuation state, not zero, when the account has no dated source', async () => {
@@ -944,7 +1035,7 @@ describe('AccountDetailPage', () => {
     renderPage();
     await loaded();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle opération' }));
 
     const dialog = await screen.findByRole('dialog');
     const select = within(dialog).getByLabelText('Compte') as HTMLSelectElement;
@@ -956,7 +1047,7 @@ describe('AccountDetailPage', () => {
     renderPage();
     await loaded();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
+    fireEvent.click(await menuItem('Nouveau virement'));
 
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => {
@@ -970,7 +1061,7 @@ describe('AccountDetailPage', () => {
     renderPage();
     await loaded();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle opération' }));
     const dialog = await screen.findByRole('dialog');
 
     fireEvent.change(within(dialog).getByLabelText('Montant'), { target: { value: '-12.50' } });
@@ -984,7 +1075,7 @@ describe('AccountDetailPage', () => {
     renderPage();
     await loaded();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir les règles' }));
+    fireEvent.click(await menuItem('Voir les règles'));
 
     expect(await screen.findByText('Ouverture')).toBeTruthy();
     expect(api.readAccountRules).toHaveBeenCalledWith(
@@ -996,7 +1087,7 @@ describe('AccountDetailPage', () => {
     renderPage();
     await loaded();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle opération' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.keyDown(dialog, { key: 'Escape' });
 
