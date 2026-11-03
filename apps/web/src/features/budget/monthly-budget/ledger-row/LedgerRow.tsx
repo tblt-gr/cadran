@@ -144,9 +144,6 @@ export function LedgerRow({
 
       {expanded && explainable ? (
         <div className={styles.details} id={detailsId}>
-          {kind === 'expense' ? (
-            <p className={styles.refundHint}>{t('budget.monthly.refundHint')}</p>
-          ) : null}
           <MovementDetails
             axis={axis}
             editable={actionsAllowed}

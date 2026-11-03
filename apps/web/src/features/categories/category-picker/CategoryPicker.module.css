@@ -76,6 +76,17 @@
   max-width: 100%;
 }
 
+@media (pointer: coarse) {
+  .selected {
+    padding-block: var(--spacing-none);
+  }
+
+  .picker .control .chip input {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+}
+
 .hint {
   color: var(--text-secondary);
 }

@@ -5,8 +5,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { BUDGET_AXES, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
-import { formatAmount } from '@/lib/decimal';
-import { toSignedAmount } from '@/lib/signedAmount';
+import { formatAmount, negateDecimal } from '@/lib/decimal';
 import styles from './LedgerPanel.module.css';
 
 interface LedgerPanelHeaderProps {
@@ -36,7 +35,7 @@ function HeaderTotal({
     return <EmptyValue label={t('states.notCalculable.label')} />;
   }
 
-  const amount = toSignedAmount(total.value, kind === 'expense' ? 'OUTFLOW' : null);
+  const amount = kind === 'expense' ? negateDecimal(total.value) : total.value;
   const value = <MoneyValue value={formatAmount(amount, total.assetCode, i18n.language)} />;
   // Transfers stay white unless the net is negative; income and expense keep a fixed tone.
   const negativeTransfer = kind === 'account' && amount.startsWith('-');

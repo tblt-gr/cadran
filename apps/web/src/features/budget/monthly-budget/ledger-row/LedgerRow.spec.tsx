@@ -78,13 +78,11 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('LedgerRow pending movements', () => {
-  it('shows a refund-only category as a positive movement and explains its month', () => {
+  it('shows a refund-only category as a positive movement', () => {
     const item = renderRow(
       category({ total: { value: '-18.00', assetCode: 'EUR', reason: null } }),
     );
     expect(item.querySelector('[data-visual-mask]')?.textContent).toMatch(/^18,00/);
-    fireEvent.click(within(item).getByRole('button', { name: /Afficher les mouvements/ }));
-    expect(within(item).getByText(/remboursement réduit les dépenses du mois/)).toBeTruthy();
   });
 
   it('shows an expense category as a negative movement', () => {

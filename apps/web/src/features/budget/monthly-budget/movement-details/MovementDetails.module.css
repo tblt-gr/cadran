@@ -68,8 +68,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.movementLine > [data-visual-mask] {
+.movementAmount {
   flex: 0 0 auto;
+  padding: var(--spacing-1) var(--spacing-2);
   font-size: var(--font-size-label);
   font-variant-numeric: tabular-nums;
   text-align: left;
@@ -95,13 +96,19 @@
 }
 
 .dayMovements > li {
+  display: flex;
+  align-items: center;
   min-width: 0;
+}
+
+.dayMovements > li > .movement {
+  flex: 1 1 0;
 }
 
 /* A pending movement is listed for information only: muted by colour (never opacity, which would
    pull the text under AA contrast) and marked in plain text after its label. */
 .pending strong,
-.pending [data-visual-mask],
+.pending[data-visual-mask],
 .pendingMarker {
   color: var(--text-pending);
 }
