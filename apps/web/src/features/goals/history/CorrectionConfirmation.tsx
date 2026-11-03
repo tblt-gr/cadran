@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { GoalCorrectionPreview } from '@cadran/api-client';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +53,7 @@ export function CorrectionConfirmation({
         />
         <span>{t('goals.correctionConfirmation')}</span>
       </label>
-      <div className={styles.formActions}>
+      <ModalActions>
         <button className="secondary-action" onClick={onBack} type="button">
           {t('goals.correctionBack')}
         </button>
@@ -64,7 +65,7 @@ export function CorrectionConfirmation({
         >
           {t(pending ? 'goals.saving' : 'goals.correctionConfirm')}
         </button>
-      </div>
+      </ModalActions>
     </section>
   );
 }

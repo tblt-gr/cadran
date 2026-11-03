@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import type { AccountErrorKind } from '@/features/accounts/accountError';
@@ -20,7 +21,7 @@ export function ArchiveAccountDialog({
   account,
   pending,
   submitError,
-  onCancel: _onCancel,
+  onCancel,
   onConfirm,
 }: ArchiveAccountDialogProps) {
   const { t } = useTranslation();
@@ -35,11 +36,14 @@ export function ArchiveAccountDialog({
       <p>{t('accounts.archive.description', { label: account.label })}</p>
       <p className={styles.hint}>{t('accounts.archive.consequences')}</p>
       {account.isPrimary ? <p className={styles.hint}>{t('accounts.primary.fallback')}</p> : null}
-      <div className={styles.actions}>
+      <ModalActions>
+        <button className="secondary-action" onClick={onCancel} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accounts.archive.confirming' : 'accounts.archive.confirm')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

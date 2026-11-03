@@ -27,7 +27,7 @@ export function EuroFundRateModal({
     [['instruments'], ['instrument-picker'], ['euro-fund-picker']],
   );
   return (
-    <Modal title="Renseigner un taux" close={onClose}>
+    <Modal intent="create" title="Renseigner un taux" close={onClose}>
       <EuroFundRateForm
         assetCode={assetCode}
         subscribedOn={subscribedOn}

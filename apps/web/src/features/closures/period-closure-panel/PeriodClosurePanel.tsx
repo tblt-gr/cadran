@@ -83,12 +83,7 @@ export function PeriodClosurePanel({
   }, [dialog]);
 
   return (
-    <Modal
-      close={closeModal}
-      eyebrow={t('closures.eyebrow')}
-      returnFocus={returnFocus}
-      title={title}
-    >
+    <Modal close={closeModal} intent="confirm" returnFocus={returnFocus} title={title}>
       {dialog === 'close' && data ? (
         <ClosePeriodForm
           blockers={data.blockers}

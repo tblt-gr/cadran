@@ -32,7 +32,7 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
     return (
       <Modal
         close={close}
-        eyebrow={t('recurrences.occurrences.eyebrow')}
+        intent="detail"
         title={t('recurrences.occurrences.title', { label: recurrence.label })}
       >
         <section
@@ -79,7 +79,7 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
     return (
       <Modal
         close={close}
-        eyebrow={t('recurrences.occurrences.eyebrow')}
+        intent="detail"
         title={t('recurrences.occurrences.title', { label: recurrence.label })}
       >
         <section className={`card ${styles.state}`} role="alert">
@@ -98,7 +98,7 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
     return (
       <Modal
         close={close}
-        eyebrow={t('recurrences.occurrences.eyebrow')}
+        intent="detail"
         title={t('recurrences.occurrences.title', { label: recurrence.label })}
       >
         <section className={`card ${styles.state}`}>
@@ -110,7 +110,7 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
   return (
     <Modal
       close={close}
-      eyebrow={t('recurrences.occurrences.eyebrow')}
+      intent="detail"
       title={t('recurrences.occurrences.title', { label: recurrence.label })}
     >
       <section className={styles.panel}>

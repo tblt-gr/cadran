@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { BulkCategorizeResult, BulkSkipReason } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatCalendarWeekdayDay } from '@/lib/decimal';
@@ -52,11 +53,11 @@ export function BulkCategoryResult({ onDone, pageItems, result }: BulkCategoryRe
           </ul>
         </section>
       ) : null}
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" onClick={onDone} type="button">
           {t('transactions.bulk.done')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

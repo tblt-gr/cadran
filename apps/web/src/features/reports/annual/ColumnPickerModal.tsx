@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AnnualReportPreferences } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -156,11 +157,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
   }
 
   return (
-    <Modal
-      close={close}
-      eyebrow={t('reports.annual.title')}
-      title={t('reports.annual.picker.title')}
-    >
+    <Modal close={close} intent="settings" title={t('reports.annual.picker.title')}>
       <form className={styles.form} onSubmit={submit}>
         <p aria-live="polite">{`${selected.length} / ${MAX_ANNUAL_COLUMNS}`}</p>
         {failed ? <p role="alert">{t('reports.annual.picker.error')}</p> : null}
@@ -204,7 +201,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
           ]}
         />
         <SelectedColumns columnOf={columnOf} onMove={move} onRemove={toggle} selected={selected} />
-        <div className={styles.actions}>
+        <ModalActions>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}
           </button>
@@ -215,7 +212,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
           >
             {t('reports.annual.picker.save')}
           </button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
 import type {
   LifeInsuranceEuroFundRateInput,
@@ -54,7 +56,7 @@ export function EuroFundRateForm({
         onChange={setInstrumentId}
         disabled={pending}
       />
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <label>
           Année
           <input
@@ -112,12 +114,12 @@ export function EuroFundRateForm({
             disabled={pending}
           />
         </label>
-      </div>
-      <div className={styles.actions}>
+      </FormGrid>
+      <ModalActions>
         <button className="primary-action" type="submit" disabled={pending || !instrumentId}>
           {pending ? 'Enregistrement…' : 'Enregistrer le taux'}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

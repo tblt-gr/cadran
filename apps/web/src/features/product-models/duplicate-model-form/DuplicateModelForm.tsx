@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { ProductModel } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -58,28 +60,30 @@ export function DuplicateModelForm({
         {t('productModels.duplicate.description', { name: model.name })}
       </p>
 
-      <FieldRow
-        error={showErrors && nameInvalid ? t('productModels.form.errors.name') : undefined}
-        label={t('productModels.duplicate.nameLabel')}
-      >
-        {({ fieldId, describedBy }) => (
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={showErrors && nameInvalid ? true : undefined}
-            data-autofocus
-            id={fieldId}
-            maxLength={80}
-            onChange={(event) => setName(event.target.value)}
-            value={name}
-          />
-        )}
-      </FieldRow>
+      <FormGrid>
+        <FieldRow
+          error={showErrors && nameInvalid ? t('productModels.form.errors.name') : undefined}
+          label={t('productModels.duplicate.nameLabel')}
+        >
+          {({ fieldId, describedBy }) => (
+            <input
+              aria-describedby={describedBy}
+              aria-invalid={showErrors && nameInvalid ? true : undefined}
+              data-autofocus
+              id={fieldId}
+              maxLength={80}
+              onChange={(event) => setName(event.target.value)}
+              value={name}
+            />
+          )}
+        </FieldRow>
+      </FormGrid>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.duplicate.confirming' : 'productModels.duplicate.confirm')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

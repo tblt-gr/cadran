@@ -130,6 +130,7 @@ describe('ProductModelsPage', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier modèle' }));
     expect(screen.getByRole('dialog', { name: 'Nouveau modèle de produit' })).toBeTruthy();
+    expect(screen.getByText('Création')).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Nom du modèle'), {
       target: { value: 'Livret Banque X' },
@@ -303,6 +304,13 @@ describe('ProductModelsPage', () => {
       await screen.findByRole('button', { name: 'Archiver le modèle Livret Banque X' }),
     );
     expect(screen.getByRole('dialog', { name: 'Archiver le modèle' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(screen.queryByRole('dialog', { name: 'Archiver le modèle' })).toBeNull();
+    expect(api.archiveProductModel).not.toHaveBeenCalled();
+    await openModelActions('Livret Banque X');
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Archiver le modèle Livret Banque X' }),
+    );
     fireEvent.click(screen.getByRole('button', { name: 'Archiver' }));
     await waitFor(() => expect(api.archiveProductModel).toHaveBeenCalledOnce());
     expect(api.archiveProductModel.mock.calls[0]?.[0].body).toEqual({ version: 1 });

@@ -38,6 +38,7 @@ export function ProductModelFilters({
 
       {open ? (
         <Modal
+          intent="settings"
           close={() => setOpen(false)}
           returnFocus={trigger}
           title={t('productModels.filters.title')}

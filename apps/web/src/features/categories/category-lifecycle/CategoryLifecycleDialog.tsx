@@ -1,3 +1,5 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import {
   previewCategoryImpact,
   type Category,
@@ -46,7 +48,7 @@ interface CategoryLifecycleDialogProps {
  */
 export function CategoryLifecycleDialog({
   category,
-  onCancel: _onCancel,
+  onCancel,
   onConfirm,
   operation: requestedOperation,
   pending,
@@ -153,7 +155,7 @@ export function CategoryLifecycleDialog({
       ) : null}
 
       {needsTarget ? (
-        <div className={styles.fields}>
+        <FormGrid>
           <CategoryPicker
             emptyOptionLabel={
               operation === 'MOVE' ? t('categories.lifecycle.MOVE.root') : undefined
@@ -165,7 +167,7 @@ export function CategoryLifecycleDialog({
             type={category.type}
             value={targetId}
           />
-        </div>
+        </FormGrid>
       ) : null}
 
       {needsDate ? (
@@ -188,7 +190,10 @@ export function CategoryLifecycleDialog({
 
       <ImpactPreview impact={impact.data} status={previewStatus} />
 
-      <div className={styles.actions}>
+      <ModalActions>
+        <button className="secondary-action" disabled={pending} onClick={onCancel} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={!confirmable} type="submit">
           {t(
             pending
@@ -196,7 +201,7 @@ export function CategoryLifecycleDialog({
               : `categories.lifecycle.${requestedOperation}.confirm`,
           )}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

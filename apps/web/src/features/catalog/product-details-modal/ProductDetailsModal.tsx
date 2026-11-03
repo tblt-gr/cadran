@@ -19,12 +19,8 @@ export function ProductDetailsModal({ close, product, returnFocus }: ProductDeta
   const archivedDay = product.archivedAt?.slice(0, 10) ?? null;
 
   return (
-    <Modal
-      close={close}
-      eyebrow={product.code}
-      returnFocus={returnFocus}
-      title={product.displayName}
-    >
+    <Modal close={close} intent="detail" returnFocus={returnFocus} title={product.displayName}>
+      <p>{product.code}</p>
       <dl className={styles.classification}>
         <div>
           <dt>{t('catalog.fields.accountKind')}</dt>

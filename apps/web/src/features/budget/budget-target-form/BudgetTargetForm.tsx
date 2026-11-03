@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   BudgetScopeType,
   BudgetTargetDetail,
@@ -61,106 +63,110 @@ export function BudgetTargetForm({ target, pending, submitError, onSubmit }: Pro
           {t(`budget.errors.${submitError}`)}
         </p>
       ) : null}
-      {!target ? (
-        <>
-          <label>
-            <span>{t('budget.fields.scopeType')}</span>
-            <select
-              aria-label={t('budget.fields.scopeType')}
-              onChange={(e) => {
-                setScopeType(e.target.value as BudgetScopeType);
-                setScopeId('');
-              }}
-              value={scopeType}
-            >
-              <option value="CATEGORY">{t('budget.scopeTypes.CATEGORY')}</option>
-              <option value="GROUP">{t('budget.scopeTypes.GROUP')}</option>
-              <option value="AXIS">{t('budget.scopeTypes.AXIS')}</option>
-            </select>
-          </label>
-          <div>
-            {scopeType === 'AXIS' ? (
-              <label>
-                <span>{t('budget.fields.scope')}</span>
-                <select
-                  aria-label={t('budget.fields.scope')}
-                  aria-invalid={showErrors && !scopeValid ? true : undefined}
-                  aria-describedby={showErrors && !scopeValid ? scopeErrorId : undefined}
-                  onChange={(e) => setScopeId(e.target.value)}
+      <FormGrid>
+        {!target ? (
+          <>
+            <label>
+              <span>{t('budget.fields.scopeType')}</span>
+              <select
+                aria-label={t('budget.fields.scopeType')}
+                onChange={(e) => {
+                  setScopeType(e.target.value as BudgetScopeType);
+                  setScopeId('');
+                }}
+                value={scopeType}
+              >
+                <option value="CATEGORY">{t('budget.scopeTypes.CATEGORY')}</option>
+                <option value="GROUP">{t('budget.scopeTypes.GROUP')}</option>
+                <option value="AXIS">{t('budget.scopeTypes.AXIS')}</option>
+              </select>
+            </label>
+            <div>
+              {scopeType === 'AXIS' ? (
+                <label>
+                  <span>{t('budget.fields.scope')}</span>
+                  <select
+                    aria-label={t('budget.fields.scope')}
+                    aria-invalid={showErrors && !scopeValid ? true : undefined}
+                    aria-describedby={showErrors && !scopeValid ? scopeErrorId : undefined}
+                    onChange={(e) => setScopeId(e.target.value)}
+                    value={scopeId}
+                  >
+                    <option value="">{t('budget.form.chooseAxis')}</option>
+                    {AXES.map((axis) => (
+                      <option key={axis} value={axis}>
+                        {t(`categories.axes.${axis}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <CategoryPicker
+                  error={showErrors && !scopeValid ? t('budget.validation.scope') : null}
+                  label={t('budget.fields.scope')}
+                  onChange={(id) => setScopeId(id)}
+                  placeholder={t('categories.picker.placeholder')}
+                  preferredType="EXPENSE"
+                  type="EXPENSE"
                   value={scopeId}
-                >
-                  <option value="">{t('budget.form.chooseAxis')}</option>
-                  {AXES.map((axis) => (
-                    <option key={axis} value={axis}>
-                      {t(`categories.axes.${axis}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : (
-              <CategoryPicker
-                error={showErrors && !scopeValid ? t('budget.validation.scope') : null}
-                label={t('budget.fields.scope')}
-                onChange={(id) => setScopeId(id)}
-                placeholder={t('categories.picker.placeholder')}
-                preferredType="EXPENSE"
-                type="EXPENSE"
-                value={scopeId}
-              />
-            )}
-            {showErrors && !scopeValid && scopeType === 'AXIS' ? (
-              <small id={scopeErrorId}>{t('budget.validation.scope')}</small>
-            ) : null}
-          </div>
-        </>
-      ) : null}
-      <label>
-        <span>{t('budget.fields.valueType')}</span>
-        <select
-          aria-label={t('budget.fields.valueType')}
-          onChange={(e) => {
-            setValueType(e.target.value as typeof valueType);
-            setValue('');
-          }}
-          value={valueType}
-        >
-          <option value="AMOUNT">{t('budget.valueTypes.AMOUNT')}</option>
-          <option value="RATIO">{t('budget.valueTypes.RATIO')}</option>
-        </select>
-      </label>
-      <div className={styles.valueField}>
+                />
+              )}
+              {showErrors && !scopeValid && scopeType === 'AXIS' ? (
+                <small id={scopeErrorId}>{t('budget.validation.scope')}</small>
+              ) : null}
+            </div>
+          </>
+        ) : null}
         <label>
-          <span>{t(valueType === 'AMOUNT' ? 'budget.fields.amount' : 'budget.fields.ratio')}</span>
-          <input
-            aria-describedby={
-              [
-                valueType === 'RATIO' ? ratioHintId : null,
-                showErrors && !valueValid ? valueErrorId : null,
-              ]
-                .filter(Boolean)
-                .join(' ') || undefined
-            }
-            aria-invalid={showErrors && !valueValid ? true : undefined}
-            inputMode="decimal"
-            onChange={(e) => setValue(e.target.value)}
-            required
-            value={value}
-          />
+          <span>{t('budget.fields.valueType')}</span>
+          <select
+            aria-label={t('budget.fields.valueType')}
+            onChange={(e) => {
+              setValueType(e.target.value as typeof valueType);
+              setValue('');
+            }}
+            value={valueType}
+          >
+            <option value="AMOUNT">{t('budget.valueTypes.AMOUNT')}</option>
+            <option value="RATIO">{t('budget.valueTypes.RATIO')}</option>
+          </select>
         </label>
-        {valueType === 'RATIO' ? (
-          <small className={styles.hint} id={ratioHintId}>
-            {t('budget.hints.ratio')}
-          </small>
-        ) : null}
-        {showErrors && !valueValid ? (
-          <small id={valueErrorId}>{t('budget.validation.value')}</small>
-        ) : null}
-      </div>
-      <div className={styles.actions}>
+        <div className={styles.valueField}>
+          <label>
+            <span>
+              {t(valueType === 'AMOUNT' ? 'budget.fields.amount' : 'budget.fields.ratio')}
+            </span>
+            <input
+              aria-describedby={
+                [
+                  valueType === 'RATIO' ? ratioHintId : null,
+                  showErrors && !valueValid ? valueErrorId : null,
+                ]
+                  .filter(Boolean)
+                  .join(' ') || undefined
+              }
+              aria-invalid={showErrors && !valueValid ? true : undefined}
+              inputMode="decimal"
+              onChange={(e) => setValue(e.target.value)}
+              required
+              value={value}
+            />
+          </label>
+          {valueType === 'RATIO' ? (
+            <small className={styles.hint} id={ratioHintId}>
+              {t('budget.hints.ratio')}
+            </small>
+          ) : null}
+          {showErrors && !valueValid ? (
+            <small id={valueErrorId}>{t('budget.validation.value')}</small>
+          ) : null}
+        </div>
+      </FormGrid>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'budget.form.saving' : 'budget.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

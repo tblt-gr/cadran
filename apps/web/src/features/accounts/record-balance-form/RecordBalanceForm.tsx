@@ -1,3 +1,6 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   Account,
   AccountBalanceSnapshot,
@@ -54,6 +57,7 @@ export function RecordBalanceForm({
     initialEditing?.amount.value ?? valuation.amount?.value ?? '',
   );
   const [comment, setComment] = useState(initialEditing?.comment ?? '');
+  const [advancedOpen, setAdvancedOpen] = useState(Boolean(initialEditing?.comment));
   const [showErrors, setShowErrors] = useState(false);
   const [snapshotsOpen, setSnapshotsOpen] = useState(false);
   const [editing, setEditing] = useState<AccountBalanceSnapshot | null>(initialEditing ?? null);
@@ -89,6 +93,7 @@ export function RecordBalanceForm({
     setAsOf(snapshot.asOf);
     setAmount(snapshot.amount.value);
     setComment(snapshot.comment ?? '');
+    setAdvancedOpen(Boolean(snapshot.comment));
     setShowErrors(false);
     correct.reset();
   }
@@ -169,7 +174,7 @@ export function RecordBalanceForm({
           </p>
         )}
 
-        <div className={styles.fields}>
+        <FormGrid className={styles.fields}>
           <FormField
             error={showErrors && asOfInvalid ? t('accounts.balances.validation.asOf') : undefined}
             hint={t('accounts.balances.asOfHint')}
@@ -215,29 +220,35 @@ export function RecordBalanceForm({
               />
             )}
           </FormField>
-        </div>
+        </FormGrid>
 
-        <FormField
-          error={
-            showErrors && commentInvalid ? t('accounts.balances.validation.comment') : undefined
-          }
-          hint={t('accounts.balances.commentHint')}
-          label={t('accounts.balances.fields.comment')}
-          name="balance-comment"
+        <FormSection
+          title="Champs avancés"
+          open={advancedOpen || (showErrors && commentInvalid)}
+          onToggle={setAdvancedOpen}
         >
-          {({ fieldId, describedBy }) => (
-            <input
-              aria-describedby={describedBy}
-              aria-invalid={showErrors && commentInvalid ? true : undefined}
-              id={fieldId}
-              maxLength={MAX_COMMENT}
-              onChange={(event) => setComment(event.target.value)}
-              value={comment}
-            />
-          )}
-        </FormField>
+          <FormField
+            error={
+              showErrors && commentInvalid ? t('accounts.balances.validation.comment') : undefined
+            }
+            hint={t('accounts.balances.commentHint')}
+            label={t('accounts.balances.fields.comment')}
+            name="balance-comment"
+          >
+            {({ fieldId, describedBy }) => (
+              <input
+                aria-describedby={describedBy}
+                aria-invalid={showErrors && commentInvalid ? true : undefined}
+                id={fieldId}
+                maxLength={MAX_COMMENT}
+                onChange={(event) => setComment(event.target.value)}
+                value={comment}
+              />
+            )}
+          </FormField>
+        </FormSection>
 
-        <div className={styles.actions}>
+        <ModalActions>
           <button className="primary-action" disabled={busy} type="submit">
             {t(
               busy
@@ -247,7 +258,7 @@ export function RecordBalanceForm({
                   : 'accounts.balances.record',
             )}
           </button>
-        </div>
+        </ModalActions>
       </form>
       <Disclosure
         onToggle={setSnapshotsOpen}

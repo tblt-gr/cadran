@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { CategorizationApplyReport, CategorizationPreview } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -167,7 +168,7 @@ export function RulePreviewDialog({
               {t('categorizationRules.preview.applied', { count: applied.changed })}
             </p>
           ) : (
-            <div className={styles.actions}>
+            <ModalActions>
               <button
                 className="primary-action"
                 disabled={applyPending}
@@ -184,7 +185,7 @@ export function RulePreviewDialog({
                     : 'categorizationRules.preview.apply',
                 )}
               </button>
-            </div>
+            </ModalActions>
           )}
         </>
       ) : null}

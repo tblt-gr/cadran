@@ -46,16 +46,10 @@
   margin: var(--spacing-none);
   gap: var(--spacing-3);
 }
-.actions {
-  display: flex;
-  justify-content: flex-end;
-}
+
 @media (max-width: 42rem) {
   .fields {
     grid-template-columns: 1fr;
-  }
-  .actions > button {
-    width: 100%;
   }
 }
 

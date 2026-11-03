@@ -25,7 +25,8 @@
   gap: var(--spacing-1-5);
 }
 
-.fields .checkboxLabel {
+.fields .checkboxLabel,
+.form .checkboxLabel {
   flex-direction: row;
   align-items: center;
   gap: var(--spacing-2);
@@ -47,6 +48,16 @@
 
 .fields > div {
   grid-column: 1 / -1;
+}
+
+/* The essential fields: every direct block (category field, split notice, advanced section)
+   spans both columns, as the form always did. */
+.essential > div {
+  grid-column: 1 / -1;
+}
+
+.hint {
+  color: var(--text-secondary);
 }
 
 /* Stands in the category slot while a split, edited in the advanced section,

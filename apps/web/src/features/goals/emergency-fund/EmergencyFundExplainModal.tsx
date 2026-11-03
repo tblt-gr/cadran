@@ -22,7 +22,7 @@ export function EmergencyFundExplainModal({ close, coverage }: Props) {
   const { reference } = coverage;
   const excluded = new Map(reference.excludedMonths.map((entry) => [entry.month, entry.reason]));
   return (
-    <Modal close={close} title={t('goals.emergencyFund.explainTitle')}>
+    <Modal intent="detail" close={close} title={t('goals.emergencyFund.explainTitle')}>
       <div className={styles.explain}>
         <section aria-labelledby="emergency-fund-accounts">
           <h3 id="emergency-fund-accounts">{t('goals.emergencyFund.accountsTitle')}</h3>

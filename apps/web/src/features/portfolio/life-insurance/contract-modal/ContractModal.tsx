@@ -31,7 +31,11 @@ export function ContractModal({
     onClose,
   );
   return (
-    <Modal title={baseline ? 'Modifier le contrat' : 'Renseigner le contrat'} close={onClose}>
+    <Modal
+      intent={baseline ? 'edit' : 'create'}
+      title={baseline ? 'Modifier le contrat' : 'Renseigner le contrat'}
+      close={onClose}
+    >
       <ContractForm
         contract={baseline}
         today={today}

@@ -42,6 +42,7 @@ export function InstrumentFilters({ onStatusChange, status }: InstrumentFiltersP
 
       {open ? (
         <Modal
+          intent="settings"
           close={() => setOpen(false)}
           returnFocus={trigger}
           title={t('portfolio.instruments.filters.title')}

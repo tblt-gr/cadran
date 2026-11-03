@@ -25,7 +25,7 @@ export function AggregateExplainModal({
   const explanation = useAnnualColumnExplanation(year, columnId);
 
   return (
-    <Modal close={close} eyebrow={t('reports.annual.explainEyebrow')} title={columnLabel}>
+    <Modal close={close} intent="detail" title={columnLabel}>
       {explanation.isPending ? (
         <AggregateExplainSkeleton year={year} />
       ) : explanation.isError ? (

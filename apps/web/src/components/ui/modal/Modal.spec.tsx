@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { Modal } from './Modal';
+import { MODAL_INTENTS } from './modalIntent';
 
 describe('Modal', () => {
   afterEach(() => {
@@ -44,6 +45,46 @@ describe('Modal', () => {
     unmount();
     expect(appShell?.hasAttribute('inert')).toBe(false);
     expect(document.body.style.overflow).toBe('');
+  });
+
+  const LABELS = {
+    create: 'Création',
+    edit: 'Modification',
+    delete: 'Suppression',
+    archive: 'Archivage',
+    confirm: 'Confirmation',
+    detail: 'Détail',
+    settings: 'Paramétrage',
+  } as const;
+
+  it.each(MODAL_INTENTS)('shows the fixed action label of the %s intent', (intent) => {
+    render(
+      <Modal close={vi.fn()} intent={intent} title="Titre">
+        <p>Contenu</p>
+      </Modal>,
+    );
+    expect(within(screen.getByRole('dialog')).getByText(LABELS[intent])).toBeTruthy();
+  });
+
+  it('ignores the deprecated eyebrow when an intent is given', () => {
+    render(
+      <Modal close={vi.fn()} eyebrow="Saisie" intent="edit" title="Titre">
+        <p>Contenu</p>
+      </Modal>,
+    );
+    expect(screen.queryByText('Saisie')).toBeNull();
+    expect(screen.getByText('Modification')).toBeTruthy();
+  });
+
+  it('closes with a borderless icon button', () => {
+    render(
+      <Modal close={vi.fn()} intent="edit" title="Titre">
+        <p>Contenu</p>
+      </Modal>,
+    );
+    const button = screen.getByRole('button', { name: 'Fermer' });
+    expect(button.classList.contains('icon-ghost')).toBe(true);
+    expect(button.classList.contains('icon-button')).toBe(false);
   });
 
   it('closes on a backdrop press but not on a press inside the dialog', () => {

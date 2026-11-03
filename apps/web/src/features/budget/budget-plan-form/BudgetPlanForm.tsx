@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   BudgetPlan,
   CreateBudgetPlanRequest,
@@ -40,49 +42,51 @@ export function BudgetPlanForm({ plan, pending, submitError, onSubmit }: Props) 
           {t(`budget.errors.${submitError}`)}
         </p>
       ) : null}
-      <label>
-        <span>{t('budget.fields.periodType')}</span>
-        <select
-          aria-label={t('budget.fields.periodType')}
-          onChange={(e) => {
-            setPeriodType(e.target.value as typeof periodType);
-            setPeriod('');
-          }}
-          value={periodType}
-        >
-          <option value="MONTH">{t('budget.periodTypes.MONTH')}</option>
-          <option value="YEAR">{t('budget.periodTypes.YEAR')}</option>
-        </select>
-      </label>
-      <label>
-        <span>{t('budget.fields.period')}</span>
-        <input
-          aria-invalid={showErrors && !periodValid ? true : undefined}
-          data-autofocus
-          inputMode="numeric"
-          onChange={(e) => setPeriod(e.target.value)}
-          placeholder={periodType === 'MONTH' ? '2026-03' : '2026'}
-          required
-          value={period}
-        />
-        {showErrors && !periodValid ? <small>{t('budget.validation.period')}</small> : null}
-      </label>
-      <label>
-        <span>{t('budget.fields.assetCode')}</span>
-        <input
-          aria-invalid={showErrors && !assetValid ? true : undefined}
-          maxLength={12}
-          onChange={(e) => setAssetCode(e.target.value.toUpperCase())}
-          required
-          value={assetCode}
-        />
-        {showErrors && !assetValid ? <small>{t('budget.validation.assetCode')}</small> : null}
-      </label>
-      <div className={styles.actions}>
+      <FormGrid>
+        <label>
+          <span>{t('budget.fields.periodType')}</span>
+          <select
+            aria-label={t('budget.fields.periodType')}
+            onChange={(e) => {
+              setPeriodType(e.target.value as typeof periodType);
+              setPeriod('');
+            }}
+            value={periodType}
+          >
+            <option value="MONTH">{t('budget.periodTypes.MONTH')}</option>
+            <option value="YEAR">{t('budget.periodTypes.YEAR')}</option>
+          </select>
+        </label>
+        <label>
+          <span>{t('budget.fields.period')}</span>
+          <input
+            aria-invalid={showErrors && !periodValid ? true : undefined}
+            data-autofocus
+            inputMode="numeric"
+            onChange={(e) => setPeriod(e.target.value)}
+            placeholder={periodType === 'MONTH' ? '2026-03' : '2026'}
+            required
+            value={period}
+          />
+          {showErrors && !periodValid ? <small>{t('budget.validation.period')}</small> : null}
+        </label>
+        <label>
+          <span>{t('budget.fields.assetCode')}</span>
+          <input
+            aria-invalid={showErrors && !assetValid ? true : undefined}
+            maxLength={12}
+            onChange={(e) => setAssetCode(e.target.value.toUpperCase())}
+            required
+            value={assetCode}
+          />
+          {showErrors && !assetValid ? <small>{t('budget.validation.assetCode')}</small> : null}
+        </label>
+      </FormGrid>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'budget.form.saving' : 'budget.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { ProductRuleKind, RecordAccountRuleOverrideRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -109,11 +110,11 @@ export function AccountRuleOverrideForm({
         )}
       </FormField>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'accounts.overrides.recording' : 'accounts.overrides.record')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

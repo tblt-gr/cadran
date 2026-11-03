@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import type { AccountOrigin } from '@/features/accounts/account-form/accountOrigin';
@@ -191,11 +192,11 @@ export function ProductStep({
         </fieldset>
       </fieldset>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" onClick={onContinue} type="button">
           {t('accounts.form.continue')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

@@ -14,8 +14,8 @@ export function InstrumentEditorModal({
   const editor = useInstrumentEditor(instrument, onClose);
   return (
     <Modal
+      intent={instrument ? 'edit' : 'create'}
       close={onClose}
-      eyebrow="Investissements"
       title={instrument ? 'Modifier l’instrument' : 'Nouvel instrument'}
     >
       {editor.candidates ? (

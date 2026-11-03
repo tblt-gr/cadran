@@ -226,7 +226,7 @@ export function ProductModelsPage() {
       {editor === 'create' ? (
         <Modal
           close={() => setEditor(null)}
-          eyebrow={t('productModels.form.createEyebrow')}
+          intent="create"
           title={t('productModels.form.createTitle')}
         >
           <ModelForm
@@ -241,7 +241,7 @@ export function ProductModelsPage() {
       {editor === 'from-product' ? (
         <Modal
           close={() => setEditor(null)}
-          eyebrow={t('productModels.fromProduct.eyebrow')}
+          intent="create"
           title={t('productModels.fromProduct.title')}
         >
           <FromProductForm
@@ -256,7 +256,7 @@ export function ProductModelsPage() {
       {duplicating ? (
         <Modal
           close={() => setDuplicating(null)}
-          eyebrow={t('productModels.duplicate.eyebrow')}
+          intent="create"
           title={t('productModels.duplicate.title')}
         >
           <DuplicateModelForm
@@ -273,7 +273,7 @@ export function ProductModelsPage() {
       {addingPeriod ? (
         <Modal
           close={() => setAddingPeriod(null)}
-          eyebrow={t('productModels.period.eyebrow')}
+          intent="create"
           title={t('productModels.period.title', { name: addingPeriod.name })}
         >
           <AddPeriodForm
@@ -290,7 +290,7 @@ export function ProductModelsPage() {
       {archiving ? (
         <Modal
           close={() => setArchiving(null)}
-          eyebrow={t('productModels.archive.eyebrow')}
+          intent="archive"
           title={t('productModels.archive.title')}
         >
           <ArchiveModelDialog
@@ -307,7 +307,7 @@ export function ProductModelsPage() {
       {inspecting ? (
         <Modal
           close={() => setInspecting(null)}
-          eyebrow={t('productModels.periods.eyebrow')}
+          intent="detail"
           title={t('productModels.periods.title', { name: inspecting.name })}
         >
           <ProductModelPeriodTable name={inspecting.name} rules={inspecting.rules} />

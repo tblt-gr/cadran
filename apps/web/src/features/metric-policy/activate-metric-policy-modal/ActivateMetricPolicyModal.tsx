@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { MetricPolicy } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -41,7 +42,7 @@ export function ActivateMetricPolicyModal({
   return (
     <Modal
       close={close}
-      eyebrow={t('metricPolicy.eyebrow')}
+      intent="settings"
       title={t('metricPolicy.activate.title', { version: target.version })}
     >
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -78,14 +79,14 @@ export function ActivateMetricPolicyModal({
             value={reason}
           />
         </label>
-        <div className={styles.actions}>
+        <ModalActions>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}
           </button>
           <button className="primary-action" disabled={activate.isPending} type="submit">
             {t('metricPolicy.activate.submit')}
           </button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

@@ -43,6 +43,7 @@ export function CatalogFilters({ asOf, disabled = false, onChange, today }: Cata
 
       {open ? (
         <Modal
+          intent="settings"
           close={() => setOpen(false)}
           returnFocus={trigger}
           title={t('catalog.filters.title')}

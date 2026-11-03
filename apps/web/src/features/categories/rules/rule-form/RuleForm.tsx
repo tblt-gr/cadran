@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   Account,
   AnalyticAxes,
@@ -111,7 +113,7 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
           {t(`categorizationRules.errors.${submitError}`)}
         </p>
       ) : null}
-      <div className={styles.fieldGrid}>
+      <FormGrid>
         <label className={styles.field}>
           <span>{t('categorizationRules.fields.label')}</span>
           <input
@@ -164,7 +166,7 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
             )}
           </small>
         </label>
-      </div>
+      </FormGrid>
 
       <RuleConditions
         amountInvalid={amountInvalid}
@@ -189,11 +191,11 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
         targetCounterparty={targetCounterparty}
       />
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'categorizationRules.form.saving' : 'categorizationRules.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

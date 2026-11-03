@@ -27,6 +27,8 @@ import {
 } from './transactionFormValues';
 import type { SavedCategory } from './transaction-category-field/TransactionCategoryField';
 import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import styles from './TransactionForm.module.css';
 
 const NATURES: TransactionFormValues['nature'][] = ['EXPENSE', 'INCOME', 'FEE', 'ADJUSTMENT'];
@@ -157,7 +159,7 @@ export function TransactionForm({
         />
       ) : null}
 
-      <div className={styles.fields}>
+      <FormGrid className={styles.essential}>
         <label>
           <span>{t('transactions.fields.account')}</span>
           <select
@@ -400,13 +402,13 @@ export function TransactionForm({
           statePlanned={upcoming}
           values={resolved}
         />
-      </div>
+      </FormGrid>
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'transactions.form.saving' : 'transactions.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

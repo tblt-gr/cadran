@@ -76,7 +76,7 @@ export function MetricExplanationModal({
   const pending = Boolean(kpi) && explanation.isPending;
 
   return (
-    <Modal close={close} title={t('reports.explainKpi', { kpi: label })}>
+    <Modal intent="detail" close={close} title={t('reports.explainKpi', { kpi: label })}>
       {pending ? (
         <ExplanationSkeleton status={t('reports.explanationLoading')} />
       ) : kpi && (explanation.isError || !explanation.data) ? (

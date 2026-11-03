@@ -544,6 +544,7 @@ describe('OperationForm', () => {
       version: 3,
     } as PortfolioOperation;
     const { onSubmit } = renderForm({ operation });
+    expect(screen.getByText('Champs avancés').closest('details')?.open).toBe(true);
     expect((screen.getByLabelText('Montant brut') as HTMLInputElement).value).toBe('250.50');
     expect((screen.getByLabelText('Référence') as HTMLInputElement).value).toBe('REF-1');
     change('Motif (facultatif)', 'Montant mal saisi');

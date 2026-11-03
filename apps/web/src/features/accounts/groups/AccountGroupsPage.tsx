@@ -226,12 +226,9 @@ export function AccountGroupsPage() {
 
       {editor ? (
         <Modal
+          intent={editor === 'create' ? 'create' : 'edit'}
           close={closeEditor}
-          eyebrow={t(
-            editor === 'create'
-              ? 'accountGroups.form.createEyebrow'
-              : 'accountGroups.form.editEyebrow',
-          )}
+
           title={t(
             editor === 'create' ? 'accountGroups.form.createTitle' : 'accountGroups.form.editTitle',
           )}
@@ -249,11 +246,12 @@ export function AccountGroupsPage() {
 
       {archiving ? (
         <Modal
+          intent="archive"
           close={() => {
             setArchiving(null);
             archive.reset();
           }}
-          eyebrow={t('accountGroups.archive.eyebrow')}
+
           title={t('accountGroups.archive.title')}
         >
           <ArchiveGroupDialog

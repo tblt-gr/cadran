@@ -29,8 +29,3 @@
 .label {
   flex: 1;
 }
-.actions {
-  display: flex;
-  justify-content: end;
-  gap: var(--spacing-3);
-}

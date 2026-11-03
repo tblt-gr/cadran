@@ -3,20 +3,27 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { useDialogOverlay } from '@/hooks/use-dialog-overlay';
+import { type ModalIntent } from './modalIntent';
 import styles from './Modal.module.css';
 
+// Editing dialog checklist: pass an `intent` (its fixed action label), lay the fields out with
+// `FormGrid`, fold secondary fields in a `FormSection`, and end the form with `ModalActions`.
 interface ModalProps {
   children: ReactNode;
   close: () => void;
+  /** @deprecated Use `intent`; removed once no caller is left. */
   eyebrow?: string;
+  /** Optional only during the migration window; `intent` wins over `eyebrow`. */
+  intent?: ModalIntent;
   returnFocus?: RefObject<HTMLElement | null>;
   title: string;
 }
 
-export function Modal({ children, close, eyebrow, returnFocus, title }: ModalProps) {
+export function Modal({ children, close, eyebrow, intent, returnFocus, title }: ModalProps) {
   const { t } = useTranslation();
   const container = useDialogOverlay(close, returnFocus);
   const titleId = useId();
+  const label = intent ? t(`modal.intents.${intent}`) : eyebrow;
 
   return createPortal(
     <div className={styles.backdrop} onMouseDown={close}>
@@ -30,12 +37,12 @@ export function Modal({ children, close, eyebrow, returnFocus, title }: ModalPro
       >
         <header className={styles.heading}>
           <div>
-            {eyebrow ? <p>{eyebrow}</p> : null}
+            {label ? <p>{label}</p> : null}
             <h2 id={titleId}>{title}</h2>
           </div>
           <button
             aria-label={t('actions.close')}
-            className="icon-button"
+            className="icon-ghost"
             onClick={close}
             type="button"
           >

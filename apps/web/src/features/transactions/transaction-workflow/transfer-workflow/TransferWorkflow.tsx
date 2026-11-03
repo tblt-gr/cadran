@@ -8,16 +8,14 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { TransferUpdateForm } from '@/features/transactions/transaction-workflow/transfer-update-form/TransferUpdateForm';
 import { Modal } from '@/components/ui/modal/Modal';
-import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import { formatAmount } from '@/lib/decimal';
 import {
   transactionErrorDetail,
   transactionErrorKind,
   transactionRequestError,
 } from '@/features/transactions/transactionError';
-import styles from './TransferWorkflow.module.css';
 
 export function TransferWorkflow({
   id,
@@ -30,7 +28,7 @@ export function TransferWorkflow({
   close: () => void;
   onSaved: () => Promise<void>;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const query = useQuery({
     queryKey: ['transfer-workflow', id],
     gcTime: 0,
@@ -60,6 +58,7 @@ export function TransferWorkflow({
   return (
     <Modal
       close={close}
+      intent={voiding ? 'confirm' : 'edit'}
       title={t(
         voiding ? 'transactions.workflow.voidTransfer' : 'transactions.workflow.editTransfer',
       )}
@@ -76,30 +75,11 @@ export function TransferWorkflow({
           </button>
         </div>
       ) : null}
-      <dl className={styles.details}>
-        {(['source', 'target', 'fee'] as const).map((leg) => (
-          <div key={leg}>
-            <dt>{t(`transactions.workflow.legs.${leg}`)}</dt>
-            <dd>
-              {transfer === null ? (
-                <SkeletonBlock />
-              ) : transfer[leg] ? (
-                formatAmount(
-                  transfer[leg].amount.value,
-                  transfer[leg].amount.assetCode,
-                  i18n.language,
-                )
-              ) : (
-                t('transactions.workflow.unspecified')
-              )}
-            </dd>
-          </div>
-        ))}
-      </dl>
       <TransferUpdateForm
         key={transfer?.id ?? 'loading'}
         transfer={transfer}
         voiding={voiding}
+        onCancel={close}
         pending={mutation.isPending}
         error={
           transactionErrorDetail(mutation.error) ??

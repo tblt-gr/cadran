@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { listInstruments } from '@cadran/api-client';
@@ -85,7 +86,7 @@ export function EuroFundPicker({
         </>
       )}
       {query.data && (query.data.total > 50 || page > 1) ? (
-        <div className={styles.actions}>
+        <ModalActions>
           <button
             className="secondary-action"
             type="button"
@@ -108,7 +109,7 @@ export function EuroFundPicker({
           >
             Suivant
           </button>
-        </div>
+        </ModalActions>
       ) : null}
     </div>
   );

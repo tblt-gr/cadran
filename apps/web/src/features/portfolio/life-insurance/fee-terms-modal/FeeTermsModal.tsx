@@ -24,7 +24,7 @@ export function FeeTermsModal({
     onClose,
   );
   return (
-    <Modal title="Ajouter un barème" close={onClose}>
+    <Modal intent="create" title="Ajouter un barème" close={onClose}>
       <FeeTermsForm
         assetCode={assetCode}
         subscribedOn={subscribedOn}

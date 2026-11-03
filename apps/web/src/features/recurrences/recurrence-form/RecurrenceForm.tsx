@@ -1,3 +1,5 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type {
   Account,
   CreateRecurrenceRequest,
@@ -111,7 +113,7 @@ export function RecurrenceForm({
           {submitError}
         </p>
       ) : null}
-      <div className={styles.fields}>
+      <FormGrid>
         <label>
           <span>{t('recurrences.fields.label')}</span>
           <input
@@ -265,12 +267,12 @@ export function RecurrenceForm({
             label: values.categoryLabel ?? saved?.label,
           }}
         />
-      </div>
-      <div className={styles.actions}>
+      </FormGrid>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'recurrences.form.saving' : 'recurrences.form.save')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

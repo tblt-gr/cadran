@@ -43,11 +43,12 @@ export function InstrumentStatusModal({
   });
   return (
     <Modal
+      intent={instrument.status === 'ACTIVE' ? 'archive' : 'confirm'}
       close={onClose}
-      eyebrow="Investissements"
       title={instrument.status === 'ACTIVE' ? 'Désactiver l’instrument' : 'Réactiver l’instrument'}
     >
       <InstrumentStatusDialog
+        onCancel={onClose}
         error={changeStatus.isError}
         instrument={instrument}
         onConfirm={() => changeStatus.mutate(instrument)}

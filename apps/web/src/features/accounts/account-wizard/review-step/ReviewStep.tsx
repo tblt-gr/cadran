@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { CreateAccountRequest } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -194,14 +195,14 @@ export function ReviewStep({
         <p className={styles.noProduct}>{t('accounts.wizard.review.withoutProduct')}</p>
       )}
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="secondary-action" onClick={onBack} type="button">
           {t('accounts.form.back')}
         </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(pending ? 'accounts.form.saving' : 'accounts.wizard.review.confirm')}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

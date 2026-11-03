@@ -1,14 +1,17 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState, type FormEvent } from 'react';
 import styles from './VoidOperationDialog.module.css';
 
 export function VoidOperationDialog({
   error,
   type,
+  onCancel,
   onConfirm,
   pending,
 }: {
   error?: string;
   type?: string;
+  onCancel?: () => void;
   onConfirm: (reason: string) => void;
   pending: boolean;
 }) {
@@ -54,9 +57,16 @@ export function VoidOperationDialog({
           {error}
         </p>
       ) : null}
-      <button className="primary-action" disabled={pending} type="submit">
-        {pending ? 'Annulation…' : 'Annuler l’opération'}
-      </button>
+      <ModalActions>
+        {onCancel ? (
+          <button className="secondary-action" type="button" onClick={onCancel}>
+            Annuler
+          </button>
+        ) : null}
+        <button className="primary-action" disabled={pending} type="submit">
+          {pending ? 'Annulation…' : 'Annuler l’opération'}
+        </button>
+      </ModalActions>
     </form>
   );
 }

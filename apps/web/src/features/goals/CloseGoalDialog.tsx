@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { GoalSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import type { GoalErrorKind } from './goalError';
@@ -8,11 +9,13 @@ export function CloseGoalDialog({
   pending,
   error,
   onConfirm,
+  onCancel,
 }: {
   goal: GoalSummary;
   pending: boolean;
   error: GoalErrorKind | null;
   onConfirm: () => void;
+  onCancel: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -29,11 +32,14 @@ export function CloseGoalDialog({
           {t(`goals.errors.${error}`)}
         </p>
       ) : null}
-      <div className={styles.formActions}>
+      <ModalActions>
+        <button className="secondary-action" onClick={onCancel} disabled={pending} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'goals.closing' : 'goals.close')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

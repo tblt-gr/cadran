@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
 import type { LifeInsuranceFeeTermsInput } from '@cadran/api-client';
 import styles from '@/features/portfolio/life-insurance/contract-form/ContractForm.module.css';
@@ -46,7 +48,7 @@ export function FeeTermsForm({
           {error}
         </p>
       ) : null}
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <label>
           À partir du
           <input
@@ -90,12 +92,12 @@ export function FeeTermsForm({
             disabled={pending}
           />
         </label>
-      </div>
-      <div className={styles.actions}>
+      </FormGrid>
+      <ModalActions>
         <button className="primary-action" type="submit" disabled={pending}>
           {pending ? 'Enregistrement…' : 'Ajouter le barème'}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

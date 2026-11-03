@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import {
   listCategories,
   type AnalyticAxes,
@@ -86,11 +87,7 @@ export function RecapPreferencesModal({
     );
   }
   return (
-    <Modal
-      close={close}
-      eyebrow={t('budget.monthly.recap.preferences.eyebrow')}
-      title={t('budget.monthly.recap.preferences.title')}
-    >
+    <Modal close={close} intent="settings" title={t('budget.monthly.recap.preferences.title')}>
       <form className={styles.form} onSubmit={submit}>
         {stale ? (
           <div className={styles.alert} role="alert">
@@ -183,7 +180,7 @@ export function RecapPreferencesModal({
           ]}
         />
         <p className={styles.hint}>{t('budget.monthly.recap.preferences.emptyHint')}</p>
-        <div className={styles.actions}>
+        <ModalActions>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}
           </button>
@@ -198,7 +195,7 @@ export function RecapPreferencesModal({
                 : 'budget.monthly.recap.preferences.save',
             )}
           </button>
-        </div>
+        </ModalActions>
       </form>
     </Modal>
   );

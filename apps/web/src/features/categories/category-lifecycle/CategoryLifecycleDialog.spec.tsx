@@ -85,6 +85,7 @@ function renderDialog(
   onConfirm = vi.fn(),
   submitError: unknown = null,
   subject: Category = category,
+  onCancel = vi.fn(),
 ) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -93,7 +94,7 @@ function renderDialog(
     <QueryClientProvider client={queryClient}>
       <CategoryLifecycleDialog
         category={subject}
-        onCancel={vi.fn()}
+        onCancel={onCancel}
         onConfirm={onConfirm}
         operation={operation}
         pending={false}
@@ -112,6 +113,14 @@ describe('CategoryLifecycleDialog', () => {
     vi.clearAllMocks();
   });
 
+  it('cancels without confirming a lifecycle mutation', () => {
+    const onCancel = vi.fn();
+    const onConfirm = vi.fn();
+    renderDialog('ARCHIVE', onConfirm, null, category, onCancel);
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
   it('waits for an operand before asking the backend for an impact', async () => {
     api.listCategories.mockImplementation(() =>
       success({ items: [target], page: 1, pageSize: 50, total: 1 }),

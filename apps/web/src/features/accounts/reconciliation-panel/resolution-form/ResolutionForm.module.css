@@ -52,8 +52,3 @@
   font-size: var(--font-size-label);
   line-height: var(--line-height-body);
 }
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-}

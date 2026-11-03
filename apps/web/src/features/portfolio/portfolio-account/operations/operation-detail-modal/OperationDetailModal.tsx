@@ -57,9 +57,9 @@ export function OperationDetailModal({
 
   return (
     <Modal
+      intent="detail"
       returnFocus={returnFocus}
       close={onClose}
-      eyebrow="Portefeuille"
       title={`Opération : ${operationTypeLabel(operation.type)}`}
     >
       <dl className={styles.list}>

@@ -58,6 +58,7 @@ export function AccountFilters({
 
       {open ? (
         <Modal
+          intent="settings"
           close={() => setOpen(false)}
           returnFocus={trigger}
           title={t('accounts.filters.title')}

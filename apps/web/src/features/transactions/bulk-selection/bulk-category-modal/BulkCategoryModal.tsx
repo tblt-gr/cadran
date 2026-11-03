@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { BulkCategorizeResult } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -57,7 +58,7 @@ export function BulkCategoryModal({
   }
 
   return (
-    <Modal close={done} title={t('transactions.bulk.title')}>
+    <Modal intent={result ? 'detail' : 'edit'} close={done} title={t('transactions.bulk.title')}>
       {result ? (
         <BulkCategoryResult onDone={done} pageItems={pageItems} result={result} />
       ) : (
@@ -89,7 +90,7 @@ export function BulkCategoryModal({
               })}
             </p>
           ) : null}
-          <div className={styles.actions}>
+          <ModalActions>
             <button className="secondary-action" onClick={done} type="button">
               {t('actions.cancel')}
             </button>
@@ -100,7 +101,7 @@ export function BulkCategoryModal({
             >
               {t(mutation.isPending ? 'transactions.bulk.applying' : 'transactions.bulk.confirm')}
             </button>
-          </div>
+          </ModalActions>
         </form>
       )}
     </Modal>

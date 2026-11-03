@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { CategorizationRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import type { CategorizationRuleErrorKind } from '@/features/categories/rules/categorizationRuleError';
@@ -12,7 +13,7 @@ interface RuleArchiveDialogProps {
 }
 
 export function RuleArchiveDialog({
-  onCancel: _onCancel,
+  onCancel,
   onConfirm,
   pending,
   rule,
@@ -28,7 +29,10 @@ export function RuleArchiveDialog({
           {t(`categorizationRules.errors.${submitError}`)}
         </p>
       ) : null}
-      <div className={styles.actions}>
+      <ModalActions>
+        <button className="secondary-action" disabled={pending} onClick={onCancel} type="button">
+          {t('actions.cancel')}
+        </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {t(
             pending
@@ -36,7 +40,7 @@ export function RuleArchiveDialog({
               : 'categorizationRules.archive.confirm',
           )}
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

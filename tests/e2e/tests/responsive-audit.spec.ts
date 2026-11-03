@@ -3,6 +3,8 @@ import { expect, test, type Browser, type Page } from '@playwright/test';
 import { auditLayout, type AuditFinding } from './support/audit';
 import { settled } from './support/page';
 import { ownerStorageState } from './support/session';
+import { openMovementEditModal } from './support/edit-movement';
+import { auditAccessibility } from './support/a11y';
 
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
@@ -333,5 +335,62 @@ test.describe('responsive audit of modals at 360 px', () => {
         await context.close();
       }
     });
+  }
+});
+
+test.describe('responsive audit of movement edit modals', () => {
+  for (const kind of ['transaction', 'transfer'] as const) {
+    for (const viewport of [WIDTHS[0], WIDTHS[2]]) {
+      test(`${kind} edit at ${viewport.width} px`, async ({ browser }) => {
+        const context = await browser.newContext({
+          baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+          ignoreHTTPSErrors: true,
+          storageState: ownerStorageState,
+          viewport: { width: viewport.width, height: viewport.height },
+          hasTouch: viewport.touch,
+          isMobile: viewport.touch,
+          locale: 'fr-FR',
+          timezoneId: 'Europe/Paris',
+        });
+        try {
+          const page = await context.newPage();
+          const dialog = await openMovementEditModal(page, kind);
+          await expect(dialog).toBeVisible();
+          await expect(dialog.getByText('Modification', { exact: true })).toBeVisible();
+          await dialog.evaluate((el) => el.setAttribute('data-audit-root', ''));
+          expect(await auditLayout(page, viewport.touch, '[data-audit-root]')).toEqual([]);
+          await auditAccessibility(page);
+
+          const save = dialog.getByRole('button', { name: 'Enregistrer', exact: true });
+          await save.scrollIntoViewIfNeeded();
+          await expect(save).toBeInViewport({ ratio: 1 });
+          const form = (await dialog.locator('form').boundingBox())!;
+          const action = (await save.boundingBox())!;
+          expect(action.width).toBeLessThan(form.width * 0.75);
+          expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThan(2);
+          expect(await save.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+
+          if (kind === 'transfer') {
+            const label = (await dialog.getByLabel('Libellé', { exact: true }).boundingBox())!;
+            const state = (await dialog.getByRole('combobox', { name: /^État/ }).boundingBox())!;
+            expect(Math.abs(label.width - state.width)).toBeLessThan(2);
+            if (viewport.width === 1280) {
+              expect(Math.abs(label.y - state.y)).toBeLessThan(2);
+              expect(state.x).toBeGreaterThan(label.x + label.width);
+            } else {
+              expect(state.y).toBeGreaterThan(label.y + label.height);
+              expect(Math.abs(label.x - state.x)).toBeLessThan(2);
+            }
+          }
+          const close = dialog.getByRole('button', { name: 'Fermer', exact: true });
+          await close.focus();
+          await expect(close).toBeFocused();
+          await page.keyboard.press('Enter');
+          await expect(dialog).toBeHidden();
+        } finally {
+          await context.close();
+        }
+      });
+    }
   }
 });

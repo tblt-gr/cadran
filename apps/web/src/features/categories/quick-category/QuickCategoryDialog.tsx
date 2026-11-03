@@ -30,7 +30,7 @@ export function QuickCategoryDialog({
   return (
     <Modal
       close={close}
-      eyebrow={t('categories.quick.eyebrow')}
+      intent="create"
       returnFocus={returnFocus}
       title={t('categories.quick.title')}
     >

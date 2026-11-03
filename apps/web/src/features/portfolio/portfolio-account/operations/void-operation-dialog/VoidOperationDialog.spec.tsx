@@ -32,6 +32,15 @@ describe('VoidOperationDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith('Doublon');
   });
 
+  it('cancels without submitting a void operation', () => {
+    const onCancel = vi.fn();
+    const onConfirm = vi.fn();
+    render(<VoidOperationDialog onCancel={onCancel} onConfirm={onConfirm} pending={false} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(onCancel).toHaveBeenCalledOnce();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it('shows a server error', () => {
     render(<VoidOperationDialog error="Déjà annulée." onConfirm={vi.fn()} pending={false} />);
     expect(screen.getByRole('alert').textContent).toBe('Déjà annulée.');

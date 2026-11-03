@@ -63,6 +63,17 @@
       }
     }
   },
+  "modal": {
+    "intents": {
+      "create": "Création",
+      "edit": "Modification",
+      "delete": "Suppression",
+      "archive": "Archivage",
+      "confirm": "Confirmation",
+      "detail": "Détail",
+      "settings": "Paramétrage"
+    }
+  },
   "actions": {
     "add": "Ajouter",
     "backHome": "Revenir à la synthèse",

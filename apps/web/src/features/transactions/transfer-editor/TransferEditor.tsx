@@ -35,7 +35,7 @@ export function TransferEditor({
       close={() => {
         if (!transfer.pending && !pending) close();
       }}
-      eyebrow={t('transactions.transfer.eyebrow')}
+      intent="create"
       title={t('transactions.transfer.title')}
     >
       {refreshError ? (

@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
 import type {
   CreateInstrumentRequest,
@@ -99,7 +101,7 @@ export function InstrumentForm({
           {error}
         </p>
       ) : null}
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <label>
           <span>Nom</span>
           <input
@@ -208,8 +210,8 @@ export function InstrumentForm({
             />
           </>
         )}
-      </div>
-      <div className={styles.actions}>
+      </FormGrid>
+      <ModalActions>
         <button
           className="primary-action"
           disabled={
@@ -221,7 +223,7 @@ export function InstrumentForm({
         >
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

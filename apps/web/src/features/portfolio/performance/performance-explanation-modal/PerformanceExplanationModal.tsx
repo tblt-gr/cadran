@@ -51,7 +51,7 @@ export function PerformanceExplanationModal(
     residual: (performance?.gain ?? gainSummary!.gain).decomposition.residual,
   };
   return (
-    <Modal close={onClose} title={label}>
+    <Modal intent="detail" close={onClose} title={label}>
       <div className={explanation.content}>
         <ExplanationFigure
           meta={

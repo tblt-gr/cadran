@@ -45,7 +45,7 @@ export function PositionLotsModal({ accountId, asOf, position, onClose }: Props)
     );
 
   return (
-    <Modal close={onClose} title={`Lots : ${position.instrument.name}`}>
+    <Modal intent="detail" close={onClose} title={`Lots : ${position.instrument.name}`}>
       <div className={styles.content}>
         <dl className={styles.figures}>
           <div>

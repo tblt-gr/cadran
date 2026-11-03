@@ -13,9 +13,8 @@ export function CreateMetricPolicyModal({ close }: CreateMetricPolicyModalProps)
   const create = useCreateMetricPolicy(close);
 
   return (
-    <Modal close={close} eyebrow={t('metricPolicy.eyebrow')} title={t('metricPolicy.create.title')}>
+    <Modal close={close} intent="settings" title={t('metricPolicy.create.title')}>
       <CreateMetricPolicyForm
-        onCancel={close}
         onSubmit={(body) => create.mutate(body)}
         pending={create.isPending}
         submitError={metricPolicyErrorKind(create.error)}

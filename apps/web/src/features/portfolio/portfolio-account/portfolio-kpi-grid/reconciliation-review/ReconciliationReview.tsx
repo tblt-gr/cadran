@@ -23,6 +23,7 @@ export function ReconciliationReview({
 }) {
   return (
     <Modal
+      intent="detail"
       close={onClose}
       title={warnings.length === 1 ? '1 point à vérifier' : `${warnings.length} points à vérifier`}
     >

@@ -1,3 +1,6 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { SkeletonField, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './ValuationForm.module.css';
 
@@ -20,16 +23,18 @@ export function ValuationDraftSkeleton() {
           Détail par ligne
         </label>
       </fieldset>
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <SkeletonField label="Valeur totale du compte" />
         <SkeletonField label="Espèces du relevé" />
-      </div>
-      <SkeletonField label="Note" />
-      <div className={styles.actions}>
+      </FormGrid>
+      <FormSection title="Champs avancés" open={false} onToggle={() => undefined}>
+        <SkeletonField label="Note" />
+      </FormSection>
+      <ModalActions>
         <button className="primary-action" disabled type="button">
           Enregistrer
         </button>
-      </div>
+      </ModalActions>
     </div>
   );
 }

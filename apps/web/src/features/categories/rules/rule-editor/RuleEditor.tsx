@@ -31,11 +31,7 @@ export function RuleEditor({
   return (
     <Modal
       close={close}
-      eyebrow={t(
-        creating
-          ? 'categorizationRules.form.createEyebrow'
-          : 'categorizationRules.form.editEyebrow',
-      )}
+      intent={creating ? 'create' : 'edit'}
       title={t(
         creating ? 'categorizationRules.form.createTitle' : 'categorizationRules.form.editTitle',
       )}

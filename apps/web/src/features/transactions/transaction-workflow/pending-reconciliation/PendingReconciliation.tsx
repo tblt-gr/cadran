@@ -3,6 +3,8 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -68,7 +70,7 @@ export function PendingReconciliation({
     },
   });
   return (
-    <Modal close={close} title={t('transactions.workflow.reconcileTitle')}>
+    <Modal intent="confirm" close={close} title={t('transactions.workflow.reconcileTitle')}>
       {query.isPending ? <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus> : null}
       {query.isError ? (
         <div role="alert">
@@ -95,36 +97,44 @@ export function PendingReconciliation({
           </p>
         ) : null}
         <p>{query.data ? query.data.transaction.displayLabel : <SkeletonBlock />}</p>
-        <label>
-          <span>{t('transactions.workflow.match')}</span>
-          <select
-            data-autofocus
-            disabled={!query.data || mutation.isPending}
-            value={matchedId}
-            onChange={(event) => setMatchedId(event.target.value)}
-          >
-            <option value="">{t('transactions.workflow.newMovement')}</option>
-            {query.data?.candidates.map((candidate) => (
-              <option value={candidate.id} key={candidate.id}>
-                {candidate.displayLabel} · {formatCalendarDay(candidate.bookedOn, i18n.language)} ·{' '}
-                {formatAmount(candidate.amount.value, candidate.amount.assetCode, i18n.language)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <FormGrid>
+          <label data-span="full">
+            <span>{t('transactions.workflow.match')}</span>
+            <select
+              data-autofocus
+              disabled={!query.data || mutation.isPending}
+              value={matchedId}
+              onChange={(event) => setMatchedId(event.target.value)}
+            >
+              <option value="">{t('transactions.workflow.newMovement')}</option>
+              {query.data?.candidates.map((candidate) => (
+                <option value={candidate.id} key={candidate.id}>
+                  {candidate.displayLabel} · {formatCalendarDay(candidate.bookedOn, i18n.language)}{' '}
+                  ·{' '}
+                  {formatAmount(candidate.amount.value, candidate.amount.assetCode, i18n.language)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </FormGrid>
         <p>{t('transactions.workflow.matchNotice')}</p>
-        <button
-          className="primary-action"
-          type="submit"
-          disabled={
-            !query.data ||
-            mutation.isPending ||
-            query.data.transaction.state !== 'PENDING' ||
-            query.data.transaction.reviewReason === null
-          }
-        >
-          {t('transactions.workflow.confirmReconcile')}
-        </button>
+        <ModalActions>
+          <button className="secondary-action" type="button" onClick={close}>
+            {t('actions.cancel')}
+          </button>
+          <button
+            className="primary-action"
+            type="submit"
+            disabled={
+              !query.data ||
+              mutation.isPending ||
+              query.data.transaction.state !== 'PENDING' ||
+              query.data.transaction.reviewReason === null
+            }
+          >
+            {t('transactions.workflow.confirmReconcile')}
+          </button>
+        </ModalActions>
       </form>
     </Modal>
   );

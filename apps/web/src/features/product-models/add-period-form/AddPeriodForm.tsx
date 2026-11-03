@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { ProductModel, ProductModelRuleInput, ProductRuleKind } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -69,11 +70,11 @@ export function AddPeriodForm({
         yieldKind={model.yieldKind}
       />
 
-      <div className={styles.actions}>
+      <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.period.recording' : 'productModels.period.record')}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

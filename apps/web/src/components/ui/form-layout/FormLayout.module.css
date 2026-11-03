@@ -1,0 +1,56 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+.grid > :where(label, select, input, textarea, div) {
+  inline-size: 100%;
+}
+
+.grid label > :where(input:not([type='checkbox'], [type='radio']), select, textarea) {
+  inline-size: 100%;
+}
+
+.grid > [data-span='full'] {
+  grid-column: 1 / -1;
+}
+
+.grid label {
+  display: flex;
+  flex-direction: column;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-1-5);
+}
+
+.grid input[aria-invalid='true'],
+.grid select[aria-invalid='true'] {
+  border-color: var(--negative);
+}
+
+/* Zero specificity so a hint or any muted note can restyle itself without a fight. */
+:where(.grid) small {
+  color: var(--negative);
+  line-height: var(--line-height-body);
+}
+
+.section {
+  grid-column: 1 / -1;
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+}
+
+@media (max-width: 42rem) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

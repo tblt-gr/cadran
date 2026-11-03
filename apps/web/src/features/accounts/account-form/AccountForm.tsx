@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   Account,
   AccountKind,
@@ -173,7 +175,7 @@ export function AccountForm({
         </p>
       ) : null}
 
-      <div className={styles.fields}>
+      <FormGrid className={styles.fields}>
         <IdentityFields
           account={account}
           assetInvalid={showErrors && assetInvalid}
@@ -212,7 +214,7 @@ export function AccountForm({
           openedOnInvalid={showErrors && openedInvalid}
           today={today}
         />
-      </div>
+      </FormGrid>
 
       {account && kind === 'CURRENT' ? (
         <PrimaryAccountField
@@ -242,7 +244,7 @@ export function AccountForm({
         }}
       />
 
-      <div className={styles.actions}>
+      <ModalActions>
         {submitLabel === 'continue' ? (
           <button className="secondary-action" onClick={() => onCancel(values)} type="button">
             {t('accounts.form.back')}
@@ -257,7 +259,7 @@ export function AccountForm({
                 : 'accounts.form.save',
           )}
         </button>
-      </div>
+      </ModalActions>
     </form>
   );
 }

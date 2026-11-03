@@ -31,7 +31,7 @@ export function MonthExplanation({
   }
   if (performance.isError) {
     return (
-      <Modal close={onClose} title="Explication indisponible">
+      <Modal intent="detail" close={onClose} title="Explication indisponible">
         <p>L'explication de ce mois est indisponible.</p>
         <button
           className="secondary-action"

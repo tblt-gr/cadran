@@ -25,7 +25,7 @@ export function RecurrenceEditor(props: RecurrenceEditorProps) {
   return (
     <Modal
       close={props.close}
-      eyebrow={t(editing ? 'recurrences.form.editEyebrow' : 'recurrences.form.createEyebrow')}
+      intent={editing ? 'edit' : 'create'}
       title={t(editing ? 'recurrences.form.editTitle' : 'recurrences.form.createTitle')}
     >
       <RecurrenceForm

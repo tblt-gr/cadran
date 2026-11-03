@@ -1,3 +1,6 @@
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type { EmergencyFundPolicy, UpdateEmergencyFundPolicyRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,7 +18,7 @@ import {
 import styles from './EmergencyFund.module.css';
 
 interface Props {
-  policy: EmergencyFundPolicy;
+  policy: EmergencyFundPolicy | null;
   onSubmit: (body: UpdateEmergencyFundPolicyRequest) => void;
   pending: boolean;
   submitError: GoalErrorKind | null;
@@ -31,7 +34,20 @@ function policyErrorKey(
 export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError }: Props) {
   const { t } = useTranslation();
   const baseCurrency = useWorkspaceBaseCurrency();
-  const [draft, setDraft] = useState<PolicyDraft>(() => draftFromPolicy(policy));
+  const [draft, setDraft] = useState<PolicyDraft>(() =>
+    policy
+      ? draftFromPolicy(policy)
+      : {
+          essentialMode: 'AXIS',
+          categories: [],
+          referenceMode: 'PREVIOUS_YEAR',
+          trailingMonths: '',
+          targetMonths: '',
+          targetMode: 'MONTHS',
+          targetAmount: '',
+          targetRatioPercent: '',
+        },
+  );
   const [showErrors, setShowErrors] = useState(false);
   const [pickerKey, setPickerKey] = useState(0);
   const validity = policyValidity(draft);
@@ -49,6 +65,7 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
+    if (policy === null) return;
     if (
       !validity.categories ||
       !validity.trailingMonths ||
@@ -64,176 +81,190 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
 
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
-      {submitError ? (
-        <p className={styles.alert} role="alert">
-          {t(`goals.emergencyFund.errors.${policyErrorKey(submitError)}`)}
-        </p>
-      ) : null}
-      <div className={styles.group}>
-        <fieldset className={styles.radios}>
-          <legend>{t('goals.emergencyFund.essentialMode')}</legend>
-          {(['AXIS', 'CATEGORIES'] as const).map((mode) => (
-            <label key={mode}>
+      <fieldset
+        className={styles.frozen}
+        disabled={policy === null || pending}
+        inert={policy === null}
+      >
+        {submitError ? (
+          <p className={styles.alert} role="alert">
+            {t(`goals.emergencyFund.errors.${policyErrorKey(submitError)}`)}
+          </p>
+        ) : null}
+        <FormGrid>
+          <fieldset className={styles.radios}>
+            <legend>{t('goals.emergencyFund.essentialMode')}</legend>
+            {(['AXIS', 'CATEGORIES'] as const).map((mode) => (
+              <label key={mode}>
+                <input
+                  checked={policy !== null && draft.essentialMode === mode}
+                  data-autofocus={mode === 'AXIS' ? true : undefined}
+                  name="essentialMode"
+                  onChange={() => patch({ essentialMode: mode })}
+                  type="radio"
+                />
+                <span>{t(`goals.emergencyFund.essentialModes.${mode}`)}</span>
+              </label>
+            ))}
+          </fieldset>
+          {draft.essentialMode === 'CATEGORIES' ? (
+            <div className={styles.categories}>
+              {draft.categories.length > 0 ? (
+                <ul aria-label={t('goals.emergencyFund.chosenCategories')}>
+                  {draft.categories.map((category) => (
+                    <li key={category.id}>
+                      <span>{category.label}</span>
+                      <button
+                        aria-label={t('goals.emergencyFund.removeCategory', {
+                          label: category.label,
+                        })}
+                        className="secondary-action"
+                        onClick={() =>
+                          patch({
+                            categories: draft.categories.filter(
+                              (entry) => entry.id !== category.id,
+                            ),
+                          })
+                        }
+                        type="button"
+                      >
+                        {t('goals.emergencyFund.remove')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {draft.categories.length < MAX_ESSENTIAL_CATEGORIES ? (
+                <CategoryPicker
+                  error={
+                    showErrors && !validity.categories
+                      ? t('goals.emergencyFund.validation.categories')
+                      : null
+                  }
+                  isEligible={(category) =>
+                    category.budgetIncluded &&
+                    !draft.categories.some((entry) => entry.id === category.id)
+                  }
+                  key={pickerKey}
+                  label={t('goals.emergencyFund.addCategory')}
+                  onChange={addCategory}
+                  type="EXPENSE"
+                  value=""
+                />
+              ) : (
+                <p className={styles.hint}>{t('goals.emergencyFund.categoryLimit')}</p>
+              )}
+              <p className={styles.hint}>{t('goals.emergencyFund.descendantsHint')}</p>
+            </div>
+          ) : null}
+        </FormGrid>
+        <FormGrid>
+          <fieldset className={styles.radios}>
+            <legend>{t('goals.emergencyFund.referenceMode')}</legend>
+            {(['PREVIOUS_YEAR', 'TRAILING_MONTHS'] as const).map((mode) => (
+              <label key={mode}>
+                <input
+                  checked={policy !== null && draft.referenceMode === mode}
+                  name="referenceMode"
+                  onChange={() => patch({ referenceMode: mode })}
+                  type="radio"
+                />
+                <span>{t(`goals.emergencyFund.referenceModes.${mode}`)}</span>
+              </label>
+            ))}
+          </fieldset>
+          {draft.referenceMode === 'TRAILING_MONTHS' ? (
+            <label>
+              <span>{t('goals.emergencyFund.trailingMonths')}</span>
               <input
-                checked={draft.essentialMode === mode}
-                data-autofocus={mode === 'AXIS' ? true : undefined}
-                name="essentialMode"
-                onChange={() => patch({ essentialMode: mode })}
-                type="radio"
+                aria-invalid={flag(validity.trailingMonths)}
+                inputMode="numeric"
+                onChange={(event) => patch({ trailingMonths: event.target.value })}
+                value={draft.trailingMonths}
               />
-              <span>{t(`goals.emergencyFund.essentialModes.${mode}`)}</span>
+              {showErrors && !validity.trailingMonths ? (
+                <small className={styles.fieldError}>
+                  {t('goals.emergencyFund.validation.trailingMonths')}
+                </small>
+              ) : null}
             </label>
-          ))}
-        </fieldset>
-        {draft.essentialMode === 'CATEGORIES' ? (
-          <div className={styles.categories}>
-            {draft.categories.length > 0 ? (
-              <ul aria-label={t('goals.emergencyFund.chosenCategories')}>
-                {draft.categories.map((category) => (
-                  <li key={category.id}>
-                    <span>{category.label}</span>
-                    <button
-                      aria-label={t('goals.emergencyFund.removeCategory', {
-                        label: category.label,
-                      })}
-                      className="secondary-action"
-                      onClick={() =>
-                        patch({
-                          categories: draft.categories.filter((entry) => entry.id !== category.id),
-                        })
-                      }
-                      type="button"
-                    >
-                      {t('goals.emergencyFund.remove')}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {draft.categories.length < MAX_ESSENTIAL_CATEGORIES ? (
-              <CategoryPicker
-                error={
-                  showErrors && !validity.categories
-                    ? t('goals.emergencyFund.validation.categories')
-                    : null
-                }
-                isEligible={(category) =>
-                  category.budgetIncluded &&
-                  !draft.categories.some((entry) => entry.id === category.id)
-                }
-                key={pickerKey}
-                label={t('goals.emergencyFund.addCategory')}
-                onChange={addCategory}
-                type="EXPENSE"
-                value=""
+          ) : null}
+        </FormGrid>
+        <FormGrid>
+          <fieldset className={styles.radios}>
+            <legend>{t('goals.emergencyFund.targetMode')}</legend>
+            {(['MONTHS', 'AMOUNT', 'INCOME_RATIO'] as const).map((mode) => (
+              <label key={mode}>
+                <input
+                  checked={policy !== null && draft.targetMode === mode}
+                  name="targetMode"
+                  onChange={() => patch({ targetMode: mode })}
+                  type="radio"
+                />
+                <span>{t(`goals.emergencyFund.targetModes.${mode}`)}</span>
+              </label>
+            ))}
+          </fieldset>
+          {draft.targetMode === 'MONTHS' ? (
+            <label>
+              <span>{t('goals.emergencyFund.targetMonths')}</span>
+              {policy === null ? (
+                <SkeletonBlock />
+              ) : (
+                <input
+                  aria-invalid={flag(validity.targetMonths)}
+                  inputMode="decimal"
+                  onChange={(event) => patch({ targetMonths: event.target.value })}
+                  value={draft.targetMonths}
+                />
+              )}
+              {showErrors && !validity.targetMonths ? (
+                <small className={styles.fieldError}>
+                  {t('goals.emergencyFund.validation.targetMonths')}
+                </small>
+              ) : null}
+            </label>
+          ) : null}
+          {draft.targetMode === 'AMOUNT' ? (
+            <label>
+              <span>{t('goals.emergencyFund.targetAmount')}</span>
+              <AmountInput
+                aria-label={t('goals.emergencyFund.targetAmount')}
+                invalid={Boolean(flag(validity.targetAmount))}
+                onChange={(targetAmount) => patch({ targetAmount })}
+                value={draft.targetAmount}
               />
-            ) : (
-              <p className={styles.hint}>{t('goals.emergencyFund.categoryLimit')}</p>
-            )}
-            <p className={styles.hint}>{t('goals.emergencyFund.descendantsHint')}</p>
-          </div>
-        ) : null}
-      </div>
-      <div className={styles.group}>
-        <fieldset className={styles.radios}>
-          <legend>{t('goals.emergencyFund.referenceMode')}</legend>
-          {(['PREVIOUS_YEAR', 'TRAILING_MONTHS'] as const).map((mode) => (
-            <label key={mode}>
+              {showErrors && !validity.targetAmount ? (
+                <small className={styles.fieldError}>
+                  {t('goals.emergencyFund.validation.targetAmount')}
+                </small>
+              ) : null}
+            </label>
+          ) : null}
+          {draft.targetMode === 'INCOME_RATIO' ? (
+            <label>
+              <span>{t('goals.emergencyFund.targetRatio')}</span>
               <input
-                checked={draft.referenceMode === mode}
-                name="referenceMode"
-                onChange={() => patch({ referenceMode: mode })}
-                type="radio"
+                aria-invalid={flag(validity.targetRatio)}
+                inputMode="decimal"
+                onChange={(event) => patch({ targetRatioPercent: event.target.value })}
+                value={draft.targetRatioPercent}
               />
-              <span>{t(`goals.emergencyFund.referenceModes.${mode}`)}</span>
+              <small className={styles.hint}>{t('goals.emergencyFund.targetRatioHint')}</small>
+              {showErrors && !validity.targetRatio ? (
+                <small className={styles.fieldError}>
+                  {t('goals.emergencyFund.validation.targetRatio')}
+                </small>
+              ) : null}
             </label>
-          ))}
-        </fieldset>
-        {draft.referenceMode === 'TRAILING_MONTHS' ? (
-          <label>
-            <span>{t('goals.emergencyFund.trailingMonths')}</span>
-            <input
-              aria-invalid={flag(validity.trailingMonths)}
-              inputMode="numeric"
-              onChange={(event) => patch({ trailingMonths: event.target.value })}
-              value={draft.trailingMonths}
-            />
-            {showErrors && !validity.trailingMonths ? (
-              <small className={styles.fieldError}>
-                {t('goals.emergencyFund.validation.trailingMonths')}
-              </small>
-            ) : null}
-          </label>
-        ) : null}
-      </div>
-      <div className={styles.group}>
-        <fieldset className={styles.radios}>
-          <legend>{t('goals.emergencyFund.targetMode')}</legend>
-          {(['MONTHS', 'AMOUNT', 'INCOME_RATIO'] as const).map((mode) => (
-            <label key={mode}>
-              <input
-                checked={draft.targetMode === mode}
-                name="targetMode"
-                onChange={() => patch({ targetMode: mode })}
-                type="radio"
-              />
-              <span>{t(`goals.emergencyFund.targetModes.${mode}`)}</span>
-            </label>
-          ))}
-        </fieldset>
-        {draft.targetMode === 'MONTHS' ? (
-          <label>
-            <span>{t('goals.emergencyFund.targetMonths')}</span>
-            <input
-              aria-invalid={flag(validity.targetMonths)}
-              inputMode="decimal"
-              onChange={(event) => patch({ targetMonths: event.target.value })}
-              value={draft.targetMonths}
-            />
-            {showErrors && !validity.targetMonths ? (
-              <small className={styles.fieldError}>
-                {t('goals.emergencyFund.validation.targetMonths')}
-              </small>
-            ) : null}
-          </label>
-        ) : null}
-        {draft.targetMode === 'AMOUNT' ? (
-          <label>
-            <span>{t('goals.emergencyFund.targetAmount')}</span>
-            <AmountInput
-              aria-label={t('goals.emergencyFund.targetAmount')}
-              invalid={Boolean(flag(validity.targetAmount))}
-              onChange={(targetAmount) => patch({ targetAmount })}
-              value={draft.targetAmount}
-            />
-            {showErrors && !validity.targetAmount ? (
-              <small className={styles.fieldError}>
-                {t('goals.emergencyFund.validation.targetAmount')}
-              </small>
-            ) : null}
-          </label>
-        ) : null}
-        {draft.targetMode === 'INCOME_RATIO' ? (
-          <label>
-            <span>{t('goals.emergencyFund.targetRatio')}</span>
-            <input
-              aria-invalid={flag(validity.targetRatio)}
-              inputMode="decimal"
-              onChange={(event) => patch({ targetRatioPercent: event.target.value })}
-              value={draft.targetRatioPercent}
-            />
-            <small className={styles.hint}>{t('goals.emergencyFund.targetRatioHint')}</small>
-            {showErrors && !validity.targetRatio ? (
-              <small className={styles.fieldError}>
-                {t('goals.emergencyFund.validation.targetRatio')}
-              </small>
-            ) : null}
-          </label>
-        ) : null}
-      </div>
-      <button className={`primary-action ${styles.submit}`} disabled={pending} type="submit">
-        {t('goals.emergencyFund.save')}
-      </button>
+          ) : null}
+        </FormGrid>
+        <ModalActions>
+          <button className="primary-action" disabled={pending} type="submit">
+            {t('goals.emergencyFund.save')}
+          </button>
+        </ModalActions>
+      </fieldset>
     </form>
   );
 }

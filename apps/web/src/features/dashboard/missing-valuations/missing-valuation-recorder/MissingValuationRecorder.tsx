@@ -1,3 +1,5 @@
+import { RecordBalanceFormSkeleton } from '@/features/accounts/record-balance-form/RecordBalanceFormSkeleton';
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import {
   recordAccountBalance,
   type Account,
@@ -6,7 +8,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { useTranslation } from 'react-i18next';
-import { SkeletonButton, SkeletonField, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
 import {
   accountErrorKind,
@@ -91,15 +93,8 @@ export function MissingValuationRecorder({
     return (
       <div className={styles.recorder}>
         <SkeletonStatus>{t('dashboard.missingValuations.loading')}</SkeletonStatus>
-        <div className={styles.fields} aria-hidden="true">
-          <SkeletonField label={t('accounts.balances.fields.asOf')} />
-          <SkeletonField label={t('accounts.balances.fields.amount')} />
-        </div>
-        <SkeletonField label={t('accounts.balances.fields.comment')} />
-        <div className={styles.actions}>
-          {back}
-          <SkeletonButton />
-        </div>
+        <RecordBalanceFormSkeleton />
+        <ModalActions>{back}</ModalActions>
       </div>
     );
   }
@@ -110,10 +105,10 @@ export function MissingValuationRecorder({
         <p className={styles.notice} role="alert">
           {t('dashboard.missingValuations.loadError')}
         </p>
-        <div className={styles.actions}>
+        <ModalActions>
           {back}
           {openAccount}
-        </div>
+        </ModalActions>
       </div>
     );
   }
@@ -122,10 +117,10 @@ export function MissingValuationRecorder({
     return (
       <div className={styles.recorder}>
         <p className={styles.notice}>{t('dashboard.missingValuations.notRecordable')}</p>
-        <div className={styles.actions}>
+        <ModalActions>
           {back}
           {openAccount}
-        </div>
+        </ModalActions>
       </div>
     );
   }
@@ -141,7 +136,7 @@ export function MissingValuationRecorder({
         submitError={accountErrorKind(record.error, record.isError)}
         valuation={account.data.valuation}
       />
-      <div className={styles.actions}>{back}</div>
+      <ModalActions>{back}</ModalActions>
     </div>
   );
 }

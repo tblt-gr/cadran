@@ -878,7 +878,8 @@ describe('MonthlyBudgetPage', () => {
     explanation.focus();
     expect(document.activeElement).toBe(explanation);
     fireEvent.click(explanation);
-    expect(await screen.findByRole('dialog', { name: 'Expliquer : Revenus' })).toBeTruthy();
+    const explanationDialog = await screen.findByRole('dialog', { name: 'Expliquer : Revenus' });
+    expect(within(explanationDialog).getByText('Détail', { exact: true })).toBeTruthy();
   });
 
   it('shows every flow indicator of the former monthly report in the flow summary', async () => {

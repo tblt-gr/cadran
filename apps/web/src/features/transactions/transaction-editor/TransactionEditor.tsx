@@ -41,7 +41,7 @@ export function TransactionEditor({
   return (
     <Modal
       close={close}
-      eyebrow={t(creating ? 'transactions.form.createEyebrow' : 'transactions.form.editEyebrow')}
+      intent={creating ? 'create' : 'edit'}
       title={t(creating ? 'transactions.form.createTitle' : 'transactions.form.editTitle')}
     >
       <TransactionForm

@@ -1,3 +1,4 @@
+import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useTranslation } from 'react-i18next';
 import {
   SkeletonBlock,
@@ -65,11 +66,11 @@ export function ReconciliationPanelSkeleton({ status }: { status: string }) {
             </label>
           ))}
         </fieldset>
-        <div className={formStyles.actions}>
+        <ModalActions>
           <button className="primary-action" disabled type="submit">
             {t('accounts.reconciliation.reconcile')}
           </button>
-        </div>
+        </ModalActions>
       </form>
     </div>
   );

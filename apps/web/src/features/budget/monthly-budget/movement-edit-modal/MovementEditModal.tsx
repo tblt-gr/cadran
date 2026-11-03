@@ -83,11 +83,7 @@ export function MovementEditModal({ close, onSaved, transactionId }: MovementEdi
 
   if (!ready) {
     return (
-      <Modal
-        close={close}
-        eyebrow={t('transactions.form.editEyebrow')}
-        title={t('transactions.form.editTitle')}
-      >
+      <Modal close={close} intent="edit" title={t('transactions.form.editTitle')}>
         {failed ? (
           <div role="alert">
             <p>{t('budget.monthly.movements.editError')}</p>
