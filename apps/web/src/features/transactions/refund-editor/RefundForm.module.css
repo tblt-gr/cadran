@@ -59,7 +59,7 @@
   width: calc(var(--spacing-12) * 2);
   height: var(--font-size-body);
 }
-.skeletonSplits {
+.skeletonControl {
   width: 100%;
-  height: calc(var(--control-height) * 2);
+  height: var(--control-height);
 }

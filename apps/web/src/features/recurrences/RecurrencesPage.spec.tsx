@@ -483,6 +483,7 @@ describe('RecurrencesPage', () => {
         }) as HTMLInputElement
       ).checked,
     ).toBe(true);
+    expect(screen.getByText('Champs avancés').closest('details')?.open).toBe(true);
     expect((screen.getByLabelText('Note') as HTMLInputElement).value).toBe('Loyer appartement');
     expect((screen.getByLabelText('Moyen de paiement') as HTMLSelectElement).value).toBe(
       'DIRECT_DEBIT',

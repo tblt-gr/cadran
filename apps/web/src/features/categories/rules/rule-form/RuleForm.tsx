@@ -150,6 +150,32 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
           />
           <small className={styles.hint}>{t('categorizationRules.fields.effectiveFromHint')}</small>
         </label>
+      </FormGrid>
+
+      <RuleConditions
+        amountInvalid={amountInvalid}
+        conditions={conditions}
+        conditionsInvalid={conditionsInvalid}
+        onChange={setConditions}
+        showErrors={showErrors}
+        textInvalid={textInvalid}
+      />
+
+      <RuleAdvancedFields
+        periodFilled={effectiveTo !== ''}
+        periodInvalid={periodError}
+        accountScope={accountScope}
+        accounts={accounts}
+        onClearAccounts={() => setAccountScope([])}
+        onCounterpartyChange={setTargetCounterparty}
+        onPriorityChange={setPriority}
+        onToggleAccount={toggleAccount}
+        onToggleAxis={toggleAxis}
+        priority={priority}
+        priorityInvalid={showErrors && priorityInvalid}
+        targetAxes={targetAxes}
+        targetCounterparty={targetCounterparty}
+      >
         <label className={styles.field}>
           <span>{t('categorizationRules.fields.effectiveTo')}</span>
           <input
@@ -166,30 +192,7 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
             )}
           </small>
         </label>
-      </FormGrid>
-
-      <RuleConditions
-        amountInvalid={amountInvalid}
-        conditions={conditions}
-        conditionsInvalid={conditionsInvalid}
-        onChange={setConditions}
-        showErrors={showErrors}
-        textInvalid={textInvalid}
-      />
-
-      <RuleAdvancedFields
-        accountScope={accountScope}
-        accounts={accounts}
-        onClearAccounts={() => setAccountScope([])}
-        onCounterpartyChange={setTargetCounterparty}
-        onPriorityChange={setPriority}
-        onToggleAccount={toggleAccount}
-        onToggleAxis={toggleAxis}
-        priority={priority}
-        priorityInvalid={showErrors && priorityInvalid}
-        targetAxes={targetAxes}
-        targetCounterparty={targetCounterparty}
-      />
+      </RuleAdvancedFields>
 
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">

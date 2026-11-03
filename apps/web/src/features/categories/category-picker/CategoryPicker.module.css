@@ -52,9 +52,12 @@
   gap: var(--spacing-1-5);
 }
 
-.picker input {
+/* Host forms may style every descendant input. Keep the editable label inside
+   the pill independent of those rules in every context. */
+.picker .control .chip input {
   width: 100%;
   min-width: 0;
+  min-height: 0;
   padding: var(--spacing-none);
   border: var(--border-none);
   border-radius: var(--radius-none);
@@ -64,11 +67,11 @@
   text-overflow: ellipsis;
 }
 
-.picker input:focus-visible {
+.picker .control .chip input:focus-visible {
   outline: none;
 }
 
-.selected input {
+.picker .control .selected input {
   width: auto;
   max-width: 100%;
 }
