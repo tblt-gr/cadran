@@ -1,26 +1,36 @@
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { SavingsHistoryChart } from './SavingsHistoryChart';
+import { AccountHistoryChart } from './AccountHistoryChart';
 import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import { ChartPeriodControl } from '@/components/ui/chart-period-control/ChartPeriodControl';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
+import { ACCOUNT_PERIODS } from './accountHistoryPeriods';
 import { chartPeriodFrom, type ChartPeriod } from '@/lib/chartPeriodRange';
-import { SavingsHistoryTable } from './SavingsHistoryTable';
-import { useSavingsHistory } from './useSavingsHistory';
-import styles from './SavingsHistoryPanel.module.css';
+import {
+  historyKeys,
+  showsManualPortfolioNotice,
+  type HistoryAccount,
+} from './accountHistoryLabels';
+import { AccountHistoryTable } from './AccountHistoryTable';
+import { useAccountHistory } from './useAccountHistory';
+import styles from './AccountHistoryPanel.module.css';
 
-// An explicit range spans at most 366 elapsed days; Tout omits `from` and the API resolves it.
-const SAVINGS_PERIODS: readonly ChartPeriod[] = ['ALL', 'LAST_12_MONTHS', 'YTD'];
-
-export function SavingsHistoryPanel({ accountId, today }: { accountId: string; today: string }) {
+export function AccountHistoryPanel({
+  account,
+  today,
+}: {
+  account: HistoryAccount & { id: string };
+  today: string;
+}) {
   const { t } = useTranslation();
   const id = useId();
   const [period, setPeriod] = useState<ChartPeriod>('LAST_12_MONTHS');
   const [tableOpen, setTableOpen] = useState(false);
   const from = chartPeriodFrom(period, today);
-  const history = useSavingsHistory(accountId, from, today);
+  const history = useAccountHistory(account.id, from, today);
   const points = history.data?.points;
+  const keys = historyKeys(account);
   const pending = history.isPending;
   return (
     <section
@@ -30,15 +40,18 @@ export function SavingsHistoryPanel({ accountId, today }: { accountId: string; t
     >
       {pending ? <SkeletonStatus>{t('accounts.history.loading')}</SkeletonStatus> : null}
       <div className={styles.header}>
-        <h3 id={id}>{t('accounts.history.title')}</h3>
+        <h3 id={id}>{t(keys.title)}</h3>
         <ChartPeriodControl
           label={t('accounts.history.period')}
           disabled={pending}
-          periods={SAVINGS_PERIODS}
+          periods={ACCOUNT_PERIODS}
           value={period}
           onChange={setPeriod}
         />
       </div>
+      {showsManualPortfolioNotice(account) ? (
+        <p className={styles.notice}>{t('accounts.history.manualPortfolioNotice')}</p>
+      ) : null}
       {history.data?.truncated ? (
         <p className={styles.notice}>{t('accounts.history.truncated')}</p>
       ) : null}
@@ -55,7 +68,7 @@ export function SavingsHistoryPanel({ accountId, today }: { accountId: string; t
           {pending ? (
             <CurveChartSkeleton />
           ) : history.data?.hasHistory ? (
-            <SavingsHistoryChart points={points!} />
+            <AccountHistoryChart account={account} points={points!} />
           ) : (
             <p role="status">{t('accounts.history.empty')}</p>
           )}
@@ -65,7 +78,7 @@ export function SavingsHistoryPanel({ accountId, today }: { accountId: string; t
             open={tableOpen}
             onToggle={setTableOpen}
           >
-            <SavingsHistoryTable points={pending ? null : points!} />
+            <AccountHistoryTable account={account} points={pending ? null : points!} />
           </Disclosure>
         </>
       ) : null}

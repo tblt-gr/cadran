@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { SavingsHistoryPanel } from './SavingsHistoryPanel';
+import type { Account } from '@cadran/api-client';
+import { AccountHistoryPanel } from './AccountHistoryPanel';
 const api = vi.hoisted(() => ({ readAccountValuationHistory: vi.fn() }));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
@@ -40,12 +41,16 @@ const data = {
 function ok(value: unknown) {
   return Promise.resolve({ data: value, response: new Response('{}', { status: 200 }) });
 }
-function mount() {
+type Variant = Partial<Pick<Account, 'kind' | 'valuationMode'>>;
+function mount(variant: Variant = {}) {
   return render(
     <QueryClientProvider
       client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
     >
-      <SavingsHistoryPanel accountId="savings" today="2026-10-20" />
+      <AccountHistoryPanel
+        account={{ id: 'savings', kind: 'SAVINGS', valuationMode: 'TRANSACTIONS', ...variant }}
+        today="2026-10-20"
+      />
     </QueryClientProvider>,
   );
 }
@@ -141,4 +146,28 @@ it('preserves a reasoned gap without substituting zero', async () => {
   const table = screen.getByRole('table');
   expect(table.textContent).toContain('Actifs incompatibles');
   expect(screen.queryByRole('button', { name: /01\/10\/2026,/ })).toBeNull();
+});
+it('titles recorded-value accounts by value and keeps the balance wording for movements', async () => {
+  const { container } = mount({ kind: 'EMPLOYEE_BENEFIT', valuationMode: 'SNAPSHOTS' });
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  expect(screen.getByRole('heading', { name: 'Historique de la valeur' })).toBeTruthy();
+  expect(screen.getByRole('slider', { name: 'Historique de la valeur' })).toBeTruthy();
+  expect(screen.getByRole('region', { name: 'Valeurs du compte par date' })).toBeTruthy();
+  expect(screen.getByRole('columnheader', { name: 'Valeur exacte' })).toBeTruthy();
+  expect(screen.queryByText('Valeur saisie manuellement, sans détail des positions.')).toBeNull();
+});
+it.each([['PORTFOLIO'], ['INSURANCE_CONTRACT']] as const)(
+  'adds the manual value notice for a %s valued by recorded balances',
+  async (kind) => {
+    const { container } = mount({ kind, valuationMode: 'SNAPSHOTS' });
+    await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+    expect(screen.getByText('Valeur saisie manuellement, sans détail des positions.')).toBeTruthy();
+  },
+);
+it('shows no notice for a movement-valued account and the balance table wording', async () => {
+  const { container } = mount({ kind: 'PORTFOLIO', valuationMode: 'TRANSACTIONS' });
+  await waitFor(() => expect(container.querySelector('[aria-busy="true"]')).toBeNull());
+  expect(screen.queryByText(/Valeur saisie manuellement/)).toBeNull();
+  expect(screen.getByRole('region', { name: 'Soldes du compte par date' })).toBeTruthy();
+  expect(screen.getByRole('columnheader', { name: 'Solde exact' })).toBeTruthy();
 });

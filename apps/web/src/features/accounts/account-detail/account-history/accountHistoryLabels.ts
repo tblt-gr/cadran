@@ -1,4 +1,4 @@
-import type { AccountValuationHistoryPoint } from '@cadran/api-client';
+import type { Account, AccountValuationHistoryPoint } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
 export function historyAmount(point: AccountValuationHistoryPoint, locale: string): string {
@@ -28,4 +28,23 @@ export function historyProvenance(point: AccountValuationHistoryPoint, t: TFunct
       details.push(t('accounts.balances.pending', { count: point.derivation.pendingCount }));
   }
   return details.join(' · ');
+}
+
+export type HistoryAccount = Pick<Account, 'kind' | 'valuationMode'>;
+
+/** Wording follows how the value is obtained: movements give a balance, recorded totals a value. */
+export function historyKeys(account: HistoryAccount | null) {
+  const snapshots = account?.valuationMode === 'SNAPSHOTS';
+  return {
+    title: snapshots ? 'accounts.history.titleSnapshots' : 'accounts.history.title',
+    table: snapshots ? 'accounts.history.tableSnapshots' : 'accounts.history.table',
+    amount: snapshots ? 'accounts.history.valueSnapshots' : 'accounts.history.balance',
+  } as const;
+}
+
+export function showsManualPortfolioNotice(account: HistoryAccount): boolean {
+  return (
+    account.valuationMode === 'SNAPSHOTS' &&
+    (account.kind === 'PORTFOLIO' || account.kind === 'INSURANCE_CONTRACT')
+  );
 }

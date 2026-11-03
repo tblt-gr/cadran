@@ -7,15 +7,20 @@ import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { AccountDetailActionsSkeleton } from './account-detail-actions/AccountDetailActions';
 import { AccountIdentityCardSkeleton } from './account-identity/AccountIdentityCardSkeleton';
 import { AccountMovementsSectionSkeleton } from './account-movements-section/AccountMovementsSectionSkeleton';
+import type { Account } from '@cadran/api-client';
+import { AccountHistoryPanelSkeleton } from './account-history/AccountHistoryPanelSkeleton';
+import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import styles from './AccountDetailPage.module.css';
 
 /** Mirrors AccountDetailPage element for element: only account values are pending. */
 export function AccountDetailPageSkeleton({
   status,
   accountId = '',
+  account = null,
 }: {
   status: string;
   accountId?: string;
+  account?: Account | null;
 }) {
   const tab = activeAccountTab();
 
@@ -45,7 +50,12 @@ export function AccountDetailPageSkeleton({
       ) : tab === 'balance' ? (
         <BalanceTabSkeleton />
       ) : (
-        <AccountIdentityCardSkeleton />
+        <>
+          <AccountIdentityCardSkeleton />
+          {account === null || !valuedByPortfolio(account) ? (
+            <AccountHistoryPanelSkeleton account={account} />
+          ) : null}
+        </>
       )}
     </div>
   );
