@@ -60,14 +60,19 @@ export function RecurrenceForm({
     label: values.label.trim() === '' || values.label.trim().length > 80,
   };
   // The sign typed in the amount decides when no direction is chosen, like the server does.
-  const effectiveDirection = direction ?? (expectedAmount.startsWith('-') ? 'OUTFLOW' : 'INFLOW');
+  const effectiveDirection =
+    direction ??
+    (baseErrors.expectedAmount ? '' : expectedAmount.startsWith('-') ? 'OUTFLOW' : 'INFLOW');
   const expectedCategoryType = categoryTypeFor(effectiveDirection);
   const saved = useRecurrenceCategory(recurrence?.categoryId ?? null);
   const categoryType = values.categoryType ?? (values.categoryId === saved?.id ? saved.type : null);
   const errors = {
     ...baseErrors,
     categoryId:
-      values.categoryId !== '' && categoryType !== null && categoryType !== expectedCategoryType,
+      values.categoryId !== '' &&
+      categoryType !== null &&
+      expectedCategoryType !== undefined &&
+      categoryType !== expectedCategoryType,
   };
   const invalid = Object.values(errors).some(Boolean);
 
@@ -143,13 +148,7 @@ export function RecurrenceForm({
             <small>{t('recurrences.validation.account')}</small>
           ) : null}
         </label>
-        <label>
-          <span>{t('recurrences.fields.counterparty')}</span>
-          <input
-            onChange={(event) => set('counterparty', event.target.value)}
-            value={values.counterparty}
-          />
-        </label>
+
         <label>
           <span>{t('recurrences.fields.direction')}</span>
           <select
@@ -183,20 +182,7 @@ export function RecurrenceForm({
             typed={values.expectedAmount}
           />
         </label>
-        <label>
-          <span>{t('recurrences.fields.tolerance')}</span>
-          <input
-            aria-invalid={showErrors && errors.amountTolerance ? true : undefined}
-            autoComplete="off"
-            inputMode="decimal"
-            onChange={(event) => set('amountTolerance', event.target.value)}
-            spellCheck={false}
-            value={values.amountTolerance}
-          />
-          {showErrors && errors.amountTolerance ? (
-            <small>{t('recurrences.validation.tolerance')}</small>
-          ) : null}
-        </label>
+
         <label>
           <span>{t('recurrences.fields.interval')}</span>
           <select
@@ -246,6 +232,8 @@ export function RecurrenceForm({
           ) : null}
         </div>
         <RecurrenceTransactionFields
+          advancedFilled={values.counterparty !== '' || values.amountTolerance !== '0'}
+          advancedInvalid={showErrors && errors.amountTolerance}
           autoCreate={values.autoCreate}
           categoryError={showErrors && errors.categoryId}
           categoryId={values.categoryId}
@@ -266,7 +254,29 @@ export function RecurrenceForm({
             icon: saved?.effectiveIcon,
             label: values.categoryLabel ?? saved?.label,
           }}
-        />
+        >
+          <label>
+            <span>{t('recurrences.fields.counterparty')}</span>
+            <input
+              onChange={(event) => set('counterparty', event.target.value)}
+              value={values.counterparty}
+            />
+          </label>
+          <label>
+            <span>{t('recurrences.fields.tolerance')}</span>
+            <input
+              aria-invalid={showErrors && errors.amountTolerance ? true : undefined}
+              autoComplete="off"
+              inputMode="decimal"
+              onChange={(event) => set('amountTolerance', event.target.value)}
+              spellCheck={false}
+              value={values.amountTolerance}
+            />
+            {showErrors && errors.amountTolerance ? (
+              <small>{t('recurrences.validation.tolerance')}</small>
+            ) : null}
+          </label>
+        </RecurrenceTransactionFields>
       </FormGrid>
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">

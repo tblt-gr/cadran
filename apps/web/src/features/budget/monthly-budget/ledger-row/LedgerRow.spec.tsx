@@ -19,7 +19,7 @@ function category(overrides: Partial<MonthlyLedgerCategoryRow> = {}): MonthlyLed
     color: null,
     budgetIncluded: true,
     archived: false,
-    total: { value: '-30.00', assetCode: 'EUR', reason: null },
+    total: { value: '30.00', assetCode: 'EUR', reason: null },
     movementCount: 1,
     hasMovements: true,
     pendingAmount: null,
@@ -78,6 +78,17 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('LedgerRow pending movements', () => {
+  it('shows a refund-only category as a positive movement', () => {
+    const item = renderRow(
+      category({ total: { value: '-18.00', assetCode: 'EUR', reason: null } }),
+    );
+    expect(item.querySelector('[data-visual-mask]')?.textContent).toMatch(/^18,00/);
+  });
+
+  it('shows an expense category as a negative movement', () => {
+    const item = renderRow(category());
+    expect(item.querySelector('[data-visual-mask]')?.textContent).toMatch(/^-30,00/);
+  });
   it('shows nothing pending and keeps the row unchanged without pending movements', () => {
     const item = renderRow(category());
 
@@ -88,7 +99,7 @@ describe('LedgerRow pending movements', () => {
 
   it('leaves a mixed row with its realised amount and no pending marker or amount', () => {
     const item = renderRow(
-      category({ pendingAmount: { value: '-12.50', assetCode: 'EUR' }, pendingCount: 1 }),
+      category({ pendingAmount: { value: '12.50', assetCode: 'EUR' }, pendingCount: 1 }),
     );
 
     expect(item.textContent).toMatch(/30,00/);
@@ -103,7 +114,7 @@ describe('LedgerRow pending movements', () => {
         total: { value: '0.00', assetCode: 'EUR', reason: null },
         movementCount: 0,
         hasMovements: false,
-        pendingAmount: { value: '-40.00', assetCode: 'EUR' },
+        pendingAmount: { value: '40.00', assetCode: 'EUR' },
         pendingCount: 2,
       }),
     );
@@ -113,11 +124,24 @@ describe('LedgerRow pending movements', () => {
     expect(within(item).queryByText('(en attente)')).toBeNull();
     // The pending amount is in the amount cell, in the booked amount's format, with no parentheses.
     const amount = item.querySelector('[data-visual-mask]');
-    expect(amount?.textContent).toMatch(/40,00/);
+    expect(amount?.textContent).toMatch(/^-40,00/);
     expect(amount?.textContent).not.toMatch(/[()]/);
     expect(item.querySelectorAll('[data-visual-mask]')).toHaveLength(1);
     fireEvent.click(within(item).getByRole('button', { name: /Afficher les mouvements/ }));
     await waitFor(() => expect(api.readMovements).toHaveBeenCalledOnce());
+  });
+
+  it('preserves the sign of a pending refund in an expense category', () => {
+    const item = renderRow(
+      category({
+        total: { value: '0.00', assetCode: 'EUR', reason: null },
+        movementCount: 0,
+        hasMovements: false,
+        pendingAmount: { value: '-18.00', assetCode: 'EUR' },
+        pendingCount: 1,
+      }),
+    );
+    expect(item.querySelector('[data-visual-mask]')?.textContent).toMatch(/^18,00/);
   });
 
   it('shows the usual non-calculable dash when pending amounts are of mixed assets', () => {

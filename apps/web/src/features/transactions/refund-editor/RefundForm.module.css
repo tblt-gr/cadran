@@ -23,6 +23,11 @@
 .alert {
   color: var(--negative);
 }
+.hint {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
 .remaining,
 .form > div,
 .actions,
@@ -59,7 +64,7 @@
   width: calc(var(--spacing-12) * 2);
   height: var(--font-size-body);
 }
-.skeletonSplits {
+.skeletonControl {
   width: 100%;
-  height: calc(var(--control-height) * 2);
+  height: var(--control-height);
 }

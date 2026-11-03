@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateRefundRequest, RefundableTransaction } from '@cadran/api-client';
 import { useState } from 'react';
@@ -109,6 +111,8 @@ export function RefundForm({
     });
   }
 
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
@@ -125,71 +129,89 @@ export function RefundForm({
           {formatAmount(proposal.refundable.value, proposal.refundable.assetCode, i18n.language)}
         </strong>
       </p>
-      <label>
-        <span>{t('transactions.fields.account')}</span>
-        <select onChange={(event) => setAccountId(event.target.value)} value={accountId}>
-          {eligibleAccounts.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.label}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        <span>{t('transactions.fields.amount')}</span>
-        <input
-          aria-describedby={amountTooHigh ? 'refund-amount-error' : undefined}
-          aria-invalid={amountInvalid || undefined}
-          autoComplete="off"
-          inputMode="decimal"
-          onChange={(event) => setAmount(event.target.value)}
-          value={amount}
-        />
-        {amountTooHigh ? (
-          <small id="refund-amount-error" role="alert">
-            {t('transactions.refund.amountTooHigh')}
-          </small>
-        ) : null}
-      </label>
-      <label>
-        <span>{t('transactions.fields.bookedOn')}</span>
-        <input
-          onChange={(event) => setBookedOn(event.target.value)}
-          required
-          type="date"
-          value={bookedOn}
-        />
-      </label>
-      <label>
-        <span>{t('transactions.fields.label')}</span>
-        <input onChange={(event) => setRawLabel(event.target.value)} required value={rawLabel} />
-      </label>
-      <label>
-        <span>{t('transactions.fields.counterparty')}</span>
-        <input onChange={(event) => setCounterparty(event.target.value)} value={counterparty} />
-      </label>
-      <label>
-        <span>{t('transactions.fields.note')}</span>
-        <input onChange={(event) => setNote(event.target.value)} value={note} />
-      </label>
-      <div>
-        <p>{t('transactions.refund.allocation')}</p>
-        {!editedSplits && !proposalMatchesAmount && proposal.proposedSplits.length > 0 ? (
-          <p role="alert">{t('transactions.refund.allocationOutOfDate')}</p>
-        ) : null}
-        <SplitEditor
-          assetCode={proposal.refundable.assetCode}
-          expectedCategoryType="EXPENSE"
-          onChange={(rows) => {
-            setEditedSplits(true);
-            setSplits(rows);
-          }}
-          preferredType="EXPENSE"
-          rows={splits}
-          showErrors={showSplitErrors}
-          total={amount}
-        />
-      </div>
+      <FormGrid>
+        <label>
+          <span>{t('transactions.fields.account')}</span>
+          <select onChange={(event) => setAccountId(event.target.value)} value={accountId}>
+            {eligibleAccounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          <span>{t('transactions.fields.amount')}</span>
+          <input
+            data-autofocus
+            aria-describedby={amountTooHigh ? 'refund-amount-error' : undefined}
+            aria-invalid={amountInvalid || undefined}
+            autoComplete="off"
+            inputMode="decimal"
+            onChange={(event) => setAmount(event.target.value)}
+            value={amount}
+          />
+          {amountTooHigh ? (
+            <small id="refund-amount-error" role="alert">
+              {t('transactions.refund.amountTooHigh')}
+            </small>
+          ) : null}
+        </label>
+        <label>
+          <span>{t('transactions.fields.bookedOn')}</span>
+          <input
+            onChange={(event) => setBookedOn(event.target.value)}
+            required
+            type="date"
+            value={bookedOn}
+          />
+        </label>
+        <label>
+          <span>{t('transactions.fields.label')}</span>
+          <input onChange={(event) => setRawLabel(event.target.value)} required value={rawLabel} />
+        </label>
+        <FormSection
+          title={t('transactions.form.advanced')}
+          open={advancedOpen}
+          onToggle={setAdvancedOpen}
+        >
+          <label>
+            <span>{t('transactions.fields.counterparty')}</span>
+            <input onChange={(event) => setCounterparty(event.target.value)} value={counterparty} />
+          </label>
+          <label>
+            <span>{t('transactions.fields.note')}</span>
+            <input onChange={(event) => setNote(event.target.value)} value={note} />
+          </label>
+        </FormSection>
+        <div data-span="full">
+          <p>{t('transactions.refund.allocation')}</p>
+          {!editedSplits && !proposalMatchesAmount && proposal.proposedSplits.length > 0 ? (
+            <p role="alert">{t('transactions.refund.allocationOutOfDate')}</p>
+          ) : null}
+          <SplitEditor
+            assetCode={proposal.refundable.assetCode}
+            expectedCategoryType="EXPENSE"
+            onChange={(rows) => {
+              setEditedSplits(true);
+              setSplits(rows);
+            }}
+            preferredType="EXPENSE"
+            rows={splits}
+            showErrors={showSplitErrors}
+            total={amount}
+          />
+        </div>
+      </FormGrid>
+      {!valid && !pending ? (
+        <p className={styles.hint}>
+          {t(
+            accountId === '' || bookedOn === '' || rawLabel.trim() === '' || amountInvalid
+              ? 'transactions.refund.requiredFields'
+              : 'transactions.refund.allocationInvalid',
+          )}
+        </p>
+      ) : null}
       <ModalActions>
         <button className="primary-action" disabled={!valid || pending} type="submit">
           {pending ? t('transactions.refund.saving') : t('transactions.refund.save')}

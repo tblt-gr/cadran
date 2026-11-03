@@ -1,5 +1,6 @@
 import type { Category, CategoryType, PaymentMethod } from '@cadran/api-client';
-import { useId } from 'react';
+import { useId, useState, type ReactNode } from 'react';
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { useTranslation } from 'react-i18next';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import styles from './RecurrenceForm.module.css';
@@ -15,6 +16,9 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 const MAX_NOTE_LENGTH = 500;
 
 interface RecurrenceTransactionFieldsProps {
+  advancedFilled: boolean;
+  advancedInvalid: boolean;
+  children: ReactNode;
   autoCreate: boolean;
   categoryError: boolean;
   categoryId: string;
@@ -37,6 +41,9 @@ interface RecurrenceTransactionFieldsProps {
  * them. A fragment, so the fields stay cells of the form grid.
  */
 export function RecurrenceTransactionFields({
+  advancedFilled,
+  advancedInvalid,
+  children,
   autoCreate,
   categoryError,
   categoryId,
@@ -49,56 +56,70 @@ export function RecurrenceTransactionFields({
 }: RecurrenceTransactionFieldsProps) {
   const { t } = useTranslation();
   const hintId = useId();
+  const [open, setOpen] = useState(
+    advancedFilled || note !== '' || paymentMethod !== '' || autoCreate,
+  );
 
   return (
     <>
-      <CategoryPicker
-        emptyOptionLabel={t('recurrences.form.noCategory')}
-        error={categoryError ? t('recurrences.validation.category') : null}
-        key={categoryType ?? 'ALL'}
-        label={t('recurrences.fields.category')}
-        onChange={onCategoryChange}
-        preferredType={categoryType}
-        selectedColor={selected.color}
-        selectedIcon={selected.icon}
-        selectedLabel={selected.label}
-        type={categoryType}
-        value={categoryId}
-      />
-      <label>
-        <span>{t('recurrences.fields.paymentMethod')}</span>
-        <select
-          onChange={(event) => onChange('paymentMethod', event.target.value as PaymentMethod | '')}
-          value={paymentMethod}
-        >
-          <option value="">{t('recurrences.form.noPaymentMethod')}</option>
-          {PAYMENT_METHODS.map((method) => (
-            <option key={method} value={method}>
-              {t(`transactions.paymentMethods.${method}`)}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label className={styles.wide}>
-        <span>{t('recurrences.fields.note')}</span>
-        <input
-          maxLength={MAX_NOTE_LENGTH}
-          onChange={(event) => onChange('note', event.target.value)}
-          value={note}
+      <div data-span="full">
+        <CategoryPicker
+          emptyOptionLabel={t('recurrences.form.noCategory')}
+          error={categoryError ? t('recurrences.validation.category') : null}
+          key={categoryType ?? 'ALL'}
+          label={t('recurrences.fields.category')}
+          onChange={onCategoryChange}
+          preferredType={categoryType}
+          selectedColor={selected.color}
+          selectedIcon={selected.icon}
+          selectedLabel={selected.label}
+          type={categoryType}
+          value={categoryId}
         />
-      </label>
-      <div className={`${styles.wide} ${styles.autoCreate}`}>
-        <label>
-          <input
-            aria-describedby={hintId}
-            checked={autoCreate}
-            onChange={(event) => onChange('autoCreate', event.target.checked)}
-            type="checkbox"
-          />
-          <span>{t('recurrences.fields.autoCreate')}</span>
-        </label>
-        <small id={hintId}>{t('recurrences.form.autoCreateHint')}</small>
       </div>
+      <FormSection
+        title={t('transactions.form.advanced')}
+        open={open || advancedInvalid}
+        onToggle={setOpen}
+      >
+        {children}
+        <label>
+          <span>{t('recurrences.fields.paymentMethod')}</span>
+          <select
+            onChange={(event) =>
+              onChange('paymentMethod', event.target.value as PaymentMethod | '')
+            }
+            value={paymentMethod}
+          >
+            <option value="">{t('recurrences.form.noPaymentMethod')}</option>
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {t(`transactions.paymentMethods.${method}`)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label data-span="full">
+          <span>{t('recurrences.fields.note')}</span>
+          <input
+            maxLength={MAX_NOTE_LENGTH}
+            onChange={(event) => onChange('note', event.target.value)}
+            value={note}
+          />
+        </label>
+        <div className={styles.autoCreate} data-span="full">
+          <label>
+            <input
+              aria-describedby={hintId}
+              checked={autoCreate}
+              onChange={(event) => onChange('autoCreate', event.target.checked)}
+              type="checkbox"
+            />
+            <span>{t('recurrences.fields.autoCreate')}</span>
+          </label>
+          <small id={hintId}>{t('recurrences.form.autoCreateHint')}</small>
+        </div>
+      </FormSection>
     </>
   );
 }

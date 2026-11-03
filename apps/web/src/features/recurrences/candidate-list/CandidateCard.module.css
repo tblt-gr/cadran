@@ -54,12 +54,8 @@
   justify-content: flex-end;
 }
 @media (max-width: 42rem) {
-  .heading,
-  .actions {
+  .heading {
     flex-direction: column;
-  }
-  .actions button {
-    width: 100%;
   }
   .details {
     grid-template-columns: 1fr;

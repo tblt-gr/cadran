@@ -20,18 +20,12 @@ interface IdentityFieldsProps {
   account?: Account;
   assetInvalid: boolean;
   assets: AssetOptions;
-  identifierInvalid: boolean;
-  institution: string;
-  institutionInvalid: boolean;
   kind: AccountKind;
   label: string;
   labelInvalid: boolean;
-  maskedIdentifier: string;
   onAssetChange: (assetCode: string) => void;
-  onInstitutionChange: (institution: string) => void;
   onKindChange: (kind: AccountKind) => void;
   onLabelChange: (label: string) => void;
-  onMaskedIdentifierChange: (identifier: string) => void;
   origin: AccountOrigin;
 }
 
@@ -48,18 +42,12 @@ export function IdentityFields({
   account,
   assetInvalid,
   assets,
-  identifierInvalid,
-  institution,
-  institutionInvalid,
   kind,
   label,
   labelInvalid,
-  maskedIdentifier,
   onAssetChange,
-  onInstitutionChange,
   onKindChange,
   onLabelChange,
-  onMaskedIdentifierChange,
   origin,
 }: IdentityFieldsProps) {
   const { t } = useTranslation();
@@ -85,25 +73,6 @@ export function IdentityFields({
             onChange={(event) => onLabelChange(event.target.value)}
             required
             value={label}
-          />
-        )}
-      </FormField>
-
-      <FormField
-        error={institutionInvalid ? t('accounts.validation.institution') : undefined}
-        hint={institutionInvalid ? undefined : t('accounts.form.institutionHint')}
-        label={t('accounts.fields.institution')}
-        name="institution"
-      >
-        {({ fieldId, describedBy }) => (
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={institutionInvalid ? true : undefined}
-            autoComplete="off"
-            id={fieldId}
-            maxLength={80}
-            onChange={(event) => onInstitutionChange(event.target.value)}
-            value={institution}
           />
         )}
       </FormField>
@@ -159,26 +128,6 @@ export function IdentityFields({
               </option>
             ))}
           </select>
-        )}
-      </FormField>
-
-      <FormField
-        error={identifierInvalid ? t('accounts.validation.maskedIdentifier') : undefined}
-        hint={t('accounts.form.maskedIdentifierHint')}
-        label={t('accounts.fields.maskedIdentifier')}
-        name="masked-identifier"
-      >
-        {({ fieldId, describedBy }) => (
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={identifierInvalid ? true : undefined}
-            autoComplete="off"
-            id={fieldId}
-            maxLength={8}
-            onChange={(event) => onMaskedIdentifierChange(event.target.value)}
-            placeholder="4821"
-            value={maskedIdentifier}
-          />
         )}
       </FormField>
     </>

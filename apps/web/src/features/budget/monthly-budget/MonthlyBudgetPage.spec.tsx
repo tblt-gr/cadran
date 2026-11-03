@@ -253,7 +253,7 @@ const recap = {
     },
     budgetExpenses: {
       kpi: 'budgetExpenses' as const,
-      value: '-400.00',
+      value: '400.00',
       assetCode: 'EUR',
       reason: null,
       pendingCount: 0,
@@ -300,7 +300,7 @@ const recap = {
       {
         axis: 'ESSENTIAL' as const,
         kpi: null,
-        value: '-400.00',
+        value: '400.00',
         assetCode: 'EUR',
         reason: null,
         pendingCount: 0,
@@ -1740,6 +1740,44 @@ describe('MonthlyBudgetPage', () => {
       '-400,00',
     );
     expect(within(panel).queryByRole('button', { name: /Expliquer/ })).toBeNull();
+  });
+
+  it('shows a refund-only expense total as a positive amount', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        totals: {
+          ...recap.totals,
+          budgetExpenses: { ...recap.totals.budgetExpenses, value: '-18.00' },
+        },
+      }),
+    );
+    renderPage();
+    await loaded();
+    const panel = screen.getByRole('region', { name: 'Dépenses' });
+    const total = within(panel).getByText('Total des dépenses').parentElement;
+    expect(total?.textContent).toContain('18,00');
+    expect(total?.textContent).not.toContain('-18,00');
+  });
+
+  it('shows a refund-only axis total as a positive amount', async () => {
+    window.history.replaceState({}, '', '/budget/2026/03?axis=ESSENTIAL');
+    api.readMonthlyRecap.mockReturnValue(
+      ok({
+        ...recap,
+        totals: {
+          ...recap.totals,
+          expensesByAxis: [{ ...recap.totals.expensesByAxis[0]!, value: '-18.00' }],
+        },
+      }),
+    );
+    renderPage();
+    await loaded();
+    const total = within(screen.getByRole('region', { name: 'Dépenses' })).getByText(
+      'Total des dépenses',
+    ).parentElement;
+    expect(total?.textContent).toContain('18,00');
+    expect(total?.textContent).not.toContain('-18,00');
   });
 
   it('shows one stale valuation marker beside the accounts title', async () => {

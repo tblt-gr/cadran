@@ -1,3 +1,5 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
+import { AccountDescriptiveFields } from './identity-fields/AccountDescriptiveFields';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
@@ -167,6 +169,10 @@ export function AccountForm({
     );
   }
 
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(institution || maskedIdentifier || closedOn),
+  );
+
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
@@ -180,18 +186,12 @@ export function AccountForm({
           account={account}
           assetInvalid={showErrors && assetInvalid}
           assets={assets}
-          identifierInvalid={showErrors && identifierInvalid}
-          institution={institution}
-          institutionInvalid={showErrors && institutionInvalid}
           kind={kind}
           label={label}
           labelInvalid={showErrors && labelInvalid}
-          maskedIdentifier={maskedIdentifier}
           onAssetChange={setAssetSelection}
-          onInstitutionChange={setInstitution}
           onKindChange={setKind}
           onLabelChange={setLabel}
-          onMaskedIdentifierChange={setMaskedIdentifier}
           origin={origin}
         />
 
@@ -214,6 +214,33 @@ export function AccountForm({
           openedOnInvalid={showErrors && openedInvalid}
           today={today}
         />
+        <FormSection
+          title={t('transactions.form.advanced')}
+          open={
+            advancedOpen ||
+            (showErrors && (institutionInvalid || identifierInvalid || closedInvalid))
+          }
+          onToggle={setAdvancedOpen}
+        >
+          <AccountDescriptiveFields
+            identifierInvalid={showErrors && identifierInvalid}
+            institution={institution}
+            institutionInvalid={showErrors && institutionInvalid}
+            maskedIdentifier={maskedIdentifier}
+            onInstitutionChange={setInstitution}
+            onMaskedIdentifierChange={setMaskedIdentifier}
+          />
+          <LifecycleFields
+            advanced
+            closedOn={closedOn}
+            closedOnInvalid={showErrors && closedInvalid}
+            onClosedOnChange={setClosedOn}
+            onOpenedOnChange={setOpenedOn}
+            openedOn={openedOn}
+            openedOnInvalid={showErrors && openedInvalid}
+            today={today}
+          />
+        </FormSection>
       </FormGrid>
 
       {account && kind === 'CURRENT' ? (

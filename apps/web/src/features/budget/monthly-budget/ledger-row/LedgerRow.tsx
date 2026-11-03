@@ -7,8 +7,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { canonicalGroupColor } from '@/features/accounts/group-color';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
-import { formatAmount } from '@/lib/decimal';
-import { toSignedAmount } from '@/lib/signedAmount';
+import { formatAmount, negateDecimal } from '@/lib/decimal';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { MovementDetails } from '@/features/budget/monthly-budget/movement-details/MovementDetails';
 import styles from './LedgerRow.module.css';
@@ -168,14 +167,13 @@ function renderAmount(
   language: string,
   t: TFunction,
 ) {
-  const direction = kind === 'expense' ? 'OUTFLOW' : null;
   if (pendingOnly) {
     return row.pendingAmount === null ? (
       <EmptyValue label={t('budget.monthly.pendingNotCalculable')} />
     ) : (
       <MoneyValue
         value={formatAmount(
-          toSignedAmount(row.pendingAmount.value, direction),
+          kind === 'expense' ? negateDecimal(row.pendingAmount.value) : row.pendingAmount.value,
           row.pendingAmount.assetCode,
           language,
         )}
@@ -184,7 +182,7 @@ function renderAmount(
   }
   if (!row.hasMovements) return <EmptyValue label={t('budget.monthly.noMovement')} />;
   if (row.total.value !== null && row.total.assetCode !== null) {
-    const value = toSignedAmount(row.total.value, direction);
+    const value = kind === 'expense' ? negateDecimal(row.total.value) : row.total.value;
     return <MoneyValue value={formatAmount(value, row.total.assetCode, language)} />;
   }
   return t('budget.monthly.mixedAssets');

@@ -85,7 +85,4 @@
   .fields {
     grid-template-columns: 1fr;
   }
-  .actions button {
-    width: 100%;
-  }
 }

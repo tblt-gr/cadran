@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 
 interface LifecycleFieldsProps {
+  advanced?: boolean;
   closedOn: string;
   closedOnInvalid: boolean;
   onClosedOnChange: (value: string) => void;
@@ -17,6 +18,7 @@ interface LifecycleFieldsProps {
  * account, and clearing it reopens the account the same way.
  */
 export function LifecycleFields({
+  advanced = false,
   closedOn,
   closedOnInvalid,
   onClosedOnChange,
@@ -29,44 +31,48 @@ export function LifecycleFields({
 
   return (
     <>
-      <FormField
-        error={openedOnInvalid ? t('accounts.validation.openedOn') : undefined}
-        label={t('accounts.fields.openedOn')}
-        name="opened-on"
-      >
-        {({ fieldId, describedBy }) => (
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={openedOnInvalid ? true : undefined}
-            id={fieldId}
-            max={today}
-            onChange={(event) => onOpenedOnChange(event.target.value)}
-            required
-            type="date"
-            value={openedOn}
-          />
-        )}
-      </FormField>
+      {!advanced ? (
+        <FormField
+          error={openedOnInvalid ? t('accounts.validation.openedOn') : undefined}
+          label={t('accounts.fields.openedOn')}
+          name="opened-on"
+        >
+          {({ fieldId, describedBy }) => (
+            <input
+              aria-describedby={describedBy}
+              aria-invalid={openedOnInvalid ? true : undefined}
+              id={fieldId}
+              max={today}
+              onChange={(event) => onOpenedOnChange(event.target.value)}
+              required
+              type="date"
+              value={openedOn}
+            />
+          )}
+        </FormField>
+      ) : null}
 
-      <FormField
-        error={closedOnInvalid ? t('accounts.validation.closedOn') : undefined}
-        hint={t('accounts.form.closedOnHint')}
-        label={t('accounts.fields.closedOn')}
-        name="closed-on"
-      >
-        {({ fieldId, describedBy }) => (
-          <input
-            aria-describedby={describedBy}
-            aria-invalid={closedOnInvalid ? true : undefined}
-            id={fieldId}
-            max={today}
-            min={openedOn === '' ? undefined : openedOn}
-            onChange={(event) => onClosedOnChange(event.target.value)}
-            type="date"
-            value={closedOn}
-          />
-        )}
-      </FormField>
+      {advanced ? (
+        <FormField
+          error={closedOnInvalid ? t('accounts.validation.closedOn') : undefined}
+          hint={t('accounts.form.closedOnHint')}
+          label={t('accounts.fields.closedOn')}
+          name="closed-on"
+        >
+          {({ fieldId, describedBy }) => (
+            <input
+              aria-describedby={describedBy}
+              aria-invalid={closedOnInvalid ? true : undefined}
+              id={fieldId}
+              max={today}
+              min={openedOn === '' ? undefined : openedOn}
+              onChange={(event) => onClosedOnChange(event.target.value)}
+              type="date"
+              value={closedOn}
+            />
+          )}
+        </FormField>
+      ) : null}
     </>
   );
 }

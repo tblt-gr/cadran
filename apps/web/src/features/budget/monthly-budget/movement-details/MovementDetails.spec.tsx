@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { MovementDetails } from './MovementDetails';
@@ -53,7 +53,7 @@ describe('MovementDetails loading structure', () => {
         expect(container.tagName).toBe(tag);
         expect(container.className).toContain('movement');
         expect(container.querySelector('strong > [data-skeleton]')).toBeTruthy();
-        expect(container.querySelector('[data-visual-mask]')).toBeTruthy();
+        expect(container.parentElement?.querySelector('[data-visual-mask]')).toBeTruthy();
         if (tag === 'BUTTON') {
           expect(container.className).toContain('movementAction');
           expect(container.hasAttribute('disabled')).toBe(true);
@@ -73,7 +73,7 @@ describe('MovementDetails loading structure', () => {
       transferId: null,
       bookedOn: date,
       label,
-      amount: { value: '12.34', assetCode: 'EUR' },
+      amount: { value: '-12.34', assetCode: 'EUR' },
       direction: null,
       counterpartAccountId: null,
       counterpartAccountLabel: null,
@@ -115,13 +115,13 @@ describe('MovementDetails loading structure', () => {
     expect(screen.getAllByText('20 octobre')).toHaveLength(1);
     const longLabelNode = screen.getByText(longLabel);
     expect(longLabelNode.getAttribute('title')).toBe(longLabel);
-    expect(longLabelNode.parentElement?.querySelector('[data-visual-mask]')).toBeTruthy();
+    expect(longLabelNode.closest('li')?.querySelector('[data-visual-mask]')).toBeTruthy();
     expect(longLabelNode.closest('li')?.parentElement?.previousElementSibling?.tagName).toBe(
       'TIME',
     );
     expect(
       screen.getByRole('button', {
-        name: `Modifier le mouvement ${longLabel} du 20 octobre 2026, 12,34 €`,
+        name: `Modifier le mouvement ${longLabel} du 20 octobre 2026, -12,34 €`,
       }),
     ).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Afficher les mouvements suivants' }));
@@ -137,6 +137,53 @@ describe('MovementDetails loading structure', () => {
     ]);
     expect(within(list).getAllByRole('button')).toHaveLength(4);
     expect(api.readMovements.mock.calls[1]?.[0].query.cursor).toBe('next');
+  });
+
+  it('explains a refund beside its movement on demand', async () => {
+    api.readMovements.mockResolvedValue({
+      data: {
+        items: [
+          {
+            id: 'refund',
+            transactionId: 'tx-refund',
+            transferId: null,
+            bookedOn: '2026-11-02',
+            label: 'Remboursement médecin',
+            amount: { value: '18.00', assetCode: 'EUR' },
+            direction: null,
+            counterpartAccountId: null,
+            counterpartAccountLabel: null,
+            pending: false,
+            upcoming: false,
+          },
+        ],
+        hasMore: false,
+        nextCursor: null,
+      },
+      response: new Response('{}', { status: 200 }),
+    });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+    render(
+      <QueryClientProvider client={client}>
+        <MovementDetails
+          axis={null}
+          editable
+          kind="expense"
+          language="fr"
+          month="2026-11"
+          rowId="row-1"
+          onEditTransaction={vi.fn()}
+        />
+      </QueryClientProvider>,
+    );
+    const info = await screen.findByRole('button', { name: 'Comprendre ce remboursement' });
+    expect(info.nextElementSibling?.hasAttribute('data-visual-mask')).toBe(true);
+    expect(screen.queryByText(/réduit les dépenses du mois/)).toBeNull();
+    fireEvent.click(info);
+    expect(screen.getByRole('dialog', { name: 'Remboursement dans le budget' })).toBeTruthy();
+    expect(screen.getByText(/réduit les dépenses du mois/)).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
 
   it.each(['expense', 'income', 'account'] as const)(

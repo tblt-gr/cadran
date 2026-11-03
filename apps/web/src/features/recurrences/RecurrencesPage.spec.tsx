@@ -272,6 +272,45 @@ describe('RecurrencesPage', () => {
     expect(api.confirmRecurrence.mock.calls[0]?.[0].body.expectedAmount).toBe('-20.50');
   });
 
+  it.each(['', '0', '-', '1,2'])(
+    'offers both category types for amount %s with no direction and validates a known sign',
+    async (unknownAmount) => {
+      const income = { ...housing, id: 'income', label: 'Salaire', type: 'INCOME' as const };
+      api.listCategories.mockImplementation(({ query }) => {
+        const items = [housing, income].filter(
+          (category) => !query.type || category.type === query.type,
+        );
+        return success({ items, page: 1, pageSize: 50, total: items.length });
+      });
+      api.detectRecurrenceCandidates.mockImplementation(() =>
+        success({ items: [candidate], partial: false }),
+      );
+      api.listRecurrences.mockImplementation(() =>
+        success({ items: [], page: 1, pageSize: 100, total: 0 }),
+      );
+      api.listAccounts.mockImplementation(() =>
+        success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+      );
+      renderPage();
+      fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+      fireEvent.change(screen.getByLabelText('Sens'), { target: { value: '' } });
+      fireEvent.change(screen.getByLabelText('Montant attendu'), {
+        target: { value: unknownAmount },
+      });
+      fireEvent.focus(screen.getByRole('combobox', { name: 'Catégorie' }));
+      expect(await screen.findByRole('option', { name: 'Logement' })).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Salaire' })).toBeTruthy();
+      fireEvent.mouseDown(screen.getByRole('option', { name: 'Salaire' }));
+      fireEvent.change(screen.getByLabelText('Montant attendu'), { target: { value: '-10' } });
+      fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+      expect(
+        screen.getByText('Cette catégorie ne correspond pas au sens du montant.'),
+      ).toBeTruthy();
+      expect(api.confirmRecurrence).not.toHaveBeenCalled();
+    },
+  );
+
   it('keeps the typed sign when no direction is chosen and refuses zero', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() =>
       success({ items: [candidate], partial: false }),
@@ -483,6 +522,7 @@ describe('RecurrencesPage', () => {
         }) as HTMLInputElement
       ).checked,
     ).toBe(true);
+    expect(screen.getByText('Champs avancés').closest('details')?.open).toBe(true);
     expect((screen.getByLabelText('Note') as HTMLInputElement).value).toBe('Loyer appartement');
     expect((screen.getByLabelText('Moyen de paiement') as HTMLSelectElement).value).toBe(
       'DIRECT_DEBIT',

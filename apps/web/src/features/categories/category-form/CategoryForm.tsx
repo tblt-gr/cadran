@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type {
@@ -46,6 +47,16 @@ export function CategoryForm({
   const [axes, setAxes] = useState<AnalyticAxis[]>(category?.defaultAnalyticAxes ?? []);
   const [budgetIncluded, setBudgetIncluded] = useState(category?.budgetIncluded ?? true);
   const [sortOrder, setSortOrder] = useState(String(category?.sortOrder ?? 0));
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(
+      category &&
+      (category.icon ||
+        category.color ||
+        category.defaultAnalyticAxes.length ||
+        !category.budgetIncluded ||
+        category.sortOrder),
+    ),
+  );
   const [showErrors, setShowErrors] = useState(false);
 
   const inheritedIcon = categoryIcon(category?.effectiveIcon);
@@ -142,49 +153,57 @@ export function CategoryForm({
           <ParentCategoryField key={type} onChange={setParentId} type={type} value={parentId} />
         ) : null}
 
-        <label>
-          <span>{t('categories.fields.order')}</span>
-          <input
-            aria-describedby={showErrors && orderInvalid ? `${errorId}-order` : undefined}
-            aria-invalid={showErrors && orderInvalid ? true : undefined}
-            inputMode="numeric"
-            onChange={(event) => setSortOrder(event.target.value)}
-            value={sortOrder}
-          />
-          {showErrors && orderInvalid ? (
-            <small id={`${errorId}-order`}>{t('categories.validation.order')}</small>
-          ) : null}
-        </label>
+        <FormSection
+          title={t('transactions.form.advanced')}
+          open={advancedOpen || (showErrors && (orderInvalid || iconInvalid || colorInvalid))}
+          onToggle={setAdvancedOpen}
+        >
+          <label>
+            <span>{t('categories.fields.order')}</span>
+            <input
+              aria-describedby={showErrors && orderInvalid ? `${errorId}-order` : undefined}
+              aria-invalid={showErrors && orderInvalid ? true : undefined}
+              inputMode="numeric"
+              onChange={(event) => setSortOrder(event.target.value)}
+              value={sortOrder}
+            />
+            {showErrors && orderInvalid ? (
+              <small id={`${errorId}-order`}>{t('categories.validation.order')}</small>
+            ) : null}
+          </label>
+          <div data-span="full">
+            <CategoryIdentityPreview color={color} icon={icon} label={cleanLabel} />
+            <CategoryColorPicker onChange={setColor} value={color} />
+            {color === '' && category?.color === null && category.effectiveColor ? (
+              <p className={styles.axesHint}>
+                {t('categories.tree.inherits', { color: category.effectiveColor })}
+              </p>
+            ) : null}
+            <CategoryIconPicker onChange={setIcon} value={icon} />
+            {icon === '' && category?.icon === null && inheritedIcon ? (
+              <p className={styles.axesHint}>
+                {t('categories.tree.inheritsIcon', {
+                  icon: t(`categories.identity.icons.${inheritedIcon.key}`),
+                })}
+              </p>
+            ) : null}
+            {showErrors && iconInvalid ? (
+              <p role="alert">{t('categories.validation.icon')}</p>
+            ) : null}
+
+            <CategoryAxesField onToggle={toggleAxis} value={axes} />
+
+            <label className={styles.check}>
+              <input
+                checked={budgetIncluded}
+                onChange={(event) => setBudgetIncluded(event.target.checked)}
+                type="checkbox"
+              />
+              <span>{t('categories.fields.budgetIncluded')}</span>
+            </label>
+          </div>
+        </FormSection>
       </FormGrid>
-
-      <CategoryIdentityPreview color={color} icon={icon} label={cleanLabel} />
-      <CategoryColorPicker onChange={setColor} value={color} />
-      {color === '' && category?.color === null && category.effectiveColor ? (
-        <p className={styles.axesHint}>
-          {t('categories.tree.inherits', { color: category.effectiveColor })}
-        </p>
-      ) : null}
-      <CategoryIconPicker onChange={setIcon} value={icon} />
-      {icon === '' && category?.icon === null && inheritedIcon ? (
-        <p className={styles.axesHint}>
-          {t('categories.tree.inheritsIcon', {
-            icon: t(`categories.identity.icons.${inheritedIcon.key}`),
-          })}
-        </p>
-      ) : null}
-      {showErrors && iconInvalid ? <p role="alert">{t('categories.validation.icon')}</p> : null}
-
-      <CategoryAxesField onToggle={toggleAxis} value={axes} />
-
-      <label className={styles.check}>
-        <input
-          checked={budgetIncluded}
-          onChange={(event) => setBudgetIncluded(event.target.checked)}
-          type="checkbox"
-        />
-        <span>{t('categories.fields.budgetIncluded')}</span>
-      </label>
-
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'categories.form.saving' : 'categories.form.save')}

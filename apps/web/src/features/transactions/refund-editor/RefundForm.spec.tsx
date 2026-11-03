@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { formatAmount } from '@/lib/decimal';
 import { RefundForm } from './RefundForm';
+import { RefundFormSkeleton } from './RefundFormSkeleton';
 
 const api = vi.hoisted(() => ({
   listAssets: vi.fn(),
@@ -42,6 +43,18 @@ describe('RefundForm', () => {
     vi.clearAllMocks();
   });
 
+  it('keeps the essential fields and folded advanced section in the loading grid', () => {
+    render(<RefundFormSkeleton />);
+    const skeleton = screen.getByTestId('refund-form-skeleton');
+    const advanced = screen.getByText('Champs avancés').closest('details');
+    expect(advanced?.open).toBe(false);
+    expect(skeleton.textContent).toContain('Montant');
+    expect(skeleton.tagName).toBe('FORM');
+    expect(advanced?.querySelectorAll('label')).toHaveLength(2);
+    expect(skeleton.querySelectorAll('label')).toHaveLength(6);
+    expect(advanced?.parentElement?.parentElement?.textContent).toContain('Montant');
+  });
+
   it('shows the server balance before the amount and blocks a larger client-side amount', () => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 
@@ -57,6 +70,10 @@ describe('RefundForm', () => {
         />
       </QueryClientProvider>,
     );
+
+    expect(screen.getByText('Champs avancés').closest('details')?.open).toBe(false);
+    expect(screen.getByLabelText('Note').closest('details')).toBeTruthy();
+    expect(screen.getByLabelText('Montant').closest('details')).toBeNull();
 
     const expectedRemaining = formatAmount('10.00', 'EUR', 'fr').replace(/\s+/g, ' ');
     expect(screen.getAllByText(expectedRemaining).length).toBeGreaterThan(0);
@@ -112,12 +129,19 @@ describe('RefundForm', () => {
 
     expect(
       await screen.findByText(
-        'La répartition affichée correspond au solde intégral : ajustez-la à la main pour ce montant réduit.',
+        'La répartition correspond encore au montant intégral. Modifiez les lignes ou utilisez « Assigner le reste à cette ligne » pour atteindre le montant du remboursement.',
       ),
     ).toBeTruthy();
     expect(
       (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+    expect(screen.getByText(/la somme des lignes doit être égale/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Assigner le reste à cette ligne' }));
+    expect((screen.getByLabelText('Montant de la ligne 1') as HTMLInputElement).value).toBe('5.00');
+    expect(
+      (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
   });
 });

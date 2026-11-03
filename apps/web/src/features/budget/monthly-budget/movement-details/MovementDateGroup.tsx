@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
-import { formatAmount, formatCalendarDay, formatCalendarDayMonth } from '@/lib/decimal';
+import {
+  compareDecimals,
+  formatAmount,
+  formatCalendarDay,
+  formatCalendarDayMonth,
+} from '@/lib/decimal';
+import { RefundMovementInfo } from './RefundMovementInfo';
 import styles from './MovementDetails.module.css';
 
 interface MovementDateGroupProps {
@@ -69,8 +75,6 @@ export function MovementDateGroup({
                   ({t('budget.monthly.movements.upcoming')})
                 </span>
               ) : null}
-
-              <MoneyValue skeletonClassName={styles.skeletonAmount} value={amount} />
             </div>
           );
           // The server's category rows are editable transactions; account rows are transfer legs.
@@ -111,6 +115,18 @@ export function MovementDateGroup({
                   {content}
                 </div>
               )}
+              {kind === 'expense' &&
+              movement !== null &&
+              compareDecimals(movement.amount.value, '0') > 0 ? (
+                <RefundMovementInfo />
+              ) : null}
+              <MoneyValue
+                className={
+                  pending ? `${styles.movementAmount} ${styles.pending}` : styles.movementAmount
+                }
+                skeletonClassName={styles.skeletonAmount}
+                value={amount}
+              />
             </li>
           );
         })}
