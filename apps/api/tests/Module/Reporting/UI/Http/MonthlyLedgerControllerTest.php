@@ -147,6 +147,51 @@ final class MonthlyLedgerControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
     }
 
+    public function testAccountRowsCarryTheEffectiveColorOfTheirPrimaryGroupWithoutLeakingAnotherWorkspace(): void
+    {
+        $this->signIn();
+        $parent = '00000000-0000-7000-8000-0000000000b1';
+        $child = '00000000-0000-7000-8000-0000000000b2';
+        $archived = '00000000-0000-7000-8000-0000000000b3';
+        $foreign = '00000000-0000-7000-8000-0000000000b9';
+        $this->group($parent, WorkspaceFixture::OWN_WORKSPACE, 'Épargne', null, 'CUSTOM', '#2F9E6E');
+        $this->group($child, WorkspaceFixture::OWN_WORKSPACE, 'Livrets', $parent, 'PARENT', null, 2);
+        $this->group($archived, WorkspaceFixture::OWN_WORKSPACE, 'Ancien', null, 'CUSTOM', '#112233', 1, '2026-02-01 12:00:00+00');
+        $this->group($foreign, WorkspaceFixture::OTHER_WORKSPACE, 'Autre', null, 'CUSTOM', '#FF00FF');
+        $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $this->account(self::SAVINGS, WorkspaceFixture::OWN_WORKSPACE, 'Livret A', 'SAVINGS');
+        $this->account(self::EMPTY_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Ancien compte', 'CURRENT');
+        $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Parent direct', 'SAVINGS');
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET primary_group_id = ? WHERE id = ?', [$child, self::SAVINGS]);
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET primary_group_id = ? WHERE id = ?', [$archived, self::EMPTY_ACCOUNT]);
+        $this->connection->executeStatement('UPDATE account_financial_accounts SET primary_group_id = ? WHERE id = ?', [$parent, self::OTHER_ACCOUNT]);
+        $this->transfer('a', self::CURRENT, self::SAVINGS, '300');
+
+        $before = $this->read('/api/v1/reports/monthly/ledger?month=2026-09');
+
+        self::assertNull(self::row($before, 'accounts', self::CURRENT)['primaryGroupColor']);
+        self::assertSame('#2F9E6E', self::row($before, 'accounts', self::OTHER_ACCOUNT)['primaryGroupColor']);
+        // A child inheriting its parent reads the parent's current color, like the accounts overview.
+        self::assertSame('#2F9E6E', self::row($before, 'accounts', self::SAVINGS)['primaryGroupColor']);
+        self::assertSame('#112233', self::row($before, 'accounts', self::EMPTY_ACCOUNT)['primaryGroupColor']);
+        self::assertStringNotContainsString('#FF00FF', (string) $this->client->getResponse()->getContent());
+        self::assertSame('-300.00', self::fields(self::row($before, 'accounts', self::CURRENT)['total'] ?? null)['value']);
+
+        $this->connection->executeStatement("UPDATE account_groups SET color = '#AA0011' WHERE id = ?", [$parent]);
+        $after = $this->read('/api/v1/reports/monthly/ledger?month=2026-09');
+        self::assertSame('#AA0011', self::row($after, 'accounts', self::SAVINGS)['primaryGroupColor']);
+        self::assertSame('300.00', self::fields(self::row($after, 'accounts', self::SAVINGS)['total'] ?? null)['value']);
+    }
+
+    private function group(string $id, string $workspace, string $label, ?string $parent, string $mode, ?string $color, int $depth = 1, ?string $archivedAt = null): void
+    {
+        $this->connection->insert('account_groups', [
+            'id' => $id, 'workspace_id' => $workspace, 'label' => $label, 'parent_id' => $parent, 'sort_order' => 0,
+            'depth' => $depth, 'color_mode' => $mode, 'color' => $color, 'version' => 1, 'archived_at' => $archivedAt,
+            'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
+        ]);
+    }
+
     public function testPendingMovementsAreListedMarkedWithoutChangingAnyTotal(): void
     {
         $this->signIn();

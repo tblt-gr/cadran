@@ -47,6 +47,12 @@ final readonly class AccountGroupColors
         return $this->effective[$group->id] ?? AccountGroupColor::defaultFor($group->id);
     }
 
+    /** Null when the group is not one of the workspace's, so a dangling reference never borrows a color. */
+    public function forId(?string $groupId): ?string
+    {
+        return null === $groupId ? null : ($this->effective[$groupId] ?? null);
+    }
+
     /** What the default mode of the group would produce now. */
     public function defaultFor(AccountGroup $group): string
     {

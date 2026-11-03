@@ -32,6 +32,7 @@ final class AccountFixture
         ?string $archivedAt = null,
         AccountValuationMode $valuationMode = AccountValuationMode::TRANSACTIONS,
         string $label = 'Livret A Banque X',
+        ?string $primaryGroupId = null,
     ): Account {
         $now = new \DateTimeImmutable('2026-09-03T10:00:00+00:00');
 
@@ -55,6 +56,7 @@ final class AccountFixture
             createdAt: $now,
             updatedAt: $now,
             archivedAt: null === $archivedAt ? null : new \DateTimeImmutable($archivedAt),
+            primaryGroupId: $primaryGroupId,
         );
     }
 }

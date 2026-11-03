@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { canonicalGroupColor } from '@/features/accounts/group-color';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { formatAmount } from '@/lib/decimal';
 import { toSignedAmount } from '@/lib/signedAmount';
@@ -46,7 +47,11 @@ export function LedgerRow({
   const explainable = row.hasMovements || row.pendingCount > 0;
   const pendingOnly = !row.hasMovements && row.pendingCount > 0;
   const amount = renderAmount(row, pendingOnly, kind, language, t);
-  const color = canonicalCategoryColor(category?.color);
+  // An account has no color of its own: its border shows the group it is filed under.
+  const color =
+    kind === 'account'
+      ? canonicalGroupColor((row as MonthlyLedgerAccountRow).primaryGroupColor)
+      : canonicalCategoryColor(category?.color);
   const addDisabled = !actionsAllowed || addUnavailable;
   const disabledReason = !actionsAllowed
     ? t('budget.monthly.closedReason')

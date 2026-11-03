@@ -44,7 +44,7 @@ final readonly class ReadMonthlyLedger
         try {
             $transactions = ($this->transactions)($workspace, $month, $includeUpcoming);
             $transfers = ($this->transfers)($workspace, $month);
-            $accounts = ($this->accounts)($workspace, $month);
+            $accounts = ($this->accounts)($workspace, $month, withGroupColors: true);
             $categories = ($this->categories)($workspace);
         } catch (MonthlyTransactionScopeTooLarge|NetWorthScopeTooLarge|BudgetCategoryScopeTooLarge $exception) {
             throw new MonthlyProjectionScopeTooLarge('The monthly ledger scope exceeds its bounds.', previous: $exception);
@@ -72,6 +72,7 @@ final readonly class ReadMonthlyLedger
                 $pending->value?->toString(),
                 $pending->asset?->toString(),
                 count($pendingSources),
+                $account->primaryGroupColor,
             );
         }
 

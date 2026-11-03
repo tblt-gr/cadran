@@ -15789,6 +15789,7 @@ components:
           hasMovements,
           pendingAmount,
           pendingCount,
+          primaryGroupColor,
         ]
       properties:
         id: { type: string, format: uuid }
@@ -15797,6 +15798,12 @@ components:
           type: string
           pattern: '^[A-Z][A-Z0-9]{1,11}$'
         kind: { $ref: '#/components/schemas/AccountKind' }
+        primaryGroupColor:
+          description: >-
+            Effective color of the account's primary group (archived groups included), as the accounts
+            overview shows it. Null without a primary group. A display accent only: never an input of any amount.
+          type: [string, 'null']
+          pattern: '^#[0-9A-F]{6}$'
         total: { $ref: '#/components/schemas/MonthlyLedgerMetric' }
         movementCount: { type: integer, minimum: 0, maximum: 500 }
         hasMovements: { type: boolean }

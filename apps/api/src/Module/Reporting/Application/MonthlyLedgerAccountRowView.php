@@ -18,6 +18,8 @@ final readonly class MonthlyLedgerAccountRowView
         public ?string $pendingAmount = null,
         public ?string $pendingAssetCode = null,
         public int $pendingCount = 0,
+        /** Effective color of the primary group, null without group: a border accent, never an amount input. */
+        public ?string $primaryGroupColor = null,
     ) {
     }
 }
