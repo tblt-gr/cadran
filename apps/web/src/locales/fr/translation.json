@@ -2337,6 +2337,12 @@
       "monthLabel": "Mois",
       "previousMonth": "Mois précédent",
       "nextMonth": "Mois suivant",
+      "sections": {
+        "when": "Période et comptes",
+        "amount": "Sens et montants",
+        "classification": "Classement",
+        "operation": "Opération"
+      },
       "directionLabel": "Sens",
       "direction": {
         "all": "Tous",

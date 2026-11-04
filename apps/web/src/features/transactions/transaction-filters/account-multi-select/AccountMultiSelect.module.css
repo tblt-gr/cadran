@@ -43,6 +43,7 @@
   border-radius: var(--radius-control);
   color: var(--text-primary);
   background: var(--bg-surface-2);
+  font-size: var(--font-size-body);
 }
 
 .list {

@@ -1,0 +1,25 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--spacing-3);
+}
+
+.section + .section {
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
+.title {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-semibold);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  align-items: start;
+  gap: var(--spacing-4);
+}

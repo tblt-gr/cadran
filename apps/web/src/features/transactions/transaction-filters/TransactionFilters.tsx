@@ -11,6 +11,7 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
 import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
+import { FilterSection } from './filter-section/FilterSection';
 import { CategoryFilterField } from './category-filter-field/CategoryFilterField';
 import { CheckboxFilterGroup } from './checkbox-filter-group/CheckboxFilterGroup';
 import { DirectionFilter } from './direction-filter/DirectionFilter';
@@ -141,85 +142,87 @@ export function TransactionFilters({
       </div>
 
       <div className={styles.panel} hidden={!expanded} id={panelId}>
-        <PeriodFilter
-          from={filters.from}
-          month={filters.month}
-          onChange={(next) => onChange({ ...filters, ...next })}
-          period={filters.period}
-          to={filters.to}
-        />
-
-        <AccountMultiSelect
-          accounts={accounts}
-          label={t('transactions.filters.accountLabel')}
-          onChange={(next) => set('accountId', next)}
-          value={filters.accountId}
-        />
-
-        <DirectionFilter onChange={(next) => set('direction', next)} value={filters.direction} />
-
-        <AmountRangeFilter
-          assetCode={filters.assetCode}
-          assetCodes={assetCodes}
-          maxAmount={filters.maxAmount}
-          minAmount={filters.minAmount}
-          onChange={(range) => onChange({ ...filters, ...range })}
-          revision={revision}
-        />
-
-        <CategoryFilterField
-          categoryIds={filters.categoryId}
-          includeDescendants={filters.includeDescendants}
-          onAddCategory={(categoryId, category) => {
-            set('categoryId', [...filters.categoryId, categoryId]);
-            if (category) {
-              setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
-            }
-          }}
-          onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
-        />
-
-        <CheckboxFilterGroup
-          labelFor={(value) => t(`transactions.natures.${value}`)}
-          legend={t('transactions.fields.nature')}
-          onChange={(next) => set('nature', next)}
-          options={NATURES}
-          value={filters.nature}
-        />
-
-        <CheckboxFilterGroup
-          labelFor={(value) => t(`transactions.states.${value}`)}
-          legend={t('transactions.fields.state')}
-          onChange={(next) => set('state', next)}
-          options={STATES}
-          value={filters.state}
-        />
-
-        <CheckboxFilterGroup
-          labelFor={(value) => t(`transactions.sources.${value}`)}
-          legend={t('transactions.filters.sourceLabel')}
-          onChange={(next) => set('source', next)}
-          options={SOURCES}
-          value={filters.source}
-        />
-
-        <CheckboxFilterGroup
-          labelFor={(value) => t(`categories.axes.${value}`)}
-          legend={t('transactions.filters.axisLabel')}
-          onChange={(next) => set('axis', next)}
-          options={AXES}
-          value={filters.axis}
-        />
-
-        <label className={styles.checkbox}>
-          <input
-            checked={filters.includeVoided && !queue}
-            disabled={queue}
-            onChange={(event) => set('includeVoided', event.target.checked)}
-            type="checkbox"
+        <FilterSection title={t('transactions.filters.sections.when')}>
+          <PeriodFilter
+            from={filters.from}
+            month={filters.month}
+            onChange={(next) => onChange({ ...filters, ...next })}
+            period={filters.period}
+            to={filters.to}
           />
-          <span>{t('transactions.includeVoided')}</span>
-        </label>
+          <AccountMultiSelect
+            accounts={accounts}
+            label={t('transactions.filters.accountLabel')}
+            onChange={(next) => set('accountId', next)}
+            value={filters.accountId}
+          />
+        </FilterSection>
+
+        <FilterSection title={t('transactions.filters.sections.amount')}>
+          <DirectionFilter onChange={(next) => set('direction', next)} value={filters.direction} />
+          <AmountRangeFilter
+            assetCode={filters.assetCode}
+            assetCodes={assetCodes}
+            maxAmount={filters.maxAmount}
+            minAmount={filters.minAmount}
+            onChange={(range) => onChange({ ...filters, ...range })}
+            revision={revision}
+          />
+        </FilterSection>
+
+        <FilterSection title={t('transactions.filters.sections.classification')}>
+          <CategoryFilterField
+            categoryIds={filters.categoryId}
+            includeDescendants={filters.includeDescendants}
+            onAddCategory={(categoryId, category) => {
+              set('categoryId', [...filters.categoryId, categoryId]);
+              if (category) {
+                setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
+              }
+            }}
+            onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
+          />
+          <CheckboxFilterGroup
+            labelFor={(value) => t(`categories.axes.${value}`)}
+            legend={t('transactions.filters.axisLabel')}
+            onChange={(next) => set('axis', next)}
+            options={AXES}
+            value={filters.axis}
+          />
+        </FilterSection>
+
+        <FilterSection title={t('transactions.filters.sections.operation')}>
+          <CheckboxFilterGroup
+            labelFor={(value) => t(`transactions.natures.${value}`)}
+            legend={t('transactions.fields.nature')}
+            onChange={(next) => set('nature', next)}
+            options={NATURES}
+            value={filters.nature}
+          />
+          <CheckboxFilterGroup
+            labelFor={(value) => t(`transactions.states.${value}`)}
+            legend={t('transactions.fields.state')}
+            onChange={(next) => set('state', next)}
+            options={STATES}
+            value={filters.state}
+          />
+          <CheckboxFilterGroup
+            labelFor={(value) => t(`transactions.sources.${value}`)}
+            legend={t('transactions.filters.sourceLabel')}
+            onChange={(next) => set('source', next)}
+            options={SOURCES}
+            value={filters.source}
+          />
+          <label className={styles.checkbox}>
+            <input
+              checked={filters.includeVoided && !queue}
+              disabled={queue}
+              onChange={(event) => set('includeVoided', event.target.checked)}
+              type="checkbox"
+            />
+            <span>{t('transactions.includeVoided')}</span>
+          </label>
+        </FilterSection>
       </div>
 
       <ActiveFilterChips chips={chips} onReset={onReset} />
