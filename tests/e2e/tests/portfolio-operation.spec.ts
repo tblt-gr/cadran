@@ -42,7 +42,10 @@ test.describe('portfolio operation', () => {
     await expect(input).toHaveValue(name);
     await page.getByRole('option', { name: `Créer « ${name} »` }).click();
     child = page.getByRole('dialog', { name: 'Créer un instrument' });
-    await child.getByLabel('Ticker', { exact: true }).fill(`T${Date.now().toString(36)}`);
+    await expect(child.getByRole('textbox', { name: 'ISIN', exact: true })).toBeFocused();
+    await child
+      .getByRole('textbox', { name: 'Ticker', exact: true })
+      .fill(`T${Date.now().toString(36)}`);
     await child.getByRole('button', { name: 'Enregistrer', exact: true }).click();
     await expect(child).toBeHidden();
     await expect(parent).toBeVisible();
