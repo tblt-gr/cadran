@@ -18,6 +18,11 @@
     background-color var(--duration-fast) var(--ease-out);
 }
 
+.link:hover,
+.link:focus-visible {
+  text-decoration: none;
+}
+
 .link:hover {
   color: var(--text-primary);
   background: var(--bg-surface-2);

@@ -25,6 +25,11 @@
 }
 
 .navigation a:hover,
+.navigation a:focus-visible {
+  text-decoration: none;
+}
+
+.navigation a:hover,
 .navigation a[aria-current='page'] {
   color: var(--text-primary);
   background: var(--bg-surface-hover);
