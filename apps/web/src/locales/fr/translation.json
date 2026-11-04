@@ -2346,12 +2346,6 @@
         "sources": "Toutes les origines",
         "axes": "Tous les axes"
       },
-      "sections": {
-        "when": "Période et comptes",
-        "amount": "Sens et montants",
-        "classification": "Classement",
-        "operation": "Opération"
-      },
       "directionLabel": "Sens",
       "direction": {
         "all": "Tous",

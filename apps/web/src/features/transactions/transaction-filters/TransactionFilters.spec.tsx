@@ -189,10 +189,10 @@ describe('TransactionFilters', () => {
       'Sens',
       'Montant min',
       'Filtrer par catégorie',
-      'Filtrer par axe analytique',
       'Filtrer par nature',
       'Filtrer par état',
       'Filtrer par origine',
+      'Filtrer par axe analytique',
       'Afficher les transactions annulées',
     ].map((label) => text.indexOf(label));
 

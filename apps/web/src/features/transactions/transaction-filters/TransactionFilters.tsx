@@ -11,7 +11,6 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
 import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
-import { FilterSection } from './filter-section/FilterSection';
 import { CategoryFilterField } from './category-filter-field/CategoryFilterField';
 import { FilterMultiSelect } from './filter-multi-select/FilterMultiSelect';
 import { DirectionFilter } from './direction-filter/DirectionFilter';
@@ -142,91 +141,83 @@ export function TransactionFilters({
       </div>
 
       <div className={styles.panel} hidden={!expanded} id={panelId}>
-        <FilterSection title={t('transactions.filters.sections.when')}>
-          <PeriodFilter
-            from={filters.from}
-            month={filters.month}
-            onChange={(next) => onChange({ ...filters, ...next })}
-            period={filters.period}
-            to={filters.to}
-          />
-          <AccountMultiSelect
-            accounts={accounts}
-            label={t('transactions.filters.accountLabel')}
-            onChange={(next) => set('accountId', next)}
-            value={filters.accountId}
-          />
-        </FilterSection>
+        <PeriodFilter
+          from={filters.from}
+          month={filters.month}
+          onChange={(next) => onChange({ ...filters, ...next })}
+          period={filters.period}
+          to={filters.to}
+        />
+        <AccountMultiSelect
+          accounts={accounts}
+          label={t('transactions.filters.accountLabel')}
+          onChange={(next) => set('accountId', next)}
+          value={filters.accountId}
+        />
 
-        <FilterSection title={t('transactions.filters.sections.amount')}>
-          <DirectionFilter onChange={(next) => set('direction', next)} value={filters.direction} />
-          <AmountRangeFilter
-            assetCode={filters.assetCode}
-            assetCodes={assetCodes}
-            maxAmount={filters.maxAmount}
-            minAmount={filters.minAmount}
-            onChange={(range) => onChange({ ...filters, ...range })}
-            revision={revision}
-          />
-        </FilterSection>
+        <DirectionFilter onChange={(next) => set('direction', next)} value={filters.direction} />
+        <AmountRangeFilter
+          assetCode={filters.assetCode}
+          assetCodes={assetCodes}
+          maxAmount={filters.maxAmount}
+          minAmount={filters.minAmount}
+          onChange={(range) => onChange({ ...filters, ...range })}
+          revision={revision}
+        />
 
-        <FilterSection title={t('transactions.filters.sections.classification')}>
-          <CategoryFilterField
-            categoryIds={filters.categoryId}
-            includeDescendants={filters.includeDescendants}
-            onAddCategory={(categoryId, category) => {
-              set('categoryId', [...filters.categoryId, categoryId]);
-              if (category) {
-                setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
-              }
-            }}
-            onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
-          />
-          <FilterMultiSelect
-            labelFor={(value) => t(`categories.axes.${value}`)}
-            label={t('transactions.filters.axisLabel')}
-            emptyLabel={t('transactions.filters.empty.axes')}
-            onChange={(next) => set('axis', next)}
-            options={AXES}
-            value={filters.axis}
-          />
-        </FilterSection>
+        <CategoryFilterField
+          categoryIds={filters.categoryId}
+          includeDescendants={filters.includeDescendants}
+          onAddCategory={(categoryId, category) => {
+            set('categoryId', [...filters.categoryId, categoryId]);
+            if (category) {
+              setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
+            }
+          }}
+          onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
+        />
 
-        <FilterSection title={t('transactions.filters.sections.operation')}>
-          <FilterMultiSelect
-            labelFor={(value) => t(`transactions.natures.${value}`)}
-            label={t('transactions.filters.natureLabel')}
-            emptyLabel={t('transactions.filters.empty.natures')}
-            onChange={(next) => set('nature', next)}
-            options={NATURES}
-            value={filters.nature}
+        <FilterMultiSelect
+          labelFor={(value) => t(`transactions.natures.${value}`)}
+          label={t('transactions.filters.natureLabel')}
+          emptyLabel={t('transactions.filters.empty.natures')}
+          onChange={(next) => set('nature', next)}
+          options={NATURES}
+          value={filters.nature}
+        />
+        <FilterMultiSelect
+          labelFor={(value) => t(`transactions.states.${value}`)}
+          label={t('transactions.filters.stateLabel')}
+          emptyLabel={t('transactions.filters.empty.states')}
+          onChange={(next) => set('state', next)}
+          options={STATES}
+          value={filters.state}
+        />
+        <FilterMultiSelect
+          labelFor={(value) => t(`transactions.sources.${value}`)}
+          label={t('transactions.filters.sourceLabel')}
+          emptyLabel={t('transactions.filters.empty.sources')}
+          onChange={(next) => set('source', next)}
+          options={SOURCES}
+          value={filters.source}
+        />
+        <FilterMultiSelect
+          labelFor={(value) => t(`categories.axes.${value}`)}
+          label={t('transactions.filters.axisLabel')}
+          emptyLabel={t('transactions.filters.empty.axes')}
+          onChange={(next) => set('axis', next)}
+          options={AXES}
+          value={filters.axis}
+        />
+        <label className={styles.checkbox}>
+          <input
+            checked={filters.includeVoided && !queue}
+            disabled={queue}
+            onChange={(event) => set('includeVoided', event.target.checked)}
+            type="checkbox"
           />
-          <FilterMultiSelect
-            labelFor={(value) => t(`transactions.states.${value}`)}
-            label={t('transactions.filters.stateLabel')}
-            emptyLabel={t('transactions.filters.empty.states')}
-            onChange={(next) => set('state', next)}
-            options={STATES}
-            value={filters.state}
-          />
-          <FilterMultiSelect
-            labelFor={(value) => t(`transactions.sources.${value}`)}
-            label={t('transactions.filters.sourceLabel')}
-            emptyLabel={t('transactions.filters.empty.sources')}
-            onChange={(next) => set('source', next)}
-            options={SOURCES}
-            value={filters.source}
-          />
-          <label className={styles.checkbox}>
-            <input
-              checked={filters.includeVoided && !queue}
-              disabled={queue}
-              onChange={(event) => set('includeVoided', event.target.checked)}
-              type="checkbox"
-            />
-            <span>{t('transactions.includeVoided')}</span>
-          </label>
-        </FilterSection>
+          <span>{t('transactions.includeVoided')}</span>
+        </label>
       </div>
 
       <ActiveFilterChips chips={chips} onReset={onReset} />

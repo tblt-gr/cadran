@@ -58,8 +58,9 @@
 }
 
 .panel {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  align-items: start;
   padding: var(--spacing-4);
   border: var(--border-line-subtle);
   border-radius: var(--radius-card);
@@ -78,6 +79,10 @@
 
   .search {
     flex-basis: 100%;
+  }
+
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
