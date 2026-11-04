@@ -7,12 +7,15 @@ export function MultiSelect<T extends string>({
   onChange,
   label,
   emptyLabel = 'Tous les types',
+  countLabel = (count) => `${count} types`,
 }: {
   options: readonly { value: T; label: string }[];
   value: readonly T[];
   onChange: (value: T[]) => void;
   label: string;
   emptyLabel?: string;
+  /** Summary shown when several options are selected. */
+  countLabel?: (count: number) => string;
 }) {
   const labelId = useId();
   const summaryId = useId();
@@ -24,7 +27,7 @@ export function MultiSelect<T extends string>({
       ? emptyLabel
       : value.length === 1
         ? (options.find((option) => option.value === value[0])?.label ?? value[0])
-        : `${value.length} types`;
+        : countLabel(value.length);
 
   function toggle(type: T) {
     onChange(value.includes(type) ? value.filter((item) => item !== type) : [...value, type]);

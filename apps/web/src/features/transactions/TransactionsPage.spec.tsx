@@ -1611,7 +1611,8 @@ describe('TransactionsPage', () => {
 
     await screen.findByRole('heading', { name: 'Aucune transaction' });
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Filtrer par état/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'Comptabilisée' }));
 
     await waitFor(() =>
       expect(new URLSearchParams(window.location.search).getAll('state')).toEqual(['BOOKED']),
@@ -1882,7 +1883,8 @@ describe('primary account creation defaults', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Filtrer par état/ }));
+    fireEvent.click(screen.getByRole('option', { name: 'Comptabilisée' }));
 
     await waitFor(() => expect(screen.getByText('Aucune sélection')).toBeTruthy());
     window.history.replaceState({}, '', '/transactions');

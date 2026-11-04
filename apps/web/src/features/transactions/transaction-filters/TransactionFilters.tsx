@@ -13,7 +13,7 @@ import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
 import { FilterSection } from './filter-section/FilterSection';
 import { CategoryFilterField } from './category-filter-field/CategoryFilterField';
-import { CheckboxFilterGroup } from './checkbox-filter-group/CheckboxFilterGroup';
+import { FilterMultiSelect } from './filter-multi-select/FilterMultiSelect';
 import { DirectionFilter } from './direction-filter/DirectionFilter';
 import { hasPanelFilters, type TransactionAxis, type TransactionFilterState } from './filterState';
 import { PeriodFilter } from './period-filter/PeriodFilter';
@@ -182,9 +182,10 @@ export function TransactionFilters({
             }}
             onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
           />
-          <CheckboxFilterGroup
+          <FilterMultiSelect
             labelFor={(value) => t(`categories.axes.${value}`)}
-            legend={t('transactions.filters.axisLabel')}
+            label={t('transactions.filters.axisLabel')}
+            emptyLabel={t('transactions.filters.empty.axes')}
             onChange={(next) => set('axis', next)}
             options={AXES}
             value={filters.axis}
@@ -192,23 +193,26 @@ export function TransactionFilters({
         </FilterSection>
 
         <FilterSection title={t('transactions.filters.sections.operation')}>
-          <CheckboxFilterGroup
+          <FilterMultiSelect
             labelFor={(value) => t(`transactions.natures.${value}`)}
-            legend={t('transactions.fields.nature')}
+            label={t('transactions.filters.natureLabel')}
+            emptyLabel={t('transactions.filters.empty.natures')}
             onChange={(next) => set('nature', next)}
             options={NATURES}
             value={filters.nature}
           />
-          <CheckboxFilterGroup
+          <FilterMultiSelect
             labelFor={(value) => t(`transactions.states.${value}`)}
-            legend={t('transactions.fields.state')}
+            label={t('transactions.filters.stateLabel')}
+            emptyLabel={t('transactions.filters.empty.states')}
             onChange={(next) => set('state', next)}
             options={STATES}
             value={filters.state}
           />
-          <CheckboxFilterGroup
+          <FilterMultiSelect
             labelFor={(value) => t(`transactions.sources.${value}`)}
-            legend={t('transactions.filters.sourceLabel')}
+            label={t('transactions.filters.sourceLabel')}
+            emptyLabel={t('transactions.filters.empty.sources')}
             onChange={(next) => set('source', next)}
             options={SOURCES}
             value={filters.source}

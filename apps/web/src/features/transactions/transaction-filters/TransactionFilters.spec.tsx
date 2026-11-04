@@ -189,10 +189,10 @@ describe('TransactionFilters', () => {
       'Sens',
       'Montant min',
       'Filtrer par catégorie',
-      'Axes analytiques',
-      'Nature',
-      'État',
-      'Origine',
+      'Filtrer par axe analytique',
+      'Filtrer par nature',
+      'Filtrer par état',
+      'Filtrer par origine',
       'Afficher les transactions annulées',
     ].map((label) => text.indexOf(label));
 
@@ -249,15 +249,16 @@ describe('TransactionFilters', () => {
     expect(onReset).toHaveBeenCalledOnce();
   });
 
-  it('toggles a state filter through a native, focusable checkbox', () => {
+  it('toggles a state filter through the state dropdown', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
     openFilters();
-    const checkbox = screen.getByRole('checkbox', { name: 'Comptabilisée' });
-    checkbox.focus();
-    expect(document.activeElement).toBe(checkbox);
-    fireEvent.click(checkbox);
+    const trigger = screen.getByRole('button', { name: /^Filtrer par état/ });
+    trigger.focus();
+    expect(document.activeElement).toBe(trigger);
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getByRole('option', { name: 'Comptabilisée' }));
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ state: ['BOOKED'] }));
   });
