@@ -72,7 +72,11 @@ function AmountBoundField({ committed, label, onCommit, revision }: AmountBoundF
   );
 }
 
-/** Signed amount range filter; its bounds only apply once an asset code names their unit. */
+/**
+ * Unsigned amount range filter: bounds are compared with the absolute value of the amount. Its
+ * bounds only apply once an asset code names their unit; with a single asset among the
+ * accounts that unit is implicit, so the selector is hidden and the code follows the bounds.
+ */
 export function AmountRangeFilter({
   assetCode,
   assetCodes,
@@ -83,7 +87,19 @@ export function AmountRangeFilter({
 }: AmountRangeFilterProps) {
   const { t } = useTranslation();
   const assetMissingId = useId();
-  const assetMissing = assetCode === '' && (minAmount !== '' || maxAmount !== '');
+  const implicitAsset = assetCodes.length === 1 ? assetCodes[0] : null;
+  const assetMissing =
+    implicitAsset === null && assetCode === '' && (minAmount !== '' || maxAmount !== '');
+
+  function commit(bounds: { maxAmount: string; minAmount: string }) {
+    const asset =
+      implicitAsset === null
+        ? assetCode
+        : bounds.minAmount !== '' || bounds.maxAmount !== ''
+          ? implicitAsset
+          : '';
+    onChange({ assetCode: asset, ...bounds });
+  }
 
   return (
     <fieldset className={styles.range}>
@@ -92,38 +108,42 @@ export function AmountRangeFilter({
       <AmountBoundField
         committed={minAmount}
         label={t('transactions.filters.minAmount')}
-        onCommit={(value) => onChange({ assetCode, maxAmount, minAmount: value })}
+        onCommit={(value) => commit({ maxAmount, minAmount: value })}
         revision={revision}
       />
       <AmountBoundField
         committed={maxAmount}
         label={t('transactions.filters.maxAmount')}
-        onCommit={(value) => onChange({ assetCode, maxAmount: value, minAmount })}
+        onCommit={(value) => commit({ maxAmount: value, minAmount })}
         revision={revision}
       />
-      <div className={styles.bound}>
-        <label className={styles.bound}>
-          <span>{t('transactions.filters.assetCode')}</span>
-          <select
-            aria-describedby={assetMissing ? assetMissingId : undefined}
-            aria-invalid={assetMissing ? true : undefined}
-            onChange={(event) => onChange({ assetCode: event.target.value, maxAmount, minAmount })}
-            value={assetCode}
-          >
-            <option value="">{t('transactions.filters.assetCodePlaceholder')}</option>
-            {assetCodes.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </label>
-        {assetMissing ? (
-          <span className={styles.error} id={assetMissingId}>
-            {t('transactions.filters.amountAssetMissing')}
-          </span>
-        ) : null}
-      </div>
+      {implicitAsset === null ? (
+        <div className={styles.bound}>
+          <label className={styles.bound}>
+            <span>{t('transactions.filters.assetCode')}</span>
+            <select
+              aria-describedby={assetMissing ? assetMissingId : undefined}
+              aria-invalid={assetMissing ? true : undefined}
+              onChange={(event) =>
+                onChange({ assetCode: event.target.value, maxAmount, minAmount })
+              }
+              value={assetCode}
+            >
+              <option value="">{t('transactions.filters.assetCodePlaceholder')}</option>
+              {assetCodes.map((code) => (
+                <option key={code} value={code}>
+                  {code}
+                </option>
+              ))}
+            </select>
+          </label>
+          {assetMissing ? (
+            <span className={styles.error} id={assetMissingId}>
+              {t('transactions.filters.amountAssetMissing')}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </fieldset>
   );
 }

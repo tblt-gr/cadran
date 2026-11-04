@@ -839,13 +839,42 @@ final class TransactionControllerTest extends WebTestCase
         );
     }
 
-    public function testAmountRangeFilterIsSignedAndScopedToItsAssetCode(): void
+    public function testAmountRangeFilterIgnoresTheSignAndIsScopedToItsAssetCode(): void
     {
-        $bigExpense = $this->createTransaction(overrides: ['amount' => ['value' => '-250.00', 'assetCode' => 'EUR']]);
-        $this->createTransaction(overrides: ['amount' => ['value' => '-50.00', 'assetCode' => 'EUR']]);
+        $expense = $this->createTransaction(overrides: ['amount' => ['value' => '-42.10', 'assetCode' => 'EUR']]);
+        $refund = $this->createTransaction(overrides: ['nature' => 'INCOME', 'categoryId' => null, 'amount' => ['value' => '18.40', 'assetCode' => 'EUR']]);
+        $this->createTransaction(overrides: ['amount' => ['value' => '-60.00', 'assetCode' => 'EUR']]);
 
-        $this->client->request('GET', '/api/v1/transactions?maxAmount=-200.00&assetCode=EUR');
-        self::assertSame([$bigExpense['id']], array_column($this->items(), 'id'));
+        $this->client->request('GET', '/api/v1/transactions?minAmount=10&maxAmount=50&assetCode=EUR');
+        self::assertEqualsCanonicalizing([$expense['id'], $refund['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?minAmount=10&maxAmount=50&assetCode=EUR&direction=OUTFLOW');
+        self::assertSame([$expense['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?minAmount=10&maxAmount=50&assetCode=EUR&direction=INFLOW');
+        self::assertSame([$refund['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?minAmount=10&assetCode=USD');
+        self::assertSame([], $this->items());
+    }
+
+    public function testFreeTextSearchAlsoMatchesTheAbsoluteAmount(): void
+    {
+        $expense = $this->createTransaction(overrides: ['amount' => ['value' => '-10.00', 'assetCode' => 'EUR']]);
+        $refund = $this->createTransaction(overrides: ['nature' => 'INCOME', 'categoryId' => null, 'amount' => ['value' => '10.00', 'assetCode' => 'EUR']]);
+        $labelled = $this->createTransaction(overrides: ['rawLabel' => 'CB PARIS 10', 'amount' => ['value' => '-3.00', 'assetCode' => 'EUR']]);
+        $decimal = $this->createTransaction(overrides: ['amount' => ['value' => '-10.50', 'assetCode' => 'EUR']]);
+        $this->createTransaction(overrides: ['amount' => ['value' => '-11.00', 'assetCode' => 'EUR']]);
+
+        $this->client->request('GET', '/api/v1/transactions?q=10');
+        self::assertEqualsCanonicalizing([$expense['id'], $refund['id'], $labelled['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?q='.rawurlencode('10,50 €'));
+        self::assertSame([$decimal['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?q='.rawurlencode('10 EUR'));
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->items());
     }
 
     public function testMalformedOrOutOfBoundQueryShapesAreRejectedWithoutRunningAQuery(): void
@@ -860,6 +889,11 @@ final class TransactionControllerTest extends WebTestCase
             '?from=2026-13-40',
             '?from=2026-03-20&to=2026-03-01',
             '?minAmount=200.00',
+            '?minAmount=-10&assetCode=EUR',
+            '?maxAmount=-0.01&assetCode=EUR',
+            '?minAmount=50&maxAmount=10&assetCode=EUR',
+            '?direction=SIDEWAYS',
+            '?direction=',
             '?minAmount=1e3&assetCode=EUR',
             '?q='.str_repeat('a', 81),
             '?accountId[]='.implode('&accountId[]=', array_fill(0, 21, self::OWN_ACCOUNT)),

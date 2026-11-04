@@ -4,6 +4,9 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
+import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
+import { shiftMonth } from './transaction-filters/filterState';
+import { MonthStepper } from './month-stepper/MonthStepper';
 import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
 import { useBulkSelection } from './bulk-selection/useBulkSelection';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
@@ -91,6 +94,8 @@ export function TransactionsPage() {
     transferSave.reset();
   }
 
+  const initialLoading = !impossible && transactions.isPending && transactions.data === undefined;
+
   return (
     <TransactionWorkflow
       accounts={accountOptions}
@@ -124,6 +129,7 @@ export function TransactionsPage() {
 
         <TransactionFilters
           accounts={accountOptions}
+          disabled={initialLoading}
           filters={searchFilters}
           onChange={updateFilters}
           onReset={resetAllFilters}
@@ -190,6 +196,27 @@ export function TransactionsPage() {
           </p>
         ) : null}
 
+        {searchFilters.period === 'month' ? (
+          <MonthStepper
+            disabled={initialLoading}
+            month={searchFilters.month}
+            onStep={(offset) =>
+              updateFilters(
+                { ...searchFilters, month: shiftMonth(searchFilters.month, offset) },
+                'push',
+              )
+            }
+          />
+        ) : null}
+
+        <CategorizationTabs
+          disabled={initialLoading}
+          onChange={(next) =>
+            updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
+          }
+          value={categorization}
+        />
+
         {impossible ? (
           <TransactionsState
             kind="impossible"
@@ -197,7 +224,7 @@ export function TransactionsPage() {
             onResetFilters={resetAllFilters}
             onRetry={() => void transactions.refetch()}
           />
-        ) : transactions.isPending && transactions.data === undefined ? (
+        ) : initialLoading ? (
           <TransactionsPageSkeleton />
         ) : transactions.isError && !staleCursorError ? (
           <TransactionsState

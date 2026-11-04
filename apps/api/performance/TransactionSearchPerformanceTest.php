@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Tests\Performance;
 
+use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionPosition;
@@ -142,9 +144,44 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
             ['states' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER],
         );
 
+        // The unsigned amount branches rely on the (workspace_id, abs(amount_value)) expression index.
+        $start = hrtime(true);
+        $rangeFilters = new TransactionFilters(
+            states: [TransactionState::PENDING, TransactionState::BOOKED],
+            minAmount: DecimalValue::fromString('700'), maxAmount: DecimalValue::fromString('800'), assetCode: AssetCode::fromString('EUR'),
+        );
+        $rangePage = $repository->search($workspace, $rangeFilters, 50, null);
+        $report['abs_range_ms'] = (hrtime(true) - $start) / 1_000_000;
+        $report['abs_range_row_count'] = count($rangePage);
+        $report['abs_range_plan'] = $this->explain(
+            'SELECT t.id FROM transaction_transactions t
+             WHERE t.workspace_id = :workspace_id AND t.state IN (:states) AND t.asset_code = :asset
+             AND abs(t.amount_value) >= :min AND abs(t.amount_value) <= :max
+             ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit',
+            ['workspace_id' => self::WORKSPACE, 'states' => ['PENDING', 'BOOKED'], 'asset' => 'EUR', 'min' => '700', 'max' => '800', 'limit' => 50],
+            ['states' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER],
+        );
+
+        $start = hrtime(true);
+        $amountTextFilters = new TransactionFilters(
+            states: [TransactionState::PENDING, TransactionState::BOOKED],
+            q: '777,77 €', qAmount: DecimalValue::fromString('777.77'),
+        );
+        $amountTextPage = $repository->search($workspace, $amountTextFilters, 50, null);
+        $report['amount_search_ms'] = (hrtime(true) - $start) / 1_000_000;
+        $report['amount_search_row_count'] = count($amountTextPage);
+        $report['amount_search_plan'] = $this->explain(
+            "SELECT t.id FROM transaction_transactions t
+             WHERE t.workspace_id = :workspace_id AND t.state IN (:states)
+             AND (t.normalized_label LIKE :pattern ESCAPE '\\' OR lower(t.counterparty) LIKE :pattern ESCAPE '\\' OR abs(t.amount_value) = :q_amount)
+             ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit",
+            ['workspace_id' => self::WORKSPACE, 'states' => ['PENDING', 'BOOKED'], 'limit' => 50, 'pattern' => '%777,77 €%', 'q_amount' => '777.77'],
+            ['states' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER],
+        );
+
         fwrite(STDOUT, "\nPERF-RESULT-BEGIN\n".json_encode($report, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR)."\nPERF-RESULT-END\n");
 
-        foreach (['first_page_plan', 'deep_page_plan', 'text_search_plan'] as $key) {
+        foreach (['first_page_plan', 'deep_page_plan', 'text_search_plan', 'abs_range_plan', 'amount_search_plan'] as $key) {
             self::assertStringNotContainsString(
                 'Seq Scan on transaction_transactions',
                 $report[$key],
@@ -155,6 +192,10 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
         self::assertStringContainsString('transaction_transactions_listing_index', $report['first_page_plan']);
         self::assertStringContainsString('transaction_transactions_listing_index', $report['deep_page_plan']);
         self::assertStringContainsString('_trgm_index', $report['text_search_plan']);
+        self::assertSame(self::ROW_COUNT / 2500, $report['abs_range_row_count']);
+        self::assertSame(self::ROW_COUNT / 2500, $report['amount_search_row_count']);
+        self::assertStringContainsString('transaction_transactions_abs_amount_index', $report['abs_range_plan']);
+        self::assertStringContainsString('transaction_transactions_abs_amount_index', $report['amount_search_plan']);
     }
 
     private function explain(string $sql, array $parameters, array $types = []): string
@@ -238,7 +279,8 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
                     self::WORKSPACE,
                     self::ACCOUNT,
                     'EUR',
-                    $isExpense ? '-12.34' : '56.78',
+                    // 0.04% of the rows carry a rare amount so the absolute-amount index is worth using.
+                    1250 === $index % 2500 ? '-777.77' : ($isExpense ? '-12.34' : '56.78'),
                     2,
                     'BOOKED',
                     $isExpense ? 'EXPENSE' : 'INCOME',

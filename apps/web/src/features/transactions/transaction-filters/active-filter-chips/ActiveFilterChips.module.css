@@ -5,20 +5,22 @@
   gap: var(--spacing-2);
 }
 
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  padding-block: var(--spacing-0-5);
-  padding-inline: var(--spacing-3);
-  border: var(--border-line-strong);
-  border-radius: var(--radius-full);
+.reset {
+  height: var(--control-height-compact);
+  padding-inline: var(--spacing-2);
+  border: var(--border-none);
+  border-radius: var(--radius-button);
   color: var(--text-secondary);
-  background: var(--bg-surface-2);
+  background: var(--color-transparent);
   font-size: var(--font-size-label);
+  text-decoration: underline;
 }
 
-.chip:hover {
+.reset:hover {
   color: var(--text-primary);
-  border-color: var(--gold-500);
+}
+
+.reset:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
 }

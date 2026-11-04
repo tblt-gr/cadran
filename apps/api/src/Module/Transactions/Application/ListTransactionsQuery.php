@@ -38,6 +38,7 @@ final readonly class ListTransactionsQuery
         public bool $categorizationNone = false,
         public ?string $q = null,
         public bool $includeVoided = false,
+        public ?string $direction = null,
         public ?int $pageSize = null,
         public ?string $cursor = null,
     ) {

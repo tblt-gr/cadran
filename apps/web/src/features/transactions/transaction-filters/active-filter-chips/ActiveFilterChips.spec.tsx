@@ -20,29 +20,29 @@ describe('ActiveFilterChips', () => {
     render(
       <ActiveFilterChips
         chips={[
-          { key: 'a', label: 'Filtre A', onClear: onClearA },
-          { key: 'b', label: 'Filtre B', onClear: onClearB },
+          { key: 'a', label: 'Filtre A', onClear: onClearA, removeLabel: 'Retirer le filtre A' },
+          { key: 'b', label: 'Filtre B', onClear: onClearB, removeLabel: 'Retirer le filtre B' },
         ]}
         onReset={vi.fn()}
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /Retirer le filtre Filtre A/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer le filtre A' }));
 
     expect(onClearA).toHaveBeenCalledTimes(1);
     expect(onClearB).not.toHaveBeenCalled();
   });
 
-  it('resets every filter through the reset button', () => {
+  it('clears every filter through the text button', () => {
     const onReset = vi.fn();
     render(
       <ActiveFilterChips
-        chips={[{ key: 'a', label: 'Filtre A', onClear: vi.fn() }]}
+        chips={[{ key: 'a', label: 'Filtre A', onClear: vi.fn(), removeLabel: 'Retirer A' }]}
         onReset={onReset}
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser les filtres' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tout effacer' }));
 
     expect(onReset).toHaveBeenCalledTimes(1);
   });

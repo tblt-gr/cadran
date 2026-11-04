@@ -1,5 +1,6 @@
 import type {
   ListTransactionsData,
+  TransactionDirection,
   TransactionNature,
   TransactionSource,
   TransactionState,
@@ -9,8 +10,11 @@ import { compareDecimals, isCanonicalDecimal } from '@/lib/decimal';
 export type TransactionAxis =
   'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE';
 
-/** `all` carries no date bound; it is the default and is not one of the labelled presets. */
-export type PeriodPreset = 'all' | 'thisMonth' | 'lastMonth' | 'thisYear' | 'custom';
+/**
+ * `all` carries no date bound; it is the default and is not one of the labelled presets.
+ * `month` carries one calendar month in {@link TransactionFilterState.month}.
+ */
+export type PeriodPreset = 'all' | 'month' | 'thisYear' | 'custom';
 
 const STATES: readonly TransactionState[] = ['PENDING', 'BOOKED', 'VOIDED', 'REJECTED'];
 const NATURES: readonly TransactionNature[] = [
@@ -30,7 +34,9 @@ const AXES: readonly TransactionAxis[] = [
   'VARIABLE',
 ];
 const SOURCES: readonly TransactionSource[] = ['MANUAL', 'IMPORT', 'PROVIDER'];
-const PERIODS: readonly PeriodPreset[] = ['all', 'thisMonth', 'lastMonth', 'thisYear', 'custom'];
+const PERIODS: readonly PeriodPreset[] = ['all', 'month', 'thisYear', 'custom'];
+const DIRECTIONS: readonly TransactionDirection[] = ['INFLOW', 'OUTFLOW'];
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 // Mirrors the API's list query validation, so a hand-edited or outdated URL is cleaned on
 // load instead of turning every request into a 400 the retry button cannot get out of.
@@ -43,6 +49,8 @@ const ASSET_CODE = /^[A-Z][A-Z0-9]{1,11}$/;
 
 export interface TransactionFilterState {
   period: PeriodPreset;
+  /** `YYYY-MM`; only meaningful, and only sent, when `period` is `month`. */
+  month: string;
   /** Only meaningful, and only sent, when `period` is `custom`. */
   from: string;
   to: string;
@@ -52,6 +60,9 @@ export interface TransactionFilterState {
   categoryId: string[];
   includeDescendants: boolean;
   axis: TransactionAxis[];
+  /** Empty means both directions. */
+  direction: '' | TransactionDirection;
+  /** Unsigned: the API compares the absolute value of the amount. */
   minAmount: string;
   maxAmount: string;
   assetCode: string;
@@ -63,6 +74,7 @@ export interface TransactionFilterState {
 
 export const DEFAULT_FILTERS: TransactionFilterState = {
   period: 'all',
+  month: '',
   from: '',
   to: '',
   accountId: [],
@@ -71,6 +83,7 @@ export const DEFAULT_FILTERS: TransactionFilterState = {
   categoryId: [],
   includeDescendants: false,
   axis: [],
+  direction: '',
   minAmount: '',
   maxAmount: '',
   assetCode: '',
@@ -95,12 +108,32 @@ function keepIdentifiers(values: string[]): string[] {
   );
 }
 
-/** A signed amount bound the API accepts: canonical, within `NUMERIC(50,24)` precision. */
+function pad(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+function toIsoDate(date: Date): string {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** The `YYYY-MM` of the calendar month `today` falls in. */
+export function currentMonth(today: Date): string {
+  return `${today.getFullYear()}-${pad(today.getMonth() + 1)}`;
+}
+
+/** The month `offset` months before (negative) or after `month`, as `YYYY-MM`. */
+export function shiftMonth(month: string, offset: number): string {
+  const [year, index] = month.split('-').map(Number);
+
+  return currentMonth(new Date(year, index - 1 + offset, 1));
+}
+
+/** An unsigned amount bound the API accepts: canonical, `>= 0`, within `NUMERIC(50,24)` precision. */
 export function isValidAmountBound(value: string): boolean {
-  if (!isCanonicalDecimal(value)) {
+  if (value.startsWith('-') || !isCanonicalDecimal(value)) {
     return false;
   }
-  const [integer, fraction = ''] = value.replace('-', '').split('.');
+  const [integer, fraction = ''] = value.split('.');
 
   return integer.length <= MAX_AMOUNT_INTEGER_DIGITS && fraction.length <= MAX_AMOUNT_SCALE;
 }
@@ -110,11 +143,39 @@ export function hasAppliedAmountBounds(filters: TransactionFilterState): boolean
   return Boolean(filters.assetCode && (filters.minAmount || filters.maxAmount));
 }
 
-/** Pure decode of a filter set previously produced by {@link encodeFilters}. Unknown or malformed values fall back to their default rather than throwing. */
-export function decodeFilters(params: URLSearchParams): TransactionFilterState {
+/** Bookmarks written before the single-month period carried `thisMonth` or `lastMonth`. */
+export function hasLegacyPeriod(params: URLSearchParams): boolean {
+  const period = params.get('period');
+
+  return period === 'thisMonth' || period === 'lastMonth';
+}
+
+/**
+ * Pure decode of a filter set previously produced by {@link encodeFilters}. Unknown or malformed
+ * values fall back to their default rather than throwing; the legacy `thisMonth` and `lastMonth`
+ * periods become the equivalent `month`, relative to `today`.
+ */
+export function decodeFilters(
+  params: URLSearchParams,
+  today: Date = new Date(),
+): TransactionFilterState {
   const period = params.get('period');
   const resolvedPeriod: PeriodPreset =
-    period && (PERIODS as readonly string[]).includes(period) ? (period as PeriodPreset) : 'all';
+    period === 'thisMonth' || period === 'lastMonth'
+      ? 'month'
+      : period && (PERIODS as readonly string[]).includes(period)
+        ? (period as PeriodPreset)
+        : 'all';
+  const requestedMonth = params.get('month') ?? '';
+  const month =
+    period === 'thisMonth'
+      ? currentMonth(today)
+      : period === 'lastMonth'
+        ? shiftMonth(currentMonth(today), -1)
+        : MONTH.test(requestedMonth)
+          ? requestedMonth
+          : currentMonth(today);
+  const direction = params.get('direction');
   const from = params.get('from') ?? '';
   const to = params.get('to') ?? '';
   const categorization = params.get('categorization');
@@ -124,6 +185,7 @@ export function decodeFilters(params: URLSearchParams): TransactionFilterState {
 
   return {
     period: resolvedPeriod,
+    month: resolvedPeriod === 'month' ? month : '',
     from: resolvedPeriod === 'custom' && isIsoDate(from) ? from : '',
     to: resolvedPeriod === 'custom' && isIsoDate(to) ? to : '',
     accountId: keepIdentifiers(params.getAll('accountId')),
@@ -132,6 +194,9 @@ export function decodeFilters(params: URLSearchParams): TransactionFilterState {
     categoryId: keepIdentifiers(params.getAll('categoryId')),
     includeDescendants: params.get('includeDescendants') === '1',
     axis: keepKnown(params.getAll('axis'), AXES),
+    direction: (DIRECTIONS as readonly string[]).includes(direction ?? '')
+      ? (direction as TransactionDirection)
+      : '',
     minAmount: isValidAmountBound(minAmount) ? minAmount : '',
     maxAmount: isValidAmountBound(maxAmount) ? maxAmount : '',
     assetCode: ASSET_CODE.test(assetCode) ? assetCode : '',
@@ -144,12 +209,32 @@ export function decodeFilters(params: URLSearchParams): TransactionFilterState {
   };
 }
 
+/**
+ * True when the filter set holds anything the filter panel edits: everything except the search
+ * text, the to-categorise tab and the single-month period, which the page shows outside the
+ * panel. The panel opens by itself on load only in that case.
+ */
+export function hasPanelFilters(filters: TransactionFilterState): boolean {
+  return (
+    encodeFilters({
+      ...filters,
+      categorization: 'ANY',
+      month: '',
+      period: filters.period === 'month' ? 'all' : filters.period,
+      q: '',
+    }).size > 0
+  );
+}
+
 /** Pure encode of a filter set into a query string, omitting every value equal to its default. */
 export function encodeFilters(filters: TransactionFilterState): URLSearchParams {
   const params = new URLSearchParams();
 
   if (filters.period !== 'all') {
     params.set('period', filters.period);
+  }
+  if (filters.period === 'month' && filters.month) {
+    params.set('month', filters.month);
   }
   if (filters.period === 'custom' && filters.from) {
     params.set('from', filters.from);
@@ -163,6 +248,7 @@ export function encodeFilters(filters: TransactionFilterState): URLSearchParams 
   for (const id of filters.categoryId) params.append('categoryId', id);
   if (filters.includeDescendants) params.set('includeDescendants', '1');
   for (const value of filters.axis) params.append('axis', value);
+  if (filters.direction) params.set('direction', filters.direction);
   if (filters.minAmount) params.set('minAmount', filters.minAmount);
   if (filters.maxAmount) params.set('maxAmount', filters.maxAmount);
   if (filters.assetCode) params.set('assetCode', filters.assetCode);
@@ -174,17 +260,9 @@ export function encodeFilters(filters: TransactionFilterState): URLSearchParams 
   return params;
 }
 
-function pad(value: number): string {
-  return String(value).padStart(2, '0');
-}
-
-function toIsoDate(date: Date): string {
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
-
 /** Resolves a period preset to an inclusive `[from, to]` bound, or `[null, null]` for `all`, as of `today`. */
 export function resolvePeriod(
-  filters: Pick<TransactionFilterState, 'period' | 'from' | 'to'>,
+  filters: Pick<TransactionFilterState, 'period' | 'month' | 'from' | 'to'>,
   today: Date,
 ): { from: string | null; to: string | null } {
   switch (filters.period) {
@@ -192,15 +270,13 @@ export function resolvePeriod(
       return { from: null, to: null };
     case 'custom':
       return { from: filters.from || null, to: filters.to || null };
-    case 'thisMonth':
+    case 'month': {
+      const [year, index] = filters.month.split('-').map(Number);
+
       return {
-        from: toIsoDate(new Date(today.getFullYear(), today.getMonth(), 1)),
-        to: toIsoDate(today),
+        from: toIsoDate(new Date(year, index - 1, 1)),
+        to: toIsoDate(new Date(year, index, 0)),
       };
-    case 'lastMonth': {
-      const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const end = new Date(today.getFullYear(), today.getMonth(), 0);
-      return { from: toIsoDate(start), to: toIsoDate(end) };
     }
     case 'thisYear':
       return { from: toIsoDate(new Date(today.getFullYear(), 0, 1)), to: toIsoDate(today) };
@@ -246,13 +322,14 @@ export function isImpossibleCombination(filters: TransactionFilterState): boolea
 }
 
 /**
- * Normalises a user-typed signed amount before it reaches filter state or the API: a French
- * comma decimal separator becomes the dot the API's canonical decimal pattern requires, so
- * typing one never surfaces as a raw 400 error. Only the first comma is treated as a decimal
- * separator; anything else in the input is left for {@link isCanonicalDecimal} to reject.
+ * Normalises a user-typed amount before it reaches filter state or the API. Bounds are compared
+ * without their sign, so a typed `-` is dropped; a French comma decimal separator becomes the
+ * dot the API's canonical decimal pattern requires, so typing one never surfaces as a raw 400
+ * error. Only the first comma is treated as a decimal separator; anything else in the input is
+ * left for {@link isValidAmountBound} to reject.
  */
 export function normalizeAmountInput(raw: string): string {
-  return raw.replace(',', '.');
+  return raw.replaceAll('-', '').replace(',', '.');
 }
 
 /**
@@ -277,6 +354,7 @@ export function toListTransactionsQuery(
     categoryId: filters.categoryId.length > 0 ? filters.categoryId : undefined,
     includeDescendants: filters.includeDescendants || undefined,
     axis: filters.axis.length > 0 ? filters.axis : undefined,
+    direction: filters.direction || undefined,
     minAmount: (amountBounds && filters.minAmount) || undefined,
     maxAmount: (amountBounds && filters.maxAmount) || undefined,
     assetCode: amountBounds ? filters.assetCode : undefined,

@@ -66,6 +66,8 @@ export const routeCases = [
   '/parameters/catalog',
   '/parameters/product-models',
   '/transactions',
+  '/transactions?period=month',
+  '/transactions?direction=OUTFLOW',
   '/transactions/categories',
   '/transactions/categories/rules',
   '/transactions/recurrences',

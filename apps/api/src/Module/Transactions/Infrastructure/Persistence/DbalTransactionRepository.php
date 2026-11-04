@@ -17,6 +17,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\CategorizationOrigin;
 use App\Module\Transactions\Domain\DuplicateSourceReference;
 use App\Module\Transactions\Domain\Transaction;
+use App\Module\Transactions\Domain\TransactionDirection;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionPosition;
@@ -177,12 +178,15 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
             $parameters['amount_asset_code'] = $filters->assetCode?->toString();
         }
         if (null !== $filters->minAmount) {
-            $sql .= ' AND t.amount_value >= :min_amount';
+            $sql .= ' AND abs(t.amount_value) >= :min_amount';
             $parameters['min_amount'] = $filters->minAmount->toString();
         }
         if (null !== $filters->maxAmount) {
-            $sql .= ' AND t.amount_value <= :max_amount';
+            $sql .= ' AND abs(t.amount_value) <= :max_amount';
             $parameters['max_amount'] = $filters->maxAmount->toString();
+        }
+        if (null !== $filters->direction) {
+            $sql .= TransactionDirection::INFLOW === $filters->direction ? ' AND t.amount_value > 0' : ' AND t.amount_value < 0';
         }
         if (null !== $filters->q) {
             // Simultaneous strtr: the backslash the escape introduces is never
@@ -195,8 +199,12 @@ final readonly class DbalTransactionRepository implements BookedMovementTotals, 
             $escaped = strtr(mb_strtolower($filters->q, 'UTF-8'), ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']);
             $sql .= ' AND (t.normalized_label LIKE :pattern ESCAPE \'\\\' '
                 .'OR lower(t.user_label) LIKE :pattern ESCAPE \'\\\' '
-                .'OR lower(t.counterparty) LIKE :pattern ESCAPE \'\\\')';
+                .'OR lower(t.counterparty) LIKE :pattern ESCAPE \'\\\''
+                .(null === $filters->qAmount ? '' : ' OR abs(t.amount_value) = :q_amount').')';
             $parameters['pattern'] = '%'.$escaped.'%';
+            if (null !== $filters->qAmount) {
+                $parameters['q_amount'] = $filters->qAmount->toString();
+            }
         }
         if (null === $limit) {
             return (int) TransactionRow::text($this->connection->fetchOne('SELECT count(*) FROM ('.$sql.') AS matched', $parameters, $types));

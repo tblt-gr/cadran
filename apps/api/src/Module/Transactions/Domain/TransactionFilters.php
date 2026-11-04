@@ -19,6 +19,10 @@ use App\Module\Foundation\Domain\DecimalValue;
  * "every state", never an implicit default. The default state scope (PENDING
  * and BOOKED, plus VOIDED only when explicitly requested) is a business
  * decision made before this object is built, not a repository concern.
+ *
+ * `minAmount` and `maxAmount` are absolute bounds (the sign of a movement is
+ * ignored); `qAmount` is the free-text query read as an unsigned amount, when it
+ * reads as one, and matches in any asset.
  */
 final readonly class TransactionFilters
 {
@@ -44,6 +48,8 @@ final readonly class TransactionFilters
         public array $sources = [],
         public bool $categorizationNone = false,
         public ?string $q = null,
+        public ?TransactionDirection $direction = null,
+        public ?DecimalValue $qAmount = null,
     ) {
     }
 }

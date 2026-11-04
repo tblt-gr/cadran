@@ -38,9 +38,9 @@ export function useTransactionsListing() {
 
   const categorization: Categorization = searchFilters.categorization === 'NONE' ? 'NONE' : 'ALL';
 
-  function updateFilters(next: typeof searchFilters) {
+  function updateFilters(next: typeof searchFilters, mode?: 'push') {
     setCursor(null);
-    setFilters(next);
+    setFilters(next, mode);
     setLoadSequence((current) => current + 1);
   }
 

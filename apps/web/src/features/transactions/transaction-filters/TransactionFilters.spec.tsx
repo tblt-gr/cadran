@@ -7,7 +7,7 @@ import '@/i18n';
 import { DEFAULT_FILTERS, type TransactionFilterState } from './filterState';
 import { TransactionFilters } from './TransactionFilters';
 
-const api = vi.hoisted(() => ({ listCategories: vi.fn() }));
+const api = vi.hoisted(() => ({ listAccounts: vi.fn(), listCategories: vi.fn() }));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
@@ -101,8 +101,12 @@ function renderControlledFilters(
   );
 }
 
+function toggle() {
+  return screen.getByRole('button', { name: /^Filtres/ });
+}
+
 function openFilters() {
-  fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+  fireEvent.click(toggle());
 }
 
 describe('TransactionFilters', () => {
@@ -111,7 +115,7 @@ describe('TransactionFilters', () => {
     vi.clearAllMocks();
   });
 
-  it('renders no chip and no reset button when every filter is at its default', () => {
+  it('renders the search and a closed toggle, with no chip, at the default filters', () => {
     renderFilters({
       accounts: [account],
       filters: DEFAULT_FILTERS,
@@ -119,42 +123,133 @@ describe('TransactionFilters', () => {
       onReset: vi.fn(),
     });
 
-    expect(screen.queryByRole('button', { name: 'Réinitialiser les filtres' })).toBeNull();
+    expect(
+      screen.getByRole('searchbox', {
+        name: 'Rechercher un libellé, une contrepartie ou un montant',
+      }),
+    ).toBeTruthy();
+    expect(toggle().textContent).toBe('Filtres');
+    expect(toggle().getAttribute('aria-expanded')).toBe('false');
+    expect(screen.queryByRole('button', { name: 'Tout effacer' })).toBeNull();
   });
 
-  it('shows a chip for each active filter and calls onReset from the global reset button', () => {
-    const onReset = vi.fn();
+  it('wires the toggle to the panel it unfolds', () => {
     renderFilters({
       accounts: [account],
-      filters: { ...DEFAULT_FILTERS, period: 'thisMonth', includeVoided: true },
+      filters: DEFAULT_FILTERS,
       onChange: vi.fn(),
-      onReset,
+      onReset: vi.fn(),
     });
+    const panel = document.getElementById(toggle().getAttribute('aria-controls') ?? '');
 
-    expect(screen.getAllByText('Ce mois-ci').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Afficher les transactions annulées').length).toBeGreaterThan(0);
+    expect(panel?.hidden).toBe(true);
+    openFilters();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser les filtres' }));
-    expect(onReset).toHaveBeenCalledOnce();
+    expect(toggle().getAttribute('aria-expanded')).toBe('true');
+    expect(panel?.hidden).toBe(false);
   });
 
-  it('clears a single filter from its own chip without resetting the others', () => {
-    const onChange = vi.fn();
+  it('opens on load only when a filter other than search, queue tab or month is set', () => {
+    const { unmount } = renderFilters({
+      accounts: [account],
+      filters: {
+        ...DEFAULT_FILTERS,
+        categorization: 'NONE',
+        month: '2026-11',
+        period: 'month',
+        q: 'loyer',
+      },
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+    expect(toggle().getAttribute('aria-expanded')).toBe('false');
+    unmount();
+
     renderFilters({
       accounts: [account],
-      filters: { ...DEFAULT_FILTERS, period: 'thisMonth', includeVoided: true },
-      onChange,
+      filters: { ...DEFAULT_FILTERS, direction: 'INFLOW' },
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+    expect(toggle().getAttribute('aria-expanded')).toBe('true');
+  });
+
+  it('lays the panel out in the documented order', () => {
+    renderFilters({
+      accounts: [account],
+      filters: { ...DEFAULT_FILTERS, direction: 'INFLOW' },
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+    const panel = document.getElementById(toggle().getAttribute('aria-controls') ?? '')!;
+    const text = panel.textContent ?? '';
+    const order = [
+      'Période',
+      'Filtrer par compte',
+      'Sens',
+      'Montant',
+      'Filtrer par catégorie',
+      'Nature',
+      'État',
+      'Origine',
+      'Axes analytiques',
+      'Afficher les transactions annulées',
+    ].map((label) => text.indexOf(label));
+
+    expect(order.every((position) => position >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('counts the active filters except the search in the toggle', () => {
+    renderFilters({
+      accounts: [account],
+      filters: { ...DEFAULT_FILTERS, direction: 'OUTFLOW', includeVoided: true, q: 'loyer' },
+      onChange: vi.fn(),
       onReset: vi.fn(),
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /Retirer le filtre Ce mois-ci/ }));
+    expect(toggle().textContent).toBe('Filtres · 2');
+  });
+
+  it('keeps the chips visible with the panel closed and clears one on its own', () => {
+    const onChange = vi.fn();
+    renderFilters({
+      accounts: [account],
+      filters: {
+        ...DEFAULT_FILTERS,
+        categorization: 'ANY',
+        includeVoided: true,
+        month: '2026-11',
+        period: 'month',
+      },
+      onChange,
+      onReset: vi.fn(),
+    });
+    fireEvent.click(toggle());
+    expect(toggle().getAttribute('aria-expanded')).toBe('false');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer le filtre Novembre 2026' }));
 
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ period: 'all', includeVoided: true }),
     );
   });
 
-  it('toggles a state filter with the keyboard through a native, focusable checkbox', () => {
+  it('clears everything from the text button', () => {
+    const onReset = vi.fn();
+    renderFilters({
+      accounts: [account],
+      filters: { ...DEFAULT_FILTERS, includeVoided: true },
+      onChange: vi.fn(),
+      onReset,
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tout effacer' }));
+
+    expect(onReset).toHaveBeenCalledOnce();
+  });
+
+  it('toggles a state filter through a native, focusable checkbox', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
@@ -167,30 +262,26 @@ describe('TransactionFilters', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ state: ['BOOKED'] }));
   });
 
-  it('opens the filters modal from a keyboard-operable header button and shows the active count', () => {
-    renderFilters({
-      accounts: [account],
-      filters: { ...DEFAULT_FILTERS, period: 'thisMonth' },
-      onChange: vi.fn(),
-      onReset: vi.fn(),
-    });
-
-    const toggle = screen.getByRole('button', { name: 'Filtres (1 actif)' });
-    expect(screen.queryByRole('dialog', { name: 'Filtres' })).toBeNull();
-    toggle.focus();
-    fireEvent.click(toggle);
-    expect(screen.getByRole('dialog', { name: 'Filtres' })).toBeTruthy();
-    expect(screen.getByRole('searchbox', { name: 'Recherche libre' })).toBeTruthy();
-  });
-
-  it('normalises a comma decimal typed into the amount bounds before it reaches state', () => {
+  it('sets the direction from the Sens control', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
     openFilters();
-    fireEvent.change(screen.getByLabelText('Borne haute'), { target: { value: '-200,00' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Sorties' }));
 
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ maxAmount: '-200.00' }));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ direction: 'OUTFLOW' }));
+  });
+
+  it('strips a typed minus and converts a comma in the amount bounds before state', () => {
+    const onChange = vi.fn();
+    renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
+
+    openFilters();
+    fireEvent.change(screen.getByLabelText('Montant max'), { target: { value: '-200,00' } });
+
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ assetCode: 'EUR', maxAmount: '200.00' }),
+    );
   });
 
   it('does not bring back a search typed just before a reset once the debounce elapses', () => {
@@ -198,13 +289,12 @@ describe('TransactionFilters', () => {
     try {
       renderControlledFilters({
         accounts: [account],
-        initialFilters: { ...DEFAULT_FILTERS, period: 'thisMonth' },
+        initialFilters: { ...DEFAULT_FILTERS, includeVoided: true },
       });
 
-      openFilters();
-      const search = screen.getByRole('searchbox', { name: 'Recherche libre' });
+      const search = screen.getByRole('searchbox');
       fireEvent.change(search, { target: { value: 'abc' } });
-      fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser les filtres' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Tout effacer' }));
       act(() => {
         vi.advanceTimersByTime(400);
       });
@@ -216,15 +306,14 @@ describe('TransactionFilters', () => {
     }
   });
 
-  it('hides the amount chip while the bounds have no asset code to apply them in', () => {
+  it('hides the amount chip while the bounds have no asset to apply them in', () => {
     renderFilters({
-      accounts: [account],
-      filters: { ...DEFAULT_FILTERS, minAmount: '-200.00' },
+      accounts: [account, { ...account, id: 'other', assetCode: 'USD' }],
+      filters: { ...DEFAULT_FILTERS, minAmount: '200.00' },
       onChange: vi.fn(),
       onReset: vi.fn(),
     });
 
-    openFilters();
     expect(screen.queryByRole('button', { name: /Retirer le filtre Montant/ })).toBeNull();
     expect(
       screen.getByText('Choisissez l’actif des bornes pour appliquer le filtre de montant.'),
@@ -239,15 +328,48 @@ describe('TransactionFilters', () => {
       onReset: vi.fn(),
     });
 
-    openFilters();
     const checkbox = screen.getByRole('checkbox', { name: 'Afficher les transactions annulées' });
     expect(checkbox).toHaveProperty('disabled', true);
     expect(checkbox).toHaveProperty('checked', false);
   });
 
-  it('falls back to the raw id on a category chip until a label is resolved', () => {
+  it('renders the search and toggle inert while disabled', () => {
+    renderFilters({
+      accounts: [account],
+      disabled: true,
+      filters: DEFAULT_FILTERS,
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+
+    expect(screen.getByRole('searchbox')).toHaveProperty('disabled', true);
+    expect(toggle()).toHaveProperty('disabled', true);
+  });
+
+  it('shows a skeleton, never the id, then the label of a category restored from the URL', async () => {
+    let resolve: (value: unknown) => void = () => {};
+    api.listCategories.mockImplementation(() => new Promise((done) => (resolve = done)));
+    renderFilters({
+      accounts: [account],
+      filters: { ...DEFAULT_FILTERS, categoryId: [category.id] },
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+
+    expect(screen.queryByText(category.id)).toBeNull();
+    expect(document.querySelector('[data-skeleton]')).not.toBeNull();
+
+    await act(async () => {
+      resolve(await success({ items: [category], page: 1, pageSize: 100, total: 1 }));
+    });
+
+    expect(await screen.findByRole('button', { name: 'Retirer le filtre Sorties' })).toBeTruthy();
+    expect(document.querySelector('[data-skeleton]')).toBeNull();
+  });
+
+  it('reads "Catégorie inconnue" for an id the workspace does not have', async () => {
     api.listCategories.mockImplementation(() =>
-      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
     );
     renderFilters({
       accounts: [account],
@@ -256,10 +378,31 @@ describe('TransactionFilters', () => {
       onReset: vi.fn(),
     });
 
-    expect(screen.getByText(category.id)).toBeTruthy();
+    expect(await screen.findByText('Catégorie inconnue')).toBeTruthy();
+    expect(screen.queryByText(category.id)).toBeNull();
   });
 
-  it('shows the picked category label on its chip, including its screen-reader clear text', async () => {
+  it('names an archived account that is not among the loaded ones', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({
+        items: [{ ...account, id: 'archived-1', label: 'Ancien livret', status: 'ARCHIVED' }],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      }),
+    );
+    renderFilters({
+      accounts: [account],
+      filters: { ...DEFAULT_FILTERS, accountId: ['archived-1'] },
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+
+    expect(await screen.findByText('Ancien livret')).toBeTruthy();
+    expect(screen.queryByText('archived-1')).toBeNull();
+  });
+
+  it('shows the picked category label on its chip, including its remove name', async () => {
     api.listCategories.mockImplementation(() =>
       success({ items: [category], page: 1, pageSize: 50, total: 1 }),
     );
@@ -270,7 +413,6 @@ describe('TransactionFilters', () => {
     fireEvent.change(combobox, { target: { value: 'Sor' } });
     fireEvent.mouseDown(await screen.findByRole('option', { name: 'Sorties' }));
 
-    expect(screen.getByText('Sorties')).toBeTruthy();
     expect(screen.queryByText(category.id)).toBeNull();
     expect(screen.getByRole('button', { name: /Retirer le filtre Sorties/ })).toBeTruthy();
   });

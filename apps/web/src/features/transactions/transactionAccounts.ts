@@ -23,6 +23,24 @@ export async function listActiveAccounts(signal?: AbortSignal): Promise<AccountP
   throw new Error('The account option limit was exceeded.');
 }
 
+/** Every account of the workspace, archived and closed ones included, to name a filter chip. */
+export async function listAllAccounts(signal?: AbortSignal): Promise<Account[]> {
+  const items: Account[] = [];
+
+  for (let page = 1; page <= MAX_PAGE; page += 1) {
+    const result = await listAccounts({
+      ...authApiOptions(),
+      query: { includeArchived: true, includeClosed: true, page, pageSize: PAGE_SIZE },
+      signal,
+    });
+    if (!result.response?.ok || !result.data) throw transactionRequestError(result);
+    items.push(...result.data.items);
+    if (page * PAGE_SIZE >= result.data.total) return items;
+  }
+
+  throw new Error('The account option limit was exceeded.');
+}
+
 export async function listReferencedAccounts(
   accountIds: readonly string[],
   signal?: AbortSignal,

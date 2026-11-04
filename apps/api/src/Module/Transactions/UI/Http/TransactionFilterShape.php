@@ -7,6 +7,7 @@ namespace App\Module\Transactions\UI\Http;
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
+use App\Module\Transactions\Domain\TransactionDirection;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSource;
 use App\Module\Transactions\Domain\TransactionState;
@@ -51,6 +52,7 @@ final readonly class TransactionFilterShape
         ?string $minAmount,
         ?string $maxAmount,
         ?string $assetCode,
+        ?string $direction = null,
         ?string $pageSize = null,
         ?string $cursor = null,
     ): ?ListTransactionsQuery {
@@ -71,6 +73,7 @@ final readonly class TransactionFilterShape
             || (null !== $cursor && ('' === $cursor || strlen($cursor) > 200))
             || (null !== $categorization && !in_array($categorization, ['ANY', 'NONE'], true))
             || (null !== $q && mb_strlen($q, 'UTF-8') > ListTransactions::MAX_TEXT_QUERY_LENGTH)
+            || (null !== $direction && null === TransactionDirection::tryFrom($direction))
             || (null !== $assetCode && '' === $assetCode)) {
             return null;
         }
@@ -91,6 +94,7 @@ final readonly class TransactionFilterShape
             categorizationNone: 'NONE' === $categorization,
             q: $q,
             includeVoided: 'true' === $includeVoided,
+            direction: $direction,
             pageSize: null === $pageSize ? null : (int) $pageSize,
             cursor: $cursor,
         );

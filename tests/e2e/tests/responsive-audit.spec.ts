@@ -41,6 +41,8 @@ function routes(): string[] {
     '/parameters/catalog',
     '/parameters/product-models',
     '/transactions',
+    '/transactions?period=month',
+    '/transactions?direction=OUTFLOW',
     '/transactions/categories',
     '/transactions/categories/rules',
     '/transactions/recurrences',
@@ -107,6 +109,8 @@ const PATTERNS = [
   '/parameters/catalog',
   '/parameters/product-models',
   '/transactions',
+  '/transactions?period=month',
+  '/transactions?direction=OUTFLOW',
   '/transactions/categories',
   '/transactions/categories/rules',
   '/transactions/recurrences',
@@ -449,5 +453,60 @@ test.describe('responsive audit of movement edit modals', () => {
         }
       });
     }
+  }
+});
+
+/**
+ * The inline transaction filter bar at 360 px with its panel open: the search keeps the full
+ * width, the panel stacks its filters on one column and no row overflows horizontally. The
+ * chips and the clear-all button share one height.
+ */
+test('transaction filter bar at 360 px with the panel open', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+    ignoreHTTPSErrors: true,
+    storageState: ownerStorageState,
+    viewport: { width: 360, height: 740 },
+    hasTouch: true,
+    isMobile: true,
+    locale: 'fr-FR',
+    timezoneId: 'Europe/Paris',
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto('/transactions?direction=OUTFLOW&state=BOOKED');
+    await settled(page);
+
+    const toggle = page.getByRole('button', { name: /^Filtres/ });
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    const search = page.getByRole('searchbox');
+    const searchBox = (await search.locator('xpath=ancestor::label').boundingBox())!;
+    const panel = page.locator(`[id="${await toggle.getAttribute('aria-controls')}"]`);
+    const panelBox = (await panel.boundingBox())!;
+    expect(searchBox.width, 'the search spans the content width').toBeGreaterThanOrEqual(
+      panelBox.width - 1,
+    );
+
+    const columns = await panel.evaluate(
+      (element) => getComputedStyle(element).gridTemplateColumns.split(' ').length,
+    );
+    expect(columns, 'the panel stacks on one column').toBe(1);
+
+    const heights = await page
+      .getByRole('group', { name: 'Filtres actifs' })
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => Math.round(button.getBoundingClientRect().height)),
+      );
+    expect(heights.length).toBeGreaterThan(1);
+    expect(new Set(heights).size, 'chips and clear-all share one height').toBe(1);
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
+    expect(await auditLayout(page, true)).toEqual([]);
+  } finally {
+    await context.close();
   }
 });

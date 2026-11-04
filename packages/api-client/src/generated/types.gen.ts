@@ -4410,6 +4410,11 @@ export type TransactionState = 'PENDING' | 'BOOKED' | 'VOIDED' | 'REJECTED';
  */
 export type TransactionSource = 'MANUAL' | 'IMPORT' | 'PROVIDER' | 'RECURRENCE';
 
+/**
+ * INFLOW is money coming in (amount above zero), OUTFLOW money going out (amount below zero).
+ */
+export type TransactionDirection = 'INFLOW' | 'OUTFLOW';
+
 export type PaymentMethod = 'CARD' | 'TRANSFER' | 'DIRECT_DEBIT' | 'CHECK' | 'CASH' | 'OTHER';
 
 export type CreateTransactionRequest = {
@@ -4561,6 +4566,7 @@ export type BulkTransactionFilters = {
     sources?: Array<TransactionSource>;
     categorization?: 'ANY' | 'NONE';
     q?: string;
+    direction?: TransactionDirection;
     includeVoided?: boolean;
 };
 
@@ -13466,11 +13472,11 @@ export type ListTransactionsData = {
          */
         axis?: Array<'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE'>;
         /**
-         * Signed lower bound on the amount, in assetCode. Requires assetCode.
+         * Absolute lower bound on the amount, in assetCode: the sign of a movement is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative decimal. Requires assetCode.
          */
         minAmount?: string;
         /**
-         * Signed upper bound on the amount, in assetCode. Requires assetCode.
+         * Absolute upper bound on the amount, in assetCode: the sign of a movement is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative decimal. Requires assetCode.
          */
         maxAmount?: string;
         /**
@@ -13482,9 +13488,13 @@ export type ListTransactionsData = {
          */
         source?: Array<TransactionSource>;
         /**
-         * Free text matched against the normalized label, the raw label and the counterparty, case-insensitively.
+         * Free text matched against the normalized label, the raw label and the counterparty, case-insensitively. A text that reads as an amount (10, -10,50 €) also matches the absolute amount of a transaction, in any asset.
          */
         q?: string;
+        /**
+         * Keeps only money coming in (INFLOW, amount above zero) or going out (OUTFLOW, amount below zero). Absent means both.
+         */
+        direction?: TransactionDirection;
         includeVoided?: boolean;
         /**
          * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.
@@ -13918,11 +13928,11 @@ export type CountTransactionsData = {
          */
         axis?: Array<'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE'>;
         /**
-         * Signed lower bound on the amount, in assetCode. Requires assetCode.
+         * Absolute lower bound on the amount, in assetCode: the sign of a movement is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative decimal. Requires assetCode.
          */
         minAmount?: string;
         /**
-         * Signed upper bound on the amount, in assetCode. Requires assetCode.
+         * Absolute upper bound on the amount, in assetCode: the sign of a movement is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative decimal. Requires assetCode.
          */
         maxAmount?: string;
         /**
@@ -13934,9 +13944,13 @@ export type CountTransactionsData = {
          */
         source?: Array<TransactionSource>;
         /**
-         * Free text matched against the normalized label, the raw label and the counterparty, case-insensitively.
+         * Free text matched against the normalized label, the raw label and the counterparty, case-insensitively. A text that reads as an amount (10, -10,50 €) also matches the absolute amount of a transaction, in any asset.
          */
         q?: string;
+        /**
+         * Keeps only money coming in (INFLOW, amount above zero) or going out (OUTFLOW, amount below zero). Absent means both.
+         */
+        direction?: TransactionDirection;
         includeVoided?: boolean;
         /**
          * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.

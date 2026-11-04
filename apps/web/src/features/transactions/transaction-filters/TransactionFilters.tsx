@@ -4,20 +4,19 @@ import type {
   TransactionSource,
   TransactionState,
 } from '@cadran/api-client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
-import { Modal } from '@/components/ui/modal/Modal';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
-import { CategorizationTabs } from '@/features/transactions/categorization-tabs/CategorizationTabs';
 import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
 import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
 import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
 import { CategoryFilterField } from './category-filter-field/CategoryFilterField';
 import { CheckboxFilterGroup } from './checkbox-filter-group/CheckboxFilterGroup';
-import type { TransactionAxis, TransactionFilterState } from './filterState';
+import { DirectionFilter } from './direction-filter/DirectionFilter';
+import { hasPanelFilters, type TransactionAxis, type TransactionFilterState } from './filterState';
 import { PeriodFilter } from './period-filter/PeriodFilter';
+import { useFilterChipLabels } from './useFilterChipLabels';
 import { useFilterChips } from './useFilterChips';
 import styles from './TransactionFilters.module.css';
 
@@ -42,6 +41,8 @@ const SOURCES: TransactionSource[] = ['MANUAL', 'IMPORT', 'PROVIDER'];
 
 interface TransactionFiltersProps {
   accounts: Account[];
+  /** Renders the search and the toggle inert while the list is first loading. */
+  disabled?: boolean;
   filters: TransactionFilterState;
   onChange: (next: TransactionFilterState) => void;
   onReset: () => void;
@@ -50,26 +51,26 @@ interface TransactionFiltersProps {
 }
 
 /**
- * The transaction filters: one header button (with the active filter count) opens a modal that
- * holds the free text search, period, accounts, states, natures, categories, analytic axes, a
- * signed amount range and source. Every applied filter, search included, reflects as a chip
- * under the header that the user can clear on its own.
+ * The inline transaction filter bar: an always-visible search (label, counterparty or amount),
+ * a `Filtres` toggle unfolding the panel in the page, and one removable chip per applied
+ * filter that stays visible whether the panel is open or not. The panel starts open only when
+ * the URL already holds a filter it edits.
  */
 export function TransactionFilters({
   accounts,
+  disabled = false,
   filters,
   onChange,
   onReset,
   revision,
 }: TransactionFiltersProps) {
-  const { t } = useTranslation();
-  const trigger = useRef<HTMLButtonElement>(null);
-  const [open, setOpen] = useState(false);
+  const { i18n, t } = useTranslation();
+  const panelId = useId();
+  const [expanded, setExpanded] = useState(() => hasPanelFilters(filters));
   const [rawQuery, setRawQuery] = useState(filters.q);
   const debouncedQuery = useDebouncedValue(rawQuery, 300);
-  // The picker only ever returns a full category on selection (a server search result, not a
-  // by-id lookup), so a category restored from the URL has no label yet and the chip falls back
-  // to showing its id until the user picks it again from this session.
+  // The picker returns a full category on selection, so a category picked in this session is
+  // named at once; one restored from the URL is resolved by the workspace-wide lookup.
   const [categoryLabels, setCategoryLabels] = useState<Record<string, string>>({});
 
   // Keeps the field in sync when the URL changes from outside (reset, back navigation). The
@@ -95,152 +96,133 @@ export function TransactionFilters({
     onChange({ ...filters, [key]: value });
   }
 
+  const labels = useFilterChipLabels({ accounts, categoryLabels, filters });
   const chips = useFilterChips({
-    accounts,
-    categoryLabels,
+    ...labels,
     filters,
+    language: i18n.language,
     onChange,
     onClearQuery: () => {
       setRawQuery('');
       set('q', '');
     },
-    queue,
     t,
   });
-  const activeCount = chips.length;
+  const activeCount = chips.filter((chip) => chip.key !== 'q').length;
 
   return (
-    <>
-      <HeaderActions>
+    <section aria-label={t('transactions.filters.sectionLabel')} className={styles.bar}>
+      <div className={styles.row}>
+        <label className={styles.search}>
+          <Icon name="search" size={16} />
+          <span className="sr-only">{t('transactions.filters.search')}</span>
+          <input
+            disabled={disabled}
+            maxLength={80}
+            onChange={(event) => setRawQuery(event.target.value)}
+            placeholder={t('transactions.filters.search')}
+            type="search"
+            value={rawQuery}
+          />
+        </label>
         <button
-          aria-haspopup="dialog"
-          aria-label={
-            activeCount > 0
-              ? t('transactions.filters.toggleWithCount', { count: activeCount })
-              : t('transactions.filters.toggle')
-          }
-          className={`icon-button ${styles.trigger}`}
+          aria-controls={panelId}
+          aria-expanded={expanded}
+          className={`secondary-action ${styles.toggle}`}
           data-active={activeCount > 0}
-          onClick={() => setOpen(true)}
-          ref={trigger}
-          title={t('transactions.filters.toggle')}
+          disabled={disabled}
+          onClick={() => setExpanded((open) => !open)}
           type="button"
         >
-          <Icon name="filter" size={18} />
-          {activeCount > 0 ? (
-            <span aria-hidden="true" className={styles.badge}>
-              {activeCount}
-            </span>
-          ) : null}
+          {activeCount > 0
+            ? t('transactions.filters.toggleWithCount', { count: activeCount })
+            : t('transactions.filters.toggle')}
         </button>
-      </HeaderActions>
+      </div>
 
-      {open ? (
-        <Modal
-          intent="settings"
-          close={() => setOpen(false)}
-          returnFocus={trigger}
-          title={t('transactions.filters.title')}
-        >
-          <div className={styles.panel}>
-            <label className={styles.search}>
-              <Icon name="search" size={16} />
-              <span className="sr-only">{t('transactions.filters.search')}</span>
-              <input
-                maxLength={80}
-                onChange={(event) => setRawQuery(event.target.value)}
-                placeholder={t('transactions.filters.search')}
-                type="search"
-                value={rawQuery}
-              />
-            </label>
+      <div className={styles.panel} hidden={!expanded} id={panelId}>
+        <PeriodFilter
+          from={filters.from}
+          month={filters.month}
+          onChange={(next) => onChange({ ...filters, ...next })}
+          period={filters.period}
+          to={filters.to}
+        />
 
-            <CategorizationTabs
-              onChange={(next) => set('categorization', next === 'NONE' ? 'NONE' : 'ANY')}
-              value={queue ? 'NONE' : 'ALL'}
-            />
+        <AccountMultiSelect
+          accounts={accounts}
+          label={t('transactions.filters.accountLabel')}
+          onChange={(next) => set('accountId', next)}
+          value={filters.accountId}
+        />
 
-            <PeriodFilter
-              from={filters.from}
-              onChange={(period, from, to) => onChange({ ...filters, period, from, to })}
-              period={filters.period}
-              to={filters.to}
-            />
+        <DirectionFilter onChange={(next) => set('direction', next)} value={filters.direction} />
 
-            <AccountMultiSelect
-              accounts={accounts}
-              label={t('transactions.filters.accountLabel')}
-              onChange={(next) => set('accountId', next)}
-              value={filters.accountId}
-            />
+        <AmountRangeFilter
+          assetCode={filters.assetCode}
+          assetCodes={assetCodes}
+          maxAmount={filters.maxAmount}
+          minAmount={filters.minAmount}
+          onChange={(range) => onChange({ ...filters, ...range })}
+          revision={revision}
+        />
 
-            <CheckboxFilterGroup
-              labelFor={(value) => t(`transactions.states.${value}`)}
-              legend={t('transactions.fields.state')}
-              onChange={(next) => set('state', next)}
-              options={STATES}
-              value={filters.state}
-            />
+        <CategoryFilterField
+          categoryIds={filters.categoryId}
+          includeDescendants={filters.includeDescendants}
+          onAddCategory={(categoryId, category) => {
+            set('categoryId', [...filters.categoryId, categoryId]);
+            if (category) {
+              setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
+            }
+          }}
+          onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
+        />
 
-            <CheckboxFilterGroup
-              labelFor={(value) => t(`transactions.natures.${value}`)}
-              legend={t('transactions.fields.nature')}
-              onChange={(next) => set('nature', next)}
-              options={NATURES}
-              value={filters.nature}
-            />
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`transactions.natures.${value}`)}
+          legend={t('transactions.fields.nature')}
+          onChange={(next) => set('nature', next)}
+          options={NATURES}
+          value={filters.nature}
+        />
 
-            <CategoryFilterField
-              categoryIds={filters.categoryId}
-              includeDescendants={filters.includeDescendants}
-              onAddCategory={(categoryId, category) => {
-                set('categoryId', [...filters.categoryId, categoryId]);
-                if (category) {
-                  setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
-                }
-              }}
-              onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
-            />
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`transactions.states.${value}`)}
+          legend={t('transactions.fields.state')}
+          onChange={(next) => set('state', next)}
+          options={STATES}
+          value={filters.state}
+        />
 
-            <CheckboxFilterGroup
-              labelFor={(value) => t(`categories.axes.${value}`)}
-              legend={t('transactions.filters.axisLabel')}
-              onChange={(next) => set('axis', next)}
-              options={AXES}
-              value={filters.axis}
-            />
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`transactions.sources.${value}`)}
+          legend={t('transactions.filters.sourceLabel')}
+          onChange={(next) => set('source', next)}
+          options={SOURCES}
+          value={filters.source}
+        />
 
-            <AmountRangeFilter
-              assetCode={filters.assetCode}
-              assetCodes={assetCodes}
-              maxAmount={filters.maxAmount}
-              minAmount={filters.minAmount}
-              onChange={(range) => onChange({ ...filters, ...range })}
-              revision={revision}
-            />
+        <CheckboxFilterGroup
+          labelFor={(value) => t(`categories.axes.${value}`)}
+          legend={t('transactions.filters.axisLabel')}
+          onChange={(next) => set('axis', next)}
+          options={AXES}
+          value={filters.axis}
+        />
 
-            <CheckboxFilterGroup
-              labelFor={(value) => t(`transactions.sources.${value}`)}
-              legend={t('transactions.filters.sourceLabel')}
-              onChange={(next) => set('source', next)}
-              options={SOURCES}
-              value={filters.source}
-            />
-
-            <label className={styles.checkbox}>
-              <input
-                checked={filters.includeVoided && !queue}
-                disabled={queue}
-                onChange={(event) => set('includeVoided', event.target.checked)}
-                type="checkbox"
-              />
-              <span>{t('transactions.includeVoided')}</span>
-            </label>
-          </div>
-        </Modal>
-      ) : null}
+        <label className={styles.checkbox}>
+          <input
+            checked={filters.includeVoided && !queue}
+            disabled={queue}
+            onChange={(event) => set('includeVoided', event.target.checked)}
+            type="checkbox"
+          />
+          <span>{t('transactions.includeVoided')}</span>
+        </label>
+      </div>
 
       <ActiveFilterChips chips={chips} onReset={onReset} />
-    </>
+    </section>
   );
 }

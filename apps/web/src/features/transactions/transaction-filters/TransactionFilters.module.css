@@ -1,6 +1,18 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
 .search {
   display: flex;
-  grid-column: 1 / -1;
+  flex: 1 1 auto;
   align-items: center;
   min-width: 0;
   min-height: var(--control-height);
@@ -34,36 +46,43 @@
   appearance: none;
 }
 
-.trigger {
-  position: relative;
+.toggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
-.trigger[data-active='true'] {
+.toggle[data-active='true'] {
   color: var(--gold-200);
   border-color: var(--gold-500);
 }
 
-.badge {
-  position: absolute;
-  top: calc(var(--spacing-1) * -1);
-  right: calc(var(--spacing-1) * -1);
-  display: inline-grid;
-  min-width: 1.125rem;
-  height: 1.125rem;
-  padding-inline: var(--spacing-1);
-  border-radius: var(--radius-full);
-  color: var(--text-on-primary);
-  background: var(--gold-300);
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-bold);
-  place-items: center;
-}
-
 .panel {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
   align-items: start;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-1);
   gap: var(--spacing-4);
+}
+
+.panel[hidden] {
+  display: none;
+}
+
+@media (max-width: 47.999rem) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .search {
+    flex-basis: 100%;
+  }
+
+  .panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .checkbox {

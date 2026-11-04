@@ -68,4 +68,31 @@ describe('useTransactionFilters', () => {
 
     expect(result.current.filters.q).toBe('carrefour');
   });
+
+  it('rewrites a legacy period in place, without adding a history entry', () => {
+    setLocation('?period=lastMonth&q=loyer');
+    const before = window.history.length;
+
+    const { result } = renderHook(() => useTransactionFilters());
+
+    const params = new URLSearchParams(window.location.search);
+    expect(params.get('period')).toBe('month');
+    expect(params.get('month')).toMatch(/^\d{4}-\d{2}$/);
+    expect(params.get('q')).toBe('loyer');
+    expect(result.current.filters.period).toBe('month');
+    expect(window.history.length).toBe(before);
+  });
+
+  it('pushes a history entry when asked to', () => {
+    setLocation('');
+    const { result } = renderHook(() => useTransactionFilters());
+    const before = window.history.length;
+
+    act(() => {
+      result.current.setFilters({ ...DEFAULT_FILTERS, period: 'month', month: '2026-10' }, 'push');
+    });
+
+    expect(window.history.length).toBe(before + 1);
+    expect(window.location.search).toBe('?period=month&month=2026-10');
+  });
 });
