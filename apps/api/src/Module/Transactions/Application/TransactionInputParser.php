@@ -31,10 +31,11 @@ final readonly class TransactionInputParser
         ?string $mcc,
         ?string $maskedCard,
         ?string $bankReference,
+        bool $allowRefund = false,
     ): TransactionDraft {
         try {
             $parsedNature = TransactionNature::from($nature);
-            if (in_array($parsedNature, [TransactionNature::TRANSFER, TransactionNature::REFUND], true)) {
+            if (TransactionNature::TRANSFER === $parsedNature || (TransactionNature::REFUND === $parsedNature && !$allowRefund)) {
                 throw new \DomainException('Linked transaction natures require their dedicated use case.');
             }
             $parsedAmount = ($this->amountParser)($amount, '/amount');

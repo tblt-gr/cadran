@@ -38,7 +38,11 @@ export function RefundForm({
   const eligibleAccounts = accounts.filter(
     (account) => account.assetCode === proposal.refundable.assetCode,
   );
-  const [accountId, setAccountId] = useState(eligibleAccounts[0]?.id ?? '');
+  const [accountId, setAccountId] = useState(
+    eligibleAccounts.find((account) => account.isPrimary && account.status === 'ACTIVE')?.id ??
+      eligibleAccounts[0]?.id ??
+      '',
+  );
   const [amount, setAmount] = useState(proposal.refundable.value);
   const [bookedOn, setBookedOn] = useState('');
   const [rawLabel, setRawLabel] = useState('');

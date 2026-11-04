@@ -11,6 +11,7 @@ use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
+use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
@@ -133,6 +134,8 @@ final readonly class TransactionController
         try {
             $payload = TransactionPayload::of($body, self::UPDATE_FIELDS);
             $transaction = $updateTransaction($id, self::updateInput($payload));
+        } catch (InvalidRefundRule $exception) {
+            return $this->envelope->invalidRefundRuleProblem($exception);
         } catch (InvalidSplitsInput $exception) {
             return $this->envelope->invalidSplitsProblem($exception);
         } catch (PortfolioAccountRequiresOperations $exception) {

@@ -54,16 +54,14 @@ final readonly class UpdateTransaction
             throw new TransactionBelongsToTransfer($transfer->id);
         }
         $refund = $this->refunds->findByRefundTransactionId($context->workspace, $id);
-        if (null !== $refund) {
-            throw new TransactionBelongsToRefund($refund->originalTransactionId);
-        }
         $draft = $this->parser->parse(
             $input->amount, $input->nature, $input->state, $input->bookedOn, $input->valueOn,
             $input->authorizedOn, $input->rawLabel, $input->counterparty, $input->note,
             $input->paymentMethod, $input->mcc, $input->maskedCard, $input->bankReference,
+            allowRefund: null !== $refund,
         );
 
-        return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $id): TransactionView {
+        return $this->transactionBoundary->transactional(function () use ($context, $draft, $input, $id, $refund): TransactionView {
             $this->categorizationWriteLock->acquire($context->workspace);
             // This lock precedes the in-use-case exact-sum check below, so no
             // concurrent split rewrite can invalidate what this edit verified.
@@ -87,15 +85,28 @@ final readonly class UpdateTransaction
                 // the state change belongs to /reconcile, not to a plain edit.
                 throw new TransactionConflict('A transaction under reconciliation review changes state only through its resolution.');
             }
-            if ($input->accountId !== $current->accountId) {
+            if (null !== $refund) {
+                RefundEditPolicy::assertUnchanged($current, $draft, $input, $this->splitParser);
+                // A live refund prevents editing its original, so a scoped read suffices here
+                // without taking the original's lock after the refund's lock.
+                $original = $this->transactions->find($context->workspace, $refund->originalTransactionId);
+                if (null === $original) {
+                    throw new TransactionNotFound();
+                }
+                RefundDatePolicy::assertNotBeforeOriginal($draft->bookedOn, $original->bookedOn);
+            }
+            if (null === $refund && $input->accountId !== $current->accountId) {
                 throw new InvalidTransactionInput('The account is immutable.');
             }
             $now = $this->clock->now();
             $today = $this->calendar->today();
             // A planned row may sit later in the month, and may be rejected there; it can never be
             // booked in the future.
+            if ($input->accountId !== $current->accountId) {
+                $this->references->accountForNew($context->workspace, $input->accountId, $draft, $today, $now);
+            }
             $this->references->accountForExisting(
-                $context->workspace, $current->accountId, $draft, $today,
+                $context->workspace, $input->accountId, $draft, $today,
                 $current->autoBook && TransactionState::REJECTED === $draft->state,
             );
             if (null === $input->splits && count($current->splits) > 1) {
@@ -111,13 +122,13 @@ final readonly class UpdateTransaction
             }
 
             try {
-                $splits = null === $input->splits
+                $splits = null !== $refund ? $current->splits : (null === $input->splits
                     ? self::wrap($this->references->split(
                         $context->workspace, $current->id, $input->categoryId, $draft, $now, $current->splits[0] ?? null,
                     ))
                     : $this->references->splits(
                         $context->workspace, $current->id, $this->splitParser->parse($input->splits), $draft->amount, $now, $existingByCategory,
-                    );
+                    ));
                 $updated = $current->edit(
                     amount: $draft->amount, nature: $draft->nature, state: $draft->state,
                     bookedOn: $draft->bookedOn, valueOn: $draft->valueOn, authorizedOn: $draft->authorizedOn,
@@ -125,6 +136,7 @@ final readonly class UpdateTransaction
                     paymentMethod: $draft->paymentMethod,
                     mcc: $draft->mcc, maskedCard: $draft->maskedCard, bankReference: $draft->bankReference,
                     splits: $splits, updatedAt: $now, lastEditorId: $context->actorId,
+                    accountId: $input->accountId,
                     autoBook: $current->autoBook || (
                         TransactionState::PENDING === $draft->state && null === $current->reviewReason && $draft->bookedOn > $today
                         && in_array($current->source, [TransactionSource::MANUAL, TransactionSource::RECURRENCE], true)

@@ -5,6 +5,7 @@ import type {
   UpdateTransactionRequest,
 } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { RefundEditForm } from '@/features/transactions/refund-edit-form/RefundEditForm';
 import { Modal } from '@/components/ui/modal/Modal';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import {
@@ -38,13 +39,15 @@ export function TransactionEditor({
   const { t } = useTranslation();
   const creating = transaction === undefined;
 
+  const Form = transaction?.nature === 'REFUND' ? RefundEditForm : TransactionForm;
+
   return (
     <Modal
       close={close}
       intent={creating ? 'create' : 'edit'}
       title={t(creating ? 'transactions.form.createTitle' : 'transactions.form.editTitle')}
     >
-      <TransactionForm
+      <Form
         accounts={accounts}
         defaults={defaults}
         defaultAccountId={defaultAccountId}

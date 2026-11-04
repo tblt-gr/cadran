@@ -2441,7 +2441,7 @@ export const getTransaction = <ThrowOnError extends boolean = false>(options: Op
 /**
  * Replace the editable fields of a transaction
  *
- * Optimistic versioning. The account, asset, raw label and provenance never change. A voided or rejected transaction cannot be edited.
+ * Optimistic versioning. Asset and provenance never change. A linked refund allows account, booked date, label, counterparty and note corrections only; its amount, allocation and original expense remain fixed. The refund date cannot precede the original expense date (422, /problems/refund.date_before_original). A changed account must be active, in the workspace, and compatible with the asset and dates. Other transactions keep their account. Imported source labels remain fixed. A voided or rejected transaction cannot be edited.
  */
 export const updateTransaction = <ThrowOnError extends boolean = false>(options: Options<UpdateTransactionData, ThrowOnError>): RequestResult<UpdateTransactionResponses, UpdateTransactionErrors, ThrowOnError> => (options.client ?? client).put<UpdateTransactionResponses, UpdateTransactionErrors, ThrowOnError>({
     security: [{

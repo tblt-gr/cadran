@@ -1372,7 +1372,87 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame('/problems/transaction.has_refunds', $this->decode()['type']);
         $this->requestUpdate(self::stringValue($refund, 'id'), $refund);
         self::assertResponseStatusCodeSame(422);
-        self::assertSame('/problems/transaction.belongs_to_refund', $this->decode()['type']);
+    }
+
+    public function testEditingARefundCannotMoveItBeforeItsOriginalExpense(): void
+    {
+        $original = $this->createTransaction(['bookedOn' => '2026-03-10']);
+        $this->requestRefund(self::stringValue($original, 'id'), [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Refund',
+            'counterparty' => null, 'note' => null, 'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        $id = self::stringValue($refund, 'id');
+        foreach (['2026-02-28', '2026-03-09'] as $date) {
+            $this->requestRawUpdate($id, [...$this->updateBody($refund), 'bookedOn' => $date]);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('/problems/refund.date_before_original', $this->decode()['type']);
+            $unchanged = $this->decodeFromRow($id);
+            foreach (['bookedOn', 'version', 'amount', 'splits', 'refundOriginalId'] as $field) {
+                self::assertSame($refund[$field], $unchanged[$field]);
+            }
+        }
+        foreach (['2026-03-10', '2026-03-11'] as $date) {
+            $this->requestRawUpdate($id, [...$this->updateBody($refund), 'bookedOn' => $date]);
+            self::assertResponseIsSuccessful();
+            $refund = $this->decodeFromRow($id);
+            self::assertSame($date, $refund['bookedOn']);
+        }
+    }
+
+    public function testRefundMetadataCanBeEditedWithoutChangingItsFinancialLinks(): void
+    {
+        $original = $this->createTransaction();
+        $this->requestRefund(self::stringValue($original, 'id'), [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Refund',
+            'counterparty' => null, 'note' => null, 'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        $id = self::stringValue($refund, 'id');
+        $target = '00000000-0000-7000-8000-0000000000d9';
+        $this->seedAccount($target, WorkspaceFixture::OWN_WORKSPACE, 'Correct account');
+        $body = [...$this->updateBody($refund), 'accountId' => $target, 'bookedOn' => '2026-03-15',
+            'rawLabel' => 'Corrected refund', 'counterparty' => 'Merchant', 'note' => 'Correction'];
+        $this->requestRawUpdate($id, $body);
+        self::assertResponseIsSuccessful();
+        $saved = $this->decodeFromRow($id);
+        self::assertSame($target, $saved['accountId']);
+        self::assertSame('Corrected refund', $saved['rawLabel']);
+        self::assertSame('2026-03-15', $saved['bookedOn']);
+        self::assertSame('Merchant', $saved['counterparty']);
+        self::assertSame('Correction', $saved['note']);
+        self::assertSame($refund['amount'], $saved['amount']);
+        self::assertSame($refund['splits'], $saved['splits']);
+        self::assertSame($refund['refundOriginalId'], $saved['refundOriginalId']);
+        foreach ([
+            ['amount' => ['value' => '11.00', 'assetCode' => 'EUR']],
+            ['categoryId' => self::OWN_PLAIN_EXPENSE],
+            ['nature' => 'INCOME'], ['bookedOn' => '2099-01-01'],
+        ] as $invalid) {
+            $this->requestRawUpdate($id, [...$this->updateBody($saved), ...$invalid]);
+            self::assertResponseStatusCodeSame(422);
+        }
+        $this->requestRawUpdate($id, [...$this->updateBody($saved), 'accountId' => self::OTHER_ACCOUNT]);
+        self::assertResponseStatusCodeSame(404);
+        $this->requestRawUpdate($id, $body);
+        self::assertResponseStatusCodeSame(409);
+        foreach ([['archived_at' => '2026-03-01'], ['asset_code' => 'USD', 'archived_at' => null],
+            ['asset_code' => 'EUR', 'opened_on' => '2026-04-01'],
+            ['opened_on' => '2020-01-01', 'closed_on' => '2026-03-01']] as $invalidAccount) {
+            $this->connection->update('account_financial_accounts', $invalidAccount, ['id' => self::OWN_ACCOUNT]);
+            $this->requestRawUpdate($id, [...$this->updateBody($saved), 'accountId' => self::OWN_ACCOUNT]);
+            self::assertResponseStatusCodeSame(422);
+        }
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $this->requestRawUpdate($id, $this->updateBody($saved));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
     }
 
     public function testARefundWithoutSplitsKeepsTheAnalyticAxesOfEachOriginalSplit(): void

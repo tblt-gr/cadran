@@ -6836,8 +6836,13 @@ paths:
       operationId: updateTransaction
       summary: Replace the editable fields of a transaction
       description: >-
-        Optimistic versioning. The account, asset, raw label and provenance
-        never change. A voided or rejected transaction cannot be edited.
+        Optimistic versioning. Asset and provenance never change. A linked refund
+        allows account, booked date, label, counterparty and note corrections only;
+        its amount, allocation and original expense remain fixed. The refund date
+        cannot precede the original expense date (422, /problems/refund.date_before_original). A changed account
+        must be active, in the workspace, and compatible with the asset and dates.
+        Other transactions keep their account. Imported source labels remain fixed.
+        A voided or rejected transaction cannot be edited.
       tags:
         - Transactions
       security:
@@ -18809,7 +18814,8 @@ components:
         amount:
           $ref: '#/components/schemas/DecimalAmount'
         nature:
-          $ref: '#/components/schemas/StandaloneTransactionNature'
+          type: string
+          enum: [EXPENSE, INCOME, FEE, ADJUSTMENT, REFUND]
         state:
           type: string
           enum:

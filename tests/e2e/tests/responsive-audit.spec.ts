@@ -370,7 +370,7 @@ test.describe('responsive audit of modals', () => {
 });
 
 test.describe('responsive audit of movement edit modals', () => {
-  for (const kind of ['transaction', 'transfer'] as const) {
+  for (const kind of ['transaction', 'transfer', 'refund'] as const) {
     for (const viewport of [WIDTHS[0], WIDTHS[2]]) {
       test(`${kind} edit at ${viewport.width} px`, async ({ browser }) => {
         const context = await browser.newContext({
@@ -400,6 +400,14 @@ test.describe('responsive audit of movement edit modals', () => {
           expect(action.width).toBeLessThan(form.width * 0.75);
           expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThan(2);
           expect(await save.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+
+          if (kind === 'refund') {
+            await expect(
+              dialog.getByRole('combobox', { name: 'Compte', exact: true }),
+            ).toBeEnabled();
+            await expect(dialog.getByLabel('Montant', { exact: true })).toBeDisabled();
+            await expect(dialog.getByText(/Le montant et la répartition sont fixes/)).toBeVisible();
+          }
 
           if (kind === 'transfer') {
             const label = (await dialog.getByLabel('Libellé', { exact: true }).boundingBox())!;

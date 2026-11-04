@@ -2275,7 +2275,8 @@
       "noCategory": "Sans catégorie",
       "axesLegend": "Axes analytiques de la transaction",
       "noPaymentMethod": "Non renseigné",
-      "advanced": "Champs avancés"
+      "advanced": "Champs avancés",
+      "refundFixed": "Le montant et la répartition sont fixes pour conserver le remboursement lié à la dépense d’origine."
     },
     "void": {
       "title": "Annuler la transaction",
