@@ -13,7 +13,6 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { accountRequestError, requestFailed } from '@/features/accounts/accountError';
 import { useBulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
-import type { TransferFormDefaults } from '@/features/transactions/transfer-editor/TransferForm';
 import { TransactionWorkflow } from '@/features/transactions/transaction-workflow/TransactionWorkflow';
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
 import { transactionErrorKind } from '@/features/transactions/transactionError';
@@ -40,7 +39,6 @@ export function AccountLedger({
   onEditorChange,
   onSaved,
   refreshError,
-  transferDefaults,
   showMovements = true,
 }: {
   account: Account;
@@ -50,7 +48,6 @@ export function AccountLedger({
   onEditorChange: (editor: LedgerEditor) => void;
   onSaved: (saved: 'transactionSaved' | 'transferSaved') => void;
   refreshError?: { message: string; retry: () => void };
-  transferDefaults?: TransferFormDefaults;
 }) {
   const { i18n } = useTranslation();
   const [month, setMonth] = useState(initialMonthFromLocation);
@@ -134,7 +131,7 @@ export function AccountLedger({
         <TransferEditor
           accounts={transferAccounts}
           close={close}
-          defaults={transferDefaults}
+          defaults={{ lockedSourceAccountId: account.id }}
           onSubmit={(body) => saveTransfer.mutateAsync(body)}
           onSaved={completeTransfer}
           refreshError={refreshError}

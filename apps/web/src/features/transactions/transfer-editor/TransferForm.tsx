@@ -8,14 +8,16 @@ import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { workspaceToday } from '@/lib/workspaceTime';
 import {
-  initialTransferValues,
   isCrossAssetTransfer,
   transferRequest,
   validateTransferValues,
-  type TransferFormValues,
 } from './transferFormValues';
+import type { TransferFormDefaults } from './initialTransferFormValues';
+import { useTransferFormValues } from './useTransferFormValues';
 import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import formStyles from '@/features/transactions/transaction-form/TransactionForm.module.css';
+
+export type { TransferFormDefaults } from './initialTransferFormValues';
 
 interface TransferFormProps {
   accounts: Account[];
@@ -23,11 +25,6 @@ interface TransferFormProps {
   onSubmit: (body: CreateTransferRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
-}
-
-export interface TransferFormDefaults {
-  bookedOn: string;
-  targetAccountId: string;
 }
 
 /**
@@ -46,20 +43,13 @@ export function TransferForm({
   const errorId = useId();
   const workspaceTimeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), workspaceTimeZone);
-  const [values, setValues] = useState(() => {
-    const initial = initialTransferValues(accounts, defaults?.bookedOn ?? today);
-
-    const primary = accounts.find((account) => account.isPrimary && account.status === 'ACTIVE');
-
-    return defaults
-      ? {
-          ...initial,
-          bookedOn: defaults.bookedOn,
-          sourceAccountId: primary && primary.id !== defaults.targetAccountId ? primary.id : '',
-          targetAccountId: defaults.targetAccountId,
-        }
-      : initial;
-  });
+  const lockedSourceAccountId = defaults?.lockedSourceAccountId;
+  const { values, set } = useTransferFormValues(accounts, today, defaults);
+  const destinationAccounts = lockedSourceAccountId
+    ? accounts.filter(
+        (account) => account.status === 'ACTIVE' && account.id !== lockedSourceAccountId,
+      )
+    : accounts;
   const destination = accounts.find((account) => account.id === values.targetAccountId);
   const source = accounts.find((account) => account.id === values.sourceAccountId);
   // The server records the matching deposit or withdrawal on a securities portfolio and refreshes its valuation.
@@ -74,10 +64,6 @@ export function TransferForm({
   const crossAsset = isCrossAssetTransfer(values, accounts);
   const sourceAsset = accounts.find((account) => account.id === values.sourceAccountId)?.assetCode;
   const targetAsset = accounts.find((account) => account.id === values.targetAccountId)?.assetCode;
-
-  function set<K extends keyof TransferFormValues>(field: K, value: TransferFormValues[K]) {
-    setValues((current) => ({ ...current, [field]: value }));
-  }
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -107,12 +93,12 @@ export function TransferForm({
         <label>
           <span>{t('transactions.transfer.fields.sourceAccount')}</span>
           <select
-            disabled={pending}
+            disabled={pending || Boolean(lockedSourceAccountId)}
             aria-describedby={
               showErrors && errors.sourceAccountId ? `${errorId}-sourceAccountId` : undefined
             }
             aria-invalid={showErrors && errors.sourceAccountId ? true : undefined}
-            data-autofocus
+            data-autofocus={lockedSourceAccountId ? undefined : true}
             onChange={(event) => set('sourceAccountId', event.target.value)}
             value={values.sourceAccountId}
           >
@@ -138,11 +124,12 @@ export function TransferForm({
               showErrors && errors.targetAccountId ? `${errorId}-targetAccountId` : undefined
             }
             aria-invalid={showErrors && errors.targetAccountId ? true : undefined}
+            data-autofocus={lockedSourceAccountId ? true : undefined}
             onChange={(event) => set('targetAccountId', event.target.value)}
             value={values.targetAccountId}
           >
             <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
-            {accounts.map((account) => (
+            {destinationAccounts.map((account) => (
               <option key={account.id} value={account.id}>
                 {account.label}
               </option>

@@ -27,12 +27,20 @@ export async function resolveFixtures(page: Page): Promise<AuditFixtures> {
     await page.goto(path);
     await settled(page);
     const links = label ? page.getByRole('link', { name: label }) : page.locator('a[href]');
-    const hrefs = await links.evaluateAll((items) =>
-      items.map((item) => item.getAttribute('href') ?? ''),
-    );
-    const href = hrefs.find((item) => pattern.test(item));
-    if (!href) throw new Error(`Required accessibility fixture missing on ${path}: ${pattern}`);
-    return href.split('?')[0]!;
+    let href: string | undefined;
+    await expect
+      .poll(
+        async () => {
+          const hrefs = await links.evaluateAll((items) =>
+            items.map((item) => item.getAttribute('href') ?? ''),
+          );
+          href = hrefs.find((item) => pattern.test(item));
+          return href;
+        },
+        { message: `Required accessibility fixture missing on ${path}: ${pattern}` },
+      )
+      .toBeTruthy();
+    return href!.split('?')[0]!;
   }
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;

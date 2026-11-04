@@ -1072,7 +1072,11 @@ describe('AccountDetailPage', () => {
     expect(select.value).toBe(account.id);
   });
 
-  it('opens the shared transfer modal with this account selected as source', async () => {
+  it('locks this account as source and presets the primary destination', async () => {
+    const primary = { ...otherAccount, isPrimary: true };
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [primary, account], page: 1, pageSize: 100, total: 2 }),
+    );
     renderPage();
     await loaded();
 
@@ -1082,8 +1086,50 @@ describe('AccountDetailPage', () => {
     await waitFor(() => {
       const select = within(dialog).getByLabelText('Compte source') as HTMLSelectElement;
       expect(select.value).toBe(account.id);
+      expect(select.disabled).toBe(true);
+      const destination = within(dialog).getByLabelText(
+        'Compte de destination',
+      ) as HTMLSelectElement;
+      expect(destination.value).toBe(primary.id);
+      expect(destination.disabled).toBe(false);
+      expect(within(destination).queryByRole('option', { name: account.label })).toBeNull();
+      expect(document.activeElement).toBe(destination);
     });
   });
+
+  it.each(['', '?action=transfer'])(
+    'presets the primary once accounts load from the default tab %s',
+    async (search) => {
+      const primary = { ...otherAccount, isPrimary: true };
+      let resolve!: (value: unknown) => void;
+      api.listAccounts.mockImplementation(
+        () =>
+          new Promise((done) => {
+            resolve = done;
+          }),
+      );
+      renderPage(account.id, search);
+      await loaded();
+      if (!search) fireEvent.click(await menuItem('Nouveau virement'));
+      const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
+      const destination = within(dialog).getByLabelText(
+        'Compte de destination',
+      ) as HTMLSelectElement;
+      expect(destination.value).toBe('');
+      fireEvent.change(within(dialog).getByLabelText('Libellé'), {
+        target: { value: 'Keep my label' },
+      });
+      resolve(await success({ items: [primary, account], page: 1, pageSize: 100, total: 2 }));
+      await waitFor(() => expect(destination.value).toBe(primary.id));
+      expect((within(dialog).getByLabelText('Compte source') as HTMLSelectElement).value).toBe(
+        account.id,
+      );
+      expect((within(dialog).getByLabelText('Libellé') as HTMLInputElement).value).toBe(
+        'Keep my label',
+      );
+      await waitFor(() => expect(document.activeElement).toBe(destination));
+    },
+  );
 
   it('refuses a write against a closed period with the shared explanation', async () => {
     api.createTransaction.mockImplementation(() => problem(409, '/problems/period-closed'));
