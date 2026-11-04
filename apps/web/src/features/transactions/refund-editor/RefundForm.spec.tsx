@@ -43,6 +43,36 @@ describe('RefundForm', () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    ['active primary', { isPrimary: true, status: 'ACTIVE' }, 'primary-account'],
+    ['different asset', { isPrimary: true, status: 'ACTIVE', assetCode: 'USD' }, account.id],
+    ['archived primary', { isPrimary: true, status: 'ARCHIVED' }, account.id],
+    ['no primary', { isPrimary: false, status: 'ACTIVE' }, account.id],
+  ] as const)('selects the expected default account with %s', (_name, overrides, expected) => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RefundForm
+          accounts={[
+            account,
+            { ...account, id: 'primary-account', label: 'Compte principal', ...overrides },
+          ]}
+          onSubmit={vi.fn()}
+          pending={false}
+          proposal={proposal}
+          submitError={null}
+          submitErrorDetail={null}
+        />
+      </QueryClientProvider>,
+    );
+    const select = screen.getByRole('combobox', {
+      name: 'Compte',
+    }) as HTMLSelectElement;
+    expect(select.value).toBe(expected);
+    fireEvent.change(select, { target: { value: account.id } });
+    expect(select.value).toBe(account.id);
+  });
+
   it('keeps the essential fields and folded advanced section in the loading grid', () => {
     render(<RefundFormSkeleton />);
     const skeleton = screen.getByTestId('refund-form-skeleton');
