@@ -1,3 +1,4 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type { ProductCapability, ProductRuleKind, ProductYieldKind } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { FieldRow } from '@/features/product-models/field-row/FieldRow';
@@ -53,7 +54,7 @@ export function PeriodFields({
   }
 
   return (
-    <div className={styles.period}>
+    <FormGrid>
       <FieldRow label={t('productModels.period.kind')}>
         {({ fieldId }) => (
           <select
@@ -77,7 +78,7 @@ export function PeriodFields({
       </FieldRow>
 
       {valueType === 'AMOUNT' ? (
-        <div className={styles.amount}>
+        <>
           <FieldRow
             error={has('amount') ? t('productModels.period.errors.amount') : undefined}
             label={t('productModels.period.amount')}
@@ -107,22 +108,24 @@ export function PeriodFields({
               />
             )}
           </FieldRow>
-        </div>
+        </>
       ) : null}
 
       {valueType === 'PERCENTAGE' ? (
         <>
-          <RateScaleEditor
-            brackets={value.brackets}
-            invalid={has('brackets')}
-            onBracketsChange={(brackets) => patch({ brackets })}
-            onRateApplicationChange={(rateApplication) => patch({ rateApplication })}
-            onScaleShapeChange={(scaleShape) => patch({ scaleShape })}
-            onSingleRateChange={(singleRate) => patch({ singleRate })}
-            rateApplication={value.rateApplication}
-            scaleShape={value.scaleShape}
-            singleRate={value.singleRate}
-          />
+          <div data-span="full">
+            <RateScaleEditor
+              brackets={value.brackets}
+              invalid={has('brackets')}
+              onBracketsChange={(brackets) => patch({ brackets })}
+              onRateApplicationChange={(rateApplication) => patch({ rateApplication })}
+              onScaleShapeChange={(scaleShape) => patch({ scaleShape })}
+              onSingleRateChange={(singleRate) => patch({ singleRate })}
+              rateApplication={value.rateApplication}
+              scaleShape={value.scaleShape}
+              singleRate={value.singleRate}
+            />
+          </div>
           {has('brackets') ? (
             <p className={styles.error} role="alert">
               {t('productModels.period.errors.brackets')}
@@ -149,7 +152,7 @@ export function PeriodFields({
         </FieldRow>
       ) : null}
 
-      <div className={styles.dates}>
+      <>
         <FieldRow
           error={has('validFrom') ? t('productModels.period.errors.validFrom') : undefined}
           label={t('productModels.period.validFrom')}
@@ -181,7 +184,7 @@ export function PeriodFields({
             />
           )}
         </FieldRow>
-      </div>
-    </div>
+      </>
+    </FormGrid>
   );
 }

@@ -547,6 +547,7 @@ describe('OperationForm', () => {
     expect(screen.getByText('Champs avancés').closest('details')?.open).toBe(true);
     expect((screen.getByLabelText('Montant brut') as HTMLInputElement).value).toBe('250.50');
     expect((screen.getByLabelText('Référence') as HTMLInputElement).value).toBe('REF-1');
+    expect(screen.getByLabelText('Motif (facultatif)').closest('details')?.open).toBe(true);
     change('Motif (facultatif)', 'Montant mal saisi');
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(onSubmit.mock.calls[0]![1]).toBe('Montant mal saisi');

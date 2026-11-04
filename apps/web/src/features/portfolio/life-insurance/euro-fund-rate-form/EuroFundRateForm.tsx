@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
@@ -29,6 +30,7 @@ export function EuroFundRateForm({
   const [bonusRate, setBonusRate] = useState('');
   const [basis, setBasis] = useState<LifeInsuranceEuroFundRateBasis>('UNKNOWN');
   const [sourceNote, setSourceNote] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   return (
     <form
       className={styles.form}
@@ -56,7 +58,7 @@ export function EuroFundRateForm({
         onChange={setInstrumentId}
         disabled={pending}
       />
-      <FormGrid className={styles.fields}>
+      <FormGrid>
         <label>
           Année
           <input
@@ -105,15 +107,17 @@ export function EuroFundRateForm({
             ))}
           </select>
         </label>
-        <label>
-          Source
-          <input
-            maxLength={200}
-            value={sourceNote}
-            onChange={(e) => setSourceNote(e.target.value)}
-            disabled={pending}
-          />
-        </label>
+        <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+          <label>
+            Source
+            <input
+              maxLength={200}
+              value={sourceNote}
+              onChange={(e) => setSourceNote(e.target.value)}
+              disabled={pending}
+            />
+          </label>
+        </FormSection>
       </FormGrid>
       <ModalActions>
         <button className="primary-action" type="submit" disabled={pending || !instrumentId}>

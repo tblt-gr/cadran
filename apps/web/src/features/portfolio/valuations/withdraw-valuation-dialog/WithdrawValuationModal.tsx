@@ -48,7 +48,7 @@ export function WithdrawValuationModal({
 
   return (
     <Modal
-      intent="delete"
+      intent="confirm"
       close={onClose}
 
       title="Retirer la valorisation"

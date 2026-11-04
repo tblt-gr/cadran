@@ -116,6 +116,7 @@ describe('BudgetPage', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier plan' }));
     expect(screen.getByRole('dialog', { name: 'Nouveau plan budgétaire' })).toBeTruthy();
+    expect(screen.getByText('Création')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Période'), { target: { value: '2026-03' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() =>

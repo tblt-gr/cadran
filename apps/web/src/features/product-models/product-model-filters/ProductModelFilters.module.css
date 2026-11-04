@@ -17,7 +17,7 @@
   text-align: center;
 }
 
-.fields label {
+.check {
   display: flex;
   align-items: center;
   color: var(--text-primary);

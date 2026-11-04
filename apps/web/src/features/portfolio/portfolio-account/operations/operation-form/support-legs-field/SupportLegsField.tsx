@@ -23,7 +23,12 @@ export function SupportLegsField({
   value: SupportLegValue[];
 }) {
   return (
-    <div className={styles.editor} role={label ? 'group' : undefined} aria-label={label}>
+    <div
+      data-span="full"
+      className={styles.editor}
+      role={label ? 'group' : undefined}
+      aria-label={label}
+    >
       {label ? <h3>{label}</h3> : null}
       {value.length === 0 ? (
         <p>

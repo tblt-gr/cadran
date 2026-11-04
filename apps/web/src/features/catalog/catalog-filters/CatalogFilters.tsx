@@ -1,3 +1,4 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -48,7 +49,9 @@ export function CatalogFilters({ asOf, disabled = false, onChange, today }: Cata
           returnFocus={trigger}
           title={t('catalog.filters.title')}
         >
-          <BusinessDateField onChange={onChange} today={today} value={asOf} />
+          <FormGrid>
+            <BusinessDateField onChange={onChange} today={today} value={asOf} />
+          </FormGrid>
         </Modal>
       ) : null}
     </>

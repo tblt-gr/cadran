@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { useState } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useState, type ComponentProps } from 'react';
+import { afterEach, describe, expect, expectTypeOf, it, vi } from 'vitest';
 import '@/i18n';
 import { Modal } from './Modal';
 import { MODAL_INTENTS } from './modalIntent';
@@ -15,7 +15,7 @@ describe('Modal', () => {
     const { getByRole, unmount } = render(
       <>
         <main data-app-shell>Application</main>
-        <Modal close={close} eyebrow="Création" title="Nouvelle catégorie">
+        <Modal close={close} intent="create" title="Nouvelle catégorie">
           <input aria-label="Libellé" data-autofocus />
           <button type="button">Enregistrer</button>
         </Modal>
@@ -66,14 +66,10 @@ describe('Modal', () => {
     expect(within(screen.getByRole('dialog')).getByText(LABELS[intent])).toBeTruthy();
   });
 
-  it('ignores the deprecated eyebrow when an intent is given', () => {
-    render(
-      <Modal close={vi.fn()} eyebrow="Saisie" intent="edit" title="Titre">
-        <p>Contenu</p>
-      </Modal>,
-    );
-    expect(screen.queryByText('Saisie')).toBeNull();
-    expect(screen.getByText('Modification')).toBeTruthy();
+  it('only accepts a required action intent', () => {
+    type Props = ComponentProps<typeof Modal>;
+    expectTypeOf<Extract<keyof Props, `${'eye'}${'brow'}`>>().toEqualTypeOf<never>();
+    expectTypeOf<Props['intent']>().toEqualTypeOf<(typeof MODAL_INTENTS)[number]>();
   });
 
   it('closes with a borderless icon button', () => {
@@ -90,7 +86,7 @@ describe('Modal', () => {
   it('closes on a backdrop press but not on a press inside the dialog', () => {
     const close = vi.fn();
     const { getByRole } = render(
-      <Modal close={close} title="Nouvelle catégorie">
+      <Modal close={close} intent="create" title="Nouvelle catégorie">
         <button type="button">Enregistrer</button>
       </Modal>,
     );
@@ -109,12 +105,12 @@ describe('Modal', () => {
       const [parentOpen, setParentOpen] = useState(true);
 
       return parentOpen ? (
-        <Modal close={() => setParentOpen(false)} title="Transaction">
+        <Modal close={() => setParentOpen(false)} intent="edit" title="Transaction">
           <button onClick={() => setChildOpen(true)} type="button">
             Créer une catégorie
           </button>
           {childOpen ? (
-            <Modal close={() => setChildOpen(false)} title="Nouvelle catégorie">
+            <Modal close={() => setChildOpen(false)} intent="create" title="Nouvelle catégorie">
               <input aria-label="Libellé" data-autofocus />
             </Modal>
           ) : null}

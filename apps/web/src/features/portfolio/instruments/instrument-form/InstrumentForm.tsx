@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
@@ -54,6 +55,14 @@ export function InstrumentForm({
     String(instrument?.quantityPrecision ?? 6),
   );
   const [pricePrecision, setPricePrecision] = useState(String(instrument?.pricePrecision ?? 4));
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(
+      instrument?.venueMic ||
+      instrument?.assetClass ||
+      instrument?.region ||
+      (instrument && (instrument.quantityPrecision !== 6 || instrument.pricePrecision !== 4)),
+    ),
+  );
   const [showErrors, setShowErrors] = useState(false);
   const euroFund = instrumentType === 'EURO_FUND';
   const euroPrecision = assets.data?.items.find(
@@ -101,7 +110,7 @@ export function InstrumentForm({
           {error}
         </p>
       ) : null}
-      <FormGrid className={styles.fields}>
+      <FormGrid>
         <label>
           <span>Nom</span>
           <input
@@ -134,15 +143,6 @@ export function InstrumentForm({
                 <small>{fieldErrors.ticker}</small>
               ) : null}
             </label>
-            <label>
-              <span>Place de cotation (MIC)</span>
-              <input
-                maxLength={4}
-                onChange={(e) => setVenue(e.target.value.toUpperCase())}
-                value={venueMic}
-              />
-              {fieldErrors.venueMic ? <small>{fieldErrors.venueMic}</small> : null}
-            </label>
           </>
         ) : null}
         <InstrumentSelectField
@@ -150,20 +150,6 @@ export function InstrumentForm({
           options={instrumentTypes}
           onChange={(value) => setType(value as InstrumentType)}
           value={instrumentType}
-        />
-        <InstrumentSelectField
-          label="Classe d'actifs"
-          nullable
-          options={instrumentClasses}
-          onChange={setClass}
-          value={assetClass}
-        />
-        <InstrumentSelectField
-          label="Région"
-          nullable
-          options={instrumentRegions}
-          onChange={setRegion}
-          value={region}
         />
         <label>
           <span>Devise</span>
@@ -180,36 +166,71 @@ export function InstrumentForm({
           </select>
           {locked ? <small>Figé après la première utilisation</small> : null}
         </label>
-        {euroFund ? (
-          <>
+        <FormSection
+          title="Champs avancés"
+          open={
+            advancedOpen ||
+            Boolean(fieldErrors.venueMic) ||
+            (showErrors && (!validPrecision(quantityPrecision) || !validPrecision(pricePrecision)))
+          }
+          onToggle={setAdvancedOpen}
+        >
+          {!euroFund ? (
             <label>
-              Précision des quantités
-              <input readOnly value={euroPrecision ?? ''} />
+              <span>Place de cotation (MIC)</span>
+              <input
+                maxLength={4}
+                onChange={(e) => setVenue(e.target.value.toUpperCase())}
+                value={venueMic}
+              />
+              {fieldErrors.venueMic ? <small>{fieldErrors.venueMic}</small> : null}
             </label>
-            <label>
-              Précision des prix
-              <input readOnly value="0" />
-            </label>
-            <p>Un fonds en euros vaut toujours 1 € par part.</p>
-          </>
-        ) : (
-          <>
-            <InstrumentPrecisionField
-              label="Précision des quantités"
-              locked={locked}
-              onChange={setQuantityPrecision}
-              showErrors={showErrors}
-              value={quantityPrecision}
-            />
-            <InstrumentPrecisionField
-              label="Précision des prix"
-              locked={locked}
-              onChange={setPricePrecision}
-              showErrors={showErrors}
-              value={pricePrecision}
-            />
-          </>
-        )}
+          ) : null}
+          <InstrumentSelectField
+            label="Classe d'actifs"
+            nullable
+            options={instrumentClasses}
+            onChange={setClass}
+            value={assetClass}
+          />
+          <InstrumentSelectField
+            label="Région"
+            nullable
+            options={instrumentRegions}
+            onChange={setRegion}
+            value={region}
+          />
+          {euroFund ? (
+            <>
+              <label>
+                Précision des quantités
+                <input readOnly value={euroPrecision ?? ''} />
+              </label>
+              <label>
+                Précision des prix
+                <input readOnly value="0" />
+              </label>
+              <p>Un fonds en euros vaut toujours 1 € par part.</p>
+            </>
+          ) : (
+            <>
+              <InstrumentPrecisionField
+                label="Précision des quantités"
+                locked={locked}
+                onChange={setQuantityPrecision}
+                showErrors={showErrors}
+                value={quantityPrecision}
+              />
+              <InstrumentPrecisionField
+                label="Précision des prix"
+                locked={locked}
+                onChange={setPricePrecision}
+                showErrors={showErrors}
+                value={pricePrecision}
+              />
+            </>
+          )}
+        </FormSection>
       </FormGrid>
       <ModalActions>
         <button

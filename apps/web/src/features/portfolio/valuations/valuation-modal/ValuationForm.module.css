@@ -3,11 +3,6 @@
   flex-direction: column;
   gap: var(--spacing-4);
 }
-.fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-4);
-}
 .field {
   display: flex;
   flex-direction: column;
@@ -111,11 +106,20 @@
 }
 
 @media (max-width: 42rem) {
-  .fields,
   .position {
     grid-template-columns: 1fr;
   }
   .position {
     align-items: stretch;
   }
+}
+
+.skeletonControl {
+  height: var(--control-height);
+  border-radius: var(--radius-control);
+}
+.skeletonHint {
+  display: inline-block;
+  inline-size: calc(var(--spacing-8) * 2);
+  height: var(--font-size-label);
 }

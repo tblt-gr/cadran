@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { FormField } from './FormField';
 
 /** A decimal typed as text: it never goes through Number. */
@@ -12,7 +13,7 @@ export function DecimalInput({
 }: {
   disabled?: boolean;
   error?: string;
-  hint?: string;
+  hint?: ReactNode;
   label: string;
   onChange: (value: string) => void;
   value: string;

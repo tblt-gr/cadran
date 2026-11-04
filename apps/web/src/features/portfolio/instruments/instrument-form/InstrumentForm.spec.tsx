@@ -14,6 +14,17 @@ vi.mock('@/hooks/use-reference-assets', () => ({
 }));
 afterEach(cleanup);
 describe('InstrumentForm euro fund', () => {
+  it('folds technical options away from the essential identifiers', () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <InstrumentForm pending={false} onSubmit={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    expect(screen.getByLabelText('Ticker').closest('details')).toBeNull();
+    expect(screen.getByLabelText('Place de cotation (MIC)').closest('details')?.open).toBe(false);
+    fireEvent.click(screen.getByText('Champs avancés'));
+    expect(screen.getByLabelText('Précision des prix').closest('details')?.open).toBe(true);
+  });
   it('hides identifiers, forces precisions and sends no identifiers after changing type', () => {
     const submit = vi.fn();
     render(

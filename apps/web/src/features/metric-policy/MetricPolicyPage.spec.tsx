@@ -157,6 +157,7 @@ describe('MetricPolicyPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle version' }));
     const dialog = screen.getByRole('dialog', { name: 'Nouvelle version de la politique' });
+    expect(within(dialog).getByText('Création')).toBeTruthy();
     fireEvent.change(within(dialog).getByLabelText('Libellé'), {
       target: { value: ' Tout compte ' },
     });
@@ -198,6 +199,9 @@ describe('MetricPolicyPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Activer la version 2' }));
     const dialog = screen.getByRole('dialog', { name: 'Activer la version 2' });
+    expect(within(dialog).getByText('Confirmation')).toBeTruthy();
+    expect(within(dialog).getByText('Champs avancés').closest('details')?.open).toBe(false);
+    fireEvent.click(within(dialog).getByText('Champs avancés'));
     expect(dialog.textContent).toContain('Avant');
     expect(dialog.textContent).toContain('Après');
     expect(dialog.textContent).toContain('mois clôturés conservent leur version');

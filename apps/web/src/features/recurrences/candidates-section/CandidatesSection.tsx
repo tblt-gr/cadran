@@ -25,7 +25,7 @@ export function CandidatesSection({
     <section aria-labelledby="recurrence-candidates-title" className={styles.section}>
       <div className={styles.sectionHeading}>
         <div>
-          <p>{t('recurrences.candidates.eyebrow')}</p>
+          <p>{t('recurrences.candidates.headingLabel')}</p>
           <h3 id="recurrence-candidates-title">{t('recurrences.candidates.title')}</h3>
         </div>
         {partial ? (

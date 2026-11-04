@@ -213,7 +213,7 @@ describe('InstrumentPicker', () => {
     const query = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
       <QueryClientProvider client={query}>
-        <Modal close={close} title="Opération">
+        <Modal close={close} intent="create" title="Opération">
           <InstrumentPicker currencyCode="EUR" label="Instrument" onChange={vi.fn()} />
         </Modal>
       </QueryClientProvider>,

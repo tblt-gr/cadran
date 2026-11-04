@@ -3,32 +3,10 @@
   flex-direction: column;
   gap: var(--spacing-4);
 }
-.fields {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--spacing-4);
-}
-.fields label {
-  display: flex;
-  flex-direction: column;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  gap: var(--spacing-2);
-}
-.fields input,
-.fields select {
-  width: 100%;
-}
-.fields small {
+.form small {
   color: var(--text-muted);
 }
 .alert {
   margin: var(--spacing-none);
   color: var(--negative);
-}
-
-@media (max-width: 42rem) {
-  .fields {
-    grid-template-columns: 1fr;
-  }
 }

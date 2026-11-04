@@ -1,3 +1,4 @@
+import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
@@ -81,100 +82,109 @@ export function FromProductForm({
     onSubmit({ name: cleanName, productCode, valuationMode });
   }
 
-  if (products.isPending) {
-    return (
-      <p aria-busy="true" className={styles.state} role="status">
-        {t('productModels.fromProduct.loading')}
-      </p>
-    );
-  }
-
-  if (products.isError) {
-    return (
-      <div className={styles.state} role="alert">
-        <p>{t('productModels.fromProduct.error')}</p>
-        <button className="secondary-action" onClick={products.refetch} type="button">
-          {t('foundation.retry')}
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <form
+      className={styles.form}
+      aria-busy={products.isPending || undefined}
+      noValidate
+      onSubmit={submit}
+    >
+      {products.isPending ? (
+        <SkeletonStatus>{t('productModels.fromProduct.loading')}</SkeletonStatus>
+      ) : null}
+      {products.isError ? (
+        <div role="alert">
+          <p>{t('productModels.fromProduct.error')}</p>
+          <button className="secondary-action" onClick={products.refetch} type="button">
+            {t('foundation.retry')}
+          </button>
+        </div>
+      ) : null}
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`productModels.errors.${submitError}`)}
         </p>
       ) : null}
 
-      <FormGrid>
-        <FieldRow
-          error={showErrors && nameInvalid ? t('productModels.form.errors.name') : undefined}
-          label={t('productModels.form.name')}
-        >
-          {({ fieldId, describedBy }) => (
-            <input
-              aria-describedby={describedBy}
-              aria-invalid={showErrors && nameInvalid ? true : undefined}
-              id={fieldId}
-              maxLength={80}
-              onChange={(event) => setName(event.target.value)}
-              value={name}
-            />
-          )}
-        </FieldRow>
+      <fieldset
+        className={styles.frozen}
+        disabled={products.isPending || products.isError}
+        inert={products.isPending || products.isError ? true : undefined}
+      >
+        <FormGrid>
+          <FieldRow
+            error={showErrors && nameInvalid ? t('productModels.form.errors.name') : undefined}
+            label={t('productModels.form.name')}
+          >
+            {({ fieldId, describedBy }) => (
+              <input
+                aria-describedby={describedBy}
+                aria-invalid={showErrors && nameInvalid ? true : undefined}
+                id={fieldId}
+                maxLength={80}
+                onChange={(event) => setName(event.target.value)}
+                value={name}
+              />
+            )}
+          </FieldRow>
 
-        <FieldRow
-          error={
-            showErrors && productInvalid ? t('productModels.fromProduct.errors.product') : undefined
-          }
-          hint={t('productModels.fromProduct.productHint')}
-          label={t('productModels.fromProduct.product')}
-        >
-          {({ fieldId, describedBy }) => (
-            <select
-              aria-describedby={describedBy}
-              aria-invalid={showErrors && productInvalid ? true : undefined}
-              id={fieldId}
-              onChange={(event) => {
-                setProductCode(event.target.value);
-                setValuationMode(firstModeFedBy(event.target.value));
-              }}
-              value={productCode}
-            >
-              <option value="">{t('productModels.fromProduct.chooseProduct')}</option>
-              {products.items.map((product) => (
-                <option key={product.code} value={product.code}>
-                  {product.displayName}
-                </option>
-              ))}
-            </select>
-          )}
-        </FieldRow>
+          <FieldRow
+            error={
+              showErrors && productInvalid
+                ? t('productModels.fromProduct.errors.product')
+                : undefined
+            }
+            hint={t('productModels.fromProduct.productHint')}
+            label={t('productModels.fromProduct.product')}
+          >
+            {({ fieldId, describedBy }) =>
+              products.isPending ? (
+                <SkeletonBlock className={styles.pendingControl} />
+              ) : (
+                <select
+                  aria-describedby={describedBy}
+                  aria-invalid={showErrors && productInvalid ? true : undefined}
+                  id={fieldId}
+                  onChange={(event) => {
+                    setProductCode(event.target.value);
+                    setValuationMode(firstModeFedBy(event.target.value));
+                  }}
+                  value={productCode}
+                >
+                  <option value="">{t('productModels.fromProduct.chooseProduct')}</option>
+                  {products.items.map((product) => (
+                    <option key={product.code} value={product.code}>
+                      {product.displayName}
+                    </option>
+                  ))}
+                </select>
+              )
+            }
+          </FieldRow>
 
-        <FieldRow label={t('productModels.form.valuationMode')}>
-          {({ fieldId }) => (
-            <select
-              id={fieldId}
-              onChange={(event) => setValuationMode(event.target.value as AccountValuationMode)}
-              value={valuationMode}
-            >
-              {VALUATION_MODES.map((mode) => (
-                <option disabled={!feedsMode(mode)} key={mode} value={mode}>
-                  {t(`accounts.valuationModes.${mode}`)}
-                </option>
-              ))}
-            </select>
-          )}
-        </FieldRow>
-      </FormGrid>
+          <FieldRow label={t('productModels.form.valuationMode')}>
+            {({ fieldId }) => (
+              <select
+                id={fieldId}
+                onChange={(event) => setValuationMode(event.target.value as AccountValuationMode)}
+                value={valuationMode}
+              >
+                {VALUATION_MODES.map((mode) => (
+                  <option disabled={!feedsMode(mode)} key={mode} value={mode}>
+                    {t(`accounts.valuationModes.${mode}`)}
+                  </option>
+                ))}
+              </select>
+            )}
+          </FieldRow>
+        </FormGrid>
 
-      <ModalActions>
-        <button className="primary-action" disabled={pending} type="submit">
-          {t(pending ? 'productModels.form.saving' : 'productModels.fromProduct.confirm')}
-        </button>
-      </ModalActions>
+        <ModalActions>
+          <button className="primary-action" disabled={pending} type="submit">
+            {t(pending ? 'productModels.form.saving' : 'productModels.fromProduct.confirm')}
+          </button>
+        </ModalActions>
+      </fieldset>
     </form>
   );
 }

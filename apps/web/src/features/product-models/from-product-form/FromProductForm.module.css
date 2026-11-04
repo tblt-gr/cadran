@@ -4,26 +4,12 @@
   gap: var(--spacing-4);
 }
 
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--spacing-4);
+.frozen {
+  display: contents;
 }
-
-.state {
-  display: flex;
-  min-height: 8rem;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--spacing-3);
-}
-
-.state p {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
-  line-height: var(--line-height-body);
+.pendingControl {
+  height: var(--control-height);
+  border-radius: var(--radius-control);
 }
 
 .alert {

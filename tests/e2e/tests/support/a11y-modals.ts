@@ -4,6 +4,8 @@ import { settled, uniqueLabel } from './page';
 import { openMovementEditModal } from './edit-movement';
 
 export const modalCases = [
+  'catalog settings',
+  'product model create',
   'transaction create',
   'transaction edit',
   'transaction error',
@@ -36,30 +38,39 @@ export const modalCases = [
 type ModalCase = (typeof modalCases)[number];
 
 export async function openAuditModal(page: Page, name: ModalCase, fixtures: AuditFixtures) {
-  const route = name.startsWith('account')
-    ? '/accounts'
-    : name.startsWith('category')
-      ? '/transactions/categories'
-      : name.startsWith('budget')
-        ? fixtures.plan
-        : name.startsWith('goal')
-          ? '/goals'
-          : name.startsWith('operation')
-            ? `${fixtures.portfolio}?tab=operations`
-            : name.startsWith('valuation')
-              ? `${fixtures.portfolio}?tab=valuations`
-              : name === 'insurance operation'
-                ? `${fixtures.insurance}?tab=operations`
-                : name.startsWith('insurance valuation')
-                  ? `${fixtures.insurance}?tab=valuations`
-                  : name.startsWith('insurance')
-                    ? `${fixtures.insurance}?tab=contract`
-                    : '/transactions';
+  const route =
+    name === 'catalog settings'
+      ? '/parameters/catalog'
+      : name === 'product model create'
+        ? '/parameters/product-models'
+        : name.startsWith('account')
+          ? '/accounts'
+          : name.startsWith('category')
+            ? '/transactions/categories'
+            : name.startsWith('budget')
+              ? fixtures.plan
+              : name.startsWith('goal')
+                ? '/goals'
+                : name.startsWith('operation')
+                  ? `${fixtures.portfolio}?tab=operations`
+                  : name.startsWith('valuation')
+                    ? `${fixtures.portfolio}?tab=valuations`
+                    : name === 'insurance operation'
+                      ? `${fixtures.insurance}?tab=operations`
+                      : name.startsWith('insurance valuation')
+                        ? `${fixtures.insurance}?tab=valuations`
+                        : name.startsWith('insurance')
+                          ? `${fixtures.insurance}?tab=contract`
+                          : '/transactions';
   await page.goto(route);
   await settled(page);
   const button = (label: string | RegExp) =>
     page.getByRole('button', { name: label, exact: typeof label === 'string' });
-  if (name === 'transaction edit' || name === 'transfer edit') {
+  if (name === 'catalog settings') {
+    await button('Filtres du catalogue').click();
+  } else if (name === 'product model create') {
+    await button('Nouveau modèle').click();
+  } else if (name === 'transaction edit' || name === 'transfer edit') {
     await openMovementEditModal(page, name === 'transfer edit' ? 'transfer' : 'transaction');
   } else if (
     name === 'category edit' ||

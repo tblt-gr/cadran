@@ -1,3 +1,4 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -49,17 +50,19 @@ export function InstrumentFilters({ onStatusChange, status }: InstrumentFiltersP
         >
           <fieldset className={styles.fields}>
             <legend>{t('portfolio.instruments.filters.status')}</legend>
-            {STATUSES.map((value) => (
-              <label key={value}>
-                <input
-                  checked={status === value}
-                  name="instrument-status"
-                  onChange={() => onStatusChange(value)}
-                  type="radio"
-                />
-                <span>{t(`portfolio.instruments.filters.statuses.${value}`)}</span>
-              </label>
-            ))}
+            <FormGrid>
+              {STATUSES.map((value) => (
+                <label key={value}>
+                  <input
+                    checked={status === value}
+                    name="instrument-status"
+                    onChange={() => onStatusChange(value)}
+                    type="radio"
+                  />
+                  <span>{t(`portfolio.instruments.filters.statuses.${value}`)}</span>
+                </label>
+              ))}
+            </FormGrid>
           </fieldset>
         </Modal>
       ) : null}

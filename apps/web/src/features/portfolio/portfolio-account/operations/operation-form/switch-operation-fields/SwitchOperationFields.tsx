@@ -20,6 +20,12 @@ export function SwitchOperationFields({
   const incoming = values.legs.filter((leg) => leg.direction === 'IN');
   return (
     <>
+      <OperationDecimalField
+        label="Frais d’arbitrage"
+        error={errors.fees}
+        value={values.fees}
+        onChange={(value) => onChange('fees', value)}
+      />
       <SupportLegsField
         label="Supports vendus"
         maxLegs={10}
@@ -46,12 +52,6 @@ export function SwitchOperationFields({
             ...legs.map((leg) => ({ ...leg, direction: 'IN' as const })),
           ])
         }
-      />
-      <OperationDecimalField
-        label="Frais d’arbitrage"
-        error={errors.fees}
-        value={values.fees}
-        onChange={(value) => onChange('fees', value)}
       />
     </>
   );

@@ -43,7 +43,7 @@ export function InstrumentStatusModal({
   });
   return (
     <Modal
-      intent={instrument.status === 'ACTIVE' ? 'archive' : 'confirm'}
+      intent="confirm"
       close={onClose}
       title={instrument.status === 'ACTIVE' ? 'Désactiver l’instrument' : 'Réactiver l’instrument'}
     >

@@ -143,6 +143,7 @@ describe('GoalsPage', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Nouvel objectif' }));
     expect(screen.getByRole('dialog', { name: 'Nouvel objectif' })).toBeTruthy();
+    expect(screen.getByText('Création')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
     fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '12000.00' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
