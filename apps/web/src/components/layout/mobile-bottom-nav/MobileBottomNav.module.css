@@ -39,6 +39,11 @@
     gap: var(--spacing-1);
   }
 
+  .navigation .link:hover,
+  .navigation .link:focus-visible {
+    text-decoration: none;
+  }
+
   .navigation .link span {
     max-width: 100%;
     overflow: hidden;
