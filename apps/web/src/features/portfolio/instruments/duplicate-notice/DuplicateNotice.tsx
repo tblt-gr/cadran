@@ -6,11 +6,15 @@ export function DuplicateNotice({
   editing = false,
   onCancel,
   onConfirm,
+  onUse,
+  pending = false,
 }: {
   candidates: InstrumentCandidate[];
   editing?: boolean;
   onCancel: () => void;
   onConfirm: () => void;
+  onUse?: (id: string) => void;
+  pending?: boolean;
 }) {
   return (
     <section className={styles.notice} aria-labelledby="duplicate-title">
@@ -20,14 +24,25 @@ export function DuplicateNotice({
           <li key={candidate.id}>
             {candidate.name} · {candidate.isin ?? 'sans ISIN'} · {candidate.ticker ?? 'sans ticker'}{' '}
             · {candidate.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
+            {onUse ? (
+              <button
+                aria-label={`Utiliser ${candidate.name}`}
+                className="secondary-action"
+                disabled={pending}
+                type="button"
+                onClick={() => onUse(candidate.id)}
+              >
+                {candidate.status === 'ACTIVE' ? 'Utiliser' : 'Réactiver et utiliser'}
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
       <ModalActions>
-        <button className="secondary-action" onClick={onCancel} type="button">
+        <button className="secondary-action" disabled={pending} onClick={onCancel} type="button">
           Annuler
         </button>
-        <button className="primary-action" onClick={onConfirm} type="button">
+        <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
           {editing ? 'Enregistrer quand même' : 'Créer quand même'}
         </button>
       </ModalActions>

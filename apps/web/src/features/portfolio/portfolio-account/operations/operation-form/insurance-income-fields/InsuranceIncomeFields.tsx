@@ -59,6 +59,7 @@ export function InsuranceIncomeFields({
     <>
       <div>
         <InstrumentPicker
+          allowCreate
           key={values.type}
           currencyCode={account.assetCode}
           instrumentType={fee ? undefined : 'EURO_FUND'}

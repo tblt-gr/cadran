@@ -11,6 +11,16 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
   ...api,
 }));
+vi.mock('@/features/auth/useWorkspaceBaseCurrency', () => ({
+  useWorkspaceBaseCurrency: () => 'EUR',
+}));
+vi.mock('@/hooks/use-reference-assets', () => ({
+  useReferenceAssets: () => ({
+    data: { items: [{ code: 'EUR', kind: 'FIAT', displayPrecision: 2 }] },
+    isPending: false,
+    isError: false,
+  }),
+}));
 const instrument: Instrument = {
   id: '00000000-0000-7000-8000-000000000001',
   name: 'ETF Monde',
@@ -132,7 +142,7 @@ describe('InstrumentPicker', () => {
     expect(api.listInstruments.mock.calls[0]?.[0].query).not.toHaveProperty('instrumentType');
     expect(picker.getAttribute('aria-expanded')).toBe('false');
   });
-  it('has a useful empty result and a management link', async () => {
+  it('has a useful empty result without a navigation link', async () => {
     api.listInstruments.mockResolvedValue({
       data: { items: [] },
       response: new Response('{}', { status: 200 }),
@@ -140,9 +150,82 @@ describe('InstrumentPicker', () => {
     renderPicker();
     fireEvent.focus(screen.getByRole('combobox', { name: 'Instrument' }));
     expect(await screen.findByText('Aucun instrument trouvé.')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Gérer les instruments' }).getAttribute('href')).toBe(
-      '/portfolios/instruments',
+    expect(screen.queryByRole('link', { name: 'Gérer les instruments' })).toBeNull();
+  });
+  it.each(['ETF Monde', 'fr0000120271', 'cw8'])(
+    'omits creation on exact match %s',
+    async (text) => {
+      api.listInstruments.mockResolvedValue({
+        data: { items: [instrument] },
+        response: new Response('{}'),
+      });
+      render(
+        <QueryClientProvider client={new QueryClient()}>
+          <InstrumentPicker allowCreate currencyCode="EUR" label="Instrument" onChange={vi.fn()} />
+        </QueryClientProvider>,
+      );
+      fireEvent.change(screen.getByRole('combobox'), { target: { value: text } });
+      await waitFor(() =>
+        expect(api.listInstruments).toHaveBeenLastCalledWith(
+          expect.objectContaining({ query: expect.objectContaining({ q: text }) }),
+        ),
+      );
+      expect(screen.queryByRole('option', { name: /Créer/ })).toBeNull();
+    },
+  );
+  it('offers creation only after a nonempty successful search, including an empty result', async () => {
+    api.listInstruments.mockResolvedValue({ data: { items: [] }, response: new Response('{}') });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <InstrumentPicker allowCreate currencyCode="EUR" label="Instrument" onChange={vi.fn()} />
+      </QueryClientProvider>,
     );
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+    await screen.findByText('Aucun instrument trouvé.');
+    expect(screen.queryByRole('option')).toBeNull();
+    fireEvent.change(input, { target: { value: ' World ESG ' } });
+    expect(await screen.findByRole('option', { name: 'Créer « World ESG »' })).toBeTruthy();
+    expect(screen.getByRole('listbox')).toBeTruthy();
+  });
+  it('prefills an uppercase ISIN by keyboard and returns focus and text on close', async () => {
+    api.listInstruments.mockResolvedValue({ data: { items: [] }, response: new Response('{}') });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <InstrumentPicker allowCreate currencyCode="EUR" label="Instrument" onChange={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    const input = screen.getByRole('combobox');
+    input.focus();
+    fireEvent.change(input, { target: { value: 'ie00bk5bqt80' } });
+    await screen.findByRole('option', { name: 'Créer « ie00bk5bqt80 »' });
+    fireEvent.keyDown(input, { key: 'ArrowDown' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Nom')));
+    expect((screen.getByLabelText('ISIN') as HTMLInputElement).value).toBe('IE00BK5BQT80');
+    expect((screen.getByLabelText('Nom') as HTMLInputElement).value).toBe('');
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    expect((input as HTMLInputElement).value).toBe('ie00bk5bqt80');
+  });
+  it('never offers creation by default or after a search error', async () => {
+    api.listInstruments.mockResolvedValue({ data: { items: [] }, response: new Response('{}') });
+    renderPicker();
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Missing' } });
+    await screen.findByText('Aucun instrument trouvé.');
+    expect(screen.queryByRole('option')).toBeNull();
+    cleanup();
+    api.listInstruments.mockRejectedValue(new TypeError('offline'));
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <InstrumentPicker allowCreate currencyCode="EUR" label="Instrument" onChange={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'Missing' } });
+    await screen.findByRole('alert');
+    expect(screen.queryByRole('option', { name: /Créer/ })).toBeNull();
   });
   it('refetches and resets the active option when its currency changes', async () => {
     const usd = {
@@ -191,6 +274,22 @@ describe('InstrumentPicker', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
     await waitFor(() => expect(api.listInstruments).toHaveBeenCalledTimes(2));
+  });
+  it('removes cached active selection after a failed background refresh', async () => {
+    api.listInstruments
+      .mockResolvedValueOnce({ data: { items: [instrument] }, response: new Response('{}') })
+      .mockRejectedValue(new TypeError('offline'));
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const onChange = renderPicker(vi.fn(), client);
+    const input = screen.getByRole('combobox');
+    fireEvent.focus(input);
+    await screen.findByRole('option');
+    void client.invalidateQueries({ queryKey: ['instrument-picker'] });
+    await screen.findByRole('alert');
+    expect(input.getAttribute('aria-activedescendant')).toBeNull();
+    expect(screen.queryByRole('option')).toBeNull();
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(onChange).not.toHaveBeenCalled();
   });
   it('sends the currency to the API and does not filter the response client-side', async () => {
     api.listInstruments.mockResolvedValue({

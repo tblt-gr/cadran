@@ -12,11 +12,12 @@ interface ModalProps {
   children: ReactNode;
   close: () => void;
   intent: ModalIntent;
+  eyebrow?: string;
   returnFocus?: RefObject<HTMLElement | null>;
   title: string;
 }
 
-export function Modal({ children, close, intent, returnFocus, title }: ModalProps) {
+export function Modal({ children, close, intent, returnFocus, title, eyebrow }: ModalProps) {
   const { t } = useTranslation();
   const container = useDialogOverlay(close, returnFocus);
   const titleId = useId();
@@ -34,7 +35,7 @@ export function Modal({ children, close, intent, returnFocus, title }: ModalProp
       >
         <header className={styles.heading}>
           <div>
-            <p>{label}</p>
+            <p>{eyebrow ?? label}</p>
             <h2 id={titleId}>{title}</h2>
           </div>
           <button

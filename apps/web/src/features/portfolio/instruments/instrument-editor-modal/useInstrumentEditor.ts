@@ -21,7 +21,10 @@ import {
 type Body = CreateInstrumentRequest | UpdateInstrumentRequest;
 
 /** Save orchestration for the instrument modal, including the confirmed-duplicate retry. */
-export function useInstrumentEditor(instrument: Instrument | undefined, onSaved: () => void) {
+export function useInstrumentEditor(
+  instrument: Instrument | undefined,
+  onSaved: (instrument: Instrument) => void,
+) {
   const client = useQueryClient();
   const [retryDuplicate, setRetryDuplicate] = useState(false);
   const [submittedBody, setSubmittedBody] = useState<Body | null>(null);
@@ -48,15 +51,37 @@ export function useInstrumentEditor(instrument: Instrument | undefined, onSaved:
             }),
           );
       if (!result.response?.ok || !result.data) throw instrumentRequestError(result);
-      return result.data;
+      const saved = result.data;
+      if (
+        typeof saved.id !== 'string' ||
+        !saved.id.trim() ||
+        typeof saved.name !== 'string' ||
+        !saved.name.trim() ||
+        saved.currencyCode !== payload.currencyCode ||
+        saved.instrumentType !== payload.instrumentType ||
+        (saved.status !== 'ACTIVE' && (saved.status !== 'INACTIVE' || !instrument))
+      )
+        throw instrumentRequestError({ error: { code: 'instrument_response_incompatible' } });
+      return saved;
     },
-    onSuccess: async () => {
+    onSuccess: async (saved) => {
       submission.release();
-      onSaved();
-      await client.invalidateQueries({ queryKey: ['instruments'] });
+      onSaved(saved);
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['instruments'] }),
+        client.invalidateQueries({ queryKey: ['instrument-picker'] }),
+      ]);
     },
     onError: async (error) => {
-      if (isStaleInstrumentError(error)) {
+      if (
+        error instanceof InstrumentRequestError &&
+        error.code === 'instrument_response_incompatible'
+      ) {
+        await Promise.all([
+          client.invalidateQueries({ queryKey: ['instruments'] }),
+          client.invalidateQueries({ queryKey: ['instrument-picker'] }),
+        ]);
+      } else if (isStaleInstrumentError(error)) {
         await client.invalidateQueries({ queryKey: ['instruments'] });
       }
     },
@@ -76,10 +101,12 @@ export function useInstrumentEditor(instrument: Instrument | undefined, onSaved:
     pending: save.isPending,
     submit(body: Body) {
       setSubmittedBody(body);
+      if (save.isPending) return;
+      setRetryDuplicate(false);
       save.mutate({ body, duplicate: false });
     },
     confirmDuplicate() {
-      if (!submittedBody) return;
+      if (!submittedBody || save.isPending) return;
       setRetryDuplicate(true);
       save.mutate({ body: submittedBody, duplicate: true });
     },

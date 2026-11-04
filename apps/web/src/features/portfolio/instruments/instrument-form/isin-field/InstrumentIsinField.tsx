@@ -1,12 +1,14 @@
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 
 export function InstrumentIsinField({
+  autofocus,
   error,
   existingInstrumentId,
   locked,
   onChange,
   value,
 }: {
+  autofocus?: boolean;
   error?: string;
   existingInstrumentId?: string | null;
   locked: boolean;
@@ -18,6 +20,7 @@ export function InstrumentIsinField({
     <label>
       <span>ISIN</span>
       <input
+        data-autofocus={autofocus || undefined}
         aria-describedby={existingInstrumentId ? 'existing-instrument' : undefined}
         aria-invalid={existingInstrumentId ? true : undefined}
         disabled={locked}

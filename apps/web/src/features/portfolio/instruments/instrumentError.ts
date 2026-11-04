@@ -35,6 +35,7 @@ const fieldTexts: Record<keyof InstrumentFieldErrors, string> = {
   venueMic: 'Ce code MIC est invalide.',
 };
 const messages: Record<string, string> = {
+  instrument_response_incompatible: 'La réponse de l’instrument est incompatible. Réessayez.',
   stale_instrument_version:
     'Cet instrument a été modifié ailleurs. Fermez cette fenêtre pour recharger la liste, puis réessayez.',
   instrument_identity_locked:
