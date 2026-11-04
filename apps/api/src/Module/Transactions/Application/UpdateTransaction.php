@@ -87,6 +87,13 @@ final readonly class UpdateTransaction
             }
             if (null !== $refund) {
                 RefundEditPolicy::assertUnchanged($current, $draft, $input, $this->splitParser);
+                // A live refund prevents editing its original, so a scoped read suffices here
+                // without taking the original's lock after the refund's lock.
+                $original = $this->transactions->find($context->workspace, $refund->originalTransactionId);
+                if (null === $original) {
+                    throw new TransactionNotFound();
+                }
+                RefundDatePolicy::assertNotBeforeOriginal($draft->bookedOn, $original->bookedOn);
             }
             if (null === $refund && $input->accountId !== $current->accountId) {
                 throw new InvalidTransactionInput('The account is immutable.');

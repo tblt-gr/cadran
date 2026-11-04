@@ -152,8 +152,6 @@ final readonly class CreateRefund
         if (!in_array($original->nature, [TransactionNature::EXPENSE, TransactionNature::FEE], true)) {
             throw new InvalidRefundRule('original_nature');
         }
-        if ($refundDate < $original->bookedOn) {
-            throw new InvalidRefundRule('date_before_original');
-        }
+        RefundDatePolicy::assertNotBeforeOriginal($refundDate, $original->bookedOn);
     }
 }

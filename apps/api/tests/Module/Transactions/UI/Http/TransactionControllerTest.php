@@ -1374,6 +1374,35 @@ final class TransactionControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testEditingARefundCannotMoveItBeforeItsOriginalExpense(): void
+    {
+        $original = $this->createTransaction(['bookedOn' => '2026-03-10']);
+        $this->requestRefund(self::stringValue($original, 'id'), [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '10.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Refund',
+            'counterparty' => null, 'note' => null, 'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        $id = self::stringValue($refund, 'id');
+        foreach (['2026-02-28', '2026-03-09'] as $date) {
+            $this->requestRawUpdate($id, [...$this->updateBody($refund), 'bookedOn' => $date]);
+            self::assertResponseStatusCodeSame(422);
+            self::assertSame('/problems/refund.date_before_original', $this->decode()['type']);
+            $unchanged = $this->decodeFromRow($id);
+            foreach (['bookedOn', 'version', 'amount', 'splits', 'refundOriginalId'] as $field) {
+                self::assertSame($refund[$field], $unchanged[$field]);
+            }
+        }
+        foreach (['2026-03-10', '2026-03-11'] as $date) {
+            $this->requestRawUpdate($id, [...$this->updateBody($refund), 'bookedOn' => $date]);
+            self::assertResponseIsSuccessful();
+            $refund = $this->decodeFromRow($id);
+            self::assertSame($date, $refund['bookedOn']);
+        }
+    }
+
     public function testRefundMetadataCanBeEditedWithoutChangingItsFinancialLinks(): void
     {
         $original = $this->createTransaction();

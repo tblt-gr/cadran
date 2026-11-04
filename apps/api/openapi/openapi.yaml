@@ -6838,7 +6838,8 @@ paths:
       description: >-
         Optimistic versioning. Asset and provenance never change. A linked refund
         allows account, booked date, label, counterparty and note corrections only;
-        its amount, allocation and original expense remain fixed. A changed account
+        its amount, allocation and original expense remain fixed. The refund date
+        cannot precede the original expense date (422, /problems/refund.date_before_original). A changed account
         must be active, in the workspace, and compatible with the asset and dates.
         Other transactions keep their account. Imported source labels remain fixed.
         A voided or rejected transaction cannot be edited.
