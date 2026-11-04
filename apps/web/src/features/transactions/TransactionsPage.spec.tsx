@@ -149,6 +149,12 @@ describe('TransactionsPage', () => {
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
     const dialog = screen.getByRole('dialog', { name: 'Nouveau virement' });
+    expect((within(dialog).getByLabelText('Compte source') as HTMLSelectElement).disabled).toBe(
+      false,
+    );
+    expect(
+      (within(dialog).getByLabelText('Compte de destination') as HTMLSelectElement).disabled,
+    ).toBe(false);
     fireEvent.change(within(dialog).getByLabelText('Montant (EUR)'), {
       target: { value: '1500.00' },
     });

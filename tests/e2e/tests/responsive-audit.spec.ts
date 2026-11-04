@@ -72,13 +72,21 @@ async function firstHref(browser: Browser, listing: string, pattern: RegExp): Pr
     const page = await context.newPage();
     await page.goto(listing);
     await settled(page);
-    const hrefs = await page
-      .locator('a[href]')
-      .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
-    const match = hrefs.find((href) => pattern.test(href));
-    if (!match) throw new Error(`No ${pattern} link on ${listing}`);
+    let match: string | undefined;
+    await expect
+      .poll(
+        async () => {
+          const hrefs = await page
+            .locator('a[href]')
+            .evaluateAll((links) => links.map((link) => link.getAttribute('href') ?? ''));
+          match = hrefs.find((href) => pattern.test(href));
+          return match;
+        },
+        { message: `No ${pattern} link on ${listing}` },
+      )
+      .toBeTruthy();
 
-    return match.split('?')[0]!;
+    return match!.split('?')[0]!;
   } finally {
     await context.close();
   }
@@ -241,6 +249,18 @@ const MODALS: ModalCase[] = [
       await page.goto('/transactions');
       await settled(page);
       await page.getByRole('button', { name: 'Nouveau virement' }).click();
+      return 'Créer le virement';
+    },
+  },
+  {
+    name: 'account transfer',
+    open: async (page, ids) => {
+      await page.goto(`/accounts/${ids.accountId}?tab=operations`);
+      await settled(page);
+      await page.getByRole('button', { name: /^Actions du compte/ }).click();
+      await page.getByRole('button', { name: 'Nouveau virement', exact: true }).click();
+      await expect(page.getByLabel('Compte source')).toBeDisabled();
+      await expect(page.getByLabel('Compte de destination')).toBeFocused();
       return 'Créer le virement';
     },
   },

@@ -120,3 +120,30 @@ it('describes the value-date correction as a 90-day window around the booked dat
   fireEvent.click(screen.getByRole('button', { name: 'Créer le virement' }));
   expect(submit).toHaveBeenCalledOnce();
 });
+
+it('associates the empty locked transfer destination with its validation message', () => {
+  const accounts = [
+    { id: 'bank', label: 'Banque', assetCode: 'EUR', status: 'ACTIVE', isPrimary: true },
+  ] as Account[];
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TransferForm
+        accounts={accounts}
+        defaults={{ lockedSourceAccountId: 'bank' }}
+        onSubmit={vi.fn()}
+        pending={false}
+        submitError={null}
+      />
+    </QueryClientProvider>,
+  );
+  const source = screen.getByLabelText('Compte source');
+  const destination = screen.getByLabelText('Compte de destination');
+  expect(source.getAttribute('data-autofocus')).toBeNull();
+  expect(destination.hasAttribute('data-autofocus')).toBe(true);
+  fireEvent.click(screen.getByRole('button', { name: 'Créer le virement' }));
+  expect(source.getAttribute('aria-invalid')).toBeNull();
+  expect(destination.getAttribute('aria-invalid')).toBe('true');
+  expect(document.getElementById(destination.getAttribute('aria-describedby')!)?.textContent).toBe(
+    'Choisissez un compte de destination actif, différent du compte source.',
+  );
+});

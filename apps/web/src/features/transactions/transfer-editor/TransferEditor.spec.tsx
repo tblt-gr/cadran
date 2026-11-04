@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransferEditor } from './TransferEditor';
+import type { TransferFormDefaults } from './TransferForm';
 
 afterEach(() => {
   cleanup();
@@ -28,7 +29,11 @@ const portfolio = {
 const transfer = { id: 'transfer' } as Transfer;
 const notice = /enregistré automatiquement sur le compte d’investissement/;
 
-function setup(target: Account = portfolio, accounts = [source, target]) {
+function setup(
+  target: Account = portfolio,
+  accounts = [source, target],
+  defaults: TransferFormDefaults = { bookedOn: '2026-03-10', targetAccountId: target.id },
+) {
   const onSubmit = vi.fn().mockResolvedValue(transfer);
   const onSaved = vi.fn();
   const client = new QueryClient({
@@ -39,7 +44,7 @@ function setup(target: Account = portfolio, accounts = [source, target]) {
       <TransferEditor
         accounts={accounts}
         close={vi.fn()}
-        defaults={{ bookedOn: '2026-03-10', targetAccountId: target.id }}
+        defaults={defaults}
         onSubmit={onSubmit}
         onSaved={onSaved}
         pending={false}
@@ -135,5 +140,66 @@ describe('TransferEditor into a portfolio', () => {
     submit();
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce());
     for (const key of keys) expect(client.getQueryState([key])?.isInvalidated).toBe(true);
+  });
+});
+
+describe('TransferEditor with an account source lock', () => {
+  it('locks the current account, selects the primary destination and focuses it', async () => {
+    const primary = { ...portfolio, isPrimary: true };
+    const { onSubmit } = setup(primary, [source, primary], {
+      bookedOn: '2026-03-10',
+      lockedSourceAccountId: source.id,
+    });
+    const from = screen.getByLabelText('Compte source') as HTMLSelectElement;
+    const to = screen.getByLabelText('Compte de destination') as HTMLSelectElement;
+    expect(from.value).toBe(source.id);
+    expect(from.disabled).toBe(true);
+    expect(from.selectedOptions[0]?.textContent).toBe(source.label);
+    expect(to.value).toBe(primary.id);
+    expect(to.disabled).toBe(false);
+    expect(Array.from(to.options, (option) => option.value)).not.toContain(source.id);
+    await waitFor(() => expect(document.activeElement).toBe(to));
+    fireEvent.change(screen.getByLabelText('Montant (EUR)'), { target: { value: '25.00' } });
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Créer le virement' }));
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledOnce());
+    expect(onSubmit.mock.calls[0]![0]).toMatchObject({
+      sourceAccountId: source.id,
+      targetAccountId: primary.id,
+      sourceAmount: { value: '25.00', assetCode: 'EUR' },
+      targetAmount: null,
+    });
+  });
+
+  it.each(['current', 'absent', 'inactive'])(
+    'leaves the destination empty when the primary is %s',
+    (kind) => {
+      const current = { ...source, isPrimary: kind === 'current' };
+      const other = {
+        ...portfolio,
+        isPrimary: kind === 'inactive',
+        status: kind === 'inactive' ? 'CLOSED' : 'ACTIVE',
+      } as Account;
+      setup(other, [current, other], { bookedOn: '2026-03-10', lockedSourceAccountId: current.id });
+      const destination = screen.getByLabelText('Compte de destination') as HTMLSelectElement;
+      expect(destination.value).toBe('');
+      if (kind === 'inactive')
+        expect(Array.from(destination.options, (option) => option.value)).not.toContain(other.id);
+      fireEvent.click(screen.getByRole('button', { name: 'Créer le virement' }));
+      expect(destination.getAttribute('aria-invalid')).toBe('true');
+      expect(
+        document.getElementById(destination.getAttribute('aria-describedby')!)?.textContent,
+      ).toBeTruthy();
+    },
+  );
+
+  it('keeps budget defaults editable and retains the target', () => {
+    setup(portfolio, [{ ...source, isPrimary: true }, portfolio]);
+    expect((screen.getByLabelText('Compte source') as HTMLSelectElement).disabled).toBe(false);
+    expect((screen.getByLabelText('Compte source') as HTMLSelectElement).value).toBe(source.id);
+    const destination = screen.getByLabelText('Compte de destination') as HTMLSelectElement;
+    expect(destination.disabled).toBe(false);
+    expect(destination.value).toBe(portfolio.id);
+    expect(Array.from(destination.options, (option) => option.value)).toContain(source.id);
   });
 });

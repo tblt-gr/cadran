@@ -1315,6 +1315,10 @@ describe('MonthlyBudgetPage', () => {
     expect(await screen.findByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();
     expect(((await screen.findByLabelText('Date')) as HTMLInputElement).value).toBe('2026-03-15');
     expect((screen.getByLabelText('Compte source') as HTMLSelectElement).value).toBe('');
+    expect((screen.getByLabelText('Compte source') as HTMLSelectElement).disabled).toBe(false);
+    expect((screen.getByLabelText('Compte de destination') as HTMLSelectElement).disabled).toBe(
+      false,
+    );
     expect((screen.getByLabelText('Compte de destination') as HTMLSelectElement).value).toBe(
       accountId,
     );
