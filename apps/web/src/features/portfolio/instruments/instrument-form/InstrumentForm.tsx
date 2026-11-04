@@ -1,4 +1,3 @@
-import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
@@ -10,31 +9,41 @@ import type {
   InstrumentType,
   UpdateInstrumentRequest,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useReferenceAssets } from '@/hooks/use-reference-assets';
 import type { InstrumentFieldErrors } from '@/features/portfolio/instruments/instrumentError';
 import { InstrumentIsinField } from './isin-field/InstrumentIsinField';
-import { InstrumentPrecisionField } from './precision-field/InstrumentPrecisionField';
 import { InstrumentSelectField } from './select-field/InstrumentSelectField';
-import {
-  instrumentClasses,
-  instrumentRegions,
-  instrumentTypes,
-  validPrecision,
-} from './instrumentOptions';
+import { instrumentTypes, validPrecision } from './instrumentOptions';
 import styles from './InstrumentForm.module.css';
+import { InstrumentAdvancedFields } from './advanced-fields/InstrumentAdvancedFields';
+
+export interface InstrumentInitial {
+  name?: string;
+  isin?: string;
+  instrumentType?: InstrumentType;
+  currencyCode?: string;
+}
+export interface InstrumentLock {
+  currencyCode?: boolean;
+  instrumentType?: boolean;
+}
 
 interface Props {
+  initial?: InstrumentInitial;
+  lock?: InstrumentLock;
   existingInstrumentId?: string | null;
   instrument?: Instrument;
   pending: boolean;
-  error?: string;
+  error?: ReactNode;
   fieldErrors?: InstrumentFieldErrors;
   onSubmit: (body: CreateInstrumentRequest | UpdateInstrumentRequest) => void;
 }
 
 export function InstrumentForm({
   existingInstrumentId,
+  initial,
+  lock,
   instrument,
   pending,
   error,
@@ -43,14 +52,18 @@ export function InstrumentForm({
 }: Props) {
   const assets = useReferenceAssets();
   const baseCurrency = useWorkspaceBaseCurrency();
-  const [name, setName] = useState(instrument?.name ?? '');
-  const [isin, setIsin] = useState(instrument?.isin ?? '');
+  const [name, setName] = useState(instrument?.name ?? initial?.name ?? '');
+  const [isin, setIsin] = useState(instrument?.isin ?? initial?.isin ?? '');
   const [ticker, setTicker] = useState(instrument?.ticker ?? '');
   const [venueMic, setVenue] = useState(instrument?.venueMic ?? '');
-  const [instrumentType, setType] = useState(instrument?.instrumentType ?? 'ETF');
+  const [instrumentType, setType] = useState(
+    instrument?.instrumentType ?? initial?.instrumentType ?? 'ETF',
+  );
   const [assetClass, setClass] = useState(instrument?.assetClass ?? '');
   const [region, setRegion] = useState(instrument?.region ?? '');
-  const [currencyCode, setCurrency] = useState(instrument?.currencyCode ?? 'EUR');
+  const [currencyCode, setCurrency] = useState(
+    instrument?.currencyCode ?? initial?.currencyCode ?? 'EUR',
+  );
   const [quantityPrecision, setQuantityPrecision] = useState(
     String(instrument?.quantityPrecision ?? 6),
   );
@@ -65,11 +78,19 @@ export function InstrumentForm({
   );
   const [showErrors, setShowErrors] = useState(false);
   const euroFund = instrumentType === 'EURO_FUND';
+  const incompatibleEuroCurrency = Boolean(lock?.currencyCode && currencyCode !== baseCurrency);
+  const invalidEuroCurrency = euroFund && incompatibleEuroCurrency;
+  const effectiveCurrency = lock?.currencyCode
+    ? currencyCode
+    : euroFund
+      ? baseCurrency
+      : currencyCode;
   const euroPrecision = assets.data?.items.find(
     (asset) => asset.code === baseCurrency,
   )?.displayPrecision;
   const locked = instrument?.used ?? false;
   const invalid =
+    invalidEuroCurrency ||
     name.trim() === '' ||
     (!euroFund && !isin.trim() && !ticker.trim()) ||
     !validPrecision(quantityPrecision) ||
@@ -81,6 +102,7 @@ export function InstrumentForm({
   }
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    event.stopPropagation();
     if (invalid) {
       setShowErrors(true);
       return;
@@ -93,7 +115,7 @@ export function InstrumentForm({
       instrumentType,
       assetClass: (assetClass || null) as InstrumentAssetClass | null,
       region: (region || null) as InstrumentRegion | null,
-      currencyCode: euroFund ? baseCurrency : currencyCode,
+      currencyCode: effectiveCurrency,
       quantityPrecision: euroFund ? euroPrecision! : Number(quantityPrecision),
       pricePrecision: euroFund ? 0 : Number(pricePrecision),
     };
@@ -106,15 +128,15 @@ export function InstrumentForm({
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
       {error ? (
-        <p className={styles.alert} role="alert">
+        <div className={styles.alert} role="alert">
           {error}
-        </p>
+        </div>
       ) : null}
       <FormGrid>
         <label>
           <span>Nom</span>
           <input
-            data-autofocus
+            data-autofocus={!initial?.name || euroFund ? true : undefined}
             maxLength={120}
             onChange={(e) => setName(e.target.value)}
             value={name}
@@ -124,6 +146,7 @@ export function InstrumentForm({
         {!euroFund ? (
           <>
             <InstrumentIsinField
+              autofocus={Boolean(initial?.name)}
               error={fieldErrors.isin}
               existingInstrumentId={existingInstrumentId}
               locked={locked}
@@ -146,6 +169,8 @@ export function InstrumentForm({
           </>
         ) : null}
         <InstrumentSelectField
+          disabled={lock?.instrumentType}
+          disabledOptions={incompatibleEuroCurrency ? ['EURO_FUND'] : undefined}
           label="Type"
           options={instrumentTypes}
           onChange={(value) => setType(value as InstrumentType)}
@@ -154,9 +179,12 @@ export function InstrumentForm({
         <label>
           <span>Devise</span>
           <select
-            disabled={euroFund || locked || assets.isPending || assets.isError}
+            aria-label="Devise"
+            disabled={
+              lock?.currencyCode || euroFund || locked || assets.isPending || assets.isError
+            }
             onChange={(e) => setCurrency(e.target.value)}
-            value={euroFund ? baseCurrency : currencyCode}
+            value={effectiveCurrency}
           >
             {fiat.map((asset) => (
               <option key={asset.code} value={asset.code}>
@@ -164,79 +192,41 @@ export function InstrumentForm({
               </option>
             ))}
           </select>
-          {locked ? <small>Figé après la première utilisation</small> : null}
-        </label>
-        <FormSection
-          title="Champs avancés"
-          open={
-            advancedOpen ||
-            Boolean(fieldErrors.venueMic) ||
-            (showErrors && (!validPrecision(quantityPrecision) || !validPrecision(pricePrecision)))
-          }
-          onToggle={setAdvancedOpen}
-        >
-          {!euroFund ? (
-            <label>
-              <span>Place de cotation (MIC)</span>
-              <input
-                maxLength={4}
-                onChange={(e) => setVenue(e.target.value.toUpperCase())}
-                value={venueMic}
-              />
-              {fieldErrors.venueMic ? <small>{fieldErrors.venueMic}</small> : null}
-            </label>
+          {lock?.currencyCode ? (
+            <small>Devise du compte</small>
+          ) : locked ? (
+            <small>Figé après la première utilisation</small>
           ) : null}
-          <InstrumentSelectField
-            label="Classe d'actifs"
-            nullable
-            options={instrumentClasses}
-            onChange={setClass}
-            value={assetClass}
-          />
-          <InstrumentSelectField
-            label="Région"
-            nullable
-            options={instrumentRegions}
-            onChange={setRegion}
-            value={region}
-          />
-          {euroFund ? (
-            <>
-              <label>
-                Précision des quantités
-                <input readOnly value={euroPrecision ?? ''} />
-              </label>
-              <label>
-                Précision des prix
-                <input readOnly value="0" />
-              </label>
-              <p>Un fonds en euros vaut toujours 1 € par part.</p>
-            </>
-          ) : (
-            <>
-              <InstrumentPrecisionField
-                label="Précision des quantités"
-                locked={locked}
-                onChange={setQuantityPrecision}
-                showErrors={showErrors}
-                value={quantityPrecision}
-              />
-              <InstrumentPrecisionField
-                label="Précision des prix"
-                locked={locked}
-                onChange={setPricePrecision}
-                showErrors={showErrors}
-                value={pricePrecision}
-              />
-            </>
-          )}
-        </FormSection>
+        </label>
+        <InstrumentAdvancedFields
+          advancedOpen={advancedOpen}
+          setAdvancedOpen={setAdvancedOpen}
+          fieldErrors={fieldErrors}
+          showErrors={showErrors}
+          euroFund={euroFund}
+          euroPrecision={euroPrecision}
+          locked={locked}
+          venueMic={venueMic}
+          setVenue={setVenue}
+          assetClass={assetClass}
+          setClass={setClass}
+          region={region}
+          setRegion={setRegion}
+          quantityPrecision={quantityPrecision}
+          setQuantityPrecision={setQuantityPrecision}
+          pricePrecision={pricePrecision}
+          setPricePrecision={setPricePrecision}
+        />
       </FormGrid>
+      {invalidEuroCurrency ? (
+        <p role="alert">Un fonds en euros doit utiliser la devise de référence de l’espace.</p>
+      ) : null}
       <ModalActions>
         <button
           className="primary-action"
           disabled={
             pending ||
+            invalidEuroCurrency ||
             assets.isError ||
             (euroFund && (assets.isPending || euroPrecision === undefined))
           }

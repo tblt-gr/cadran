@@ -54,6 +54,7 @@ export function SupportLegRow({
       <legend>Support {index}</legend>
       <div className={styles.controls}>
         <InstrumentPicker
+          allowCreate
           currencyCode={assetCode}
           label={`Support ${index}`}
           value={value.instrument}

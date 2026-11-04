@@ -68,8 +68,23 @@ describe('Modal', () => {
 
   it('only accepts a required action intent', () => {
     type Props = ComponentProps<typeof Modal>;
-    expectTypeOf<Extract<keyof Props, `${'eye'}${'brow'}`>>().toEqualTypeOf<never>();
+    expectTypeOf<Props['eyebrow']>().toEqualTypeOf<string | undefined>();
     expectTypeOf<Props['intent']>().toEqualTypeOf<(typeof MODAL_INTENTS)[number]>();
+  });
+
+  it('allows a contextual creation eyebrow while keeping its required intent', () => {
+    render(
+      <Modal
+        close={vi.fn()}
+        intent="create"
+        eyebrow="Nouvel instrument"
+        title="Créer un instrument"
+      >
+        <p>Contenu</p>
+      </Modal>,
+    );
+    expect(within(screen.getByRole('dialog')).getByText('Nouvel instrument')).toBeTruthy();
+    expect(screen.queryByText('Création')).toBeNull();
   });
 
   it('closes with a borderless icon button', () => {

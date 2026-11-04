@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { operationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { OperationForm } from './OperationForm';
+import { Modal } from '@/components/ui/modal/Modal';
 import { operationFixture } from '@/features/portfolio/portfolio-account/operations/operations-table/operationFixtures';
 
 const api = vi.hoisted(() => ({
@@ -13,12 +14,26 @@ const api = vi.hoisted(() => ({
   previewPortfolioOperation: vi.fn(),
   listPortfolioPositions: vi.fn(),
   readInstrument: vi.fn(),
+  createInstrument: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
   ...api,
 }));
 
+vi.mock('@/features/auth/useWorkspaceBaseCurrency', () => ({
+  useWorkspaceBaseCurrency: () => 'EUR',
+}));
+vi.mock('@/hooks/use-reference-assets', () => ({
+  useReferenceAssets: () => ({
+    data: { items: [{ code: 'EUR', kind: 'FIAT', displayPrecision: 2 }] },
+    isPending: false,
+    isError: false,
+  }),
+}));
+vi.mock('@/features/auth/withCsrfRetry', () => ({
+  withCsrfRetry: (request: () => unknown) => request(),
+}));
 const account = { id: 'acc-1', assetCode: 'EUR' };
 function ok<T>(data: T) {
   return Promise.resolve({ data, response: new Response('{}', { status: 200 }) });
@@ -59,13 +74,15 @@ function renderForm(
   configurePreview?.();
   render(
     <QueryClientProvider client={client}>
-      <OperationForm
-        account={account}
-        onSubmit={onSubmit}
-        pending={false}
-        today="2026-03-10"
-        {...props}
-      />
+      <Modal close={vi.fn()} intent="create" title="Nouvelle opération">
+        <OperationForm
+          account={account}
+          onSubmit={onSubmit}
+          pending={false}
+          today="2026-03-10"
+          {...props}
+        />
+      </Modal>
     </QueryClientProvider>,
   );
   return { onSubmit };
@@ -79,6 +96,56 @@ afterEach(() => {
 });
 
 describe('OperationForm', () => {
+  it('preserves the buy draft across stacked cancellation and creation without submitting it', async () => {
+    const { onSubmit } = renderForm({}, () =>
+      api.listInstruments.mockImplementation(() => ok({ items: [] })),
+    );
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Type')));
+    change('Type', 'BUY');
+    change('Date d’opération', '2026-03-02');
+    change('Quantité', '2.5');
+    change('Prix unitaire', '20');
+    change('Montant brut', '50');
+    const parent = screen.getByRole('dialog', { name: 'Nouvelle opération' });
+    const input = screen.getByRole('combobox', { name: 'Instrument' });
+    input.focus();
+    fireEvent.change(input, { target: { value: 'World ESG' } });
+    await screen.findByRole('option', { name: 'Créer « World ESG »' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    const child = await screen.findByRole('dialog', { name: 'Créer un instrument' });
+    await waitFor(() => expect(document.activeElement).toBe(within(child).getByLabelText('ISIN')));
+    expect(parent.hasAttribute('inert')).toBe(true);
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() => expect(document.activeElement).toBe(input));
+    expect((input as HTMLInputElement).value).toBe('World ESG');
+    expect((within(parent).getByLabelText('Quantité') as HTMLInputElement).value).toBe('2.5');
+    const created = {
+      status: 'ACTIVE',
+      id: 'new-ins',
+      name: 'World ESG',
+      isin: 'IE00BK5BQT80',
+      currencyCode: 'EUR',
+      instrumentType: 'ETF',
+    };
+    api.createInstrument.mockResolvedValue(await ok(created));
+    await screen.findByRole('option', { name: 'Créer « World ESG »' });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    const nextChild = await screen.findByRole('dialog', { name: 'Créer un instrument' });
+    fireEvent.change(within(nextChild).getByLabelText('ISIN'), { target: { value: created.isin } });
+    fireEvent.click(within(nextChild).getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Créer un instrument' })).toBeNull(),
+    );
+    expect((input as HTMLInputElement).value).toBe('World ESG');
+    expect((within(parent).getByLabelText('Date d’opération') as HTMLInputElement).value).toBe(
+      '2026-03-02',
+    );
+    expect((within(parent).getByLabelText('Prix unitaire') as HTMLInputElement).value).toBe('20');
+    expect(onSubmit).not.toHaveBeenCalled();
+    await waitFor(() => expect(api.previewPortfolioOperation).toHaveBeenCalled());
+    expect(api.previewPortfolioOperation.mock.calls.at(-1)?.[0].body.instrumentId).toBe('new-ins');
+  });
+
   it('places a server management-fee mismatch next to the visible fee field', () => {
     renderForm({
       account: { ...account, kind: 'INSURANCE_CONTRACT' },

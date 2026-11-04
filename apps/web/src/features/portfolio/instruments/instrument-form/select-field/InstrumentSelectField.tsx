@@ -1,10 +1,14 @@
 export function InstrumentSelectField({
+  disabled,
+  disabledOptions,
   label,
   options,
   onChange,
   value,
   nullable = false,
 }: {
+  disabled?: boolean;
+  disabledOptions?: readonly string[];
   label: string;
   options: readonly (readonly [string, string])[];
   onChange: (value: string) => void;
@@ -14,10 +18,10 @@ export function InstrumentSelectField({
   return (
     <label>
       <span>{label}</span>
-      <select onChange={(e) => onChange(e.target.value)} value={value}>
+      <select disabled={disabled} onChange={(e) => onChange(e.target.value)} value={value}>
         {nullable ? <option value="">Non renseignée</option> : null}
         {options.map(([id, text]) => (
-          <option key={id} value={id}>
+          <option disabled={disabledOptions?.includes(id)} key={id} value={id}>
             {text}
           </option>
         ))}

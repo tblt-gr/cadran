@@ -226,6 +226,8 @@ final class InstrumentControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(404);
         $this->request('POST', '/api/v1/instruments/'.$foreignId.'/deactivate', ['version' => 1]);
         self::assertResponseStatusCodeSame(404);
+        $this->request('POST', '/api/v1/instruments/'.$foreignId.'/reactivate', ['version' => 1]);
+        self::assertResponseStatusCodeSame(404);
 
         $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', 'invalid');
         $this->request('POST', '/api/v1/instruments', $this->payload(['isin' => 'IE00B4L5Y983']));

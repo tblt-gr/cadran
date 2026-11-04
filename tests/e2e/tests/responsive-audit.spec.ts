@@ -308,6 +308,24 @@ const MODALS: ModalCase[] = [
     },
   },
   {
+    name: 'stacked instrument creation',
+    open: async (page, ids) => {
+      await page.goto(`/portfolios/${ids.portfolioId}?tab=operations`);
+      await settled(page);
+      await page.getByRole('button', { name: 'Nouvelle opération' }).click();
+      const parent = page.getByRole('dialog', { name: 'Nouvelle opération' });
+      await parent.getByRole('combobox', { name: 'Type', exact: true }).selectOption('BUY');
+      await parent
+        .getByRole('combobox', { name: 'Instrument', exact: true })
+        .fill('Missing audit instrument');
+      await parent.getByRole('option', { name: 'Créer « Missing audit instrument »' }).click();
+      await expect(
+        page.getByRole('dialog', { name: 'Créer un instrument' }).getByLabel('ISIN'),
+      ).toBeFocused();
+      return 'Enregistrer';
+    },
+  },
+  {
     name: 'valuation',
     open: async (page, ids) => {
       await page.goto(`/portfolios/${ids.portfolioId}`);

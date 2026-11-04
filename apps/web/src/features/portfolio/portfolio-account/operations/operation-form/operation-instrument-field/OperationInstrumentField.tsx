@@ -20,6 +20,7 @@ export function OperationInstrumentField({
   return (
     <div className={styles.picker}>
       <InstrumentPicker
+        allowCreate
         currencyCode={currencyCode}
         label={label}
         onChange={(item) => onChange(item ? { id: item.id, name: item.name } : null)}
