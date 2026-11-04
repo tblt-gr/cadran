@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
@@ -29,6 +30,14 @@ export function ContractForm({
   const [subscribedOn, setSubscribedOn] = useState(contract?.subscribedOn ?? '');
   const [taxStartOn, setTaxStartOn] = useState(contract?.taxStartOn ?? '');
   const [mode, setMode] = useState<LifeInsuranceManagementMode>(contract?.managementMode ?? 'FREE');
+  const [advancedOpen, setAdvancedOpen] = useState(
+    Boolean(
+      contract?.distributor ||
+      contract?.commercialName ||
+      contract?.contractNumberMasked ||
+      (contract && contract.taxStartOn !== contract.subscribedOn),
+    ),
+  );
   return (
     <form
       className={styles.form}
@@ -55,7 +64,7 @@ export function ContractForm({
           {error}
         </p>
       ) : null}
-      <FormGrid className={styles.fields}>
+      <FormGrid>
         <label>
           Assureur
           <input
@@ -68,44 +77,6 @@ export function ContractForm({
           />
         </label>
         <label>
-          Distributeur
-          <input
-            maxLength={80}
-            value={distributor}
-            onChange={(e) => setDistributor(e.target.value)}
-            disabled={pending}
-          />
-        </label>
-        <label>
-          Nom commercial
-          <input
-            maxLength={120}
-            value={commercialName}
-            onChange={(e) => setCommercialName(e.target.value)}
-            disabled={pending}
-          />
-        </label>
-        <label>
-          Numéro de contrat
-          <input
-            aria-label="Numéro de contrat"
-            aria-describedby={contract ? 'contract-number-hint' : undefined}
-            autoComplete="off"
-            minLength={4}
-            maxLength={34}
-            pattern="[A-Za-z0-9 -]{4,34}"
-            value={number}
-            onChange={(e) => setNumber(e.target.value)}
-            disabled={pending || clearNumber}
-          />
-          {contract ? (
-            <small id="contract-number-hint">
-              Actuel : {contract.contractNumberMasked ?? 'non renseigné'}. Laissez vide pour le
-              conserver.
-            </small>
-          ) : null}
-        </label>
-        <label>
           Souscrit le
           <input
             type="date"
@@ -113,16 +84,6 @@ export function ContractForm({
             max={today}
             value={subscribedOn}
             onChange={(e) => setSubscribedOn(e.target.value)}
-            disabled={pending}
-          />
-        </label>
-        <label>
-          Date fiscale du contrat
-          <input
-            type="date"
-            max={today}
-            value={taxStartOn}
-            onChange={(e) => setTaxStartOn(e.target.value)}
             disabled={pending}
           />
         </label>
@@ -140,18 +101,69 @@ export function ContractForm({
             ))}
           </select>
         </label>
+        <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+          <label>
+            Distributeur
+            <input
+              maxLength={80}
+              value={distributor}
+              onChange={(e) => setDistributor(e.target.value)}
+              disabled={pending}
+            />
+          </label>
+          <label>
+            Nom commercial
+            <input
+              maxLength={120}
+              value={commercialName}
+              onChange={(e) => setCommercialName(e.target.value)}
+              disabled={pending}
+            />
+          </label>
+          <label>
+            Numéro de contrat
+            <input
+              aria-label="Numéro de contrat"
+              aria-describedby={contract ? 'contract-number-hint' : undefined}
+              autoComplete="off"
+              minLength={4}
+              maxLength={34}
+              pattern="[A-Za-z0-9 -]{4,34}"
+              value={number}
+              onChange={(e) => setNumber(e.target.value)}
+              disabled={pending || clearNumber}
+            />
+            {contract ? (
+              <small id="contract-number-hint">
+                Actuel : {contract.contractNumberMasked ?? 'non renseigné'}. Laissez vide pour le
+                conserver.
+              </small>
+            ) : null}
+          </label>
+          <label>
+            Date fiscale du contrat
+            <input
+              type="date"
+              max={today}
+              value={taxStartOn}
+              onChange={(e) => setTaxStartOn(e.target.value)}
+              disabled={pending}
+            />
+          </label>
+          {contract ? (
+            <label className={styles.check}>
+              <input
+                type="checkbox"
+                checked={clearNumber}
+                onChange={(e) => setClearNumber(e.target.checked)}
+                disabled={pending}
+              />
+              Effacer le numéro
+            </label>
+          ) : null}
+        </FormSection>
       </FormGrid>
-      {contract ? (
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={clearNumber}
-            onChange={(e) => setClearNumber(e.target.checked)}
-            disabled={pending}
-          />
-          Effacer le numéro
-        </label>
-      ) : null}
+
       <ModalActions>
         <button className="primary-action" type="submit" disabled={pending}>
           {pending ? 'Enregistrement…' : 'Enregistrer'}

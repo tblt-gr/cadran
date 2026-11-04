@@ -13,7 +13,7 @@ export function CreateMetricPolicyModal({ close }: CreateMetricPolicyModalProps)
   const create = useCreateMetricPolicy(close);
 
   return (
-    <Modal close={close} intent="settings" title={t('metricPolicy.create.title')}>
+    <Modal close={close} intent="create" title={t('metricPolicy.create.title')}>
       <CreateMetricPolicyForm
         onSubmit={(body) => create.mutate(body)}
         pending={create.isPending}

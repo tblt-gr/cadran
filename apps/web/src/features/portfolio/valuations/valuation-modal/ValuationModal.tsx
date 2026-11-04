@@ -104,16 +104,7 @@ export function ValuationModal({
 
   return (
     <Modal intent={replacing ? 'edit' : 'create'} close={onClose} title={title}>
-      {confirmed === null ? (
-        <ValuationDateStep
-          onChange={setValuedOn}
-          onContinue={() => setConfirmed(valuedOn)}
-          today={today}
-          value={valuedOn}
-        />
-      ) : draft.isPending ? (
-        <ValuationDraftSkeleton />
-      ) : draft.isError ? (
+      {confirmed !== null && draft.isError ? (
         <div role="alert">
           <p>Le brouillon de valorisation est indisponible.</p>
           <button className="secondary-action" onClick={() => void draft.refetch()} type="button">
@@ -125,6 +116,16 @@ export function ValuationModal({
             </button>
           )}
         </div>
+      ) : null}
+      {confirmed === null ? (
+        <ValuationDateStep
+          onChange={setValuedOn}
+          onContinue={() => setConfirmed(valuedOn)}
+          today={today}
+          value={valuedOn}
+        />
+      ) : draft.data === undefined ? (
+        <ValuationDraftSkeleton loading={draft.isPending || draft.isFetching} />
       ) : (
         <ValuationForm
           key={draftKey(draft.data)}

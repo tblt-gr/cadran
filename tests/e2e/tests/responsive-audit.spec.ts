@@ -281,6 +281,24 @@ const MODALS: ModalCase[] = [
     },
   },
   {
+    name: 'catalog settings',
+    open: async (page) => {
+      await page.goto('/parameters/catalog');
+      await settled(page);
+      await page.getByRole('button', { name: 'Filtres du catalogue', exact: true }).click();
+      return 'Fermer';
+    },
+  },
+  {
+    name: 'product model',
+    open: async (page) => {
+      await page.goto('/parameters/product-models');
+      await settled(page);
+      await page.getByRole('button', { name: 'Nouveau modèle', exact: true }).click();
+      return 'Créer le modèle';
+    },
+  },
+  {
     name: 'portfolio operation',
     open: async (page, ids) => {
       await page.goto(`/portfolios/${ids.portfolioId}`);
@@ -296,45 +314,58 @@ const MODALS: ModalCase[] = [
       await settled(page);
       await page.getByRole('button', { name: /^Actions du compte/ }).click();
       await page.getByRole('button', { name: 'Nouvelle valorisation' }).click();
-      return 'Continuer';
+      await page
+        .getByRole('dialog')
+        .getByRole('button', { name: 'Continuer', exact: true })
+        .click();
+      await settled(page);
+      await expect(
+        page.getByRole('dialog').getByRole('button', { name: 'Enregistrer', exact: true }),
+      ).toBeVisible();
+      await page.getByRole('radio', { name: 'Détail par ligne' }).check();
+      return 'Enregistrer';
     },
   },
 ];
 
-test.describe('responsive audit of modals at 360 px', () => {
-  for (const modal of MODALS) {
-    test(modal.name, async ({ browser }) => {
-      const context = await browser.newContext({
-        baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
-        ignoreHTTPSErrors: true,
-        storageState: ownerStorageState,
-        viewport: { width: 360, height: 740 },
-        hasTouch: true,
-        isMobile: true,
-        locale: 'fr-FR',
-        timezoneId: 'Europe/Paris',
+test.describe('responsive audit of modals', () => {
+  for (const viewport of [WIDTHS[0], WIDTHS[2]]) {
+    for (const modal of MODALS) {
+      test(`${modal.name} at ${viewport.width} px`, async ({ browser }) => {
+        const context = await browser.newContext({
+          baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+          ignoreHTTPSErrors: true,
+          storageState: ownerStorageState,
+          viewport: { width: viewport.width, height: viewport.height },
+          hasTouch: viewport.touch,
+          isMobile: viewport.touch,
+          locale: 'fr-FR',
+          timezoneId: 'Europe/Paris',
+        });
+        try {
+          const page = await context.newPage();
+          const confirm = await modal.open(page, ids);
+          const dialog = page.getByRole('dialog').last();
+          await expect(dialog).toBeVisible();
+          await dialog.evaluate((el) => el.setAttribute('data-audit-root', ''));
+
+          const findings = await auditLayout(page, viewport.touch, '[data-audit-root]');
+          await auditAccessibility(page);
+          expect(findings).toEqual([]);
+
+          const action = dialog.getByRole('button', { name: confirm }).last();
+          await action.scrollIntoViewIfNeeded();
+          const box = (await action.boundingBox())!;
+          const panel = (await dialog.boundingBox())!;
+          expect(box.y).toBeGreaterThanOrEqual(panel.y - 1);
+          expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
+          expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
+          if (confirm !== 'Fermer') expect(box.width).toBeLessThan(panel.width * 0.85);
+        } finally {
+          await context.close();
+        }
       });
-      try {
-        const page = await context.newPage();
-        const confirm = await modal.open(page, ids);
-        const dialog = page.getByRole('dialog').last();
-        await expect(dialog).toBeVisible();
-        await dialog.evaluate((el) => el.setAttribute('data-audit-root', ''));
-
-        const findings = await auditLayout(page, true, '[data-audit-root]');
-        expect(findings).toEqual([]);
-
-        const action = dialog.getByRole('button', { name: confirm }).last();
-        await action.scrollIntoViewIfNeeded();
-        const box = (await action.boundingBox())!;
-        const panel = (await dialog.boundingBox())!;
-        expect(box.y).toBeGreaterThanOrEqual(panel.y - 1);
-        expect(box.y + box.height).toBeLessThanOrEqual(740 + 1);
-        expect(box.x + box.width).toBeLessThanOrEqual(360 + 1);
-      } finally {
-        await context.close();
-      }
-    });
+    }
   }
 });
 

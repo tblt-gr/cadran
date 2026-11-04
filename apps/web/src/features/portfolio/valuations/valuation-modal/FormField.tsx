@@ -15,7 +15,7 @@ export function FormField({
     'aria-invalid': true | undefined;
   }) => ReactNode;
   error?: string;
-  hint?: string;
+  hint?: ReactNode;
   label: string;
   wide?: boolean;
 }) {

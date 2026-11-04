@@ -1,3 +1,4 @@
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
@@ -25,6 +26,7 @@ export function FeeTermsForm({
   const [values, setValues] = useState<Record<string, string>>({ validFrom: subscribedOn });
   const field = (name: string, value: string) => setValues((old) => ({ ...old, [name]: value }));
   const decimal = (name: string) => values[name]?.trim().replace(',', '.') || null;
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   return (
     <form
       className={styles.form}
@@ -48,7 +50,7 @@ export function FeeTermsForm({
           {error}
         </p>
       ) : null}
-      <FormGrid className={styles.fields}>
+      <FormGrid>
         <label>
           À partir du
           <input
@@ -83,15 +85,17 @@ export function FeeTermsForm({
             disabled={pending}
           />
         </label>
-        <label>
-          Source
-          <input
-            maxLength={200}
-            value={values.sourceNote ?? ''}
-            onChange={(e) => field('sourceNote', e.target.value)}
-            disabled={pending}
-          />
-        </label>
+        <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+          <label>
+            Source
+            <input
+              maxLength={200}
+              value={values.sourceNote ?? ''}
+              onChange={(e) => field('sourceNote', e.target.value)}
+              disabled={pending}
+            />
+          </label>
+        </FormSection>
       </FormGrid>
       <ModalActions>
         <button className="primary-action" type="submit" disabled={pending}>

@@ -10,6 +10,7 @@ import {
   buildValuationRequest,
   type ValuationFormValues,
 } from '@/features/portfolio/valuations/valuationRequest';
+import { ValuationCashHint } from './ValuationCashHint';
 import { DecimalInput } from './DecimalInput';
 import { FormField } from './FormField';
 import { PositionPriceRow } from './PositionPriceRow';
@@ -40,16 +41,11 @@ export function ValuationForm({
   const built = buildValuationRequest(values, draft.valuedOn, assetCode, version);
   const errors = { ...(submitted ? built.errors : null), ...fieldErrors };
   const total = values.detail === 'TOTAL';
-  const derivedCash = formatAmount(
-    draft.derivedCash.value,
-    draft.derivedCash.assetCode,
-    i18n.language,
-  );
   // One field in both modes: the statement cash, the computed one standing in when left empty.
   const cashField = (
     <DecimalInput
       error={errors['/observedCash']}
-      hint={`Laissez vide pour retenir les espèces calculées : ${derivedCash}`}
+      hint={<ValuationCashHint cash={draft.derivedCash} />}
       label="Espèces du relevé"
       onChange={(value) => set('observedCash', value)}
       value={values.observedCash}
@@ -97,44 +93,30 @@ export function ValuationForm({
           </label>
         ))}
       </fieldset>
-      {total ? (
-        <FormGrid className={styles.fields}>
-          <DecimalInput
-            error={errors['/totalValue']}
-            hint={
-              draft.lastTotal
-                ? `Dernière valeur : ${formatAmount(draft.lastTotal.value.value, draft.lastTotal.value.assetCode, i18n.language)} au ${formatCalendarNumericDay(draft.lastTotal.valuedOn)}`
-                : undefined
-            }
-            label="Valeur totale du compte"
-            onChange={(value) => set('totalValue', value)}
-            value={values.totalValue}
-          />
-          {cashField}
-        </FormGrid>
-      ) : (
-        <>
-          {draft.positions.length === 0 ? (
-            <p className={styles.notice}>Aucune position détenue à cette date.</p>
-          ) : null}
-          <div className={styles.positions}>
-            {draft.positions.map((position, index) => (
-              <PositionPriceRow
-                errors={errors}
-                index={index}
-                key={position.instrument.id}
-                onChange={(row) =>
-                  set(
-                    'rows',
-                    values.rows.map((current, at) => (at === index ? row : current)),
-                  )
-                }
-                position={position}
-                value={values.rows[index]!}
-              />
-            ))}
-          </div>
-          <div className={styles.fields}>
+      <FormGrid>
+        {total ? (
+          <>
+            <DecimalInput
+              error={errors['/totalValue']}
+              hint={
+                draft.lastTotal
+                  ? `Dernière valeur : ${formatAmount(draft.lastTotal.value.value, draft.lastTotal.value.assetCode, i18n.language)} au ${formatCalendarNumericDay(draft.lastTotal.valuedOn)}`
+                  : undefined
+              }
+              label="Valeur totale du compte"
+              onChange={(value) => set('totalValue', value)}
+              value={values.totalValue}
+            />
+            {cashField}
+          </>
+        ) : (
+          <>
+            {draft.positions.length === 0 ? (
+              <p className={styles.notice} data-span="full">
+                Aucune position détenue à cette date.
+              </p>
+            ) : null}
+
             {cashField}
             <DecimalInput
               error={errors['/observedTotal']}
@@ -143,25 +125,42 @@ export function ValuationForm({
               onChange={(value) => set('observedTotal', value)}
               value={values.observedTotal}
             />
-          </div>
-        </>
-      )}
-      <FormSection
-        title="Champs avancés"
-        open={advancedOpen || Boolean(errors['/note'])}
-        onToggle={setAdvancedOpen}
-      >
-        <FormField error={errors['/note']} label="Note" wide>
-          {(attributes) => (
-            <input
-              {...attributes}
-              maxLength={200}
-              onChange={(event) => set('note', event.target.value)}
-              value={values.note}
-            />
-          )}
-        </FormField>
-      </FormSection>
+            <div className={styles.positions} data-span="full">
+              {draft.positions.map((position, index) => (
+                <PositionPriceRow
+                  errors={errors}
+                  index={index}
+                  key={position.instrument.id}
+                  onChange={(row) =>
+                    set(
+                      'rows',
+                      values.rows.map((current, at) => (at === index ? row : current)),
+                    )
+                  }
+                  position={position}
+                  value={values.rows[index]!}
+                />
+              ))}
+            </div>
+          </>
+        )}
+        <FormSection
+          title="Champs avancés"
+          open={advancedOpen || Boolean(errors['/note'])}
+          onToggle={setAdvancedOpen}
+        >
+          <FormField error={errors['/note']} label="Note" wide>
+            {(attributes) => (
+              <input
+                {...attributes}
+                maxLength={200}
+                onChange={(event) => set('note', event.target.value)}
+                value={values.note}
+              />
+            )}
+          </FormField>
+        </FormSection>
+      </FormGrid>
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {pending ? 'Enregistrement…' : 'Enregistrer'}

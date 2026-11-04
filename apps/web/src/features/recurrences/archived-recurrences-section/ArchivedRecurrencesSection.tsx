@@ -38,7 +38,7 @@ export function ArchivedRecurrencesSection({
     >
       <div className={styles.sectionHeading}>
         <div>
-          <p>{t('recurrences.confirmed.eyebrow')}</p>
+          <p>{t('recurrences.confirmed.headingLabel')}</p>
           <h3 id="archived-recurrences-title">{t('recurrences.confirmed.archived')}</h3>
         </div>
       </div>

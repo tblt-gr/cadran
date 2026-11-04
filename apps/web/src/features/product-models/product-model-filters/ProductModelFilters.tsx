@@ -1,3 +1,4 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
@@ -43,8 +44,8 @@ export function ProductModelFilters({
           returnFocus={trigger}
           title={t('productModels.filters.title')}
         >
-          <div className={styles.fields}>
-            <label>
+          <FormGrid>
+            <label className={styles.check}>
               <input
                 checked={includeArchived}
                 onChange={(event) => onIncludeArchivedChange(event.target.checked)}
@@ -52,7 +53,7 @@ export function ProductModelFilters({
               />
               <span>{t('productModels.includeArchived')}</span>
             </label>
-          </div>
+          </FormGrid>
         </Modal>
       ) : null}
     </>

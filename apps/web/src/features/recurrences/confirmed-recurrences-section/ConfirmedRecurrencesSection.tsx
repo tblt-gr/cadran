@@ -29,7 +29,7 @@ export function ConfirmedRecurrencesSection({
     <section aria-labelledby="confirmed-recurrences-title" className={styles.section}>
       <div className={styles.sectionHeading}>
         <div>
-          <p>{t('recurrences.confirmed.eyebrow')}</p>
+          <p>{t('recurrences.confirmed.headingLabel')}</p>
           <h3 id="confirmed-recurrences-title">{t('recurrences.confirmed.title')}</h3>
         </div>
         <button

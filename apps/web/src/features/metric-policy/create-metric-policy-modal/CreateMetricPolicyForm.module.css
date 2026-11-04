@@ -4,13 +4,6 @@
   gap: var(--spacing-4);
 }
 
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  font-size: var(--font-size-body);
-}
-
 .kinds {
   display: flex;
   min-width: 0;
@@ -47,11 +40,4 @@
   color: var(--negative);
   background: var(--negative-soft);
   font-size: var(--font-size-body);
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--spacing-3);
 }

@@ -11,19 +11,16 @@ import styles from './Modal.module.css';
 interface ModalProps {
   children: ReactNode;
   close: () => void;
-  /** @deprecated Use `intent`; removed once no caller is left. */
-  eyebrow?: string;
-  /** Optional only during the migration window; `intent` wins over `eyebrow`. */
-  intent?: ModalIntent;
+  intent: ModalIntent;
   returnFocus?: RefObject<HTMLElement | null>;
   title: string;
 }
 
-export function Modal({ children, close, eyebrow, intent, returnFocus, title }: ModalProps) {
+export function Modal({ children, close, intent, returnFocus, title }: ModalProps) {
   const { t } = useTranslation();
   const container = useDialogOverlay(close, returnFocus);
   const titleId = useId();
-  const label = intent ? t(`modal.intents.${intent}`) : eyebrow;
+  const label = t(`modal.intents.${intent}`);
 
   return createPortal(
     <div className={styles.backdrop} onMouseDown={close}>
@@ -37,7 +34,7 @@ export function Modal({ children, close, eyebrow, intent, returnFocus, title }: 
       >
         <header className={styles.heading}>
           <div>
-            {label ? <p>{label}</p> : null}
+            <p>{label}</p>
             <h2 id={titleId}>{title}</h2>
           </div>
           <button

@@ -398,6 +398,52 @@ describe('ValuationsTab robustness', () => {
     return dialog;
   }
 
+  it('keeps the draft form layout after a failed cold read and replaces only missing values on retry', async () => {
+    api.readPortfolioValuationDraft.mockRejectedValueOnce(new TypeError('offline'));
+    renderTab();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Continuer' }));
+    expect(
+      await within(dialog).findByText('Le brouillon de valorisation est indisponible.'),
+    ).toBeTruthy();
+    expect(within(dialog).getByText('Valeur totale du compte')).toBeTruthy();
+    expect(within(dialog).getByText('Espèces du relevé')).toBeTruthy();
+    expect(
+      within(dialog).getByText(/Laissez vide pour retenir les espèces calculées/),
+    ).toBeTruthy();
+    expect(within(dialog).queryByRole('status')).toBeNull();
+    expect(
+      (within(dialog).getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Réessayer' }));
+    await waitFor(() =>
+      expect(within(dialog).queryByTestId('valuation-draft-skeleton')).toBeNull(),
+    );
+    expect(within(dialog).queryByRole('alert')).toBeNull();
+    expect(within(dialog).getByLabelText('Valeur totale du compte')).toBeTruthy();
+    expect(
+      (within(dialog).getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
+  });
+
+  it('retains typed values when a refreshed draft fails', async () => {
+    const { client } = renderTab();
+    await loaded();
+    const dialog = await openRecordModal();
+    changeValue('Valeur totale du compte', '6789.01', dialog);
+    api.readPortfolioValuationDraft.mockRejectedValueOnce(new TypeError('offline'));
+    await client.refetchQueries({ queryKey: ['portfolio-valuation-draft'] });
+    expect(
+      await within(dialog).findByText('Le brouillon de valorisation est indisponible.'),
+    ).toBeTruthy();
+    expect(
+      (within(dialog).getByLabelText('Valeur totale du compte') as HTMLInputElement).value,
+    ).toBe('6789.01');
+    expect(within(dialog).queryByTestId('valuation-draft-skeleton')).toBeNull();
+  });
+
   it('rebuilds the form when a refetched draft holds another position', async () => {
     const { client } = renderTab();
     await loaded();

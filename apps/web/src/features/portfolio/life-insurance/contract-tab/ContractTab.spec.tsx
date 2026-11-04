@@ -75,6 +75,8 @@ describe('ContractTab', () => {
     mount();
     fireEvent.click(await screen.findByRole('button', { name: 'Renseigner le contrat' }));
     const modal = screen.getByRole('dialog', { name: 'Renseigner le contrat' });
+    expect(within(modal).getByText('Création')).toBeTruthy();
+    expect(within(modal).getByText('Champs avancés').closest('details')?.open).toBe(false);
     expect(within(modal).getByLabelText('Assureur')).toBeTruthy();
     expect(
       screen.getByText("Renseignez le contrat d'assurance-vie pour enregistrer ses opérations."),
@@ -88,6 +90,8 @@ describe('ContractTab', () => {
     await screen.findByText('•••• 2345');
     fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
     const number = screen.getByLabelText('Numéro de contrat') as HTMLInputElement;
+    expect(number.closest('details')?.open).toBe(true);
+    expect(screen.getByText('Modification')).toBeTruthy();
     expect(number.value).toBe('');
     expect(screen.getByText('Actuel : •••• 2345. Laissez vide pour le conserver.')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));

@@ -1,3 +1,4 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AccountKind, CreateMetricPolicyRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
@@ -70,30 +71,33 @@ export function CreateMetricPolicyForm({
           {t('metricPolicy.create.labelError', { max: MAX_LABEL_LENGTH })}
         </p>
       ) : null}
-      <label className={styles.field}>
-        <span>{t('metricPolicy.create.label')}</span>
-        <input
-          aria-describedby={showErrors && invalidLabel ? 'metric-policy-label-error' : undefined}
-          aria-invalid={showErrors && invalidLabel ? true : undefined}
-          onChange={(event) => setLabel(event.target.value)}
-          type="text"
-          value={label}
-        />
-      </label>
-      <fieldset className={styles.kinds}>
-        <legend>{t('metricPolicy.create.kinds')}</legend>
-        <p>{t('metricPolicy.create.kindsHint')}</p>
-        {ACCOUNT_KINDS.map((kind) => (
-          <label className={styles.kind} key={kind}>
-            <input
-              checked={excluded.includes(kind)}
-              onChange={() => toggle(kind)}
-              type="checkbox"
-            />
-            <span>{t(`catalog.accountKinds.${kind}`)}</span>
-          </label>
-        ))}
-      </fieldset>
+      <FormGrid>
+        <label>
+          <span>{t('metricPolicy.create.label')}</span>
+          <input
+            data-autofocus
+            aria-describedby={showErrors && invalidLabel ? 'metric-policy-label-error' : undefined}
+            aria-invalid={showErrors && invalidLabel ? true : undefined}
+            onChange={(event) => setLabel(event.target.value)}
+            type="text"
+            value={label}
+          />
+        </label>
+        <fieldset className={styles.kinds} data-span="full">
+          <legend>{t('metricPolicy.create.kinds')}</legend>
+          <p>{t('metricPolicy.create.kindsHint')}</p>
+          {ACCOUNT_KINDS.map((kind) => (
+            <label className={styles.kind} key={kind}>
+              <input
+                checked={excluded.includes(kind)}
+                onChange={() => toggle(kind)}
+                type="checkbox"
+              />
+              <span>{t(`catalog.accountKinds.${kind}`)}</span>
+            </label>
+          ))}
+        </fieldset>
+      </FormGrid>
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
           {t('metricPolicy.create.submit')}

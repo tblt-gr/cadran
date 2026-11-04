@@ -43,7 +43,7 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
           <SkeletonStatus>{t('recurrences.occurrences.loading')}</SkeletonStatus>
           <div className={styles.heading}>
             <div>
-              <p>{t('recurrences.occurrences.eyebrow')}</p>
+              <p>{t('recurrences.occurrences.headingLabel')}</p>
               <h3>{recurrence.label}</h3>
             </div>
             <span>{t('recurrences.occurrences.readOnly')}</span>
@@ -116,7 +116,7 @@ export function OccurrenceTimeline({ close, recurrence }: OccurrenceTimelineProp
       <section className={styles.panel}>
         <div className={styles.heading}>
           <div>
-            <p>{t('recurrences.occurrences.eyebrow')}</p>
+            <p>{t('recurrences.occurrences.headingLabel')}</p>
             <h3 id={`occurrences-${recurrence.id}`}>{recurrence.label}</h3>
           </div>
           <span>{t('recurrences.occurrences.readOnly')}</span>

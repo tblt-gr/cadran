@@ -113,7 +113,7 @@ export function OperationForm({
           {saveMessage}
         </p>
       ) : null}
-      <FormGrid className={styles.fields}>
+      <FormGrid>
         <OperationTypeSelect
           accountKind={account.kind}
           value={type}
@@ -222,17 +222,13 @@ export function OperationForm({
             value={values.costAllocationRatio}
           />
         ) : null}
-        {operation ? (
-          <OperationField error={errors.reason} label="Motif (facultatif)" wide>
-            <input
-              maxLength={200}
-              onChange={(event) => set('reason', event.target.value)}
-              value={values.reason}
-            />
-          </OperationField>
-        ) : null}
       </FormGrid>
-      <OperationExtraFields errors={errors} onChange={set} values={values} />
+      <OperationExtraFields
+        editing={Boolean(operation)}
+        errors={errors}
+        onChange={set}
+        values={values}
+      />
       <OperationPreviewLine
         type={type}
         pending={preview.isFetching}

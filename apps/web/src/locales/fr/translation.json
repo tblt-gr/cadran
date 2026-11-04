@@ -221,7 +221,6 @@
       "mixedPolicyLink": "Consulter la politique d’indicateurs",
       "policy": "Politique",
       "periodEnd": "Fin de période",
-      "explainEyebrow": "Agrégat annuel",
       "explainMonths": "Mois de l’année",
       "counted": "Comptabilisé",
       "countedYes": "Oui",
@@ -509,9 +508,7 @@
       "excluded": "Hors patrimoine net"
     },
     "form": {
-      "createEyebrow": "Création",
       "createTitle": "Nouveau compte",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier le compte",
       "assetsLoading": "Chargement du référentiel des devises…",
       "assetsError": "Impossible de charger le référentiel des devises.",
@@ -544,7 +541,6 @@
       "continue": "Continuer"
     },
     "archive": {
-      "eyebrow": "Archivage",
       "title": "Archiver le compte",
       "description": "Le compte « {{label}} » va quitter la liste de travail.",
       "consequences": "Rien n’est supprimé : l’historique reste attaché au compte, son libellé redevient disponible et le compte n’est plus modifiable.",
@@ -601,7 +597,6 @@
       "openActions": "Actions du compte {{label}}"
     },
     "reconciliation": {
-      "eyebrow": "Rapprochement",
       "title": "Rapprocher « {{label}} »",
       "periodStart": "Début de la période",
       "periodStartHint": "Choisissez le lendemain d’un solde connu : sans solde d’ouverture la veille, l’écart n’est pas calculable.",
@@ -716,7 +711,6 @@
       }
     },
     "rules": {
-      "eyebrow": "Règles applicables",
       "title": "Règles de « {{label}} »",
       "loading": "Résolution des règles du compte…",
       "error": "Les règles de ce compte n’ont pas pu être lues. Réessayez.",
@@ -834,7 +828,6 @@
       "templateUnavailable": "Le modèle rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le modèle ne déclare pas."
     },
     "overrides": {
-      "eyebrow": "Dérogation de règle",
       "title": "Déroger à une règle de « {{label}} »",
       "formHint": "Une dérogation ne remplace la règle héritée que sur les dates qu’elle couvre. Le catalogue et le modèle continuent d’afficher leur propre valeur à côté.",
       "record": "Enregistrer la dérogation",
@@ -898,7 +891,6 @@
         "archivedOn": "Archivé le {{date}}"
       },
       "movements": {
-        "eyebrow": "Historique",
         "title": "Mouvements",
         "caption": "Mouvements de ce compte",
         "counterpart": "Contrepartie",
@@ -1068,9 +1060,7 @@
       "resetColor": "Rétablir la couleur par défaut",
       "useParentColor": "Utiliser la couleur du groupe parent",
       "colorHelp": "La couleur identifie le groupe et ses comptes. Le nom reste toujours visible.",
-      "createEyebrow": "Création",
       "createTitle": "Nouveau groupe",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier le groupe",
       "noParent": "Aucun",
       "parentsLoading": "Chargement des groupes parents…",
@@ -1120,7 +1110,6 @@
       "sortBy": "Trier par {{column}}"
     },
     "archive": {
-      "eyebrow": "Archivage",
       "title": "Archiver le groupe",
       "description": "Archiver « {{label}} » le retire de l’arbre actif. Ce n’est pas une suppression.",
       "consequences": "Un groupe avec des enfants ou déjà assigné à un compte ne peut pas être archivé.",
@@ -1187,9 +1176,7 @@
       "VARIABLE": "Variable"
     },
     "form": {
-      "createEyebrow": "Création",
       "createTitle": "Nouvelle catégorie",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier la catégorie",
       "noParent": "Aucune",
       "typeReasons": {
@@ -1377,7 +1364,6 @@
       }
     },
     "quick": {
-      "eyebrow": "Création rapide",
       "title": "Nouvelle catégorie",
       "create": "Créer",
       "creating": "Création…",
@@ -1397,7 +1383,6 @@
       "confirming": "Application…",
       "MOVE": {
         "action": "Déplacer",
-        "eyebrow": "Déplacement",
         "title": "Déplacer la catégorie",
         "description": "Déplacer « {{label}} » change l’endroit où son historique est compté. Toutes ses sous-catégories la suivent.",
         "target": "Nouvelle catégorie parente",
@@ -1406,7 +1391,6 @@
       },
       "MERGE": {
         "action": "Fusionner",
-        "eyebrow": "Fusion",
         "title": "Fusionner la catégorie",
         "description": "Fusionner « {{label}} » déplace ses sous-catégories vers la catégorie cible, redirige tout son historique et l’archive. Aucune écriture n’est perdue.",
         "target": "Catégorie qui reçoit l’historique",
@@ -1414,7 +1398,6 @@
       },
       "REPLACE": {
         "action": "Remplacer",
-        "eyebrow": "Remplacement daté",
         "title": "Remplacer la catégorie à partir d’une date",
         "description": "À partir de la date choisie, les classifications de « {{label}} » reviennent à la catégorie cible. La période antérieure reste inchangée et la catégorie reste sélectionnable pour elle.",
         "target": "Catégorie qui prend le relais",
@@ -1424,14 +1407,12 @@
       },
       "ARCHIVE": {
         "action": "Archiver",
-        "eyebrow": "Archivage",
         "title": "Archiver la catégorie",
         "description": "Archiver « {{label}} » la retire des choix proposés pour les nouvelles classifications. L’historique déjà classé la conserve : aucune écriture n’est jamais perdue.",
         "confirm": "Archiver"
       },
       "DELETE": {
         "action": "Supprimer",
-        "eyebrow": "Suppression",
         "title": "Supprimer la catégorie",
         "description": "Supprimer « {{label}} » la retire des choix proposés. Aucun historique n’est jamais perdu : choisissez ce que deviennent les écritures déjà classées.",
         "legend": "Écritures déjà classées dans cette catégorie",
@@ -1752,7 +1733,6 @@
       "position": "Page {{page}} sur {{total}}"
     },
     "form": {
-      "createEyebrow": "Création",
       "createTitle": "Nouveau modèle de produit",
       "name": "Nom du modèle",
       "family": "Famille",
@@ -1776,7 +1756,6 @@
       }
     },
     "fromProduct": {
-      "eyebrow": "Depuis le catalogue",
       "title": "Partir d’un produit du catalogue",
       "loading": "Chargement du catalogue produits…",
       "error": "Le catalogue produits n’a pas pu être chargé. Réessayez.",
@@ -1789,7 +1768,6 @@
       }
     },
     "duplicate": {
-      "eyebrow": "Duplication",
       "title": "Dupliquer le modèle",
       "defaultName": "{{name}} (copie)",
       "description": "La copie reprend la description et les périodes datées de « {{name}} » avec leurs dates d’effet inchangées, et rien d’autre.",
@@ -1798,7 +1776,6 @@
       "confirming": "Duplication…"
     },
     "archive": {
-      "eyebrow": "Archivage",
       "title": "Archiver le modèle",
       "description": "Le modèle « {{name}} » va quitter la liste de travail et son nom redeviendra disponible.",
       "consequences": "Rien n’est supprimé : le modèle reste lisible par identifiant avec toutes ses périodes, de sorte qu’un compte créé à partir de lui conserve une référence reproductible.",
@@ -1806,7 +1783,6 @@
       "confirming": "Archivage…"
     },
     "period": {
-      "eyebrow": "Période datée",
       "title": "Ajouter une période à « {{name}} »",
       "appendHint": "Enregistrer une période, c’est l’ajouter : le serveur clôt la période ouverte de même nature qu’elle remplace la veille de sa prise d’effet. Une période enregistrée ne se modifie ni ne se supprime.",
       "kind": "Nature de la règle",
@@ -1857,7 +1833,6 @@
       }
     },
     "periods": {
-      "eyebrow": "Périodes datées",
       "title": "Périodes de « {{name}} »",
       "caption": "Périodes datées enregistrées pour {{name}}",
       "none": "Ce modèle ne porte encore aucune période datée.",
@@ -1962,7 +1937,6 @@
     },
     "missingValuations": {
       "open": "Voir les comptes sans valorisation",
-      "eyebrow": "Valorisations manquantes",
       "title_one": "1 compte sans valorisation",
       "title_other": "{{count}} comptes sans valorisation",
       "hint": "Ces comptes n’ont aucun solde connu au jour affiché. Saisissez leur solde ou ouvrez-les pour compléter la valorisation.",
@@ -2077,7 +2051,6 @@
     }
   },
   "closures": {
-    "eyebrow": "Clôture mensuelle",
     "title": "Clôture du mois",
     "month": "Mois",
     "loading": "Chargement de l’état du mois…",
@@ -2291,9 +2264,7 @@
       "outflow": "Sortie de {{amount}}"
     },
     "form": {
-      "createEyebrow": "Saisie",
       "createTitle": "Nouvelle transaction",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier la transaction",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
@@ -2307,7 +2278,6 @@
       "advanced": "Champs avancés"
     },
     "void": {
-      "eyebrow": "Annulation",
       "title": "Annuler la transaction",
       "description": "Annuler « {{label}} » la retire des listes courantes sans la supprimer. Elle restera visible dans l’historique d’audit.",
       "consequences": "Une transaction annulée ne peut plus être modifiée.",
@@ -2315,7 +2285,6 @@
       "confirming": "Annulation…"
     },
     "refund": {
-      "eyebrow": "Remboursement",
       "title": "Créer un remboursement",
       "loading": "Calcul de la part remboursable…",
       "error": "Le remboursement ne peut pas être préparé. Rechargez la liste et réessayez.",
@@ -2407,7 +2376,6 @@
       "loadedCount_other": "{{count}} mouvements chargés (chargement n°{{sequence}})."
     },
     "transfer": {
-      "eyebrow": "Virement",
       "title": "Nouveau virement",
       "notice": "Un virement déplace de l’argent entre deux comptes : il ne compte ni comme dépense, ni comme revenu.",
       "fields": {
@@ -2574,9 +2542,7 @@
       "category": "Cette catégorie ne correspond pas au sens du montant."
     },
     "form": {
-      "createEyebrow": "Confirmation",
       "createTitle": "Nouvelle récurrence",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier la récurrence",
       "forecast": "Cette planification crée des échéances prévisionnelles ; elle ne crée de transactions que si la création automatique est cochée.",
       "firstExpectedOnEditHint": "Une date plus tardive ignore les échéances antérieures encore sans transaction.",
@@ -2600,7 +2566,6 @@
       "description": "Les propositions ou les échéances n’ont pas pu être chargées."
     },
     "candidates": {
-      "eyebrow": "À confirmer",
       "title": "Mouvements réguliers détectés",
       "partial": "Analyse partielle",
       "observations_one": "{{count}} observation",
@@ -2609,7 +2574,8 @@
       "confirm": "Confirmer",
       "dismiss": "Masquer",
       "emptyTitle": "Aucune proposition à confirmer",
-      "emptyDescription": "L’analyse n’a trouvé aucun mouvement suffisamment régulier. Elle n’a créé ni transaction ni échéance."
+      "emptyDescription": "L’analyse n’a trouvé aucun mouvement suffisamment régulier. Elle n’a créé ni transaction ni échéance.",
+      "headingLabel": "À confirmer"
     },
     "confidence": {
       "HIGH": "Confiance élevée",
@@ -2619,7 +2585,6 @@
       "reason": "La régularité ne permet pas de qualifier la confiance."
     },
     "confirmed": {
-      "eyebrow": "Échéanciers confirmés",
       "title": "Récurrences suivies",
       "emptyTitle": "Aucune récurrence confirmée",
       "emptyDescription": "Confirmez une proposition ou créez un échéancier manuel pour suivre ses échéances.",
@@ -2633,10 +2598,10 @@
       "emptyArchivedTitle": "Aucune récurrence archivée",
       "emptyArchivedDescription": "Les récurrences archivées restent ici et peuvent être restaurées.",
       "restore": "Restaurer",
-      "automatic": "Automatique"
+      "automatic": "Automatique",
+      "headingLabel": "Échéanciers confirmés"
     },
     "occurrences": {
-      "eyebrow": "Échéances prévisionnelles",
       "title": "Échéances de {{label}}",
       "loading": "Chargement des échéances…",
       "error": "Les échéances n’ont pas pu être chargées.",
@@ -2649,7 +2614,8 @@
       "matched": "Reçue",
       "generated": "Transaction en attente créée",
       "unmatched": "Sans transaction",
-      "periodClosed": "Mois clôturé : l’échéance reste en attente de comptabilisation"
+      "periodClosed": "Mois clôturé : l’échéance reste en attente de comptabilisation",
+      "headingLabel": "Échéances prévisionnelles"
     },
     "statuses": {
       "EXPECTED": "Attendue",
@@ -2731,9 +2697,7 @@
       "previewPeriod": "Choisissez une période historique valide."
     },
     "form": {
-      "createEyebrow": "Création",
       "createTitle": "Nouvelle règle",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier la règle",
       "save": "Enregistrer",
       "saving": "Enregistrement…"
@@ -2835,7 +2799,6 @@
       "openActions": "Actions de la règle « {{label}} »"
     },
     "archive": {
-      "eyebrow": "Archivage",
       "title": "Archiver la règle",
       "description": "La règle « {{label}} » ne pourra plus être modifiée ni appliquée.",
       "consequences": "Rien n’est supprimé : elle reste traçable dans l’historique des catégorisations qu’elle a créées.",
@@ -2843,7 +2806,6 @@
       "archiving": "Archivage…"
     },
     "lifecycle": {
-      "eyebrow": "Cycle de vie",
       "saving": "Enregistrement…",
       "activate": {
         "title": "Activer la règle",
@@ -2857,7 +2819,6 @@
       }
     },
     "preview": {
-      "eyebrow": "Prévisualisation",
       "title": "Prévisualiser une application",
       "action": "Prévisualiser l’historique",
       "loading": "Prévisualisation…",
@@ -3397,7 +3358,6 @@
         },
         "preferences": {
           "open": "Configurer l’affichage",
-          "eyebrow": "Espace de travail",
           "title": "Affichage de la synthèse",
           "categories": "Catégories",
           "axes": "Axes analytiques",
@@ -3459,18 +3419,14 @@
       "ratio": "Ratio décimal"
     },
     "form": {
-      "createEyebrow": "Création",
       "createTitle": "Nouveau plan budgétaire",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier le plan",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
       "chooseAxis": "Choisir un axe"
     },
     "target": {
-      "createEyebrow": "Création",
       "createTitle": "Nouvel objectif",
-      "editEyebrow": "Modification",
       "editTitle": "Modifier l’objectif"
     },
     "targets": {
@@ -3546,7 +3502,6 @@
     }
   },
   "metricPolicy": {
-    "eyebrow": "Indicateurs",
     "loading": "Chargement de la politique d’indicateurs…",
     "error": "La politique d’indicateurs est indisponible",
     "unauthorized": "Vous n’êtes pas autorisé à consulter cette politique",

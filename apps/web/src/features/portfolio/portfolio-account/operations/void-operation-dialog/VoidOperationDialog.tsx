@@ -1,3 +1,4 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState, type FormEvent } from 'react';
 import styles from './VoidOperationDialog.module.css';
@@ -37,21 +38,23 @@ export function VoidOperationDialog({
         L’opération restera visible dans l’historique avec le statut Annulée. Cette action ne peut
         pas être défaite.
       </p>
-      <label>
-        <span>Motif</span>
-        <textarea
-          data-autofocus
-          maxLength={200}
-          onChange={(event) => setReason(event.target.value)}
-          rows={3}
-          value={reason}
-        />
-        {missing ? (
-          <small className={styles.error} role="alert">
-            Le motif est obligatoire.
-          </small>
-        ) : null}
-      </label>
+      <FormGrid>
+        <label data-span="full">
+          <span>Motif</span>
+          <textarea
+            data-autofocus
+            maxLength={200}
+            onChange={(event) => setReason(event.target.value)}
+            rows={3}
+            value={reason}
+          />
+          {missing ? (
+            <small className={styles.error} role="alert">
+              Le motif est obligatoire.
+            </small>
+          ) : null}
+        </label>
+      </FormGrid>
       {error ? (
         <p className={styles.error} role="alert">
           {error}

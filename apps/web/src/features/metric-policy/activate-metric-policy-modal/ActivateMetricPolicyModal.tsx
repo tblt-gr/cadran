@@ -1,3 +1,5 @@
+import { FormGrid } from '@/components/ui/form-layout/FormGrid';
+import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { MetricPolicy } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
@@ -26,6 +28,7 @@ export function ActivateMetricPolicyModal({
 }: ActivateMetricPolicyModalProps) {
   const { t } = useTranslation();
   const [reason, setReason] = useState('');
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const activate = useActivateMetricPolicy(close);
   const error = metricPolicyErrorKind(activate.error);
 
@@ -42,7 +45,7 @@ export function ActivateMetricPolicyModal({
   return (
     <Modal
       close={close}
-      intent="settings"
+      intent="confirm"
       title={t('metricPolicy.activate.title', { version: target.version })}
     >
       <form className={styles.form} onSubmit={handleSubmit}>
@@ -70,15 +73,19 @@ export function ActivateMetricPolicyModal({
           </section>
         </div>
         <p className={styles.note}>{t('metricPolicy.activate.closedMonths')}</p>
-        <label className={styles.field}>
-          <span>{t('metricPolicy.activate.reason')}</span>
-          <input
-            maxLength={MAX_REASON_LENGTH}
-            onChange={(event) => setReason(event.target.value)}
-            type="text"
-            value={reason}
-          />
-        </label>
+        <FormGrid>
+          <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+            <label>
+              <span>{t('metricPolicy.activate.reason')}</span>
+              <input
+                maxLength={MAX_REASON_LENGTH}
+                onChange={(event) => setReason(event.target.value)}
+                type="text"
+                value={reason}
+              />
+            </label>
+          </FormSection>
+        </FormGrid>
         <ModalActions>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}

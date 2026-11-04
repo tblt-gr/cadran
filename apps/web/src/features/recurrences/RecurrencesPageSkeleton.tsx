@@ -86,7 +86,7 @@ export function RecurrencesPageSkeleton({ status }: { status: string }) {
       <section className={styles.section}>
         <div className={styles.sectionHeading}>
           <div>
-            <p>{t('recurrences.candidates.eyebrow')}</p>
+            <p>{t('recurrences.candidates.headingLabel')}</p>
             <h3>{t('recurrences.candidates.title')}</h3>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function RecurrencesPageSkeleton({ status }: { status: string }) {
       <section className={styles.section}>
         <div className={styles.sectionHeading}>
           <div>
-            <p>{t('recurrences.confirmed.eyebrow')}</p>
+            <p>{t('recurrences.confirmed.headingLabel')}</p>
             <h3>{t('recurrences.confirmed.title')}</h3>
           </div>
           <button className="secondary-action" disabled type="button">

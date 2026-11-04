@@ -324,6 +324,7 @@ describe('InstrumentsPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier instrument' }));
     fireEvent.change(screen.getByLabelText('Nom'), { target: { value: 'X' } });
     fireEvent.change(screen.getByLabelText('Ticker'), { target: { value: 'X' } });
+    fireEvent.click(screen.getByText('Champs avancés'));
     fireEvent.change(screen.getByLabelText('Précision des prix'), { target: { value: '13' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(screen.getAllByText('La précision doit être comprise entre 0 et 12.')).toHaveLength(1);
