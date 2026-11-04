@@ -1,6 +1,6 @@
 import type { Instrument } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { InstrumentEditorModal } from './InstrumentEditorModal';
@@ -255,6 +255,28 @@ describe('stacked InstrumentEditorModal', () => {
     expect(saved).not.toHaveBeenCalled();
     expect(close).not.toHaveBeenCalled();
   });
+  it.each(['create', 'update'] as const)(
+    'ignores a dismissed %s even before the parent unmounts it',
+    async (kind) => {
+      let resolve!: (value: ReturnType<typeof ok>) => void;
+      const promise = new Promise<ReturnType<typeof ok>>((done) => {
+        resolve = done;
+      });
+      const request = kind === 'create' ? api.createInstrument : api.updateInstrument;
+      request.mockReturnValue(promise);
+      const { saved, close, invalidate } = setup(kind === 'update' ? { instrument } : {});
+      submit();
+      await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+      fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+      expect(close).toHaveBeenCalledTimes(1);
+      await act(async () => {
+        resolve(ok(instrument));
+      });
+      await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['instruments'] }));
+      expect(saved).not.toHaveBeenCalled();
+      expect(close).toHaveBeenCalledTimes(1);
+    },
+  );
   it('does not submit twice while saving', async () => {
     api.createInstrument.mockImplementation(() => new Promise(() => undefined));
     setup();

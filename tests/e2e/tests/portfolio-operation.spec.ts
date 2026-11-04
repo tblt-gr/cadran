@@ -3,6 +3,70 @@ import { navigateTo, settled } from './support/page';
 import { auditAccessibility } from './support/a11y';
 
 test.describe('portfolio operation', () => {
+  test('keeps a later selection when a dismissed instrument creation responds late', async ({
+    page,
+  }) => {
+    let releaseResponse!: () => void;
+    let markResponseReady!: () => void;
+    const release = new Promise<void>((resolve) => {
+      releaseResponse = resolve;
+    });
+    const responseReady = new Promise<void>((resolve) => {
+      markResponseReady = resolve;
+    });
+    await page.route('**/api/v1/instruments', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      const response = await route.fetch();
+      expect(response.ok()).toBe(true);
+      markResponseReady();
+      await release;
+      await route.fulfill({ response });
+    });
+    try {
+      await page.goto('/accounts');
+      await settled(page);
+      await page.getByRole('link', { name: 'Compte-titres', exact: true }).click();
+      await settled(page);
+      await page
+        .getByRole('navigation', { name: 'Sections du portefeuille' })
+        .getByRole('link', { name: 'Opérations' })
+        .click();
+      await settled(page);
+      await page.getByRole('button', { name: 'Nouvelle opération' }).click();
+      const parent = page.getByRole('dialog', { name: 'Nouvelle opération' });
+      await parent.getByRole('combobox', { name: 'Type', exact: true }).selectOption('BUY');
+      const input = parent.getByRole('combobox', { name: 'Instrument', exact: true });
+      const name = `Late ${crypto.randomUUID()}`;
+      await input.fill(name);
+      await parent.getByRole('option', { name: `Créer « ${name} »` }).click();
+      const child = page.getByRole('dialog', { name: 'Créer un instrument' });
+      await expect(child.getByRole('textbox', { name: 'ISIN', exact: true })).toBeFocused();
+      await child
+        .getByRole('textbox', { name: 'Ticker', exact: true })
+        .fill(`L${Date.now().toString(36)}`);
+      await child.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+      await responseReady;
+      await child.getByRole('button', { name: 'Fermer', exact: true }).click();
+      await expect(child).toBeHidden();
+      await expect(input).toBeFocused();
+      await input.fill('ETF Monde Démo');
+      await parent.getByRole('option', { name: /^ETF Monde Démo ·/ }).click();
+      await expect(input).toHaveValue('ETF Monde Démo');
+      const completed = page.waitForResponse(
+        (response) =>
+          response.request().method() === 'POST' &&
+          new URL(response.url()).pathname === '/api/v1/instruments',
+      );
+      releaseResponse();
+      await completed;
+      await settled(page);
+      await expect(input).toHaveValue('ETF Monde Démo');
+      await expect(parent).toBeVisible();
+      await parent.getByRole('button', { name: 'Fermer', exact: true }).click();
+    } finally {
+      releaseResponse();
+    }
+  });
   test('creates a missing instrument above a buy draft and restores the draft and focus', async ({
     page,
   }) => {

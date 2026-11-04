@@ -1,5 +1,5 @@
 import type { Instrument } from '@cadran/api-client';
-import type { RefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import { Modal } from '@/components/ui/modal/Modal';
 import { DuplicateNotice } from '@/features/portfolio/instruments/duplicate-notice/DuplicateNotice';
 import { ExistingInstrumentChoice } from '@/features/portfolio/instruments/existing-instrument-choice/ExistingInstrumentChoice';
@@ -26,9 +26,22 @@ export function InstrumentEditorModal({
   onSaved?: (instrument: Instrument) => void;
   returnFocus?: RefObject<HTMLElement | null>;
 }) {
-  const saved = (item: Instrument) => {
-    onSaved?.(item);
+  const active = useRef(true);
+  useEffect(() => {
+    active.current = true;
+    return () => {
+      active.current = false;
+    };
+  }, []);
+  const close = () => {
+    // Requests may finish after dismissal; their cache refresh still runs, their UI effects do not.
+    active.current = false;
     onClose();
+  };
+  const saved = (item: Instrument) => {
+    if (!active.current) return;
+    onSaved?.(item);
+    close();
   };
   const editor = useInstrumentEditor(instrument, saved);
   const reuse = useInstrumentReuse({
@@ -42,7 +55,7 @@ export function InstrumentEditorModal({
   return (
     <Modal
       intent={instrument ? 'edit' : 'create'}
-      close={onClose}
+      close={close}
       returnFocus={returnFocus}
       eyebrow={onSaved && !instrument ? 'Nouvel instrument' : undefined}
       title={
