@@ -119,6 +119,7 @@ final readonly class Transaction
         \DateTimeImmutable $updatedAt,
         ?string $lastEditorId,
         ?bool $autoBook = null,
+        ?string $accountId = null,
     ): self {
         if ($this->state->isTerminal()) {
             throw new InvalidTransaction('A terminal transaction cannot be edited.');
@@ -140,8 +141,12 @@ final readonly class Transaction
             throw new InvalidTransaction('A transaction under reconciliation review must be resolved, not edited into another state.');
         }
 
+        if (null !== $accountId && $accountId !== $this->accountId && TransactionNature::REFUND !== $this->nature) {
+            throw new InvalidTransaction('Only a refund can change account.');
+        }
+
         return new self(
-            $this->id, $this->workspace, $this->accountId, $amount, $this->originalAmount, $this->exchangeRate,
+            $this->id, $this->workspace, $accountId ?? $this->accountId, $amount, $this->originalAmount, $this->exchangeRate,
             $state, $nature, $this->source, $this->sourceRef, $bookedOn, $valueOn, $authorizedOn, $rawLabel,
             $counterparty, $note, $paymentMethod, $mcc, $maskedCard, $bankReference, $splits, $this->version + 1,
             $this->createdAt, $updatedAt, null, $lastEditorId, $this->reviewReason, $this->userLabel,

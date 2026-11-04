@@ -77,6 +77,7 @@ final readonly class TransactionRow
     public static function mutableColumns(Transaction $transaction): array
     {
         return [
+            'account_id' => $transaction->accountId,
             'amount_value' => $transaction->amount->value->toString(),
             'amount_scale' => $transaction->amount->value->scale(),
             'state' => $transaction->state->value,

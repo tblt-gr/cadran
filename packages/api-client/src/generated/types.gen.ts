@@ -4497,7 +4497,7 @@ export type ReconcileTransactionRequest = {
 export type UpdateTransactionRequest = {
     accountId: string;
     amount: DecimalAmount;
-    nature: StandaloneTransactionNature;
+    nature: 'EXPENSE' | 'INCOME' | 'FEE' | 'ADJUSTMENT' | 'REFUND';
     state: 'PENDING' | 'BOOKED' | 'REJECTED';
     bookedOn: string;
     valueOn: string | null;

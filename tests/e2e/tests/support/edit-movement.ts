@@ -2,10 +2,13 @@ import { expect, type Page } from '@playwright/test';
 import { movementRows, settled, uniqueLabel } from './page';
 
 /** Own fixtures keep editing audits independent of the shared ledger's current row order. */
-export async function openMovementEditModal(page: Page, kind: 'transaction' | 'transfer') {
+export async function openMovementEditModal(
+  page: Page,
+  kind: 'transaction' | 'transfer' | 'refund',
+) {
   await page.goto('/transactions');
   await settled(page);
-  const label = uniqueLabel(`Audit ${kind} modifiable`);
+  let label = uniqueLabel(`Audit ${kind} modifiable`);
   const isTransfer = kind === 'transfer';
   await page
     .getByRole('button', {
@@ -35,6 +38,24 @@ export async function openMovementEditModal(page: Page, kind: 'transaction' | 't
     .first()
     .getByRole('button', { name: /^Actions de la transaction/ })
     .click();
+  if (kind === 'refund') {
+    await page.getByRole('button', { name: /^Créer un remboursement/ }).click();
+    await settled(page);
+    const refund = page.getByRole('dialog');
+    await refund
+      .getByRole('combobox', { name: 'Compte', exact: true })
+      .selectOption({ label: 'Compte courant' });
+    const day = await refund.getByLabel('Date comptable').getAttribute('max');
+    await refund.getByLabel('Date comptable').fill(day ?? new Date().toISOString().slice(0, 10));
+    label = uniqueLabel('Audit refund correction');
+    await refund.getByLabel('Libellé', { exact: true }).fill(label);
+    await refund.getByRole('button', { name: 'Créer le remboursement', exact: true }).click();
+    await expect(refund).toBeHidden();
+    await settled(page);
+    await movementRows(page, label)
+      .getByRole('button', { name: /^Actions de la transaction/ })
+      .click();
+  }
   await page.getByRole('button', { name: /^Modifier/ }).click();
   await settled(page);
   return page.getByRole('dialog', {

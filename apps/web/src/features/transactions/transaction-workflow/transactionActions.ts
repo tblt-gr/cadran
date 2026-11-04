@@ -25,7 +25,7 @@ export function transactionEligibility(
     compareDecimals(transaction.refundedAmount.value, transaction.amount.value.replace(/^-/, '')) >=
       0;
   return {
-    edit: !locked && transaction.nature !== 'REFUND',
+    edit: !locked,
     duplicate: !portfolio && transaction.transferId === null && transaction.nature !== 'REFUND',
     void: !locked,
     refund:
