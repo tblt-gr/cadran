@@ -894,6 +894,9 @@ final class TransactionControllerTest extends WebTestCase
             '?minAmount=50&maxAmount=10&assetCode=EUR',
             '?direction=SIDEWAYS',
             '?direction=',
+            '?categoryType=SAVINGS',
+            '?categoryType=',
+            '?categoryType=income',
             '?minAmount=1e3&assetCode=EUR',
             '?q='.str_repeat('a', 81),
             '?accountId[]='.implode('&accountId[]=', array_fill(0, 21, self::OWN_ACCOUNT)),
@@ -908,6 +911,40 @@ final class TransactionControllerTest extends WebTestCase
             $this->client->request('GET', '/api/v1/transactions'.$query);
             self::assertResponseStatusCodeSame(400, 'Query '.$query.' should be refused.');
         }
+    }
+
+    public function testACategoryTypeKeepsOnlyTransactionsSplitOnACategoryOfThatType(): void
+    {
+        $expense = $this->createTransaction(overrides: ['amount' => ['value' => '-42.10', 'assetCode' => 'EUR']]);
+        $income = $this->createTransaction(overrides: ['nature' => 'INCOME', 'categoryId' => self::OWN_INCOME, 'amount' => ['value' => '1800.00', 'assetCode' => 'EUR']]);
+        $uncategorized = $this->createTransaction(overrides: ['nature' => 'INCOME', 'categoryId' => null, 'amount' => ['value' => '5.00', 'assetCode' => 'EUR']]);
+
+        $this->client->request('GET', '/api/v1/transactions?categoryType=INCOME');
+        self::assertSame([$income['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?categoryType=EXPENSE');
+        self::assertSame([$expense['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions/count?categoryType=INCOME');
+        self::assertSame(['count' => 1], $this->decode());
+        self::assertNotNull($uncategorized['id']);
+    }
+
+    public function testACategoryTypeIsIntersectedWithAnExplicitCategoryAndNeverReachesAnotherWorkspace(): void
+    {
+        $expense = $this->createTransaction(overrides: ['amount' => ['value' => '-42.10', 'assetCode' => 'EUR']]);
+        $this->createTransaction(overrides: ['nature' => 'INCOME', 'categoryId' => self::OWN_INCOME, 'amount' => ['value' => '1800.00', 'assetCode' => 'EUR']]);
+
+        $this->client->request('GET', '/api/v1/transactions?categoryType=EXPENSE&categoryId='.self::OWN_EXPENSE);
+        self::assertSame([$expense['id']], array_column($this->items(), 'id'));
+
+        $this->client->request('GET', '/api/v1/transactions?categoryType=EXPENSE&categoryId='.self::OWN_INCOME);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->items());
+
+        $this->client->request('GET', '/api/v1/transactions?categoryType=EXPENSE&categoryId='.self::OTHER_CATEGORY);
+        self::assertResponseIsSuccessful();
+        self::assertSame([], $this->items());
     }
 
     public function testNoFilterValueOfAnotherWorkspaceCanSurfaceARowOrLeakItsExistence(): void

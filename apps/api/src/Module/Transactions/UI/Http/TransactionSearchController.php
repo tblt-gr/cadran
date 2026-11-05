@@ -32,7 +32,7 @@ final readonly class TransactionSearchController
     private const array LIST_QUERY_FIELDS = [
         'from', 'to', 'accountId', 'state', 'nature', 'categoryId', 'includeDescendants', 'axis',
         'minAmount', 'maxAmount', 'assetCode', 'source', 'categorization', 'q', 'includeVoided',
-        'direction', 'pageSize', 'cursor',
+        'direction', 'categoryType', 'pageSize', 'cursor',
     ];
 
     public function __construct(
@@ -157,6 +157,7 @@ final readonly class TransactionSearchController
         $maxAmount = $request->query->has('maxAmount') ? $request->query->getString('maxAmount') : null;
         $assetCode = $request->query->has('assetCode') ? $request->query->getString('assetCode') : null;
         $direction = $request->query->has('direction') ? $request->query->getString('direction') : null;
+        $categoryType = $request->query->has('categoryType') ? $request->query->getString('categoryType') : null;
 
         $accountIds = self::repeatedQueryValues($request, 'accountId');
         $categoryIds = self::repeatedQueryValues($request, 'categoryId');
@@ -168,7 +169,7 @@ final readonly class TransactionSearchController
         return $this->shape->query(
             $from, $to, $accountIds, $categoryIds, $states, $natures, $axes, $sources,
             $includeVoided, $includeDescendants, $categorization, $q, $minAmount, $maxAmount, $assetCode,
-            $direction, $pageSize, $cursor,
+            $direction, $pageSize, $cursor, $categoryType,
         ) ?? $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
     }
 

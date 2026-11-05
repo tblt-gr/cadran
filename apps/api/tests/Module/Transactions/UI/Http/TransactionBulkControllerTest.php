@@ -341,7 +341,7 @@ final class TransactionBulkControllerTest extends WebTestCase
         $this->client->request('GET', '/api/v1/transactions/count?q=10,50%20%E2%82%AC');
         self::assertSame(['count' => 1], $this->decode());
 
-        foreach (['?minAmount=-10&assetCode=EUR', '?direction=SIDEWAYS'] as $query) {
+        foreach (['?minAmount=-10&assetCode=EUR', '?direction=SIDEWAYS', '?categoryType=SAVINGS'] as $query) {
             $this->client->request('GET', '/api/v1/transactions/count'.$query);
             self::assertResponseStatusCodeSame(400, $query);
         }

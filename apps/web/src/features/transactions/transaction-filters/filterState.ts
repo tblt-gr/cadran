@@ -1,4 +1,5 @@
 import type {
+  CategoryType,
   ListTransactionsData,
   TransactionDirection,
   TransactionNature,
@@ -35,6 +36,7 @@ const AXES: readonly TransactionAxis[] = [
 ];
 const SOURCES: readonly TransactionSource[] = ['MANUAL', 'IMPORT', 'PROVIDER'];
 const PERIODS: readonly PeriodPreset[] = ['all', 'month', 'thisYear', 'custom'];
+const CATEGORY_TYPES: readonly CategoryType[] = ['INCOME', 'EXPENSE'];
 const DIRECTIONS: readonly TransactionDirection[] = ['INFLOW', 'OUTFLOW'];
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -57,6 +59,8 @@ export interface TransactionFilterState {
   accountId: string[];
   state: TransactionState[];
   nature: TransactionNature[];
+  /** Every category of this type; empty means no type restriction. */
+  categoryType: '' | CategoryType;
   categoryId: string[];
   includeDescendants: boolean;
   axis: TransactionAxis[];
@@ -80,6 +84,7 @@ export const DEFAULT_FILTERS: TransactionFilterState = {
   accountId: [],
   state: [],
   nature: [],
+  categoryType: '',
   categoryId: [],
   includeDescendants: false,
   axis: [],
@@ -182,6 +187,7 @@ export function decodeFilters(
   const from = params.get('from') ?? '';
   const to = params.get('to') ?? '';
   const categorization = params.get('categorization');
+  const categoryType = params.get('categoryType') ?? '';
   const minAmount = params.get('minAmount') ?? '';
   const maxAmount = params.get('maxAmount') ?? '';
   const assetCode = params.get('assetCode') ?? '';
@@ -194,6 +200,9 @@ export function decodeFilters(
     accountId: keepIdentifiers(params.getAll('accountId')),
     state: keepKnown(params.getAll('state'), STATES),
     nature: keepKnown(params.getAll('nature'), NATURES),
+    categoryType: (CATEGORY_TYPES as readonly string[]).includes(categoryType)
+      ? (categoryType as CategoryType)
+      : '',
     categoryId: keepIdentifiers(params.getAll('categoryId')),
     includeDescendants: params.get('includeDescendants') === '1',
     axis: keepKnown(params.getAll('axis'), AXES),
@@ -214,15 +223,17 @@ export function decodeFilters(
 
 /**
  * True when the filter set holds anything the filter panel edits: everything except the search
- * text, the to-categorise tab and the single-month period, which the page shows outside the
- * panel. The panel opens by itself on load only in that case.
+ * text, the to-categorise tab, the single-month period and the natures and category type a
+ * budget link brings, which the page shows as chips outside the panel. The panel opens by itself on load only in that case.
  */
 export function hasPanelFilters(filters: TransactionFilterState): boolean {
   return (
     encodeFilters({
       ...filters,
       categorization: 'ANY',
+      categoryType: '',
       month: '',
+      nature: [],
       period: filters.period === 'month' ? 'all' : filters.period,
       q: '',
     }).size > 0
@@ -248,6 +259,7 @@ export function encodeFilters(filters: TransactionFilterState): URLSearchParams 
   for (const id of filters.accountId) params.append('accountId', id);
   for (const value of filters.state) params.append('state', value);
   for (const value of filters.nature) params.append('nature', value);
+  if (filters.categoryType) params.set('categoryType', filters.categoryType);
   for (const id of filters.categoryId) params.append('categoryId', id);
   if (filters.includeDescendants) params.set('includeDescendants', '1');
   for (const value of filters.axis) params.append('axis', value);
@@ -354,6 +366,7 @@ export function toListTransactionsQuery(
     accountId: filters.accountId.length > 0 ? filters.accountId : undefined,
     state: filters.state.length > 0 ? filters.state : undefined,
     nature: filters.nature.length > 0 ? filters.nature : undefined,
+    categoryType: filters.categoryType || undefined,
     categoryId: filters.categoryId.length > 0 ? filters.categoryId : undefined,
     includeDescendants: filters.includeDescendants || undefined,
     axis: filters.axis.length > 0 ? filters.axis : undefined,

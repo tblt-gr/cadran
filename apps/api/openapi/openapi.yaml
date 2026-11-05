@@ -6682,6 +6682,15 @@ paths:
             (OUTFLOW, amount below zero). Absent means both.
           schema:
             $ref: '#/components/schemas/TransactionDirection'
+        - name: categoryType
+          in: query
+          required: false
+          description: >-
+            Keeps the transactions with at least one split on a category of that type in the
+            workspace, archived categories included. Combined with categoryId, only the
+            categories of both filters remain. Any other value answers 400.
+          schema:
+            $ref: '#/components/schemas/CategoryType'
         - name: includeVoided
           in: query
           required: false
@@ -7239,6 +7248,15 @@ paths:
             (OUTFLOW, amount below zero). Absent means both.
           schema:
             $ref: '#/components/schemas/TransactionDirection'
+        - name: categoryType
+          in: query
+          required: false
+          description: >-
+            Keeps the transactions with at least one split on a category of that type in the
+            workspace, archived categories included. Combined with categoryId, only the
+            categories of both filters remain. Any other value answers 400.
+          schema:
+            $ref: '#/components/schemas/CategoryType'
         - name: includeVoided
           in: query
           required: false
@@ -7425,6 +7443,15 @@ paths:
             (OUTFLOW, amount below zero). Absent means both.
           schema:
             $ref: '#/components/schemas/TransactionDirection'
+        - name: categoryType
+          in: query
+          required: false
+          description: >-
+            Keeps the transactions with at least one split on a category of that type in the
+            workspace, archived categories included. Combined with categoryId, only the
+            categories of both filters remain. Any other value answers 400.
+          schema:
+            $ref: '#/components/schemas/CategoryType'
         - name: includeVoided
           in: query
           required: false
@@ -19327,6 +19354,8 @@ components:
           maxLength: 80
         direction:
           $ref: '#/components/schemas/TransactionDirection'
+        categoryType:
+          $ref: '#/components/schemas/CategoryType'
         includeVoided:
           type: boolean
     BulkIdsScope:

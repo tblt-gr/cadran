@@ -657,7 +657,7 @@ describe('MonthlyBudgetPage', () => {
     const { queryClient } = renderPage();
 
     expect(await screen.findByTestId('monthly-recap-skeleton')).toBeTruthy();
-    const incomePanel = screen.getByRole('region', { name: 'Revenus' });
+    const incomePanel = screen.getByRole('region', { name: 'Revenus du mois' });
     const pendingTotal = within(incomePanel).getByText('Total des revenus').parentElement!;
     expect(pendingTotal.querySelector('[data-visual-mask] > span > [data-skeleton]')).toBeTruthy();
     const recapSkeleton = screen.getByTestId('monthly-recap-skeleton');
@@ -756,9 +756,9 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const income = await screen.findByRole('region', { name: 'Revenus' });
-    const expense = screen.getByRole('region', { name: 'Dépenses' });
-    const transfers = screen.getByRole('region', { name: 'Virements' });
+    const income = await screen.findByRole('region', { name: 'Revenus du mois' });
+    const expense = screen.getByRole('region', { name: 'Dépenses du mois' });
+    const transfers = screen.getByRole('region', { name: 'Virements du mois' });
 
     await waitFor(() => {
       expect(within(income).getByText('Total des revenus').parentElement!.textContent).toContain(
@@ -787,7 +787,7 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
     await loaded();
-    const panel = screen.getByRole('region', { name: 'Virements' });
+    const panel = screen.getByRole('region', { name: 'Virements du mois' });
     expect(within(panel).getByText('Compte courant')).toBeTruthy();
     expect(within(panel).queryByText('Livret vide')).toBeNull();
     const toggle = within(panel).getByRole('button', {
@@ -814,7 +814,7 @@ describe('MonthlyBudgetPage', () => {
     cleanup();
     renderPage();
     await loaded();
-    const restored = screen.getByRole('region', { name: 'Virements' });
+    const restored = screen.getByRole('region', { name: 'Virements du mois' });
     expect(within(restored).getByText('Livret vide')).toBeTruthy();
     expect(
       within(restored)
@@ -947,7 +947,7 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
     await loaded();
-    const panel = screen.getByRole('region', { name: 'Dépenses' });
+    const panel = screen.getByRole('region', { name: 'Dépenses du mois' });
     expect(
       within(panel)
         .getAllByRole('listitem')
@@ -964,7 +964,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const transfers = screen.getByRole('region', { name: 'Virements' });
+    const transfers = screen.getByRole('region', { name: 'Virements du mois' });
     fireEvent.click(
       within(transfers).getByRole('button', { name: 'Afficher les comptes sans mouvement' }),
     );
@@ -990,7 +990,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const income = await screen.findByRole('region', { name: 'Revenus' });
+    const income = await screen.findByRole('region', { name: 'Revenus du mois' });
     expect(within(income).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
   });
 
@@ -1277,7 +1277,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
 
-    const expense = await screen.findByRole('region', { name: 'Dépenses' });
+    const expense = await screen.findByRole('region', { name: 'Dépenses du mois' });
     expect(within(expense).getByText('Aucune ligne active pour ce mois.')).toBeTruthy();
     fireEvent.click(within(expense).getByRole('button', { name: 'Ajouter une dépense' }));
 
@@ -1299,7 +1299,7 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
 
-    await screen.findByRole('region', { name: 'Revenus' });
+    await screen.findByRole('region', { name: 'Revenus du mois' });
     expect(
       screen.getByRole('button', { name: 'Ajouter un revenu' }).getAttribute('disabled'),
     ).not.toBeNull();
@@ -1712,9 +1712,9 @@ describe('MonthlyBudgetPage', () => {
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
     expect(screen.getByText('Salaire')).toBeTruthy();
     expect(
-      within(screen.getByRole('region', { name: 'Virements' })).getByText('Compte courant'),
+      within(screen.getByRole('region', { name: 'Virements du mois' })).getByText('Compte courant'),
     ).toBeTruthy();
-    const expense = screen.getByRole('region', { name: 'Dépenses' });
+    const expense = screen.getByRole('region', { name: 'Dépenses du mois' });
     expect(expense.querySelector('[data-skeleton]')).toBeTruthy();
     expect(within(expense).getByRole('combobox')).toBeTruthy();
 
@@ -1730,7 +1730,7 @@ describe('MonthlyBudgetPage', () => {
     window.history.replaceState({}, '', '/budget/2026/03?axis=ESSENTIAL');
     renderPage();
     await loaded();
-    const panel = screen.getByRole('region', { name: 'Dépenses' });
+    const panel = screen.getByRole('region', { name: 'Dépenses du mois' });
     const header = panel.querySelector('header')!;
     const actions = header.children[1] as HTMLElement;
     expect(within(panel).getByRole('combobox').getAttribute('aria-label')).toBe('Axe analytique');
@@ -1758,7 +1758,7 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
     await loaded();
-    const panel = screen.getByRole('region', { name: 'Dépenses' });
+    const panel = screen.getByRole('region', { name: 'Dépenses du mois' });
     const total = within(panel).getByText('Total des dépenses').parentElement;
     expect(total?.textContent).toContain('18,00');
     expect(total?.textContent).not.toContain('-18,00');
@@ -1777,7 +1777,7 @@ describe('MonthlyBudgetPage', () => {
     );
     renderPage();
     await loaded();
-    const total = within(screen.getByRole('region', { name: 'Dépenses' })).getByText(
+    const total = within(screen.getByRole('region', { name: 'Dépenses du mois' })).getByText(
       'Total des dépenses',
     ).parentElement;
     expect(total?.textContent).toContain('18,00');

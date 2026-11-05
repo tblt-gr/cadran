@@ -15,7 +15,7 @@ final readonly class BulkCategoryPayload
 {
     private const array FILTER_FIELDS = [
         'from', 'to', 'accountIds', 'states', 'natures', 'categoryIds', 'includeDescendants', 'axes',
-        'minAmount', 'maxAmount', 'assetCode', 'sources', 'categorization', 'q', 'includeVoided', 'direction',
+        'minAmount', 'maxAmount', 'assetCode', 'sources', 'categorization', 'q', 'includeVoided', 'direction', 'categoryType',
     ];
 
     public function __construct(private TransactionHttpEnvelope $envelope, private TransactionFilterShape $shape)
@@ -81,7 +81,7 @@ final readonly class BulkCategoryPayload
             self::flag($filters, 'includeVoided'), self::flag($filters, 'includeDescendants'),
             self::text($filters, 'categorization'), self::text($filters, 'q'),
             self::text($filters, 'minAmount'), self::text($filters, 'maxAmount'), self::text($filters, 'assetCode'),
-            self::text($filters, 'direction'),
+            self::text($filters, 'direction'), categoryType: self::text($filters, 'categoryType'),
         ) ?? throw new \UnexpectedValueException('A filter is malformed.');
 
         return BulkCategorizeInput::forFilters($categoryId, $query, $expected);

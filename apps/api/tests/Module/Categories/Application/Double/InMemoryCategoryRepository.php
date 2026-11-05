@@ -31,7 +31,7 @@ final class InMemoryCategoryRepository implements CategoryRepository
     {
         $categories = array_values(array_filter(
             $this->categories,
-            static fn (Category $category): bool => $category->workspace->equals($workspace) && ($includeArchived || null === $category->archivedAt),
+            static fn (Category $category): bool => $category->workspace->equals($workspace) && ($includeArchived || null === $category->archivedAt) && (null === $type || $category->type === $type),
         ));
 
         return array_slice($categories, $offset, $limit);

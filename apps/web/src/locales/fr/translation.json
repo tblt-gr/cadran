@@ -2337,6 +2337,10 @@
       "amountChipBetween": "Montant entre {{min}} et {{max}}",
       "amountChipMin": "Montant ≥ {{min}}",
       "amountChipMax": "Montant ≤ {{max}}",
+      "categoryTypeChip": {
+        "INCOME": "Catégories de revenus",
+        "EXPENSE": "Catégories de dépenses"
+      },
       "categoryNoun": "catégorie",
       "categoryUnknown": "Catégorie inconnue",
       "categoryUnavailable": "Catégorie indisponible",
@@ -3234,6 +3238,7 @@
         "expense": "Sorties et remboursements attribués à chaque catégorie.",
         "account": "Deux sens du virement et mouvement net signé."
       },
+      "panelLinkSuffix": "du mois",
       "panelTotals": {
         "income": "Total des revenus",
         "expense": "Total des dépenses",

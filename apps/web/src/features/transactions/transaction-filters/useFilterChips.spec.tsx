@@ -37,6 +37,28 @@ describe('useFilterChips', () => {
     expect(chipsFor(DEFAULT_FILTERS)).toEqual([]);
   });
 
+  it('shows one chip for the category type, in the plural, and clears only it', () => {
+    const onChange = vi.fn();
+    const chips = chipsFor(
+      { ...DEFAULT_FILTERS, categoryType: 'INCOME', nature: ['INCOME'] },
+      { onChange },
+    );
+    const chip = chips.find((candidate) => candidate.key === 'categoryType');
+
+    expect(chip?.label).toBe('Catégories de revenus');
+    chip?.onClear();
+    expect(onChange).toHaveBeenCalledWith({
+      ...DEFAULT_FILTERS,
+      categoryType: '',
+      nature: ['INCOME'],
+    });
+    expect(
+      chipsFor({ ...DEFAULT_FILTERS, categoryType: 'EXPENSE' }).find(
+        (c) => c.key === 'categoryType',
+      )?.label,
+    ).toBe('Catégories de dépenses');
+  });
+
   it('clears only its own filter, leaving the rest of the state untouched', () => {
     const onChange = vi.fn();
     const filters = {

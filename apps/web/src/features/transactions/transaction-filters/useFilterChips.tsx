@@ -120,6 +120,15 @@ export function useFilterChips({
         ),
     });
   }
+  if (filters.categoryType) {
+    const label = t(`transactions.filters.categoryTypeChip.${filters.categoryType}`);
+    chips.push({
+      key: 'categoryType',
+      label,
+      removeLabel: t('transactions.filters.clearChip', { label }),
+      onClear: () => set('categoryType', ''),
+    });
+  }
   for (const id of filters.categoryId) {
     chips.push({
       key: `category-${id}`,

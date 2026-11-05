@@ -5,14 +5,18 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { BUDGET_AXES, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount, negateDecimal } from '@/lib/decimal';
 import styles from './LedgerPanel.module.css';
+import { monthTransactionsHref } from './monthTransactionsHref';
 
 interface LedgerPanelHeaderProps {
   actionsAllowed: boolean;
   axis: BudgetAxis | null;
   disabled?: boolean;
   kind: LedgerKind;
+  /** `YYYY-MM`; absent while the page loads, when the title is plain text. */
+  month?: string;
   onAddFree?: () => void;
   onAxisChange?: (axis: BudgetAxis | null) => void;
   onShowEmptyAccountsChange?: (show: boolean) => void;
@@ -43,12 +47,29 @@ function HeaderTotal({
   return <span className={kind === 'income' ? styles.income : styles.expense}>{value}</span>;
 }
 
+function PanelTitleLink({
+  axis,
+  kind,
+  month,
+}: Pick<LedgerPanelHeaderProps, 'axis' | 'kind'> & { month: string }) {
+  const { t } = useTranslation();
+  const href = monthTransactionsHref(kind, month, axis);
+
+  return (
+    <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
+      {t(`budget.monthly.panels.${kind}`)}{' '}
+      <span className="sr-only">{t('budget.monthly.panelLinkSuffix')}</span>
+    </a>
+  );
+}
+
 /** Loaded and first-load panels share the same static header and controls. */
 export function LedgerPanelHeader({
   actionsAllowed,
   axis,
   disabled = false,
   kind,
+  month,
   onAddFree,
   onAxisChange,
   onShowEmptyAccountsChange,
@@ -61,7 +82,13 @@ export function LedgerPanelHeader({
   return (
     <header className={styles.heading}>
       <div className={styles.headingMain}>
-        <h3 id={titleId}>{t(`budget.monthly.panels.${kind}`)}</h3>
+        <h3 id={titleId}>
+          {month ? (
+            <PanelTitleLink axis={axis} kind={kind} month={month} />
+          ) : (
+            t(`budget.monthly.panels.${kind}`)
+          )}
+        </h3>
         <p className={styles.total}>
           <span className="sr-only">{t(`budget.monthly.panelTotals.${kind}`)}</span>
           <HeaderTotal kind={kind} total={total} totalState={totalState} />
