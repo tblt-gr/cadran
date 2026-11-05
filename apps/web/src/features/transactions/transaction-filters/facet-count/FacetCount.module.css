@@ -1,0 +1,13 @@
+.count {
+  flex: 0 0 auto;
+  margin-inline-start: var(--spacing-auto);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
+  font-variant-numeric: tabular-nums;
+}
+
+.skeleton {
+  width: var(--spacing-6);
+  height: var(--spacing-3);
+}

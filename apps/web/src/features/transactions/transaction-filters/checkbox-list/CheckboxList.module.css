@@ -30,6 +30,11 @@
   gap: var(--spacing-2);
 }
 
+/* No transaction would remain: the row is muted, never disabled, and its zero stays readable. */
+.option[data-empty='true'] {
+  color: var(--text-muted);
+}
+
 .option:hover {
   color: var(--text-primary);
 }

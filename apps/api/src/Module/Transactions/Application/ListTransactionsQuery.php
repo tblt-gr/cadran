@@ -43,4 +43,16 @@ final readonly class ListTransactionsQuery
         public ?string $cursor = null,
     ) {
     }
+
+    /**
+     * This request with some of its fields replaced. A copy never rebuilds the request field by
+     * field, so a field added to it later is carried over by every copy without anyone having to
+     * remember it.
+     *
+     * @param array<string, mixed> $changes the fields to replace, by constructor argument name
+     */
+    public function with(array $changes): self
+    {
+        return clone ($this, $changes);
+    }
 }

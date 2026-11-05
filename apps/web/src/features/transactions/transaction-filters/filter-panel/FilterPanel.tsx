@@ -11,11 +11,13 @@ import { AmountRangeFilter } from '@/features/transactions/transaction-filters/a
 import { CategoryCheckboxTree } from '@/features/transactions/transaction-filters/category-checkbox-tree/CategoryCheckboxTree';
 import { CheckboxList } from '@/features/transactions/transaction-filters/checkbox-list/CheckboxList';
 import { DirectionFilter } from '@/features/transactions/transaction-filters/direction-filter/DirectionFilter';
+import { sectionCounts } from '@/features/transactions/transaction-filters/facet-count/optionCount';
 import type {
   TransactionAxis,
   TransactionFilterState,
 } from '@/features/transactions/transaction-filters/filterState';
 import { PeriodFilter } from '@/features/transactions/transaction-filters/period-filter/PeriodFilter';
+import type { TransactionFacetsState } from '@/features/transactions/transaction-filters/useTransactionFacets';
 import styles from './FilterPanel.module.css';
 
 const STATES: TransactionState[] = ['PENDING', 'BOOKED', 'VOIDED', 'REJECTED'];
@@ -58,6 +60,8 @@ interface FilterPanelProps {
   activeCount: number;
   assetCodes: string[];
   disabled: boolean;
+  /** How many transactions each option would keep; absent where the list shows no count. */
+  facets?: TransactionFacetsState;
   filters: TransactionFilterState;
   onChange: (next: TransactionFilterState) => void;
   /** Set where the chip row is out of sight (the mobile sheet): the panel offers `Tout effacer`. */
@@ -78,6 +82,7 @@ export function FilterPanel({
   activeCount,
   assetCodes,
   disabled,
+  facets,
   filters,
   onChange,
   onReset,
@@ -150,6 +155,7 @@ export function FilterPanel({
           section(
             'accounts',
             <CheckboxList
+              counts={sectionCounts(facets, 'accountId')}
               emptyLabel={t('transactions.filters.accountsEmpty')}
               legend={t('transactions.filters.sections.accounts')}
               limit={ACCOUNT_LIMIT}
@@ -167,6 +173,7 @@ export function FilterPanel({
           'categories',
           <CategoryCheckboxTree
             categoryIds={filters.categoryId}
+            counts={sectionCounts(facets, 'categoryId')}
             includeDescendants={filters.includeDescendants}
             onCategoryIdsChange={(next) =>
               onChange({ ...filters, categoryId: next, categorization: 'ANY' })
@@ -186,6 +193,7 @@ export function FilterPanel({
         {section(
           'natures',
           <CheckboxList
+            counts={sectionCounts(facets, 'nature')}
             legend={t('transactions.filters.sections.natures')}
             onChange={(next) => set('nature', next)}
             options={NATURES.map((value) => ({
@@ -199,6 +207,7 @@ export function FilterPanel({
         {section(
           'states',
           <CheckboxList
+            counts={sectionCounts(facets, 'state')}
             legend={t('transactions.filters.sections.states')}
             onChange={(next) => set('state', next)}
             options={STATES.map((value) => ({ value, label: t(`transactions.states.${value}`) }))}
@@ -209,6 +218,7 @@ export function FilterPanel({
         {section(
           'sources',
           <CheckboxList
+            counts={sectionCounts(facets, 'source')}
             legend={t('transactions.filters.sections.sources')}
             onChange={(next) => set('source', next)}
             options={SOURCES.map((value) => ({ value, label: t(`transactions.sources.${value}`) }))}
@@ -219,6 +229,7 @@ export function FilterPanel({
         {section(
           'axes',
           <CheckboxList
+            counts={sectionCounts(facets, 'axis')}
             legend={t('transactions.filters.sections.axes')}
             onChange={(next) => onChange({ ...filters, axis: next, categorization: 'ANY' })}
             options={AXES.map((value) => ({ value, label: t(`categories.axes.${value}`) }))}

@@ -2370,7 +2370,9 @@
       "accountsEmpty": "Aucun compte actif.",
       "categoriesEmpty": "Aucune catégorie.",
       "categoriesUnavailable": "Les catégories n’ont pas pu être chargées.",
-      "uncategorized": "Sans catégorie"
+      "uncategorized": "Sans catégorie",
+      "facetCount_one": "{{count}} transaction",
+      "facetCount_other": "{{count}} transactions"
     },
     "queue": {
       "emptyTitle": "Rien à catégoriser",

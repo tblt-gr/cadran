@@ -1,13 +1,18 @@
-import type { Account, Category } from '@cadran/api-client';
+import type { Account, Category, TransactionFacets } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { DEFAULT_FILTERS, type TransactionFilterState } from './filterState';
 import { TransactionFilters } from './TransactionFilters';
+import type { TransactionFacetsRequest } from './useTransactionFacets';
 
-const api = vi.hoisted(() => ({ listAccounts: vi.fn(), listCategories: vi.fn() }));
+const api = vi.hoisted(() => ({
+  listAccounts: vi.fn(),
+  listCategories: vi.fn(),
+  readTransactionFacets: vi.fn(),
+}));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
@@ -44,6 +49,16 @@ const category = {
   archivedAt: null,
   replacement: null,
 } as Category;
+
+/** Distinct numbers per section: a section reading another one's counts would be caught. */
+const facets: TransactionFacets = {
+  accountId: { [account.id]: 11 },
+  categoryId: { [category.id]: 13 },
+  nature: { EXPENSE: 4, INCOME: 1 },
+  state: { BOOKED: 5, PENDING: 2, VOIDED: 1 },
+  source: { IMPORT: 3 },
+  axis: { ESSENTIAL: 7 },
+};
 
 function success<T>(data: T) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
@@ -511,5 +526,314 @@ describe('TransactionFilters', () => {
 
     fireEvent.click(within(sheet).getByRole('button', { name: 'Afficher les transactions' }));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  describe('counts', () => {
+    const outflows: TransactionFacetsRequest = { enabled: true, query: { direction: 'OUTFLOW' } };
+    const inflows: TransactionFacetsRequest = { enabled: true, query: { direction: 'INFLOW' } };
+
+    function openEverySection() {
+      for (const title of [
+        'Comptes',
+        'Catégories',
+        'Nature',
+        'État',
+        'Origine',
+        'Axes analytiques',
+      ]) {
+        openSection(title);
+      }
+    }
+
+    /** One client for the whole test, so a later `update` sees what an earlier answer cached. */
+    function mount(initial: Omit<FiltersProps, 'revision'>) {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+      });
+      const tree = (props: Omit<FiltersProps, 'revision'>) => (
+        <QueryClientProvider client={queryClient}>
+          <TransactionFilters revision={0} {...props} />
+        </QueryClientProvider>
+      );
+      const view = render(tree(initial));
+
+      return {
+        ...view,
+        update: (props: Omit<FiltersProps, 'revision'>) => view.rerender(tree(props)),
+      };
+    }
+
+    function baseProps(facetsRequest?: TransactionFacetsRequest, onChange = vi.fn()) {
+      return {
+        accounts: [account],
+        facetsRequest,
+        filters: DEFAULT_FILTERS,
+        onChange,
+        onReset: vi.fn(),
+      };
+    }
+
+    function answerWith(counts: TransactionFacets = facets) {
+      api.readTransactionFacets.mockImplementation(() => success(counts));
+    }
+
+    /** Lets the debounce of a changed request elapse, with nothing on screen to wait for. */
+    async function settle() {
+      await act(async () => {
+        await new Promise((done) => setTimeout(done, 300));
+      });
+    }
+
+    function stubCategories() {
+      api.listCategories.mockImplementation(() =>
+        success({ items: [category], page: 1, pageSize: 100, total: 1 }),
+      );
+    }
+
+    function openSheet() {
+      fireEvent.click(toggle());
+      return screen.getByRole('dialog', { name: 'Filtres' });
+    }
+
+    function openSectionIn(scope: HTMLElement, title: string) {
+      const summary = [...scope.querySelectorAll('summary')].find(
+        (candidate) => candidate.textContent === title,
+      )!;
+      fireEvent.click(summary);
+    }
+
+    it('reads every option as its label then its count, each section from its own counts', async () => {
+      stubCategories();
+      answerWith();
+      mount(baseProps(outflows));
+      openEverySection();
+      await screen.findByRole('checkbox', { name: 'Sorties, 13 transactions' });
+
+      const names = [
+        'Compte courant, 11 transactions',
+        'Dépense, 4 transactions',
+        'Revenu, 1 transaction',
+        'Virement interne, 0 transaction',
+        'Comptabilisée, 5 transactions',
+        'En attente, 2 transactions',
+        'Annulée, 1 transaction',
+        'Rejetée, 0 transaction',
+        'Import, 3 transactions',
+        'Saisie manuelle, 0 transaction',
+        'Fournisseur connecté, 0 transaction',
+        'Essentiel, 7 transactions',
+        'Fixe, 0 transaction',
+      ];
+      for (const name of names) {
+        expect(screen.getByRole('checkbox', { name }), name).toBeTruthy();
+      }
+      expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+      expect(api.readTransactionFacets.mock.calls[0]?.[0].query).toEqual(outflows.query);
+    });
+
+    it('counts neither the uncategorized choice nor the voided switch', async () => {
+      stubCategories();
+      answerWith();
+      mount(baseProps(outflows));
+      openEverySection();
+      await screen.findByRole('checkbox', { name: 'Sorties, 13 transactions' });
+
+      expect(screen.getByRole('checkbox', { name: 'Sans catégorie' })).toBeTruthy();
+      expect(
+        screen.getByRole('checkbox', { name: 'Afficher les transactions annulées' }),
+      ).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'Inclure les sous-catégories' })).toBeTruthy();
+    });
+
+    it('shows a skeleton count on every option while pending and keeps the options usable', async () => {
+      stubCategories();
+      api.readTransactionFacets.mockImplementation(() => new Promise(() => undefined));
+      const onChange = vi.fn();
+      mount(baseProps(outflows, onChange));
+      openEverySection();
+      await screen.findByRole('checkbox', { name: 'Sorties' });
+
+      expect(section('État')!.querySelectorAll('[data-skeleton]')).toHaveLength(4);
+      expect(section('Nature')!.querySelectorAll('[data-skeleton]')).toHaveLength(6);
+      const booked = screen.getByRole('checkbox', { name: 'Comptabilisée' });
+      expect(booked).toHaveProperty('disabled', false);
+
+      fireEvent.click(booked);
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ state: ['BOOKED'] }));
+    });
+
+    it('shows no count after a failed request while every filter keeps working', async () => {
+      stubCategories();
+      api.readTransactionFacets.mockImplementation(() =>
+        Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+      );
+      const onChange = vi.fn();
+      mount(baseProps(outflows, onChange));
+      openEverySection();
+      await screen.findByRole('checkbox', { name: 'Sorties' });
+      await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledOnce());
+
+      await waitFor(() =>
+        expect(filterColumn()!.querySelectorAll('[data-skeleton]')).toHaveLength(0),
+      );
+      expect(section('État')!.textContent).not.toMatch(/\d/);
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Dépense' }));
+      expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ nature: ['EXPENSE'] }));
+    });
+
+    it('asks for nothing and shows no count where no request is passed, as on the account page', async () => {
+      stubCategories();
+      answerWith();
+      mount(baseProps());
+      openEverySection();
+      await screen.findByRole('checkbox', { name: 'Sorties' });
+      await settle();
+
+      expect(api.readTransactionFacets).not.toHaveBeenCalled();
+      expect(filterColumn()!.querySelectorAll('[data-skeleton]')).toHaveLength(0);
+      expect(section('État')!.textContent).not.toMatch(/\d/);
+      expect(section('Nature')!.textContent).not.toMatch(/\d/);
+    });
+
+    it('asks for nothing while the filters can match nothing', async () => {
+      stubCategories();
+      answerWith();
+      mount(baseProps({ ...outflows, enabled: false }));
+      openEverySection();
+      await screen.findByRole('checkbox', { name: 'Sorties' });
+      await settle();
+
+      expect(api.readTransactionFacets).not.toHaveBeenCalled();
+      expect(filterColumn()!.querySelectorAll('[data-skeleton]')).toHaveLength(0);
+      expect(section('État')!.textContent).not.toMatch(/\d/);
+    });
+
+    describe('while the panel can be seen', () => {
+      it('asks for no count while the filter column is hidden, and asks as soon as it is shown', async () => {
+        window.localStorage.setItem('cadran.transactions.filters-hidden', '1');
+        answerWith();
+        mount(baseProps(outflows));
+        await settle();
+
+        expect(filterColumn()?.hidden).toBe(true);
+        expect(api.readTransactionFacets).not.toHaveBeenCalled();
+
+        fireEvent.click(toggle());
+        openSection('État');
+
+        expect(
+          await screen.findByRole('checkbox', { name: 'Comptabilisée, 5 transactions' }),
+        ).toBeTruthy();
+        expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+      });
+
+      it('stops asking once the column is hidden, whatever changes, and asks for the latest filters when it is shown', async () => {
+        answerWith();
+        const view = mount(baseProps(outflows));
+        await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledOnce());
+
+        fireEvent.click(toggle());
+        expect(filterColumn()?.hidden).toBe(true);
+        view.update(baseProps(inflows));
+        await settle();
+        expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+
+        fireEvent.click(toggle());
+        await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledTimes(2));
+        expect(api.readTransactionFacets.mock.calls[1]?.[0].query).toEqual(inflows.query);
+      });
+
+      it('shows the counts it already has when the column comes back with the same filters', async () => {
+        answerWith();
+        mount(baseProps(outflows));
+        openSection('État');
+        await screen.findByRole('checkbox', { name: 'Comptabilisée, 5 transactions' });
+
+        fireEvent.click(toggle());
+        let resolveRefresh: (value: unknown) => void = () => {};
+        api.readTransactionFacets.mockImplementation(
+          () => new Promise((done) => (resolveRefresh = done)),
+        );
+        fireEvent.click(toggle());
+
+        // The panel keeps its open sections, and the earlier answer is back before the refresh.
+        expect(
+          screen.getByRole('checkbox', { name: 'Comptabilisée, 5 transactions' }),
+        ).toBeTruthy();
+        expect(section('État')!.querySelectorAll('[data-skeleton]')).toHaveLength(0);
+        await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledTimes(2));
+
+        resolveRefresh(await success({ ...facets, state: { BOOKED: 6 } }));
+        expect(
+          await screen.findByRole('checkbox', { name: 'Comptabilisée, 6 transactions' }),
+        ).toBeTruthy();
+      });
+
+      it('asks for no count while the sheet of a narrow screen is closed, and once when it opens', async () => {
+        stubCompactScreen();
+        let resolveFirst: (value: unknown) => void = () => {};
+        api.readTransactionFacets.mockImplementation(
+          () => new Promise((done) => (resolveFirst = done)),
+        );
+        mount(baseProps(outflows));
+        await settle();
+        expect(api.readTransactionFacets).not.toHaveBeenCalled();
+
+        const sheet = openSheet();
+        openSectionIn(sheet, 'État');
+        await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledOnce());
+        // The first open has nothing to show yet: each option carries a skeleton count.
+        expect(within(sheet).getByRole('checkbox', { name: 'Comptabilisée' })).toBeTruthy();
+        expect(section('État')!.querySelectorAll('[data-skeleton]')).toHaveLength(4);
+
+        resolveFirst(await success(facets));
+        expect(
+          await within(sheet).findByRole('checkbox', { name: 'Comptabilisée, 5 transactions' }),
+        ).toBeTruthy();
+        expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+      });
+
+      it('shows the cached answer at once when the sheet reopens with the same filters', async () => {
+        stubCompactScreen();
+        answerWith();
+        mount(baseProps(outflows));
+        const sheet = openSheet();
+        openSectionIn(sheet, 'État');
+        await within(sheet).findByRole('checkbox', { name: 'Comptabilisée, 5 transactions' });
+
+        fireEvent.click(within(sheet).getByRole('button', { name: 'Fermer les filtres' }));
+        expect(screen.queryByRole('dialog')).toBeNull();
+        await settle();
+        let resolveRefresh: (value: unknown) => void = () => {};
+        api.readTransactionFacets.mockImplementation(
+          () => new Promise((done) => (resolveRefresh = done)),
+        );
+
+        const reopened = openSheet();
+        openSectionIn(reopened, 'État');
+        expect(
+          within(reopened).getByRole('checkbox', { name: 'Comptabilisée, 5 transactions' }),
+        ).toBeTruthy();
+        expect(reopened.querySelectorAll('[data-skeleton]')).toHaveLength(0);
+        resolveRefresh(await success(facets));
+      });
+
+      it('asks again for the filters it holds when the sheet reopens after they changed', async () => {
+        stubCompactScreen();
+        answerWith();
+        const view = mount(baseProps(outflows));
+        const sheet = openSheet();
+        await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledOnce());
+        fireEvent.click(within(sheet).getByRole('button', { name: 'Fermer les filtres' }));
+
+        view.update(baseProps(inflows));
+        await settle();
+        expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+
+        openSheet();
+        await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledTimes(2));
+        expect(api.readTransactionFacets.mock.calls[1]?.[0].query).toEqual(inflows.query);
+      });
+    });
   });
 });

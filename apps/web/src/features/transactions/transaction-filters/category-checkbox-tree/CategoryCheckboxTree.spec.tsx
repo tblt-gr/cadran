@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import type { OptionCounts } from '@/features/transactions/transaction-filters/facet-count/optionCount';
 import { CategoryCheckboxTree } from './CategoryCheckboxTree';
 
 const api = vi.hoisted(() => ({ listCategories: vi.fn() }));
@@ -52,12 +53,14 @@ function renderTree(
   onCategoryIdsChange = vi.fn(),
   uncategorized = false,
   onUncategorizedChange = vi.fn(),
+  counts?: OptionCounts,
 ) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
       <CategoryCheckboxTree
         categoryIds={categoryIds}
+        counts={counts}
         includeDescendants
         onCategoryIdsChange={onCategoryIdsChange}
         onIncludeDescendantsChange={vi.fn()}
@@ -144,5 +147,82 @@ describe('CategoryCheckboxTree', () => {
 
     fireEvent.click(uncategorized);
     expect(onUncategorizedChange).toHaveBeenCalledWith(true);
+  });
+
+  describe('counts', () => {
+    const tree = () =>
+      respond([
+        category({}),
+        category({ id: 'child', label: 'Courses', parentId: 'root', depth: 2 }),
+        category({ id: 'other', label: 'Transport', sortOrder: 1 }),
+      ]);
+
+    it('shows no count where the tree is given none', async () => {
+      tree();
+      renderTree();
+
+      expect(await screen.findByRole('checkbox', { name: 'Courses' })).toBeTruthy();
+      expect(screen.getByRole('group').textContent).not.toMatch(/\d/);
+    });
+
+    it('reads the count of every category after its label, nested ones included', async () => {
+      tree();
+      renderTree([], vi.fn(), false, vi.fn(), { root: 4, child: 3, other: 1 });
+
+      expect(
+        await screen.findByRole('checkbox', { name: 'Alimentation, 4 transactions' }),
+      ).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'Courses, 3 transactions' })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'Transport, 1 transaction' })).toBeTruthy();
+    });
+
+    it('mutes a category that keeps nothing without disabling it', async () => {
+      tree();
+      const onChange = renderTree([], vi.fn(), false, vi.fn(), { root: 4 });
+
+      const empty = await screen.findByRole('checkbox', { name: 'Courses, 0 transaction' });
+      expect(empty.closest('label')?.getAttribute('data-empty')).toBe('true');
+      expect(empty).toHaveProperty('disabled', false);
+      expect(
+        screen
+          .getByRole('checkbox', { name: 'Alimentation, 4 transactions' })
+          .closest('label')
+          ?.hasAttribute('data-empty'),
+      ).toBe(false);
+
+      fireEvent.click(empty);
+      expect(onChange).toHaveBeenCalledWith(['child']);
+    });
+
+    it('counts neither the uncategorized choice nor the sub-category switch', async () => {
+      tree();
+      renderTree([], vi.fn(), false, vi.fn(), { root: 4, child: 3, other: 1 });
+      await screen.findByRole('checkbox', { name: 'Alimentation, 4 transactions' });
+
+      expect(screen.getByRole('checkbox', { name: 'Sans catégorie' })).toBeTruthy();
+      expect(screen.getByRole('checkbox', { name: 'Inclure les sous-catégories' })).toBeTruthy();
+    });
+
+    it('shows a skeleton count on every category while the first answer is pending', async () => {
+      tree();
+      const onChange = renderTree([], vi.fn(), false, vi.fn(), null);
+
+      const first = await screen.findByRole('checkbox', { name: 'Alimentation' });
+      expect(document.querySelectorAll('[data-skeleton]')).toHaveLength(3);
+      expect(first).toHaveProperty('disabled', false);
+
+      fireEvent.click(first);
+      expect(onChange).toHaveBeenCalledWith(['root']);
+    });
+
+    it('gives the loading rows a count placeholder only when counts are asked for', () => {
+      api.listCategories.mockImplementation(() => new Promise(() => undefined));
+      renderTree();
+      expect(document.querySelectorAll('[data-skeleton]')).toHaveLength(3);
+      cleanup();
+
+      renderTree([], vi.fn(), false, vi.fn(), null);
+      expect(document.querySelectorAll('[data-skeleton]')).toHaveLength(6);
+    });
   });
 });

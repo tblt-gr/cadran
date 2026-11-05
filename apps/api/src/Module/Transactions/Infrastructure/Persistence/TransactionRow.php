@@ -101,6 +101,17 @@ final readonly class TransactionRow
         ];
     }
 
+    /**
+     * A PostgreSQL array literal for a bound parameter: each element is quoted on its own, so no
+     * element can end the literal or smuggle another one into it.
+     *
+     * @param list<string> $values
+     */
+    public static function postgresArray(array $values): string
+    {
+        return '{'.implode(',', array_map(static fn (string $value): string => '"'.str_replace(['\\', '"'], ['\\\\', '\\"'], $value).'"', $values)).'}';
+    }
+
     public static function text(mixed $value): string
     {
         if (!is_scalar($value)) {

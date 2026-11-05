@@ -52,4 +52,30 @@ final readonly class TransactionFilters
         public ?DecimalValue $qAmount = null,
     ) {
     }
+
+    /**
+     * These filters minus the four that read a column of the transaction itself: its account, nature,
+     * source and state. The facet counts of those four columns apply them to a tally of the
+     * combinations, so one scan serves all four however they are filtered.
+     */
+    public function withoutColumnFilters(): self
+    {
+        return new self(
+            from: $this->from,
+            to: $this->to,
+            accountIds: [],
+            states: [],
+            natures: [],
+            categoryIds: $this->categoryIds,
+            axes: $this->axes,
+            minAmount: $this->minAmount,
+            maxAmount: $this->maxAmount,
+            assetCode: $this->assetCode,
+            sources: [],
+            categorizationNone: $this->categorizationNone,
+            q: $this->q,
+            direction: $this->direction,
+            qAmount: $this->qAmount,
+        );
+    }
 }

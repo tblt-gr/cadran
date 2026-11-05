@@ -7272,6 +7272,215 @@ paths:
           $ref: '#/components/responses/WorkspaceForbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/transactions/facets:
+    get:
+      operationId: readTransactionFacets
+      summary: Count the transactions behind each option of the filter column
+      description: >-
+        For every checkbox option of the transaction filter column, the number of
+        transactions of the calling workspace that `listTransactions` would return with
+        that option checked alone in its section, every other filter applied. Takes every
+        filter of the listing except `pageSize` and `cursor`, and reads each of them like
+        the listing does. Each section is counted under all the filters but its own, so a
+        checked option never hides its siblings: `accountId`, `nature` and `source` ignore
+        their own filter, `categoryId` and `axis` also ignore `categorization` (checking
+        one leaves the to-categorise queue), and `state` ignores `state` and counts each of
+        the four states under the other filters, so `VOIDED` can show a number while
+        `includeVoided` is off (voided transactions are never counted inside the
+        `categorization=NONE` queue). A transaction split across several categories counts
+        once in each; with `includeDescendants` a category also counts the transactions
+        that have a split anywhere below it, once. An option no transaction holds is absent
+        from its section: read a missing key as 0. An `accountId` of another workspace, or
+        unknown, answers 404 with the same body, and nothing of another workspace is ever
+        counted. Throttled to 120 requests per minute for each user, separately from every
+        other limit.
+      tags:
+        - Transactions
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: from
+          in: query
+          required: false
+          description: Inclusive booked_on lower bound.
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          required: false
+          description: Inclusive booked_on upper bound.
+          schema:
+            type: string
+            format: date
+        - name: accountId
+          in: query
+          required: false
+          description: Repeatable. Any of the accounts. At most 20 values.
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              format: uuid
+        - name: state
+          in: query
+          required: false
+          description: >-
+            Repeatable. When present, replaces the default state scope
+            entirely (PENDING and BOOKED, plus VOIDED only when
+            includeVoided is set).
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionState'
+        - name: nature
+          in: query
+          required: false
+          description: Repeatable. Any of the natures.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionNature'
+        - name: categoryId
+          in: query
+          required: false
+          description: Repeatable. The transaction has a split on any of them. At most 20 values.
+          schema:
+            type: array
+            maxItems: 20
+            items:
+              type: string
+              format: uuid
+        - name: includeDescendants
+          in: query
+          required: false
+          description: Extends categoryId to the category subtrees.
+          schema:
+            type: boolean
+            default: false
+        - name: axis
+          in: query
+          required: false
+          description: Repeatable. The transaction has a split carrying any of them.
+          schema:
+            type: array
+            items:
+              type: string
+              enum:
+                - DISCRETIONARY
+                - ESSENTIAL
+                - FIXED
+                - PERSONAL
+                - PROFESSIONAL
+                - VARIABLE
+        - name: minAmount
+          in: query
+          required: false
+          description: >-
+            Absolute lower bound on the amount, in assetCode: the sign of a movement is
+            ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+            decimal. Requires assetCode.
+          schema:
+            type: string
+        - name: maxAmount
+          in: query
+          required: false
+          description: >-
+            Absolute upper bound on the amount, in assetCode: the sign of a movement is
+            ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+            decimal. Requires assetCode.
+          schema:
+            type: string
+        - name: assetCode
+          in: query
+          required: false
+          description: The asset minAmount and maxAmount are expressed in.
+          schema:
+            type: string
+        - name: source
+          in: query
+          required: false
+          description: Repeatable. Any of the sources.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionSource'
+        - name: q
+          in: query
+          required: false
+          description: >-
+            Free text matched against the normalized label, the raw label and
+            the counterparty, case-insensitively. A text that reads as an
+            amount (10, -10,50 €) also matches the absolute amount of
+            a transaction, in any asset.
+          schema:
+            type: string
+            maxLength: 80
+        - name: direction
+          in: query
+          required: false
+          description: >-
+            Keeps only money coming in (INFLOW, amount above zero) or going out
+            (OUTFLOW, amount below zero). Absent means both.
+          schema:
+            $ref: '#/components/schemas/TransactionDirection'
+        - name: includeVoided
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - name: categorization
+          in: query
+          required: false
+          description: >-
+            `NONE` restricts the page to the transactions carrying no split at
+            all, the "to categorise" queue.
+          schema:
+            type: string
+            enum:
+              - ANY
+              - NONE
+            default: ANY
+      responses:
+        '200':
+          description: The counts of every section of the filter column.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionFacets'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          description: >-
+            `includeDescendants` rolls the counts up through the whole category tree, and the
+            workspace holds more than 500 categories.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '429':
+          description: >-
+            More than 120 requests in a minute for this user. This budget is separate from
+            sign-in throttling and from the transaction listing, which is not throttled.
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying.
+              schema:
+                type: integer
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/bulk-category:
     post:
       operationId: bulkCategorizeTransactions
@@ -18995,6 +19204,61 @@ components:
         count:
           type: integer
           minimum: 0
+    TransactionFacets:
+      type: object
+      additionalProperties: false
+      description: >-
+        How many transactions sit behind each option of the filter column, one object per
+        section. Every section is always present, `{}` when nothing matches. An option no
+        transaction holds is absent: read a missing key as 0.
+      required:
+        - accountId
+        - categoryId
+        - nature
+        - state
+        - source
+        - axis
+      properties:
+        accountId:
+          type: object
+          description: Keyed by account identifier.
+          additionalProperties:
+            type: integer
+            minimum: 1
+        categoryId:
+          type: object
+          description: >-
+            Keyed by category identifier. Counts the transactions with a split in the
+            category, once each; with `includeDescendants`, anywhere in its subtree.
+          additionalProperties:
+            type: integer
+            minimum: 1
+        nature:
+          type: object
+          description: Keyed by transaction nature.
+          additionalProperties:
+            type: integer
+            minimum: 1
+        state:
+          type: object
+          description: Keyed by transaction state; each of the four states is counted.
+          additionalProperties:
+            type: integer
+            minimum: 1
+        source:
+          type: object
+          description: Keyed by transaction source.
+          additionalProperties:
+            type: integer
+            minimum: 1
+        axis:
+          type: object
+          description: >-
+            Keyed by analytic axis. Counts the transactions with a split carrying the axis,
+            once each.
+          additionalProperties:
+            type: integer
+            minimum: 1
     BulkTransactionFilters:
       type: object
       additionalProperties: false

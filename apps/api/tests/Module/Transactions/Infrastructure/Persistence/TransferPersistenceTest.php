@@ -339,6 +339,11 @@ final class FailOnSecondAddTransactionRepository implements TransactionRepositor
         return $this->inner->countMatching($workspace, $filters);
     }
 
+    public function facetCounts(WorkspaceScope $workspace, array $scopes, ?\App\Module\Transactions\Domain\CategorySubtrees $subtrees = null): array
+    {
+        return $this->inner->facetCounts($workspace, $scopes, $subtrees);
+    }
+
     public function search(
         WorkspaceScope $workspace,
         \App\Module\Transactions\Domain\TransactionFilters $filters,

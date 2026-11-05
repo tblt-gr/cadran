@@ -191,6 +191,7 @@ export function TransactionsPage() {
           accounts={accountOptions}
           accountsPending={accountsPending}
           disabled={initialLoading}
+          facetsRequest={{ enabled: !impossible, query: bulkQuery }}
           filters={searchFilters}
           onChange={updateFilters}
           onReset={resetAllFilters}

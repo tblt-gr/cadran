@@ -1,6 +1,11 @@
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { FacetCount } from '@/features/transactions/transaction-filters/facet-count/FacetCount';
+import {
+  optionCount,
+  type OptionCounts,
+} from '@/features/transactions/transaction-filters/facet-count/optionCount';
 import styles from './CheckboxList.module.css';
 
 interface CheckboxOption<T extends string> {
@@ -11,6 +16,12 @@ interface CheckboxOption<T extends string> {
 }
 
 interface CheckboxListProps<T extends string> {
+  /**
+   * Transactions each option would keep, by option value: a missing value reads as 0 and its row
+   * is muted, never disabled. `null` while the first answer is pending; absent where the list
+   * shows no count at all.
+   */
+  counts?: OptionCounts;
   /** Accessible name of the group; the visible title belongs to the surrounding section. */
   legend: string;
   /** Rows shown before `Afficher plus`; a checked row past the limit always stays visible. */
@@ -30,6 +41,7 @@ const SKELETON_ROWS = 3;
  * with no popup to open. An empty selection means "no restriction".
  */
 export function CheckboxList<T extends string>({
+  counts,
   emptyLabel,
   legend,
   limit = Number.POSITIVE_INFINITY,
@@ -66,6 +78,7 @@ export function CheckboxList<T extends string>({
               <label className={styles.option}>
                 <input disabled type="checkbox" />
                 <SkeletonBlock className={styles.skeleton} />
+                {counts === undefined ? null : <FacetCount count={null} />}
               </label>
             </li>
           ))}
@@ -74,19 +87,23 @@ export function CheckboxList<T extends string>({
         <p className={styles.empty}>{emptyLabel}</p>
       ) : (
         <ul className={styles.list}>
-          {visible.map((option) => (
-            <li key={option.value}>
-              <label className={styles.option}>
-                <input
-                  checked={value.includes(option.value)}
-                  onChange={() => toggle(option.value)}
-                  type="checkbox"
-                />
-                {option.leading}
-                <span className={styles.label}>{option.label}</span>
-              </label>
-            </li>
-          ))}
+          {visible.map((option) => {
+            const count = optionCount(counts, option.value);
+            return (
+              <li key={option.value}>
+                <label className={styles.option} data-empty={count === 0 || undefined}>
+                  <input
+                    checked={value.includes(option.value)}
+                    onChange={() => toggle(option.value)}
+                    type="checkbox"
+                  />
+                  {option.leading}
+                  <span className={styles.label}>{option.label}</span>
+                  {count === undefined ? null : <FacetCount count={count} />}
+                </label>
+              </li>
+            );
+          })}
         </ul>
       )}
       {hiddenCount > 0 || (expanded && options !== null && options.length > limit) ? (

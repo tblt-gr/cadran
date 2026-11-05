@@ -5,6 +5,11 @@ import { settled } from './support/page';
 import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
 import { auditAccessibility } from './support/a11y';
+import {
+  expandCountedFilters,
+  expectFacetRowsFit,
+  withLongAccountLabel,
+} from './support/transaction-filters';
 
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
@@ -494,6 +499,7 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
   });
   try {
     const page = await context.newPage();
+    await withLongAccountLabel(page);
     await page.goto('/transactions?direction=OUTFLOW&state=BOOKED');
     await settled(page);
 
@@ -523,6 +529,20 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
     expect(sheetBox.x).toBeGreaterThanOrEqual(0);
     expect(sheetBox.x + sheetBox.width).toBeLessThanOrEqual(360);
 
+    await expandCountedFilters(page, sheet);
+    await expectFacetRowsFit(sheet);
+    await auditAccessibility(page);
+    // A zero remains a choice, including for keyboard users.
+    const zero = sheet.getByRole('checkbox', { name: /^Annulée\s*, 0 transaction$/ });
+    await expect(zero).toBeEnabled();
+    await zero.focus();
+    await zero.press('Space');
+    await settled(page);
+    await expect(zero).toBeChecked();
+    await zero.press('Space');
+    await settled(page);
+    await expect(zero).not.toBeChecked();
+
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -548,6 +568,7 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
   });
   try {
     const page = await context.newPage();
+    await withLongAccountLabel(page);
     await page.goto('/transactions?direction=OUTFLOW');
     await settled(page);
 
@@ -564,6 +585,20 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
     await expect(column).toBeHidden();
     await toggle.click();
     await expect(column).toBeVisible();
+    await expandCountedFilters(page, column);
+    await expectFacetRowsFit(column);
+    await auditAccessibility(page);
+    const accounts = column.getByRole('group', { name: 'Comptes', exact: true });
+    const accountCounts = await accounts.locator('label').allTextContents();
+    const firstAccount = accounts.getByRole('checkbox').first();
+    await firstAccount.check();
+    await settled(page);
+    expect(
+      await accounts.locator('label').allTextContents(),
+      'choosing an account preserves every sibling account count',
+    ).toEqual(accountCounts);
+    await firstAccount.uncheck();
+    await settled(page);
     expect(await auditLayout(page, false)).toEqual([]);
   } finally {
     await context.close();

@@ -35,6 +35,12 @@ for (const width of [1440, 360]) {
     await expect(accountNav.getByRole('link').nth(1)).toHaveText('Opérations');
     await expect(accountNav.getByRole('link').nth(2)).toHaveText('Solde');
     await expect(page.getByRole('heading', { name: 'Mouvements', exact: true })).toHaveCount(0);
+    const facetRequests: string[] = [];
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/v1/transactions/facets') {
+        facetRequests.push(request.url());
+      }
+    });
     await accountNav.getByRole('link', { name: 'Opérations' }).click();
     await settled(page);
     await expect(page.getByRole('heading', { name: 'Mouvements', exact: true })).toHaveClass(
@@ -52,11 +58,13 @@ for (const width of [1440, 360]) {
     await expect(filters.locator('summary', { hasText: 'Comptes' })).toHaveCount(0);
     await filters.locator('summary', { hasText: 'Nature' }).click();
     const expense = filters.getByRole('checkbox', { name: 'Dépense', exact: true });
+    await expect(filters.getByRole('checkbox', { name: /, \d+ transactions?$/ })).toHaveCount(0);
     await expense.check();
     await expect(expense).toBeChecked();
     await expense.uncheck();
     if (sheet) await page.keyboard.press('Escape');
     await settled(page);
+    expect(facetRequests, 'account operations never request global filter counts').toEqual([]);
     await page.screenshot({
       path: `${process.env.E2E_OUTPUT_DIR ?? 'test-results'}/operations-${width}.png`,
       fullPage: true,

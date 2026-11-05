@@ -9,10 +9,17 @@ use App\Module\Transactions\Application\CountTransactions;
 use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
+use App\Module\Transactions\Application\ReadTransactionFacets;
 use App\Module\Transactions\Application\TransactionCursorStale;
+use App\Module\Transactions\Application\TransactionFacetScopeTooLarge;
+use App\Module\Transactions\Application\TransactionFilterAccountNotFound;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactoryInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
 
 /**
  * Listing transactions: its own bounded, exact-field query contract, kept
@@ -28,8 +35,14 @@ final readonly class TransactionSearchController
         'direction', 'pageSize', 'cursor',
     ];
 
-    public function __construct(private TransactionHttpEnvelope $envelope, private TransactionFilterShape $shape)
-    {
+    public function __construct(
+        private TransactionHttpEnvelope $envelope,
+        private TransactionFilterShape $shape,
+        // Its own budget: the counts aggregate over the whole ledger on every filter change, and the
+        // search they accompany stays unthrottled.
+        #[Autowire(service: 'limiter.transaction_facets')]
+        private RateLimiterFactoryInterface $facetsLimiter,
+    ) {
     }
 
     #[Route('/api/v1/transactions', name: 'api_v1_transactions_list', methods: ['GET'])]
@@ -61,7 +74,7 @@ final readonly class TransactionSearchController
     #[Route('/api/v1/transactions/count', name: 'api_v1_transactions_count', methods: ['GET'], priority: 10)]
     public function count(Request $request, CountTransactions $countTransactions): Response
     {
-        $query = $this->parse($request, array_values(array_diff(self::LIST_QUERY_FIELDS, ['pageSize', 'cursor'])));
+        $query = $this->parse($request, self::filterFields());
         if ($query instanceof Response) {
             return $query;
         }
@@ -75,6 +88,54 @@ final readonly class TransactionSearchController
         }
 
         return $this->envelope->json(['count' => $count]);
+    }
+
+    /**
+     * The number beside every option of the filter column. It takes the listing's filters,
+     * without paging, and counts each section under all the filters but its own.
+     */
+    #[Route('/api/v1/transactions/facets', name: 'api_v1_transactions_facets', methods: ['GET'], priority: 10)]
+    public function facets(Request $request, #[CurrentUser] UserInterface $user, ReadTransactionFacets $readTransactionFacets): Response
+    {
+        // Consumed before anything is read or validated, and keyed by a digest of the identifier so the
+        // limiter's storage never holds the email itself.
+        $quota = $this->facetsLimiter->create(hash('sha256', $user->getUserIdentifier()))->consume();
+        if (!$quota->isAccepted()) {
+            return $this->envelope->problem(
+                Response::HTTP_TOO_MANY_REQUESTS,
+                'api.problem.transaction_facets_throttled',
+                headers: ['Retry-After' => (string) max(1, $quota->getRetryAfter()->getTimestamp() - time())],
+            );
+        }
+
+        $query = $this->parse($request, self::filterFields());
+        if ($query instanceof Response) {
+            return $query;
+        }
+
+        try {
+            $facets = $readTransactionFacets($query);
+        } catch (InvalidTransactionInput) {
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
+        } catch (TransactionFilterAccountNotFound) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+        } catch (TransactionFacetScopeTooLarge) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_facets_scope_too_large');
+        } catch (WorkspaceAccessDenied) {
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        }
+
+        return $this->envelope->json(TransactionFacetsRepresentation::of($facets));
+    }
+
+    /**
+     * The query fields of the listing that filter, as opposed to paging.
+     *
+     * @return list<string>
+     */
+    private static function filterFields(): array
+    {
+        return array_values(array_diff(self::LIST_QUERY_FIELDS, ['pageSize', 'cursor']));
     }
 
     /** @param list<string> $allowedFields */
