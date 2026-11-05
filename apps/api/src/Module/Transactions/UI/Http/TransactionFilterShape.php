@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Categories\Domain\AnalyticAxis;
+use App\Module\Categories\Domain\CategoryType;
 use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
 use App\Module\Transactions\Domain\TransactionDirection;
@@ -55,6 +56,7 @@ final readonly class TransactionFilterShape
         ?string $direction = null,
         ?string $pageSize = null,
         ?string $cursor = null,
+        ?string $categoryType = null,
     ): ?ListTransactionsQuery {
         if (count($accountIds) > self::MAX_MULTI_VALUE_FILTER || count($categoryIds) > self::MAX_MULTI_VALUE_FILTER
             || count($states) > self::MAX_MULTI_VALUE_FILTER || count($natures) > self::MAX_MULTI_VALUE_FILTER
@@ -74,6 +76,7 @@ final readonly class TransactionFilterShape
             || (null !== $categorization && !in_array($categorization, ['ANY', 'NONE'], true))
             || (null !== $q && mb_strlen($q, 'UTF-8') > ListTransactions::MAX_TEXT_QUERY_LENGTH)
             || (null !== $direction && null === TransactionDirection::tryFrom($direction))
+            || (null !== $categoryType && null === CategoryType::tryFrom($categoryType))
             || (null !== $assetCode && '' === $assetCode)) {
             return null;
         }
@@ -97,6 +100,7 @@ final readonly class TransactionFilterShape
             direction: $direction,
             pageSize: null === $pageSize ? null : (int) $pageSize,
             cursor: $cursor,
+            categoryType: $categoryType,
         );
     }
 

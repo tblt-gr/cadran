@@ -81,6 +81,7 @@ final class ListTransactionsQueryTest extends TestCase
             q: 'cafe',
             includeVoided: true,
             direction: 'OUTFLOW',
+            categoryType: 'EXPENSE',
             pageSize: 20,
             cursor: 'abc',
         );

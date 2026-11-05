@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Transactions\Application;
 
+use App\Module\Categories\Domain\Category;
+use App\Module\Categories\Domain\CategoryType;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\ListTransactionsQuery;
 use App\Module\Transactions\Application\ResolveTransactionFilters;
@@ -122,5 +125,81 @@ final class ResolveTransactionFiltersTest extends TestCase
     public function testNoQueryMeansNoAmountSearch(): void
     {
         self::assertNull(($this->resolve)(WorkspaceFixture::own(), new ListTransactionsQuery())?->qAmount);
+    }
+
+    private const string INCOME_ROOT = '00000000-0000-7000-8000-00000000c001';
+    private const string INCOME_ARCHIVED = '00000000-0000-7000-8000-00000000c002';
+    private const string EXPENSE_FOOD = '00000000-0000-7000-8000-00000000c003';
+    private const string EXPENSE_RENT = '00000000-0000-7000-8000-00000000c004';
+    private const string FOREIGN_EXPENSE = '00000000-0000-7000-8000-00000000c005';
+
+    private function resolverWithTypedCategories(bool $withExpenses = true): ResolveTransactionFilters
+    {
+        $at = new \DateTimeImmutable('2026-01-01T00:00:00+00:00');
+        $make = static fn (string $id, WorkspaceScope $workspace, CategoryType $type, ?\DateTimeImmutable $archivedAt = null): Category => new Category(
+            $id, $workspace, $type, 'Category '.substr($id, -4), null, null, null, [], true, 0, 1, 1, $at, $at, null, $archivedAt,
+        );
+        $categories = new InMemoryCategoryRepository();
+        $categories->add($make(self::INCOME_ROOT, WorkspaceFixture::own(), CategoryType::INCOME));
+        $categories->add($make(self::INCOME_ARCHIVED, WorkspaceFixture::own(), CategoryType::INCOME, $at));
+        if ($withExpenses) {
+            $categories->add($make(self::EXPENSE_FOOD, WorkspaceFixture::own(), CategoryType::EXPENSE));
+            $categories->add($make(self::EXPENSE_RENT, WorkspaceFixture::own(), CategoryType::EXPENSE));
+        }
+        $categories->add($make(self::FOREIGN_EXPENSE, WorkspaceFixture::other(), CategoryType::EXPENSE));
+
+        return new ResolveTransactionFilters($categories);
+    }
+
+    public function testACategoryTypeResolvesToEveryCategoryOfThatTypeArchivedOnesIncluded(): void
+    {
+        $filters = ($this->resolverWithTypedCategories())(WorkspaceFixture::own(), new ListTransactionsQuery(categoryType: 'INCOME'));
+
+        self::assertNotNull($filters);
+        self::assertEqualsCanonicalizing([self::INCOME_ROOT, self::INCOME_ARCHIVED], $filters->categoryIds);
+    }
+
+    public function testACategoryTypeNeverResolvesToACategoryOfAnotherWorkspace(): void
+    {
+        $filters = ($this->resolverWithTypedCategories())(WorkspaceFixture::own(), new ListTransactionsQuery(categoryType: 'EXPENSE'));
+
+        self::assertNotNull($filters);
+        self::assertEqualsCanonicalizing([self::EXPENSE_FOOD, self::EXPENSE_RENT], $filters->categoryIds);
+        self::assertNotContains(self::FOREIGN_EXPENSE, $filters->categoryIds);
+    }
+
+    public function testACategoryTypeIsIntersectedWithAnExplicitCategory(): void
+    {
+        $filters = ($this->resolverWithTypedCategories())(
+            WorkspaceFixture::own(),
+            new ListTransactionsQuery(categoryIds: [self::EXPENSE_FOOD, self::INCOME_ROOT], categoryType: 'EXPENSE'),
+        );
+
+        self::assertSame([self::EXPENSE_FOOD], $filters?->categoryIds);
+    }
+
+    public function testADisjointCategoryAndTypeMatchNothingRatherThanEverything(): void
+    {
+        $resolve = $this->resolverWithTypedCategories();
+
+        self::assertNull($resolve(WorkspaceFixture::own(), new ListTransactionsQuery(categoryIds: [self::INCOME_ROOT], categoryType: 'EXPENSE')));
+        self::assertNull($resolve(WorkspaceFixture::own(), new ListTransactionsQuery(categoryIds: [self::FOREIGN_EXPENSE], categoryType: 'EXPENSE')));
+    }
+
+    public function testATypeWithoutAnyCategoryMatchesNothingRatherThanEverything(): void
+    {
+        self::assertNull(($this->resolverWithTypedCategories(false))(WorkspaceFixture::own(), new ListTransactionsQuery(categoryType: 'EXPENSE')));
+    }
+
+    public function testAnUnknownCategoryTypeIsRefused(): void
+    {
+        $this->expectException(InvalidTransactionInput::class);
+
+        ($this->resolverWithTypedCategories())(WorkspaceFixture::own(), new ListTransactionsQuery(categoryType: 'SAVINGS'));
+    }
+
+    public function testWithoutACategoryTypeNoCategoryFilterIsAdded(): void
+    {
+        self::assertSame([], ($this->resolverWithTypedCategories())(WorkspaceFixture::own(), new ListTransactionsQuery())?->categoryIds);
     }
 }

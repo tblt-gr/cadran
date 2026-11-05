@@ -13,6 +13,7 @@ export function toBulkFilters(query: TransactionCountQuery): BulkTransactionFilt
     accountIds: query.accountId,
     states: query.state,
     natures: query.nature,
+    categoryType: query.categoryType,
     categoryIds: query.categoryId,
     includeDescendants: query.includeDescendants,
     axes: query.axis,

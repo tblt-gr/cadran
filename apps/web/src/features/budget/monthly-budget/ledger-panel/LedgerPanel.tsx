@@ -62,6 +62,7 @@ export function LedgerPanel({
         actionsAllowed={actionsAllowed}
         axis={axis}
         kind={kind}
+        month={month}
         onAddFree={onAddFree}
         onAxisChange={onAxisChange}
         onShowEmptyAccountsChange={changeShowEmptyAccounts}

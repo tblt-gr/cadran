@@ -15,12 +15,13 @@ namespace App\Module\Transactions\Application;
 final readonly class ListTransactionsQuery
 {
     /**
-     * @param list<string> $accountIds  UUIDs, at most 20
-     * @param list<string> $states      TransactionState members
-     * @param list<string> $natures     TransactionNature members
-     * @param list<string> $categoryIds UUIDs, at most 20
-     * @param list<string> $axes        AnalyticAxis members
-     * @param list<string> $sources     TransactionSource members
+     * @param list<string> $accountIds   UUIDs, at most 20
+     * @param list<string> $states       TransactionState members
+     * @param list<string> $natures      TransactionNature members
+     * @param list<string> $categoryIds  UUIDs, at most 20
+     * @param list<string> $axes         AnalyticAxis members
+     * @param list<string> $sources      TransactionSource members
+     * @param ?string      $categoryType CategoryType member: keeps the transactions with a split on a category of that type
      */
     public function __construct(
         public ?string $from = null,
@@ -41,6 +42,7 @@ final readonly class ListTransactionsQuery
         public ?string $direction = null,
         public ?int $pageSize = null,
         public ?string $cursor = null,
+        public ?string $categoryType = null,
     ) {
     }
 

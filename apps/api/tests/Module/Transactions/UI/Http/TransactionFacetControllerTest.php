@@ -218,7 +218,7 @@ final class TransactionFacetControllerTest extends WebTestCase
     {
         $cases = [
             '?pageSize=10', '?cursor=abc', '?unknownField=1', '?accountId=not-a-uuid', '?categoryId=1234', '?state=NOPE',
-            '?nature=NOPE', '?source=NOPE', '?axis=NOPE', '?direction=SIDEWAYS', '?includeVoided=yes', '?includeDescendants=1',
+            '?nature=NOPE', '?source=NOPE', '?axis=NOPE', '?direction=SIDEWAYS', '?categoryType=SAVINGS', '?includeVoided=yes', '?includeDescendants=1',
             '?categorization=SOME', '?from=2026-13-01', '?from=2026-02-01&to=2026-01-01', '?minAmount=-1&assetCode=EUR',
             '?minAmount=10', '?minAmount=ten&assetCode=EUR', '?q='.str_repeat('a', 81), '?assetCode=',
         ];

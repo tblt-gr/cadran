@@ -153,6 +153,31 @@ describe('encodeFilters / decodeFilters', () => {
   });
 });
 
+describe('categoryType', () => {
+  it('round-trips through the query string, between nature and categoryId', () => {
+    const params = encodeFilters(
+      withFilters({ nature: ['INCOME'], categoryType: 'INCOME', categoryId: [CATEGORY] }),
+    );
+
+    expect(params.toString()).toBe(`nature=INCOME&categoryType=INCOME&categoryId=${CATEGORY}`);
+    expect(decodeFilters(params).categoryType).toBe('INCOME');
+  });
+
+  it('drops any value other than INCOME or EXPENSE', () => {
+    expect(decodeFilters(new URLSearchParams('categoryType=SAVINGS')).categoryType).toBe('');
+    expect(decodeFilters(new URLSearchParams('categoryType=EXPENSE')).categoryType).toBe('EXPENSE');
+  });
+
+  it('reaches the API query only when set', () => {
+    const today = new Date(2026, 8, 16);
+
+    expect(toListTransactionsQuery(DEFAULT_FILTERS, today).categoryType).toBeUndefined();
+    expect(
+      toListTransactionsQuery(withFilters({ categoryType: 'EXPENSE' }), today).categoryType,
+    ).toBe('EXPENSE');
+  });
+});
+
 describe('hasPanelFilters', () => {
   it('ignores the search, the queue tab and the single month', () => {
     expect(hasPanelFilters(DEFAULT_FILTERS)).toBe(false);
@@ -161,6 +186,20 @@ describe('hasPanelFilters', () => {
         withFilters({ q: 'loyer', categorization: 'NONE', period: 'month', month: '2026-11' }),
       ),
     ).toBe(false);
+  });
+
+  it('ignores the natures and the category type a budget link brings', () => {
+    expect(
+      hasPanelFilters(
+        withFilters({
+          nature: ['EXPENSE', 'FEE', 'REFUND'],
+          categoryType: 'EXPENSE',
+          period: 'month',
+          month: '2026-10',
+        }),
+      ),
+    ).toBe(false);
+    expect(hasPanelFilters(withFilters({ axis: ['ESSENTIAL'] }))).toBe(true);
   });
 
   it('sees every other filter', () => {

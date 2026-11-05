@@ -4609,6 +4609,7 @@ export type BulkTransactionFilters = {
     categorization?: 'ANY' | 'NONE';
     q?: string;
     direction?: TransactionDirection;
+    categoryType?: CategoryType;
     includeVoided?: boolean;
 };
 
@@ -13537,6 +13538,10 @@ export type ListTransactionsData = {
          * Keeps only money coming in (INFLOW, amount above zero) or going out (OUTFLOW, amount below zero). Absent means both.
          */
         direction?: TransactionDirection;
+        /**
+         * Keeps the transactions with at least one split on a category of that type in the workspace, archived categories included. Combined with categoryId, only the categories of both filters remain. Any other value answers 400.
+         */
+        categoryType?: CategoryType;
         includeVoided?: boolean;
         /**
          * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.
@@ -13993,6 +13998,10 @@ export type CountTransactionsData = {
          * Keeps only money coming in (INFLOW, amount above zero) or going out (OUTFLOW, amount below zero). Absent means both.
          */
         direction?: TransactionDirection;
+        /**
+         * Keeps the transactions with at least one split on a category of that type in the workspace, archived categories included. Combined with categoryId, only the categories of both filters remain. Any other value answers 400.
+         */
+        categoryType?: CategoryType;
         includeVoided?: boolean;
         /**
          * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.
@@ -14092,6 +14101,10 @@ export type ReadTransactionFacetsData = {
          * Keeps only money coming in (INFLOW, amount above zero) or going out (OUTFLOW, amount below zero). Absent means both.
          */
         direction?: TransactionDirection;
+        /**
+         * Keeps the transactions with at least one split on a category of that type in the workspace, archived categories included. Combined with categoryId, only the categories of both filters remain. Any other value answers 400.
+         */
+        categoryType?: CategoryType;
         includeVoided?: boolean;
         /**
          * `NONE` restricts the page to the transactions carrying no split at all, the "to categorise" queue.

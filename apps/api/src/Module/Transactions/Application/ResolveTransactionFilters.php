@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Application;
 
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Categories\Domain\CategoryRepository;
+use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
@@ -24,6 +25,8 @@ use App\Module\Transactions\Domain\TransactionState;
  */
 final readonly class ResolveTransactionFilters
 {
+    private const int MAX_CATEGORIES_OF_TYPE = 10000;
+
     public function __construct(private CategoryRepository $categories)
     {
     }
@@ -49,9 +52,10 @@ final readonly class ResolveTransactionFilters
         $states = self::resolveStates($query);
         $categoryIds = $this->resolveCategoryIds($workspace, $query);
 
-        // The repository reads an empty state list as "every state", so a
-        // request whose states were all excluded is answered by the caller.
-        if ([] === $states) {
+        // The repository reads an empty state list as "every state" and an empty category list as
+        // "no category filter", so a request whose states or categories were all excluded is
+        // answered by the caller.
+        if ([] === $states || (null !== $categoryIds && [] === $categoryIds)) {
             return null;
         }
 
@@ -61,7 +65,7 @@ final readonly class ResolveTransactionFilters
             accountIds: $query->accountIds,
             states: $states,
             natures: array_map(static fn (string $nature): TransactionNature => TransactionNature::from($nature), $query->natures),
-            categoryIds: $categoryIds,
+            categoryIds: $categoryIds ?? [],
             axes: array_map(static fn (string $axis): AnalyticAxis => AnalyticAxis::from($axis), $query->axes),
             minAmount: $minAmount,
             maxAmount: $maxAmount,
@@ -171,12 +175,28 @@ final readonly class ResolveTransactionFilters
         return $states;
     }
 
-    /** @return list<string> */
-    private function resolveCategoryIds(WorkspaceScope $workspace, ListTransactionsQuery $query): array
+    /**
+     * @return list<string>|null null when no category filter applies; an empty list when one applies
+     *                           but leaves no category, i.e. nothing can match
+     */
+    private function resolveCategoryIds(WorkspaceScope $workspace, ListTransactionsQuery $query): ?array
     {
-        if ([] === $query->categoryIds) {
-            return [];
+        $type = null === $query->categoryType ? null : (CategoryType::tryFrom($query->categoryType)
+            ?? throw new InvalidTransactionInput('The category type must be INCOME or EXPENSE.'));
+
+        $explicit = $this->expandCategoryIds($workspace, $query);
+        if (null === $type) {
+            return [] === $explicit ? null : $explicit;
         }
+
+        $ofType = $this->categoryIdsOfType($workspace, $type);
+
+        return [] === $query->categoryIds ? $ofType : array_values(array_intersect($explicit, $ofType));
+    }
+
+    /** @return list<string> */
+    private function expandCategoryIds(WorkspaceScope $workspace, ListTransactionsQuery $query): array
+    {
         $categoryIds = $query->categoryIds;
         if ($query->includeDescendants) {
             foreach ($query->categoryIds as $categoryId) {
@@ -187,5 +207,15 @@ final readonly class ResolveTransactionFilters
         }
 
         return array_values(array_unique($categoryIds));
+    }
+
+    /** @return list<string> every category of the workspace with that type, archived ones included */
+    private function categoryIdsOfType(WorkspaceScope $workspace, CategoryType $type): array
+    {
+        // Safety bound only: a workspace holds far fewer categories, and truncating silently would
+        // widen nothing (the filter would just match fewer transactions), so no error is raised.
+        $categories = $this->categories->list($workspace, true, self::MAX_CATEGORIES_OF_TYPE, 0, $type);
+
+        return array_map(static fn ($category): string => $category->id, $categories);
     }
 }

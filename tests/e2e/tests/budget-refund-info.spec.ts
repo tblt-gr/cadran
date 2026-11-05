@@ -43,7 +43,7 @@ for (const width of [360, 1280]) {
       await page.goto('/budget');
       await settled(page);
       await page
-        .getByRole('region', { name: 'Dépenses' })
+        .getByRole('region', { name: 'Dépenses du mois' })
         .getByRole('button', { name: /^Afficher les mouvements de / })
         .first()
         .click();
