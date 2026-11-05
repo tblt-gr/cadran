@@ -165,7 +165,10 @@ export function decodeFilters(
       ? 'month'
       : period && (PERIODS as readonly string[]).includes(period)
         ? (period as PeriodPreset)
-        : 'all';
+        : // A bare `month`, as the budget links to an account's operations, names that month.
+          period === null && MONTH.test(params.get('month') ?? '')
+          ? 'month'
+          : 'all';
   const requestedMonth = params.get('month') ?? '';
   const month =
     period === 'thisMonth'

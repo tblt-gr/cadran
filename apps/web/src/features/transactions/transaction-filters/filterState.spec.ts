@@ -23,6 +23,14 @@ function withFilters(overrides: Partial<TransactionFilterState>): TransactionFil
 }
 
 describe('encodeFilters / decodeFilters', () => {
+  it('reads a bare month, as a Budget link sends it, as that month', () => {
+    const decoded = decodeFilters(new URLSearchParams('tab=operations&month=2026-08'));
+
+    expect(decoded.period).toBe('month');
+    expect(decoded.month).toBe('2026-08');
+    expect(decodeFilters(new URLSearchParams('month=2026-13')).period).toBe('all');
+  });
+
   it('round-trips the default filter set to an empty query string', () => {
     const params = encodeFilters(DEFAULT_FILTERS);
 

@@ -893,9 +893,7 @@
       "movements": {
         "title": "Mouvements",
         "caption": "Mouvements de ce compte",
-        "counterpart": "Contrepartie",
-        "periodActive": "Période affichée : {{month}}",
-        "clearPeriod": "Voir tout l’historique"
+        "counterpart": "Contrepartie"
       },
       "actions": {
         "addTransaction": "Nouvelle opération",

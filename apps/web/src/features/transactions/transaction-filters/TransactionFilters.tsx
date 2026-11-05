@@ -18,6 +18,8 @@ const COMPACT_QUERY = '(max-width: 63.999rem)';
 const HIDDEN_STORAGE_KEY = 'cadran.transactions.filters-hidden';
 
 interface TransactionFiltersProps {
+  /** The list is bounded to one account (its operations tab): no account section or chip. */
+  accountLocked?: boolean;
   accounts: Account[];
   /** True while the account list is loading: the account section shows skeleton rows. */
   accountsPending?: boolean;
@@ -39,6 +41,7 @@ interface TransactionFiltersProps {
  * whether the filters are shown or not.
  */
 export function TransactionFilters({
+  accountLocked = false,
   accounts,
   accountsPending = false,
   children,
@@ -102,6 +105,7 @@ export function TransactionFilters({
         onChange={onChange}
         onReset={resettable ? onReset : undefined}
         revision={revision}
+        showAccounts={!accountLocked}
         titleId={titleId}
       />
     );

@@ -1,14 +1,11 @@
-import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
-import { AccountOperationFilters } from '@/features/accounts/account-detail/account-operation-filters/AccountOperationFilters';
-import {
-  emptyMovementFilters,
-  monthBounds,
-  type AccountMovementFilters,
-} from '@/features/accounts/account-detail/account-movements/accountMovementFilters';
+import { CategorizationTabs } from '@/features/transactions/categorization-tabs/CategorizationTabs';
+import { MonthStepper } from '@/features/transactions/month-stepper/MonthStepper';
+import { shiftMonth } from '@/features/transactions/transaction-filters/filterState';
+import { TransactionFilters } from '@/features/transactions/transaction-filters/TransactionFilters';
+import { useTransactionFilters } from '@/features/transactions/transaction-filters/useTransactionFilters';
 import { listAccounts, type Account, type CreateTransactionRequest } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { accountRequestError, requestFailed } from '@/features/accounts/accountError';
 import { useBulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
@@ -24,10 +21,8 @@ import { useAccountDetailMutations } from '@/features/accounts/account-detail/us
 /** The creation modal of the ledger the page opens, one at a time. */
 export type LedgerEditor = 'transaction' | 'transfer' | null;
 
-function initialMonthFromLocation(): string | null {
-  const month = new URLSearchParams(window.location.search).get('month');
-  return month && /^\d{4}-\d{2}$/.test(month) ? month : null;
-}
+/** The account page owns its tab; the filters own every other query parameter. */
+const PAGE_PARAMETERS = ['tab'] as const;
 
 /**
  * The bank movements of one account with their creation and edit modals: shared by the account
@@ -52,15 +47,16 @@ export function AccountLedger({
   refreshError?: { message: string; retry: () => void };
   transferDefaults?: TransferFormDefaults;
 }) {
-  const { i18n } = useTranslation();
-  const [month, setMonth] = useState(initialMonthFromLocation);
-  const [filters, setFilters] = useState<AccountMovementFilters>(() => ({
-    ...emptyMovementFilters,
-    ...monthBounds(initialMonthFromLocation()),
-  }));
+  const {
+    filters,
+    reset: resetFilters,
+    revision,
+    setFilters,
+  } = useTransactionFilters(PAGE_PARAMETERS);
   const {
     bulkQuery,
     displayedPage,
+    impossible,
     items,
     loadMore,
     reloadAfterWrite,
@@ -68,7 +64,7 @@ export function AccountLedger({
     staleCursorError,
     transactions,
     unauthorized,
-  } = useAccountMovements(account.id, month, filters);
+  } = useAccountMovements(account.id, filters);
   const [bulkMode, setBulkMode] = useState(false);
   const bulk = useBulkSelection({
     hasMore: !staleCursorError && Boolean(displayedPage?.nextCursor),
@@ -144,51 +140,56 @@ export function AccountLedger({
       ) : null}
 
       {showMovements ? (
-        <AccountOperationFilters
-          actions={
-            <BulkSelectionToolbar
-              active={bulkMode}
-              bulk={transactions.isPending ? null : bulk}
-              inline
-              onToggleActive={() => setBulkMode(!bulkMode)}
-            />
-          }
-          value={filters}
-          onChange={(next) => {
-            setMonth(null);
-            setFilters(next);
-          }}
-        />
-      ) : null}
-      {showMovements ? (
-        <TransactionWorkflow
-          accounts={transferAccounts}
-          transactions={items}
-          reloadAfterWrite={reloadAfterWrite}
+        <TransactionFilters
+          accountLocked
+          accounts={[account]}
+          disabled={transactions.isPending && !impossible}
+          filters={filters}
+          onChange={setFilters}
+          onReset={resetFilters}
+          revision={revision}
         >
-          <AccountMovementsSection
-            showBulkToolbar={false}
-            bulk={bulk}
-            bulkMode={bulkMode}
-            onBulkModeChange={setBulkMode}
-            canCreate={creatable}
-            displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
-            items={items}
-            language={i18n.language}
-            loadingMore={transactions.isFetching && !transactions.isPending}
-            month={month}
-            onClearMonth={() => {
-              setMonth(null);
-              setFilters(emptyMovementFilters);
-            }}
-            onCreate={() => onEditorChange('transaction')}
-            onLoadMore={loadMore}
-            onReloadFromFirstPage={reloadFromFirstPage}
-            staleCursorError={staleCursorError}
-            transactions={transactions}
-            unauthorized={unauthorized}
+          {filters.period === 'month' ? (
+            <MonthStepper
+              disabled={transactions.isPending && !impossible}
+              month={filters.month}
+              onStep={(offset) =>
+                setFilters({ ...filters, month: shiftMonth(filters.month, offset) }, 'push')
+              }
+            />
+          ) : null}
+          <CategorizationTabs
+            disabled={transactions.isPending && !impossible}
+            onChange={(next) =>
+              setFilters({ ...filters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
+            }
+            value={filters.categorization === 'NONE' ? 'NONE' : 'ALL'}
           />
-        </TransactionWorkflow>
+          <TransactionWorkflow
+            accounts={transferAccounts}
+            transactions={items}
+            reloadAfterWrite={reloadAfterWrite}
+          >
+            <AccountMovementsSection
+              bulk={bulk}
+              bulkMode={bulkMode}
+              onBulkModeChange={setBulkMode}
+              canCreate={creatable}
+              displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
+              impossible={impossible}
+              items={items}
+              loadingMore={transactions.isFetching && !transactions.isPending}
+              onCreate={() => onEditorChange('transaction')}
+              onLoadMore={loadMore}
+              onReloadFromFirstPage={reloadFromFirstPage}
+              onResetFilters={resetFilters}
+              queue={filters.categorization === 'NONE'}
+              staleCursorError={staleCursorError}
+              transactions={transactions}
+              unauthorized={unauthorized}
+            />
+          </TransactionWorkflow>
+        </TransactionFilters>
       ) : null}
     </>
   );

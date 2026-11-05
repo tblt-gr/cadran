@@ -63,6 +63,8 @@ interface FilterPanelProps {
   /** Set where the chip row is out of sight (the mobile sheet): the panel offers `Tout effacer`. */
   onReset?: () => void;
   revision: number;
+  /** False where the list belongs to one account already: the account section is left out. */
+  showAccounts?: boolean;
   titleId: string;
 }
 
@@ -80,6 +82,7 @@ export function FilterPanel({
   onChange,
   onReset,
   revision,
+  showAccounts = true,
   titleId,
 }: FilterPanelProps) {
   const { t } = useTranslation();
@@ -143,22 +146,23 @@ export function FilterPanel({
             revision={revision}
           />,
         )}
-        {section(
-          'accounts',
-          <CheckboxList
-            emptyLabel={t('transactions.filters.accountsEmpty')}
-            legend={t('transactions.filters.sections.accounts')}
-            limit={ACCOUNT_LIMIT}
-            onChange={(next) => set('accountId', next)}
-            options={
-              accounts === null
-                ? null
-                : accounts.map((account) => ({ value: account.id, label: account.label }))
-            }
-            value={filters.accountId}
-          />,
-          filters.accountId.length,
-        )}
+        {showAccounts &&
+          section(
+            'accounts',
+            <CheckboxList
+              emptyLabel={t('transactions.filters.accountsEmpty')}
+              legend={t('transactions.filters.sections.accounts')}
+              limit={ACCOUNT_LIMIT}
+              onChange={(next) => set('accountId', next)}
+              options={
+                accounts === null
+                  ? null
+                  : accounts.map((account) => ({ value: account.id, label: account.label }))
+              }
+              value={filters.accountId}
+            />,
+            filters.accountId.length,
+          )}
         {section(
           'categories',
           <CategoryCheckboxTree
