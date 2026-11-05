@@ -4549,6 +4549,48 @@ export type TransactionCount = {
 };
 
 /**
+ * How many transactions sit behind each option of the filter column, one object per section. Every section is always present, `{}` when nothing matches. An option no transaction holds is absent: read a missing key as 0.
+ */
+export type TransactionFacets = {
+    /**
+     * Keyed by account identifier.
+     */
+    accountId: {
+        [key: string]: number;
+    };
+    /**
+     * Keyed by category identifier. Counts the transactions with a split in the category, once each; with `includeDescendants`, anywhere in its subtree.
+     */
+    categoryId: {
+        [key: string]: number;
+    };
+    /**
+     * Keyed by transaction nature.
+     */
+    nature: {
+        [key: string]: number;
+    };
+    /**
+     * Keyed by transaction state; each of the four states is counted.
+     */
+    state: {
+        [key: string]: number;
+    };
+    /**
+     * Keyed by transaction source.
+     */
+    source: {
+        [key: string]: number;
+    };
+    /**
+     * Keyed by analytic axis. Counts the transactions with a split carrying the axis, once each.
+     */
+    axis: {
+        [key: string]: number;
+    };
+};
+
+/**
  * The filters of `listTransactions`, in body form. An absent field does not restrict.
  */
 export type BulkTransactionFilters = {
@@ -13989,6 +14031,117 @@ export type CountTransactionsResponses = {
 };
 
 export type CountTransactionsResponse = CountTransactionsResponses[keyof CountTransactionsResponses];
+
+export type ReadTransactionFacetsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Inclusive booked_on lower bound.
+         */
+        from?: string;
+        /**
+         * Inclusive booked_on upper bound.
+         */
+        to?: string;
+        /**
+         * Repeatable. Any of the accounts. At most 20 values.
+         */
+        accountId?: Array<string>;
+        /**
+         * Repeatable. When present, replaces the default state scope entirely (PENDING and BOOKED, plus VOIDED only when includeVoided is set).
+         */
+        state?: Array<TransactionState>;
+        /**
+         * Repeatable. Any of the natures.
+         */
+        nature?: Array<TransactionNature>;
+        /**
+         * Repeatable. The transaction has a split on any of them. At most 20 values.
+         */
+        categoryId?: Array<string>;
+        /**
+         * Extends categoryId to the category subtrees.
+         */
+        includeDescendants?: boolean;
+        /**
+         * Repeatable. The transaction has a split carrying any of them.
+         */
+        axis?: Array<'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE'>;
+        /**
+         * Absolute lower bound on the amount, in assetCode: the sign of a movement is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative decimal. Requires assetCode.
+         */
+        minAmount?: string;
+        /**
+         * Absolute upper bound on the amount, in assetCode: the sign of a movement is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative decimal. Requires assetCode.
+         */
+        maxAmount?: string;
+        /**
+         * The asset minAmount and maxAmount are expressed in.
+         */
+        assetCode?: string;
+        /**
+         * Repeatable. Any of the sources.
+         */
+        source?: Array<TransactionSource>;
+        /**
+         * Free text matched against the normalized label, the raw label and the counterparty, case-insensitively. A text that reads as an amount (10, -10,50 €) also matches the absolute amount of a transaction, in any asset.
+         */
+        q?: string;
+        /**
+         * Keeps only money coming in (INFLOW, amount above zero) or going out (OUTFLOW, amount below zero). Absent means both.
+         */
+        direction?: TransactionDirection;
+        includeVoided?: boolean;
+        /**
+         * `NONE` restricts the page to the transactions carrying no split at all, the "to categorise" queue.
+         */
+        categorization?: 'ANY' | 'NONE';
+    };
+    url: '/api/v1/transactions/facets';
+};
+
+export type ReadTransactionFacetsErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * `includeDescendants` rolls the counts up through the whole category tree, and the workspace holds more than 500 categories.
+     */
+    422: Problem;
+    /**
+     * More than 120 requests in a minute for this user. This budget is separate from sign-in throttling and from the transaction listing, which is not throttled.
+     */
+    429: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadTransactionFacetsError = ReadTransactionFacetsErrors[keyof ReadTransactionFacetsErrors];
+
+export type ReadTransactionFacetsResponses = {
+    /**
+     * The counts of every section of the filter column.
+     */
+    200: TransactionFacets;
+};
+
+export type ReadTransactionFacetsResponse = ReadTransactionFacetsResponses[keyof ReadTransactionFacetsResponses];
 
 export type BulkCategorizeTransactionsData = {
     body: BulkCategorizeRequest;

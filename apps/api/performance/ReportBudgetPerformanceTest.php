@@ -115,6 +115,8 @@ final class ReportBudgetPerformanceTest extends WebTestCase
 
         $year = (int) $today->format('Y');
         $deepCursor = $this->deepCursor();
+        $facetParent = $this->facetParentCategory();
+        $facetFrom = $today->modify('-5 years')->format('Y-m-d');
         // Each endpoint carries a sanity check, so a fast empty answer cannot pass for a fast report.
         $endpoints = [
             'monthly report' => ['/api/v1/reports/monthly?month='.$representativeMonth, static function (array $body): void {
@@ -149,6 +151,43 @@ final class ReportBudgetPerformanceTest extends WebTestCase
             'transactions deep page' => ['/api/v1/transactions?cursor='.$deepCursor, static function (array $body): void {
                 self::assertCount(50, self::items($body['items']));
             }],
+            // Counts over the whole ledger (the filter column of the transactions screen). Every live row has one
+            // account, one nature, one source and one state, so those four sections each add up to the 100 000
+            // rows: a fast empty answer cannot pass for a fast count.
+            'transaction facets' => ['/api/v1/transactions/facets', static function (array $body): void {
+                foreach (['accountId', 'nature', 'source', 'state'] as $section) {
+                    self::assertSame(self::TRANSACTIONS, array_sum(self::counts($body[$section] ?? null)), $section);
+                }
+                // The four current accounts, the savings accounts that receive transfers and the cash account hold rows;
+                // the two snapshot-valued accounts and the portfolio hold none.
+                self::assertGreaterThanOrEqual(7, count(self::counts($body['accountId'])));
+                self::assertLessThanOrEqual(12, count(self::counts($body['accountId'])));
+                self::assertLessThanOrEqual(60, count(self::counts($body['categoryId'])));
+                self::assertNotSame([], self::counts($body['categoryId']));
+                self::assertArrayHasKey('ESSENTIAL', self::counts($body['axis']));
+            }],
+            'transaction facets (filtered)' => [
+                sprintf('/api/v1/transactions/facets?direction=OUTFLOW&categoryId=%s&includeDescendants=true&from=%s&to=%s', $facetParent, $facetFrom, $today->format('Y-m-d')),
+                static function (array $body) use ($facetParent): void {
+                    $parent = self::counts($body['categoryId'])[$facetParent] ?? 0;
+                    self::assertGreaterThan(0, $parent);
+                    self::assertLessThan(self::TRANSACTIONS, array_sum(self::counts($body['accountId'])));
+                    self::assertGreaterThanOrEqual($parent, array_sum(self::counts($body['accountId'])));
+                    self::assertSame(['EXPENSE'], array_keys(self::counts($body['nature'])));
+                },
+            ],
+            // A common one-letter search keeps a large fraction of the ledger; combining it with
+            // a split-based axis filter exercises the repeated membership checks in the facet scans.
+            'transaction facets (axis and text)' => [
+                '/api/v1/transactions/facets?axis=ESSENTIAL&q=a',
+                static function (array $body): void {
+                    $matches = array_sum(self::counts($body['accountId']));
+                    self::assertGreaterThan(10_000, $matches);
+                    self::assertLessThan(self::TRANSACTIONS, $matches);
+                    self::assertSame($matches, self::counts($body['axis'])['ESSENTIAL'] ?? 0);
+                    self::assertGreaterThanOrEqual($matches, array_sum(self::counts($body['categoryId'])));
+                },
+            ],
         ];
 
         $results = [];
@@ -163,6 +202,9 @@ final class ReportBudgetPerformanceTest extends WebTestCase
         if ('1' === getenv('PERF_ASSERT')) {
             self::assertLessThanOrEqual(self::MONTHLY_REPORT_P95_BUDGET_MS * 1.2, $results['monthly recap']['p95'], 'Monthly recap p95 budget: 360 ms (monthly baseline plus 20 percent).');
             self::assertLessThan(150.0, $results['account list']['p95'], 'Account list p95 budget: 150 ms.');
+            self::assertLessThan(150.0, $results['transaction facets']['p95'], 'Transaction facets p95 budget: 150 ms.');
+            self::assertLessThan(150.0, $results['transaction facets (filtered)']['p95'], 'Filtered transaction facets p95 budget: 150 ms.');
+            self::assertLessThan(150.0, $results['transaction facets (axis and text)']['p95'], 'Axis and text transaction facets p95 budget: 150 ms.');
             self::assertLessThan(800.0, $results['net worth history']['p95'], '60-point net worth history p95 budget: 800 ms.');
             self::assertLessThanOrEqual(
                 self::MONTHLY_REPORT_P95_BUDGET_MS,
@@ -276,6 +318,31 @@ final class ReportBudgetPerformanceTest extends WebTestCase
             'password' => WorkspaceFixture::OWNER_PASSWORD,
         ], \JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(204);
+    }
+
+    /** A parent category with subcategories, the one a facet request rolls the counts up under. */
+    private function facetParentCategory(): string
+    {
+        $id = $this->connection->fetchOne(
+            "SELECT id FROM category_categories WHERE workspace_id = :workspace_id AND type = 'EXPENSE' AND parent_id IS NULL AND label = 'Alimentation'",
+            ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE],
+        );
+        self::assertIsString($id);
+
+        return $id;
+    }
+
+    /** @return array<string, int> */
+    private static function counts(mixed $section): array
+    {
+        self::assertIsArray($section);
+        $counts = [];
+        foreach ($section as $key => $count) {
+            self::assertIsInt($count);
+            $counts[(string) $key] = $count;
+        }
+
+        return $counts;
     }
 
     /** The keyset cursor the API hands out 50 000 live rows into the default listing. */

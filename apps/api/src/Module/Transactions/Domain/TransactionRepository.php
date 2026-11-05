@@ -41,6 +41,26 @@ interface TransactionRepository
     public function countMatching(WorkspaceScope $workspace, TransactionFilters $filters): int;
 
     /**
+     * How many of the transactions each scope's filters match hold each value of its facet: the
+     * account, nature, state or source of the transaction, or the category or analytic axis of
+     * its splits. A transaction counts once per value, even when several of its splits hold that
+     * value; a value no matching transaction holds is absent. Keys are sorted.
+     *
+     * The filters are applied exactly as {@see search()} applies them, the facet's own included:
+     * lifting the filter of the facet being counted is the caller's decision. Scopes whose filters
+     * coincide, but for the four that read a column of the transaction, are free to share
+     * statements, which is why they are asked for together.
+     *
+     * With $subtrees the CATEGORY facet rolls up: a category also counts the transactions that
+     * have a split anywhere below it. Without them it counts direct splits only.
+     *
+     * @param list<TransactionFacetScope> $scopes
+     *
+     * @return array<string, array<string, int>> the counts of each requested facet, by facet value
+     */
+    public function facetCounts(WorkspaceScope $workspace, array $scopes, ?CategorySubtrees $subtrees = null): array;
+
+    /**
      * Like {@see findMany()} but takes a row lock on each existing row, locking
      * in identifier order so concurrent bulk writers cannot deadlock.
      *

@@ -90,13 +90,15 @@ final readonly class TransactionHttpEnvelope
         }
     }
 
-    public function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK): JsonResponse
+    /** @param array<string, string> $headers */
+    public function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK, array $headers = []): JsonResponse
     {
         return ApiProblem::response(
             $status,
             $this->translator->trans($translationKey.'.title'),
             $this->translator->trans($translationKey.'.detail'),
             $type,
+            $headers,
         );
     }
 

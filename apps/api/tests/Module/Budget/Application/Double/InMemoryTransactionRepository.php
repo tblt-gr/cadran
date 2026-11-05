@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Application\BookedMovementFact;
 use App\Module\Transactions\Application\BookedMovementReader;
+use App\Module\Transactions\Domain\CategorySubtrees;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionPosition;
@@ -57,6 +58,11 @@ final class InMemoryTransactionRepository implements TransactionRepository, Book
     public function countMatching(WorkspaceScope $workspace, TransactionFilters $filters): int
     {
         return count($this->search($workspace, $filters, PHP_INT_MAX, null));
+    }
+
+    public function facetCounts(WorkspaceScope $workspace, array $scopes, ?CategorySubtrees $subtrees = null): array
+    {
+        throw new \LogicException('Not needed by the Budget module.');
     }
 
     public function search(WorkspaceScope $workspace, TransactionFilters $filters, int $limit, ?TransactionPosition $after): array

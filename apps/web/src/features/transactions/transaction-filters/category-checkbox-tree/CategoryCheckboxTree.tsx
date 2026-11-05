@@ -4,6 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { useCategoryIdentities } from '@/features/categories/useCategoryIdentities';
+import { FacetCount } from '@/features/transactions/transaction-filters/facet-count/FacetCount';
+import {
+  optionCount,
+  type OptionCounts,
+} from '@/features/transactions/transaction-filters/facet-count/optionCount';
 import { buildTree, type TreeNode } from '@/lib/tree/buildTree';
 import styles from './CategoryCheckboxTree.module.css';
 
@@ -13,6 +18,12 @@ const SKELETON_ROWS = 3;
 
 interface CategoryCheckboxTreeProps {
   categoryIds: readonly string[];
+  /**
+   * Transactions each category would keep, by category id: a missing id reads as 0 and its row is
+   * muted, never disabled. `null` while the first answer is pending; absent where the tree shows
+   * no count. `Sans catégorie` and the sub-category switch never carry one.
+   */
+  counts?: OptionCounts;
   includeDescendants: boolean;
   onCategoryIdsChange: (next: string[]) => void;
   onIncludeDescendantsChange: (value: boolean) => void;
@@ -35,6 +46,7 @@ function bySortOrder(a: Category, b: Category): number {
  */
 export function CategoryCheckboxTree({
   categoryIds,
+  counts,
   includeDescendants,
   onCategoryIdsChange,
   onIncludeDescendantsChange,
@@ -57,9 +69,10 @@ export function CategoryCheckboxTree({
   function renderNodes(nodes: TreeNode<Category>[]) {
     return nodes.map(({ item, children }) => {
       const color = canonicalCategoryColor(item.effectiveColor);
+      const count = optionCount(counts, item.id);
       return (
         <li key={item.id}>
-          <label className={styles.option}>
+          <label className={styles.option} data-empty={count === 0 || undefined}>
             <input
               checked={categoryIds.includes(item.id)}
               onChange={() => toggle(item.id)}
@@ -71,6 +84,7 @@ export function CategoryCheckboxTree({
               style={color === null ? undefined : { background: color }}
             />
             <span className={styles.label}>{item.label}</span>
+            {count === undefined ? null : <FacetCount count={count} />}
           </label>
           {children.length > 0 ? (
             <ul className={`${styles.list} ${styles.children}`}>{renderNodes(children)}</ul>
@@ -89,6 +103,7 @@ export function CategoryCheckboxTree({
             <label className={styles.option}>
               <input disabled type="checkbox" />
               <SkeletonBlock className={styles.skeleton} />
+              {counts === undefined ? null : <FacetCount count={null} />}
             </label>
           </li>
         ))}

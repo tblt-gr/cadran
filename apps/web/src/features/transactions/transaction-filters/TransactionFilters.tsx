@@ -7,10 +7,12 @@ import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { usePersistedToggle } from '@/hooks/use-persisted-toggle';
 import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
+import { FacetedFilterPanel } from './filter-panel/FacetedFilterPanel';
 import { FilterPanel } from './filter-panel/FilterPanel';
 import type { TransactionFilterState } from './filterState';
 import { useFilterChipLabels } from './useFilterChipLabels';
 import { useFilterChips } from './useFilterChips';
+import type { TransactionFacetsRequest } from './useTransactionFacets';
 import styles from './TransactionFilters.module.css';
 
 /** Below this width the column would squeeze the list, so the filters open in a bottom sheet. */
@@ -27,6 +29,11 @@ interface TransactionFiltersProps {
   children?: ReactNode;
   /** Renders every control inert while the list is first loading. */
   disabled?: boolean;
+  /**
+   * Counts the options of the panel under the list's filters, asked for only while the panel is
+   * on screen. Absent where the panel shows no count (the account page).
+   */
+  facetsRequest?: TransactionFacetsRequest;
   filters: TransactionFilterState;
   onChange: (next: TransactionFilterState) => void;
   onReset: () => void;
@@ -46,6 +53,7 @@ export function TransactionFilters({
   accountsPending = false,
   children,
   disabled = false,
+  facetsRequest,
   filters,
   onChange,
   onReset,
@@ -92,21 +100,32 @@ export function TransactionFilters({
   });
   const activeCount = chips.filter((chip) => chip.key !== 'q').length;
   const asideOpen = !compact && !hidden;
+  // A count costs a server aggregation, so it is asked for only while someone can read it: the
+  // open column, or the open sheet, which is mounted only while open.
+  const panelShown = compact ? sheetOpen : !hidden;
 
   function panel(actions?: ReactNode, resettable = false) {
-    return (
-      <FilterPanel
-        accounts={accountsPending ? null : accounts}
-        actions={actions}
-        activeCount={activeCount}
-        assetCodes={assetCodes}
-        disabled={disabled}
-        filters={filters}
-        onChange={onChange}
-        onReset={resettable ? onReset : undefined}
-        revision={revision}
-        showAccounts={!accountLocked}
-        titleId={titleId}
+    const props = {
+      accounts: accountsPending ? null : accounts,
+      actions,
+      activeCount,
+      assetCodes,
+      disabled,
+      filters,
+      onChange,
+      onReset: resettable ? onReset : undefined,
+      revision,
+      showAccounts: !accountLocked,
+      titleId,
+    };
+
+    return facetsRequest === undefined ? (
+      <FilterPanel {...props} />
+    ) : (
+      <FacetedFilterPanel
+        {...props}
+        facetsEnabled={facetsRequest.enabled && panelShown}
+        facetsQuery={facetsRequest.query}
       />
     );
   }

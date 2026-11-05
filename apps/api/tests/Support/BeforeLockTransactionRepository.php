@@ -51,6 +51,11 @@ final class BeforeLockTransactionRepository implements TransactionRepository
         return $this->inner->countMatching($workspace, $filters);
     }
 
+    public function facetCounts(\App\Module\Foundation\Domain\WorkspaceScope $workspace, array $scopes, ?\App\Module\Transactions\Domain\CategorySubtrees $subtrees = null): array
+    {
+        return $this->inner->facetCounts($workspace, $scopes, $subtrees);
+    }
+
     public function search(
         \App\Module\Foundation\Domain\WorkspaceScope $workspace,
         \App\Module\Transactions\Domain\TransactionFilters $filters,

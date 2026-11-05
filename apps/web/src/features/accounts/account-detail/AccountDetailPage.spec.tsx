@@ -36,6 +36,7 @@ const api = vi.hoisted(() => ({
   listAccounts: vi.fn(),
   listAccountRuleOverrides: vi.fn(),
   listTransactions: vi.fn(),
+  readTransactionFacets: vi.fn(),
   readAccount: vi.fn(),
   readAccountValuationHistory: vi.fn(),
   readAccountRules: vi.fn(),
@@ -281,6 +282,8 @@ describe('AccountDetailPage', () => {
     );
     expect(screen.queryByLabelText('Instrument')).toBeNull();
     expect(new URLSearchParams(window.location.search).get('tab')).toBe('operations');
+    // The column is open, so a count would be asked for: the account page passes no facets request.
+    expect(api.readTransactionFacets).not.toHaveBeenCalled();
   });
 
   it('shows the step balance history for a current account', async () => {

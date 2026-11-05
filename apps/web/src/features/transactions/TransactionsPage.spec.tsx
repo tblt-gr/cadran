@@ -1,8 +1,9 @@
-import type { Account, Category, Transaction } from '@cadran/api-client';
+import type { Account, Category, Transaction, TransactionFacets } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries';
 import { TransactionsPage } from './TransactionsPage';
 
 const api = vi.hoisted(() => ({
@@ -18,6 +19,7 @@ const api = vi.hoisted(() => ({
   listCategories: vi.fn(),
   listTransactions: vi.fn(),
   readPeriodStatus: vi.fn(),
+  readTransactionFacets: vi.fn(),
   updateTransaction: vi.fn(),
   voidTransaction: vi.fn(),
 }));
@@ -42,6 +44,10 @@ beforeEach(() => {
     data: { period: '2026-08', closed: false, ended: true, closure: null, blockers: [] },
     response: { ok: true, status: 200 },
   });
+  // Counts stay out of the way unless a test asks for them: an unreadable answer hides them.
+  api.readTransactionFacets.mockImplementation(() =>
+    Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+  );
 });
 
 const account = {
@@ -1902,5 +1908,253 @@ describe('primary account creation defaults', () => {
 
     await waitFor(() => expect(screen.getByText('Aucune sélection')).toBeTruthy());
     window.history.replaceState({}, '', '/transactions');
+  });
+});
+
+describe('TransactionsPage option counts', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+    window.localStorage.clear();
+    window.history.replaceState({}, '', '/transactions');
+  });
+
+  const facets: TransactionFacets = {
+    accountId: { [account.id]: 184 },
+    categoryId: {},
+    nature: { EXPENSE: 150, INCOME: 34 },
+    state: { BOOKED: 184, PENDING: 3 },
+    source: { MANUAL: 12, IMPORT: 172 },
+    axis: {},
+  };
+
+  function loadPage() {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+  }
+
+  function section(title: string) {
+    return [...document.querySelectorAll('summary')]
+      .find((summary) => summary.textContent?.startsWith(title))!
+      .closest('details')!;
+  }
+
+  function openSection(title: string) {
+    fireEvent.click(section(title).querySelector('summary')!);
+  }
+
+  it('asks for the counts under the filters of the list, without its paging, and reads them in the options', async () => {
+    window.history.replaceState({}, '', '/transactions?direction=OUTFLOW');
+    loadPage();
+    api.readTransactionFacets.mockImplementation(() => success(facets));
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+    openSection('État');
+
+    expect(
+      await screen.findByRole('checkbox', { name: 'Comptabilisée, 184 transactions' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'En attente, 3 transactions' })).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Annulée, 0 transaction' })).toBeTruthy();
+    const listQuery = api.listTransactions.mock.calls[0]?.[0].query;
+    const facetsQuery = api.readTransactionFacets.mock.calls[0]?.[0].query;
+    expect(facetsQuery).toEqual({ direction: 'OUTFLOW' });
+    expect(listQuery).toEqual({ ...facetsQuery, cursor: undefined, pageSize: 50 });
+  });
+
+  it('counts again once an option is checked, the shown counts staying until the new ones arrive', async () => {
+    loadPage();
+    let resolveSecond: (value: unknown) => void = () => {};
+    api.readTransactionFacets
+      .mockImplementationOnce(() => success(facets))
+      .mockImplementationOnce(() => new Promise((done) => (resolveSecond = done)));
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+    openSection('État');
+    fireEvent.click(
+      await screen.findByRole('checkbox', { name: 'Comptabilisée, 184 transactions' }),
+    );
+
+    // The counts follow the debounced filters, a quarter of a second after the list.
+    await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledTimes(2), {
+      timeout: 3000,
+    });
+    expect(api.readTransactionFacets.mock.calls[1]?.[0].query).toEqual({ state: ['BOOKED'] });
+    expect(api.listTransactions).toHaveBeenLastCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ state: ['BOOKED'] }) }),
+    );
+    // Siblings are still counted while the new answer loads, with no skeleton flash.
+    expect(screen.getByRole('checkbox', { name: 'En attente, 3 transactions' })).toBeTruthy();
+    expect(section('État').querySelectorAll('[data-skeleton]')).toHaveLength(0);
+
+    resolveSecond(await success({ ...facets, state: { BOOKED: 184, PENDING: 0 } }));
+    expect(await screen.findByRole('checkbox', { name: 'En attente, 0 transaction' })).toBeTruthy();
+  });
+
+  it('keeps the filters and the list working, with no count at all, when the counts fail', async () => {
+    loadPage();
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+    openSection('État');
+    await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledOnce());
+
+    const booked = await screen.findByRole('checkbox', { name: 'Comptabilisée' });
+    expect(section('État').querySelectorAll('[data-skeleton]')).toHaveLength(0);
+    expect(section('État').textContent).not.toMatch(/\d/);
+    fireEvent.click(booked);
+
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ state: ['BOOKED'] }) }),
+      ),
+    );
+    expect(screen.getByText(transaction.rawLabel)).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Comptabilisée' })).toHaveProperty('checked', true);
+  });
+
+  it('shows a skeleton count on every option while the first answer is pending, the options staying usable', async () => {
+    loadPage();
+    api.readTransactionFacets.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+    openSection('État');
+
+    expect(section('État').querySelectorAll('[data-skeleton]')).toHaveLength(4);
+    const booked = screen.getByRole('checkbox', { name: 'Comptabilisée' });
+    expect(booked).toHaveProperty('disabled', false);
+    fireEvent.click(booked);
+
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ state: ['BOOKED'] }) }),
+      ),
+    );
+  });
+
+  it('draws skeleton counts in the frozen preview a page reload shows, and requests nothing', () => {
+    render(
+      <FrozenQueries>
+        <TransactionsPage />
+      </FrozenQueries>,
+    );
+    openSection('État');
+
+    expect(section('État').querySelectorAll('[data-skeleton]')).toHaveLength(4);
+    expect(screen.getByRole('checkbox', { name: 'Comptabilisée' })).toBeTruthy();
+    expect(api.readTransactionFacets).not.toHaveBeenCalled();
+  });
+
+  /** Long enough for the debounce of a changed request to have fired, were one to be sent. */
+  function waitPastDebounce() {
+    return new Promise((done) => setTimeout(done, 400));
+  }
+
+  it('asks for no count while the filter column is hidden, whatever the page does, and asks once it is shown', async () => {
+    window.localStorage.setItem('cadran.transactions.filters-hidden', '1');
+    window.history.replaceState({}, '', '/transactions?period=month&month=2026-11');
+    loadPage();
+    api.readTransactionFacets.mockImplementation(() => success(facets));
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+
+    // A page load and a month step used to cost a count nobody could see.
+    fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({ query: expect.objectContaining({ from: '2026-10-01' }) }),
+      ),
+    );
+    await waitPastDebounce();
+    expect(api.readTransactionFacets).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    openSection('État');
+    expect(
+      await screen.findByRole('checkbox', { name: 'Comptabilisée, 184 transactions' }),
+    ).toBeTruthy();
+    expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+    expect(api.readTransactionFacets.mock.calls[0]?.[0].query).toEqual({
+      from: '2026-10-01',
+      to: '2026-10-31',
+    });
+  });
+
+  it('asks for no count on a narrow screen until the filter sheet opens', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }));
+    loadPage();
+    api.readTransactionFacets.mockImplementation(() => success(facets));
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+    await waitPastDebounce();
+    expect(api.readTransactionFacets).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    const sheet = screen.getByRole('dialog', { name: 'Filtres' });
+    openSection('État');
+
+    expect(
+      await within(sheet).findByRole('checkbox', { name: 'Comptabilisée, 184 transactions' }),
+    ).toBeTruthy();
+    expect(api.readTransactionFacets).toHaveBeenCalledOnce();
+  });
+
+  it('asks for no count while the filters cannot match anything', async () => {
+    window.history.replaceState({}, '', '/transactions?categorization=NONE&axis=FIXED');
+    loadPage();
+    api.readTransactionFacets.mockImplementation(() => success(facets));
+    renderPage();
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Cette combinaison de filtres ne peut rien trouver',
+      }),
+    ).toBeTruthy();
+    openSection('État');
+
+    expect(api.readTransactionFacets).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', { name: 'Comptabilisée' })).toBeTruthy();
+    expect(section('État').querySelectorAll('[data-skeleton]')).toHaveLength(0);
+  });
+
+  it('counts again after a write, as the list loads again', async () => {
+    loadPage();
+    api.readTransactionFacets.mockImplementation(() => success(facets));
+    api.updateTransaction.mockImplementation(() =>
+      success({
+        ...transaction,
+        rawLabel: 'CARREFOUR MARKET',
+        displayLabel: 'CARREFOUR MARKET',
+        version: 2,
+      }),
+    );
+    renderPage();
+    await screen.findByText('CB CARREFOUR 1234');
+    await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledOnce());
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: /^Modifier/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Modifier la transaction' });
+    fireEvent.change(within(dialog).getByRole('textbox', { name: 'Libellé' }), {
+      target: { value: 'CARREFOUR MARKET' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    await waitFor(() => expect(api.readTransactionFacets).toHaveBeenCalledTimes(2));
+    expect(api.readTransactionFacets.mock.calls[1]?.[0].query).toEqual({});
   });
 });
