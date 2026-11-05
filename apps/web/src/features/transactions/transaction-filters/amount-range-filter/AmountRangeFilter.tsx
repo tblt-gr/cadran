@@ -4,6 +4,7 @@ import {
   isValidAmountBound,
   normalizeAmountInput,
 } from '@/features/transactions/transaction-filters/filterState';
+import { AmountSlider } from './AmountSlider';
 import styles from './AmountRangeFilter.module.css';
 
 interface AmountRange {
@@ -73,9 +74,10 @@ function AmountBoundField({ committed, label, onCommit, revision }: AmountBoundF
 }
 
 /**
- * Unsigned amount range filter: bounds are compared with the absolute value of the amount. Its
- * bounds only apply once an asset code names their unit; with a single asset among the
- * accounts that unit is implicit, so the selector is hidden and the code follows the bounds.
+ * Unsigned amount range filter: bounds are compared with the absolute value of the amount. A
+ * slider over fixed thresholds sets them roughly, the two fields set them exactly. Its bounds
+ * only apply once an asset code names their unit; with a single asset among the accounts that
+ * unit is implicit, so the selector is hidden and the code follows the bounds.
  */
 export function AmountRangeFilter({
   assetCode,
@@ -103,20 +105,28 @@ export function AmountRangeFilter({
 
   return (
     <fieldset className={styles.range}>
-      <legend>{t('transactions.filters.amountLabel')}</legend>
+      <legend className="sr-only">{t('transactions.filters.amountLabel')}</legend>
+      <AmountSlider
+        assetCode={implicitAsset ?? (assetCode || null)}
+        maxAmount={maxAmount}
+        minAmount={minAmount}
+        onChange={commit}
+      />
+      <div className={styles.bounds}>
+        <AmountBoundField
+          committed={minAmount}
+          label={t('transactions.filters.minAmount')}
+          onCommit={(value) => commit({ maxAmount, minAmount: value })}
+          revision={revision}
+        />
+        <AmountBoundField
+          committed={maxAmount}
+          label={t('transactions.filters.maxAmount')}
+          onCommit={(value) => commit({ maxAmount: value, minAmount })}
+          revision={revision}
+        />
+      </div>
       <p className={styles.hint}>{t('transactions.filters.amountHint')}</p>
-      <AmountBoundField
-        committed={minAmount}
-        label={t('transactions.filters.minAmount')}
-        onCommit={(value) => commit({ maxAmount, minAmount: value })}
-        revision={revision}
-      />
-      <AmountBoundField
-        committed={maxAmount}
-        label={t('transactions.filters.maxAmount')}
-        onCommit={(value) => commit({ maxAmount: value, minAmount })}
-        revision={revision}
-      />
       {implicitAsset === null ? (
         <div className={styles.bound}>
           <label className={styles.bound}>

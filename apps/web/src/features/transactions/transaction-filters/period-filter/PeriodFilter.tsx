@@ -5,7 +5,7 @@ import {
 } from '@/features/transactions/transaction-filters/filterState';
 import styles from './PeriodFilter.module.css';
 
-const PRESETS: Exclude<PeriodPreset, 'all'>[] = ['month', 'thisYear', 'custom'];
+const PRESETS: PeriodPreset[] = ['all', 'month', 'thisYear', 'custom'];
 
 interface PeriodValue {
   from: string;
@@ -29,7 +29,7 @@ export function PeriodFilter({ from, month, onChange, period, to }: PeriodFilter
 
   return (
     <fieldset className={styles.field}>
-      <legend>{t('transactions.filters.periodLabel')}</legend>
+      <legend className="sr-only">{t('transactions.filters.periodLabel')}</legend>
       <div className={styles.periodChoices}>
         {PRESETS.map((preset) => (
           <label className={styles.radio} key={preset}>

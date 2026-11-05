@@ -457,11 +457,11 @@ test.describe('responsive audit of movement edit modals', () => {
 });
 
 /**
- * The inline transaction filter bar at 360 px with its panel open: the search keeps the full
- * width, the panel stacks its filters on one column and no row overflows horizontally. The
- * chips and the clear-all button share one height.
+ * The transaction filters at 360 px: no column squeezes the list, the search keeps the full
+ * width, the chips and the clear-all button share one height, and the filters open in a bottom
+ * sheet that stays inside the viewport.
  */
-test('transaction filter bar at 360 px with the panel open', async ({ browser }) => {
+test('transaction filters at 360 px open in a bottom sheet', async ({ browser }) => {
   const context = await browser.newContext({
     baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
     ignoreHTTPSErrors: true,
@@ -477,20 +477,15 @@ test('transaction filter bar at 360 px with the panel open', async ({ browser })
     await page.goto('/transactions?direction=OUTFLOW&state=BOOKED');
     await settled(page);
 
+    await expect(page.getByRole('complementary', { name: 'Filtres' })).toHaveCount(0);
     const toggle = page.getByRole('button', { name: /^Filtres/ });
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
-    const search = page.getByRole('searchbox');
-    const searchBox = (await search.locator('xpath=ancestor::label').boundingBox())!;
-    const panel = page.locator(`[id="${await toggle.getAttribute('aria-controls')}"]`);
-    const panelBox = (await panel.boundingBox())!;
-    expect(searchBox.width, 'the search spans the content width').toBeGreaterThanOrEqual(
-      panelBox.width - 1,
-    );
-
-    const columns = await panel.evaluate(
-      (element) => getComputedStyle(element).gridTemplateColumns.split(' ').length,
-    );
-    expect(columns, 'the panel stacks on one column').toBe(1);
+    await expect(toggle).toHaveAttribute('aria-haspopup', 'dialog');
+    const row = (await toggle.locator('xpath=..').boundingBox())!;
+    const search = (await page
+      .getByRole('searchbox')
+      .locator('xpath=ancestor::label')
+      .boundingBox())!;
+    expect(search.width, 'the search takes the row but the toggle').toBeGreaterThan(row.width / 2);
 
     const heights = await page
       .getByRole('group', { name: 'Filtres actifs' })
@@ -501,11 +496,55 @@ test('transaction filter bar at 360 px with the panel open', async ({ browser })
     expect(heights.length).toBeGreaterThan(1);
     expect(new Set(heights).size, 'chips and clear-all share one height').toBe(1);
 
+    await toggle.click();
+    const sheet = page.getByRole('dialog', { name: 'Filtres' });
+    await expect(sheet).toBeVisible();
+    const sheetBox = (await sheet.boundingBox())!;
+    expect(sheetBox.x).toBeGreaterThanOrEqual(0);
+    expect(sheetBox.x + sheetBox.width).toBeLessThanOrEqual(360);
+
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
     expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
     expect(await auditLayout(page, true)).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});
+
+/**
+ * On a wide screen the filters sit in a column beside the list, which the round toggle hides
+ * and shows again.
+ */
+test('transaction filters at 1440 px sit in a column beside the list', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+    ignoreHTTPSErrors: true,
+    storageState: ownerStorageState,
+    viewport: { width: 1440, height: 900 },
+    locale: 'fr-FR',
+    timezoneId: 'Europe/Paris',
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto('/transactions?direction=OUTFLOW');
+    await settled(page);
+
+    const column = page.getByRole('complementary', { name: 'Filtres' });
+    const search = page.getByRole('searchbox');
+    const columnBox = (await column.boundingBox())!;
+    const searchBox = (await search.boundingBox())!;
+    expect(columnBox.x + columnBox.width, 'the column sits left of the list').toBeLessThanOrEqual(
+      searchBox.x,
+    );
+
+    const toggle = page.getByRole('button', { name: /^Filtres/ });
+    await toggle.click();
+    await expect(column).toBeHidden();
+    await toggle.click();
+    await expect(column).toBeVisible();
+    expect(await auditLayout(page, false)).toEqual([]);
   } finally {
     await context.close();
   }

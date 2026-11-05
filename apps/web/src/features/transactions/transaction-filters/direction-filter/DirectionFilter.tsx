@@ -11,13 +11,10 @@ interface DirectionFilterProps {
 /** Keeps only money coming in, only money going out, or both (the default). */
 export function DirectionFilter({ onChange, value }: DirectionFilterProps) {
   const { t } = useTranslation();
-  const label = t('transactions.filters.directionLabel');
-
   return (
     <div className={styles.field}>
-      <span className={styles.label}>{label}</span>
       <SegmentedControl<'' | TransactionDirection>
-        label={label}
+        label={t('transactions.filters.directionLabel')}
         onChange={onChange}
         options={[
           { label: t('transactions.filters.direction.all'), value: '' },

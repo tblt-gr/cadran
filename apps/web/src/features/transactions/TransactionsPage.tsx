@@ -35,6 +35,7 @@ export function TransactionsPage() {
   const listing = useTransactionsListing();
   const {
     accountOptions,
+    accountsPending,
     activeAccountOptions,
     bulkQuery,
     categorization,
@@ -127,15 +128,6 @@ export function TransactionsPage() {
           </button>
         </HeaderActions>
 
-        <TransactionFilters
-          accounts={accountOptions}
-          disabled={initialLoading}
-          filters={searchFilters}
-          onChange={updateFilters}
-          onReset={resetAllFilters}
-          revision={filtersRevision}
-        />
-
         <HeaderActions>
           <ActionMenu
             items={[
@@ -196,70 +188,80 @@ export function TransactionsPage() {
           </p>
         ) : null}
 
-        {searchFilters.period === 'month' ? (
-          <MonthStepper
-            disabled={initialLoading}
-            month={searchFilters.month}
-            onStep={(offset) =>
-              updateFilters(
-                { ...searchFilters, month: shiftMonth(searchFilters.month, offset) },
-                'push',
-              )
-            }
-          />
-        ) : null}
-
-        <CategorizationTabs
+        <TransactionFilters
+          accounts={accountOptions}
+          accountsPending={accountsPending}
           disabled={initialLoading}
-          onChange={(next) =>
-            updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
-          }
-          value={categorization}
-        />
+          filters={searchFilters}
+          onChange={updateFilters}
+          onReset={resetAllFilters}
+          revision={filtersRevision}
+        >
+          {searchFilters.period === 'month' ? (
+            <MonthStepper
+              disabled={initialLoading}
+              month={searchFilters.month}
+              onStep={(offset) =>
+                updateFilters(
+                  { ...searchFilters, month: shiftMonth(searchFilters.month, offset) },
+                  'push',
+                )
+              }
+            />
+          ) : null}
 
-        {impossible ? (
-          <TransactionsState
-            kind="impossible"
-            onCreate={() => openEditor('create')}
-            onResetFilters={resetAllFilters}
-            onRetry={() => void transactions.refetch()}
+          <CategorizationTabs
+            disabled={initialLoading}
+            onChange={(next) =>
+              updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
+            }
+            value={categorization}
           />
-        ) : initialLoading ? (
-          <TransactionsPageSkeleton />
-        ) : transactions.isError && !staleCursorError ? (
-          <TransactionsState
-            kind={unauthorized ? 'unauthorized' : 'error'}
-            onCreate={() => openEditor('create')}
-            onRetry={() => void transactions.refetch()}
-          />
-        ) : items.length === 0 ? (
-          <TransactionsState
-            kind={categorization === 'NONE' ? 'queueEmpty' : 'empty'}
-            onCreate={() => openEditor('create')}
-            onRetry={() => void transactions.refetch()}
-          />
-        ) : (
-          <>
-            <BulkSelectionToolbar
-              active={bulkMode}
-              bulk={bulk}
-              onToggleActive={() => setBulkMode((active) => !active)}
+
+          {impossible ? (
+            <TransactionsState
+              kind="impossible"
+              onCreate={() => openEditor('create')}
+              onResetFilters={resetAllFilters}
+              onRetry={() => void transactions.refetch()}
             />
-            <TransactionDayList
-              accounts={accountOptions}
-              label={t('transactions.list.caption')}
-              selection={bulkMode ? bulk.rowSelection : undefined}
-              transactions={items}
+          ) : initialLoading ? (
+            <TransactionsPageSkeleton />
+          ) : transactions.isError && !staleCursorError ? (
+            <TransactionsState
+              kind={unauthorized ? 'unauthorized' : 'error'}
+              onCreate={() => openEditor('create')}
+              onRetry={() => void transactions.refetch()}
             />
-            <TransactionListFooter
-              hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
-              loadingMore={transactions.isFetching && !transactions.isPending}
-              onLoadMore={loadMore}
-              onReloadFromFirstPage={reloadFromFirstPage}
-              stale={staleCursorError}
+          ) : items.length === 0 ? (
+            <TransactionsState
+              kind={categorization === 'NONE' ? 'queueEmpty' : 'empty'}
+              onCreate={() => openEditor('create')}
+              onRetry={() => void transactions.refetch()}
             />
-          </>
-        )}
+          ) : (
+            <>
+              <BulkSelectionToolbar
+                active={bulkMode}
+                bulk={bulk}
+                onToggleActive={() => setBulkMode((active) => !active)}
+              />
+              <TransactionDayList
+                accounts={accountOptions}
+                label={t('transactions.list.caption')}
+                selection={bulkMode ? bulk.rowSelection : undefined}
+                transactions={items}
+              />
+              <TransactionListFooter
+                hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
+                loadingMore={transactions.isFetching && !transactions.isPending}
+                onLoadMore={loadMore}
+                onReloadFromFirstPage={reloadFromFirstPage}
+                stale={staleCursorError}
+              />
+            </>
+          )}
+        </TransactionFilters>
       </div>
     </TransactionWorkflow>
   );

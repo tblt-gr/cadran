@@ -1,63 +1,47 @@
-import type {
-  Account,
-  TransactionNature,
-  TransactionSource,
-  TransactionState,
-} from '@cadran/api-client';
-import { useEffect, useId, useState } from 'react';
+import type { Account } from '@cadran/api-client';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { ModalSheet } from '@/components/ui/modal-sheet/ModalSheet';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { usePersistedToggle } from '@/hooks/use-persisted-toggle';
 import { ActiveFilterChips } from './active-filter-chips/ActiveFilterChips';
-import { AccountMultiSelect } from './account-multi-select/AccountMultiSelect';
-import { AmountRangeFilter } from './amount-range-filter/AmountRangeFilter';
-import { CategoryFilterField } from './category-filter-field/CategoryFilterField';
-import { FilterMultiSelect } from './filter-multi-select/FilterMultiSelect';
-import { DirectionFilter } from './direction-filter/DirectionFilter';
-import { hasPanelFilters, type TransactionAxis, type TransactionFilterState } from './filterState';
-import { PeriodFilter } from './period-filter/PeriodFilter';
+import { FilterPanel } from './filter-panel/FilterPanel';
+import type { TransactionFilterState } from './filterState';
 import { useFilterChipLabels } from './useFilterChipLabels';
 import { useFilterChips } from './useFilterChips';
 import styles from './TransactionFilters.module.css';
 
-const STATES: TransactionState[] = ['PENDING', 'BOOKED', 'VOIDED', 'REJECTED'];
-const NATURES: TransactionNature[] = [
-  'INCOME',
-  'EXPENSE',
-  'TRANSFER',
-  'REFUND',
-  'FEE',
-  'ADJUSTMENT',
-];
-const AXES: TransactionAxis[] = [
-  'DISCRETIONARY',
-  'ESSENTIAL',
-  'FIXED',
-  'PERSONAL',
-  'PROFESSIONAL',
-  'VARIABLE',
-];
-const SOURCES: TransactionSource[] = ['MANUAL', 'IMPORT', 'PROVIDER'];
+/** Below this width the column would squeeze the list, so the filters open in a bottom sheet. */
+const COMPACT_QUERY = '(max-width: 63.999rem)';
+const HIDDEN_STORAGE_KEY = 'cadran.transactions.filters-hidden';
 
 interface TransactionFiltersProps {
   accounts: Account[];
-  /** Renders the search and the toggle inert while the list is first loading. */
+  /** True while the account list is loading: the account section shows skeleton rows. */
+  accountsPending?: boolean;
+  /** The list column: stepper, tabs and the transactions themselves. */
+  children?: ReactNode;
+  /** Renders every control inert while the list is first loading. */
   disabled?: boolean;
   filters: TransactionFilterState;
   onChange: (next: TransactionFilterState) => void;
   onReset: () => void;
-  /** Changes when the filters are replaced from outside the bar, discarding typed drafts. */
+  /** Changes when the filters are replaced from outside the panel, discarding typed drafts. */
   revision: number;
 }
 
 /**
- * The inline transaction filter bar: an always-visible search (label, counterparty or amount),
- * a `Filtres` toggle unfolding the panel in the page, and one removable chip per applied
- * filter that stays visible whether the panel is open or not. The panel starts open only when
- * the URL already holds a filter it edits.
+ * Lays the transaction page out around its filters: a filter column beside the list on wide
+ * screens (hidden or shown from a round button, remembered on the device), a bottom sheet on
+ * narrow ones. The search and the removable chips of every applied filter stay above the list
+ * whether the filters are shown or not.
  */
 export function TransactionFilters({
   accounts,
+  accountsPending = false,
+  children,
   disabled = false,
   filters,
   onChange,
@@ -65,13 +49,14 @@ export function TransactionFilters({
   revision,
 }: TransactionFiltersProps) {
   const { i18n, t } = useTranslation();
-  const panelId = useId();
-  const [expanded, setExpanded] = useState(() => hasPanelFilters(filters));
+  const asideId = useId();
+  const titleId = useId();
+  const toggle = useRef<HTMLButtonElement>(null);
+  const compact = useMediaQuery(COMPACT_QUERY);
+  const [hidden, setHidden] = usePersistedToggle(HIDDEN_STORAGE_KEY);
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [rawQuery, setRawQuery] = useState(filters.q);
   const debouncedQuery = useDebouncedValue(rawQuery, 300);
-  // The picker returns a full category on selection, so a category picked in this session is
-  // named at once; one restored from the URL is resolved by the workspace-wide lookup.
-  const [categoryLabels, setCategoryLabels] = useState<Record<string, string>>({});
 
   // Keeps the field in sync when the URL changes from outside (reset, back navigation). The
   // revision matters when the committed query stays the same: a reset during the debounce
@@ -90,13 +75,7 @@ export function TransactionFilters({
   }, [debouncedQuery]);
 
   const assetCodes = [...new Set(accounts.map((account) => account.assetCode))];
-  const queue = filters.categorization === 'NONE';
-
-  function set<K extends keyof TransactionFilterState>(key: K, value: TransactionFilterState[K]) {
-    onChange({ ...filters, [key]: value });
-  }
-
-  const labels = useFilterChipLabels({ accounts, categoryLabels, filters });
+  const labels = useFilterChipLabels({ accounts, filters });
   const chips = useFilterChips({
     ...labels,
     filters,
@@ -104,123 +83,123 @@ export function TransactionFilters({
     onChange,
     onClearQuery: () => {
       setRawQuery('');
-      set('q', '');
+      onChange({ ...filters, q: '' });
     },
     t,
   });
   const activeCount = chips.filter((chip) => chip.key !== 'q').length;
+  const asideOpen = !compact && !hidden;
+
+  function panel(actions?: ReactNode, resettable = false) {
+    return (
+      <FilterPanel
+        accounts={accountsPending ? null : accounts}
+        actions={actions}
+        activeCount={activeCount}
+        assetCodes={assetCodes}
+        disabled={disabled}
+        filters={filters}
+        onChange={onChange}
+        onReset={resettable ? onReset : undefined}
+        revision={revision}
+        titleId={titleId}
+      />
+    );
+  }
 
   return (
-    <section aria-label={t('transactions.filters.sectionLabel')} className={styles.bar}>
-      <div className={styles.row}>
-        <label className={styles.search}>
-          <Icon name="search" size={16} />
-          <span className="sr-only">{t('transactions.filters.search')}</span>
-          <input
-            disabled={disabled}
-            maxLength={80}
-            onChange={(event) => setRawQuery(event.target.value)}
-            placeholder={t('transactions.filters.search')}
-            type="search"
-            value={rawQuery}
-          />
-        </label>
-        <button
-          aria-controls={panelId}
-          aria-expanded={expanded}
-          className={`secondary-action ${styles.toggle}`}
-          data-active={activeCount > 0}
-          disabled={disabled}
-          onClick={() => setExpanded((open) => !open)}
-          type="button"
+    <div className={styles.layout} data-aside={asideOpen ? 'open' : 'closed'}>
+      {compact ? null : (
+        <aside aria-labelledby={titleId} className={styles.aside} hidden={hidden} id={asideId}>
+          {panel()}
+        </aside>
+      )}
+
+      <div className={styles.main}>
+        <section aria-label={t('transactions.filters.sectionLabel')} className={styles.bar}>
+          <div className={styles.row}>
+            <label className={styles.search}>
+              <Icon name="search" size={16} />
+              <span className="sr-only">{t('transactions.filters.search')}</span>
+              <input
+                disabled={disabled}
+                maxLength={80}
+                onChange={(event) => setRawQuery(event.target.value)}
+                placeholder={t('transactions.filters.search')}
+                type="search"
+                value={rawQuery}
+              />
+            </label>
+            <button
+              aria-controls={compact ? undefined : asideId}
+              aria-expanded={compact ? sheetOpen : asideOpen}
+              aria-haspopup={compact ? 'dialog' : undefined}
+              aria-label={
+                activeCount > 0
+                  ? t('transactions.filters.toggleWithCount', { count: activeCount })
+                  : t('transactions.filters.toggle')
+              }
+              className={`icon-button ${styles.toggle}`}
+              data-active={activeCount > 0}
+              disabled={disabled}
+              onClick={() => (compact ? setSheetOpen(true) : setHidden(!hidden))}
+              ref={toggle}
+              title={
+                compact
+                  ? t('transactions.filters.open')
+                  : hidden
+                    ? t('transactions.filters.show')
+                    : t('transactions.filters.hide')
+              }
+              type="button"
+            >
+              <Icon name="filter" size={18} />
+              {activeCount > 0 ? (
+                <span aria-hidden="true" className={styles.badge}>
+                  {activeCount}
+                </span>
+              ) : null}
+            </button>
+          </div>
+
+          <ActiveFilterChips chips={chips} onReset={onReset} />
+        </section>
+
+        {children}
+      </div>
+
+      {compact && sheetOpen ? (
+        <ModalSheet
+          ariaLabel={t('transactions.filters.panelTitle')}
+          close={() => setSheetOpen(false)}
         >
-          {activeCount > 0
-            ? t('transactions.filters.toggleWithCount', { count: activeCount })
-            : t('transactions.filters.toggle')}
-        </button>
-      </div>
-
-      <div className={styles.panel} hidden={!expanded} id={panelId}>
-        <PeriodFilter
-          from={filters.from}
-          month={filters.month}
-          onChange={(next) => onChange({ ...filters, ...next })}
-          period={filters.period}
-          to={filters.to}
-        />
-        <AccountMultiSelect
-          accounts={accounts}
-          label={t('transactions.filters.accountLabel')}
-          onChange={(next) => set('accountId', next)}
-          value={filters.accountId}
-        />
-
-        <DirectionFilter onChange={(next) => set('direction', next)} value={filters.direction} />
-        <AmountRangeFilter
-          assetCode={filters.assetCode}
-          assetCodes={assetCodes}
-          maxAmount={filters.maxAmount}
-          minAmount={filters.minAmount}
-          onChange={(range) => onChange({ ...filters, ...range })}
-          revision={revision}
-        />
-
-        <CategoryFilterField
-          categoryIds={filters.categoryId}
-          includeDescendants={filters.includeDescendants}
-          onAddCategory={(categoryId, category) => {
-            set('categoryId', [...filters.categoryId, categoryId]);
-            if (category) {
-              setCategoryLabels((current) => ({ ...current, [categoryId]: category.label }));
-            }
-          }}
-          onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
-        />
-
-        <FilterMultiSelect
-          labelFor={(value) => t(`transactions.natures.${value}`)}
-          label={t('transactions.filters.natureLabel')}
-          emptyLabel={t('transactions.filters.empty.natures')}
-          onChange={(next) => set('nature', next)}
-          options={NATURES}
-          value={filters.nature}
-        />
-        <FilterMultiSelect
-          labelFor={(value) => t(`transactions.states.${value}`)}
-          label={t('transactions.filters.stateLabel')}
-          emptyLabel={t('transactions.filters.empty.states')}
-          onChange={(next) => set('state', next)}
-          options={STATES}
-          value={filters.state}
-        />
-        <FilterMultiSelect
-          labelFor={(value) => t(`transactions.sources.${value}`)}
-          label={t('transactions.filters.sourceLabel')}
-          emptyLabel={t('transactions.filters.empty.sources')}
-          onChange={(next) => set('source', next)}
-          options={SOURCES}
-          value={filters.source}
-        />
-        <FilterMultiSelect
-          labelFor={(value) => t(`categories.axes.${value}`)}
-          label={t('transactions.filters.axisLabel')}
-          emptyLabel={t('transactions.filters.empty.axes')}
-          onChange={(next) => set('axis', next)}
-          options={AXES}
-          value={filters.axis}
-        />
-        <label className={styles.checkbox}>
-          <input
-            checked={filters.includeVoided && !queue}
-            disabled={queue}
-            onChange={(event) => set('includeVoided', event.target.checked)}
-            type="checkbox"
-          />
-          <span>{t('transactions.includeVoided')}</span>
-        </label>
-      </div>
-
-      <ActiveFilterChips chips={chips} onReset={onReset} />
-    </section>
+          {panel(
+            <button
+              aria-label={t('transactions.filters.close')}
+              className="icon-button"
+              onClick={() => {
+                setSheetOpen(false);
+                toggle.current?.focus();
+              }}
+              title={t('transactions.filters.close')}
+              type="button"
+            >
+              <Icon name="close" size={18} />
+            </button>,
+            true,
+          )}
+          <button
+            className={`primary-action ${styles.showResults}`}
+            onClick={() => {
+              setSheetOpen(false);
+              toggle.current?.focus();
+            }}
+            type="button"
+          >
+            {t('transactions.filters.showResults')}
+          </button>
+        </ModalSheet>
+      ) : null}
+    </div>
   );
 }

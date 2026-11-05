@@ -67,6 +67,10 @@
   --mobile-navigation-height: 3.25rem;
   --mobile-content-bottom-offset: 4.75rem;
   --toast-width: 22rem;
+  --filters-aside-width: 17rem;
+  --slider-thumb-size: 1rem;
+  --color-mark-size: 0.5rem;
+  --badge-size: 1.125rem;
   --chart-plot-height: 13.75rem;
   --chart-plot-height-donut: 18rem;
   --skeleton-background-size: 200% 100%;
@@ -131,6 +135,7 @@
   --border-line-transparent: var(--border-width-thin) solid var(--color-transparent);
   --border-line-negative: var(--border-width-thin) solid var(--negative);
   --border-line-warning: var(--border-width-thin) solid var(--warning);
+  --border-line-thumb: var(--border-width-focus) solid var(--text-primary);
   --outline-focus: var(--border-width-focus) solid var(--focus);
   --outline-offset-focus: var(--border-width-thin);
   --outline-offset-inset: calc(var(--border-width-focus) * -1);

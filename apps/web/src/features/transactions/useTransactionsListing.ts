@@ -145,6 +145,7 @@ export function useTransactionsListing() {
 
   return {
     accountOptions,
+    accountsPending: accounts.isPending,
     bulkQuery,
     activeAccountOptions,
     categorization,

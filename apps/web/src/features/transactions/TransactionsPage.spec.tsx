@@ -121,6 +121,7 @@ describe('TransactionsPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it('closes the shared transfer modal once a transfer into a portfolio is saved, with no client-side deposit', async () => {
@@ -219,7 +220,7 @@ describe('TransactionsPage', () => {
     expect(screen.getByRole('button', { name: 'Filtres' })).toHaveProperty('disabled', false);
   });
 
-  it('shows no filter icon in the header and unfolds the filters inline, not in a modal', async () => {
+  it('shows no filter icon in the header and lays the filters out in a column, not a modal', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -232,12 +233,14 @@ describe('TransactionsPage', () => {
     expect(screen.getByRole('button', { name: 'Nouvelle transaction' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Nouveau virement' })).toBeTruthy();
     expect(document.querySelector('[title="Filtres"]')).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Filtres' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Filtres' }).getAttribute('aria-expanded')).toBe(
       'true',
     );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Filtres' })).toBeNull();
   });
 
   it('steps through months, one history entry per step, and requests the month bounds', async () => {
@@ -1403,10 +1406,9 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('Ancien compte')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.focus(screen.getByRole('combobox', { name: 'Filtrer par compte' }));
-    expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
+    // Text first: a role query over the whole page is too slow to poll under a loaded run.
+    expect((await screen.findAllByText('Ancien compte')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('checkbox', { name: 'Ancien compte' })).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
     );
@@ -1610,9 +1612,10 @@ describe('TransactionsPage', () => {
     renderPage();
 
     await screen.findByRole('heading', { name: 'Aucune transaction' });
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^Filtrer par état/ }));
-    fireEvent.click(screen.getByRole('option', { name: 'Comptabilisée' }));
+    fireEvent.click(
+      [...document.querySelectorAll('summary')].find((summary) => summary.textContent === 'État')!,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
     await waitFor(() =>
       expect(new URLSearchParams(window.location.search).getAll('state')).toEqual(['BOOKED']),
@@ -1773,6 +1776,7 @@ describe('primary account creation defaults', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.clear();
     window.history.replaceState({}, '', '/transactions');
   });
 
@@ -1882,9 +1886,10 @@ describe('primary account creation defaults', () => {
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.click(screen.getByRole('button', { name: /^Filtrer par état/ }));
-    fireEvent.click(screen.getByRole('option', { name: 'Comptabilisée' }));
+    fireEvent.click(
+      [...document.querySelectorAll('summary')].find((summary) => summary.textContent === 'État')!,
+    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
     await waitFor(() => expect(screen.getByText('Aucune sélection')).toBeTruthy());
     window.history.replaceState({}, '', '/transactions');
