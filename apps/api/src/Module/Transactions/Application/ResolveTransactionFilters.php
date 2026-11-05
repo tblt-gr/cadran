@@ -11,6 +11,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Transactions\Domain\TransactionDirection;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionSource;
@@ -68,6 +69,9 @@ final readonly class ResolveTransactionFilters
             sources: array_map(static fn (string $source): TransactionSource => TransactionSource::from($source), $query->sources),
             categorizationNone: $query->categorizationNone,
             q: $query->q,
+            direction: null === $query->direction ? null : (TransactionDirection::tryFrom($query->direction)
+                ?? throw new InvalidTransactionInput('The direction must be INFLOW or OUTFLOW.')),
+            qAmount: self::parseAmountQuery($query->q),
         );
     }
 
@@ -82,6 +86,34 @@ final readonly class ResolveTransactionFilters
         }
 
         return $date;
+    }
+
+    /**
+     * Reads a free-text query as an unsigned amount (`10`, `-10,50 €`), or null
+     * when it is anything else, in which case it stays a plain text search.
+     */
+    private static function parseAmountQuery(?string $q): ?DecimalValue
+    {
+        if (null === $q) {
+            return null;
+        }
+        $literal = str_replace([' ', "\u{00A0}"], '', trim($q));
+        if (str_ends_with($literal, '€')) {
+            $literal = substr($literal, 0, -strlen('€'));
+        }
+        if (str_starts_with($literal, '+') || str_starts_with($literal, '-')) {
+            $literal = substr($literal, 1);
+        }
+        if (substr_count($literal, ',') <= 1) {
+            $literal = str_replace(',', '.', $literal);
+        }
+        if (1 !== preg_match('/^\d{1,26}(\.\d{1,24})?$/D', $literal)) {
+            return null;
+        }
+        // The canonical form has no leading zero beyond a lone one.
+        $literal = preg_replace('/^0+(?=\d)/', '', $literal) ?? $literal;
+
+        return DecimalValue::fromString($literal);
     }
 
     /** @return array{0: ?DecimalValue, 1: ?DecimalValue, 2: ?AssetCode} */
@@ -99,6 +131,13 @@ final readonly class ResolveTransactionFilters
             $maxAmount = null === $query->maxAmount ? null : DecimalValue::fromString($query->maxAmount);
         } catch (MalformedDecimal|PrecisionExceeded|\InvalidArgumentException $exception) {
             throw new InvalidTransactionInput('An amount bound must be a canonical decimal with a valid asset code.', previous: $exception);
+        }
+        // Bounds compare the absolute value of a movement, so a sign has no meaning here.
+        if ($minAmount?->isNegative() || $maxAmount?->isNegative()) {
+            throw new InvalidTransactionInput('An amount bound must not be negative.');
+        }
+        if (null !== $minAmount && null !== $maxAmount && $minAmount->compareTo($maxAmount) > 0) {
+            throw new InvalidTransactionInput('The amount lower bound must not be above its upper bound.');
         }
 
         return [$minAmount, $maxAmount, $assetCode];

@@ -1,8 +1,12 @@
-import { monthBounds, type AccountMovementFilters } from './accountMovementFilters';
 import { listTransactions, type TransactionPage } from '@cadran/api-client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
+import {
+  isImpossibleCombination,
+  toListTransactionsQuery,
+  type TransactionFilterState,
+} from '@/features/transactions/transaction-filters/filterState';
 import {
   TransactionRequestError,
   transactionRequestError,
@@ -10,33 +14,28 @@ import {
 
 const PAGE_SIZE = 50;
 
-/** Cursor-paged operations: period, type and state filters never replace the account boundary. */
-export function useAccountMovements(
-  accountId: string,
-  initialMonth: string | null,
-  selection?: AccountMovementFilters,
-) {
+/**
+ * Cursor-paged operations of one account under the shared transaction filter set. The account
+ * is always the only one queried: no filter can widen the list beyond it.
+ */
+export function useAccountMovements(accountId: string, selection: TransactionFilterState) {
   const queryClient = useQueryClient();
   const [cursor, setCursor] = useState<string | null>(null);
-  const scope = JSON.stringify([accountId, initialMonth, selection]);
+  const scope = JSON.stringify([accountId, selection]);
   const [previousScope, setPreviousScope] = useState(scope);
   const scopeChanged = previousScope !== scope;
   if (scopeChanged) {
     setPreviousScope(scope);
     setCursor(null);
   }
-  const bounds = selection ?? monthBounds(initialMonth);
-  const from = bounds.from || undefined;
-  const to = bounds.to || undefined;
-  const includeVoided = selection?.includeVoided || undefined;
-  const nature = selection?.nature.length ? selection.nature : undefined;
+  const impossible = isImpossibleCombination(selection);
+  const bulkQuery = {
+    ...toListTransactionsQuery({ ...selection, accountId: [] }, new Date()),
+    accountId: [accountId],
+  };
 
   const filters = {
-    accountId: [accountId],
-    from,
-    to,
-    includeVoided,
-    nature,
+    ...bulkQuery,
     cursor: scopeChanged ? undefined : (cursor ?? undefined),
     pageSize: PAGE_SIZE,
   };
@@ -54,13 +53,13 @@ export function useAccountMovements(
       }
       return result.data;
     },
+    enabled: !impossible,
+    // Keeps the rows of the same filters while a later page loads; a new filter set starts
+    // from its own skeleton rather than showing rows it does not match.
     placeholderData: (previousData, previousQuery) => {
       const previousFilters = previousQuery?.queryKey[2] as typeof filters | undefined;
-      return previousFilters?.accountId[0] === accountId &&
-        previousFilters.from === from &&
-        previousFilters.to === to &&
-        previousFilters.includeVoided === includeVoided &&
-        JSON.stringify(previousFilters.nature) === JSON.stringify(nature)
+      return JSON.stringify({ ...previousFilters, cursor: undefined }) ===
+        JSON.stringify({ ...filters, cursor: undefined })
         ? previousData
         : undefined;
     },
@@ -117,8 +116,9 @@ export function useAccountMovements(
   }
 
   return {
-    bulkQuery: { accountId: [accountId], from, to, includeVoided, nature },
+    bulkQuery,
     displayedPage,
+    impossible,
     items,
     loadMore,
     reloadAfterWrite,

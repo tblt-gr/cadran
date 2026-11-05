@@ -1,0 +1,79 @@
+.slider {
+  position: relative;
+  height: var(--control-height);
+}
+
+.track {
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  height: var(--border-width-focus);
+  transform: translateY(-50%);
+  border-radius: var(--radius-full);
+  background: var(--border-strong);
+}
+
+.fill {
+  position: absolute;
+  inset-block: 0;
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+}
+
+/* Both inputs span the whole track; only their thumbs take pointer events, so either thumb
+   can be grabbed even where the two inputs overlap. */
+.thumb {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  background: var(--color-transparent);
+  appearance: none;
+  pointer-events: none;
+}
+
+.thumb:focus {
+  outline: none;
+}
+
+.thumb::-webkit-slider-runnable-track {
+  background: var(--color-transparent);
+}
+
+.thumb::-moz-range-track {
+  background: var(--color-transparent);
+}
+
+.thumb::-webkit-slider-thumb {
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
+  border: var(--border-line-thumb);
+  border-radius: var(--radius-full);
+  background: var(--bg-page);
+  appearance: none;
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.thumb::-moz-range-thumb {
+  width: var(--slider-thumb-size);
+  height: var(--slider-thumb-size);
+  border: var(--border-line-thumb);
+  border-radius: var(--radius-full);
+  background: var(--bg-page);
+  cursor: grab;
+  pointer-events: auto;
+}
+
+.thumb:focus-visible::-webkit-slider-thumb {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+
+.thumb:focus-visible::-moz-range-thumb {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}

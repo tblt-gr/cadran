@@ -6634,13 +6634,19 @@ paths:
         - name: minAmount
           in: query
           required: false
-          description: Signed lower bound on the amount, in assetCode. Requires assetCode.
+          description: >-
+            Absolute lower bound on the amount, in assetCode: the sign of a movement is
+            ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+            decimal. Requires assetCode.
           schema:
             type: string
         - name: maxAmount
           in: query
           required: false
-          description: Signed upper bound on the amount, in assetCode. Requires assetCode.
+          description: >-
+            Absolute upper bound on the amount, in assetCode: the sign of a movement is
+            ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+            decimal. Requires assetCode.
           schema:
             type: string
         - name: assetCode
@@ -6662,10 +6668,20 @@ paths:
           required: false
           description: >-
             Free text matched against the normalized label, the raw label and
-            the counterparty, case-insensitively.
+            the counterparty, case-insensitively. A text that reads as an
+            amount (10, -10,50 €) also matches the absolute amount of
+            a transaction, in any asset.
           schema:
             type: string
             maxLength: 80
+        - name: direction
+          in: query
+          required: false
+          description: >-
+            Keeps only money coming in (INFLOW, amount above zero) or going out
+            (OUTFLOW, amount below zero). Absent means both.
+          schema:
+            $ref: '#/components/schemas/TransactionDirection'
         - name: includeVoided
           in: query
           required: false
@@ -7175,13 +7191,19 @@ paths:
         - name: minAmount
           in: query
           required: false
-          description: Signed lower bound on the amount, in assetCode. Requires assetCode.
+          description: >-
+            Absolute lower bound on the amount, in assetCode: the sign of a movement is
+            ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+            decimal. Requires assetCode.
           schema:
             type: string
         - name: maxAmount
           in: query
           required: false
-          description: Signed upper bound on the amount, in assetCode. Requires assetCode.
+          description: >-
+            Absolute upper bound on the amount, in assetCode: the sign of a movement is
+            ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+            decimal. Requires assetCode.
           schema:
             type: string
         - name: assetCode
@@ -7203,10 +7225,20 @@ paths:
           required: false
           description: >-
             Free text matched against the normalized label, the raw label and
-            the counterparty, case-insensitively.
+            the counterparty, case-insensitively. A text that reads as an
+            amount (10, -10,50 €) also matches the absolute amount of
+            a transaction, in any asset.
           schema:
             type: string
             maxLength: 80
+        - name: direction
+          in: query
+          required: false
+          description: >-
+            Keeps only money coming in (INFLOW, amount above zero) or going out
+            (OUTFLOW, amount below zero). Absent means both.
+          schema:
+            $ref: '#/components/schemas/TransactionDirection'
         - name: includeVoided
           in: query
           required: false
@@ -18529,6 +18561,12 @@ components:
         - IMPORT
         - PROVIDER
         - RECURRENCE
+    TransactionDirection:
+      description: INFLOW is money coming in (amount above zero), OUTFLOW money going out (amount below zero).
+      type: string
+      enum:
+        - INFLOW
+        - OUTFLOW
     PaymentMethod:
       type: string
       enum:
@@ -19023,6 +19061,8 @@ components:
         q:
           type: string
           maxLength: 80
+        direction:
+          $ref: '#/components/schemas/TransactionDirection'
         includeVoided:
           type: boolean
     BulkIdsScope:

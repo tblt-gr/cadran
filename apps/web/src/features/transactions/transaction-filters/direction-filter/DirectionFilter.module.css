@@ -1,0 +1,12 @@
+.field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-width: 0;
+  gap: var(--spacing-1-5);
+}
+
+.field > div {
+  width: 100%;
+  flex-wrap: nowrap;
+}

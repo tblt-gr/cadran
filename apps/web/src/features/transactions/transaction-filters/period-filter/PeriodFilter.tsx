@@ -1,34 +1,48 @@
 import { useTranslation } from 'react-i18next';
-import type { PeriodPreset } from '@/features/transactions/transaction-filters/filterState';
+import {
+  currentMonth,
+  type PeriodPreset,
+} from '@/features/transactions/transaction-filters/filterState';
 import styles from './PeriodFilter.module.css';
 
-const PRESETS: Exclude<PeriodPreset, 'all'>[] = ['thisMonth', 'lastMonth', 'thisYear', 'custom'];
+const PRESETS: PeriodPreset[] = ['all', 'month', 'thisYear', 'custom'];
 
-interface PeriodFilterProps {
+interface PeriodValue {
   from: string;
-  onChange: (period: PeriodPreset, from: string, to: string) => void;
+  month: string;
   period: PeriodPreset;
   to: string;
 }
 
+interface PeriodFilterProps extends PeriodValue {
+  onChange: (next: PeriodValue) => void;
+}
+
 /**
- * The period fieldset of the filter bar: a preset radio group, plus the two date fields a
- * custom range needs. `onChange` always carries the full triple, so a preset switch away from
- * `custom` and a date edit inside it go through the same call.
+ * The period fieldset of the filter panel: a preset radio group, plus the month picker or the
+ * two date fields a preset needs. `onChange` always carries the full value, so a preset switch
+ * and an edit inside it go through the same call.
  */
-export function PeriodFilter({ from, onChange, period, to }: PeriodFilterProps) {
+export function PeriodFilter({ from, month, onChange, period, to }: PeriodFilterProps) {
   const { t } = useTranslation();
+  const value: PeriodValue = { from, month, period, to };
 
   return (
     <fieldset className={styles.field}>
-      <legend>{t('transactions.filters.periodLabel')}</legend>
+      <legend className="sr-only">{t('transactions.filters.periodLabel')}</legend>
       <div className={styles.periodChoices}>
         {PRESETS.map((preset) => (
           <label className={styles.radio} key={preset}>
             <input
               checked={period === preset}
               name="period"
-              onChange={() => onChange(preset, from, to)}
+              onChange={() =>
+                onChange({
+                  ...value,
+                  month: preset === 'month' ? month || currentMonth(new Date()) : month,
+                  period: preset,
+                })
+              }
               type="radio"
               value={preset}
             />
@@ -36,22 +50,37 @@ export function PeriodFilter({ from, onChange, period, to }: PeriodFilterProps) 
           </label>
         ))}
       </div>
+      {period === 'month' ? (
+        <label className={styles.customField}>
+          <span className="sr-only">{t('transactions.filters.monthLabel')}</span>
+          <input
+            className={styles.control}
+            onChange={(event) => {
+              if (event.target.value) {
+                onChange({ ...value, month: event.target.value });
+              }
+            }}
+            type="month"
+            value={month}
+          />
+        </label>
+      ) : null}
       {period === 'custom' ? (
         <div className={styles.customPeriod}>
-          <label>
+          <label className={styles.customField}>
             <span>{t('transactions.filters.from')}</span>
             <input
               className={styles.control}
-              onChange={(event) => onChange(period, event.target.value, to)}
+              onChange={(event) => onChange({ ...value, from: event.target.value })}
               type="date"
               value={from}
             />
           </label>
-          <label>
+          <label className={styles.customField}>
             <span>{t('transactions.filters.to')}</span>
             <input
               className={styles.control}
-              onChange={(event) => onChange(period, from, event.target.value)}
+              onChange={(event) => onChange({ ...value, to: event.target.value })}
               type="date"
               value={to}
             />

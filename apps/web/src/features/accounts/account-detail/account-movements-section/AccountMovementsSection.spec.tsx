@@ -12,10 +12,7 @@ describe('AccountMovementsSection loading', () => {
         canCreate
         displayedPageHasMore={false}
         items={[]}
-        language="fr"
         loadingMore={false}
-        month={null}
-        onClearMonth={vi.fn()}
         onCreate={vi.fn()}
         onLoadMore={vi.fn()}
         onReloadFromFirstPage={vi.fn()}
@@ -50,11 +47,8 @@ function renderSection(state: { isPending: boolean }, onBulkModeChange?: () => v
       canCreate
       displayedPageHasMore={false}
       items={[]}
-      language="fr"
       loadingMore={false}
-      month={null}
       onBulkModeChange={onBulkModeChange}
-      onClearMonth={vi.fn()}
       onCreate={vi.fn()}
       onLoadMore={vi.fn()}
       onReloadFromFirstPage={vi.fn()}
@@ -64,3 +58,29 @@ function renderSection(state: { isPending: boolean }, onBulkModeChange?: () => v
     />,
   );
 }
+
+describe('AccountMovementsSection states', () => {
+  it('names contradictory filters and offers to reset them, without a list', () => {
+    const onResetFilters = vi.fn();
+    render(
+      <AccountMovementsSection
+        canCreate
+        displayedPageHasMore={false}
+        impossible
+        items={[]}
+        loadingMore={false}
+        onCreate={vi.fn()}
+        onLoadMore={vi.fn()}
+        onReloadFromFirstPage={vi.fn()}
+        onResetFilters={onResetFilters}
+        staleCursorError={false}
+        transactions={{ isPending: true, isError: false, refetch: vi.fn() }}
+        unauthorized={false}
+      />,
+    );
+
+    expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
+    screen.getByRole('button', { name: 'Réinitialiser les filtres' }).click();
+    expect(onResetFilters).toHaveBeenCalled();
+  });
+});

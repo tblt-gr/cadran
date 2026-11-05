@@ -121,6 +121,7 @@ describe('TransactionsPage', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.clear();
   });
 
   it('closes the shared transfer modal once a transfer into a portfolio is saved, with no client-side deposit', async () => {
@@ -196,6 +197,89 @@ describe('TransactionsPage', () => {
     await waitFor(() => expect(api.listTransactions).toHaveBeenCalledTimes(2));
     expect(screen.getByText(transaction.rawLabel)).toBeTruthy();
     expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
+  });
+
+  it('keeps the search and the filter column as disabled real controls while loading', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+
+    expect(screen.getByRole('searchbox')).toHaveProperty('disabled', true);
+    expect(screen.getByRole('button', { name: 'Filtres' })).toHaveProperty('disabled', true);
+    expect(screen.getByRole('checkbox', { name: 'Sans catégorie' }).matches(':disabled')).toBe(
+      true,
+    );
+    expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
+  });
+
+  it('keeps the filter bar usable when the list fails to load', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+    );
+    renderPage();
+
+    await screen.findByRole('heading', { name: /indisponible/ });
+    expect(screen.getByRole('searchbox')).toHaveProperty('disabled', false);
+    expect(screen.getByRole('button', { name: 'Filtres' })).toHaveProperty('disabled', false);
+  });
+
+  it('shows no filter icon in the header and lays the filters out in a column, not a modal', async () => {
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+
+    expect(screen.getByRole('button', { name: 'Nouvelle transaction' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(document.querySelector('[title="Filtres"]')).toBeNull();
+    expect(screen.getByRole('complementary', { name: 'Filtres' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Filtres' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(screen.queryByRole('complementary', { name: 'Filtres' })).toBeNull();
+  });
+
+  it('steps through months, one history entry per step, and requests the month bounds', async () => {
+    window.history.replaceState({}, '', '/transactions?period=month&month=2026-11');
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+    await screen.findByText(transaction.rawLabel);
+    const before = window.history.length;
+
+    expect(screen.getAllByText('Novembre 2026').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
+
+    await waitFor(() =>
+      expect(api.listTransactions).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          query: expect.objectContaining({ from: '2026-10-01', to: '2026-10-31' }),
+        }),
+      ),
+    );
+    expect(window.location.search).toBe('?period=month&month=2026-10');
+    expect(window.history.length).toBe(before + 1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mois suivant' }));
+    await waitFor(() => expect(window.location.search).toBe('?period=month&month=2026-11'));
+    expect(window.history.length).toBe(before + 2);
+    window.history.replaceState({}, '', '/transactions');
   });
 
   it('lists only the category and recurrence entries in the header overflow menu', async () => {
@@ -859,7 +943,7 @@ describe('TransactionsPage', () => {
     ).toBeTruthy();
   });
 
-  it('switches to the to-categorise queue, requests it and shows its own empty state', async () => {
+  it('filters on uncategorized transactions, requests the queue and shows its own empty state', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -870,10 +954,8 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByText(/CB CARREFOUR/, { selector: 'button' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', { name: /À catégoriser/ }),
-    );
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sans catégorie' }));
+    expect(screen.getByRole('button', { name: 'Retirer le filtre Sans catégorie' })).toBeTruthy();
 
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenCalledWith(
@@ -1333,15 +1415,9 @@ describe('TransactionsPage', () => {
     );
     renderPage();
 
-    expect(await screen.findByText('Ancien compte')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
-    fireEvent.focus(screen.getByRole('combobox', { name: 'Filtrer par compte' }));
-    expect(screen.getByRole('option', { name: 'Ancien compte' })).toBeTruthy();
-    fireEvent.click(
-      within(screen.getByRole('dialog', { name: 'Filtres' })).getByRole('button', {
-        name: 'Fermer',
-      }),
-    );
+    // Text first: a role query over the whole page is too slow to poll under a loaded run.
+    expect((await screen.findAllByText('Ancien compte')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('checkbox', { name: 'Ancien compte' })).toBeTruthy();
     fireEvent.click(
       screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
     );
@@ -1545,7 +1621,9 @@ describe('TransactionsPage', () => {
     renderPage();
 
     await screen.findByRole('heading', { name: 'Aucune transaction' });
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    fireEvent.click(
+      [...document.querySelectorAll('summary')].find((summary) => summary.textContent === 'État')!,
+    );
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
     await waitFor(() =>
@@ -1707,6 +1785,7 @@ describe('primary account creation defaults', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    window.localStorage.clear();
     window.history.replaceState({}, '', '/transactions');
   });
 
@@ -1816,7 +1895,9 @@ describe('primary account creation defaults', () => {
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /^Filtres/ }));
+    fireEvent.click(
+      [...document.querySelectorAll('summary')].find((summary) => summary.textContent === 'État')!,
+    );
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
     await waitFor(() => expect(screen.getByText('Aucune sélection')).toBeTruthy());

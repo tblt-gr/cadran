@@ -249,15 +249,22 @@ describe('AccountDetailPage', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('filters operations by date, type and voided status without widening the account scope', async () => {
+  it('filters operations from the filter column without widening the account scope', async () => {
     renderPage();
     await loaded();
+    const column = screen.getByRole('complementary', { name: 'Filtres' });
+    const summaries = [...column.querySelectorAll('summary')];
+    const open = (title: string) =>
+      fireEvent.click(summaries.find((summary) => summary.textContent === title)!);
+    expect(summaries.map((summary) => summary.textContent)).not.toContain('Comptes');
+
+    open('Période');
+    fireEvent.click(screen.getByRole('radio', { name: 'Personnalisée' }));
     fireEvent.change(screen.getByLabelText('Du'), { target: { value: '2026-03-01' } });
     fireEvent.change(screen.getByLabelText('Au'), { target: { value: '2026-03-31' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Types d’opération Tous les types' }));
-    fireEvent.click(screen.getByRole('option', { name: 'Dépense' }));
-    fireEvent.keyDown(screen.getByRole('listbox'), { key: 'Escape' });
-    fireEvent.click(screen.getByLabelText('Afficher les opérations annulées'));
+    open('Nature');
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Dépense' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Afficher les transactions annulées' }));
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -273,6 +280,7 @@ describe('AccountDetailPage', () => {
       ),
     );
     expect(screen.queryByLabelText('Instrument')).toBeNull();
+    expect(new URLSearchParams(window.location.search).get('tab')).toBe('operations');
   });
 
   it('shows the step balance history for a current account', async () => {
@@ -1171,7 +1179,7 @@ describe('AccountDetailPage', () => {
     });
   });
 
-  it('preselects the period a Budget link asked for, and shows a control to clear it', async () => {
+  it('preselects the month a Budget link asked for, as a removable chip', async () => {
     renderPage(account.id, '?month=2026-08');
 
     await screen.findByText('Supermarché');
@@ -1180,9 +1188,7 @@ describe('AccountDetailPage', () => {
         query: expect.objectContaining({ from: '2026-08-01', to: '2026-08-31' }),
       }),
     );
-    expect(screen.getByText(/Période affichée/)).toBeTruthy();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Voir tout l’historique' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retirer le filtre Août 2026' }));
 
     await waitFor(() => {
       expect(api.listTransactions).toHaveBeenCalledWith(
@@ -1191,14 +1197,14 @@ describe('AccountDetailPage', () => {
         }),
       );
     });
-    expect(screen.queryByText(/Période affichée/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Retirer le filtre/ })).toBeNull();
   });
 
-  it('shows no active-period control for a direct account entry with no month', async () => {
+  it('shows no period chip for a direct account entry with no month', async () => {
     renderPage();
 
     await screen.findByText('Supermarché');
-    expect(screen.queryByText(/Période affichée/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /Retirer le filtre/ })).toBeNull();
   });
 
   it('keeps the balance in the header without the statement or age line', async () => {

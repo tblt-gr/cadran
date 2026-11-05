@@ -1,0 +1,15 @@
+.stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3);
+}
+
+.month {
+  min-width: 10rem;
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-bold);
+  text-align: center;
+}

@@ -1,0 +1,78 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--spacing-3);
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.heading h2 {
+  flex: 1 1 auto;
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.reset {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  color: var(--text-secondary);
+  background: var(--color-transparent);
+  font-size: var(--font-size-label);
+  cursor: pointer;
+}
+
+.reset:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.reset:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+
+.sections {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+}
+
+/* Each section is separated by a hairline rather than boxed, keeping the column calm. */
+.sections > details {
+  padding-block: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+}
+
+.sections > details > summary {
+  width: 100%;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-body);
+  cursor: pointer;
+  gap: var(--spacing-2);
+}
+
+.checkbox:hover {
+  color: var(--text-primary);
+}
+
+.checkbox input {
+  margin: var(--spacing-none);
+  accent-color: var(--gold-300);
+}

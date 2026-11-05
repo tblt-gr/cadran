@@ -1,6 +1,6 @@
-import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
-import { AccountOperationFilters } from './account-operation-filters/AccountOperationFilters';
-import { emptyMovementFilters, monthBounds } from './account-movements/accountMovementFilters';
+import { MonthStepper } from '@/features/transactions/month-stepper/MonthStepper';
+import { decodeFilters } from '@/features/transactions/transaction-filters/filterState';
+import { TransactionFilters } from '@/features/transactions/transaction-filters/TransactionFilters';
 import { AccountNavigation, activeAccountTab } from './AccountNavigation';
 import { BalanceTabSkeleton } from './balance-tab/BalanceTabSkeleton';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
@@ -23,6 +23,7 @@ export function AccountDetailPageSkeleton({
   account?: Account | null;
 }) {
   const tab = activeAccountTab();
+  const filters = decodeFilters(new URLSearchParams(window.location.search));
 
   return (
     <div aria-busy="true" className={styles.page} data-testid="account-detail-skeleton">
@@ -30,23 +31,20 @@ export function AccountDetailPageSkeleton({
       <AccountNavigation accountId={accountId} tab={tab} />
       <AccountDetailActionsSkeleton />
       {tab === 'operations' ? (
-        <>
-          <AccountOperationFilters
-            disabled
-            actions={
-              <BulkSelectionToolbar active={false} bulk={null} inline onToggleActive={() => {}} />
-            }
-            value={{
-              ...emptyMovementFilters,
-              ...monthBounds(new URLSearchParams(window.location.search).get('month')),
-            }}
-            onChange={() => undefined}
-          />
-          <AccountMovementsSectionSkeleton
-            showBulkToolbar={false}
-            month={new URLSearchParams(window.location.search).get('month')}
-          />
-        </>
+        <TransactionFilters
+          accountLocked
+          accounts={account === null ? [] : [account]}
+          disabled
+          filters={filters}
+          onChange={() => undefined}
+          onReset={() => undefined}
+          revision={0}
+        >
+          {filters.period === 'month' ? (
+            <MonthStepper disabled month={filters.month} onStep={() => undefined} />
+          ) : null}
+          <AccountMovementsSectionSkeleton />
+        </TransactionFilters>
       ) : tab === 'balance' ? (
         <BalanceTabSkeleton />
       ) : (

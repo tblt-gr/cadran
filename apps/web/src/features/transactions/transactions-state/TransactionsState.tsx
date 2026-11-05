@@ -51,7 +51,7 @@ export function TransactionsState({
         <p>{t('transactions.impossible.description')}</p>
         {onResetFilters ? (
           <button className="secondary-action" onClick={onResetFilters} type="button">
-            {t('transactions.filters.reset')}
+            {t('transactions.filters.resetAll')}
           </button>
         ) : null}
       </section>

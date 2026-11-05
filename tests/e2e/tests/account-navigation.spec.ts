@@ -40,15 +40,22 @@ for (const width of [1440, 360]) {
     await expect(page.getByRole('heading', { name: 'Mouvements', exact: true })).toHaveClass(
       'sr-only',
     );
-    await expect(page.getByLabel('Du', { exact: true })).toHaveCount(1);
-    await expect(page.getByLabel('Au', { exact: true })).toHaveCount(1);
+    await expect(page.getByRole('searchbox')).toHaveCount(1);
     await expect(page.getByLabel('Instrument', { exact: true })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Types d’opération Tous les types' }).click();
-    const expense = page.getByRole('option', { name: 'Dépense', exact: true });
-    await expense.click();
-    await expect(expense).toHaveAttribute('aria-selected', 'true');
-    await expense.click();
-    await expense.press('Escape');
+    // The operations share the transaction filters: a column on wide screens, a sheet on narrow.
+    const filtersToggle = page.getByRole('button', { name: /^Filtres/ });
+    const sheet = (await filtersToggle.getAttribute('aria-haspopup')) === 'dialog';
+    if (sheet) await filtersToggle.click();
+    const filters = sheet
+      ? page.getByRole('dialog', { name: 'Filtres' })
+      : page.getByRole('complementary', { name: 'Filtres' });
+    await expect(filters.locator('summary', { hasText: 'Comptes' })).toHaveCount(0);
+    await filters.locator('summary', { hasText: 'Nature' }).click();
+    const expense = filters.getByRole('checkbox', { name: 'Dépense', exact: true });
+    await expense.check();
+    await expect(expense).toBeChecked();
+    await expense.uncheck();
+    if (sheet) await page.keyboard.press('Escape');
     await settled(page);
     await page.screenshot({
       path: `${process.env.E2E_OUTPUT_DIR ?? 'test-results'}/operations-${width}.png`,

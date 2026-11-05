@@ -1,20 +1,24 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Chip } from '@/components/ui/chip/Chip';
 import styles from './ActiveFilterChips.module.css';
 
-export interface Chip {
+export interface FilterChip {
   key: string;
-  label: string;
+  label: ReactNode;
+  /** Accessible name of the remove button, since `label` may be a skeleton block. */
+  removeLabel: string;
   onClear: () => void;
 }
 
 interface ActiveFilterChipsProps {
-  chips: readonly Chip[];
+  chips: readonly FilterChip[];
   onReset: () => void;
 }
 
 /**
  * The row of chips summarising every applied filter, each clearable on its own, with one
- * button resetting all of them. Renders nothing when no filter is active.
+ * text button clearing all of them. Renders nothing when no filter is active.
  */
 export function ActiveFilterChips({ chips, onReset }: ActiveFilterChipsProps) {
   const { t } = useTranslation();
@@ -26,15 +30,14 @@ export function ActiveFilterChips({ chips, onReset }: ActiveFilterChipsProps) {
   return (
     <div aria-label={t('transactions.filters.activeLabel')} className={styles.chips} role="group">
       {chips.map((chip) => (
-        <button className={styles.chip} key={chip.key} onClick={chip.onClear} type="button">
-          {chip.label}
-          <span aria-hidden="true"> ×</span>
-          <span className="sr-only">
-            {t('transactions.filters.clearChip', { label: chip.label })}
-          </span>
-        </button>
+        <Chip
+          key={chip.key}
+          label={chip.label}
+          onRemove={chip.onClear}
+          removeLabel={chip.removeLabel}
+        />
       ))}
-      <button className="secondary-action" onClick={onReset} type="button">
+      <button className={styles.reset} onClick={onReset} type="button">
         {t('transactions.filters.reset')}
       </button>
     </div>

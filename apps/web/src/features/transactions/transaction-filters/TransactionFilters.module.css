@@ -1,6 +1,53 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: var(--spacing-6);
+}
+
+.layout[data-aside='open'] {
+  grid-template-columns: var(--filters-aside-width) minmax(0, 1fr);
+}
+
+/* The column follows the list while it scrolls, and scrolls on its own when taller than the
+   viewport, so a filter is always one move away. */
+.aside {
+  position: sticky;
+  top: var(--spacing-4);
+  max-height: calc(100dvh - var(--header-height) - var(--spacing-8));
+  overflow-y: auto;
+  padding: var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-1);
+}
+
+.aside[hidden] {
+  display: none;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: var(--spacing-6);
+}
+
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
 .search {
   display: flex;
-  grid-column: 1 / -1;
+  flex: 1 1 auto;
   align-items: center;
   min-width: 0;
   min-height: var(--control-height);
@@ -24,6 +71,7 @@
   color: var(--text-primary);
   background: var(--color-transparent);
   font: inherit;
+  font-size: var(--font-size-body);
 }
 
 .search input:focus {
@@ -34,11 +82,12 @@
   appearance: none;
 }
 
-.trigger {
+.toggle {
   position: relative;
+  flex: 0 0 auto;
 }
 
-.trigger[data-active='true'] {
+.toggle[data-active='true'] {
   color: var(--gold-200);
   border-color: var(--gold-500);
 }
@@ -48,8 +97,8 @@
   top: calc(var(--spacing-1) * -1);
   right: calc(var(--spacing-1) * -1);
   display: inline-grid;
-  min-width: 1.125rem;
-  height: 1.125rem;
+  min-width: var(--badge-size);
+  height: var(--badge-size);
   padding-inline: var(--spacing-1);
   border-radius: var(--radius-full);
   color: var(--text-on-primary);
@@ -59,25 +108,7 @@
   place-items: center;
 }
 
-.panel {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13.75rem, 1fr));
-  align-items: start;
-  gap: var(--spacing-4);
-}
-
-.checkbox {
-  display: inline-flex;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-  gap: var(--spacing-1);
-}
-
-.checkbox:hover {
-  color: var(--text-primary);
-}
-
-.checkbox input {
-  accent-color: var(--gold-300);
+.showResults {
+  width: 100%;
+  margin-top: var(--spacing-4);
 }

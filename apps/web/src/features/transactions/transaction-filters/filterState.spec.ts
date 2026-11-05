@@ -4,8 +4,12 @@ import {
   decodeFilters,
   encodeFilters,
   isImpossibleCombination,
+  hasLegacyPeriod,
+  hasPanelFilters,
+  isValidAmountBound,
   normalizeAmountInput,
   resolvePeriod,
+  shiftMonth,
   toListTransactionsQuery,
   type TransactionFilterState,
 } from './filterState';
@@ -19,6 +23,14 @@ function withFilters(overrides: Partial<TransactionFilterState>): TransactionFil
 }
 
 describe('encodeFilters / decodeFilters', () => {
+  it('reads a bare month, as a Budget link sends it, as that month', () => {
+    const decoded = decodeFilters(new URLSearchParams('tab=operations&month=2026-08'));
+
+    expect(decoded.period).toBe('month');
+    expect(decoded.month).toBe('2026-08');
+    expect(decodeFilters(new URLSearchParams('month=2026-13')).period).toBe('all');
+  });
+
   it('round-trips the default filter set to an empty query string', () => {
     const params = encodeFilters(DEFAULT_FILTERS);
 
@@ -31,14 +43,15 @@ describe('encodeFilters / decodeFilters', () => {
       period: 'custom',
       from: '2026-01-01',
       to: '2026-01-31',
+      direction: 'OUTFLOW',
       accountId: [ACCOUNT_A, ACCOUNT_B],
       state: ['BOOKED', 'PENDING'],
       nature: ['EXPENSE'],
       categoryId: [CATEGORY],
       includeDescendants: true,
       axis: ['ESSENTIAL', 'FIXED'],
-      minAmount: '-500.00',
-      maxAmount: '-1.00',
+      minAmount: '1.00',
+      maxAmount: '500.00',
       assetCode: 'EUR',
       source: ['MANUAL'],
       categorization: 'NONE',
@@ -79,12 +92,56 @@ describe('encodeFilters / decodeFilters', () => {
     expect(decoded.q).toHaveLength(80);
   });
 
+  it('round-trips a single month period', () => {
+    const filters = withFilters({ period: 'month', month: '2026-11' });
+    const params = encodeFilters(filters);
+
+    expect(params.toString()).toBe('period=month&month=2026-11');
+    expect(decodeFilters(params)).toEqual(filters);
+  });
+
+  it('falls back to the current month for a month period without a valid month', () => {
+    const today = new Date(2026, 10, 3);
+
+    expect(decodeFilters(new URLSearchParams('period=month'), today).month).toBe('2026-11');
+    expect(decodeFilters(new URLSearchParams('period=month&month=2026-13'), today).month).toBe(
+      '2026-11',
+    );
+  });
+
+  it('rewrites the legacy presets to a month relative to today', () => {
+    const today = new Date(2026, 10, 3);
+
+    const thisMonth = decodeFilters(new URLSearchParams('period=thisMonth'), today);
+    expect(thisMonth.period).toBe('month');
+    expect(thisMonth.month).toBe('2026-11');
+
+    const lastMonth = decodeFilters(new URLSearchParams('period=lastMonth'), today);
+    expect(lastMonth.month).toBe('2026-10');
+    expect(encodeFilters(lastMonth).toString()).toBe('period=month&month=2026-10');
+
+    expect(hasLegacyPeriod(new URLSearchParams('period=thisMonth'))).toBe(true);
+    expect(hasLegacyPeriod(new URLSearchParams('period=month&month=2026-11'))).toBe(false);
+  });
+
+  it('keeps a known direction and drops an unknown one', () => {
+    expect(decodeFilters(new URLSearchParams('direction=INFLOW')).direction).toBe('INFLOW');
+    expect(decodeFilters(new URLSearchParams('direction=SIDEWAYS')).direction).toBe('');
+  });
+
+  it('drops a negative bound from a URL', () => {
+    const decoded = decodeFilters(new URLSearchParams('minAmount=-10&maxAmount=50&assetCode=EUR'));
+
+    expect(decoded.minAmount).toBe('');
+    expect(decoded.maxAmount).toBe('50');
+  });
+
   it('ignores from/to when the preset is not custom', () => {
-    const params = new URLSearchParams('period=thisMonth&from=2026-01-01&to=2026-01-31');
+    const params = new URLSearchParams('period=month&month=2026-11&from=2026-01-01&to=2026-01-31');
 
     const decoded = decodeFilters(params);
 
-    expect(decoded.period).toBe('thisMonth');
+    expect(decoded.period).toBe('month');
     expect(decoded.from).toBe('');
     expect(decoded.to).toBe('');
   });
@@ -93,6 +150,24 @@ describe('encodeFilters / decodeFilters', () => {
     const params = new URLSearchParams('categorization=WHATEVER');
 
     expect(decodeFilters(params).categorization).toBe('ANY');
+  });
+});
+
+describe('hasPanelFilters', () => {
+  it('ignores the search, the queue tab and the single month', () => {
+    expect(hasPanelFilters(DEFAULT_FILTERS)).toBe(false);
+    expect(
+      hasPanelFilters(
+        withFilters({ q: 'loyer', categorization: 'NONE', period: 'month', month: '2026-11' }),
+      ),
+    ).toBe(false);
+  });
+
+  it('sees every other filter', () => {
+    expect(hasPanelFilters(withFilters({ categoryId: [CATEGORY] }))).toBe(true);
+    expect(hasPanelFilters(withFilters({ direction: 'INFLOW' }))).toBe(true);
+    expect(hasPanelFilters(withFilters({ period: 'thisYear' }))).toBe(true);
+    expect(hasPanelFilters(withFilters({ includeVoided: true }))).toBe(true);
   });
 });
 
@@ -106,18 +181,20 @@ describe('resolvePeriod', () => {
     });
   });
 
-  it('resolves "this month" to the first day of the month through today', () => {
-    expect(resolvePeriod(withFilters({ period: 'thisMonth' }), today)).toEqual({
-      from: '2026-09-01',
-      to: '2026-09-16',
+  it('resolves "month" to its first and last day', () => {
+    expect(resolvePeriod(withFilters({ period: 'month', month: '2026-02' }), today)).toEqual({
+      from: '2026-02-01',
+      to: '2026-02-28',
+    });
+    expect(resolvePeriod(withFilters({ period: 'month', month: '2024-02' }), today)).toEqual({
+      from: '2024-02-01',
+      to: '2024-02-29',
     });
   });
 
-  it('resolves "last month" to the full previous calendar month', () => {
-    expect(resolvePeriod(withFilters({ period: 'lastMonth' }), today)).toEqual({
-      from: '2026-08-01',
-      to: '2026-08-31',
-    });
+  it('steps a month across year boundaries', () => {
+    expect(shiftMonth('2026-01', -1)).toBe('2025-12');
+    expect(shiftMonth('2026-12', 1)).toBe('2027-01');
   });
 
   it('resolves "this year" to January 1st through today', () => {
@@ -162,7 +239,7 @@ describe('isImpossibleCombination', () => {
   it('is true when the signed amount bounds are inverted', () => {
     expect(
       isImpossibleCombination(
-        withFilters({ minAmount: '-1.00', maxAmount: '-500.00', assetCode: 'EUR' }),
+        withFilters({ minAmount: '500.00', maxAmount: '1.00', assetCode: 'EUR' }),
       ),
     ).toBe(true);
   });
@@ -179,7 +256,7 @@ describe('isImpossibleCombination', () => {
   it('is false when amount bounds are ordered', () => {
     expect(
       isImpossibleCombination(
-        withFilters({ minAmount: '-500.00', maxAmount: '-1.00', assetCode: 'EUR' }),
+        withFilters({ minAmount: '1.00', maxAmount: '500.00', assetCode: 'EUR' }),
       ),
     ).toBe(false);
   });
@@ -200,15 +277,28 @@ describe('isImpossibleCombination', () => {
 
 describe('normalizeAmountInput', () => {
   it('converts a French comma decimal separator to a dot', () => {
-    expect(normalizeAmountInput('-200,00')).toBe('-200.00');
+    expect(normalizeAmountInput('200,00')).toBe('200.00');
+  });
+
+  it('removes a typed minus sign: bounds are unsigned', () => {
+    expect(normalizeAmountInput('-200,00')).toBe('200.00');
   });
 
   it('leaves an already canonical value untouched', () => {
-    expect(normalizeAmountInput('-200.00')).toBe('-200.00');
+    expect(normalizeAmountInput('200.00')).toBe('200.00');
   });
 
   it('only replaces the first comma', () => {
     expect(normalizeAmountInput('12,34,56')).toBe('12.34,56');
+  });
+});
+
+describe('isValidAmountBound', () => {
+  it('accepts unsigned canonical decimals and refuses negative or malformed ones', () => {
+    expect(isValidAmountBound('10')).toBe(true);
+    expect(isValidAmountBound('10.50')).toBe(true);
+    expect(isValidAmountBound('-10')).toBe(false);
+    expect(isValidAmountBound('12.')).toBe(false);
   });
 });
 
@@ -225,6 +315,7 @@ describe('toListTransactionsQuery', () => {
       categoryId: undefined,
       includeDescendants: undefined,
       axis: undefined,
+      direction: undefined,
       minAmount: undefined,
       maxAmount: undefined,
       assetCode: undefined,
@@ -237,7 +328,9 @@ describe('toListTransactionsQuery', () => {
 
   it('maps a populated filter set to the request query', () => {
     const filters = withFilters({
-      period: 'thisMonth',
+      period: 'month',
+      month: '2026-09',
+      direction: 'OUTFLOW',
       accountId: [ACCOUNT_A],
       state: ['BOOKED'],
       categorization: 'NONE',
@@ -248,7 +341,8 @@ describe('toListTransactionsQuery', () => {
     const query = toListTransactionsQuery(filters, today);
 
     expect(query.from).toBe('2026-09-01');
-    expect(query.to).toBe('2026-09-16');
+    expect(query.to).toBe('2026-09-30');
+    expect(query.direction).toBe('OUTFLOW');
     expect(query.accountId).toEqual([ACCOUNT_A]);
     expect(query.state).toEqual(['BOOKED']);
     expect(query.categorization).toBe('NONE');
@@ -256,15 +350,15 @@ describe('toListTransactionsQuery', () => {
   });
 
   it('only sends amount bounds together with their asset code', () => {
-    const withoutAsset = toListTransactionsQuery(withFilters({ minAmount: '-200.00' }), today);
+    const withoutAsset = toListTransactionsQuery(withFilters({ minAmount: '200.00' }), today);
     expect(withoutAsset.minAmount).toBeUndefined();
     expect(withoutAsset.assetCode).toBeUndefined();
 
     const withAsset = toListTransactionsQuery(
-      withFilters({ minAmount: '-200.00', assetCode: 'EUR' }),
+      withFilters({ minAmount: '200.00', assetCode: 'EUR' }),
       today,
     );
-    expect(withAsset.minAmount).toBe('-200.00');
+    expect(withAsset.minAmount).toBe('200.00');
     expect(withAsset.assetCode).toBe('EUR');
   });
 

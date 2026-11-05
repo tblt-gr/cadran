@@ -322,6 +322,54 @@ final class TransactionBulkControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(400);
     }
 
+    public function testTheCountEndpointAppliesAbsoluteBoundsDirectionAndAmountSearch(): void
+    {
+        $this->expense('-42.10', self::EXPENSE_A);
+        $this->expense('-60.00', self::EXPENSE_A);
+        $this->expense('-10.50', null, label: 'CB BOULANGERIE');
+        $this->seedForeignTransaction();
+
+        $this->client->request('GET', '/api/v1/transactions/count?minAmount=10&maxAmount=50&assetCode=EUR');
+        self::assertSame(['count' => 2], $this->decode());
+
+        $this->client->request('GET', '/api/v1/transactions/count?minAmount=10&maxAmount=50&assetCode=EUR&direction=INFLOW');
+        self::assertSame(['count' => 0], $this->decode());
+
+        $this->client->request('GET', '/api/v1/transactions/count?minAmount=10&maxAmount=50&assetCode=EUR&direction=OUTFLOW');
+        self::assertSame(['count' => 2], $this->decode());
+
+        $this->client->request('GET', '/api/v1/transactions/count?q=10,50%20%E2%82%AC');
+        self::assertSame(['count' => 1], $this->decode());
+
+        foreach (['?minAmount=-10&assetCode=EUR', '?direction=SIDEWAYS'] as $query) {
+            $this->client->request('GET', '/api/v1/transactions/count'.$query);
+            self::assertResponseStatusCodeSame(400, $query);
+        }
+    }
+
+    public function testAFilterScopeResolvesAbsoluteBoundsDirectionAndAmountSearchLikeTheListing(): void
+    {
+        $inBounds = $this->expense('-42.10', self::EXPENSE_A);
+        $tooBig = $this->expense('-60.00', self::EXPENSE_A);
+        $byAmount = $this->expense('-10.50', self::EXPENSE_A, label: 'CB BOULANGERIE');
+
+        $this->bulkFilter(self::EXPENSE_B, ['minAmount' => '10', 'maxAmount' => '50', 'assetCode' => 'EUR', 'direction' => 'OUTFLOW'], 2, 'bulk-filter-bounds-1');
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame([self::EXPENSE_B], $this->categoriesOf($inBounds));
+        self::assertSame([self::EXPENSE_B], $this->categoriesOf($byAmount));
+        self::assertSame([self::EXPENSE_A], $this->categoriesOf($tooBig));
+
+        $this->bulkFilter(self::EXPENSE_C, ['q' => '-60'], 1, 'bulk-filter-qamount-1');
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame([self::EXPENSE_C], $this->categoriesOf($tooBig));
+        self::assertSame([self::EXPENSE_B], $this->categoriesOf($inBounds));
+
+        foreach ([['minAmount' => '-10', 'assetCode' => 'EUR'], ['direction' => 'SIDEWAYS']] as $index => $filters) {
+            $this->bulkFilter(self::EXPENSE_B, $filters, 0, 'bulk-filter-refused-'.$index);
+            self::assertResponseStatusCodeSame(422);
+        }
+    }
+
     public function testAForeignWorkspaceTransactionIsReportedNotFoundAndLeftUntouched(): void
     {
         $this->seedForeignTransaction();

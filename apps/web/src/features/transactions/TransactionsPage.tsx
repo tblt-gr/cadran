@@ -4,6 +4,8 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
+import { shiftMonth } from './transaction-filters/filterState';
+import { MonthStepper } from './month-stepper/MonthStepper';
 import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
 import { useBulkSelection } from './bulk-selection/useBulkSelection';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
@@ -32,6 +34,7 @@ export function TransactionsPage() {
   const listing = useTransactionsListing();
   const {
     accountOptions,
+    accountsPending,
     activeAccountOptions,
     bulkQuery,
     categorization,
@@ -91,6 +94,8 @@ export function TransactionsPage() {
     transferSave.reset();
   }
 
+  const initialLoading = !impossible && transactions.isPending && transactions.data === undefined;
+
   return (
     <TransactionWorkflow
       accounts={accountOptions}
@@ -121,14 +126,6 @@ export function TransactionsPage() {
             <Icon name="transactions" size={18} />
           </button>
         </HeaderActions>
-
-        <TransactionFilters
-          accounts={accountOptions}
-          filters={searchFilters}
-          onChange={updateFilters}
-          onReset={resetAllFilters}
-          revision={filtersRevision}
-        />
 
         <HeaderActions>
           <ActionMenu
@@ -190,49 +187,72 @@ export function TransactionsPage() {
           </p>
         ) : null}
 
-        {impossible ? (
-          <TransactionsState
-            kind="impossible"
-            onCreate={() => openEditor('create')}
-            onResetFilters={resetAllFilters}
-            onRetry={() => void transactions.refetch()}
-          />
-        ) : transactions.isPending && transactions.data === undefined ? (
-          <TransactionsPageSkeleton />
-        ) : transactions.isError && !staleCursorError ? (
-          <TransactionsState
-            kind={unauthorized ? 'unauthorized' : 'error'}
-            onCreate={() => openEditor('create')}
-            onRetry={() => void transactions.refetch()}
-          />
-        ) : items.length === 0 ? (
-          <TransactionsState
-            kind={categorization === 'NONE' ? 'queueEmpty' : 'empty'}
-            onCreate={() => openEditor('create')}
-            onRetry={() => void transactions.refetch()}
-          />
-        ) : (
-          <>
-            <BulkSelectionToolbar
-              active={bulkMode}
-              bulk={bulk}
-              onToggleActive={() => setBulkMode((active) => !active)}
+        <TransactionFilters
+          accounts={accountOptions}
+          accountsPending={accountsPending}
+          disabled={initialLoading}
+          filters={searchFilters}
+          onChange={updateFilters}
+          onReset={resetAllFilters}
+          revision={filtersRevision}
+        >
+          {searchFilters.period === 'month' ? (
+            <MonthStepper
+              disabled={initialLoading}
+              month={searchFilters.month}
+              onStep={(offset) =>
+                updateFilters(
+                  { ...searchFilters, month: shiftMonth(searchFilters.month, offset) },
+                  'push',
+                )
+              }
             />
-            <TransactionDayList
-              accounts={accountOptions}
-              label={t('transactions.list.caption')}
-              selection={bulkMode ? bulk.rowSelection : undefined}
-              transactions={items}
+          ) : null}
+
+          {impossible ? (
+            <TransactionsState
+              kind="impossible"
+              onCreate={() => openEditor('create')}
+              onResetFilters={resetAllFilters}
+              onRetry={() => void transactions.refetch()}
             />
-            <TransactionListFooter
-              hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
-              loadingMore={transactions.isFetching && !transactions.isPending}
-              onLoadMore={loadMore}
-              onReloadFromFirstPage={reloadFromFirstPage}
-              stale={staleCursorError}
+          ) : initialLoading ? (
+            <TransactionsPageSkeleton />
+          ) : transactions.isError && !staleCursorError ? (
+            <TransactionsState
+              kind={unauthorized ? 'unauthorized' : 'error'}
+              onCreate={() => openEditor('create')}
+              onRetry={() => void transactions.refetch()}
             />
-          </>
-        )}
+          ) : items.length === 0 ? (
+            <TransactionsState
+              kind={categorization === 'NONE' ? 'queueEmpty' : 'empty'}
+              onCreate={() => openEditor('create')}
+              onRetry={() => void transactions.refetch()}
+            />
+          ) : (
+            <>
+              <BulkSelectionToolbar
+                active={bulkMode}
+                bulk={bulk}
+                onToggleActive={() => setBulkMode((active) => !active)}
+              />
+              <TransactionDayList
+                accounts={accountOptions}
+                label={t('transactions.list.caption')}
+                selection={bulkMode ? bulk.rowSelection : undefined}
+                transactions={items}
+              />
+              <TransactionListFooter
+                hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
+                loadingMore={transactions.isFetching && !transactions.isPending}
+                onLoadMore={loadMore}
+                onReloadFromFirstPage={reloadFromFirstPage}
+                stale={staleCursorError}
+              />
+            </>
+          )}
+        </TransactionFilters>
       </div>
     </TransactionWorkflow>
   );

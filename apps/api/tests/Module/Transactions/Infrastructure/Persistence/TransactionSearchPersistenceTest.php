@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\Transaction;
+use App\Module\Transactions\Domain\TransactionDirection;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionRepository;
@@ -99,13 +100,70 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         );
     }
 
-    public function testSignedAmountRangeIsScopedToItsAssetCode(): void
+    public function testAbsoluteAmountRangeMatchesEitherSignAndIsScopedToItsAssetCode(): void
     {
-        $bigExpense = $this->add('00000000-0000-7000-8000-0000000000f7', '-250.00');
-        $this->add('00000000-0000-7000-8000-0000000000f8', '-50.00');
+        $expense = $this->add('00000000-0000-7000-8000-0000000000f7', '-42.10');
+        $refund = $this->add('00000000-0000-7000-8000-0000000000f8', '18.40');
+        $this->add('00000000-0000-7000-8000-0000000000f6', '-60.00');
+        $this->add('00000000-0000-7000-8000-0000000000f5', '9.99');
 
-        $filters = new TransactionFilters(maxAmount: DecimalValue::fromString('-200.00'), assetCode: AssetCode::fromString('EUR'));
-        self::assertSame([$bigExpense], array_column($this->repository->search(WorkspaceFixture::own(), $filters, 10, null), 'id'));
+        $filters = new TransactionFilters(minAmount: DecimalValue::fromString('10'), maxAmount: DecimalValue::fromString('50'), assetCode: AssetCode::fromString('EUR'));
+        self::assertEqualsCanonicalizing([$expense, $refund], array_column($this->repository->search(WorkspaceFixture::own(), $filters, 10, null), 'id'));
+
+        $otherAsset = new TransactionFilters(minAmount: DecimalValue::fromString('10'), assetCode: AssetCode::fromString('USD'));
+        self::assertSame([], $this->repository->search(WorkspaceFixture::own(), $otherAsset, 10, null));
+    }
+
+    public function testDirectionKeepsOnlyOutflowsOrInflows(): void
+    {
+        $expense = $this->add('00000000-0000-7000-8000-0000000000f7', '-42.10');
+        $refund = $this->add('00000000-0000-7000-8000-0000000000f8', '18.40');
+
+        self::assertSame([$expense], array_column($this->repository->search(WorkspaceFixture::own(), new TransactionFilters(direction: TransactionDirection::OUTFLOW), 10, null), 'id'));
+        self::assertSame([$refund], array_column($this->repository->search(WorkspaceFixture::own(), new TransactionFilters(direction: TransactionDirection::INFLOW), 10, null), 'id'));
+        self::assertEqualsCanonicalizing(
+            [$expense, $refund],
+            array_column($this->repository->search(WorkspaceFixture::own(), new TransactionFilters(), 10, null), 'id'),
+        );
+
+        $bounded = new TransactionFilters(
+            minAmount: DecimalValue::fromString('10'), maxAmount: DecimalValue::fromString('50'),
+            assetCode: AssetCode::fromString('EUR'), direction: TransactionDirection::OUTFLOW,
+        );
+        self::assertSame([$expense], array_column($this->repository->search(WorkspaceFixture::own(), $bounded, 10, null), 'id'));
+    }
+
+    public function testAnAmountSearchMatchesTheAbsoluteValueOrTheLabelAndTheCountEqualsThePage(): void
+    {
+        $expense = $this->add('00000000-0000-7000-8000-0000000000f7', '-10.50');
+        $income = $this->add('00000000-0000-7000-8000-0000000000f8', '10.5000');
+        $labelled = $this->add('00000000-0000-7000-8000-0000000000f6', '-3.00', label: 'CB 10,50 PARIS');
+        $this->add('00000000-0000-7000-8000-0000000000f5', '-10.51');
+        $this->add('00000000-0000-7000-8000-0000000000f4', '-110.50');
+
+        $filters = new TransactionFilters(q: '10.50', qAmount: DecimalValue::fromString('10.50'));
+        $page = array_column($this->repository->search(WorkspaceFixture::own(), $filters, 10, null), 'id');
+        self::assertEqualsCanonicalizing([$expense, $income], $page);
+
+        $labelFilters = new TransactionFilters(q: '10,50', qAmount: DecimalValue::fromString('10.50'));
+        $labelPage = array_column($this->repository->search(WorkspaceFixture::own(), $labelFilters, 10, null), 'id');
+        self::assertEqualsCanonicalizing([$expense, $income, $labelled], $labelPage);
+        self::assertSame(3, $this->repository->countMatching(WorkspaceFixture::own(), $labelFilters));
+        self::assertSame(2, $this->repository->countMatching(WorkspaceFixture::own(), $filters));
+    }
+
+    public function testAHugeAmountSearchNeverMatchesAnotherWorkspace(): void
+    {
+        $this->add('00000000-0000-7000-8000-0000000000f7', '-10.50');
+        $filters = new TransactionFilters(q: '10.50', qAmount: DecimalValue::fromString('10.50'));
+
+        self::assertSame([], $this->repository->search(WorkspaceFixture::other(), $filters, 10, null));
+        self::assertSame(0, $this->repository->countMatching(WorkspaceFixture::other(), $filters));
+
+        $huge = str_repeat('9', 26).'.'.str_repeat('9', 24);
+        $big = $this->add('00000000-0000-7000-8000-0000000000f8', '-'.$huge);
+        $hugeFilters = new TransactionFilters(q: $huge, qAmount: DecimalValue::fromString($huge));
+        self::assertSame([$big], array_column($this->repository->search(WorkspaceFixture::own(), $hugeFilters, 10, null), 'id'));
     }
 
     public function testFreeTextSearchTreatsWildcardCharactersAsLiteral(): void
@@ -256,7 +314,7 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         $this->repository->add(new Transaction(
             id: $id, workspace: $workspace, accountId: self::OWN_ACCOUNT, amount: $value,
             originalAmount: null, exchangeRate: null, state: $state ?? TransactionState::BOOKED,
-            nature: TransactionNature::EXPENSE, source: $source ?? TransactionSource::MANUAL, sourceRef: null,
+            nature: str_starts_with($amount, '-') ? TransactionNature::EXPENSE : TransactionNature::INCOME, source: $source ?? TransactionSource::MANUAL, sourceRef: null,
             bookedOn: new \DateTimeImmutable('2026-03-14'), valueOn: null, authorizedOn: null,
             rawLabel: $label, counterparty: null, note: null, paymentMethod: null, mcc: null,
             maskedCard: null, bankReference: null, splits: $splits, version: 1, createdAt: $now,

@@ -5,14 +5,11 @@ import { BulkSelectionToolbar } from '@/features/transactions/bulk-selection/Bul
 import type { BulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionListFooter } from '@/features/transactions/transaction-list/TransactionListFooter';
 import { TransactionsState } from '@/features/transactions/transactions-state/TransactionsState';
-import { formatCalendarMonth } from '@/lib/decimal';
 import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
-import styles from './AccountMovementsSection.module.css';
 
 /**
- * The account detail page's movements block: the period filter notice, the
- * loading/error/empty states shared with the Transactions page, and the
- * paginated table itself. Named and self-contained because it owns its own
+ * The account detail page's movements block: the loading/error/empty/impossible
+ * states shared with the Transactions page, and the paginated table itself. Named and self-contained because it owns its own
  * loading/empty/error branching, distinct from the identity and rules above
  * it on the page.
  */
@@ -23,14 +20,14 @@ export function AccountMovementsSection({
   onBulkModeChange,
   canCreate,
   displayedPageHasMore,
+  impossible = false,
   items,
-  language,
   loadingMore,
-  month,
-  onClearMonth,
   onCreate,
   onLoadMore,
   onReloadFromFirstPage,
+  onResetFilters,
+  queue = false,
   staleCursorError,
   transactions,
   unauthorized,
@@ -43,14 +40,16 @@ export function AccountMovementsSection({
   onBulkModeChange?: (active: boolean) => void;
   canCreate: boolean;
   displayedPageHasMore: boolean;
+  /** The filters contradict each other: nothing is requested and the state says so. */
+  impossible?: boolean;
   items: Transaction[];
-  language: string;
   loadingMore: boolean;
-  month: string | null;
-  onClearMonth: () => void;
   onCreate: () => void;
   onLoadMore: () => void;
   onReloadFromFirstPage: () => void;
+  onResetFilters?: () => void;
+  /** Only uncategorized transactions are asked for: an empty list reads as a cleared queue. */
+  queue?: boolean;
   staleCursorError: boolean;
   transactions: Pick<UseQueryResult, 'isPending' | 'isError' | 'refetch'>;
   unauthorized: boolean;
@@ -62,18 +61,15 @@ export function AccountMovementsSection({
       <h3 className="sr-only" tabIndex={-1} data-transaction-focus-fallback>
         {t('accounts.detail.movements.title')}
       </h3>
-      {month !== null ? (
-        <p className={styles.periodNotice}>
-          {t('accounts.detail.movements.periodActive', {
-            month: formatCalendarMonth(`${month}-01`, language),
-          })}
-          <button className="secondary-action" onClick={onClearMonth} type="button">
-            {t('accounts.detail.movements.clearPeriod')}
-          </button>
-        </p>
-      ) : null}
-
-      {transactions.isPending ? (
+      {impossible ? (
+        <TransactionsState
+          canCreate={canCreate}
+          kind="impossible"
+          onCreate={onCreate}
+          onResetFilters={onResetFilters}
+          onRetry={() => void transactions.refetch()}
+        />
+      ) : transactions.isPending ? (
         <>
           {showBulkToolbar && onBulkModeChange ? (
             <BulkSelectionToolbar active={false} bulk={null} onToggleActive={() => {}} />
@@ -94,7 +90,7 @@ export function AccountMovementsSection({
       ) : items.length === 0 ? (
         <TransactionsState
           canCreate={canCreate}
-          kind="empty"
+          kind={queue ? 'queueEmpty' : 'empty'}
           onCreate={onCreate}
           onRetry={() => void transactions.refetch()}
         />
