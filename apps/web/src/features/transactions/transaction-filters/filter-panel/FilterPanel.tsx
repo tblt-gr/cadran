@@ -168,10 +168,20 @@ export function FilterPanel({
           <CategoryCheckboxTree
             categoryIds={filters.categoryId}
             includeDescendants={filters.includeDescendants}
-            onCategoryIdsChange={(next) => set('categoryId', next)}
+            onCategoryIdsChange={(next) =>
+              onChange({ ...filters, categoryId: next, categorization: 'ANY' })
+            }
             onIncludeDescendantsChange={(value) => set('includeDescendants', value)}
+            onUncategorizedChange={(value) =>
+              onChange(
+                value
+                  ? { ...filters, categorization: 'NONE', categoryId: [], axis: [] }
+                  : { ...filters, categorization: 'ANY' },
+              )
+            }
+            uncategorized={queue}
           />,
-          filters.categoryId.length,
+          filters.categoryId.length + (queue ? 1 : 0),
         )}
         {section(
           'natures',
@@ -210,7 +220,7 @@ export function FilterPanel({
           'axes',
           <CheckboxList
             legend={t('transactions.filters.sections.axes')}
-            onChange={(next) => set('axis', next)}
+            onChange={(next) => onChange({ ...filters, axis: next, categorization: 'ANY' })}
             options={AXES.map((value) => ({ value, label: t(`categories.axes.${value}`) }))}
             value={filters.axis}
           />,

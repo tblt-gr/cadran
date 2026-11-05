@@ -1,4 +1,3 @@
-import { CategorizationTabs } from '@/features/transactions/categorization-tabs/CategorizationTabs';
 import { MonthStepper } from '@/features/transactions/month-stepper/MonthStepper';
 import { shiftMonth } from '@/features/transactions/transaction-filters/filterState';
 import { TransactionFilters } from '@/features/transactions/transaction-filters/TransactionFilters';
@@ -158,13 +157,6 @@ export function AccountLedger({
               }
             />
           ) : null}
-          <CategorizationTabs
-            disabled={transactions.isPending && !impossible}
-            onChange={(next) =>
-              setFilters({ ...filters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
-            }
-            value={filters.categorization === 'NONE' ? 'NONE' : 'ALL'}
-          />
           <TransactionWorkflow
             accounts={transferAccounts}
             transactions={items}

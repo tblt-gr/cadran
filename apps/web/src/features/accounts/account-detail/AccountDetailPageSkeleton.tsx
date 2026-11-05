@@ -1,4 +1,3 @@
-import { CategorizationTabs } from '@/features/transactions/categorization-tabs/CategorizationTabs';
 import { MonthStepper } from '@/features/transactions/month-stepper/MonthStepper';
 import { decodeFilters } from '@/features/transactions/transaction-filters/filterState';
 import { TransactionFilters } from '@/features/transactions/transaction-filters/TransactionFilters';
@@ -44,11 +43,6 @@ export function AccountDetailPageSkeleton({
           {filters.period === 'month' ? (
             <MonthStepper disabled month={filters.month} onStep={() => undefined} />
           ) : null}
-          <CategorizationTabs
-            disabled
-            onChange={() => undefined}
-            value={filters.categorization === 'NONE' ? 'NONE' : 'ALL'}
-          />
           <AccountMovementsSectionSkeleton />
         </TransactionFilters>
       ) : tab === 'balance' ? (

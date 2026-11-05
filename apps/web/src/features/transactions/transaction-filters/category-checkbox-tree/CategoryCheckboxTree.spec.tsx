@@ -47,7 +47,12 @@ function respond(items: Category[]) {
   );
 }
 
-function renderTree(categoryIds: string[] = [], onCategoryIdsChange = vi.fn()) {
+function renderTree(
+  categoryIds: string[] = [],
+  onCategoryIdsChange = vi.fn(),
+  uncategorized = false,
+  onUncategorizedChange = vi.fn(),
+) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={client}>
@@ -56,6 +61,8 @@ function renderTree(categoryIds: string[] = [], onCategoryIdsChange = vi.fn()) {
         includeDescendants
         onCategoryIdsChange={onCategoryIdsChange}
         onIncludeDescendantsChange={vi.fn()}
+        onUncategorizedChange={onUncategorizedChange}
+        uncategorized={uncategorized}
       />
     </QueryClientProvider>,
   );
@@ -122,5 +129,20 @@ describe('CategoryCheckboxTree', () => {
     expect(screen.queryByRole('checkbox', { name: 'Catégorie 7' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Afficher plus (2)' }));
     expect(screen.getByRole('checkbox', { name: 'Catégorie 7' })).toBeTruthy();
+  });
+
+  it('heads the tree with an uncategorized checkbox', async () => {
+    respond([category({})]);
+    const onUncategorizedChange = vi.fn();
+    renderTree([], vi.fn(), false, onUncategorizedChange);
+
+    const uncategorized = screen.getByRole('checkbox', { name: 'Sans catégorie' });
+    await screen.findByRole('checkbox', { name: 'Alimentation' });
+    expect(
+      uncategorized.compareDocumentPosition(screen.getByRole('checkbox', { name: 'Alimentation' })),
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+
+    fireEvent.click(uncategorized);
+    expect(onUncategorizedChange).toHaveBeenCalledWith(true);
   });
 });

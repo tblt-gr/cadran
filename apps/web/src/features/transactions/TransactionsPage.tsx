@@ -4,7 +4,6 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
-import { CategorizationTabs } from './categorization-tabs/CategorizationTabs';
 import { shiftMonth } from './transaction-filters/filterState';
 import { MonthStepper } from './month-stepper/MonthStepper';
 import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
@@ -209,14 +208,6 @@ export function TransactionsPage() {
               }
             />
           ) : null}
-
-          <CategorizationTabs
-            disabled={initialLoading}
-            onChange={(next) =>
-              updateFilters({ ...searchFilters, categorization: next === 'NONE' ? 'NONE' : 'ANY' })
-            }
-            value={categorization}
-          />
 
           {impossible ? (
             <TransactionsState

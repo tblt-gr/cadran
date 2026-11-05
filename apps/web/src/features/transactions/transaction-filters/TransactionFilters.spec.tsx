@@ -442,6 +442,29 @@ describe('TransactionFilters', () => {
     expect(screen.getByRole('checkbox', { name: 'Sorties' })).toHaveProperty('checked', true);
   });
 
+  it('keeps "Sans catégorie" and picked categories exclusive', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [category], page: 1, pageSize: 100, total: 1 }),
+    );
+    renderControlledFilters({
+      accounts: [account],
+      initialFilters: { ...DEFAULT_FILTERS, axis: ['FIXED'], categoryId: [category.id] },
+    });
+    openSection('Catégories');
+    const picked = await screen.findByRole('checkbox', { name: 'Sorties' });
+    const uncategorized = screen.getByRole('checkbox', { name: 'Sans catégorie' });
+
+    fireEvent.click(uncategorized);
+    expect(uncategorized).toHaveProperty('checked', true);
+    expect(picked).toHaveProperty('checked', false);
+    expect(screen.queryByRole('button', { name: /Retirer le filtre Fixe/ })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Retirer le filtre Sans catégorie' })).toBeTruthy();
+
+    fireEvent.click(picked);
+    expect(uncategorized).toHaveProperty('checked', false);
+    expect(picked).toHaveProperty('checked', true);
+  });
+
   it('moves the amount bounds over the slider thresholds', () => {
     const onChange = vi.fn();
     renderFilters({

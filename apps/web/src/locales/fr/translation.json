@@ -2298,9 +2298,6 @@
     },
     "filters": {
       "allAccounts": "Tous les comptes",
-      "categorizationLabel": "Filtrer par catégorisation",
-      "categorizationAll": "Toutes",
-      "categorizationQueue": "À catégoriser",
       "toggle": "Filtres",
       "periodLabel": "Période",
       "period": {
@@ -2372,7 +2369,8 @@
       "noMaximum": "Sans limite",
       "accountsEmpty": "Aucun compte actif.",
       "categoriesEmpty": "Aucune catégorie.",
-      "categoriesUnavailable": "Les catégories n’ont pas pu être chargées."
+      "categoriesUnavailable": "Les catégories n’ont pas pu être chargées.",
+      "uncategorized": "Sans catégorie"
     },
     "queue": {
       "emptyTitle": "Rien à catégoriser",

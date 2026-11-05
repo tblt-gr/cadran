@@ -16,6 +16,9 @@ interface CategoryCheckboxTreeProps {
   includeDescendants: boolean;
   onCategoryIdsChange: (next: string[]) => void;
   onIncludeDescendantsChange: (value: boolean) => void;
+  onUncategorizedChange: (value: boolean) => void;
+  /** Only transactions with no category: exclusive with picking categories. */
+  uncategorized: boolean;
 }
 
 function bySortOrder(a: Category, b: Category): number {
@@ -24,14 +27,19 @@ function bySortOrder(a: Category, b: Category): number {
 
 /**
  * The category filter as the category tree itself, one checkbox per category with its colour
- * mark. Archived categories stay out of the tree unless already selected, so a filter restored
- * from the URL can always be unchecked where it was set.
+ * mark, headed by `Sans catégorie` for the transactions still to categorise. The two are
+ * exclusive: a transaction with no category matches no category, so checking one side clears
+ * the other rather than producing an always-empty list. Archived categories stay out of the
+ * tree unless already selected, so a filter restored from the URL can always be unchecked where
+ * it was set.
  */
 export function CategoryCheckboxTree({
   categoryIds,
   includeDescendants,
   onCategoryIdsChange,
   onIncludeDescendantsChange,
+  onUncategorizedChange,
+  uncategorized,
 }: CategoryCheckboxTreeProps) {
   const { t } = useTranslation();
   const identities = useCategoryIdentities();
@@ -133,6 +141,15 @@ export function CategoryCheckboxTree({
   return (
     <fieldset className={styles.group}>
       <legend className="sr-only">{legend}</legend>
+      <label className={`${styles.option} ${styles.uncategorized}`}>
+        <input
+          checked={uncategorized}
+          onChange={(event) => onUncategorizedChange(event.target.checked)}
+          type="checkbox"
+        />
+        <span aria-hidden="true" className={`${styles.mark} ${styles.neutral}`} />
+        <span className={styles.label}>{t('transactions.filters.uncategorized')}</span>
+      </label>
       {content}
       <label className={`${styles.option} ${styles.descendants}`}>
         <input

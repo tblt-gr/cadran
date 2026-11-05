@@ -21,8 +21,9 @@ interface UseFilterChipsOptions {
 
 /**
  * One chip per applied filter, each carrying the callback that clears just that filter. The
- * period, direction, account, state, nature, category, axis, source, amount and free-text
- * filters each contribute independently, so a chip's own clear never disturbs the others. An
+ * period, direction, account, state, nature, category, uncategorized, axis, source, amount and
+ * free-text filters each contribute independently, so a chip's own clear never disturbs the
+ * others. An
  * account or category chip never shows its identifier: a skeleton while the label is being
  * resolved, then the "unknown" wording if the workspace has no such record.
  */
@@ -133,6 +134,15 @@ export function useFilterChips({
           'categoryId',
           filters.categoryId.filter((candidate) => candidate !== id),
         ),
+    });
+  }
+  if (filters.categorization === 'NONE') {
+    const label = t('transactions.filters.uncategorized');
+    chips.push({
+      key: 'categorization',
+      label,
+      removeLabel: t('transactions.filters.clearChip', { label }),
+      onClear: () => set('categorization', 'ANY'),
     });
   }
   for (const value of filters.axis) {

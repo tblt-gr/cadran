@@ -48,7 +48,7 @@ export function AccountMovementsSection({
   onLoadMore: () => void;
   onReloadFromFirstPage: () => void;
   onResetFilters?: () => void;
-  /** The `À catégoriser` tab is active: an empty list reads as a cleared queue. */
+  /** Only uncategorized transactions are asked for: an empty list reads as a cleared queue. */
   queue?: boolean;
   staleCursorError: boolean;
   transactions: Pick<UseQueryResult, 'isPending' | 'isError' | 'refetch'>;

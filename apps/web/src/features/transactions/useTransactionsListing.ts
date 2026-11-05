@@ -2,7 +2,6 @@ import { listTransactions, type TransactionPage } from '@cadran/api-client';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import type { Categorization } from './categorization-tabs/CategorizationTabs';
 import {
   isImpossibleCombination,
   toListTransactionsQuery,
@@ -36,7 +35,7 @@ export function useTransactionsListing() {
   // it and a screen reader re-reads it even when the count happens to stay the same.
   const [loadSequence, setLoadSequence] = useState(1);
 
-  const categorization: Categorization = searchFilters.categorization === 'NONE' ? 'NONE' : 'ALL';
+  const categorization = searchFilters.categorization === 'NONE' ? 'NONE' : 'ALL';
 
   function updateFilters(next: typeof searchFilters, mode?: 'push') {
     setCursor(null);

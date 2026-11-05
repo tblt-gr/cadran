@@ -193,7 +193,7 @@ describe('TransactionsPage', () => {
     expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
   });
 
-  it('keeps the inline filter bar and the queue tabs as disabled real controls while loading', async () => {
+  it('keeps the search and the filter column as disabled real controls while loading', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -202,7 +202,9 @@ describe('TransactionsPage', () => {
 
     expect(screen.getByRole('searchbox')).toHaveProperty('disabled', true);
     expect(screen.getByRole('button', { name: 'Filtres' })).toHaveProperty('disabled', true);
-    expect(screen.getByText('À catégoriser').getAttribute('aria-disabled')).toBe('true');
+    expect(screen.getByRole('checkbox', { name: 'Sans catégorie' }).matches(':disabled')).toBe(
+      true,
+    );
     expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
   });
 
@@ -935,7 +937,7 @@ describe('TransactionsPage', () => {
     ).toBeTruthy();
   });
 
-  it('switches to the to-categorise queue, requests it and shows its own empty state', async () => {
+  it('filters on uncategorized transactions, requests the queue and shows its own empty state', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -946,7 +948,8 @@ describe('TransactionsPage', () => {
 
     expect(await screen.findByText(/CB CARREFOUR/, { selector: 'button' })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole('button', { name: 'À catégoriser' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sans catégorie' }));
+    expect(screen.getByRole('button', { name: 'Retirer le filtre Sans catégorie' })).toBeTruthy();
 
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenCalledWith(

@@ -124,7 +124,12 @@ describe('useFilterChips', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('does not chip the to-categorise tab, which the page shows on its own', () => {
-    expect(chipsFor({ ...DEFAULT_FILTERS, categorization: 'NONE' })).toEqual([]);
+  it('chips "Sans catégorie" and clears it back to every transaction', () => {
+    const onChange = vi.fn();
+    const chips = chipsFor({ ...DEFAULT_FILTERS, categorization: 'NONE' }, { onChange });
+
+    expect(chips.map((chip) => chip.label)).toEqual(['Sans catégorie']);
+    chips[0].onClear();
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ categorization: 'ANY' }));
   });
 });
