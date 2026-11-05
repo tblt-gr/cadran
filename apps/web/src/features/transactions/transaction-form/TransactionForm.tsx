@@ -369,13 +369,15 @@ export function TransactionForm({
         )}
 
         {!values.splitMode && values.categoryId !== '' && values.categoryType === 'EXPENSE' ? (
-          <SplitAxes
-            axes={values.analyticAxes}
-            compact={false}
-            defaultAxes={categoryDefaultAxes}
-            legend={t('transactions.form.axesLegend')}
-            onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
-          />
+          <div data-span="full">
+            <SplitAxes
+              axes={values.analyticAxes}
+              compact={false}
+              defaultAxes={categoryDefaultAxes}
+              legend={t('transactions.form.axesLegend')}
+              onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
+            />
+          </div>
         ) : null}
 
         <AdvancedTransactionFields

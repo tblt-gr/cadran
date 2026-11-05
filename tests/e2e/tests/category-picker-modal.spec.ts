@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import { settled } from './support/page';
 import { ownerStorageState } from './support/session';
 import { auditLayout } from './support/audit';
+import { auditAccessibility } from './support/a11y';
 import { openMovementEditModal } from './support/edit-movement';
 
 for (const kind of ['transaction', 'category', 'transaction edit'] as const) {
@@ -72,6 +73,38 @@ test('budget target modal category control has a mobile touch target', async ({ 
 });
 
 for (const width of [360, 1280]) {
+  test(`transaction analytic axes span the form at ${width}px`, async ({ browser }) => {
+    const context = await browser.newContext({
+      baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+      ignoreHTTPSErrors: true,
+      storageState: ownerStorageState,
+      viewport: { width, height: 800 },
+    });
+    try {
+      const page = await context.newPage();
+      await page.goto('/transactions');
+      await settled(page);
+      await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
+      const dialog = page.getByRole('dialog', { name: 'Nouvelle transaction' });
+      const picker = dialog.getByRole('combobox', { name: 'Catégorie' });
+      await picker.fill('Courses');
+      await dialog.getByRole('option', { name: 'Courses', exact: true }).click();
+      const axes = dialog.locator('details').filter({ hasText: 'Axes analytiques' });
+      const form = dialog.locator('form > div').first();
+      const formBox = (await form.boundingBox())!;
+      for (const open of [false, true]) {
+        if (open) await axes.locator('summary').click();
+        const axesBox = (await axes.boundingBox())!;
+        expect(Math.abs(axesBox.x - formBox.x)).toBeLessThan(1);
+        expect(Math.abs(axesBox.width - formBox.width)).toBeLessThan(1);
+      }
+      await expect(axes.getByRole('checkbox')).toHaveCount(6);
+      await auditAccessibility(page);
+    } finally {
+      await context.close();
+    }
+  });
+
   test(`category advanced checkbox labels remain horizontal at ${width}px`, async ({ browser }) => {
     const context = await browser.newContext({
       baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
