@@ -67,9 +67,8 @@ interface FilterPanelProps {
 }
 
 /**
- * Every filter of the transaction list, one collapsible section each. The everyday sections
- * start open; the rarer ones start closed unless they already hold a choice, so a filter
- * restored from the URL is never hidden.
+ * Every filter of the transaction list, one collapsible section each, all closed until opened.
+ * A section holding choices names their count beside its title.
  */
 export function FilterPanel({
   accounts,
@@ -84,17 +83,8 @@ export function FilterPanel({
   titleId,
 }: FilterPanelProps) {
   const { t } = useTranslation();
-  const [open, setOpen] = useState<Record<Section, boolean>>(() => ({
-    period: true,
-    direction: true,
-    amount: true,
-    accounts: true,
-    categories: true,
-    natures: filters.nature.length > 0,
-    states: filters.state.length > 0,
-    sources: filters.source.length > 0,
-    axes: filters.axis.length > 0,
-  }));
+  // Every section starts closed: the chips above the list already say what is applied.
+  const [open, setOpen] = useState<Partial<Record<Section, boolean>>>({});
   const queue = filters.categorization === 'NONE';
 
   function set<K extends keyof TransactionFilterState>(key: K, value: TransactionFilterState[K]) {
@@ -106,7 +96,7 @@ export function FilterPanel({
       <Disclosure
         meta={selected > 0 ? t('transactions.filters.selectedCount', { count: selected }) : null}
         onToggle={(next) => setOpen((current) => ({ ...current, [key]: next }))}
-        open={open[key]}
+        open={open[key] ?? false}
         title={t(`transactions.filters.sections.${key}`)}
       >
         {content}

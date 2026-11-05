@@ -116,6 +116,10 @@ function section(title: string) {
   return summary?.closest('details') ?? null;
 }
 
+function openSection(title: string) {
+  fireEvent.click(section(title)!.querySelector('summary')!);
+}
+
 /** Narrow screens open the filters in a sheet; jsdom has no `matchMedia`, so it is stubbed. */
 function stubCompactScreen() {
   vi.stubGlobal('matchMedia', (query: string) => ({
@@ -179,7 +183,7 @@ describe('TransactionFilters', () => {
     expect(filterColumn()?.hidden).toBe(false);
   });
 
-  it('opens the everyday sections and a rarer one only when it holds a choice', () => {
+  it('starts with every section closed, a section holding choices naming their count', () => {
     renderFilters({
       accounts: [account],
       filters: { ...DEFAULT_FILTERS, state: ['BOOKED'] },
@@ -187,12 +191,9 @@ describe('TransactionFilters', () => {
       onReset: vi.fn(),
     });
 
-    for (const title of ['Période', 'Sens', 'Montant', 'Comptes', 'Catégories', 'État']) {
-      expect(section(title)?.open).toBe(true);
-    }
-    for (const title of ['Nature', 'Origine', 'Axes analytiques']) {
-      expect(section(title)?.open).toBe(false);
-    }
+    const sections = [...filterColumn()!.querySelectorAll('details')];
+    expect(sections).toHaveLength(9);
+    expect(sections.every((details) => !details.open)).toBe(true);
     expect(section('État')?.querySelector('summary')?.textContent).toContain('1 choix');
   });
 
@@ -281,7 +282,7 @@ describe('TransactionFilters', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
-    fireEvent.click(section('État')!.querySelector('summary')!);
+    openSection('État');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ state: ['BOOKED'] }));
@@ -291,6 +292,7 @@ describe('TransactionFilters', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
+    openSection('Sens');
     fireEvent.click(screen.getByRole('button', { name: 'Sorties' }));
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ direction: 'OUTFLOW' }));
@@ -300,6 +302,7 @@ describe('TransactionFilters', () => {
     const onChange = vi.fn();
     renderFilters({ accounts: [account], filters: DEFAULT_FILTERS, onChange, onReset: vi.fn() });
 
+    openSection('Montant');
     fireEvent.change(screen.getByLabelText('Montant max'), { target: { value: '-200,00' } });
 
     expect(onChange).toHaveBeenCalledWith(
@@ -431,6 +434,7 @@ describe('TransactionFilters', () => {
     );
     renderControlledFilters({ accounts: [account], initialFilters: DEFAULT_FILTERS });
 
+    openSection('Catégories');
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Sorties' }));
 
     expect(screen.queryByText(category.id)).toBeNull();
@@ -446,6 +450,7 @@ describe('TransactionFilters', () => {
       onChange,
       onReset: vi.fn(),
     });
+    openSection('Montant');
     const minimum = screen.getByRole('slider', { name: 'Montant minimum' });
     const maximum = screen.getByRole('slider', { name: 'Montant maximum' });
     expect(minimum.getAttribute('aria-valuetext')).toMatch(/^10,00\s€$/);
