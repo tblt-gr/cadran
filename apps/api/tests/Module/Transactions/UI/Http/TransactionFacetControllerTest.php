@@ -290,11 +290,15 @@ final class TransactionFacetControllerTest extends WebTestCase
     {
         $this->client->disableReboot();
         // Refused requests spend the budget too: it is consumed before anything else is read.
-        for ($request = 1; $request <= 120; ++$request) {
+        $this->client->request('GET', '/api/v1/transactions/facets?pageSize=1');
+        self::assertResponseStatusCodeSame(400, 'request 1');
+        $windowStartedNoLaterThan = microtime(true);
+        for ($request = 2; $request <= 120; ++$request) {
             $this->client->request('GET', '/api/v1/transactions/facets?pageSize=1');
             self::assertResponseStatusCodeSame(400, 'request '.$request);
         }
 
+        $retryRequestStartedAt = time();
         $this->client->request('GET', '/api/v1/transactions/facets');
         self::assertResponseStatusCodeSame(429);
         self::assertStringStartsWith('application/problem+json', (string) $this->client->getResponse()->headers->get('Content-Type'));
@@ -302,7 +306,11 @@ final class TransactionFacetControllerTest extends WebTestCase
         $retryAfter = $this->client->getResponse()->headers->get('Retry-After');
         self::assertNotNull($retryAfter);
         self::assertMatchesRegularExpression('/^[1-9][0-9]*$/D', $retryAfter);
-        self::assertLessThanOrEqual(60, (int) $retryAfter);
+        // Symfony rounds the window's retry timestamp up; HTTP subtracts whole current seconds.
+        // A one-minute window can therefore advertise 61 seconds. Bound it by its latest possible
+        // end, accounting for the time already spent making the accepted requests.
+        $latestRetryAt = (int) ceil($windowStartedNoLaterThan + 60);
+        self::assertLessThanOrEqual(max(1, $latestRetryAt - $retryRequestStartedAt), (int) $retryAfter);
         $problem = $this->decode();
         self::assertSame(429, $problem['status']);
 
