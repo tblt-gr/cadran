@@ -12,6 +12,7 @@ import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { workspaceToday } from '@/lib/workspaceTime';
+import { useUncategorizedCount, uncategorizedCountKey } from './useUncategorizedCount';
 import { monthHref, parseBudgetMonth, readAxis, type BudgetAxis } from './budgetPeriod';
 import { useActiveBudgetAccounts } from './budget-creation-modals/useActiveBudgetAccounts';
 import {
@@ -88,6 +89,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   });
 
   const activeAccounts = useActiveBudgetAccounts(parsed.kind === 'valid');
+  const uncategorizedCount = useUncategorizedCount(parsed.kind === 'valid' ? parsed.month : null);
   const activeAccountIds = activeAccounts.data
     ? new Set(activeAccounts.data.map((account) => account.id))
     : null;
@@ -158,6 +160,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger-movements', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-recap', month] }),
+      queryClient.invalidateQueries({ queryKey: uncategorizedCountKey(month!) }),
     ]);
   }
 
@@ -195,6 +198,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         month={month}
         onRetry={() => void history.bounds.refetch()}
         status={history.status}
+        uncategorizedCount={uncategorizedCount}
       />
       {history.correctedTo !== null ? (
         <p aria-live="polite" className="sr-only" key={history.correctionKey} role="status">

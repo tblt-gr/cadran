@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { movementRows, navigateTo, settled, uniqueLabel } from './support/page';
+import { movementRows, settled, uniqueLabel } from './support/page';
 
 test.describe('transaction entry', () => {
   test('creates a transaction with a category created on the fly', async ({ page }) => {
@@ -7,7 +7,8 @@ test.describe('transaction entry', () => {
     const category = uniqueLabel('E2E catégorie');
 
     await page.goto('/');
-    await navigateTo(page, 'Transactions');
+    await page.goto('/transactions');
+    await settled(page);
 
     await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
     const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });

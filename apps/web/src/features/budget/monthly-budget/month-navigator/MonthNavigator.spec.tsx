@@ -254,4 +254,47 @@ describe('MonthNavigator', () => {
       expect(window.location.pathname).toBe('/budget/2024');
     });
   });
+
+  it('links the uncategorized reminder to the month queue, in the month view only', () => {
+    const { rerender } = render(
+      <MonthNavigator
+        axis={null}
+        currentMonth="2026-10"
+        firstDataMonth="2020-01"
+        month="2026-10"
+        uncategorizedCount={3}
+      />,
+    );
+
+    expect(
+      screen.getByRole('link', { name: '3 transactions à catégoriser' }).getAttribute('href'),
+    ).toBe('/transactions?categorization=NONE&period=month&month=2026-10');
+
+    rerender(
+      <MonthNavigator
+        axis={null}
+        currentMonth="2026-10"
+        firstDataMonth="2020-01"
+        month={null}
+        uncategorizedCount={3}
+        year={2026}
+      />,
+    );
+    expect(screen.queryByRole('link', { name: /à catégoriser/ })).toBeNull();
+  });
+
+  it.each([0, null])('renders an empty reserved slot for a count of %s', (count) => {
+    const { container } = render(
+      <MonthNavigator
+        axis={null}
+        currentMonth="2026-10"
+        firstDataMonth="2020-01"
+        month="2026-10"
+        uncategorizedCount={count}
+      />,
+    );
+
+    expect(screen.queryByRole('link', { name: /à catégoriser/ })).toBeNull();
+    expect(container.querySelector('section > div:empty')).not.toBeNull();
+  });
 });

@@ -19,6 +19,8 @@ interface MonthNavigatorProps {
   onRetry?: () => void;
   /** Bounds query state: controls stay disabled until it is `ready`. */
   status?: 'loading' | 'error' | 'ready';
+  /** Month view only: uncategorized transactions of `month`; null or 0 shows no reminder. */
+  uncategorizedCount?: number | null;
   /** Selected year; defaults to the year of `month`, required on the annual view. */
   year?: number;
 }
@@ -30,6 +32,7 @@ export function MonthNavigator({
   month,
   onRetry,
   status = 'ready',
+  uncategorizedCount = null,
   year,
 }: MonthNavigatorProps) {
   const { t, i18n } = useTranslation();
@@ -142,6 +145,20 @@ export function MonthNavigator({
         )}
       </nav>
 
+      {month === null ? null : (
+        // The slot is always laid out: the reminder fills it without moving anything.
+        <div className={styles.reminder}>
+          {uncategorizedCount !== null && uncategorizedCount > 0 ? (
+            <a
+              href={uncategorizedHref(month)}
+              onClick={(event) => handleClientNavigation(event, uncategorizedHref(month))}
+            >
+              {t('budget.monthly.uncategorized', { count: uncategorizedCount })}
+            </a>
+          ) : null}
+        </div>
+      )}
+
       {status === 'error' ? (
         <div className={styles.retry} role="alert">
           <span>{t('budget.monthly.boundsError')}</span>
@@ -152,6 +169,11 @@ export function MonthNavigator({
       ) : null}
     </section>
   );
+}
+
+/** The queue of the month's uncategorized transactions, same filters as the reminder count. */
+function uncategorizedHref(month: string) {
+  return `/transactions?categorization=NONE&period=month&month=${month}`;
 }
 
 /** The strip scrolls on a narrow screen: bring the selected month into view, not the page. */

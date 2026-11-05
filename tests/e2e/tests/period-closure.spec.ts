@@ -73,7 +73,8 @@ test.describe('period closure', () => {
     await expect(closurePanel).toBeHidden();
 
     await test.step('a transaction dated in the closed month is refused with the shared reason', async () => {
-      await navigateTo(page, 'Transactions');
+      await page.goto('/transactions');
+      await settled(page);
       await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
       const editor = page.getByRole('dialog');
       await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });

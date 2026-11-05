@@ -33,20 +33,10 @@ export const navigationItems: NavigationItem[] = [
     href: '/budget',
     icon: 'budget',
     labelKey: 'navigation.budget',
-    match: (path) => path === '/budget' || path.startsWith('/budget/'),
-    mobile: true,
-  },
-  {
-    href: '/goals',
-    icon: 'goals',
-    labelKey: 'navigation.goals',
-    match: (path) => path === '/goals',
-  },
-  {
-    href: '/transactions',
-    icon: 'transactions',
-    labelKey: 'navigation.transactions',
+    // Transactions, categories and recurrences are reached from the Budget, which stays active.
     match: (path) =>
+      path === '/budget' ||
+      path.startsWith('/budget/') ||
       [
         '/transactions',
         '/transactions/recurrences',
@@ -54,6 +44,12 @@ export const navigationItems: NavigationItem[] = [
         '/transactions/categories/rules',
       ].includes(path),
     mobile: true,
+  },
+  {
+    href: '/goals',
+    icon: 'goals',
+    labelKey: 'navigation.goals',
+    match: (path) => path === '/goals',
   },
   {
     href: '/parameters/interface',
@@ -68,6 +64,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
     return 'routes.categorizationRules';
   if (pathname === '/categories' || pathname === '/transactions/categories')
     return 'routes.categories';
+  if (pathname === '/transactions') return 'routes.transactions';
   if (pathname === '/transactions/recurrences') return 'routes.recurrences';
   if (pathname === '/accounts/groups') return 'navigation.accountGroups';
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';

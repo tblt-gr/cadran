@@ -1,5 +1,5 @@
 import { useHeaderActionsSlot } from './HeaderActionsContext';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -9,6 +9,8 @@ interface HeaderProps {
   /** Present when the label names a problem the user can open and fix. */
   onFreshnessClick?: () => void;
   title: string;
+  /** Receives focus after a navigation, so keyboard and screen reader users land on the new page. */
+  titleRef?: Ref<HTMLHeadingElement>;
   subtitle?: string;
 }
 
@@ -18,6 +20,7 @@ export function Header({
   headerDate,
   onFreshnessClick,
   title,
+  titleRef,
   subtitle,
 }: HeaderProps) {
   const setActionsSlot = useHeaderActionsSlot();
@@ -30,7 +33,9 @@ export function Header({
             {headerDate}
           </p>
         ) : null}
-        <h1>{title}</h1>
+        <h1 ref={titleRef} tabIndex={-1}>
+          {title}
+        </h1>
         {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
       </div>
       <div className={styles.actions}>

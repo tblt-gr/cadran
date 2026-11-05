@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { navigateFromPage } from '@/hooks/use-client-navigation';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 
@@ -25,6 +26,27 @@ export function MonthlyBudgetActions({
       <ActionMenu
         disabled={disabled}
         items={[
+          {
+            icon: 'transactions',
+            id: 'transactions',
+            label: t('budget.monthly.allTransactions'),
+            onSelect: () => navigateFromPage(`/transactions?period=month&month=${month}`),
+            text: t('budget.monthly.allTransactions'),
+          },
+          {
+            icon: 'categories',
+            id: 'categories',
+            label: t('budget.monthly.manageCategories'),
+            onSelect: () => navigateFromPage('/transactions/categories'),
+            text: t('budget.monthly.manageCategories'),
+          },
+          {
+            icon: 'repeat',
+            id: 'recurrences',
+            label: t('budget.monthly.manageRecurrences'),
+            onSelect: () => navigateFromPage('/transactions/recurrences'),
+            text: t('budget.monthly.manageRecurrences'),
+          },
           {
             icon: 'lock',
             id: 'closure',

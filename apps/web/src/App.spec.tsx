@@ -1,6 +1,15 @@
 import { annualPreferences, annualReport } from '@/features/reports/annual/annualFixtures';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, configure, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  cleanup,
+  configure,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import './i18n';
 import App from './App';
@@ -95,6 +104,10 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
 
       if (url.includes('/api/v1/reports/annual/')) {
         return jsonResponse(annualReport);
+      }
+
+      if (url.includes('/api/v1/transactions/count')) {
+        return jsonResponse({ count: 0 });
       }
 
       if (url.includes('/api/v1/transactions')) {
@@ -247,6 +260,35 @@ describe('App', () => {
     expect(screen.queryByText(/^Version/)).toBeNull();
   });
 
+  it('moves focus to the new page title after opening categories from the Budget menu', async () => {
+    mockApi();
+    const base = globalThis.fetch;
+    // A failed ledger keeps the menu reachable and spares this test a full ledger payload.
+    vi.stubGlobal('fetch', async (input: Request | string, init?: RequestInit) =>
+      (typeof input === 'string' ? input : input.url).includes('/reports/monthly/ledger')
+        ? new Response('{}', { status: 500 })
+        : base(input, init),
+    );
+    window.history.replaceState({}, '', '/budget/2026/03');
+
+    renderApp();
+
+    await screen.findByRole('button', { name: 'Autres actions' });
+    // The header actions remount when the ledger answers: read the button afresh each time.
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement).disabled,
+      ).toBe(false),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+    const entry = await screen.findByRole('button', { name: 'Gérer les catégories' });
+    entry.focus();
+    fireEvent.click(entry);
+    await waitFor(() => expect(window.location.pathname).toBe('/transactions/categories'));
+    const title = await screen.findByRole('heading', { level: 1, name: 'Catégories' });
+    await waitFor(() => expect(document.activeElement).toBe(title));
+  });
+
   it('scaffolds application routes with client-side navigation', async () => {
     mockApi();
 
@@ -254,9 +296,13 @@ describe('App', () => {
     await screen.findByRole('heading', { name: 'Synthèse' });
     await waitFor(() => expect(screen.queryByTestId('session-probe-skeleton')).toBeNull());
 
-    fireEvent.click(screen.getAllByRole('link', { name: 'Transactions' })[0]);
+    expect(screen.queryByRole('link', { name: 'Transactions' })).toBeNull();
+    window.history.pushState({}, '', '/transactions');
+    act(() => {
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
 
-    expect(screen.getByRole('heading', { name: 'Transactions' })).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Transactions' })).toBeTruthy();
     expect(window.location.pathname).toBe('/transactions');
     await waitFor(() => expect(document.title).toBe('Transactions · Cadran Budget'));
   });
@@ -271,10 +317,11 @@ describe('App', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Gérer les catégories' }));
 
     expect(window.location.pathname).toBe('/transactions/categories');
-    const transactionLinks = await screen.findAllByRole('link', { name: 'Transactions' });
-    expect(transactionLinks.some((link) => link.getAttribute('aria-current') === 'page')).toBe(
-      true,
-    );
+    // Transactions left the sidebar: only the breadcrumb links to it.
+    expect(await screen.findByRole('link', { name: 'Transactions' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Budget', current: false })).toBeTruthy();
+    const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Budget');
     expect(screen.queryByRole('link', { name: 'Catégories' })).toBeNull();
 
     // The categories page replaces Transactions once its chunk has loaded.
