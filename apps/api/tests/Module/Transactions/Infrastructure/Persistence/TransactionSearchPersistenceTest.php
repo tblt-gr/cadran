@@ -233,6 +233,21 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         );
     }
 
+    public function testCategorizationNoneExcludesTransferLegsFromListAndCountButNotFromThePlainListing(): void
+    {
+        $expense = $this->add('00000000-0000-7000-8000-0000000000fd', '-1.00');
+        $leg = $this->add('00000000-0000-7000-8000-0000000000fe', '-2.00', nature: TransactionNature::TRANSFER);
+        $queue = new TransactionFilters(categorizationNone: true);
+
+        self::assertSame([$expense], array_column($this->repository->search(WorkspaceFixture::own(), $queue, 10, null), 'id'));
+        self::assertSame(1, $this->repository->countMatching(WorkspaceFixture::own(), $queue));
+        self::assertEqualsCanonicalizing(
+            [$expense, $leg],
+            array_column($this->repository->search(WorkspaceFixture::own(), new TransactionFilters(), 10, null), 'id'),
+        );
+        self::assertSame(2, $this->repository->countMatching(WorkspaceFixture::own(), new TransactionFilters()));
+    }
+
     public function testWatermarkIsNullForAWorkspaceHoldingNoTransaction(): void
     {
         self::assertNull($this->repository->watermark(WorkspaceFixture::own()));
@@ -303,6 +318,7 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         ?TransactionSource $source = null,
         string $label = 'CB TEST',
         ?string $userLabel = null,
+        ?TransactionNature $nature = null,
     ): string {
         $now = new \DateTimeImmutable('2026-03-14T09:12:04+00:00');
         $workspace = WorkspaceFixture::own();
@@ -314,7 +330,7 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         $this->repository->add(new Transaction(
             id: $id, workspace: $workspace, accountId: self::OWN_ACCOUNT, amount: $value,
             originalAmount: null, exchangeRate: null, state: $state ?? TransactionState::BOOKED,
-            nature: str_starts_with($amount, '-') ? TransactionNature::EXPENSE : TransactionNature::INCOME, source: $source ?? TransactionSource::MANUAL, sourceRef: null,
+            nature: $nature ?? (str_starts_with($amount, '-') ? TransactionNature::EXPENSE : TransactionNature::INCOME), source: $source ?? TransactionSource::MANUAL, sourceRef: null,
             bookedOn: new \DateTimeImmutable('2026-03-14'), valueOn: null, authorizedOn: null,
             rawLabel: $label, counterparty: null, note: null, paymentMethod: null, mcc: null,
             maskedCard: null, bankReference: null, splits: $splits, version: 1, createdAt: $now,
