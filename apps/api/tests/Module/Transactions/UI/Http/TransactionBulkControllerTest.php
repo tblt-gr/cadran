@@ -510,6 +510,24 @@ final class TransactionBulkControllerTest extends WebTestCase
         self::assertTrue($this->splitEqualsTransactionAmount($refund));
     }
 
+    public function testABulkEditSpanningManyMonthsSucceedsAndItsReplayReturnsTheSameResult(): void
+    {
+        $ids = [];
+        for ($month = 1; $month <= 10; ++$month) {
+            $ids[] = $this->expense('-10.00', self::EXPENSE_A, bookedOn: sprintf('2026-%02d-15', $month));
+        }
+
+        $this->edit(['note' => 'sur dix mois'], $this->ids($ids), 'bulk-many-months-0001');
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(10, $this->decode()['changed']);
+        $first = $this->decode();
+
+        $this->edit(['note' => 'sur dix mois'], $this->ids($ids), 'bulk-many-months-0001');
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertEquals($first, $this->decode());
+    }
+
     public function testAFilterScopeEditsTheMatchingSetOnly(): void
     {
         $match = $this->expense('-10.00', self::EXPENSE_A, label: 'CB AMAZON PRIME');

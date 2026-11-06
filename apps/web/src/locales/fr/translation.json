@@ -2555,7 +2555,7 @@
       },
       "label": {
         "mode": "Façon de modifier le libellé",
-        "same": "Tout pareil",
+        "same": "Identique pour toutes",
         "each": "Un par un",
         "eachLimit": "Disponible pour 100 transactions sélectionnées au plus.",
         "current": "Libellés actuels",
