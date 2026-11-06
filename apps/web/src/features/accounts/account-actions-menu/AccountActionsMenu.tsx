@@ -21,12 +21,14 @@ export function AccountActionsMenu({
   onAddTransfer,
   onReconcile,
   onRecordValuation,
+  onTakeover,
   onRules,
 }: {
   account?: Account;
   onAddTransfer?: () => void;
   onReconcile?: () => void;
   onRecordValuation?: () => void;
+  onTakeover?: () => void;
   onRules: () => void;
 }) {
   const { t } = useTranslation();
@@ -56,6 +58,7 @@ export function AccountActionsMenu({
       onReconcile,
       onRecordBalance: () => setRecording(account),
       onRecordValuation,
+      onTakeover,
       onRules,
     },
     t,

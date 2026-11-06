@@ -846,6 +846,18 @@ api:
     invalid_valuation_payload:
       title: 'Corps de valorisation invalide'
       detail: 'Le corps ne porte que des champs déclarés, du bon type.'
+    portfolio_takeover_exists:
+      title: 'Reprise déjà enregistrée'
+      detail: 'Ce compte a déjà repris ses positions.'
+    portfolio_takeover_not_empty:
+      title: 'Compte déjà alimenté'
+      detail: 'La reprise ne s’applique qu’à un compte sans valorisation ni opération sur titres, et sans mouvement d’espèces jusqu’à la date de reprise.'
+    portfolio_takeover_not_supported:
+      title: 'Reprise non disponible pour ce compte'
+      detail: 'La reprise concerne un compte-titres actif suivi en mode portefeuille.'
+    invalid_portfolio_takeover:
+      title: 'Reprise invalide'
+      detail: 'Au moins une ligne ou la date de reprise ne respecte pas les règles ; chaque erreur est détaillée.'
     portfolio_valuation_not_found:
       title: 'Valorisation introuvable'
       detail: 'Aucune valorisation ne porte cet identifiant dans cet espace de travail.'

@@ -47,7 +47,7 @@ final class SeedDemoDataTest extends KernelTestCase
 
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
-        self::assertSame(4, $summary->accounts);
+        self::assertSame(5, $summary->accounts);
         self::assertSame(20, $this->rows(
             'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
             [$workspace = WorkspaceFixture::OWN_WORKSPACE],
@@ -82,7 +82,7 @@ final class SeedDemoDataTest extends KernelTestCase
             [$workspace],
         ));
         // Every account, including the contract valued from its holdings, is reconciled before closing.
-        self::assertSame(4 * $summary->closedMonths + 1, $this->rows(
+        self::assertSame(4 * $summary->closedMonths + 1 + 2, $this->rows(
             "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND reconciliation_status = 'RECONCILED' AND as_of = (date_trunc('month', as_of) + interval '1 month - 1 day')::date",
             [$workspace],
         ));
@@ -91,6 +91,33 @@ final class SeedDemoDataTest extends KernelTestCase
             "SELECT COUNT(*) FROM account_balance_snapshots WHERE workspace_id = ? AND source = 'CALCULATED' AND reconciliation_status = 'RECONCILED' AND superseded_at IS NULL AND as_of = (date_trunc('month', current_date) - interval '1 month' + interval '6 days')::date",
             [$workspace],
         ));
+    }
+
+    public function testTheDemoPeaIsOpenedThroughATakeoverAndValuedEveryClosedMonthAfterIt(): void
+    {
+        $seed = self::getContainer()->get(SeedDemoData::class);
+        self::assertInstanceOf(SeedDemoData::class, $seed);
+        $seed(WorkspaceFixture::OWNER_EMAIL);
+        $workspace = WorkspaceFixture::OWN_WORKSPACE;
+
+        $account = $this->connection->fetchOne("SELECT id FROM account_financial_accounts WHERE workspace_id = ? AND label = 'PEA' AND kind = 'PORTFOLIO' AND valuation_mode = 'PORTFOLIO'", [$workspace]);
+        self::assertIsString($account);
+        $takeover = $this->connection->fetchAssociative('SELECT taken_over_on::text AS day, valuation_id FROM portfolio_takeovers WHERE workspace_id = ? AND account_id = ?', [$workspace, $account]);
+        self::assertIsArray($takeover);
+        $day = $takeover['day'];
+        self::assertIsString($day);
+        self::assertSame(
+            substr($day, 0, 7),
+            (new \DateTimeImmutable('first day of this month -2 months'))->format('Y-m'),
+        );
+        self::assertSame((new \DateTimeImmutable($day))->format('Y-m-t'), $day);
+        self::assertSame(
+            ['SECURITY_TRANSFER_IN', 'SECURITY_TRANSFER_IN', 'DEPOSIT'],
+            $this->connection->fetchFirstColumn('SELECT operation_type FROM portfolio_operations WHERE workspace_id = ? AND account_id = ? ORDER BY sequence', [$workspace, $account]),
+        );
+        self::assertSame('POSITIONS', $this->connection->fetchOne('SELECT detail FROM portfolio_valuations WHERE id = ?', [$takeover['valuation_id']]));
+        // One total valuation for the closed month after the takeover month.
+        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND detail = 'TOTAL' AND superseded_at IS NULL", [$workspace, $account]));
     }
 
     public function testTheDemoLifeInsuranceContractCarriesItsSupportsFeeTermsAndRates(): void
@@ -155,7 +182,8 @@ final class SeedDemoDataTest extends KernelTestCase
 
         // The opening deposit equals the opening balance and is not linked to any leg.
         self::assertSame('5000.00', $this->connection->fetchOne(
-            "SELECT trim(trailing '0' from gross_amount_value::text)||'00' FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'DEPOSIT' AND linked_transaction_id IS NULL AND state = 'ACTIVE'",
+            "SELECT trim(trailing '0' from gross_amount_value::text)||'00' FROM portfolio_operations WHERE workspace_id = ? AND operation_type = 'DEPOSIT' AND linked_transaction_id IS NULL AND state = 'ACTIVE'
+             AND account_id = (SELECT id FROM account_financial_accounts WHERE workspace_id = portfolio_operations.workspace_id AND label = 'Compte-titres')",
             [$workspace],
         ));
         // Every monthly investment leg backs one linked deposit, bought into the same day.
@@ -193,7 +221,7 @@ final class SeedDemoDataTest extends KernelTestCase
         $active = 'workspace_id = ? AND superseded_at IS NULL';
 
         self::assertSame(0, $this->rows("SELECT COUNT(*) FROM account_balance_snapshots s JOIN account_financial_accounts a ON a.id = s.account_id WHERE s.workspace_id = ? AND a.valuation_mode = 'PORTFOLIO' AND s.source = 'MANUAL'", [$workspace]));
-        self::assertSame(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND account_id IN (SELECT id FROM account_financial_accounts WHERE kind = 'PORTFOLIO') AND detail = 'POSITIONS' AND completeness = 'COMPLETE'", [$workspace]));
+        self::assertSame(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND account_id IN (SELECT id FROM account_financial_accounts WHERE kind = 'PORTFOLIO' AND label = 'Compte-titres') AND detail = 'POSITIONS' AND completeness = 'COMPLETE'", [$workspace]));
         self::assertGreaterThan(3, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND detail = 'TOTAL'", [$workspace]));
         self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE $active AND completeness = 'PARTIAL' AND total_value_value IS NULL", [$workspace]));
         // A price keeps the date it was observed on: an instrument last priced long ago is honestly stale.

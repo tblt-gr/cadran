@@ -50,6 +50,9 @@ const api = vi.hoisted(() => ({
   listProductModels: vi.fn(),
   listTransactions: vi.fn(),
   readPortfolioOperation: vi.fn(),
+  readPortfolioTakeover: vi.fn(),
+  previewPortfolioTakeover: vi.fn(),
+  recordPortfolioTakeover: vi.fn(),
   recordPortfolioOperation: vi.fn(),
   voidPortfolioOperation: vi.fn(),
 }));
@@ -94,6 +97,15 @@ const account = {
   },
 } as Account;
 
+function takeoverState(patch: object = {}) {
+  return {
+    eligible: true,
+    reason: null,
+    defaultDate: '2026-02-28',
+    takeover: null,
+    ...patch,
+  };
+}
 function ok<T>(data: T, status = 200) {
   return Promise.resolve({ data, response: new Response('{}', { status }) });
 }
@@ -225,6 +237,7 @@ beforeEach(() => {
   );
   api.listPortfolioOperations.mockImplementation(() => page([deposit]));
   api.listPortfolioPositions.mockImplementation(() => ok({ asOf: '2026-03-10', items: [] }));
+  api.readPortfolioTakeover.mockImplementation(() => ok(takeoverState({ eligible: false })));
 });
 afterEach(() => {
   cleanup();
@@ -1326,4 +1339,74 @@ it('keeps lot and day-order dialogs available alongside observed insurance suppo
   expect(
     await screen.findByRole('dialog', { name: 'Réordonner la journée du 01/03/2026' }),
   ).toBeTruthy();
+});
+
+describe('PortfolioAccountPage takeover', () => {
+  it('offers the takeover from the empty positions, the overview and the account menu', async () => {
+    api.readPortfolioTakeover.mockImplementation(() => ok(takeoverState()));
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+    const view = renderPage();
+    await screen.findByText('Aucune position à cette date');
+    const button = await screen.findByRole('button', { name: 'Saisir mes positions' });
+    expect(menuItem('Saisir mes positions').disabled).toBe(false);
+    expect(button).toBeTruthy();
+    view.unmount();
+
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+    renderPage();
+    expect(await screen.findByText('Vos positions ne sont pas encore saisies')).toBeTruthy();
+  });
+
+  it.each(['ALREADY_TAKEN_OVER', 'SECURITY_OPERATION', 'NOT_SUPPORTED'] as const)(
+    'offers nothing once the state says %s',
+    async (reason) => {
+      api.readPortfolioTakeover.mockImplementation(() =>
+        ok(takeoverState({ eligible: false, reason })),
+      );
+      window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+      renderPage();
+      await screen.findByText('Aucune position à cette date');
+      await waitFor(() => expect(api.readPortfolioTakeover).toHaveBeenCalled());
+      expect(screen.queryByRole('button', { name: 'Saisir mes positions' })).toBeNull();
+      expect(screen.queryByRole('button', { name: /^Saisir mes positions/ })).toBeNull();
+    },
+  );
+
+  it('opens the modal on the default date, then confirms the takeover in the page notice', async () => {
+    api.readPortfolioTakeover.mockImplementation(() => ok(takeoverState()));
+    api.previewPortfolioTakeover.mockImplementation(() =>
+      ok({ lines: [], securitiesValue: null, cash: '0', totalValue: null, errors: [] }),
+    );
+    api.listInstruments.mockImplementation(() =>
+      ok({
+        items: [{ id: 'i-1', name: 'World ETF', isin: null, ticker: null, instrumentType: 'ETF' }],
+        page: 1,
+        pageSize: 20,
+        total: 1,
+      }),
+    );
+    api.recordPortfolioTakeover.mockImplementation(() =>
+      ok({ id: 't-1', takenOverOn: '2026-02-28' }, 201),
+    );
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Saisir mes positions' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Saisir mes positions' });
+    expect((within(dialog).getByLabelText('Date de reprise') as HTMLInputElement).value).toBe(
+      '2026-02-28',
+    );
+    fireEvent.focus(within(dialog).getByRole('combobox', { name: 'Instrument' }));
+    fireEvent.mouseDown(await within(dialog).findByRole('option', { name: /World ETF/ }));
+    fireEvent.change(within(dialog).getByLabelText('Quantité'), { target: { value: '5' } });
+    fireEvent.change(within(dialog).getByLabelText('Cours'), { target: { value: '100' } });
+    api.readPortfolioTakeover.mockImplementation(() =>
+      ok(takeoverState({ eligible: false, reason: 'ALREADY_TAKEN_OVER' })),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer la reprise' }));
+    expect(await screen.findByText('Positions reprises au 28 février 2026.')).toBeTruthy();
+    expect(screen.queryByRole('dialog', { name: 'Saisir mes positions' })).toBeNull();
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Saisir mes positions' })).toBeNull(),
+    );
+  });
 });

@@ -314,7 +314,7 @@ export type PortfolioPerformanceFlow = {
 };
 
 export type PortfolioPerformanceReason = {
-    code: 'NO_START_VALUATION' | 'NO_END_VALUATION' | 'START_VALUATION_PARTIAL' | 'END_VALUATION_PARTIAL' | 'UNVALUED_SECURITY_TRANSFER' | 'UNKNOWN_LOT_COST' | 'STALE_PRICES' | 'CASH_DIFFERENCE' | 'OBSERVED_TOTAL_DIFFERENCE' | 'POSITIONS_CHANGED' | 'NEGATIVE_SECURITIES_VALUE' | 'PERIOD_IN_PROGRESS' | 'DECOMPOSITION_RESIDUAL' | 'NO_INVESTED_CAPITAL' | 'NON_POSITIVE_DENOMINATOR' | 'DENOMINATOR_TOO_SMALL' | 'MONTH_NOT_CALCULABLE' | 'NON_POSITIVE_GROWTH_FACTOR' | 'TOO_MANY_PERIODS' | 'MISSING_FLOW_VALUATION' | 'STALE_FLOW_VALUATION' | 'ZERO_START_VALUE' | 'TOO_MANY_SUBPERIODS' | 'NO_SIGN_CHANGE' | 'NO_ROOT_IN_RANGE' | 'MULTIPLE_ROOTS' | 'NO_CONVERGENCE' | 'TOO_MANY_FLOWS';
+    code: 'NO_START_VALUATION' | 'NO_END_VALUATION' | 'START_VALUATION_PARTIAL' | 'END_VALUATION_PARTIAL' | 'UNVALUED_SECURITY_TRANSFER' | 'UNKNOWN_LOT_COST' | 'STALE_PRICES' | 'CASH_DIFFERENCE' | 'OBSERVED_TOTAL_DIFFERENCE' | 'POSITIONS_CHANGED' | 'NEGATIVE_SECURITIES_VALUE' | 'PERIOD_IN_PROGRESS' | 'BEFORE_TAKEOVER' | 'PERIOD_STARTS_AT_TAKEOVER' | 'DECOMPOSITION_RESIDUAL' | 'NO_INVESTED_CAPITAL' | 'NON_POSITIVE_DENOMINATOR' | 'DENOMINATOR_TOO_SMALL' | 'MONTH_NOT_CALCULABLE' | 'NON_POSITIVE_GROWTH_FACTOR' | 'TOO_MANY_PERIODS' | 'MISSING_FLOW_VALUATION' | 'STALE_FLOW_VALUATION' | 'ZERO_START_VALUE' | 'TOO_MANY_SUBPERIODS' | 'NO_SIGN_CHANGE' | 'NO_ROOT_IN_RANGE' | 'MULTIPLE_ROOTS' | 'NO_CONVERGENCE' | 'TOO_MANY_FLOWS';
     dates: Array<string>;
 };
 
@@ -5686,6 +5686,121 @@ export type LifeInsuranceProblem = Problem & {
     code: 'account_not_portfolio' | 'invalid_year' | 'life_insurance_contract_required' | 'cash_range_too_dense' | 'cash_amount_too_large' | 'account_not_life_insurance' | 'portfolio_account_inactive' | 'portfolio_account_not_found' | 'life_insurance_contract_not_found' | 'life_insurance_fee_terms_not_found' | 'euro_fund_rate_not_found' | 'invalid_life_insurance_payload' | 'invalid_contract_field' | 'invalid_contract_date' | 'invalid_fee_rate' | 'invalid_fee_terms_date' | 'invalid_euro_fund_rate' | 'instrument_not_euro_fund' | 'life_insurance_contract_exists' | 'stale_contract_version' | 'fee_terms_exist' | 'fee_terms_limit_reached' | 'euro_fund_rate_exists' | 'euro_fund_rate_limit_reached' | 'portfolio_forbidden' | 'portfolio_payload_too_large';
 };
 
+/**
+ * Why the account cannot take over its positions: `NOT_SUPPORTED` (kind, mode or status), `ALREADY_TAKEN_OVER`, `ACTIVE_VALUATION`, `SECURITY_OPERATION` or `CASH_OPERATION_BEFORE` (an active cash operation on or before the date).
+ */
+export type PortfolioTakeoverBlockReason = 'NOT_SUPPORTED' | 'ALREADY_TAKEN_OVER' | 'ACTIVE_VALUATION' | 'SECURITY_OPERATION' | 'CASH_OPERATION_BEFORE';
+
+export type PortfolioTakeover = {
+    id: string;
+    accountId: string;
+    /**
+     * The day of the takeover: the start of the performance history of the account.
+     */
+    takenOverOn: string;
+    valuationId: string;
+    /**
+     * The active transfers in and the cash deposit dated the takeover day.
+     */
+    operationIds: Array<string>;
+    createdAt: string;
+};
+
+export type PortfolioTakeoverState = {
+    eligible: boolean;
+    reason: PortfolioTakeoverBlockReason | null;
+    /**
+     * The last day of the previous month in the workspace calendar, or the opening day of the account when later.
+     */
+    defaultDate: string;
+    takeover: PortfolioTakeover | null;
+};
+
+export type PortfolioTakeoverLineInput = {
+    instrumentId: string;
+    /**
+     * Strictly positive, within the quantity precision of the instrument.
+     */
+    quantity: string;
+    /**
+     * The total cost of the line, zero or more; null when unknown (the gain stays unknown).
+     */
+    costBasis?: string | null;
+    /**
+     * Strictly positive, within the price precision of the instrument.
+     */
+    price: string;
+    /**
+     * On or before the takeover date; null means the takeover date.
+     */
+    priceDate?: string | null;
+};
+
+export type PortfolioTakeoverRequest = {
+    /**
+     * On or after the opening day, on or before today, in an open month.
+     */
+    takenOverOn: string;
+    /**
+     * One line per instrument, 1 to 200.
+     */
+    lines: Array<PortfolioTakeoverLineInput>;
+    /**
+     * The cash held on the date, zero or more; recorded as a deposit. Null means none.
+     */
+    cash?: string | null;
+};
+
+export type PortfolioTakeoverError = {
+    /**
+     * The 1-based line concerned, null for the request.
+     */
+    line: number | null;
+    field: 'takenOverOn' | 'lines' | 'cash' | 'instrumentId' | 'quantity' | 'costBasis' | 'price' | 'priceDate' | 'body';
+    /**
+     * A stable code: `invalid_date`, `before_account_opening`, `in_the_future`, `lines_count`, `unknown_instrument`, `instrument_inactive`, `instrument_currency_mismatch`, `duplicate_instrument`, `invalid_decimal`, `precision_exceeded`, `not_positive`, `negative`, `quantity_precision_exceeded`, `price_precision_exceeded`, `price_date_after_takeover`, `value_too_large`, `invalid_payload`, or the code of the operation rule that refused the line.
+     */
+    code: string;
+};
+
+export type PortfolioTakeoverPreviewLine = {
+    instrumentId: string;
+    /**
+     * Quantity x price, exact, with at least the display precision; null when not computable.
+     */
+    value: string | null;
+    /**
+     * Cost / quantity at the price precision of the instrument, half-even; null without a cost.
+     */
+    averageUnitCost: string | null;
+};
+
+export type PortfolioTakeoverPreview = {
+    /**
+     * Same order as the request.
+     */
+    lines: Array<PortfolioTakeoverPreviewLine>;
+    securitiesValue: string | null;
+    /**
+     * The cash typed, or 0.
+     */
+    cash: string;
+    totalValue: string | null;
+    errors: Array<PortfolioTakeoverError>;
+};
+
+export type PortfolioTakeoverProblem = Problem & {
+    code?: 'portfolio_takeover_exists' | 'portfolio_takeover_not_empty' | 'portfolio_takeover_not_supported' | 'invalid_portfolio_takeover' | 'operation_limit_reached' | 'valuation_limit_reached' | 'portfolio_operation_conflict' | 'portfolio_valuation_conflict' | 'cash_amount_too_large' | 'position_would_go_negative' | 'portfolio_account_not_found' | 'portfolio_forbidden' | 'portfolio_payload_too_large';
+    /**
+     * With `portfolio_takeover_not_empty`: why the account cannot take over.
+     */
+    blockingReason?: PortfolioTakeoverBlockReason;
+    /**
+     * With `invalid_portfolio_takeover`: every problem of the request.
+     */
+    errors?: Array<PortfolioTakeoverError>;
+};
+
 export type PortfolioValuationProblem = Problem & {
     code?: 'invalid_valuation_detail' | 'valuation_field_not_allowed' | 'invalid_valuation_total' | 'invalid_valuation_date' | 'valuation_price_entry_missing' | 'unknown_valuation_instrument' | 'invalid_valuation_price' | 'euro_fund_price_fixed' | 'price_precision_exceeded' | 'invalid_price_date' | 'operation_asset_mismatch' | 'invalid_valuation_query' | 'invalid_history_range' | 'invalid_valuation_payload' | 'account_not_portfolio' | 'portfolio_account_inactive' | 'portfolio_account_not_found' | 'portfolio_valuation_not_found' | 'valuation_exists' | 'stale_valuation_version' | 'valuation_limit_reached' | 'portfolio_valuation_conflict' | 'cash_amount_too_large' | 'portfolio_forbidden' | 'portfolio_payload_too_large' | 'position_would_go_negative';
     /**
@@ -5876,6 +5991,11 @@ export type PortfolioOperationId = string;
  * Retries the same creation safely for seven days: the same key with the same body replays the first response without a second row, the same key with another body answers 409. Required only when a transaction source is IMPORT or PROVIDER. A replayed successful response adds `Idempotency-Replayed: true`.
  */
 export type IdempotencyKey = string;
+
+/**
+ * Retries the same write safely for seven days: the same key with the same body replays the first response without a second row, the same key with another body answers 409. A replayed successful response adds `Idempotency-Replayed: true`.
+ */
+export type RequiredIdempotencyKey = string;
 
 /**
  * Business date the catalogue rules are resolved against, as an ISO 8601 calendar day. Defaults to today. A rule is selected by this date and never by the current date, so reading a past statement shows the ceiling and rate that applied then.
@@ -15268,6 +15388,167 @@ export type ReadPortfolioAllocationResponses = {
 };
 
 export type ReadPortfolioAllocationResponse = ReadPortfolioAllocationResponses[keyof ReadPortfolioAllocationResponses];
+
+export type ReadPortfolioTakeoverData = {
+    body?: never;
+    path: {
+        accountId: string;
+    };
+    query?: never;
+    url: '/api/v1/accounts/{accountId}/portfolio-takeover';
+};
+
+export type ReadPortfolioTakeoverErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadPortfolioTakeoverError = ReadPortfolioTakeoverErrors[keyof ReadPortfolioTakeoverErrors];
+
+export type ReadPortfolioTakeoverResponses = {
+    /**
+     * The takeover state of the account.
+     */
+    200: PortfolioTakeoverState;
+};
+
+export type ReadPortfolioTakeoverResponse = ReadPortfolioTakeoverResponses[keyof ReadPortfolioTakeoverResponses];
+
+export type RecordPortfolioTakeoverData = {
+    body: PortfolioTakeoverRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+        /**
+         * Retries the same write safely for seven days: the same key with the same body replays the first response without a second row, the same key with another body answers 409. A replayed successful response adds `Idempotency-Replayed: true`.
+         */
+        'Idempotency-Key': string;
+    };
+    path: {
+        accountId: string;
+    };
+    query?: never;
+    url: '/api/v1/accounts/{accountId}/portfolio-takeover';
+};
+
+export type RecordPortfolioTakeoverErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * Either the CSRF / Origin check failed (`type: /problems/csrf-token`), or the authenticated session belongs to no workspace (`type: about:blank`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The account already has a takeover, is not empty (`blockingReason`), the month is closed (`type: /problems/period-closed`), the idempotency key conflicts or a concurrent change was detected.
+     */
+    409: PortfolioTakeoverProblem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The account kind, mode or status is not supported, the request breaks a date, line or cash rule (`errors`), a limit is reached or the idempotency key is missing or invalid.
+     */
+    422: PortfolioTakeoverProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type RecordPortfolioTakeoverError = RecordPortfolioTakeoverErrors[keyof RecordPortfolioTakeoverErrors];
+
+export type RecordPortfolioTakeoverResponses = {
+    /**
+     * The recorded takeover.
+     */
+    201: PortfolioTakeover;
+};
+
+export type RecordPortfolioTakeoverResponse = RecordPortfolioTakeoverResponses[keyof RecordPortfolioTakeoverResponses];
+
+export type PreviewPortfolioTakeoverData = {
+    body: PortfolioTakeoverRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path: {
+        accountId: string;
+    };
+    query?: never;
+    url: '/api/v1/accounts/{accountId}/portfolio-takeover/preview';
+};
+
+export type PreviewPortfolioTakeoverErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * Either the CSRF / Origin check failed (`type: /problems/csrf-token`), or the authenticated session belongs to no workspace (`type: about:blank`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * The account kind, mode or status is not supported, or the body does not have the declared shape.
+     */
+    422: PortfolioTakeoverProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type PreviewPortfolioTakeoverError = PreviewPortfolioTakeoverErrors[keyof PreviewPortfolioTakeoverErrors];
+
+export type PreviewPortfolioTakeoverResponses = {
+    /**
+     * The preview, with its errors.
+     */
+    200: PortfolioTakeoverPreview;
+};
+
+export type PreviewPortfolioTakeoverResponse = PreviewPortfolioTakeoverResponses[keyof PreviewPortfolioTakeoverResponses];
 
 export type ReadPortfolioPerformanceData = {
     body?: never;

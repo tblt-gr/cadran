@@ -2,6 +2,7 @@ import { expect, type Page } from '@playwright/test';
 import type { AuditFixtures } from './a11y';
 import { settled, uniqueLabel } from './page';
 import { openMovementEditModal } from './edit-movement';
+import { openTakeoverModal } from './takeover';
 
 export const modalCases = [
   'catalog settings',
@@ -26,6 +27,7 @@ export const modalCases = [
   'goal edit',
   'operation create',
   'operation edit',
+  'takeover create',
   'valuation create',
   'valuation details',
   'valuation replace',
@@ -39,6 +41,7 @@ export const modalCases = [
 type ModalCase = (typeof modalCases)[number];
 
 export async function openAuditModal(page: Page, name: ModalCase, fixtures: AuditFixtures) {
+  if (name === 'takeover create') return openTakeoverModal(page);
   const route =
     name === 'catalog settings'
       ? '/parameters/catalog'

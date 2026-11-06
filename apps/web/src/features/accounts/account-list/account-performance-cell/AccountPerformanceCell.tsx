@@ -1,7 +1,7 @@
 import type { AccountOverviewRow, PortfolioOverviewAccountCard } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { Sparkline } from '@/components/ui/sparkline/Sparkline';
+import { canDrawSparkline, Sparkline } from '@/components/ui/sparkline/Sparkline';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
@@ -68,6 +68,16 @@ export function AccountPerformanceCell({ account, portfolio }: AccountPerformanc
   const rate =
     trend.cumulativeReturn === null ? null : signedRatioPercentage(trend.cumulativeReturn, locale);
 
+  const sparklinePoints = trend.months.map((month) => ({ label: month.month, value: month.index }));
+  const sparklineLabel =
+    rate !== null && trend.from !== null
+      ? t('accounts.performance.sparkline', {
+          from: monthYear(trend.from, locale),
+          rate,
+          to: monthYear(trend.to, locale),
+        })
+      : '';
+
   return (
     <div className={styles.cell}>
       <p className={styles.gain}>
@@ -80,18 +90,13 @@ export function AccountPerformanceCell({ account, portfolio }: AccountPerformanc
       </p>
       <div className={styles.trend}>
         {rate !== null && trend.from !== null ? (
-          <>
-            <Link href={performanceHref}>
-              <Sparkline
-                label={t('accounts.performance.sparkline', {
-                  from: monthYear(trend.from, locale),
-                  rate,
-                  to: monthYear(trend.to, locale),
-                })}
-                points={trend.months.map((month) => ({ label: month.month, value: month.index }))}
-              />
-            </Link>
-          </>
+          <Link href={performanceHref}>
+            {canDrawSparkline(sparklinePoints) ? (
+              <Sparkline label={sparklineLabel} points={sparklinePoints} />
+            ) : (
+              sparklineLabel
+            )}
+          </Link>
         ) : (
           <Link href={performanceHref}>
             {trend.reason === 'TOO_MANY_OPERATIONS'

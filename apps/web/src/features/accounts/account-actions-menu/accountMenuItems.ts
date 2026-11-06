@@ -14,6 +14,7 @@ export type AccountMenuItemId =
   | 'recordBalance'
   | 'reconcile'
   | 'valuation'
+  | 'takeover'
   | 'rules'
   | 'instruments'
   | 'edit'
@@ -33,6 +34,8 @@ export interface AccountMenuHandlers {
   onReconcile?: () => void;
   onRecordBalance?: () => void;
   onRecordValuation?: () => void;
+  /** Only supplied while the account can still take over the positions it already holds. */
+  onTakeover?: () => void;
   onRules: () => void;
 }
 
@@ -122,6 +125,7 @@ export function accountMenuItems({
     return [
       ...operation,
       ...item('valuation', 'balance', handlers.onRecordValuation, locked),
+      ...item('takeover', 'investments', handlers.onTakeover, locked),
       rules,
       ...item('instruments', 'chart-line', handlers.onInstruments),
       edit,

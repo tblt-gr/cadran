@@ -7,7 +7,7 @@
 
 .accountLink {
   display: block;
-  min-width: 0;
+  min-width: var(--touch-target-min);
   max-width: 100%;
   color: inherit;
   font-weight: var(--font-weight-strong);

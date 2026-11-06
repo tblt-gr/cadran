@@ -51,6 +51,10 @@ services:
     tags:
       - cadran.account_demo_data_contributor
 
+  App\Module\Portfolio\Application\SeedDemoTakeover:
+    tags:
+      - cadran.account_demo_data_contributor
+
   # Session records in PostgreSQL (ADR-0024). The handler keeps its own
   # connection — it must survive a rolled-back business transaction — but takes
   # its parameters from the Doctrine connection, so it reaches the same database

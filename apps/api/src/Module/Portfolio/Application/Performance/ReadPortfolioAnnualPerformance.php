@@ -17,6 +17,7 @@ use App\Module\Portfolio\Domain\Performance\PerformanceAmount;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\Performance\PerformanceScope;
 use App\Module\Portfolio\Domain\PortfolioOperation;
+use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverRepository;
 
 /**
  * The twelve months, the year and the whole life of a portfolio account. The account history is read once and bounded,
@@ -30,6 +31,7 @@ final readonly class ReadPortfolioAnnualPerformance
         private WorkspaceCalendar $calendar,
         private PerformancePeriodBuilder $builder,
         private ComputePortfolioPerformance $compute,
+        private PortfolioTakeoverRepository $takeovers,
     ) {
     }
 
@@ -63,7 +65,7 @@ final readonly class ReadPortfolioAnnualPerformance
         return new PortfolioAnnualPerformance(
             $account->id, $account->assetCode->toString(), $year, $firstYear, $lastYear,
             $this->activeYears($history, $firstYear, $lastYear),
-            $this->withIndex($months, $account, $year, $history), $yearTotal, $inception,
+            $this->withIndex($months, $account, $year, $history, $workspace), $yearTotal, $inception,
         );
     }
 
@@ -108,16 +110,21 @@ final readonly class ReadPortfolioAnnualPerformance
 
     /**
      * The index chain begins at the first month the account has anything to chain: the later of the opening month and the
-     * month of the first operation, or January of the year when that is earlier.
+     * month of the first operation (or the first month of the takeover history), or January of the year when that is earlier.
      *
      * @param list<AnnualPerformanceMonth> $months
      * @param list<PortfolioOperation>     $history
      *
      * @return list<AnnualPerformanceMonth>
      */
-    private function withIndex(array $months, Account $account, int $year, array $history): array
+    private function withIndex(array $months, Account $account, int $year, array $history, WorkspaceScope $workspace): array
     {
         $start = isset($history[0]) ? max($account->openedOn, $history[0]->details->tradeDate) : $account->openedOn;
+        // A takeover starts the history: the months before it are never chained.
+        $historyFirstMonth = $this->takeovers->findByAccount($workspace, $account->id)?->historyFirstMonth();
+        if (null !== $historyFirstMonth) {
+            $start = max($start, $historyFirstMonth);
+        }
         $firstIndex = max(0, ((int) $start->format('Y') - $year) * 12 + (int) $start->format('n') - 1);
         $rates = array_map(static function (AnnualPerformanceMonth $month): ?string {
             $rate = $month->performance?->modifiedDietz->unroundedRate;

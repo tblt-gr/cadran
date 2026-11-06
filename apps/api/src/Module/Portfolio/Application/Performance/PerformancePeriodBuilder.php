@@ -15,6 +15,7 @@ use App\Module\Portfolio\Domain\Performance\PerformanceScope;
 use App\Module\Portfolio\Domain\Performance\PeriodAnchor;
 use App\Module\Portfolio\Domain\PortfolioOperation;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
+use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverRepository;
 use App\Module\Portfolio\Domain\Valuation\Valuation;
 use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
 use App\Module\Portfolio\Domain\Valuation\ValuationFlag;
@@ -31,6 +32,7 @@ final readonly class PerformancePeriodBuilder
         private PortfolioOperationRepository $operations,
         private PortfolioValuationPresenter $presenter,
         private AssetCatalog $assets,
+        private PortfolioTakeoverRepository $takeovers,
     ) {
     }
 
@@ -59,11 +61,24 @@ final readonly class PerformancePeriodBuilder
         $history = $loadedHistory ?? $this->history($workspace, $account);
         $precision = ($this->assets->findByCode($account->assetCode) ?? throw new \LogicException('An account asset is missing from the reference.'))->precision->display;
         $blocking = [];
+        $takeover = $this->takeovers->findByAccount($workspace, $account->id);
+        $historyFirstMonth = $takeover?->historyFirstMonth();
+        if (null !== $takeover && null !== $period->lastDay && $takeover->precedes($period->lastDay)) {
+            // Nothing is known before the takeover day: the period is not calculable, never zero.
+            return new PerformancePeriodData(null, null, [new PerformanceFinding(PerformanceReason::BEFORE_TAKEOVER, [$takeover->takenOverOn->format('Y-m-d')])], [], [], $history, $precision, $historyFirstMonth);
+        }
 
         $startValuation = null;
         $startOpening = null;
+        $warnings = [];
         if (PerformanceScope::INCEPTION === $period->scope) {
-            if (PerformanceHistoryStart::OPENING === $historyStart) {
+            if (null !== $takeover) {
+                // The takeover valuation is the first thing known, whatever the history start mode.
+                [$startValuation] = $this->latest($workspace, $account->id, $takeover->takenOverOn, $takeover->takenOverOn);
+                if (null === $startValuation) {
+                    $blocking[] = new PerformanceFinding(PerformanceReason::NO_START_VALUATION, [$takeover->takenOverOn->format('Y-m-d')]);
+                }
+            } elseif (PerformanceHistoryStart::OPENING === $historyStart) {
                 $first = $history[0] ?? null;
                 if (null !== $first && null === $this->valuations->latestActiveBefore($workspace, $account->id, $first->details->tradeDate)) {
                     $startOpening = PeriodAnchor::opening($first->details->tradeDate->modify('-1 day'));
@@ -82,8 +97,17 @@ final readonly class PerformancePeriodBuilder
             $firstDay = $period->firstDay ?? throw new \LogicException('A bounded period has a first day.');
             $lastDay = $period->lastDay ?? throw new \LogicException('A bounded period has a last day.');
             $target = $period->startTarget() ?? throw new \LogicException('A bounded period has a start.');
-            [$startValuation, $startPartial] = $this->latest($workspace, $account->id, $target->modify('first day of this month'), $target);
-            if (null === $startValuation) {
+            $startsAtTakeover = null !== $takeover && $firstDay <= $takeover->takenOverOn;
+            if ($startsAtTakeover) {
+                // The period began before the takeover day: it is measured from the takeover valuation.
+                [$startValuation, $startPartial] = $this->latest($workspace, $account->id, $takeover->takenOverOn, $takeover->takenOverOn);
+                $warnings[] = new PerformanceFinding(PerformanceReason::PERIOD_STARTS_AT_TAKEOVER, [$takeover->takenOverOn->format('Y-m-d')]);
+            } else {
+                [$startValuation, $startPartial] = $this->latest($workspace, $account->id, $target->modify('first day of this month'), $target);
+            }
+            if (null === $startValuation && $startsAtTakeover) {
+                $blocking[] = new PerformanceFinding($startPartial ? PerformanceReason::START_VALUATION_PARTIAL : PerformanceReason::NO_START_VALUATION, [$takeover->takenOverOn->format('Y-m-d')]);
+            } elseif (null === $startValuation) {
                 if ($this->isEmptyBefore($workspace, $account->id, $firstDay, $history)) {
                     $startOpening = PeriodAnchor::opening($target);
                 } else {
@@ -104,7 +128,6 @@ final readonly class PerformancePeriodBuilder
         if (null !== $start && null !== $end && $end->date <= $start->date) {
             $blocking[] = new PerformanceFinding(PerformanceReason::NO_END_VALUATION, $endMissing);
         }
-        $warnings = [];
         if (null !== $end && null !== $period->lastDay && $end->date < $period->lastDay) {
             $warnings[] = new PerformanceFinding(PerformanceReason::PERIOD_IN_PROGRESS, [$end->date->format('Y-m-d')]);
         }
@@ -115,7 +138,7 @@ final readonly class PerformancePeriodBuilder
             $operations = array_values(array_filter($history, static fn (PortfolioOperation $operation): bool => $operation->details->tradeDate > $start->date));
         }
 
-        return new PerformancePeriodData($start, $end, $blocking, $warnings, $operations, $history, $precision);
+        return new PerformancePeriodData($start, $end, $blocking, $warnings, $operations, $history, $precision, $historyFirstMonth);
     }
 
     /**

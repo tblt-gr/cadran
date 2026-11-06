@@ -22,6 +22,10 @@ import { activeTab, tabForKind } from './portfolio-tabs/activeTab';
 import { PortfolioTabs, type PortfolioTab } from './portfolio-tabs/PortfolioTabs';
 import styles from './PortfolioAccountPage.module.css';
 import { useBreadcrumbAccount } from '@/components/layout/breadcrumb/BreadcrumbContext';
+import { usePortfolioTakeover } from '@/features/portfolio/takeover/usePortfolioTakeover';
+import { PortfolioTakeoverModal } from '@/features/portfolio/takeover/PortfolioTakeoverModal';
+import { TakeoverPrompt } from '@/features/portfolio/takeover/TakeoverPrompt';
+import { formatCalendarDay } from '@/lib/decimal';
 import { useAccountHeader } from '@/features/accounts/account-header/useAccountHeader';
 
 /**
@@ -39,6 +43,15 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
   const contract = useLifeInsuranceContract(accountId, insurance);
   const contractRequired = Boolean(insurance && contract.isSuccess && !contract.data?.contract);
   const operationBlocked = Boolean(insurance && !contract.data?.contract);
+  const takeoverCandidate =
+    account.data?.id === accountId &&
+    account.data.kind === 'PORTFOLIO' &&
+    account.data.valuationMode === 'PORTFOLIO' &&
+    account.data.status === 'ACTIVE' &&
+    account.data.editable;
+  const takeover = usePortfolioTakeover(accountId, takeoverCandidate);
+  const takeoverState = takeover.data?.eligible ? takeover.data : null;
+  const [takeoverNotice, setTakeoverNotice] = useState<string | null>(null);
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
   const [asOf, setAsOf] = useState(
     () => new URLSearchParams(window.location.search).get('asOf') || today,
@@ -141,6 +154,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         accountId={accountId}
         onCreate={openCreate}
         onRecordValuation={() => openOn('valuations', 'valuation')}
+        onTakeover={takeoverState ? () => setCreating('takeover') : undefined}
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
       />
@@ -148,6 +162,25 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         <p className={styles.notice} role="status">
           {t(`accounts.detail.actions.unavailable.${current.status}`)}
         </p>
+      ) : null}
+      {takeoverNotice ? (
+        <p className={styles.notice} role="status">
+          {takeoverNotice}
+        </p>
+      ) : null}
+      {takeoverState && shown === 'account' ? (
+        <TakeoverPrompt onTakeover={() => setCreating('takeover')} />
+      ) : null}
+      {takeoverState && creating === 'takeover' ? (
+        <PortfolioTakeoverModal
+          account={current}
+          defaultDate={takeoverState.defaultDate}
+          onClose={() => setCreating(null)}
+          onSaved={(takenOverOn) => {
+            setCreating(null);
+            setTakeoverNotice(`Positions reprises au ${formatCalendarDay(takenOverOn, 'fr')}.`);
+          }}
+        />
       ) : null}
       {eligible && shown === 'account' ? (
         <AccountTab account={current} today={today}>
@@ -179,6 +212,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           creating={creating}
           onCloseCreate={() => setCreating(null)}
           onCreate={openCreate}
+          onTakeover={takeoverState ? () => setCreating('takeover') : undefined}
         />
       ) : !eligible ? (
         <NotPortfolioState accountId={accountId} />

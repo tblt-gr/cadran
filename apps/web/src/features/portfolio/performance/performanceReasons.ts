@@ -1,6 +1,6 @@
 import type { PortfolioPerformanceReason } from '@cadran/api-client';
 import { flagSentence } from '@/features/portfolio/valuations/valuationLabels';
-import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
+import { formatAmount, formatCalendarDay, formatCalendarNumericDay } from '@/lib/decimal';
 
 /** What a reason needs to name the account asset, the account and the figures it quotes. */
 export interface ReasonContext {
@@ -59,6 +59,10 @@ const sentences: Record<string, Describe> = {
   NO_CONVERGENCE: fixed("Le calcul n'a pas convergé."),
   UNKNOWN_LOT_COST: fixed("Coût d'acquisition inconnu : décomposition indisponible."),
   ...Object.fromEntries(Object.entries(flagSentence).map(([code, text]) => [code, fixed(text)])),
+  BEFORE_TAKEOVER: (dates) =>
+    `Antérieur à la reprise du ${formatCalendarDay(dates[0] ?? '', 'fr')}`,
+  PERIOD_STARTS_AT_TAKEOVER: (dates) =>
+    `Calculé depuis la reprise du ${formatCalendarDay(dates[0] ?? '', 'fr')}`,
   PERIOD_IN_PROGRESS: (dates) => `Période en cours, calculée jusqu'au ${first(dates)}.`,
   DECOMPOSITION_RESIDUAL: (_dates, { residual, assetCode }) =>
     `Écart de décomposition de ${residual === null ? 'montant inconnu' : formatAmount(residual, assetCode, 'fr')}.`,

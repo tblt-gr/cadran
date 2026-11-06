@@ -145,7 +145,12 @@ final readonly class ComputeModifiedDietz
         if (AnchorKind::OPENING === $start->kind && [] !== $data->history) {
             $first = max($first, $data->history[0]->details->tradeDate);
         }
-        $first = max($first, $account->openedOn)->modify('first day of this month');
+        $first = max($first, $account->openedOn);
+        if (null !== $data->historyFirstMonth) {
+            // Months before the takeover history are not calculable and must not break the chain.
+            $first = max($first, $data->historyFirstMonth);
+        }
+        $first = $first->modify('first day of this month');
         $last = $end->date->modify('first day of this month');
 
         return [$first, ((int) $last->format('Y') - (int) $first->format('Y')) * 12 + (int) $last->format('n') - (int) $first->format('n') + 1];

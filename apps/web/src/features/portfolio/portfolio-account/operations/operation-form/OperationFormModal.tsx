@@ -15,6 +15,7 @@ import {
   operationRequestError,
 } from '@/features/portfolio/portfolio-account/operations/operationError';
 import { OperationForm } from './OperationForm';
+import { invalidatePortfolioAccount } from './invalidatePortfolioAccount';
 
 interface Submission {
   request: PortfolioOperationRequest;
@@ -70,23 +71,7 @@ export function OperationFormModal({
     },
     onSuccess: async () => {
       onSaved();
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ['portfolio-summary', account.id] }),
-        client.invalidateQueries({ queryKey: ['life-insurance-summary', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-allocation', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-valuation-history', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-performance', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-performance-annual', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolios'] }),
-        client.invalidateQueries({ queryKey: ['portfolio-cash', account.id] }),
-        client.invalidateQueries({ queryKey: ['life-insurance-contract', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-positions', account.id] }),
-        client.invalidateQueries({ queryKey: ['full-surrender-positions', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-operations', account.id] }),
-        client.invalidateQueries({ queryKey: ['portfolio-operation'] }),
-        client.invalidateQueries({ queryKey: ['portfolio-transfer-candidates'] }),
-        client.invalidateQueries({ queryKey: ['account', account.id] }),
-      ]);
+      await invalidatePortfolioAccount(client, account.id);
     },
     onError: async (error) => {
       if (!isStaleOperationError(error)) return;

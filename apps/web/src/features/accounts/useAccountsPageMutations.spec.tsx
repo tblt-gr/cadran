@@ -69,4 +69,34 @@ describe('useAccountsPageMutations', () => {
 
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['portfolios', 'overview'] });
   });
+
+  it('opens the positions tab of a new securities account', async () => {
+    api.createAccount.mockImplementation(() =>
+      success({ id: 'cto-1', kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),
+    );
+    const { hook } = setup();
+    const navigate = vi.spyOn(window.history, 'pushState');
+
+    await act(async () => {
+      await hook.result.current.save.mutateAsync({} as never);
+    });
+
+    expect(navigate).toHaveBeenCalledWith({}, '', '/portfolios/cto-1?tab=positions');
+    navigate.mockRestore();
+  });
+
+  it('stays on the list after creating any other account, or editing a securities one', async () => {
+    api.createAccount.mockImplementation(() =>
+      success({ id: 'chk-1', kind: 'CHECKING', valuationMode: 'BALANCE' }),
+    );
+    const { hook } = setup();
+    const navigate = vi.spyOn(window.history, 'pushState');
+
+    await act(async () => {
+      await hook.result.current.save.mutateAsync({} as never);
+    });
+
+    expect(navigate).not.toHaveBeenCalled();
+    navigate.mockRestore();
+  });
 });

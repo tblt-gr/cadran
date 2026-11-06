@@ -14,8 +14,9 @@ final readonly class PerformancePeriodData
     /**
      * @param list<PerformanceFinding> $blocking
      * @param list<PerformanceFinding> $warnings
-     * @param list<PortfolioOperation> $operations active operations with start date < trade date <= end date, in replay order
-     * @param list<PortfolioOperation> $history    every active operation up to the end date, the input of the position replay
+     * @param list<PortfolioOperation> $operations        active operations with start date < trade date <= end date, in replay order
+     * @param list<PortfolioOperation> $history           every active operation up to the end date, the input of the position replay
+     * @param \DateTimeImmutable|null  $historyFirstMonth the first day of the first month with a performance when the account took over its positions
      */
     public function __construct(
         public ?PeriodAnchor $start,
@@ -25,6 +26,7 @@ final readonly class PerformancePeriodData
         public array $operations,
         public array $history,
         public int $displayPrecision,
+        public ?\DateTimeImmutable $historyFirstMonth = null,
     ) {
     }
 

@@ -15,9 +15,12 @@ import styles from './PositionsTab.module.css';
 export function PositionsTab({
   accountId,
   asOf: selectedDate,
+  onTakeover,
 }: {
   accountId: string;
   asOf?: string;
+  /** Supplied only while the account can still take over the positions it already holds. */
+  onTakeover?: () => void;
 }) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
@@ -61,6 +64,11 @@ export function PositionsTab({
           >
             Voir les opérations
           </a>
+          {onTakeover ? (
+            <button className="primary-action" onClick={onTakeover} type="button">
+              Saisir mes positions
+            </button>
+          ) : null}
         </OperationsState>
       ) : (
         <PositionsTable
