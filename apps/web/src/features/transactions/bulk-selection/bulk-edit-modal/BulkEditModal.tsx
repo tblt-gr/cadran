@@ -4,23 +4,29 @@ import { useTranslation } from 'react-i18next';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { Modal } from '@/components/ui/modal/Modal';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { workspaceToday } from '@/lib/workspaceTime';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import type {
   BulkScope,
   BulkSelection,
 } from '@/features/transactions/bulk-selection/useBulkSelection';
+import { BulkEditRow } from './BulkEditRow';
+import { BulkMoveRows } from './bulk-move-rows/BulkMoveRows';
+import { BulkMovePreview } from './bulk-move-preview/BulkMovePreview';
 import { BulkEditResultView } from './BulkEditResult';
 import { BulkLabelField } from './BulkLabelField';
 import {
   EMPTY_DRAFT,
   MAX_COUNTERPARTY_LENGTH,
   MAX_NOTE_LENGTH,
-  buildChanges,
   isDraftValid,
+  isMove,
+  selectionAssets,
   type BulkEditDraft,
   type BulkEditField,
 } from './bulkEditChanges';
-import { BulkRequestError, useBulkEdit } from './useBulkEdit';
+import { useBulkMoveFlow } from './useBulkMoveFlow';
 import styles from './BulkEditModal.module.css';
 
 const PAYMENT_METHODS: readonly PaymentMethod[] = [
@@ -41,22 +47,31 @@ interface BulkEditModalProps {
 }
 
 /**
- * Edit of the label, payment method, note, counterparty and category of the selection. Only the
- * ticked rows are sent. The server applies what it can and reports the rest, so the outcome is
- * part of the same dialog rather than a toast.
+ * Edit of the label, payment method, note, counterparty, category, account and booked day of the
+ * selection. Only the ticked rows are sent. The server applies what it can and reports the rest,
+ * so the outcome is part of the same dialog rather than a toast. A move first shows its impact on
+ * the balances and is applied only against that preview.
  */
 export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: BulkEditModalProps) {
   const { t } = useTranslation();
-  const [draft, setDraft] = useState<BulkEditDraft>(EMPTY_DRAFT);
+  const today = workspaceToday(new Date(), useWorkspaceTimeZone());
+  const [draft, setDraft] = useState<BulkEditDraft>({ ...EMPTY_DRAFT, bookedOn: today });
   // The server refuses a filter scope whose count moved; the user confirms the new one.
   const [expectedCount, setExpectedCount] = useState(
     scope.type === 'FILTER' ? scope.expectedCount : 0,
   );
   const [result, setResult] = useState<BulkEditResult | null>(null);
-  const mutation = useBulkEdit({ reloadAfterWrite });
-  const error = mutation.error instanceof BulkRequestError ? mutation.error : null;
   const effectiveScope: BulkScope = scope.type === 'FILTER' ? { ...scope, expectedCount } : scope;
   const count = scope.type === 'IDS' ? scope.ids.length : expectedCount;
+  const flow = useBulkMoveFlow({
+    draft,
+    onActualCount: setExpectedCount,
+    onApplied: setResult,
+    pageItems,
+    reloadAfterWrite,
+    scope: effectiveScope,
+  });
+  const { error, stage } = flow;
   const valid = isDraftValid(draft, effectiveScope, pageItems);
   const done = () => close(result !== null);
 
@@ -68,52 +83,43 @@ export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: Bul
     setDraft((current) => ({ ...current, checked: { ...current.checked, [field]: on } }));
   }
 
-  function confirm() {
-    mutation.mutate(
-      { changes: buildChanges(draft, effectiveScope, pageItems), scope: effectiveScope },
-      {
-        onSuccess: setResult,
-        onError: (failure) => {
-          if (failure instanceof BulkRequestError && failure.actualCount !== null) {
-            setExpectedCount(failure.actualCount);
-          }
-        },
-      },
-    );
-  }
-
-  /** A ticked row enables its control; an unticked one is shown but inert and never sent. */
   function row(field: BulkEditField, control: (disabled: boolean) => ReactNode, full = false) {
-    const disabled = !draft.checked[field];
     return (
-      <div className={styles.row} data-span={full || field === 'label' ? 'full' : undefined}>
-        <label className={styles.tick}>
-          <input
-            checked={draft.checked[field]}
-            onChange={(event) => tick(field, event.target.checked)}
-            type="checkbox"
-          />
-          {t(`transactions.bulk.edit.${field}`)}
-        </label>
-        {control(disabled)}
-      </div>
+      <BulkEditRow
+        checked={draft.checked[field]}
+        field={field}
+        full={full}
+        onTick={(on) => tick(field, on)}
+      >
+        {control}
+      </BulkEditRow>
     );
   }
 
   return (
     <Modal
-      intent={result ? 'detail' : 'edit'}
+      intent={result ? 'detail' : stage === 'preview' ? 'confirm' : 'edit'}
       close={done}
       title={t('transactions.bulk.title', { count })}
     >
       {result ? (
         <BulkEditResultView onDone={done} pageItems={pageItems} result={result} />
+      ) : stage === 'preview' ? (
+        <BulkMovePreview
+          error={flow.confirmError}
+          notice={flow.notice}
+          onBack={flow.back}
+          onConfirm={flow.confirm}
+          pageItems={pageItems}
+          pending={flow.applying}
+          preview={flow.preview}
+        />
       ) : (
         <form
           className={styles.form}
           onSubmit={(event) => {
             event.preventDefault();
-            if (valid && !mutation.isPending) confirm();
+            if (valid && !flow.pending) flow.submit();
           }}
         >
           {scope.type === 'FILTER' ? <p>{t('transactions.bulk.filterNotice', { count })}</p> : null}
@@ -184,6 +190,13 @@ export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: Bul
               ),
               true,
             )}
+            <BulkMoveRows
+              assets={selectionAssets(scope, pageItems)}
+              draft={draft}
+              onPatch={patch}
+              onTick={tick}
+              today={today}
+            />
           </FormGrid>
           <p className={styles.note}>{t('transactions.bulk.note')}</p>
           {error ? (
@@ -197,12 +210,14 @@ export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: Bul
             <button className="secondary-action" onClick={done} type="button">
               {t('actions.cancel')}
             </button>
-            <button
-              className="primary-action"
-              disabled={!valid || mutation.isPending}
-              type="submit"
-            >
-              {t(mutation.isPending ? 'transactions.bulk.applying' : 'transactions.bulk.apply')}
+            <button className="primary-action" disabled={!valid || flow.pending} type="submit">
+              {t(
+                flow.applying
+                  ? 'transactions.bulk.applying'
+                  : isMove(draft)
+                    ? 'transactions.bulk.move.preview'
+                    : 'transactions.bulk.apply',
+              )}
             </button>
           </ModalActions>
         </form>

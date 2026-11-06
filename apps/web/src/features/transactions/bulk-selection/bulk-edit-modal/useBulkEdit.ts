@@ -1,6 +1,7 @@
 import {
   bulkEditTransactions,
   type BulkEditChanges,
+  type BulkEditPreview,
   type BulkEditResult,
   type Problem,
 } from '@cadran/api-client';
@@ -16,6 +17,8 @@ export type BulkErrorKind =
   | 'invalid'
   | 'network'
   | 'periodClosed'
+  | 'previewRequired'
+  | 'previewStale'
   | 'scopeChanged'
   | 'scopeTooLarge'
   | 'unauthorized';
@@ -36,6 +39,8 @@ function classify(status: number, type: string | undefined): BulkErrorKind {
   if (type === '/problems/transactions.bulk-scope-too-large') return 'scopeTooLarge';
   if (type === '/problems/transactions.bulk-scope-changed') return 'scopeChanged';
   if (type === '/problems/period-closed') return 'periodClosed';
+  if (type === '/problems/transactions.bulk-preview-stale') return 'previewStale';
+  if (type === '/problems/transactions.bulk-preview-required') return 'previewRequired';
   if (status === 401 || status === 403) return 'unauthorized';
   if (status === 409) return 'conflict';
   return status === 400 || status === 404 || status === 422 ? 'invalid' : 'network';
@@ -45,12 +50,19 @@ interface UseBulkEditOptions {
   reloadAfterWrite: () => Promise<void>;
 }
 
+interface BulkEditInput {
+  changes: BulkEditChanges;
+  /** The token of the preview a move is applied against. */
+  previewToken?: string;
+  scope: BulkScope;
+}
+
 /** The bulk edit write: one idempotency key per distinct body, so a retry replays. */
 export function useBulkEdit({ reloadAfterWrite }: UseBulkEditOptions) {
   const queryClient = useQueryClient();
   const submission = useSubmissionKey();
 
-  return useMutation<BulkEditResult, unknown, { changes: BulkEditChanges; scope: BulkScope }>({
+  return useMutation<BulkEditResult, unknown, BulkEditInput>({
     mutationFn: async (body) => {
       const result = await withCsrfRetry(() =>
         bulkEditTransactions({
@@ -65,13 +77,31 @@ export function useBulkEdit({ reloadAfterWrite }: UseBulkEditOptions) {
           result.error as Problem | undefined,
         );
       }
-      return result.data;
+      return result.data as BulkEditResult;
     },
     onSuccess: async () => {
       submission.release();
       await queryClient.invalidateQueries({ queryKey: ['transactions', 'count'] });
       await reloadAfterWrite();
       await invalidateAccountBalances(queryClient);
+    },
+  });
+}
+
+/** The impact of a move: reads only, so it needs no idempotency key and invalidates nothing. */
+export function useBulkPreview() {
+  return useMutation<BulkEditPreview, unknown, Omit<BulkEditInput, 'previewToken'>>({
+    mutationFn: async (body) => {
+      const result = await withCsrfRetry(() =>
+        bulkEditTransactions({ ...authApiOptions(), body: { ...body, preview: true } }),
+      );
+      if (!result.response?.ok || !result.data) {
+        throw new BulkRequestError(
+          result.response?.status ?? 0,
+          result.error as Problem | undefined,
+        );
+      }
+      return result.data as BulkEditPreview;
     },
   });
 }

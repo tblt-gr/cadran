@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BulkRequestError, useBulkEdit } from './useBulkEdit';
+import { BulkRequestError, useBulkEdit, useBulkPreview } from './useBulkEdit';
 
 const api = vi.hoisted(() => ({ bulkEditTransactions: vi.fn(), getSession: vi.fn() }));
 
@@ -70,5 +70,40 @@ describe('useBulkEdit', () => {
     const error = result.current.error as BulkRequestError;
     expect(error.kind).toBe('scopeChanged');
     expect(error.actualCount).toBe(7);
+  });
+
+  it('classifies the stale and required preview problems', async () => {
+    for (const [type, kind] of [
+      ['/problems/transactions.bulk-preview-stale', 'previewStale'],
+      ['/problems/transactions.bulk-preview-required', 'previewRequired'],
+    ] as const) {
+      api.bulkEditTransactions.mockResolvedValueOnce({
+        data: undefined,
+        error: { type },
+        response: new Response('{}', { status: 409 }),
+      });
+      const { result } = renderHook(() => useBulkEdit({ reloadAfterWrite: vi.fn() }), { wrapper });
+      await act(async () => {
+        await result.current.mutateAsync(body).catch(() => undefined);
+      });
+      await waitFor(() => expect(result.current.error).toBeInstanceOf(BulkRequestError));
+      expect((result.current.error as BulkRequestError).kind).toBe(kind);
+    }
+  });
+
+  it('previews with the preview flag and no idempotency key', async () => {
+    api.bulkEditTransactions.mockResolvedValue({
+      data: { eligibleCount: 1, skipped: [], impacts: [], previewToken: 't' },
+      response: new Response('{}', { status: 200 }),
+    });
+    const { result } = renderHook(() => useBulkPreview(), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(body);
+    });
+
+    const call = api.bulkEditTransactions.mock.calls[0]?.[0];
+    expect(call.body).toEqual({ ...body, preview: true });
+    expect(call.headers['Idempotency-Key']).toBeUndefined();
   });
 });

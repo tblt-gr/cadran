@@ -7539,9 +7539,27 @@ paths:
         other fields change, the row is written without the category and
         also reported with that reason. An identifier that does not exist in
         the calling workspace, including one of another workspace, is
-        reported `NOT_FOUND`. The `Idempotency-Key` header is required and a
-        replay returns the stored result for seven days, unless a period it
-        touched has been closed since.
+        reported `NOT_FOUND`. The `Idempotency-Key` header is required to
+        apply and a replay returns the stored result for seven days, unless a
+        period it touched has been closed since.
+
+
+        `accountId` (the target account) and `bookedOn` (the new booked day)
+        move money and are guarded by a preview. A request with
+        `preview: true` writes nothing, needs no `Idempotency-Key` and
+        answers a `BulkEditPreview`: how many transactions would move, why
+        the others would not, the exact balance impact per account and a
+        `previewToken` valid ten minutes. The apply call must carry that
+        token; it is bound to the workspace, the scope, the changes and the
+        identifier and version of every eligible row. Without a token the
+        apply is refused with 409
+        (`type: /problems/transactions.bulk-preview-required`); with a token
+        that expired, was issued for another request or no longer matches the
+        rows, with 409 (`type: /problems/transactions.bulk-preview-stale`).
+        A target account that does not exist in the calling workspace, belongs
+        to another workspace or is archived refuses the whole request with
+        404. A row refused for a move reason is left entirely untouched, its
+        other changes included. At most 500 transactions per operation.
       tags:
         - Transactions
       security:
@@ -7550,10 +7568,11 @@ paths:
         - $ref: '#/components/parameters/CsrfToken'
         - name: Idempotency-Key
           in: header
-          required: true
+          required: false
           description: >-
-            Retries the same operation safely for seven days. A replayed
-            response adds `Idempotency-Replayed: true`.
+            Required to apply, ignored by a preview. Retries the same
+            operation safely for seven days. A replayed response adds
+            `Idempotency-Replayed: true`.
           schema:
             type: string
             minLength: 16
@@ -7567,14 +7586,18 @@ paths:
               $ref: '#/components/schemas/BulkEditRequest'
       responses:
         '200':
-          description: How many transactions changed and which were skipped, or the stored response of a replay.
+          description: >-
+            How many transactions changed and which were skipped, or the stored
+            response of a replay; with `preview: true`, the preview of a move.
           headers:
             Idempotency-Replayed:
               $ref: '#/components/headers/IdempotencyReplayed'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulkEditResult'
+                oneOf:
+                  - $ref: '#/components/schemas/BulkEditResult'
+                  - $ref: '#/components/schemas/BulkEditPreview'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -7582,7 +7605,9 @@ paths:
         '403':
           $ref: '#/components/responses/TransactionMutationForbidden'
         '404':
-          description: The target category does not exist in the calling workspace or is archived.
+          description: >-
+            The target category or the target account does not exist in the
+            calling workspace or is archived.
           content:
             application/problem+json:
               schema:
@@ -7591,6 +7616,9 @@ paths:
           description: >-
             The filter scope no longer matches the confirmed count
             (`type: /problems/transactions.bulk-scope-changed`, with `actualCount`),
+            a move is applied without the token of a preview
+            (`type: /problems/transactions.bulk-preview-required`) or with a
+            stale one (`type: /problems/transactions.bulk-preview-stale`),
             the Idempotency-Key was reused with another body or is in flight,
             or a transaction changed concurrently. A replay touching a closed
             period is refused with `type: /problems/period-closed`.
@@ -19420,6 +19448,17 @@ components:
               FILTER: '#/components/schemas/BulkFilterScope'
         changes:
           $ref: '#/components/schemas/BulkEditChanges'
+        preview:
+          type: boolean
+          description: >-
+            Only with `accountId` or `bookedOn`: answers the impact of the move
+            and writes nothing.
+        previewToken:
+          type: string
+          maxLength: 256
+          description: >-
+            The token of a preview of the same scope and changes; required to
+            apply `accountId` or `bookedOn`.
     BulkEditChanges:
       type: object
       additionalProperties: false
@@ -19463,6 +19502,18 @@ components:
         categoryId:
           type: string
           format: uuid
+        accountId:
+          type: string
+          format: uuid
+          description: >-
+            The account every eligible transaction moves to. Needs a preview
+            token.
+        bookedOn:
+          type: string
+          format: date
+          description: >-
+            The booked day every eligible transaction moves to. Needs a
+            preview token.
     BulkLabelSame:
       type: object
       additionalProperties: false
@@ -19517,7 +19568,11 @@ components:
         leg, an original with live refunds, in a closed period, a manual
         transaction given an empty label, a refund, split across several
         categories, of a sign contradicting the category type, or already in
-        the category.
+        the category. For a move: the target account holds another asset, is
+        closed on the day, or is valued by a portfolio; the transaction is
+        linked to a portfolio operation, under reconciliation review, matched
+        by a reconciliation or already on the target account; a booked
+        transaction would be dated in the future.
       enum:
         - NOT_FOUND
         - NO_LONGER_MATCHING
@@ -19530,6 +19585,14 @@ components:
         - SPLIT
         - SIGN_MISMATCH
         - ALREADY_IN_CATEGORY
+        - ASSET_MISMATCH
+        - ACCOUNT_NOT_OPEN
+        - PORTFOLIO_ACCOUNT
+        - PORTFOLIO_LINKED
+        - UNDER_REVIEW
+        - RECONCILED
+        - ALREADY_ON_ACCOUNT
+        - FUTURE_BOOKED
     BulkSkippedTransaction:
       type: object
       additionalProperties: false
@@ -19550,6 +19613,7 @@ components:
         - changed
         - skipped
         - fieldsChanged
+        - impactedAccountIds
       properties:
         requestedCount:
           type: integer
@@ -19577,6 +19641,75 @@ components:
               - note
               - counterparty
               - categoryId
+              - accountId
+              - bookedOn
+        impactedAccountIds:
+          type: array
+          description: The accounts whose balance changed, for cache invalidation.
+          items:
+            type: string
+            format: uuid
+    BulkMoveImpact:
+      type: object
+      additionalProperties: false
+      required:
+        - accountId
+        - label
+        - assetCode
+        - delta
+        - from
+        - to
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        assetCode:
+          type: string
+        delta:
+          type: string
+          description: >-
+            Exact signed decimal: the change of the account balance once every
+            eligible transaction has moved. `0` for a date change alone.
+        from:
+          type: string
+          format: date
+          description: The earliest day from which the balance changes.
+        to:
+          type:
+            - string
+            - 'null'
+          format: date
+          description: >-
+            The latest affected day, set only for a date change alone, where
+            the balance differs only between `from` and `to`.
+    BulkEditPreview:
+      type: object
+      additionalProperties: false
+      required:
+        - eligibleCount
+        - skipped
+        - impacts
+        - previewToken
+      properties:
+        eligibleCount:
+          type: integer
+          minimum: 0
+          description: Transactions the move would apply to.
+        skipped:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/BulkSkippedTransaction'
+        impacts:
+          type: array
+          description: One entry per affected account, ordered by label then identifier.
+          items:
+            $ref: '#/components/schemas/BulkMoveImpact'
+        previewToken:
+          type: string
+          description: Opaque, valid ten minutes, to pass back to apply this exact move.
     VoidTransactionRequest:
       type: object
       additionalProperties: false

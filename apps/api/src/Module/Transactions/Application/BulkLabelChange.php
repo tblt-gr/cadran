@@ -29,6 +29,17 @@ final readonly class BulkLabelChange
         return trim($this->each[$transactionId] ?? $this->same ?? '');
     }
 
+    /** @return array{same: ?string, each: ?array<string, string>} */
+    public function canonical(): array
+    {
+        $each = $this->each;
+        if (null !== $each) {
+            ksort($each);
+        }
+
+        return ['same' => $this->same, 'each' => $each];
+    }
+
     /**
      * The transactions a per-row label names, null for one label shared by all.
      *

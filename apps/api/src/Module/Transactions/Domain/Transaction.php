@@ -155,6 +155,33 @@ final readonly class Transaction
     }
 
     /**
+     * Relocates the movement on another account and/or booked day without touching amount, asset or splits.
+     * It spends no version of its own: the edit it follows already counts. The value date follows the booked
+     * day when it equalled it; otherwise it stays, unless that would leave the 90 day window, and an
+     * authorization date never trails the booked day it precedes.
+     */
+    public function moved(?string $accountId, ?\DateTimeImmutable $bookedOn): self
+    {
+        if ($this->state->isTerminal()) {
+            throw new InvalidTransaction('A terminal transaction cannot be moved.');
+        }
+        $day = $bookedOn ?? $this->bookedOn;
+        $value = $this->valueOn;
+        if (null !== $bookedOn && null !== $value) {
+            $value = $value == $this->bookedOn || abs((int) $day->diff($value)->format('%r%a')) > 90 ? $day : $value;
+        }
+        $authorized = null !== $this->authorizedOn && $this->authorizedOn > $day ? $day : $this->authorizedOn;
+
+        return new self(
+            $this->id, $this->workspace, $accountId ?? $this->accountId, $this->amount, $this->originalAmount, $this->exchangeRate,
+            $this->state, $this->nature, $this->source, $this->sourceRef, $day, $value, $authorized, $this->rawLabel,
+            $this->counterparty, $this->note, $this->paymentMethod, $this->mcc, $this->maskedCard, $this->bankReference,
+            $this->splits, $this->version, $this->createdAt, $this->updatedAt, $this->voidedAt, $this->lastEditorId,
+            $this->reviewReason, $this->userLabel, $this->autoBook,
+        );
+    }
+
+    /**
      * The user's own display label. The source label stays untouched, which is
      * what keeps an external movement traceable; null falls back to it. It is a
      * presentation attribute, so it spends no version of its own: the edit it

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
+use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Transactions\Application\BulkEditChanges;
 use App\Module\Transactions\Application\BulkEditInput;
 use App\Module\Transactions\Application\BulkFieldChange;
@@ -19,7 +20,8 @@ use App\Module\Transactions\Domain\Transaction;
 final readonly class BulkEditPayload
 {
     private const int MAX_EACH_VALUES = 100;
-    private const array CHANGE_FIELDS = ['label', 'paymentMethod', 'note', 'counterparty', 'categoryId'];
+    private const int MAX_TOKEN_LENGTH = 256;
+    private const array CHANGE_FIELDS = ['label', 'paymentMethod', 'note', 'counterparty', 'categoryId', 'accountId', 'bookedOn'];
     private const array FILTER_FIELDS = [
         'from', 'to', 'accountIds', 'states', 'natures', 'categoryIds', 'includeDescendants', 'axes',
         'minAmount', 'maxAmount', 'assetCode', 'sources', 'categorization', 'q', 'includeVoided', 'direction', 'categoryType',
@@ -36,7 +38,15 @@ final readonly class BulkEditPayload
      */
     public function parse(array $body): BulkEditInput
     {
-        TransactionPayload::of($body, ['changes', 'scope']);
+        $unknown = array_diff(array_keys($body), ['changes', 'scope', 'preview', 'previewToken']);
+        if ([] !== $unknown || !isset($body['changes'], $body['scope'])) {
+            throw new \UnexpectedValueException('A bulk edit carries changes, a scope, and optionally a preview flag and token.');
+        }
+        $preview = $body['preview'] ?? false;
+        $token = $body['previewToken'] ?? null;
+        if (!is_bool($preview) || (null !== $token && (!is_string($token) || '' === $token || strlen($token) > self::MAX_TOKEN_LENGTH))) {
+            throw new \UnexpectedValueException('preview must be a boolean and previewToken a bounded string.');
+        }
         $changes = $this->changes($body['changes']);
         $scope = $body['scope'];
         if (!is_array($scope) || !isset($scope['type']) || !is_string($scope['type'])) {
@@ -44,8 +54,8 @@ final readonly class BulkEditPayload
         }
 
         return match ($scope['type']) {
-            'IDS' => $this->byIds($changes, $scope),
-            'FILTER' => $this->byFilters($changes, $scope),
+            'IDS' => $this->byIds($changes, $scope, $preview, $token),
+            'FILTER' => $this->byFilters($changes, $scope, $preview, $token),
             default => throw new \UnexpectedValueException('Unknown bulk scope type.'),
         };
     }
@@ -65,7 +75,21 @@ final readonly class BulkEditPayload
             note: array_key_exists('note', $changes) ? $this->fieldText($changes['note'], Transaction::MAX_NOTE_LENGTH) : null,
             counterparty: array_key_exists('counterparty', $changes) ? $this->fieldText($changes['counterparty'], Transaction::MAX_COUNTERPARTY_LENGTH) : null,
             categoryId: array_key_exists('categoryId', $changes) ? TransactionPayload::of(['categoryId' => $changes['categoryId']], ['categoryId'])->identifier('categoryId') : null,
+            accountId: array_key_exists('accountId', $changes) ? TransactionPayload::of(['accountId' => $changes['accountId']], ['accountId'])->identifier('accountId') : null,
+            bookedOn: array_key_exists('bookedOn', $changes) ? $this->day($changes['bookedOn']) : null,
         );
+    }
+
+    private function day(mixed $day): \DateTimeImmutable
+    {
+        if (!is_string($day)) {
+            throw new \UnexpectedValueException('bookedOn must be an ISO 8601 calendar day.');
+        }
+        try {
+            return BusinessDay::fromIsoDate($day)->date;
+        } catch (\Throwable $exception) {
+            throw new \UnexpectedValueException('bookedOn must be an ISO 8601 calendar day.', previous: $exception);
+        }
     }
 
     private function label(mixed $label): BulkLabelChange
@@ -126,7 +150,7 @@ final readonly class BulkEditPayload
     }
 
     /** @param array<mixed> $scope */
-    private function byIds(BulkEditChanges $changes, array $scope): BulkEditInput
+    private function byIds(BulkEditChanges $changes, array $scope, bool $preview, ?string $token): BulkEditInput
     {
         TransactionPayload::of($scope, ['type', 'ids']);
         $ids = $scope['ids'] ?? null;
@@ -150,11 +174,11 @@ final readonly class BulkEditPayload
             }
         }
 
-        return BulkEditInput::forIds($changes, $ids);
+        return BulkEditInput::forIds($changes, $ids, $preview, $token);
     }
 
     /** @param array<mixed> $scope */
-    private function byFilters(BulkEditChanges $changes, array $scope): BulkEditInput
+    private function byFilters(BulkEditChanges $changes, array $scope, bool $preview, ?string $token): BulkEditInput
     {
         TransactionPayload::of($scope, ['type', 'filters', 'expectedCount']);
         if (null !== $changes->label?->eachIds()) {
@@ -179,7 +203,7 @@ final readonly class BulkEditPayload
             self::text($filters, 'direction'), categoryType: self::text($filters, 'categoryType'),
         ) ?? throw new \UnexpectedValueException('A filter is malformed.');
 
-        return BulkEditInput::forFilters($changes, $query, $expected);
+        return BulkEditInput::forFilters($changes, $query, $expected, $preview, $token);
     }
 
     /** @param array<mixed> $filters */

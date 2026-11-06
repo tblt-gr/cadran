@@ -14,6 +14,7 @@ use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
+use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Domain\BulkEditPolicy;
 use App\Module\Transactions\Domain\BulkEditSkipReason;
 use App\Module\Transactions\Domain\CategorizationOrigin;
@@ -41,7 +42,10 @@ final readonly class BulkEditTransactions
         private TransactionRepository $transactions,
         private CategoryRepository $categories,
         private ResolveBulkScope $scope,
-        private ReadBulkEditFacts $readFacts,
+        private EvaluateBulkRows $evaluate,
+        private BulkMoveAccounts $moveAccounts,
+        private BulkPreviewTokenCodec $previewTokens,
+        private MatchTransactionToOccurrence $matchRecurrence,
         private TransactionBoundary $transactionBoundary,
         private CategorizationWriteLock $categorizationWriteLock,
         private RecordAuditEvent $recordAuditEvent,
@@ -53,6 +57,9 @@ final readonly class BulkEditTransactions
     /**
      * @throws BulkScopeTooLarge
      * @throws BulkScopeChanged
+     * @throws BulkPreviewRequired
+     * @throws BulkPreviewStale
+     * @throws BulkTargetAccountNotFound
      * @throws InvalidTransactionInput
      * @throws TransactionNotFound
      */
@@ -60,6 +67,9 @@ final readonly class BulkEditTransactions
     {
         $context = $this->caller->resolveContext();
         $changes = $input->changes;
+        if ($changes->moves() && null === $input->previewToken) {
+            throw new BulkPreviewRequired();
+        }
 
         return $this->transactionBoundary->transactional(function () use ($context, $input, $changes): BulkEditResult {
             $this->categorizationWriteLock->acquire($context->workspace);
@@ -70,39 +80,28 @@ final readonly class BulkEditTransactions
                     throw new TransactionNotFound();
                 }
             }
+            $targetAccount = null === $changes->accountId ? null : $this->moveAccounts->target($context->workspace, $changes->accountId, true);
+            $target = null === $targetAccount ? null : BulkMoveAccounts::describe($targetAccount);
 
             $ids = $this->scope->ids($context->workspace, $input);
             $rows = [];
             foreach ($this->transactions->findManyForUpdate($context->workspace, $ids) as $row) {
                 $rows[$row->id] = $row;
             }
-            // The scope was resolved before the rows were locked: a concurrent edit may have moved
-            // one out of the filter since, so membership is verified again now that they are held.
-            $stillMatching = null === $input->ids ? array_flip($this->scope->matchingIds($context->workspace, $input)) : null;
-            $facts = ($this->readFacts)($context->workspace, $rows);
+            $evaluation = ($this->evaluate)($context->workspace, $input, $ids, $rows, $target);
+            // Recomputed from the rows as they are now that they are locked: any edit since the preview shows.
+            if ($changes->moves() && !$this->previewTokens->accepts($input->previewToken, $context->workspace, $ids, $changes, $evaluation->eligibleVersions())) {
+                throw new BulkPreviewStale();
+            }
 
             $now = $this->clock->now();
-            $skipped = [];
+            $skipped = $evaluation->skipped;
             $fields = [];
             $changed = 0;
             $days = [];
-            foreach ($ids as $id) {
-                $current = $rows[$id] ?? null;
-                if (null === $current) {
-                    $skipped[$id] = BulkEditSkipReason::NOT_FOUND;
-                    continue;
-                }
-                if (null !== $stillMatching && !isset($stillMatching[$id])) {
-                    $skipped[$id] = BulkEditSkipReason::NO_LONGER_MATCHING;
-                    continue;
-                }
+            foreach ($evaluation->eligible as $id => $current) {
                 $label = $changes->label?->valueFor($id);
-                $reason = BulkEditPolicy::rowReason($current, $facts[$id], $label);
-                if (null !== $reason) {
-                    $skipped[$id] = $reason;
-                    continue;
-                }
-                $categoryReason = null === $category ? null : BulkEditPolicy::categoryReason($current, $category->id, $category->type, $facts[$id]);
+                $categoryReason = null === $category ? null : BulkEditPolicy::categoryReason($current, $category->id, $category->type, $evaluation->facts[$id]);
                 if (null !== $categoryReason) {
                     $skipped[$id] = $categoryReason;
                     if (!$changes->editsOtherThanCategory()) {
@@ -112,7 +111,6 @@ final readonly class BulkEditTransactions
                 $applyCategory = null !== $category && null === $categoryReason;
                 $applied = $this->appliedFields($changes, $applyCategory);
                 $updated = $this->edited($current, $changes, $label, $applyCategory ? $category : null, $context->actorId, $now);
-                // No recurrence re-match here, unlike a single edit: no amount or date changes.
                 if (!$this->transactions->update($updated, $current->version)) {
                     throw new StaleTransactionVersion('The transaction changed concurrently.');
                 }
@@ -122,12 +120,20 @@ final readonly class BulkEditTransactions
                     TransactionAuditEvents::ENTITY, $updated->id,
                     AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($updated)),
                 ));
+                if ($changes->moves()) {
+                    // A moved row may now settle another instalment, as after a single edit.
+                    ($this->matchRecurrence)($updated);
+                    $days[$updated->bookedOn->format('Y-m')] = $updated->bookedOn->format('Y-m-d');
+                }
                 ++$changed;
                 $fields += array_fill_keys($applied, true);
                 $days[$current->bookedOn->format('Y-m')] = $current->bookedOn->format('Y-m-d');
             }
+            ksort($skipped);
 
             $fieldsChanged = array_keys($fields);
+            $accountIds = array_map(static fn (BulkMoveImpact $impact): string => $impact->accountId, $evaluation->impacts);
+            sort($accountIds);
             if (0 < $changed) {
                 if (isset($fields['categoryId']) && null !== $category) {
                     $used = $category->markUsed($now);
@@ -135,10 +141,13 @@ final readonly class BulkEditTransactions
                         throw new TransactionConflict('The transaction category changed concurrently.');
                     }
                 }
-                $this->audit($context, $input, count($ids), $changed, $fieldsChanged, $skipped, $category?->id);
+                if (null !== $targetAccount) {
+                    $this->moveAccounts->markUsed($targetAccount, $now);
+                }
+                $this->audit($context, $input, count($ids), $changed, $fieldsChanged, $skipped, $category?->id, $accountIds);
             }
 
-            return new BulkEditResult(count($ids), $changed, $skipped, $fieldsChanged, array_values($days));
+            return new BulkEditResult(count($ids), $changed, $skipped, $fieldsChanged, array_values($days), 0 < $changed ? $accountIds : []);
         });
     }
 
@@ -151,6 +160,8 @@ final readonly class BulkEditTransactions
             'note' => null !== $changes->note,
             'counterparty' => null !== $changes->counterparty,
             'categoryId' => $category,
+            'accountId' => null !== $changes->accountId,
+            'bookedOn' => null !== $changes->bookedOn,
         ]));
     }
 
@@ -164,7 +175,7 @@ final readonly class BulkEditTransactions
     ): Transaction {
         $external = BulkEditPolicy::isExternal($current);
         try {
-            return $current->edit(
+            $edited = $current->edit(
                 amount: $current->amount, nature: $current->nature, state: $current->state,
                 bookedOn: $current->bookedOn, valueOn: $current->valueOn, authorizedOn: $current->authorizedOn,
                 rawLabel: null === $label || $external ? $current->rawLabel : $label,
@@ -181,6 +192,8 @@ final readonly class BulkEditTransactions
                 $external => self::blankToNull($label),
                 default => null,
             });
+
+            return $changes->moves() ? $edited->moved($changes->accountId, $changes->bookedOn) : $edited;
         } catch (InvalidTransaction|\ValueError $exception) {
             throw new InvalidTransactionInput('The requested bulk edit is invalid.', previous: $exception);
         }
@@ -215,8 +228,9 @@ final readonly class BulkEditTransactions
      *
      * @param list<string>                      $fields
      * @param array<string, BulkEditSkipReason> $skipped
+     * @param list<string>                      $accountIds accounts whose balance changed: identifiers only, never a delta
      */
-    private function audit(WorkspaceContext $context, BulkEditInput $input, int $requested, int $changed, array $fields, array $skipped, ?string $categoryId): void
+    private function audit(WorkspaceContext $context, BulkEditInput $input, int $requested, int $changed, array $fields, array $skipped, ?string $categoryId, array $accountIds): void
     {
         $counts = [];
         foreach ($skipped as $reason) {
@@ -224,7 +238,8 @@ final readonly class BulkEditTransactions
         }
         ksort($counts);
         ($this->recordAuditEvent)(new AuditEventRecord(
-            $context->workspace, $context->actorId, TransactionAuditEvents::BULK_EDITED,
+            $context->workspace, $context->actorId,
+            $input->changes->moves() ? TransactionAuditEvents::BULK_MOVED : TransactionAuditEvents::BULK_EDITED,
             TransactionAuditEvents::BATCH_ENTITY, $this->uuidGenerator->generate(),
             AuditDiff::creation([
                 'scope' => null === $input->ids ? 'FILTER' : 'IDS',
@@ -232,6 +247,7 @@ final readonly class BulkEditTransactions
                 'changed' => $changed,
                 'fields' => implode(',', $fields),
                 'categoryId' => $categoryId,
+                ...($input->changes->moves() ? ['accounts' => implode(',', $accountIds)] : []),
                 'skips' => implode(',', array_map(static fn (string $reason, int $count): string => $reason.':'.$count, array_keys($counts), $counts)),
             ]),
         ));

@@ -7,13 +7,18 @@ namespace App\Module\Transactions\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Transactions\Application\BulkEditResult;
 use App\Module\Transactions\Application\BulkEditTransactions;
+use App\Module\Transactions\Application\BulkPreview;
+use App\Module\Transactions\Application\BulkPreviewRequired;
+use App\Module\Transactions\Application\BulkPreviewStale;
 use App\Module\Transactions\Application\BulkScopeChanged;
 use App\Module\Transactions\Application\BulkScopeTooLarge;
+use App\Module\Transactions\Application\BulkTargetAccountNotFound;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidTransactionInput;
+use App\Module\Transactions\Application\PreviewBulkEdit;
 use App\Module\Transactions\Application\StaleTransactionVersion;
 use App\Module\Transactions\Application\TransactionConflict;
 use App\Module\Transactions\Application\TransactionNotFound;
@@ -32,7 +37,7 @@ final readonly class TransactionBulkController
     }
 
     #[Route('/api/v1/transactions/bulk-edit', name: 'api_v1_transactions_bulk_edit', methods: ['POST'])]
-    public function edit(Request $request, BulkEditTransactions $bulkEdit): Response
+    public function edit(Request $request, BulkEditTransactions $bulkEdit, PreviewBulkEdit $previewBulk): Response
     {
         $body = $this->envelope->body($request);
         if ($body instanceof Response) {
@@ -41,6 +46,10 @@ final readonly class TransactionBulkController
 
         try {
             $input = $this->payload->parse($body);
+            if ($input->preview) {
+                // Writes nothing, so it needs no idempotency key and ignores one if sent.
+                return $this->envelope->json(self::previewRepresentation($previewBulk($input)));
+            }
             $result = $this->idempotentExecution->execute(
                 'transaction.bulk_edit',
                 $this->envelope->idempotency($request, true),
@@ -65,6 +74,12 @@ final readonly class TransactionBulkController
                 Response::HTTP_CONFLICT, 'api.problem.bulk_scope_changed',
                 ['actualCount' => $exception->actualCount], '/problems/transactions.bulk-scope-changed',
             );
+        } catch (BulkPreviewRequired) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.bulk_preview_required', '/problems/transactions.bulk-preview-required');
+        } catch (BulkPreviewStale) {
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.bulk_preview_stale', '/problems/transactions.bulk-preview-stale');
+        } catch (BulkTargetAccountNotFound) {
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.bulk_target_account_not_found');
         } catch (TransactionNotFound) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
         } catch (StaleTransactionVersion|TransactionConflict) {
@@ -89,6 +104,30 @@ final readonly class TransactionBulkController
             'changed' => $result->changed,
             'skipped' => $skipped,
             'fieldsChanged' => $result->fieldsChanged,
+            'impactedAccountIds' => $result->accountIds,
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private static function previewRepresentation(BulkPreview $preview): array
+    {
+        $skipped = [];
+        foreach ($preview->skipped as $id => $reason) {
+            $skipped[] = ['id' => $id, 'reason' => $reason->value];
+        }
+
+        return [
+            'eligibleCount' => $preview->eligible,
+            'skipped' => $skipped,
+            'impacts' => array_map(static fn ($impact): array => [
+                'accountId' => $impact->accountId,
+                'label' => $impact->label,
+                'assetCode' => $impact->assetCode,
+                'delta' => $impact->delta,
+                'from' => $impact->from,
+                'to' => $impact->to,
+            ], $preview->impacts),
+            'previewToken' => $preview->token,
         ];
     }
 }

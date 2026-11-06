@@ -11,7 +11,8 @@ final readonly class BulkEditResult
     /**
      * @param array<string, BulkEditSkipReason> $skipped       reason per transaction identifier
      * @param list<string>                      $fieldsChanged fields written on at least one row
-     * @param list<string>                      $periodDays    one booked day per month the write touched
+     * @param list<string>                      $periodDays    one booked day per month the write touched, new days included
+     * @param list<string>                      $accountIds    accounts whose balance changed, for cache invalidation
      */
     public function __construct(
         public int $requested,
@@ -19,6 +20,7 @@ final readonly class BulkEditResult
         public array $skipped,
         public array $fieldsChanged,
         public array $periodDays,
+        public array $accountIds = [],
     ) {
     }
 }

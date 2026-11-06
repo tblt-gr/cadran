@@ -1,0 +1,39 @@
+.preview {
+  display: grid;
+  gap: var(--spacing-4);
+}
+
+.preview p {
+  margin: var(--spacing-none);
+}
+
+.summary {
+  font-weight: var(--font-weight-semibold);
+}
+
+.summaryBlock {
+  display: block;
+  inline-size: 14rem;
+  max-inline-size: 100%;
+  block-size: 1em;
+}
+
+.impacts {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-2);
+  color: var(--text-secondary);
+  list-style: none;
+}
+
+.impactBlock {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: 22rem;
+  block-size: 1em;
+}
+
+.error {
+  color: var(--negative);
+}
