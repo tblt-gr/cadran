@@ -92,4 +92,16 @@ final readonly class PortfolioFixture
             'voided_at' => 'VOIDED' === $state ? '2026-03-15 09:12:04+00' : null,
         ]);
     }
+
+    /**
+     * Drops the valuations a recorded operation refreshed on its own (PTF-012), for tests whose dated figures must
+     * stand on the valuations they record themselves.
+     */
+    public function discardAutomaticValuations(): void
+    {
+        $note = \App\Module\Portfolio\Application\RefreshValuationAfterOperation::NOTE;
+        $this->connection->executeStatement('DELETE FROM portfolio_position_snapshots WHERE valuation_id IN (SELECT id FROM portfolio_valuations WHERE note = :note)', ['note' => $note]);
+        $this->connection->executeStatement('UPDATE portfolio_valuations SET supersedes_id = NULL WHERE supersedes_id IN (SELECT id FROM portfolio_valuations WHERE note = :note)', ['note' => $note]);
+        $this->connection->executeStatement('DELETE FROM portfolio_valuations WHERE note = :note', ['note' => $note]);
+    }
 }

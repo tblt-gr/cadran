@@ -34,6 +34,7 @@ final readonly class CorrectPortfolioOperation
         private TransactionBoundary $transactions,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
+        private RefreshValuationAfterOperation $refreshValuation,
         private ClockInterface $clock,
     ) {
     }
@@ -68,6 +69,14 @@ final readonly class CorrectPortfolioOperation
             $replacement = $this->recorder->record($context, $account, $resolved, $now, $original->id,
                 $original->details->tradeDate == $newTradeDate ? $original->sequence : null,
             );
+            if (OperationValuationEffect::followed($original->details) && OperationValuationEffect::followed($replacement->details)) {
+                ($this->refreshValuation)(
+                    $context->workspace, $account,
+                    OperationValuationEffect::net(OperationValuationEffect::quantityChanges($replacement->details), OperationValuationEffect::quantityChanges($original->details, -1)),
+                    OperationValuationEffect::bought($replacement->details),
+                    OperationValuationEffect::bought($original->details),
+                );
+            }
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, PortfolioOperationAuditEvents::REPLACED,
                 PortfolioOperationAuditEvents::ENTITY, $replaced->id, PortfolioOperationAudit::replaced($replaced, $replacement->id),

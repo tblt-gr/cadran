@@ -607,6 +607,8 @@ final class PortfolioOverviewControllerTest extends WebTestCase
     {
         $this->send('POST', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-operations', $body);
         self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+        // These figures stand on the valuations the test records itself, not on the ones an operation refreshes.
+        (new PortfolioFixture($this->connection))->discardAutomaticValuations();
     }
 
     /** @return array{value: string, assetCode: string} */

@@ -36,7 +36,6 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
         private RecordPortfolioOperation $record,
         private CorrectPortfolioOperation $correct,
         private VoidPortfolioOperation $void,
-        private RefreshValuationAfterCashFlow $refreshValuation,
     ) {
     }
 
@@ -52,9 +51,7 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
                 continue;
             }
             try {
-                if ($this->syncLeg($workspace, $account, $leg)) {
-                    ($this->refreshValuation)($workspace, $account);
-                }
+                $this->syncLeg($workspace, $account, $leg);
             } catch (InvalidPortfolioOperation $exception) {
                 throw new TransferPortfolioSyncRefused($exception->problemCode, $exception);
             } catch (PortfolioOperationConflict $exception) {
@@ -69,8 +66,8 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
         }
     }
 
-    /** @return bool whether an operation was recorded, corrected or voided */
-    private function syncLeg(WorkspaceScope $workspace, Account $account, Transaction $leg): bool
+    /** The three use cases refresh the valuation of the day in their own transaction. */
+    private function syncLeg(WorkspaceScope $workspace, Account $account, Transaction $leg): void
     {
         $wanted = TransactionState::BOOKED === $leg->state && null === $leg->voidedAt;
         $linkedId = $this->operations->activeOperationLinkedTo($workspace, $leg->id);
@@ -79,23 +76,21 @@ final readonly class SyncTransferWithPortfolio implements TransferPortfolioSync
         if (null === $operation) {
             // A closed or archived portfolio takes no new operation: its older transfers stay editable as they were.
             if (!$wanted || !self::isActive($account)) {
-                return false;
+                return;
             }
             ($this->record)($account->id, self::input($leg));
 
-            return true;
+            return;
         }
         if (!$wanted) {
             ($this->void)($operation->id, $operation->version, 'The linked transfer leg is no longer booked.');
 
-            return true;
+            return;
         }
         if (self::mirrors($operation, $leg)) {
-            return false;
+            return;
         }
         ($this->correct)($operation->id, $operation->version, 'The linked transfer changed.', self::input($leg));
-
-        return true;
     }
 
     private static function followsPortfolio(Account $account): bool

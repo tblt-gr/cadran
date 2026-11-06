@@ -22,6 +22,7 @@ final readonly class RecordPortfolioOperation
         private AssertPeriodOpen $assertPeriodOpen,
         private TransactionBoundary $transactions,
         private WorkspaceCalendar $calendar,
+        private RefreshValuationAfterOperation $refreshValuation,
         private ClockInterface $clock,
     ) {
     }
@@ -37,7 +38,12 @@ final readonly class RecordPortfolioOperation
             $account = $this->gate->forWrite($context->workspace, $accountId, true);
             $resolved = $this->resolver->resolve($account, $input, $this->calendar->today(), true);
 
-            return $this->recorder->record($context, $account, $resolved, $this->clock->now());
+            $operation = $this->recorder->record($context, $account, $resolved, $this->clock->now());
+            if (OperationValuationEffect::followed($operation->details)) {
+                ($this->refreshValuation)($context->workspace, $account, OperationValuationEffect::quantityChanges($operation->details), OperationValuationEffect::bought($operation->details));
+            }
+
+            return $operation;
         });
 
         return $this->presenter->present($context->workspace, [$operation])[0];
