@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -17,10 +18,13 @@ interface PeriodClosingFacts
     public function pendingTransactionCount(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int;
 
     /**
-     * How many of these unreconciled closing snapshots show a non-zero
-     * discrepancy against the movements since $from.
+     * The non-zero gaps `observed - computed` of these unreconciled closing
+     * snapshots against the movements since $from, keyed by account identifier.
+     * A figure that cannot be calculated is absent: it is not a gap.
      *
      * @param list<AccountBalanceSnapshot> $closings
+     *
+     * @return array<string, DecimalValue>
      */
-    public function unexplainedDiscrepancyCount(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): int;
+    public function unexplainedDiscrepancies(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): array;
 }

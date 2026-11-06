@@ -1,6 +1,7 @@
 import type { Account, AccountBalanceSnapshot } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { useBalanceSnapshots } from '@/features/accounts/record-balance-form/balance-snapshots/useBalanceSnapshots';
 import { useBalanceWithdrawal } from '@/features/accounts/record-balance-form/balance-snapshots/useBalanceWithdrawal';
@@ -8,7 +9,7 @@ import { BalanceTable } from './BalanceTable';
 import { RecordBalanceModal } from './RecordBalanceModal';
 import styles from './BalanceTab.module.css';
 
-type Dialog = { correcting?: AccountBalanceSnapshot } | null;
+type Dialog = { correcting?: AccountBalanceSnapshot; asOf?: string } | null;
 
 /**
  * The Solde tab of a balance-valued account: every recorded balance, newest first, with the
@@ -23,6 +24,15 @@ export function BalanceTab({ account }: { account: Account }) {
   const withdrawal = useBalanceWithdrawal(account.id, items);
   const recordable = account.status === 'ACTIVE';
   const empty = items !== null && items.length === 0;
+  // The closure modal links here to record the statement balance of a month end.
+  useArrivalAction(
+    'record-balance',
+    true,
+    ({ asOf }) => {
+      if (account.status === 'ACTIVE' && account.editable) setDialog(asOf ? { asOf } : {});
+    },
+    { consumesAsOf: true },
+  );
   const record = (
     <button
       className="secondary-action"
@@ -90,6 +100,7 @@ export function BalanceTab({ account }: { account: Account }) {
           account={account}
           close={() => setDialog(null)}
           correcting={dialog.correcting}
+          initialAsOf={dialog.asOf}
         />
       ) : null}
     </div>

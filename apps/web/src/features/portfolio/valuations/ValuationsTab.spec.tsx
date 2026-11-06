@@ -35,6 +35,7 @@ const account = {
   kind: 'PORTFOLIO',
   valuationMode: 'PORTFOLIO',
   status: 'ACTIVE',
+  editable: true,
 } as Account;
 const ok = <T,>(data: T, status = 200) =>
   Promise.resolve({ data, response: new Response('{}', { status }) });
@@ -164,6 +165,46 @@ describe('ValuationsTab month end', () => {
     await waitFor(() => expect(api.readPortfolioSummary).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(window.location.search).toBe('?tab=valuations'));
     expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('opens the record modal on action=record-valuation with the date prefilled, once', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/portfolios/acc-1?tab=valuations&action=record-valuation&asOf=2026-10-31',
+    );
+    renderTab();
+    const dialog = await screen.findByRole('dialog', { name: 'Valorisation du 31/10/2026' });
+    await waitFor(() => expect(screen.queryByTestId('valuation-draft-skeleton')).toBeNull());
+    expect(api.readPortfolioValuationDraft.mock.calls[0]![0].query.valuedOn).toBe('2026-10-31');
+    expect(dialog).toBeTruthy();
+    expect(window.location.search).toBe('?tab=valuations');
+  });
+
+  it('opens the record modal without a prefilled date when asOf is malformed', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/portfolios/acc-1?tab=valuations&action=record-valuation&asOf=31-10-2026',
+    );
+    renderTab();
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvelle valorisation' });
+    expect(
+      (within(dialog).getByLabelText('Date de valorisation') as HTMLInputElement).value,
+    ).not.toBe('31-10-2026');
+    expect(window.location.search).toBe('?tab=valuations');
+  });
+
+  it('ignores an unknown action and leaves the URL alone', async () => {
+    window.history.replaceState(
+      {},
+      '',
+      '/portfolios/acc-1?tab=valuations&action=wipe&asOf=2026-10-31',
+    );
+    renderTab();
+    await loaded();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(window.location.search).toContain('action=wipe');
   });
 
   it('ignores a malformed deep link month', async () => {

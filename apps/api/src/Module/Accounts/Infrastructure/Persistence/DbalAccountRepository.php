@@ -266,6 +266,29 @@ final readonly class DbalAccountRepository implements AccountRepository
         return array_map(AccountRow::text(...), $rows);
     }
 
+    public function idsInOverviewOrder(WorkspaceScope $workspace, array $orderedGroupIds, array $accountIds): array
+    {
+        if ([] === $accountIds) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchFirstColumn(
+            'SELECT a.id FROM account_financial_accounts a LEFT JOIN account_overview_positions p'
+            .' ON p.workspace_id = :workspace_id AND p.account_id = a.id'
+            .' AND p.group_key = COALESCE(a.primary_group_id, CAST(:ungrouped_key AS uuid))'
+            .' WHERE a.workspace_id = :workspace_id AND a.id = ANY(CAST(:account_ids AS uuid[]))'
+            .' ORDER BY array_position(CAST(:group_ids AS uuid[]), a.primary_group_id) NULLS LAST, '.self::MEMBER_ORDER,
+            [
+                'workspace_id' => $workspace->id,
+                'ungrouped_key' => AccountOrdering::UNGROUPED_KEY,
+                'account_ids' => '{'.implode(',', $accountIds).'}',
+                'group_ids' => '{'.implode(',', $orderedGroupIds).'}',
+            ],
+        );
+
+        return array_map(AccountRow::text(...), $rows);
+    }
+
     public function countByPrimaryGroup(WorkspaceScope $workspace, bool $includeArchived, bool $includeClosed): array
     {
         [$where, $parameters] = self::filters($workspace, $includeArchived, $includeClosed, null);

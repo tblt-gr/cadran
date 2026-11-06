@@ -13,6 +13,9 @@ final class InMemoryAccountGroupRepository implements AccountGroupRepository
     /** @var list<AccountGroup> */
     private array $groups;
 
+    /** How many times the groups were listed, so a test can prove a read was skipped. */
+    public int $listCalls = 0;
+
     public function __construct(AccountGroup ...$groups)
     {
         $this->groups = array_values($groups);
@@ -36,6 +39,8 @@ final class InMemoryAccountGroupRepository implements AccountGroupRepository
 
     public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset): array
     {
+        ++$this->listCalls;
+
         return array_slice($this->matching($workspace, $includeArchived), $offset, $limit);
     }
 

@@ -2095,6 +2095,22 @@
         "link": "Voir les portefeuilles"
       }
     },
+    "items": {
+      "reasons": {
+        "NO_BALANCE_IN_MONTH": "Aucun solde relevé ce mois-ci",
+        "BALANCE_NOT_RECONCILED": "Solde du {{date}} non rapproché",
+        "DISCREPANCY": "Écart de {{amount}} au {{date}}",
+        "NO_MONTH_END_VALUATION": "Aucune valorisation de fin de mois",
+        "VALUATION_NOT_CALCULATED": "Valorisation du {{date}} non publiée"
+      },
+      "actions": {
+        "NO_BALANCE_IN_MONTH": "Saisir le solde",
+        "BALANCE_NOT_RECONCILED": "Rapprocher",
+        "DISCREPANCY": "Voir l’écart",
+        "NO_MONTH_END_VALUATION": "Saisir une valorisation",
+        "VALUATION_NOT_CALCULATED": "Saisir une valorisation"
+      }
+    },
     "close": {
       "action": "Clôturer le mois",
       "title": "Clôturer {{month}}",

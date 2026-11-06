@@ -4,6 +4,7 @@ import { useEffect, useState, type RefObject } from 'react';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
+import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { lastDayOfMonth, parseMonthEnd } from '@/features/portfolio/month-end/monthEnd';
 import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { ValuationDetailModal } from './valuation-detail-modal/ValuationDetailModal';
@@ -90,6 +91,18 @@ export function ValuationsTab({
       setDialog({ kind: 'record', valuedOn: lastDayOfMonth(monthEnd) });
     }
   }, [dueMonths, monthEnd]);
+
+  // The closure modal links here to record the missing month end; asOf prefills the date.
+  useArrivalAction(
+    'record-valuation',
+    true,
+    ({ asOf: valuedOn }) => {
+      if (account.status === 'ACTIVE' && account.editable) {
+        setDialog({ kind: 'record', ...(valuedOn ? { valuedOn } : {}) });
+      }
+    },
+    { consumesAsOf: true },
+  );
 
   useEffect(() => {
     if (total > 0 && page > totalPages) setPage(totalPages);

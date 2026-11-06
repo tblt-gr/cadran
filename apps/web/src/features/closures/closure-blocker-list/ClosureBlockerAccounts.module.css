@@ -1,0 +1,13 @@
+/* The blocker card is a flex row: without this the disclosure shrinks to its content and the actions cannot reach the right edge. */
+.accounts {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}

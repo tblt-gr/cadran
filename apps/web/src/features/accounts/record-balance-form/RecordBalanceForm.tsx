@@ -24,6 +24,8 @@ interface RecordBalanceFormProps {
   valuation: AccountValuation;
   /** Opens already in correction mode on this snapshot, for a correction started from a list. */
   initialEditing?: AccountBalanceSnapshot;
+  /** Opens the date field on this day instead of the account's requested day. */
+  initialAsOf?: string;
   onCancel: () => void;
   /** Called once a listed snapshot has been amended in place. */
   onCorrected: () => void;
@@ -45,6 +47,7 @@ export function RecordBalanceForm({
   account,
   valuation,
   initialEditing,
+  initialAsOf,
   onCancel: _onCancel,
   onCorrected,
   onSubmit,
@@ -52,7 +55,7 @@ export function RecordBalanceForm({
   submitError,
 }: RecordBalanceFormProps) {
   const { t } = useTranslation();
-  const [asOf, setAsOf] = useState(initialEditing?.asOf ?? valuation.requestedOn);
+  const [asOf, setAsOf] = useState(initialEditing?.asOf ?? initialAsOf ?? valuation.requestedOn);
   const [amount, setAmount] = useState(
     initialEditing?.amount.value ?? valuation.amount?.value ?? '',
   );

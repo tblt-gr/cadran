@@ -930,6 +930,37 @@ describe('AccountDetailPage', () => {
     expect(api.listTransactions).not.toHaveBeenCalled();
   });
 
+  it('opens the balance modal on action=record-balance with the date prefilled, once', async () => {
+    renderPage(account.id, '?tab=balance&action=record-balance&asOf=2026-10-31');
+
+    const dialog = await screen.findByRole('dialog', { name: /Enregistrer un solde/ });
+    expect((within(dialog).getByLabelText('Date du solde') as HTMLInputElement).value).toBe(
+      '2026-10-31',
+    );
+    expect(window.location.search).toBe('?tab=balance');
+  });
+
+  it('opens the reconciliation modal on action=reconcile and removes the parameters', async () => {
+    renderPage(account.id, '?tab=balance&action=reconcile&asOf=2026-10-31');
+
+    expect(await screen.findByRole('dialog', { name: /Rapprocher/ })).toBeTruthy();
+    expect(window.location.search).toBe('?tab=balance');
+  });
+
+  it('ignores an unknown action and a malformed asOf', async () => {
+    renderPage(account.id, '?tab=balance&action=wipe&asOf=2026-10-31');
+    await screen.findByText('Aucun solde enregistré');
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(window.location.search).toContain('action=wipe');
+    cleanup();
+
+    renderPage(account.id, '?tab=balance&action=record-balance&asOf=not-a-date');
+    const dialog = await screen.findByRole('dialog', { name: /Enregistrer un solde/ });
+    expect((within(dialog).getByLabelText('Date du solde') as HTMLInputElement).value).not.toBe(
+      'not-a-date',
+    );
+  });
+
   it('never mounts the balance tab on a portfolio-valued account', async () => {
     api.readAccount.mockImplementation(() =>
       success({ ...account, kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' }),

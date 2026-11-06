@@ -1,0 +1,35 @@
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: var(--spacing-1) var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-none);
+  font-size: var(--font-size-label);
+}
+
+.account {
+  grid-column: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.reason {
+  grid-column: 1;
+  color: var(--text-secondary);
+}
+
+.action {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  justify-self: end;
+  width: fit-content;
+}
+
+.action:hover,
+.action:focus-visible {
+  background: var(--bg-surface-hover);
+  text-decoration: none;
+}

@@ -9,10 +9,13 @@ import { useRecordBalance } from './useRecordBalance';
 export function RecordBalanceModal({
   account,
   correcting,
+  initialAsOf,
   close,
 }: {
   account: Account;
   correcting?: AccountBalanceSnapshot;
+  /** Day the form opens on, for a balance asked for a given month end. */
+  initialAsOf?: string;
   close: () => void;
 }) {
   const { t } = useTranslation();
@@ -26,6 +29,7 @@ export function RecordBalanceModal({
     >
       <RecordBalanceForm
         account={account}
+        initialAsOf={initialAsOf}
         initialEditing={correcting}
         onCancel={close}
         onCorrected={close}

@@ -188,8 +188,22 @@ describe('PeriodClosurePanel', () => {
       ok(
         status({
           blockers: [
-            { condition: 'UNRECONCILED_ACCOUNT', count: 1 },
-            { condition: 'PENDING_TRANSACTIONS', count: 2 },
+            {
+              condition: 'UNRECONCILED_ACCOUNT',
+              count: 1,
+              items: [
+                {
+                  accountId: 'acc-courant',
+                  label: 'Courant',
+                  kind: 'CURRENT',
+                  valuationMode: 'SNAPSHOTS',
+                  reason: 'NO_BALANCE_IN_MONTH',
+                  snapshotAsOf: null,
+                  discrepancy: null,
+                },
+              ],
+            },
+            { condition: 'PENDING_TRANSACTIONS', count: 2, items: [] },
           ],
         }),
       ),
@@ -200,14 +214,18 @@ describe('PeriodClosurePanel', () => {
     expect(await screen.findByText('2 points bloquants à confirmer pour clôturer.')).toBeTruthy();
     expect(screen.getByText('1 compte non rapproché sur ce mois.')).toBeTruthy();
     expect(screen.getByText('2 transactions en attente dans ce mois.')).toBeTruthy();
-    expect(screen.getByRole('link', { name: 'Rapprocher les comptes' }).getAttribute('href')).toBe(
-      '/accounts',
+    expect(screen.getByText('Aucun solde relevé ce mois-ci')).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Saisir le solde' }).getAttribute('href')).toBe(
+      '/accounts/acc-courant?tab=balance&action=record-balance&asOf=2026-08-31',
     );
+    fireEvent.click(screen.getByRole('link', { name: 'Saisir le solde' }));
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(window.location.pathname).toBe('/accounts/acc-courant');
     fireEvent.click(screen.getByRole('link', { name: 'Voir les transactions en attente' }));
     expect(`${window.location.pathname}${window.location.search}`).toBe(
       '/transactions?period=custom&from=2026-08-01&to=2026-08-31&state=PENDING',
     );
-    expect(close).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenCalledTimes(2);
   });
 
   it('lists no blocker once the month is closed', async () => {
@@ -216,7 +234,7 @@ describe('PeriodClosurePanel', () => {
         status({
           closed: true,
           closure,
-          blockers: [{ condition: 'PENDING_TRANSACTIONS', count: 2 }],
+          blockers: [{ condition: 'PENDING_TRANSACTIONS', count: 2, items: [] }],
         }),
       ),
     );
@@ -231,8 +249,8 @@ describe('PeriodClosurePanel', () => {
       ok(
         status({
           blockers: [
-            { condition: 'UNRECONCILED_ACCOUNT', count: 2 },
-            { condition: 'PENDING_TRANSACTIONS', count: 1 },
+            { condition: 'UNRECONCILED_ACCOUNT', count: 2, items: [] },
+            { condition: 'PENDING_TRANSACTIONS', count: 1, items: [] },
           ],
         }),
       ),
@@ -285,7 +303,7 @@ describe('PeriodClosurePanel', () => {
 
   it('labels the missing portfolio valuation and links to the portfolios', async () => {
     api.readPeriodStatus.mockResolvedValue(
-      ok(status({ blockers: [{ condition: 'MISSING_PORTFOLIO_VALUATION', count: 2 }] })),
+      ok(status({ blockers: [{ condition: 'MISSING_PORTFOLIO_VALUATION', count: 2, items: [] }] })),
     );
     api.closePeriod.mockResolvedValue(ok(closure, 201));
     const close = vi.fn();
@@ -373,7 +391,7 @@ describe('PeriodClosurePanel', () => {
     api.readPeriodStatus.mockResolvedValue(ok(status()));
     api.closePeriod.mockResolvedValue(
       problem(409, '/problems/period-closing-blocked', {
-        blockers: [{ condition: 'PENDING_TRANSACTIONS', count: 3 }],
+        blockers: [{ condition: 'PENDING_TRANSACTIONS', count: 3, items: [] }],
       }),
     );
     renderPanel();

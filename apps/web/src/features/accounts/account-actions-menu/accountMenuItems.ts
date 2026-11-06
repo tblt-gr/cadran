@@ -38,12 +38,19 @@ export interface AccountMenuHandlers {
 
 export const INSTRUMENTS_HREF = '/portfolios/instruments';
 
-export type ArrivalAction = 'transaction' | 'transfer' | 'operation' | 'valuation';
+export type ArrivalAction =
+  | 'transaction'
+  | 'transfer'
+  | 'operation'
+  | 'valuation'
+  | 'record-balance'
+  | 'reconcile'
+  | 'record-valuation';
 
 /** Account page that opens the modal of a transfer or a valuation once on arrival. */
 export function accountActionHref(account: Pick<Account, 'id'>, action: ArrivalAction): string {
   const base =
-    action === 'valuation' || action === 'operation'
+    action === 'valuation' || action === 'operation' || action === 'record-valuation'
       ? `/portfolios/${account.id}`
       : `/accounts/${account.id}`;
   return `${base}?action=${action}`;

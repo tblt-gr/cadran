@@ -12,6 +12,7 @@ use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\PeriodClosingCondition;
+use App\Module\Accounts\Domain\PeriodClosingReason;
 use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\AssetAmount;
@@ -20,6 +21,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Tests\Module\Accounts\Application\Double\FixedWorkspaceTimezoneReader;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountBalanceSnapshotRepository;
+use App\Tests\Module\Accounts\Application\Double\InMemoryAccountGroupRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
 use App\Tests\Module\Accounts\Domain\AccountFixture;
 use PHPUnit\Framework\TestCase;
@@ -37,11 +39,11 @@ final class AssessPeriodClosingPortfolioTest extends TestCase
                 return 0;
             }
 
-            public function unexplainedDiscrepancyCount(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): int
+            public function unexplainedDiscrepancies(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): array
             {
                 $this->compared = count($closings);
 
-                return $this->compared;
+                return [];
             }
         };
 
@@ -71,6 +73,7 @@ final class AssessPeriodClosingPortfolioTest extends TestCase
 
         self::assertSame([PeriodClosingCondition::MISSING_PORTFOLIO_VALUATION], array_map(static fn (PeriodClosingBlocker $blocker): PeriodClosingCondition => $blocker->condition, $blockers));
         self::assertSame(1, $blockers[0]->count);
+        self::assertSame(PeriodClosingReason::NO_MONTH_END_VALUATION, $blockers[0]->items[0]->reason);
     }
 
     /**
@@ -84,6 +87,7 @@ final class AssessPeriodClosingPortfolioTest extends TestCase
         $assess = new AssessPeriodClosing(
             new InMemoryAccountRepository($account),
             new InMemoryAccountBalanceSnapshotRepository(...$snapshots),
+            new InMemoryAccountGroupRepository(),
             $facts,
             new FixedWorkspaceTimezoneReader(),
         );
@@ -99,9 +103,9 @@ final class AssessPeriodClosingPortfolioTest extends TestCase
                 return 0;
             }
 
-            public function unexplainedDiscrepancyCount(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): int
+            public function unexplainedDiscrepancies(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): array
             {
-                return 0;
+                return [];
             }
         };
     }

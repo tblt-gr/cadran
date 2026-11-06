@@ -28,18 +28,18 @@ final readonly class TransactionPeriodClosingFacts implements PeriodClosingFacts
         return $this->transactions->countPendingInWorkspace($workspace, $from, $to);
     }
 
-    public function unexplainedDiscrepancyCount(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): int
+    public function unexplainedDiscrepancies(WorkspaceScope $workspace, array $closings, \DateTimeImmutable $from): array
     {
-        $count = 0;
+        $gaps = [];
         foreach ($closings as $closing) {
             $comparison = $this->calculator->compare($workspace, $closing, $from)->comparison;
             // A figure that cannot be calculated is not a discrepancy: the
             // account is already reported as unreconciled by its own condition.
             if (null !== $comparison->discrepancy && !$comparison->isBalanced()) {
-                ++$count;
+                $gaps[$closing->accountId] = $comparison->discrepancy;
             }
         }
 
-        return $count;
+        return $gaps;
     }
 }

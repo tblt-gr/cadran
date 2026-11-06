@@ -109,6 +109,17 @@ interface AccountRepository
      */
     public function memberIdsInOrder(WorkspaceScope $workspace, ?string $groupId, int $limit): array;
 
+    /**
+     * These accounts in the order of the accounts overview: groups in the given
+     * depth-first order, the ungrouped ones last, saved order inside a group.
+     *
+     * @param list<string> $orderedGroupIds
+     * @param list<string> $accountIds
+     *
+     * @return list<string>
+     */
+    public function idsInOverviewOrder(WorkspaceScope $workspace, array $orderedGroupIds, array $accountIds): array;
+
     /** @return array<string, int> visible members keyed by {@see AccountOrdering::key()} */
     public function countByPrimaryGroup(WorkspaceScope $workspace, bool $includeArchived, bool $includeClosed): array;
 
