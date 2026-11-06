@@ -296,12 +296,23 @@ final class TransactionBulkControllerTest extends WebTestCase
         self::assertIsArray($row);
         $after = json_decode(self::text($row['after_json']), true, flags: JSON_THROW_ON_ERROR);
         self::assertSame(
-            ['changed' => '2', 'fields' => 'note,categoryId', 'requested' => '2', 'scope' => 'IDS', 'skips' => 'SIGN_MISMATCH:1'],
+            ['categoryId' => self::EXPENSE_B, 'changed' => '2', 'fields' => 'note,categoryId', 'requested' => '2', 'scope' => 'IDS', 'skips' => 'SIGN_MISMATCH:1'],
             \is_array($after) ? $this->sortedKeys($after) : null,
         );
         self::assertContains($row['before_json'], ['{}', '[]', null]);
         self::assertStringNotContainsString('Secret memo', self::text($row['after_json']));
         self::assertStringNotContainsString('AMAZON', self::text($row['after_json']));
+
+        $rows = $this->connection->fetchAllAssociative(
+            "SELECT entity_id, before_json, after_json FROM audit_events WHERE workspace_id = ? AND event_type = 'transaction.bulk_row_edited'",
+            [WorkspaceFixture::OWN_WORKSPACE],
+        );
+        self::assertEqualsCanonicalizing([$changed, $skipped], array_column($rows, 'entity_id'));
+        $json = json_encode($rows, JSON_THROW_ON_ERROR);
+        foreach (['Secret memo', 'AMAZON', 'SALAIRE', '42.90', '42,90'] as $forbidden) {
+            self::assertStringNotContainsString($forbidden, $json);
+        }
+        self::assertStringContainsString('version', $json);
     }
 
     public function testASameLabelIsTheDisplayLabelOfImportedRowsAndTheBankLabelIsKept(): void

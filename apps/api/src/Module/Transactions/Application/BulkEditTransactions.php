@@ -116,6 +116,12 @@ final readonly class BulkEditTransactions
                 if (!$this->transactions->update($updated, $current->version)) {
                     throw new StaleTransactionVersion('The transaction changed concurrently.');
                 }
+                // The fingerprint holds no label, note, counterparty or amount, so the row trail is safe.
+                ($this->recordAuditEvent)(new AuditEventRecord(
+                    $context->workspace, $context->actorId, TransactionAuditEvents::BULK_ROW_EDITED,
+                    TransactionAuditEvents::ENTITY, $updated->id,
+                    AuditDiff::change(TransactionAuditFingerprint::of($current), TransactionAuditFingerprint::of($updated)),
+                ));
                 ++$changed;
                 $fields += array_fill_keys($applied, true);
                 $days[$current->bookedOn->format('Y-m')] = $current->bookedOn->format('Y-m-d');
@@ -129,7 +135,7 @@ final readonly class BulkEditTransactions
                         throw new TransactionConflict('The transaction category changed concurrently.');
                     }
                 }
-                $this->audit($context, $input, count($ids), $changed, $fieldsChanged, $skipped);
+                $this->audit($context, $input, count($ids), $changed, $fieldsChanged, $skipped, $category?->id);
             }
 
             return new BulkEditResult(count($ids), $changed, $skipped, $fieldsChanged, array_values($days));
@@ -210,7 +216,7 @@ final readonly class BulkEditTransactions
      * @param list<string>                      $fields
      * @param array<string, BulkEditSkipReason> $skipped
      */
-    private function audit(WorkspaceContext $context, BulkEditInput $input, int $requested, int $changed, array $fields, array $skipped): void
+    private function audit(WorkspaceContext $context, BulkEditInput $input, int $requested, int $changed, array $fields, array $skipped, ?string $categoryId): void
     {
         $counts = [];
         foreach ($skipped as $reason) {
@@ -225,6 +231,7 @@ final readonly class BulkEditTransactions
                 'requested' => $requested,
                 'changed' => $changed,
                 'fields' => implode(',', $fields),
+                'categoryId' => $categoryId,
                 'skips' => implode(',', array_map(static fn (string $reason, int $count): string => $reason.':'.$count, array_keys($counts), $counts)),
             ]),
         ));

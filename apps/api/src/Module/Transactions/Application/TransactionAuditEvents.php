@@ -10,6 +10,7 @@ final readonly class TransactionAuditEvents
     public const string CREATED = 'transaction.created';
     public const string UPDATED = 'transaction.updated';
     public const string VOIDED = 'transaction.voided';
+    public const string BULK_ROW_EDITED = 'transaction.bulk_row_edited';
     public const string BULK_EDITED = 'transactions.bulk_edited';
     public const string BATCH_ENTITY = 'transaction_batch';
     public const string DUPLICATED = 'transaction.duplicated';
