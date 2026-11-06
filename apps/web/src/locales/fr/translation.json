@@ -113,6 +113,7 @@
     "productModels": "Modèles de produits"
   },
   "routes": {
+    "transactions": "Transactions",
     "budgetPlan": "Plan budgétaire",
     "budgetPlans": "Plans budgétaires",
     "accountDetail": "Détail du compte",
@@ -3212,6 +3213,11 @@
       "managePlans": "Gérer les plans et objectifs",
       "moreActions": "Autres actions",
       "closeMonth": "Clôturer ce mois",
+      "allTransactions": "Toutes les transactions",
+      "manageCategories": "Gérer les catégories",
+      "manageRecurrences": "Gérer les récurrences",
+      "uncategorized_one": "{{count}} transaction à catégoriser",
+      "uncategorized_other": "{{count}} transactions à catégoriser",
       "year": "Année",
       "months": "Mois du budget",
       "annualReport": "Rapport",

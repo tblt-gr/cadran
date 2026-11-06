@@ -173,7 +173,7 @@ describe('AuthenticatedApp lazy navigation', () => {
     await screen.findByText('Contenu des transactions');
     const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
     const current = () => within(sidebar).getByRole('link', { current: 'page' }).textContent;
-    expect(current()).toBe('Transactions');
+    expect(current()).toBe('Budget');
 
     fireEvent.click(within(sidebar).getByRole('link', { name: 'Objectifs' }));
     await act(async () => {
@@ -183,7 +183,7 @@ describe('AuthenticatedApp lazy navigation', () => {
     expect(current()).toBe('Objectifs');
 
     window.history.back();
-    await waitFor(() => expect(current()).toBe('Transactions'));
+    await waitFor(() => expect(current()).toBe('Budget'));
     window.history.forward();
     await waitFor(() => expect(current()).toBe('Objectifs'));
   });

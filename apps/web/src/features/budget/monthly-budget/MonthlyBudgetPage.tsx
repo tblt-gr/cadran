@@ -12,6 +12,7 @@ import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { workspaceToday } from '@/lib/workspaceTime';
+import { uncategorizedCountKey } from './useUncategorizedCount';
 import { monthHref, parseBudgetMonth, readAxis, type BudgetAxis } from './budgetPeriod';
 import { useActiveBudgetAccounts } from './budget-creation-modals/useActiveBudgetAccounts';
 import {
@@ -158,6 +159,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger-movements', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-recap', month] }),
+      queryClient.invalidateQueries({ queryKey: uncategorizedCountKey(month!) }),
     ]);
   }
 

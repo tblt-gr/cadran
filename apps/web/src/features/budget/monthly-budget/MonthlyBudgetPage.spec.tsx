@@ -6,6 +6,7 @@ import { MonthlyBudgetPage } from './MonthlyBudgetPage';
 
 const api = vi.hoisted(() => ({
   closePeriod: vi.fn(),
+  countTransactions: vi.fn(),
   readPeriodStatus: vi.fn(),
   createTransaction: vi.fn(),
   createTransfer: vi.fn(),
@@ -358,6 +359,7 @@ describe('MonthlyBudgetPage', () => {
     );
     api.readInterfacePreferences.mockReturnValue(ok({ includeUpcoming: true, version: 0 }));
     api.readMonthlyLedger.mockReturnValue(ok(ledger));
+    api.countTransactions.mockReturnValue(ok({ count: 0 }));
     api.readMonthlyProjection.mockReturnValue(ok(projection));
     api.readMonthlyRecap.mockReturnValue(ok(recap));
     api.readMonthlyRecapPreferences.mockReturnValue(
@@ -401,8 +403,106 @@ describe('MonthlyBudgetPage', () => {
     window.history.replaceState({}, '', '/');
   });
 
+  describe('transactions entry point', () => {
+    it.each([
+      ['Toutes les transactions', '/transactions?period=month&month=2026-03'],
+      ['Gérer les catégories', '/transactions/categories'],
+      ['Gérer les récurrences', '/transactions/recurrences'],
+    ])('opens %s through client navigation', async (name, target) => {
+      renderPage();
+      await loaded();
+      const popstate = vi.fn();
+      window.addEventListener('popstate', popstate);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+      fireEvent.click(screen.getByRole('button', { name }));
+
+      expect(window.location.pathname + window.location.search).toBe(target);
+      expect(popstate).toHaveBeenCalled();
+      window.removeEventListener('popstate', popstate);
+    });
+
+    it.each([
+      [1, '1 transaction à catégoriser'],
+      [3, '3 transactions à catégoriser'],
+    ])(
+      'links the %s uncategorized transaction(s) of the month to their queue',
+      async (count, label) => {
+        api.countTransactions.mockReturnValue(ok({ count }));
+        renderPage('2026-02');
+        await loaded();
+
+        const link = await screen.findByRole('link', { name: label });
+        expect(link.getAttribute('href')).toBe(
+          '/transactions?categorization=NONE&period=month&month=2026-02',
+        );
+        expect(api.countTransactions).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: { categorization: 'NONE', from: '2026-02-01', to: '2026-02-28' },
+          }),
+        );
+      },
+    );
+
+    it('shows no reminder when nothing is uncategorized', async () => {
+      renderPage();
+      await loaded();
+      await waitFor(() => expect(api.countTransactions).toHaveBeenCalled());
+
+      expect(screen.queryByRole('link', { name: /à catégoriser/ })).toBeNull();
+    });
+
+    it('shows no reminder while the count loads or when it fails', async () => {
+      api.countTransactions.mockReturnValue(new Promise(() => {}));
+      const pending = renderPage();
+      await loaded();
+      expect(screen.queryByRole('link', { name: /à catégoriser/ })).toBeNull();
+      pending.unmount();
+
+      api.countTransactions.mockReturnValue(
+        Promise.resolve({ data: undefined, response: new Response('{}', { status: 500 }) }),
+      );
+      renderPage();
+      await loaded();
+      await waitFor(() => expect(api.countTransactions).toHaveBeenCalledTimes(2));
+      expect(screen.queryByRole('link', { name: /à catégoriser/ })).toBeNull();
+    });
+
+    it('refreshes the reminder count with the other monthly queries', async () => {
+      api.readPeriodStatus.mockReturnValue(
+        ok({ period: '2026-03', closed: false, ended: true, closure: null, blockers: [] }),
+      );
+      api.closePeriod.mockReturnValue(
+        ok({
+          id: 'c1',
+          period: '2026-03',
+          closedAt: '2026-04-02T08:00:00Z',
+          closedBy: 'u1',
+          reopenedAt: null,
+          reopenReason: null,
+          active: true,
+          version: 1,
+        }),
+      );
+      const { queryClient } = renderPage();
+      await loaded();
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+      fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Clôturer ce mois' }));
+      const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
+      fireEvent.click(await within(dialog).findByRole('button', { name: 'Clôturer le mois' }));
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Confirmer la clôture' }));
+
+      await waitFor(() => {
+        const keys = invalidate.mock.calls.map(([filters]) => filters?.queryKey);
+        expect(keys).toContainEqual(['transactions-count', 'uncategorized', '2026-03']);
+      });
+    });
+  });
+
   describe('monthly closure menu', () => {
-    it('lists only the closure entry in the overflow menu after the plans link', async () => {
+    it('lists the transactions entries then the closure in the overflow menu after the plans link', async () => {
       renderPage();
       await loaded();
 
@@ -417,7 +517,12 @@ describe('MonthlyBudgetPage', () => {
         within(menu!)
           .getAllByRole('button')
           .map((item) => item.getAttribute('aria-label') ?? item.textContent),
-      ).toEqual(['Clôturer ce mois']);
+      ).toEqual([
+        'Toutes les transactions',
+        'Gérer les catégories',
+        'Gérer les récurrences',
+        'Clôturer ce mois',
+      ]);
     });
 
     it('keeps the closure reachable when the ledger fails to load', async () => {

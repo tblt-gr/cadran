@@ -57,6 +57,14 @@ function AppShellContent({
   setPath,
 }: AppShellProps) {
   const { t } = useTranslation();
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const previousPath = useRef(path);
+  useEffect(() => {
+    // Not on first render: a reload keeps the browser's own focus start.
+    if (previousPath.current === path) return;
+    previousPath.current = path;
+    titleRef.current?.focus({ preventScroll: true });
+  }, [path]);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const moreButton = useRef<HTMLButtonElement>(null);
@@ -95,6 +103,7 @@ function AppShellContent({
           onFreshnessClick={onFreshnessClick}
           headerDate={headerDate}
           title={title}
+          titleRef={titleRef}
           subtitle={headerSubtitle}
         />
 

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { navigateTo, settled } from './support/page';
+import { settled } from './support/page';
 
 test.describe('dashboard', () => {
   test('shows the net worth with its quality, the allocation and the monthly indicators', async ({
@@ -131,7 +131,8 @@ test.describe('dashboard', () => {
     await page.goto('/');
     await settled(page);
 
-    await navigateTo(page, 'Transactions');
+    await page.goto('/transactions');
+    await settled(page);
     await expect(page.getByRole('heading', { level: 1, name: 'Transactions' })).toBeVisible();
 
     await page

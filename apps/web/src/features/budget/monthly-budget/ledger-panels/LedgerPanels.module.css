@@ -16,6 +16,10 @@
   font-size: var(--font-size-label);
 }
 
+.statuses a {
+  color: inherit;
+}
+
 .closed {
   color: var(--warning);
 }

@@ -8,14 +8,12 @@ describe('navigationItems', () => {
       '/accounts',
       '/budget',
       '/goals',
-      '/transactions',
       '/parameters/interface',
     ]);
     expect(navigationItems.filter((item) => item.mobile).map((item) => item.href)).toEqual([
       '/',
       '/accounts',
       '/budget',
-      '/transactions',
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
       '/goals',
@@ -32,9 +30,10 @@ describe('navigationItems', () => {
     ['/budget/plans/plan-id', '/budget'],
     ['/budget/2026', '/budget'],
     ['/budget/2026/10', '/budget'],
-    ['/transactions/categories', '/transactions'],
-    ['/transactions/categories/rules', '/transactions'],
-    ['/transactions/recurrences', '/transactions'],
+    ['/transactions', '/budget'],
+    ['/transactions/categories', '/budget'],
+    ['/transactions/categories/rules', '/budget'],
+    ['/transactions/recurrences', '/budget'],
     ['/parameters/metric-policy', '/parameters/interface'],
   ])('selects only %s parent %s', (path, parent) => {
     expect(navigationItems.filter((item) => item.match(path)).map((item) => item.href)).toEqual([
@@ -52,13 +51,15 @@ describe('navigationItems', () => {
     expect(navigationItems.some((item) => item.match(path))).toBe(false);
   });
 
-  it('nests category management under Transactions', () => {
-    const transactions = navigationItems.find((item) => item.href === '/transactions');
+  it('keeps Transactions out of the primary navigation and under Budget', () => {
+    const budget = navigationItems.find((item) => item.href === '/budget');
 
-    expect(transactions?.match('/transactions/categories')).toBe(true);
-    expect(transactions?.match('/transactions/categories/rules')).toBe(true);
+    expect(navigationItems.some((item) => item.href === '/transactions')).toBe(false);
     expect(navigationItems.some((item) => item.href === '/categories')).toBe(false);
-    expect(transactions?.match('/transactions/unknown')).toBe(false);
+    expect(budget?.match('/transactions')).toBe(true);
+    expect(budget?.match('/transactions/unknown')).toBe(false);
+    expect(getRouteTitleKey('/transactions')).toBe('routes.transactions');
+    expect(getRouteTitleKey('/transactions/recurrences')).toBe('routes.recurrences');
     expect(getRouteTitleKey('/transactions/categories')).toBe('routes.categories');
     expect(getRouteTitleKey('/transactions/categories/rules')).toBe('routes.categorizationRules');
   });

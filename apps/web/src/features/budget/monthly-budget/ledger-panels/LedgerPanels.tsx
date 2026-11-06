@@ -8,7 +8,9 @@ import { useTranslation } from 'react-i18next';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { BudgetCreationDraft } from '@/features/budget/monthly-budget/budget-creation-modals/BudgetCreationModals';
 import { LedgerPanel } from '@/features/budget/monthly-budget/ledger-panel/LedgerPanel';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useMonthlyRecap } from '@/features/budget/monthly-budget/monthly-recap/useMonthlyRecap';
+import { useUncategorizedCount } from '@/features/budget/monthly-budget/useUncategorizedCount';
 import styles from './LedgerPanels.module.css';
 
 interface LedgerPanelsProps {
@@ -28,6 +30,11 @@ function listed(row: { hasMovements: boolean; pendingCount: number }): boolean {
   return row.hasMovements || row.pendingCount > 0;
 }
 
+/** The queue of the month's uncategorized transactions, same filters as the reminder count. */
+function uncategorizedHref(month: string) {
+  return `/transactions?categorization=NONE&period=month&month=${month}`;
+}
+
 export function LedgerPanels({
   activeAccountIds,
   axis,
@@ -41,6 +48,8 @@ export function LedgerPanels({
 }: LedgerPanelsProps) {
   const { t } = useTranslation();
   const recap = useMonthlyRecap(month);
+  // Null while loading or on error: the reminder then renders nothing.
+  const uncategorizedCount = useUncategorizedCount(month);
   const totalState = recap.isPending
     ? 'loading'
     : recap.isError || !recap.data
@@ -74,6 +83,16 @@ export function LedgerPanels({
       <div className={styles.statuses}>
         {data.pendingCount > 0 ? (
           <p>{t('budget.monthly.pending', { count: data.pendingCount })}</p>
+        ) : null}
+        {uncategorizedCount !== null && uncategorizedCount > 0 ? (
+          <p>
+            <a
+              href={uncategorizedHref(month)}
+              onClick={(event) => handleClientNavigation(event, uncategorizedHref(month))}
+            >
+              {t('budget.monthly.uncategorized', { count: uncategorizedCount })}
+            </a>
+          </p>
         ) : null}
         {!data.actionsAllowed ? (
           <p className={styles.closed} role="status">

@@ -29,7 +29,8 @@ final readonly class DbalTransactionFilterReader
     // text: a scoped table named in a method that executes nothing, or only inside a
     // conditionally-appended statement, is invisible to its analysis. Their :category_ids and
     // :axes are bound by TransactionFilterPredicates.
-    private const string UNSPLIT = ' AND NOT EXISTS (SELECT 1 FROM transaction_splits s WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id)';
+    // The "to categorise" queue: a transfer leg can never be categorised, so it is not part of it.
+    private const string UNSPLIT = " AND t.nature <> 'TRANSFER' AND NOT EXISTS (SELECT 1 FROM transaction_splits s WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id)";
     private const string IN_CATEGORIES = ' AND EXISTS (SELECT 1 FROM transaction_splits s WHERE s.workspace_id = :workspace_id AND s.transaction_id = t.id AND s.category_id IN (:category_ids))';
     // Membership is checked on the JSON array directly, without expanding every split into
     // one row per axis on each facet scan. Any requested axis is enough, as in the listing.
