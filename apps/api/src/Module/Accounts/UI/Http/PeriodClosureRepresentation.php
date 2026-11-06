@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\PeriodClosingBlocker;
+use App\Module\Accounts\Application\PeriodClosingBlockerItem;
 use App\Module\Accounts\Application\PeriodStatusView;
 use App\Module\Accounts\Domain\PeriodClosure;
 
@@ -40,12 +41,27 @@ final readonly class PeriodClosureRepresentation
     /**
      * @param list<PeriodClosingBlocker> $blockers
      *
-     * @return list<array{condition: string, count: int}>
+     * @return list<array{condition: string, count: int, items: list<array<string, mixed>>}>
      */
     public static function blockers(array $blockers): array
     {
         return array_map(
-            static fn (PeriodClosingBlocker $blocker): array => ['condition' => $blocker->condition->value, 'count' => $blocker->count],
+            static fn (PeriodClosingBlocker $blocker): array => [
+                'condition' => $blocker->condition->value,
+                'count' => $blocker->count,
+                'items' => array_map(
+                    static fn (PeriodClosingBlockerItem $item): array => [
+                        'accountId' => $item->accountId,
+                        'label' => $item->label,
+                        'kind' => $item->kind->value,
+                        'valuationMode' => $item->valuationMode->value,
+                        'reason' => $item->reason->value,
+                        'snapshotAsOf' => $item->snapshotAsOf?->format('Y-m-d'),
+                        'discrepancy' => null === $item->discrepancy ? null : ['value' => $item->discrepancy->value->toString(), 'assetCode' => $item->discrepancy->asset->toString()],
+                    ],
+                    $blocker->items,
+                ),
+            ],
             $blockers,
         );
     }

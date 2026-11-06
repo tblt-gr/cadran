@@ -70,6 +70,25 @@ final class AccountOrderPersistenceTest extends KernelTestCase
         self::assertSame([[$this->id('01'), 1], [$this->id('02'), 2]], $this->pairs($ranked));
     }
 
+    public function testTheOverviewOrderReadsGroupsInGivenOrderThenUngroupedWithSavedOrderInside(): void
+    {
+        $this->add('01', 'Alpha', self::GROUP);
+        $this->add('02', 'Beta', self::GROUP);
+        $this->add('03', 'Gamma', self::OTHER_GROUP);
+        $this->add('04', 'Delta', null);
+        $this->orders->save(WorkspaceFixture::own(), self::GROUP, [$this->id('02'), $this->id('01')], 1);
+
+        $ids = [$this->id('01'), $this->id('02'), $this->id('03'), $this->id('04')];
+
+        self::assertSame(
+            [$this->id('03'), $this->id('02'), $this->id('01'), $this->id('04')],
+            $this->accounts->idsInOverviewOrder(WorkspaceFixture::own(), [self::OTHER_GROUP, self::GROUP], $ids),
+        );
+        self::assertSame([$this->id('04')], $this->accounts->idsInOverviewOrder(WorkspaceFixture::own(), [self::GROUP], [$this->id('04')]));
+        self::assertSame([], $this->accounts->idsInOverviewOrder(WorkspaceFixture::other(), [self::GROUP], $ids), 'another workspace sees none of them');
+        self::assertSame([], $this->accounts->idsInOverviewOrder(WorkspaceFixture::own(), [self::GROUP], []));
+    }
+
     public function testASavedSequenceWinsAndAnUnplacedNewcomerGoesLast(): void
     {
         $this->add('01', 'Alpha', self::GROUP);

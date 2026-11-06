@@ -104,6 +104,37 @@ test.describe('period closure', () => {
   });
 });
 
+test.describe('period closure blockers', () => {
+  test('a blocking account is listed with a fix that opens its modal and is not reopened by Back', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await settled(page);
+    const closurePanel = page.getByRole('dialog');
+    await openClosurePanel(page);
+    await closurePanel.locator('input[type="month"]').fill(monthsAgo(3));
+
+    const fix = closurePanel.getByRole('link', {
+      name: /^(Saisir le solde|Rapprocher|Voir l’écart|Saisir une valorisation)$/,
+    });
+    // The demo data decides which accounts block a given month: the spec only follows a fix when one is listed.
+    await expect(
+      closurePanel.getByRole('button', { name: /^(Clôturer|Rouvrir) le mois$/ }),
+    ).toBeVisible();
+    test.skip((await fix.count()) === 0, 'no account blocks the closure of this month');
+
+    await fix.first().click();
+    await expect(closurePanel).toBeHidden();
+    await expect(page).toHaveURL(/\/(accounts|portfolios)\/[^/?]+\?tab=(balance|valuations)$/);
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    await page.getByRole('dialog').getByRole('button', { name: 'Fermer' }).click();
+    await page.goBack();
+    await page.goForward();
+    await expect(page.getByRole('dialog')).toBeHidden();
+  });
+});
+
 /** The closure panel lives in the monthly Budget page's header overflow menu. */
 async function openClosurePanel(page: Page): Promise<void> {
   await navigateTo(page, 'Budget');

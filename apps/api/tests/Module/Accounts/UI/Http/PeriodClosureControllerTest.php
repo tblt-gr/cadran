@@ -73,18 +73,38 @@ final class PeriodClosureControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testAnUnverifiedMonthListsEachFailingConditionOnceWithoutAnyAmount(): void
+    public function testAnUnverifiedMonthListsEachFailingConditionWithItsAccountAndReason(): void
     {
         $body = $this->call('GET', '/api/v1/periods/2026-04');
 
         self::assertResponseStatusCodeSame(200);
         self::assertFalse($body['closed']);
         self::assertTrue($body['ended']);
+        $account = ['accountId' => self::ACCOUNT, 'label' => 'Compte '.self::ACCOUNT, 'kind' => 'CURRENT', 'valuationMode' => 'TRANSACTIONS'];
         self::assertSame([
-            ['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1],
-            ['condition' => 'UNEXPLAINED_DISCREPANCY', 'count' => 1],
-            ['condition' => 'PENDING_TRANSACTIONS', 'count' => 1],
+            ['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1, 'items' => [$account + ['reason' => 'BALANCE_NOT_RECONCILED', 'snapshotAsOf' => '2026-04-30', 'discrepancy' => null]]],
+            ['condition' => 'UNEXPLAINED_DISCREPANCY', 'count' => 1, 'items' => [$account + ['reason' => 'DISCREPANCY', 'snapshotAsOf' => '2026-04-30', 'discrepancy' => ['value' => '-5.25', 'assetCode' => 'EUR']]]],
+            ['condition' => 'PENDING_TRANSACTIONS', 'count' => 1, 'items' => []],
         ], $body['blockers']);
+        self::assertStringNotContainsString(self::OTHER_ACCOUNT, (string) json_encode($body), 'another workspace never leaks into the list');
+    }
+
+    public function testAnotherWorkspaceSeesNoBlockerForTheSameMonth(): void
+    {
+        self::assertNotSame([], $this->call('GET', '/api/v1/periods/2026-04')['blockers'], 'the owner workspace is blocked in April');
+
+        // The other workspace's own account is reconciled in April, so nothing may block it: no owner row leaks in.
+        $this->connection->insert('account_balance_snapshots', [
+            'id' => '00000000-0000-7000-8000-0000000000b9', 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'account_id' => self::OTHER_ACCOUNT,
+            'as_of' => '2026-04-30', 'amount_value' => '10.00', 'amount_literal' => '10.00', 'amount_asset' => 'EUR', 'source' => 'MANUAL',
+            'reconciliation_status' => 'RECONCILED', 'comment' => null, 'version' => 1,
+            'recorded_at' => '2026-09-01 10:00:00+00', 'recorded_by' => WorkspaceFixture::OTHER_OWNER_ID, 'superseded_at' => null,
+        ]);
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $status = $this->call('GET', '/api/v1/periods/2026-04');
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame([], $status['blockers']);
     }
 
     public function testAVerifiedMonthClosesWithoutAnyConfirmation(): void
@@ -118,7 +138,7 @@ final class PeriodClosureControllerTest extends WebTestCase
             'PENDING_TRANSACTIONS' => 'Card hold expires next week',
         ]]);
         self::assertResponseStatusCodeSame(409);
-        self::assertSame([['condition' => 'UNEXPLAINED_DISCREPANCY', 'count' => 1]], $partial['blockers']);
+        self::assertSame([['UNEXPLAINED_DISCREPANCY', 1]], self::summary($partial['blockers']));
         self::assertSame(0, $this->rows('SELECT count(*) FROM account_period_closures'));
     }
 
@@ -154,8 +174,8 @@ final class PeriodClosureControllerTest extends WebTestCase
 
         $blockers = $this->call('GET', '/api/v1/periods/2026-04')['blockers'];
         self::assertIsArray($blockers);
-        self::assertContains(['condition' => 'MISSING_PORTFOLIO_VALUATION', 'count' => 1], $blockers);
-        self::assertContains(['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1], $blockers, 'only the current account stays unreconciled');
+        self::assertContains(['MISSING_PORTFOLIO_VALUATION', 1], self::summary($blockers));
+        self::assertContains(['UNRECONCILED_ACCOUNT', 1], self::summary($blockers), 'only the current account stays unreconciled');
 
         $this->call('PUT', '/api/v1/periods/2026-04/closure', ['overrides' => [
             'UNRECONCILED_ACCOUNT' => 'Statement not received yet',
@@ -248,7 +268,10 @@ final class PeriodClosureControllerTest extends WebTestCase
     {
         $body = $this->call('GET', '/api/v1/periods/2026-02');
 
-        self::assertSame([['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1]], $body['blockers']);
+        self::assertSame([['UNRECONCILED_ACCOUNT', 1]], self::summary($body['blockers']));
+        $item = self::firstItem($body, 0);
+        self::assertSame('NO_BALANCE_IN_MONTH', $item['reason']);
+        self::assertNull($item['snapshotAsOf']);
     }
 
     public function testAZeroDiscrepancyIsNotBlockingButAnExactVeryLargeOneIs(): void
@@ -261,11 +284,11 @@ final class PeriodClosureControllerTest extends WebTestCase
         $may = $this->call('GET', '/api/v1/periods/2026-05');
         $june = $this->call('GET', '/api/v1/periods/2026-06');
 
-        self::assertSame([['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1]], $may['blockers']);
-        self::assertSame([
-            ['condition' => 'UNRECONCILED_ACCOUNT', 'count' => 1],
-            ['condition' => 'UNEXPLAINED_DISCREPANCY', 'count' => 1],
-        ], $june['blockers']);
+        self::assertSame([['UNRECONCILED_ACCOUNT', 1]], self::summary($may['blockers']));
+        self::assertSame([['UNRECONCILED_ACCOUNT', 1], ['UNEXPLAINED_DISCREPANCY', 1]], self::summary($june['blockers']));
+        $gap = self::firstItem($june, 1)['discrepancy'];
+        self::assertIsArray($gap);
+        self::assertSame('12345678901234567890122291.123456789012345678901234', $gap['value']);
     }
 
     public function testAClosedMonthStaysFullyReadable(): void
@@ -376,6 +399,32 @@ final class PeriodClosureControllerTest extends WebTestCase
         self::assertTrue(is_int($value) || is_string($value));
 
         return (int) $value;
+    }
+
+    /**
+     * @return list<array{mixed, mixed}>
+     */
+    private static function summary(mixed $blockers): array
+    {
+        self::assertIsList($blockers);
+
+        return array_map(static function (mixed $blocker): array {
+            self::assertIsArray($blocker);
+
+            return [$blocker['condition'], $blocker['count']];
+        }, $blockers);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     *
+     * @return array<string, mixed>
+     */
+    private static function firstItem(array $body, int $blocker): array
+    {
+        $items = self::list(self::list($body, 'blockers')[$blocker], 'items');
+
+        return $items[0];
     }
 
     private function seedAccount(string $id, string $workspace): void

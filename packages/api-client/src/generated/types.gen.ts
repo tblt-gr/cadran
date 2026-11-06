@@ -5211,11 +5211,36 @@ export type TransactionBelongsToTransferProblem = Problem & {
 export type PeriodClosingCondition = 'UNRECONCILED_ACCOUNT' | 'UNEXPLAINED_DISCREPANCY' | 'PENDING_TRANSACTIONS' | 'MISSING_PORTFOLIO_VALUATION';
 
 /**
- * One failing condition and how many items raise it. Never an amount or a label.
+ * Why one account raises a closing condition. NO_BALANCE_IN_MONTH and BALANCE_NOT_RECONCILED belong to UNRECONCILED_ACCOUNT, DISCREPANCY to UNEXPLAINED_DISCREPANCY, NO_MONTH_END_VALUATION and VALUATION_NOT_CALCULATED to MISSING_PORTFOLIO_VALUATION.
+ */
+export type PeriodClosingReason = 'NO_BALANCE_IN_MONTH' | 'BALANCE_NOT_RECONCILED' | 'DISCREPANCY' | 'NO_MONTH_END_VALUATION' | 'VALUATION_NOT_CALCULATED';
+
+/**
+ * One account standing in the way of a closing and the precise reason why.
+ */
+export type PeriodClosingBlockerItem = {
+    accountId: string;
+    label: string;
+    kind: AccountKind;
+    valuationMode: AccountValuationMode;
+    reason: PeriodClosingReason;
+    /**
+     * Day of the latest balance of the month that was examined, null when the month has none.
+     */
+    snapshotAsOf: string | null;
+    /**
+     * Signed gap `observed - computed` in the account's asset, exact and never rounded. Only set for DISCREPANCY.
+     */
+    discrepancy: DecimalAmount | null;
+};
+
+/**
+ * One failing condition and the accounts that raise it. `count` equals the number of items, except for PENDING_TRANSACTIONS whose items are empty because the transactions are reached through their own filtered list.
  */
 export type PeriodClosingBlocker = {
     condition: PeriodClosingCondition;
     count: number;
+    items: Array<PeriodClosingBlockerItem>;
 };
 
 export type PeriodClosure = {

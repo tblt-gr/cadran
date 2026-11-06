@@ -1,6 +1,7 @@
 import type { PeriodClosingBlocker, PeriodClosingCondition } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { ClosureBlockerAccounts } from './ClosureBlockerAccounts';
 import styles from './ClosureBlockerList.module.css';
 
 /** Where each blocking condition is resolved; `period` is `YYYY-MM`. */
@@ -49,17 +50,32 @@ interface ClosureBlockerListProps {
   period: string;
 }
 
-/** Says what blocks a closing and links to the screen that resolves each point. */
+/**
+ * Says what blocks a closing. A condition with accounts lists each one with its reason and fix;
+ * one without (pending transactions) keeps a single link to the screen that resolves it.
+ */
 export function ClosureBlockerList({ blockers, onNavigate, period }: ClosureBlockerListProps) {
   const { t } = useTranslation();
   if (blockers.length === 0) return null;
 
   return (
     <ul className={styles.list}>
-      {blockers.map(({ condition, count }) => (
-        <li className={styles.item} key={condition}>
-          <span>{t(`closures.conditions.${condition}.summary`, { count })}</span>
-          <ClosureBlockerLink condition={condition} onNavigate={onNavigate} period={period} />
+      {blockers.map((blocker) => (
+        <li className={styles.item} key={blocker.condition}>
+          {blocker.items.length > 0 ? (
+            <ClosureBlockerAccounts blocker={blocker} onNavigate={onNavigate} period={period} />
+          ) : (
+            <>
+              <span>
+                {t(`closures.conditions.${blocker.condition}.summary`, { count: blocker.count })}
+              </span>
+              <ClosureBlockerLink
+                condition={blocker.condition}
+                onNavigate={onNavigate}
+                period={period}
+              />
+            </>
+          )}
         </li>
       ))}
     </ul>

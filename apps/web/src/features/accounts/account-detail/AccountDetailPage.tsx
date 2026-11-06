@@ -79,6 +79,14 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   useArrivalAction('transaction', arrived, () => {
     if (account.data?.status === 'ACTIVE' && account.data.editable) openEditor('transaction');
   });
+  useArrivalAction(
+    'reconcile',
+    arrived,
+    () => {
+      if (account.data?.status === 'ACTIVE' && account.data.editable) setReconciling(true);
+    },
+    { consumesAsOf: true },
+  );
   useArrivalAction('transfer', arrived, () => {
     if (account.data?.status === 'ACTIVE' && account.data.editable) openEditor('transfer');
   });
