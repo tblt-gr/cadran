@@ -1,22 +1,22 @@
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
-import type { BulkCategorizeResult, BulkSkipReason } from '@cadran/api-client';
+import type { BulkEditResult, BulkSkipReason } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatCalendarWeekdayDay } from '@/lib/decimal';
 import type { BulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
-import styles from './BulkCategoryModal.module.css';
+import styles from './BulkEditModal.module.css';
 
-interface BulkCategoryResultProps {
+interface BulkEditResultViewProps {
   onDone: () => void;
   pageItems: BulkSelection['pageItems'];
-  result: BulkCategorizeResult;
+  result: BulkEditResult;
 }
 
-/** What a bulk change did: how many were written, and every skipped one under its reason. */
-export function BulkCategoryResult({ onDone, pageItems, result }: BulkCategoryResultProps) {
+/** What a bulk edit did: how many were written, and every skipped one under its reason. */
+export function BulkEditResultView({ onDone, pageItems, result }: BulkEditResultViewProps) {
   const { i18n, t } = useTranslation();
   const byReason = new Map<BulkSkipReason, string[]>();
   for (const skipped of result.skipped) {
-    byReason.set(skipped.reason, [...(byReason.get(skipped.reason) ?? []), skipped.transactionId]);
+    byReason.set(skipped.reason, [...(byReason.get(skipped.reason) ?? []), skipped.id]);
   }
 
   function describe(id: string): string {

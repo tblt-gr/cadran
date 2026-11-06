@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
-import { BulkCategoryModal } from './bulk-category-modal/BulkCategoryModal';
+import { BulkEditModal } from './bulk-edit-modal/BulkEditModal';
 import type { BulkSelection } from './useBulkSelection';
 import styles from './BulkSelectionToolbar.module.css';
 
@@ -13,7 +13,7 @@ interface BulkSelectionToolbarProps {
   /** Turns the mode on or off; the host drops the selection when it goes off. */
   onToggleActive: () => void;
   /**
-   * Pen stays on the filter row. Selection and the category action take the next full line.
+   * Pen stays on the filter row. Selection and the edit action take the next full line.
    * The host must leave this toolbar as a direct child of that row (`display: contents`).
    */
   inline?: boolean;
@@ -59,7 +59,7 @@ export function BulkSelectionToolbar({
         onClick={() => setModalOpen(true)}
         type="button"
       >
-        {t('transactions.bulk.changeCategory')}
+        {t('transactions.bulk.editAction')}
       </button>
     </>
   ) : null;
@@ -78,7 +78,7 @@ export function BulkSelectionToolbar({
     ) : null;
   const modal =
     modalOpen && editing && bulk.scope ? (
-      <BulkCategoryModal
+      <BulkEditModal
         close={(applied) => {
           setModalOpen(false);
           if (applied) bulk.clear();

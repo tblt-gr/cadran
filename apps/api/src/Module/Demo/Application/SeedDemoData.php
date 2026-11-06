@@ -401,6 +401,31 @@ final readonly class SeedDemoData
             ++$count;
         }
 
+        // Bank-sourced rows sharing one cryptic label, to try the bulk rename on.
+        foreach ([[3, -1999], [2, -1999], [1, -2999]] as $index => [$ago, $cents]) {
+            $this->createTransaction->__invoke(new CreateTransactionInput(
+                accountId: $account,
+                amount: ['value' => DemoCents::format($cents), 'assetCode' => self::ASSET],
+                nature: 'EXPENSE',
+                state: 'BOOKED',
+                bookedOn: max($monthStart, $today->modify('-'.$ago.' days'))->format('Y-m-d'),
+                valueOn: null,
+                authorizedOn: null,
+                rawLabel: 'SEPA DEBIT FREE MOBILE XPZ'.($index + 1),
+                counterparty: null,
+                note: null,
+                paymentMethod: 'DIRECT_DEBIT',
+                mcc: null,
+                maskedCard: null,
+                bankReference: null,
+                categoryId: $categories['telecom'],
+                splits: null,
+                source: 'IMPORT',
+                sourceRef: 'demo-free-mobile-'.($index + 1),
+            ));
+            ++$count;
+        }
+
         return $count;
     }
 

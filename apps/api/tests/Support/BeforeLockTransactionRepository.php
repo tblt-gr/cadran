@@ -16,6 +16,8 @@ final class BeforeLockTransactionRepository implements TransactionRepository
 {
     /** @var \Closure(): void|null */
     public ?\Closure $beforeLock = null;
+    /** Identifier whose optimistic update is reported lost, as after a concurrent change. */
+    public ?string $staleId = null;
 
     public function __construct(private readonly TransactionRepository $inner)
     {
@@ -130,6 +132,10 @@ final class BeforeLockTransactionRepository implements TransactionRepository
 
     public function update(Transaction $transaction, int $expectedVersion): bool
     {
+        if ($transaction->id === $this->staleId) {
+            return false;
+        }
+
         return $this->inner->update($transaction, $expectedVersion);
     }
 }

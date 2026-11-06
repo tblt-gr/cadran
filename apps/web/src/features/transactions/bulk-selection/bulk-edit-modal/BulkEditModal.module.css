@@ -54,3 +54,61 @@
   color: var(--text-muted);
   font-size: var(--font-size-label);
 }
+
+.row {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-2);
+}
+
+.tick {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: var(--touch-target-min);
+}
+
+.control {
+  display: grid;
+  min-inline-size: 0;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: none;
+  gap: var(--spacing-3);
+}
+
+.labelField {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.currentLabels {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  list-style: none;
+}
+
+.eachList {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-3);
+  list-style: none;
+}
+
+.eachList li {
+  display: grid;
+  gap: var(--spacing-1-5);
+}
+
+.eachMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-3);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}

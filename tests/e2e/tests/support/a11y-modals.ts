@@ -9,6 +9,7 @@ export const modalCases = [
   'transaction create',
   'transaction edit',
   'transaction error',
+  'bulk edit',
   'quick category',
   'transfer create',
   'transfer edit',
@@ -93,6 +94,14 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
     await button(name === 'valuation replace' ? /^Remplacer/ : /^Modifier/)
       .first()
       .click();
+  } else if (name === 'bulk edit') {
+    await button('Édition groupée').click();
+    await page.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }).check();
+    await page
+      .getByRole('group', { name: 'Sélection de mouvements' })
+      .getByRole('button', { name: 'Modifier', exact: true })
+      .click();
+    await page.getByRole('checkbox', { name: 'Modifier le libellé' }).check();
   } else if (name.startsWith('transaction') || name === 'quick category') {
     await button('Nouvelle transaction').click();
     if (name === 'quick category') {

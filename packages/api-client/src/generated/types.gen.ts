@@ -4630,36 +4630,81 @@ export type BulkFilterScope = {
     expectedCount: number;
 };
 
-export type BulkCategorizeRequest = {
-    categoryId: string;
+export type BulkEditRequest = {
     scope: ({
         type: 'IDS';
     } & BulkIdsScope) | ({
         type: 'FILTER';
     } & BulkFilterScope);
+    changes: BulkEditChanges;
 };
 
 /**
- * Why a transaction was left untouched: it does not exist in the workspace, it stopped matching the filters of a filter scope before the write, it is a transfer leg, a refund, an original with live refunds, voided or rejected, split across several categories, in a closed period, of a sign contradicting the category type, or already in the category.
+ * Fields to change; a field left out is untouched.
  */
-export type BulkSkipReason = 'NOT_FOUND' | 'NO_LONGER_MATCHING' | 'TRANSFER_LEG' | 'REFUND' | 'HAS_REFUNDS' | 'TERMINAL' | 'SPLIT' | 'CLOSED_PERIOD' | 'SIGN_MISMATCH' | 'ALREADY_IN_CATEGORY';
+export type BulkEditChanges = {
+    label?: ({
+        mode: 'SAME';
+    } & BulkLabelSame) | ({
+        mode: 'EACH';
+    } & BulkLabelEach);
+    /**
+     * The payment method, or null to clear it.
+     */
+    paymentMethod?: 'CARD' | 'TRANSFER' | 'DIRECT_DEBIT' | 'CHECK' | 'CASH' | 'OTHER' | null;
+    /**
+     * The note, or null to clear it.
+     */
+    note?: string | null;
+    /**
+     * The counterparty, or null to clear it.
+     */
+    counterparty?: string | null;
+    categoryId?: string;
+};
+
+export type BulkLabelSame = {
+    mode: 'SAME';
+    value: string;
+};
+
+export type BulkLabelEach = {
+    mode: 'EACH';
+    /**
+     * Only with an `IDS` scope whose identifiers are exactly these.
+     */
+    values: Array<BulkLabelValue>;
+};
+
+export type BulkLabelValue = {
+    id: string;
+    value: string;
+};
+
+/**
+ * Why a transaction was left untouched, whole or for its category only: it does not exist in the workspace, it stopped matching the filters of a filter scope before the write, it is voided or rejected, a transfer leg, an original with live refunds, in a closed period, a manual transaction given an empty label, a refund, split across several categories, of a sign contradicting the category type, or already in the category.
+ */
+export type BulkSkipReason = 'NOT_FOUND' | 'NO_LONGER_MATCHING' | 'TERMINAL' | 'TRANSFER_LEG' | 'HAS_REFUNDS' | 'CLOSED_PERIOD' | 'LABEL_REQUIRED' | 'REFUND' | 'SPLIT' | 'SIGN_MISMATCH' | 'ALREADY_IN_CATEGORY';
 
 export type BulkSkippedTransaction = {
-    transactionId: string;
+    id: string;
     reason: BulkSkipReason;
 };
 
-export type BulkCategorizeResult = {
+export type BulkEditResult = {
     /**
      * Distinct transactions the scope named or matched.
      */
     requestedCount: number;
     changed: number;
+    /**
+     * Transactions left untouched, and rows written without their category, with the reason.
+     */
     skipped: Array<BulkSkippedTransaction>;
     /**
-     * The maximum number of transactions per operation.
+     * The fields written on at least one transaction.
      */
-    maximum: number;
+    fieldsChanged: Array<'label' | 'paymentMethod' | 'note' | 'counterparty' | 'categoryId'>;
 };
 
 export type VoidTransactionRequest = {
@@ -14181,8 +14226,8 @@ export type ReadTransactionFacetsResponses = {
 
 export type ReadTransactionFacetsResponse = ReadTransactionFacetsResponses[keyof ReadTransactionFacetsResponses];
 
-export type BulkCategorizeTransactionsData = {
-    body: BulkCategorizeRequest;
+export type BulkEditTransactionsData = {
+    body: BulkEditRequest;
     headers: {
         /**
          * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
@@ -14195,10 +14240,10 @@ export type BulkCategorizeTransactionsData = {
     };
     path?: never;
     query?: never;
-    url: '/api/v1/transactions/bulk-category';
+    url: '/api/v1/transactions/bulk-edit';
 };
 
-export type BulkCategorizeTransactionsErrors = {
+export type BulkEditTransactionsErrors = {
     /**
      * The request body or a query parameter is missing or malformed.
      */
@@ -14212,7 +14257,7 @@ export type BulkCategorizeTransactionsErrors = {
      */
     403: Problem;
     /**
-     * The target category does not exist in the calling workspace.
+     * The target category does not exist in the calling workspace or is archived.
      */
     404: Problem;
     /**
@@ -14228,7 +14273,7 @@ export type BulkCategorizeTransactionsErrors = {
      */
     415: Problem;
     /**
-     * The body or the Idempotency-Key is invalid, the target category is archived, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).
+     * The body or the Idempotency-Key is invalid, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).
      */
     422: Problem;
     /**
@@ -14237,16 +14282,16 @@ export type BulkCategorizeTransactionsErrors = {
     500: Problem;
 };
 
-export type BulkCategorizeTransactionsError = BulkCategorizeTransactionsErrors[keyof BulkCategorizeTransactionsErrors];
+export type BulkEditTransactionsError = BulkEditTransactionsErrors[keyof BulkEditTransactionsErrors];
 
-export type BulkCategorizeTransactionsResponses = {
+export type BulkEditTransactionsResponses = {
     /**
      * How many transactions changed and which were skipped, or the stored response of a replay.
      */
-    200: BulkCategorizeResult;
+    200: BulkEditResult;
 };
 
-export type BulkCategorizeTransactionsResponse = BulkCategorizeTransactionsResponses[keyof BulkCategorizeTransactionsResponses];
+export type BulkEditTransactionsResponse = BulkEditTransactionsResponses[keyof BulkEditTransactionsResponses];
 
 export type VoidTransactionData = {
     body: VoidTransactionRequest;

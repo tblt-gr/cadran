@@ -1870,16 +1870,16 @@ describe('primary account creation defaults', () => {
 
     await screen.findByText('CB CARREFOUR 1234');
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Changer la catégorie' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
     expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
-    expect(
-      (screen.getByRole('button', { name: 'Changer la catégorie' }) as HTMLButtonElement).disabled,
-    ).toBe(false);
+    expect((screen.getByRole('button', { name: 'Modifier' }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
