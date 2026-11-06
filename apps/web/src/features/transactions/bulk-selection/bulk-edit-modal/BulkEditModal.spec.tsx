@@ -1,4 +1,4 @@
-import type { Category } from '@cadran/api-client';
+import type { Account, Category } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -6,7 +6,13 @@ import '@/i18n';
 import type { BulkItem, BulkScope } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { BulkEditModal } from './BulkEditModal';
 
-const api = vi.hoisted(() => ({ bulkEditTransactions: vi.fn(), listCategories: vi.fn() }));
+const api = vi.hoisted(() => ({
+  bulkEditTransactions: vi.fn(),
+  listAccounts: vi.fn(),
+  listCategories: vi.fn(),
+}));
+
+vi.mock('@/features/auth/useWorkspaceTimeZone', () => ({ useWorkspaceTimeZone: () => 'UTC' }));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
@@ -47,6 +53,15 @@ function refused(status: number, body: Record<string, unknown>) {
   });
 }
 
+const account = (n: number, label: string, assetCode: string, valuationMode = 'TRANSACTIONS') =>
+  ({ id: id(n), label, assetCode, valuationMode, status: 'ACTIVE' }) as unknown as Account;
+const accounts = [
+  account(101, 'Courant', 'EUR'),
+  account(102, 'Joint', 'EUR'),
+  account(103, 'Compte USD', 'USD'),
+  account(104, 'Portefeuille', 'EUR', 'PORTFOLIO'),
+];
+
 const pageItems = [
   item(1, 'PRLV SEPA FREE MOBILE XPZ1', 'Free'),
   item(2, 'PRLV SEPA FREE MOBILE XPZ2'),
@@ -80,8 +95,17 @@ describe('BulkEditModal', () => {
     api.listCategories.mockImplementation(() =>
       ok({ items: [category], page: 1, pageSize: 50, total: 1 }),
     );
+    api.listAccounts.mockImplementation(() =>
+      ok({ items: accounts, page: 1, pageSize: 100, total: 4 }),
+    );
     api.bulkEditTransactions.mockImplementation(() =>
-      ok({ requestedCount: 3, changed: 3, fieldsChanged: [], skipped: [] }),
+      ok({
+        requestedCount: 3,
+        changed: 3,
+        fieldsChanged: [],
+        skipped: [],
+        impactedAccountIds: [],
+      }),
     );
   });
   afterEach(() => {
@@ -273,5 +297,161 @@ describe('BulkEditModal', () => {
     expect(await screen.findByText('1 transaction modifiée')).toBeTruthy();
     expect(screen.getByText('Libellé obligatoire pour une saisie manuelle')).toBeTruthy();
     expect(screen.getByText('Jambe de virement : modifiez le virement')).toBeTruthy();
+  });
+
+  describe('move', () => {
+    const previewBody = {
+      eligibleCount: 3,
+      skipped: [],
+      impacts: [
+        {
+          accountId: id(101),
+          label: 'Courant',
+          assetCode: 'EUR',
+          delta: '37.02',
+          from: '2026-09-11',
+          to: null,
+        },
+        {
+          accountId: id(102),
+          label: 'Joint',
+          assetCode: 'EUR',
+          delta: '-37.02',
+          from: '2026-09-11',
+          to: null,
+        },
+      ],
+      previewToken: 'tok-1',
+    };
+    const applied = {
+      requestedCount: 3,
+      changed: 3,
+      fieldsChanged: ['accountId'],
+      skipped: [],
+      impactedAccountIds: [id(101), id(102)],
+    };
+
+    async function pickJoint() {
+      tick('Modifier le compte');
+      const select = (await screen.findByLabelText('Compte cible')) as HTMLSelectElement;
+      await waitFor(() => expect(select.options.length).toBeGreaterThan(1));
+      return select;
+    }
+
+    it('offers only active, non portfolio accounts of the selection asset', async () => {
+      renderModal(ids(1, 2, 3));
+      const select = await pickJoint();
+
+      expect([...select.options].map((option) => option.textContent)).toEqual([
+        'Choisir un compte',
+        'Courant',
+        'Joint',
+      ]);
+    });
+
+    it('disables the account change with a hint when the selection mixes assets', () => {
+      const mixed = [
+        item(1, 'A'),
+        { ...item(2, 'B'), amount: { value: '-5.00', assetCode: 'USD' } },
+      ];
+      renderModal(ids(1, 2), mixed);
+
+      expect(
+        (screen.getByRole('checkbox', { name: 'Modifier le compte' }) as HTMLInputElement).disabled,
+      ).toBe(true);
+      expect(
+        screen.getByText('Sélection en plusieurs actifs : changez le compte par actif.'),
+      ).toBeTruthy();
+    });
+
+    it('previews without an idempotency key, then applies with the token and a key', async () => {
+      api.bulkEditTransactions
+        .mockImplementationOnce(() => ok(previewBody))
+        .mockImplementationOnce(() => ok(applied));
+      renderModal(ids(1, 2, 3));
+      const select = await pickJoint();
+      fireEvent.change(select, { target: { value: id(102) } });
+      fireEvent.click(screen.getByRole('button', { name: 'Prévisualiser' }));
+
+      expect(await screen.findByText('3 transactions seront déplacées.')).toBeTruthy();
+      const previewCall = api.bulkEditTransactions.mock.calls[0]?.[0];
+      expect(previewCall.body).toEqual({
+        changes: { accountId: id(102) },
+        scope: { type: 'IDS', ids: [id(1), id(2), id(3)] },
+        preview: true,
+      });
+      expect(previewCall.headers['Idempotency-Key']).toBeUndefined();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
+      expect(await screen.findByText('3 transactions modifiées')).toBeTruthy();
+      const applyCall = api.bulkEditTransactions.mock.calls[1]?.[0];
+      expect(applyCall.body).toEqual({
+        changes: { accountId: id(102) },
+        scope: { type: 'IDS', ids: [id(1), id(2), id(3)] },
+        previewToken: 'tok-1',
+      });
+      expect(applyCall.headers['Idempotency-Key']).toBeTruthy();
+    });
+
+    it('goes back from the preview to the form with the draft kept', async () => {
+      api.bulkEditTransactions.mockImplementationOnce(() => ok(previewBody));
+      renderModal(ids(1, 2, 3));
+      const select = await pickJoint();
+      fireEvent.change(select, { target: { value: id(102) } });
+      fireEvent.click(screen.getByRole('button', { name: 'Prévisualiser' }));
+      await screen.findByText('3 transactions seront déplacées.');
+      fireEvent.click(screen.getByRole('button', { name: 'Retour' }));
+
+      expect(((await screen.findByLabelText('Compte cible')) as HTMLSelectElement).value).toBe(
+        id(102),
+      );
+    });
+
+    it('shows the refreshed preview with a notice when the token is stale', async () => {
+      api.bulkEditTransactions
+        .mockImplementationOnce(() => ok(previewBody))
+        .mockImplementationOnce(() =>
+          refused(409, { type: '/problems/transactions.bulk-preview-stale' }),
+        )
+        .mockImplementationOnce(() =>
+          ok({ ...previewBody, eligibleCount: 2, previewToken: 'tok-2' }),
+        );
+      renderModal(ids(1, 2, 3));
+      const select = await pickJoint();
+      fireEvent.change(select, { target: { value: id(102) } });
+      fireEvent.click(screen.getByRole('button', { name: 'Prévisualiser' }));
+      await screen.findByText('3 transactions seront déplacées.');
+      fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
+
+      expect(await screen.findByText('2 transactions seront déplacées.')).toBeTruthy();
+      expect(screen.getByText(/aperçu actualisé/)).toBeTruthy();
+      expect(api.bulkEditTransactions.mock.calls[2]?.[0].body.preview).toBe(true);
+    });
+
+    it('sends the new booked day with the preview', async () => {
+      api.bulkEditTransactions.mockImplementationOnce(() => ok(previewBody));
+      renderModal(ids(1, 2, 3));
+      tick("Modifier la date d'opération");
+      fireEvent.change(screen.getByLabelText("Date d'opération"), {
+        target: { value: '2026-10-20' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Prévisualiser' }));
+
+      await screen.findByText('3 transactions seront déplacées.');
+      expect(api.bulkEditTransactions.mock.calls[0]?.[0].body.changes).toEqual({
+        bookedOn: '2026-10-20',
+      });
+    });
+
+    it('keeps the modal open with the message when the preview is refused', async () => {
+      api.bulkEditTransactions.mockImplementationOnce(() => refused(404, { status: 404 }));
+      renderModal(ids(1, 2, 3));
+      const select = await pickJoint();
+      fireEvent.change(select, { target: { value: id(102) } });
+      fireEvent.click(screen.getByRole('button', { name: 'Prévisualiser' }));
+
+      expect((await screen.findByRole('alert')).textContent).toContain('Vérifiez');
+      expect(screen.getByRole('button', { name: 'Prévisualiser' })).toBeTruthy();
+    });
   });
 });

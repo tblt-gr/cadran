@@ -4637,6 +4637,14 @@ export type BulkEditRequest = {
         type: 'FILTER';
     } & BulkFilterScope);
     changes: BulkEditChanges;
+    /**
+     * Only with `accountId` or `bookedOn`: answers the impact of the move and writes nothing.
+     */
+    preview?: boolean;
+    /**
+     * The token of a preview of the same scope and changes; required to apply `accountId` or `bookedOn`.
+     */
+    previewToken?: string;
 };
 
 /**
@@ -4661,6 +4669,14 @@ export type BulkEditChanges = {
      */
     counterparty?: string | null;
     categoryId?: string;
+    /**
+     * The account every eligible transaction moves to. Needs a preview token.
+     */
+    accountId?: string;
+    /**
+     * The booked day every eligible transaction moves to. Needs a preview token.
+     */
+    bookedOn?: string;
 };
 
 export type BulkLabelSame = {
@@ -4682,9 +4698,9 @@ export type BulkLabelValue = {
 };
 
 /**
- * Why a transaction was left untouched, whole or for its category only: it does not exist in the workspace, it stopped matching the filters of a filter scope before the write, it is voided or rejected, a transfer leg, an original with live refunds, in a closed period, a manual transaction given an empty label, a refund, split across several categories, of a sign contradicting the category type, or already in the category.
+ * Why a transaction was left untouched, whole or for its category only: it does not exist in the workspace, it stopped matching the filters of a filter scope before the write, it is voided or rejected, a transfer leg, an original with live refunds, in a closed period, a manual transaction given an empty label, a refund, split across several categories, of a sign contradicting the category type, or already in the category. For a move: the target account holds another asset, is closed on the day, or is valued by a portfolio; the transaction is linked to a portfolio operation, under reconciliation review, matched by a reconciliation or already on the target account; a booked transaction would be dated in the future.
  */
-export type BulkSkipReason = 'NOT_FOUND' | 'NO_LONGER_MATCHING' | 'TERMINAL' | 'TRANSFER_LEG' | 'HAS_REFUNDS' | 'CLOSED_PERIOD' | 'LABEL_REQUIRED' | 'REFUND' | 'SPLIT' | 'SIGN_MISMATCH' | 'ALREADY_IN_CATEGORY';
+export type BulkSkipReason = 'NOT_FOUND' | 'NO_LONGER_MATCHING' | 'TERMINAL' | 'TRANSFER_LEG' | 'HAS_REFUNDS' | 'CLOSED_PERIOD' | 'LABEL_REQUIRED' | 'REFUND' | 'SPLIT' | 'SIGN_MISMATCH' | 'ALREADY_IN_CATEGORY' | 'ASSET_MISMATCH' | 'ACCOUNT_NOT_OPEN' | 'PORTFOLIO_ACCOUNT' | 'PORTFOLIO_LINKED' | 'UNDER_REVIEW' | 'RECONCILED' | 'ALREADY_ON_ACCOUNT' | 'FUTURE_BOOKED';
 
 export type BulkSkippedTransaction = {
     id: string;
@@ -4704,7 +4720,45 @@ export type BulkEditResult = {
     /**
      * The fields written on at least one transaction.
      */
-    fieldsChanged: Array<'label' | 'paymentMethod' | 'note' | 'counterparty' | 'categoryId'>;
+    fieldsChanged: Array<'label' | 'paymentMethod' | 'note' | 'counterparty' | 'categoryId' | 'accountId' | 'bookedOn'>;
+    /**
+     * The accounts whose balance changed, for cache invalidation.
+     */
+    impactedAccountIds: Array<string>;
+};
+
+export type BulkMoveImpact = {
+    accountId: string;
+    label: string;
+    assetCode: string;
+    /**
+     * Exact signed decimal: the change of the account balance once every eligible transaction has moved. `0` for a date change alone.
+     */
+    delta: string;
+    /**
+     * The earliest day from which the balance changes.
+     */
+    from: string;
+    /**
+     * The latest affected day, set only for a date change alone, where the balance differs only between `from` and `to`.
+     */
+    to: string | null;
+};
+
+export type BulkEditPreview = {
+    /**
+     * Transactions the move would apply to.
+     */
+    eligibleCount: number;
+    skipped: Array<BulkSkippedTransaction>;
+    /**
+     * One entry per affected account, ordered by label then identifier.
+     */
+    impacts: Array<BulkMoveImpact>;
+    /**
+     * Opaque, valid ten minutes, to pass back to apply this exact move.
+     */
+    previewToken: string;
 };
 
 export type VoidTransactionRequest = {
@@ -14234,9 +14288,9 @@ export type BulkEditTransactionsData = {
          */
         'X-CSRF-TOKEN': string;
         /**
-         * Retries the same operation safely for seven days. A replayed response adds `Idempotency-Replayed: true`.
+         * Required to apply, ignored by a preview. Retries the same operation safely for seven days. A replayed response adds `Idempotency-Replayed: true`.
          */
-        'Idempotency-Key': string;
+        'Idempotency-Key'?: string;
     };
     path?: never;
     query?: never;
@@ -14257,11 +14311,11 @@ export type BulkEditTransactionsErrors = {
      */
     403: Problem;
     /**
-     * The target category does not exist in the calling workspace or is archived.
+     * The target category or the target account does not exist in the calling workspace or is archived.
      */
     404: Problem;
     /**
-     * The filter scope no longer matches the confirmed count (`type: /problems/transactions.bulk-scope-changed`, with `actualCount`), the Idempotency-Key was reused with another body or is in flight, or a transaction changed concurrently. A replay touching a closed period is refused with `type: /problems/period-closed`.
+     * The filter scope no longer matches the confirmed count (`type: /problems/transactions.bulk-scope-changed`, with `actualCount`), a move is applied without the token of a preview (`type: /problems/transactions.bulk-preview-required`) or with a stale one (`type: /problems/transactions.bulk-preview-stale`), the Idempotency-Key was reused with another body or is in flight, or a transaction changed concurrently. A replay touching a closed period is refused with `type: /problems/period-closed`.
      */
     409: Problem;
     /**
@@ -14286,9 +14340,9 @@ export type BulkEditTransactionsError = BulkEditTransactionsErrors[keyof BulkEdi
 
 export type BulkEditTransactionsResponses = {
     /**
-     * How many transactions changed and which were skipped, or the stored response of a replay.
+     * How many transactions changed and which were skipped, or the stored response of a replay; with `preview: true`, the preview of a move.
      */
-    200: BulkEditResult;
+    200: BulkEditResult | BulkEditPreview;
 };
 
 export type BulkEditTransactionsResponse = BulkEditTransactionsResponses[keyof BulkEditTransactionsResponses];

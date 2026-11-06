@@ -2530,7 +2530,15 @@
         "REFUND": "Remboursement : catégorie inchangée",
         "SPLIT": "Ventilée : catégorie inchangée",
         "SIGN_MISMATCH": "Sens incompatible avec la catégorie",
-        "ALREADY_IN_CATEGORY": "Déjà dans cette catégorie"
+        "ALREADY_IN_CATEGORY": "Déjà dans cette catégorie",
+        "ASSET_MISMATCH": "Actif différent du compte cible",
+        "ACCOUNT_NOT_OPEN": "Compte cible fermé à cette date",
+        "PORTFOLIO_ACCOUNT": "Compte valorisé par un portefeuille",
+        "PORTFOLIO_LINKED": "Liée à une opération de portefeuille",
+        "UNDER_REVIEW": "En cours de rapprochement",
+        "RECONCILED": "Rapprochée",
+        "ALREADY_ON_ACCOUNT": "Déjà sur ce compte",
+        "FUTURE_BOOKED": "Date future pour une transaction comptabilisée"
       },
       "errors": {
         "scopeTooLarge": "Trop de mouvements pour une seule opération. Affinez vos filtres pour réduire la sélection, rien n’a été modifié.",
@@ -2540,7 +2548,9 @@
         "conflict": "Un mouvement a changé pendant l’opération. Rien n’a été modifié, réessayez.",
         "invalid": "Ces modifications ne peuvent pas être appliquées. Vérifiez les valeurs saisies.",
         "unauthorized": "Votre session ne permet pas cette modification.",
-        "network": "La modification n’a pas abouti. Rien n’a été modifié, réessayez."
+        "network": "La modification n’a pas abouti. Rien n’a été modifié, réessayez.",
+        "previewStale": "Les transactions ont changé depuis l’aperçu. Rien n’a été modifié, prévisualisez à nouveau.",
+        "previewRequired": "Prévisualisez le déplacement avant de le confirmer. Rien n’a été modifié."
       },
       "title_one": "Modifier {{count}} transaction",
       "title_other": "Modifier {{count}} transactions",
@@ -2551,7 +2561,25 @@
         "paymentMethod": "Modifier le mode de paiement",
         "note": "Modifier la note",
         "counterparty": "Modifier la contrepartie",
-        "category": "Modifier la catégorie"
+        "category": "Modifier la catégorie",
+        "account": "Modifier le compte",
+        "bookedOn": "Modifier la date d'opération"
+      },
+      "move": {
+        "targetAccount": "Compte cible",
+        "chooseAccount": "Choisir un compte",
+        "bookedOn": "Date d'opération",
+        "mixedAssets": "Sélection en plusieurs actifs : changez le compte par actif.",
+        "preview": "Prévisualiser",
+        "confirm": "Confirmer",
+        "back": "Retour",
+        "loading": "Calcul de l’aperçu en cours",
+        "refreshed": "Les transactions ont changé : voici l’aperçu actualisé.",
+        "impactsLabel": "Effet sur les soldes",
+        "eligible_one": "{{count}} transaction sera déplacée.",
+        "eligible_other": "{{count}} transactions seront déplacées.",
+        "impact": "{{label}} : {{delta}} à partir du {{from}}",
+        "impactDates": "{{label}} : Solde inchangé à terme, modifié entre le {{from}} et le {{to}}"
       },
       "label": {
         "mode": "Façon de modifier le libellé",

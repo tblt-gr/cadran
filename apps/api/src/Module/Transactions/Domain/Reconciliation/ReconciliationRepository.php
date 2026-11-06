@@ -54,5 +54,14 @@ interface ReconciliationRepository
      */
     public function matchedIdsByReviewedTransactionIds(WorkspaceScope $workspace, array $reviewedTransactionIds): array;
 
+    /**
+     * Batched for a bulk move: which of these rows settled a reviewed movement and so must stay where they are.
+     *
+     * @param list<string> $transactionIds
+     *
+     * @return list<string>
+     */
+    public function matchedAmong(WorkspaceScope $workspace, array $transactionIds): array;
+
     public function findByReviewedTransactionId(WorkspaceScope $workspace, string $reviewedTransactionId): ?TransactionReconciliation;
 }

@@ -334,6 +334,7 @@ describe('bulk result', () => {
           requestedCount: 1,
           changed: 0,
           fieldsChanged: [],
+          impactedAccountIds: [],
           skipped: [{ id: FIRST, reason: 'SPLIT' }],
         }}
       />,

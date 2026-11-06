@@ -12,6 +12,12 @@ final readonly class BulkCategorizationFacts
         public bool $refund = false,
         public bool $liveRefund = false,
         public bool $periodClosed = false,
+        public bool $portfolioLinked = false,
+        public bool $reconciled = false,
+        /** Whether the month a date change would move the row into is closed. */
+        public bool $targetPeriodClosed = false,
+        /** The booked day of the original when the row is a refund, to keep a refund from predating it. */
+        public ?\DateTimeImmutable $originalBookedOn = null,
     ) {
     }
 }

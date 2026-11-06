@@ -594,6 +594,15 @@ api:
     bulk_scope_changed:
       title: 'Sélection modifiée entre-temps'
       detail: 'Le nombre de transactions correspondant aux filtres a changé depuis son décompte. Rechargez-le puis confirmez de nouveau.'
+    bulk_preview_required:
+      title: 'Prévisualisation requise'
+      detail: "Un changement de compte ou de date se confirme avec le jeton d'une prévisualisation. Prévisualisez de nouveau puis confirmez."
+    bulk_preview_stale:
+      title: 'Prévisualisation obsolète'
+      detail: 'Des transactions ont changé depuis la prévisualisation, ou elle a expiré. Consultez la nouvelle prévisualisation puis confirmez.'
+    bulk_target_account_not_found:
+      title: 'Compte cible introuvable'
+      detail: "Le compte cible n'existe pas dans cet espace ou est archivé."
     transaction_cursor_stale:
       title: 'Page de transactions obsolète'
       detail: 'Des transactions ont changé depuis le chargement de cette page. Rechargez la liste depuis le début.'

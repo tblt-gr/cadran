@@ -101,6 +101,21 @@ final readonly class DbalReconciliationRepository implements ReconciliationRepos
         return $matched;
     }
 
+    public function matchedAmong(WorkspaceScope $workspace, array $transactionIds): array
+    {
+        if ([] === $transactionIds) {
+            return [];
+        }
+        $rows = $this->connection->fetchFirstColumn(
+            'SELECT matched_transaction_id FROM transaction_reconciliations '
+            .'WHERE workspace_id = :workspace_id AND matched_transaction_id IN (:ids)',
+            ['workspace_id' => $workspace->id, 'ids' => $transactionIds],
+            ['ids' => ArrayParameterType::STRING],
+        );
+
+        return array_map(TransactionRow::text(...), $rows);
+    }
+
     public function findByReviewedTransactionId(WorkspaceScope $workspace, string $reviewedTransactionId): ?TransactionReconciliation
     {
         $row = $this->connection->fetchAssociative(

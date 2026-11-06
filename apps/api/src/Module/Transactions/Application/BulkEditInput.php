@@ -16,17 +16,19 @@ final readonly class BulkEditInput
         public ?array $ids,
         public ?ListTransactionsQuery $filters,
         public ?int $expectedCount,
+        public bool $preview = false,
+        public ?string $previewToken = null,
     ) {
     }
 
     /** @param list<string> $ids */
-    public static function forIds(BulkEditChanges $changes, array $ids): self
+    public static function forIds(BulkEditChanges $changes, array $ids, bool $preview = false, ?string $previewToken = null): self
     {
-        return new self($changes, $ids, null, null);
+        return new self($changes, $ids, null, null, $preview, $previewToken);
     }
 
-    public static function forFilters(BulkEditChanges $changes, ListTransactionsQuery $filters, int $expectedCount): self
+    public static function forFilters(BulkEditChanges $changes, ListTransactionsQuery $filters, int $expectedCount, bool $preview = false, ?string $previewToken = null): self
     {
-        return new self($changes, null, $filters, $expectedCount);
+        return new self($changes, null, $filters, $expectedCount, $preview, $previewToken);
     }
 }
