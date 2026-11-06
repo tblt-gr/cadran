@@ -31,4 +31,5 @@
 .action:hover,
 .action:focus-visible {
   background: var(--bg-surface-hover);
+  text-decoration: none;
 }

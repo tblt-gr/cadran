@@ -27,21 +27,23 @@ export function ClosureBlockerAccounts({
   const asOf = lastDayOfMonth(`${period}-01`);
 
   return (
-    <Disclosure
-      onToggle={setOpen}
-      open={open}
-      title={t(`closures.conditions.${blocker.condition}.summary`, { count: blocker.count })}
-    >
-      <ul className={styles.list}>
-        {blocker.items.map((item) => (
-          <ClosureBlockerItemRow
-            asOf={asOf}
-            item={item}
-            key={`${item.accountId}-${item.reason}`}
-            onNavigate={onNavigate}
-          />
-        ))}
-      </ul>
-    </Disclosure>
+    <div className={styles.accounts}>
+      <Disclosure
+        onToggle={setOpen}
+        open={open}
+        title={t(`closures.conditions.${blocker.condition}.summary`, { count: blocker.count })}
+      >
+        <ul className={styles.list}>
+          {blocker.items.map((item) => (
+            <ClosureBlockerItemRow
+              asOf={asOf}
+              item={item}
+              key={`${item.accountId}-${item.reason}`}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+      </Disclosure>
+    </div>
   );
 }
