@@ -58,34 +58,10 @@
   opacity: 0.55;
 }
 
-.reminder {
-  display: flex;
-  flex: 0 0 auto;
-  justify-content: flex-end;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  line-height: var(--line-height-body);
-}
-
-.reminder a {
-  color: inherit;
-}
-
-.reminder:empty {
-  display: none;
-}
-
 @media (max-width: 42rem) {
   .navigator {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  /* Second line of fixed height: the empty slot keeps the line box the link will fill. */
-  .reminder,
-  .reminder:empty {
-    display: flex;
-    min-block-size: calc(var(--font-size-label) * var(--line-height-body));
   }
 }
 
