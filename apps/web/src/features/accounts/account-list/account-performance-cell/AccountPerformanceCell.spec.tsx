@@ -56,6 +56,26 @@ describe('AccountPerformanceCell', () => {
     expect(screen.getByRole('img', { name: /: −4,00 %$/ })).toBeTruthy();
   });
 
+  it('words the trend as a named link when a single month cannot draw a line', () => {
+    const trend = trendFixture(
+      [null, null, null, null, null, null, null, null, null, null, null, '102.00'],
+      {
+        from: '2026-09',
+        cumulativeReturn: '0.02',
+      },
+    );
+    render(
+      <AccountPerformanceCell
+        account={investment}
+        portfolio={ready(accountCardFixture({ returnTrend: trend }))}
+      />,
+    );
+
+    const link = screen.getByRole('link', { name: /septembre 2026 : \+2,00 %/ });
+    expect(link.getAttribute('href')).toBe('/portfolios/account-1?tab=performance');
+    expect(screen.queryByRole('img')).toBeNull();
+  });
+
   it('states why the 12-month return is not computable, never zero', () => {
     const { rerender } = render(
       <AccountPerformanceCell

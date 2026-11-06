@@ -28,6 +28,11 @@ function leadingRun(points: SparklinePoint[]): number[] {
   return run;
 }
 
+/** Whether the points hold a run long enough to draw; a caller can word the trend otherwise. */
+export function canDrawSparkline(points: SparklinePoint[]): boolean {
+  return leadingRun(points).length >= 2;
+}
+
 /**
  * Axis-less trend line drawn from server index strings. Geometry only: the displayed figures are
  * never derived here.
