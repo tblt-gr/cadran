@@ -26,6 +26,7 @@ final readonly class VoidPortfolioOperation
         private RecordAuditEvent $audit,
         private ReconcilePortfolioPositions $reconcile,
         private LifeInsurance\ReconcileContractOperations $contractOperations,
+        private RefreshValuationAfterOperation $refreshValuation,
         private ClockInterface $clock,
     ) {
     }
@@ -37,7 +38,7 @@ final readonly class VoidPortfolioOperation
         $voided = $this->transactions->transactional(function () use ($context, $operationId, $version, $reason): PortfolioOperation {
             $found = $this->operations->find($context->workspace, $operationId) ?? throw new PortfolioOperationNotFound();
             ($this->assertPeriodOpen)($context->workspace, $found->details->tradeDate);
-            $this->gate->forWrite($context->workspace, $found->accountId, true);
+            $account = $this->gate->forWrite($context->workspace, $found->accountId, true);
             $operation = $this->operations->findForUpdate($context->workspace, $operationId) ?? throw new PortfolioOperationNotFound();
 
             // A settled operation is refused before its version is compared: nothing is left to retry.
@@ -51,6 +52,9 @@ final readonly class VoidPortfolioOperation
             }
             ($this->reconcile)($context->workspace, $operation->accountId);
             ($this->contractOperations)($context, $operation->accountId, $this->clock->now());
+            if (OperationValuationEffect::followed($operation->details)) {
+                ($this->refreshValuation)($context->workspace, $account, OperationValuationEffect::quantityChanges($operation->details, -1), null);
+            }
             ($this->audit)(new AuditEventRecord(
                 $context->workspace, $context->actorId, PortfolioOperationAuditEvents::VOIDED,
                 PortfolioOperationAuditEvents::ENTITY, $voided->id, PortfolioOperationAudit::voided($voided),

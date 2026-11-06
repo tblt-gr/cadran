@@ -19,6 +19,7 @@ use App\Module\Portfolio\Application\PreviewPortfolioOperation;
 use App\Module\Portfolio\Application\ReadPortfolioOperation;
 use App\Module\Portfolio\Application\RecordPortfolioOperation;
 use App\Module\Portfolio\Application\StalePortfolioOperationVersion;
+use App\Module\Portfolio\Application\ValuationConflict;
 use App\Module\Portfolio\Application\VoidPortfolioOperation;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
 use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
@@ -235,6 +236,7 @@ final readonly class PortfolioOperationController
             $exception instanceof PortfolioOperationNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::OPERATION_NOT_FOUND),
             $exception instanceof StalePortfolioOperationVersion => $this->problem(Response::HTTP_CONFLICT, 'stale_operation_version'),
             $exception instanceof LinkedTransferTaken => $this->problem(Response::HTTP_CONFLICT, 'linked_transfer_taken'),
+            $exception instanceof ValuationConflict => $this->problem(Response::HTTP_CONFLICT, 'valuation_conflict'),
             $exception instanceof PortfolioOperationConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),
             $exception instanceof WorkspaceAccessDenied => $this->problem(Response::HTTP_FORBIDDEN, 'portfolio_forbidden'),
             default => throw $exception,

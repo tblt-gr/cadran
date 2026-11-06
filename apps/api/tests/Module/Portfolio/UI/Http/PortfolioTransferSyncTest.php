@@ -144,7 +144,8 @@ final class PortfolioTransferSyncTest extends WebTestCase
         $this->createTransfer(self::CURRENT, self::PORTFOLIO, '100.00', '2026-03-10');
 
         self::assertSame('100', $this->cashBalance());
-        self::assertSame('1000', $this->latestTotal());
+        // The deposit refreshed the TOTAL valuation (1000 + 400); the purchase and the transfer then find no price to carry.
+        self::assertSame('1400', $this->latestTotal());
     }
 
     public function testAnObservedCashGapOfTheLastValuationIsKept(): void
