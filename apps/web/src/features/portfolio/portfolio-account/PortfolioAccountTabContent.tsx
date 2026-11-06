@@ -12,7 +12,7 @@ import { OperationsTab } from './operations/OperationsTab';
 import type { PortfolioTab } from './portfolio-tabs/PortfolioTabs';
 
 /** The creation modals the page header opens: one at a time, on the tab that lists its result. */
-export type PortfolioCreation = 'operation' | 'valuation' | null;
+export type PortfolioCreation = 'operation' | 'valuation' | 'takeover' | null;
 
 export function PortfolioAccountTabContent({
   account,
@@ -25,6 +25,7 @@ export function PortfolioAccountTabContent({
   creating,
   onCloseCreate,
   onCreate,
+  onTakeover,
 }: {
   account: Account;
   active: PortfolioTab;
@@ -36,6 +37,7 @@ export function PortfolioAccountTabContent({
   creating: PortfolioCreation;
   onCloseCreate: () => void;
   onCreate: () => void;
+  onTakeover?: () => void;
 }) {
   const insurance = account.kind === 'INSURANCE_CONTRACT';
   const reporting = { accountId: account.id, asOf, sourceReturnFocus };
@@ -55,7 +57,7 @@ export function PortfolioAccountTabContent({
     return insurance ? (
       <LifeInsuranceSupportsTab {...reporting} />
     ) : (
-      <HoldingsTab accountId={account.id} asOf={asOf} />
+      <HoldingsTab accountId={account.id} asOf={asOf} onTakeover={onTakeover} />
     );
   if (active === 'valuations') {
     const recording = {

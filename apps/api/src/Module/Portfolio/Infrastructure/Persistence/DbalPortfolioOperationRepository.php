@@ -80,6 +80,24 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         ));
     }
 
+    private const string CASH_ONLY = "(operation_type IN ('DEPOSIT', 'WITHDRAWAL') OR (operation_type IN ('INTEREST', 'FEE', 'TAX') AND instrument_id IS NULL))";
+
+    public function hasActiveSecurityMovement(WorkspaceScope $workspace, string $accountId): bool
+    {
+        return false !== $this->connection->fetchOne(
+            "SELECT 1 FROM portfolio_operations WHERE workspace_id = :workspace_id AND account_id = :account_id AND state = 'ACTIVE' AND NOT ".self::CASH_ONLY.' LIMIT 1',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId],
+        );
+    }
+
+    public function hasActiveCashOperationOnOrBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day): bool
+    {
+        return false !== $this->connection->fetchOne(
+            "SELECT 1 FROM portfolio_operations WHERE workspace_id = :workspace_id AND account_id = :account_id AND state = 'ACTIVE' AND ".self::CASH_ONLY.' AND trade_date <= :day LIMIT 1',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'day' => $day->format('Y-m-d')],
+        );
+    }
+
     public function activeForAccount(WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null): array
     {
         $parameters = ['workspace_id' => $workspace->id, 'account_id' => $accountId];

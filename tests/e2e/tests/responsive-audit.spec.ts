@@ -4,6 +4,7 @@ import { auditLayout, type AuditFinding } from './support/audit';
 import { settled } from './support/page';
 import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
+import { openTakeoverModal } from './support/takeover';
 import { auditAccessibility } from './support/a11y';
 import {
   expandCountedFilters,
@@ -334,6 +335,13 @@ const MODALS: ModalCase[] = [
       await settled(page);
       await page.getByRole('button', { name: 'Nouvelle opération' }).click();
       return 'Enregistrer';
+    },
+  },
+  {
+    name: 'portfolio takeover',
+    open: async (page) => {
+      await openTakeoverModal(page);
+      return 'Enregistrer la reprise';
     },
   },
   {

@@ -18,6 +18,7 @@ export function PortfolioAccountHeader({
   accountId,
   onCreate,
   onRecordValuation,
+  onTakeover,
   contractRequired = false,
   operationBlocked = false,
 }: {
@@ -25,6 +26,8 @@ export function PortfolioAccountHeader({
   accountId: string;
   onCreate: () => void;
   onRecordValuation: () => void;
+  /** Undefined unless the account is eligible to take over its positions. */
+  onTakeover?: () => void;
   contractRequired?: boolean;
   operationBlocked?: boolean;
 }) {
@@ -58,6 +61,7 @@ export function PortfolioAccountHeader({
         <AccountActionsMenu
           account={account}
           onRecordValuation={onRecordValuation}
+          onTakeover={onTakeover}
           onRules={() => setRulesOpen(true)}
         />
       </HeaderActions>

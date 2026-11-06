@@ -12,6 +12,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateAccountBalances } from './invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { navigateFromPage } from '@/hooks/use-client-navigation';
 import { accountRequestError, AccountRequestError, requestFailed } from './accountError';
 
 type Editor = Account | 'create' | null;
@@ -77,10 +78,14 @@ export function useAccountsPageMutations({
       return result.data;
     },
     onError: refreshOnStaleState,
-    onSuccess: async () => {
+    onSuccess: async (account) => {
+      const creating = editor === 'create';
       closeEditor();
       notify('saved');
       await invalidateAccountLists();
+      // A new securities account is empty: land where its held positions are entered.
+      if (creating && account?.kind === 'PORTFOLIO' && account.valuationMode === 'PORTFOLIO')
+        navigateFromPage(`/portfolios/${account.id}?tab=positions`);
     },
   });
 

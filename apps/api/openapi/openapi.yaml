@@ -8534,6 +8534,139 @@ paths:
               - REGION
               - CURRENCY
             default: INSTRUMENT
+  /api/v1/accounts/{accountId}/portfolio-takeover:
+    get:
+      operationId: readPortfolioTakeover
+      x-cadran-bounded: 'At most 201 operation identifiers: one transfer in per line (200) and the cash deposit.'
+      summary: Read whether a securities account can take over its positions
+      description: >-
+        Whether the account can still take over the positions it already holds, why not, the default
+        takeover date (the last day of the previous month, or the opening day when later) and, once
+        done, the takeover and the identifiers of its operations. A closed or archived account answers
+        `NOT_SUPPORTED`.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      responses:
+        '200':
+          description: 'The takeover state of the account.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTakeoverState'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      operationId: recordPortfolioTakeover
+      summary: Take over the positions already held by a securities account
+      description: >-
+        Records in one PostgreSQL transaction one `SECURITY_TRANSFER_IN` per line, a `DEPOSIT` of the
+        cash when it is not zero and the complete `POSITIONS` valuation of the date, then the takeover
+        that starts the performance history of the account. Any refusal writes nothing. The
+        `Idempotency-Key` header is required: a replay returns the first answer without a second row.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/RequiredIdempotencyKey'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioTakeoverRequest'
+      responses:
+        '201':
+          description: 'The recorded takeover.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTakeover'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'The account already has a takeover, is not empty (`blockingReason`), the month is closed (`type: /problems/period-closed`), the idempotency key conflicts or a concurrent change was detected.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTakeoverProblem'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The account kind, mode or status is not supported, the request breaks a date, line or cash rule (`errors`), a limit is reached or the idempotency key is missing or invalid.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTakeoverProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/v1/accounts/{accountId}/portfolio-takeover/preview:
+    post:
+      operationId: previewPortfolioTakeover
+      x-cadran-idempotency: 'Writes nothing: a replay computes the same preview.'
+      x-cadran-bounded: 'At most 200 lines, each with a closed set of error fields and codes.'
+      summary: Preview a takeover without writing it
+      description: >-
+        The value and the average unit cost of every line, the totals and every problem of the request,
+        so that the form shows them before submitting. A line value is quantity x price, exact, shown with
+        at least the display precision of the currency. Nothing is written and no lock is taken; a value
+        that cannot be computed is `null`.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - $ref: '#/components/parameters/PortfolioAccountId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PortfolioTakeoverRequest'
+      responses:
+        '200':
+          description: 'The preview, with its errors.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTakeoverPreview'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccountMutationForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          $ref: '#/components/responses/PayloadTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '422':
+          description: 'The account kind, mode or status is not supported, or the body does not have the declared shape.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/PortfolioTakeoverProblem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/portfolio-performance:
     get:
       operationId: readPortfolioPerformance
@@ -8939,6 +9072,19 @@ components:
         with another body answers 409. Required only when a transaction source
         is IMPORT or PROVIDER. A replayed successful response adds
         `Idempotency-Replayed: true`.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 255
+        pattern: '^[A-Za-z0-9_.:-]+$'
+    RequiredIdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Retries the same write safely for seven days: the same key with the same body replays the first
+        response without a second row, the same key with another body answers 409. A replayed successful
+        response adds `Idempotency-Replayed: true`.
       schema:
         type: string
         minLength: 16
@@ -9643,6 +9789,8 @@ components:
             - POSITIONS_CHANGED
             - NEGATIVE_SECURITIES_VALUE
             - PERIOD_IN_PROGRESS
+            - BEFORE_TAKEOVER
+            - PERIOD_STARTS_AT_TAKEOVER
             - DECOMPOSITION_RESIDUAL
             - NO_INVESTED_CAPITAL
             - NON_POSITIVE_DENOMINATOR
@@ -22035,6 +22183,205 @@ components:
                 - euro_fund_rate_limit_reached
                 - portfolio_forbidden
                 - portfolio_payload_too_large
+    PortfolioTakeoverBlockReason:
+      description: >-
+        Why the account cannot take over its positions: `NOT_SUPPORTED` (kind, mode or status),
+        `ALREADY_TAKEN_OVER`, `ACTIVE_VALUATION`, `SECURITY_OPERATION` or `CASH_OPERATION_BEFORE` (an active
+        cash operation on or before the date).
+      type: string
+      enum:
+        - NOT_SUPPORTED
+        - ALREADY_TAKEN_OVER
+        - ACTIVE_VALUATION
+        - SECURITY_OPERATION
+        - CASH_OPERATION_BEFORE
+    PortfolioTakeover:
+      type: object
+      additionalProperties: false
+      required: [id, accountId, takenOverOn, valuationId, operationIds, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        accountId:
+          type: string
+          format: uuid
+        takenOverOn:
+          description: 'The day of the takeover: the start of the performance history of the account.'
+          type: string
+          format: date
+        valuationId:
+          type: string
+          format: uuid
+        operationIds:
+          description: 'The active transfers in and the cash deposit dated the takeover day.'
+          type: array
+          maxItems: 201
+          items:
+            type: string
+            format: uuid
+        createdAt:
+          type: string
+          format: date-time
+    PortfolioTakeoverState:
+      type: object
+      additionalProperties: false
+      required: [eligible, reason, defaultDate, takeover]
+      properties:
+        eligible:
+          type: boolean
+        reason:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioTakeoverBlockReason'
+            - type: 'null'
+        defaultDate:
+          description: 'The last day of the previous month in the workspace calendar, or the opening day of the account when later.'
+          type: string
+          format: date
+        takeover:
+          oneOf:
+            - $ref: '#/components/schemas/PortfolioTakeover'
+            - type: 'null'
+    PortfolioTakeoverLineInput:
+      x-cadran-asset-scope: 'Amounts are in the currency of the portfolio account.'
+      type: object
+      additionalProperties: false
+      required: [instrumentId, quantity, price]
+      properties:
+        instrumentId:
+          type: string
+          format: uuid
+        quantity:
+          description: 'Strictly positive, within the quantity precision of the instrument.'
+          type: string
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        costBasis:
+          description: 'The total cost of the line, zero or more; null when unknown (the gain stays unknown).'
+          type: [string, 'null']
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        price:
+          description: 'Strictly positive, within the price precision of the instrument.'
+          type: string
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        priceDate:
+          description: 'On or before the takeover date; null means the takeover date.'
+          type: [string, 'null']
+          format: date
+    PortfolioTakeoverRequest:
+      x-cadran-asset-scope: 'Amounts are in the currency of the portfolio account.'
+      type: object
+      additionalProperties: false
+      required: [takenOverOn, lines]
+      properties:
+        takenOverOn:
+          description: 'On or after the opening day, on or before today, in an open month.'
+          type: string
+          format: date
+        lines:
+          description: 'One line per instrument, 1 to 200.'
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PortfolioTakeoverLineInput'
+        cash:
+          description: 'The cash held on the date, zero or more; recorded as a deposit. Null means none.'
+          type: [string, 'null']
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+    PortfolioTakeoverError:
+      type: object
+      additionalProperties: false
+      required: [line, field, code]
+      properties:
+        line:
+          description: 'The 1-based line concerned, null for the request.'
+          type: [integer, 'null']
+          minimum: 1
+        field:
+          type: string
+          enum:
+            [takenOverOn, lines, cash, instrumentId, quantity, costBasis, price, priceDate, body]
+        code:
+          description: >-
+            A stable code: `invalid_date`, `before_account_opening`, `in_the_future`, `lines_count`,
+            `unknown_instrument`, `instrument_inactive`, `instrument_currency_mismatch`, `duplicate_instrument`,
+            `invalid_decimal`, `precision_exceeded`, `not_positive`, `negative`, `quantity_precision_exceeded`,
+            `price_precision_exceeded`, `price_date_after_takeover`, `value_too_large`, `invalid_payload`, or the
+            code of the operation rule that refused the line.
+          type: string
+    PortfolioTakeoverPreviewLine:
+      x-cadran-asset-scope: 'Amounts are in the currency of the portfolio account.'
+      type: object
+      additionalProperties: false
+      required: [instrumentId, value, averageUnitCost]
+      properties:
+        instrumentId:
+          type: string
+        value:
+          description: 'Quantity x price, exact, with at least the display precision; null when not computable.'
+          type: [string, 'null']
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        averageUnitCost:
+          description: 'Cost / quantity at the price precision of the instrument, half-even; null without a cost.'
+          type: [string, 'null']
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+    PortfolioTakeoverPreview:
+      x-cadran-asset-scope: 'Amounts are in the currency of the portfolio account.'
+      type: object
+      additionalProperties: false
+      required: [lines, securitiesValue, cash, totalValue, errors]
+      properties:
+        lines:
+          description: 'Same order as the request.'
+          type: array
+          maxItems: 200
+          items:
+            $ref: '#/components/schemas/PortfolioTakeoverPreviewLine'
+        securitiesValue:
+          type: [string, 'null']
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        cash:
+          description: 'The cash typed, or 0.'
+          type: string
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        totalValue:
+          type: [string, 'null']
+          pattern: '^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$'
+        errors:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/PortfolioTakeoverError'
+    PortfolioTakeoverProblem:
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          properties:
+            code:
+              type: string
+              enum:
+                - portfolio_takeover_exists
+                - portfolio_takeover_not_empty
+                - portfolio_takeover_not_supported
+                - invalid_portfolio_takeover
+                - operation_limit_reached
+                - valuation_limit_reached
+                - portfolio_operation_conflict
+                - portfolio_valuation_conflict
+                - cash_amount_too_large
+                - position_would_go_negative
+                - portfolio_account_not_found
+                - portfolio_forbidden
+                - portfolio_payload_too_large
+            blockingReason:
+              description: 'With `portfolio_takeover_not_empty`: why the account cannot take over.'
+              $ref: '#/components/schemas/PortfolioTakeoverBlockReason'
+            errors:
+              description: 'With `invalid_portfolio_takeover`: every problem of the request.'
+              type: array
+              maxItems: 1000
+              items:
+                $ref: '#/components/schemas/PortfolioTakeoverError'
     PortfolioValuationProblem:
       allOf:
         - $ref: '#/components/schemas/Problem'

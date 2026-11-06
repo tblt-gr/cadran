@@ -9,18 +9,20 @@ export function HoldingsTab({
   asOf,
   frozen = false,
   status,
+  onTakeover,
 }: {
   accountId: string;
   asOf: string;
   frozen?: boolean;
   status?: string;
+  onTakeover?: () => void;
 }) {
   return (
     <div className={styles.tab}>
       {frozen ? (
         <PositionsTabSkeleton status={status} />
       ) : (
-        <PositionsTab accountId={accountId} asOf={asOf} />
+        <PositionsTab accountId={accountId} asOf={asOf} onTakeover={onTakeover} />
       )}
       <AllocationTab accountId={accountId} asOf={asOf} frozen={frozen} />
     </div>

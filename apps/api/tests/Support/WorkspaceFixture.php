@@ -119,6 +119,7 @@ final readonly class WorkspaceFixture
         $this->connection->executeStatement('DELETE FROM portfolio_euro_fund_rates');
         $this->connection->executeStatement('DELETE FROM portfolio_life_insurance_fee_terms');
         $this->connection->executeStatement('DELETE FROM portfolio_life_insurance_contracts');
+        $this->connection->executeStatement('DELETE FROM portfolio_takeovers');
         $this->connection->executeStatement('DELETE FROM portfolio_position_snapshots');
         $this->connection->executeStatement('DELETE FROM portfolio_valuations');
         $this->connection->executeStatement('DELETE FROM portfolio_operations');

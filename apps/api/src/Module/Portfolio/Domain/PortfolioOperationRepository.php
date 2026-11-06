@@ -23,6 +23,12 @@ interface PortfolioOperationRepository
 
     public function countActive(WorkspaceScope $workspace, string $accountId): int;
 
+    /** Whether an active operation moves securities: any type but a cash deposit, withdrawal, interest, fee or tax without an instrument. */
+    public function hasActiveSecurityMovement(WorkspaceScope $workspace, string $accountId): bool;
+
+    /** Whether an active cash-only operation is dated on or before a day. */
+    public function hasActiveCashOperationOnOrBefore(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $day): bool;
+
     /** @return list<PortfolioOperation> active operations ordered by trade date, sequence and identifier */
     public function activeForAccount(WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null): array;
 

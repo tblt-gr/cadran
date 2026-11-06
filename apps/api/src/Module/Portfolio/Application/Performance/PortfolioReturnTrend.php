@@ -10,6 +10,7 @@ use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Module\Portfolio\Domain\Performance\PerformanceScope;
 use App\Module\Portfolio\Domain\Performance\ReturnTrend;
 use App\Module\Portfolio\Domain\Performance\ReturnTrendReason;
+use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverRepository;
 
 /**
  * The chained monthly return of the twelve complete months before the current one.
@@ -23,6 +24,7 @@ final readonly class PortfolioReturnTrend
     public function __construct(
         private PerformancePeriodBuilder $builder,
         private ComputePortfolioPerformance $compute,
+        private PortfolioTakeoverRepository $takeovers,
     ) {
     }
 
@@ -41,6 +43,11 @@ final readonly class PortfolioReturnTrend
 
         // The later of the opening and the first operation, the rule of the annual table.
         $start = max($account->openedOn, $history[0]->details->tradeDate);
+        // A takeover starts the history: the months before it are never chained.
+        $historyFirstMonth = $this->takeovers->findByAccount($workspace, $account->id)?->historyFirstMonth();
+        if (null !== $historyFirstMonth) {
+            $start = max($start, $historyFirstMonth);
+        }
         $first = new \DateTimeImmutable($window[0].'-01', new \DateTimeZone('UTC'));
         $firstIndex = ((int) $start->format('Y') - (int) $first->format('Y')) * 12 + (int) $start->format('n') - (int) $first->format('n');
 

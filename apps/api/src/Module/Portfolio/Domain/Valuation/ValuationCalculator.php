@@ -50,7 +50,7 @@ final class ValuationCalculator
         $complete = true;
         foreach ($positions as $held) {
             $entry = $prices[$held->instrumentId] ?? new PriceEntry(null, null);
-            $market = null === $entry->price ? null : self::product($held->quantity, $entry->price, $displayPrecision);
+            $market = null === $entry->price ? null : self::marketValue($held->quantity, $entry->price, $displayPrecision);
             if (null === $market) {
                 $complete = false;
             } else {
@@ -73,7 +73,7 @@ final class ValuationCalculator
     }
 
     /** Exact product, its trailing zeros trimmed down to the display precision so 156.900 reads 156.90. */
-    private static function product(DecimalValue $quantity, DecimalValue $price, int $displayPrecision): DecimalValue
+    public static function marketValue(DecimalValue $quantity, DecimalValue $price, int $displayPrecision): DecimalValue
     {
         $product = BigDecimal::of($quantity->toString())->multipliedBy(BigDecimal::of($price->toString()));
         $scale = $product->getScale();

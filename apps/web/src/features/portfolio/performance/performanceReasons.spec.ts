@@ -28,6 +28,19 @@ describe('describeReason', () => {
     });
   });
 
+  it('names the takeover date in the history start reasons', () => {
+    expect(
+      describeReason({ code: 'BEFORE_TAKEOVER', dates: ['2026-10-31'] }, context).sentence,
+    ).toBe('Antérieur à la reprise du 31 octobre 2026');
+    expect(
+      describeReason({ code: 'PERIOD_STARTS_AT_TAKEOVER', dates: ['2026-11-03'] }, context)
+        .sentence,
+    ).toBe('Calculé depuis la reprise du 3 novembre 2026');
+    expect(summarizeReason({ code: 'BEFORE_TAKEOVER', dates: ['2026-10-31'] }, context)).toBe(
+      'Antérieur à la reprise du 31 octobre 2026',
+    );
+  });
+
   it('links an unknown lot cost to the positions tab', () => {
     const reason = describeReason({ code: 'UNKNOWN_LOT_COST', dates: [] }, context);
     expect(reason.action?.href).toBe('/portfolios/account-1?tab=positions');
