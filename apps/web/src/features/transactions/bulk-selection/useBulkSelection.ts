@@ -9,6 +9,12 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { transactionRequestError } from '@/features/transactions/transactionError';
 import { toBulkFilters, type TransactionCountQuery } from './bulkFilters';
 
+/** The fields of a loaded transaction a bulk edit shows to name or prefill a row. */
+export type BulkItem = Pick<
+  Transaction,
+  'amount' | 'bookedOn' | 'displayLabel' | 'id' | 'rawLabel'
+>;
+
 export type BulkScope =
   | { type: 'IDS'; ids: string[] }
   | { type: 'FILTER'; filters: BulkTransactionFilters; expectedCount: number };
@@ -17,7 +23,7 @@ interface UseBulkSelectionOptions {
   /** More rows than the loaded page match: the filter-wide scope is worth offering. */
   hasMore: boolean;
   /** The loaded page, the only rows a checkbox can select. */
-  items: ReadonlyArray<Pick<Transaction, 'bookedOn' | 'displayLabel' | 'id'>>;
+  items: ReadonlyArray<BulkItem>;
   /** The listing's filters, without paging: they define the filter-wide scope. */
   query: TransactionCountQuery;
   reloadAfterWrite: () => Promise<void>;
@@ -39,7 +45,7 @@ export interface BulkSelection {
   /** Whether the banner proposing the filter-wide scope is relevant. */
   offerFilterScope: boolean;
   /** The loaded rows, used to name the transactions a result reports. */
-  pageItems: ReadonlyArray<Pick<Transaction, 'bookedOn' | 'displayLabel' | 'id'>>;
+  pageItems: ReadonlyArray<BulkItem>;
   pageCount: number;
   reloadAfterWrite: () => Promise<void>;
   rowSelection: RowSelection;

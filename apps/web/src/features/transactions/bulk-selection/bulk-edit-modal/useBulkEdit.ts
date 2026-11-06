@@ -1,6 +1,7 @@
 import {
-  bulkCategorizeTransactions,
-  type BulkCategorizeResult,
+  bulkEditTransactions,
+  type BulkEditChanges,
+  type BulkEditResult,
   type Problem,
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -40,19 +41,19 @@ function classify(status: number, type: string | undefined): BulkErrorKind {
   return status === 400 || status === 404 || status === 422 ? 'invalid' : 'network';
 }
 
-interface UseBulkCategorizeOptions {
+interface UseBulkEditOptions {
   reloadAfterWrite: () => Promise<void>;
 }
 
-/** The bulk category write: one idempotency key per distinct body, so a retry replays. */
-export function useBulkCategorize({ reloadAfterWrite }: UseBulkCategorizeOptions) {
+/** The bulk edit write: one idempotency key per distinct body, so a retry replays. */
+export function useBulkEdit({ reloadAfterWrite }: UseBulkEditOptions) {
   const queryClient = useQueryClient();
   const submission = useSubmissionKey();
 
-  return useMutation<BulkCategorizeResult, unknown, { categoryId: string; scope: BulkScope }>({
+  return useMutation<BulkEditResult, unknown, { changes: BulkEditChanges; scope: BulkScope }>({
     mutationFn: async (body) => {
       const result = await withCsrfRetry(() =>
-        bulkCategorizeTransactions({
+        bulkEditTransactions({
           ...authApiOptions(),
           headers: { ...authApiOptions().headers, 'Idempotency-Key': submission.keyFor(body) },
           body,

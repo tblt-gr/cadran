@@ -7508,31 +7508,39 @@ paths:
                 $ref: '#/components/schemas/Problem'
         '500':
           $ref: '#/components/responses/InternalServerError'
-  /api/v1/transactions/bulk-category:
+  /api/v1/transactions/bulk-edit:
     post:
-      operationId: bulkCategorizeTransactions
-      summary: Change the category of several transactions at once
+      operationId: bulkEditTransactions
+      summary: Edit the label, payment method, note, counterparty and category of several transactions at once
       description: >-
-        Moves the selected transactions to one category in a single
-        PostgreSQL transaction. The scope is either explicit identifiers
-        (`IDS`) or the filters of the listing with the count the user
-        confirmed (`FILTER`); a filter scope is re-resolved server side at
-        confirmation time and refused with 409
+        Applies the same set of changes to the selected transactions in a
+        single PostgreSQL transaction. `changes` names at least one of
+        `label`, `paymentMethod`, `note`, `counterparty` and `categoryId`; a
+        field left out is untouched. The `label` is either one value for every
+        row (`SAME`) or one value per transaction (`EACH`, an `IDS` scope
+        whose identifiers are exactly the listed ones). An externally sourced
+        transaction takes the label as its display label and keeps its bank
+        label; a manual one takes it as its label, and an empty value is
+        refused for that row (`LABEL_REQUIRED`). The scope is either explicit
+        identifiers (`IDS`) or the filters of the listing with the count the
+        user confirmed (`FILTER`); a filter scope is re-resolved server side
+        at confirmation time and refused with 409
         (`type: /problems/transactions.bulk-scope-changed`) when it no longer
         matches `expectedCount`. At most 500 transactions per operation: a
         larger identifier list, or a filter matching more, is refused with 422
         (`type: /problems/transactions.bulk-scope-too-large`) and nothing is
         written. Eligible transactions are written and the others are
         reported with a reason and left untouched; when none is eligible
-        nothing is written and `changed` is 0. Transfer legs, refunds,
-        originals with live refunds, voided or rejected transactions,
-        multi-category transactions, transactions of a closed period,
-        transactions already in the category, and transactions whose sign
-        contradicts the category type (an outflow needs an expense category,
-        an inflow an income one) are skipped. An identifier that does not
-        exist in the calling workspace, including one of another workspace,
-        is reported `NOT_FOUND`. The `Idempotency-Key` header is required and
-        a replay returns the stored result for seven days, unless a period it
+        nothing is written and `changed` is 0. Transfer legs, originals with
+        live refunds, voided or rejected transactions and transactions of a
+        closed period are skipped whole. A refund, a multi-category
+        transaction, a transaction already in the category and one whose sign
+        contradicts the category type only skip the category change: when
+        other fields change, the row is written without the category and
+        also reported with that reason. An identifier that does not exist in
+        the calling workspace, including one of another workspace, is
+        reported `NOT_FOUND`. The `Idempotency-Key` header is required and a
+        replay returns the stored result for seven days, unless a period it
         touched has been closed since.
       tags:
         - Transactions
@@ -7556,7 +7564,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BulkCategorizeRequest'
+              $ref: '#/components/schemas/BulkEditRequest'
       responses:
         '200':
           description: How many transactions changed and which were skipped, or the stored response of a replay.
@@ -7566,7 +7574,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulkCategorizeResult'
+                $ref: '#/components/schemas/BulkEditResult'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -7574,7 +7582,7 @@ paths:
         '403':
           $ref: '#/components/responses/TransactionMutationForbidden'
         '404':
-          description: The target category does not exist in the calling workspace.
+          description: The target category does not exist in the calling workspace or is archived.
           content:
             application/problem+json:
               schema:
@@ -7596,8 +7604,7 @@ paths:
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
           description: >-
-            The body or the Idempotency-Key is invalid, the target category is
-            archived, or the scope exceeds 500 transactions
+            The body or the Idempotency-Key is invalid, or the scope exceeds 500 transactions
             (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).
           content:
             application/problem+json:
@@ -19395,16 +19402,13 @@ components:
           type: integer
           minimum: 0
           description: The count the user confirmed, from `countTransactions`.
-    BulkCategorizeRequest:
+    BulkEditRequest:
       type: object
       additionalProperties: false
       required:
-        - categoryId
         - scope
+        - changes
       properties:
-        categoryId:
-          type: string
-          format: uuid
         scope:
           oneOf:
             - $ref: '#/components/schemas/BulkIdsScope'
@@ -19414,46 +19418,138 @@ components:
             mapping:
               IDS: '#/components/schemas/BulkIdsScope'
               FILTER: '#/components/schemas/BulkFilterScope'
+        changes:
+          $ref: '#/components/schemas/BulkEditChanges'
+    BulkEditChanges:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      description: Fields to change; a field left out is untouched.
+      properties:
+        label:
+          oneOf:
+            - $ref: '#/components/schemas/BulkLabelSame'
+            - $ref: '#/components/schemas/BulkLabelEach'
+          discriminator:
+            propertyName: mode
+            mapping:
+              SAME: '#/components/schemas/BulkLabelSame'
+              EACH: '#/components/schemas/BulkLabelEach'
+        paymentMethod:
+          type:
+            - string
+            - 'null'
+          enum:
+            - CARD
+            - TRANSFER
+            - DIRECT_DEBIT
+            - CHECK
+            - CASH
+            - OTHER
+            - null
+          description: The payment method, or null to clear it.
+        note:
+          type:
+            - string
+            - 'null'
+          maxLength: 500
+          description: The note, or null to clear it.
+        counterparty:
+          type:
+            - string
+            - 'null'
+          maxLength: 80
+          description: The counterparty, or null to clear it.
+        categoryId:
+          type: string
+          format: uuid
+    BulkLabelSame:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - value
+      properties:
+        mode:
+          type: string
+          enum:
+            - SAME
+        value:
+          type: string
+          maxLength: 140
+    BulkLabelEach:
+      type: object
+      additionalProperties: false
+      required:
+        - mode
+        - values
+      properties:
+        mode:
+          type: string
+          enum:
+            - EACH
+        values:
+          type: array
+          minItems: 1
+          maxItems: 100
+          description: Only with an `IDS` scope whose identifiers are exactly these.
+          items:
+            $ref: '#/components/schemas/BulkLabelValue'
+    BulkLabelValue:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - value
+      properties:
+        id:
+          type: string
+          format: uuid
+        value:
+          type: string
+          maxLength: 140
     BulkSkipReason:
       type: string
       description: >-
-        Why a transaction was left untouched: it does not exist in the
-        workspace, it stopped matching the filters of a filter scope before
-        the write, it is a transfer leg, a refund, an original with live
-        refunds, voided or rejected, split across several categories, in a
-        closed period, of a sign contradicting the category type, or already
-        in the category.
+        Why a transaction was left untouched, whole or for its category only:
+        it does not exist in the workspace, it stopped matching the filters of
+        a filter scope before the write, it is voided or rejected, a transfer
+        leg, an original with live refunds, in a closed period, a manual
+        transaction given an empty label, a refund, split across several
+        categories, of a sign contradicting the category type, or already in
+        the category.
       enum:
         - NOT_FOUND
         - NO_LONGER_MATCHING
-        - TRANSFER_LEG
-        - REFUND
-        - HAS_REFUNDS
         - TERMINAL
-        - SPLIT
+        - TRANSFER_LEG
+        - HAS_REFUNDS
         - CLOSED_PERIOD
+        - LABEL_REQUIRED
+        - REFUND
+        - SPLIT
         - SIGN_MISMATCH
         - ALREADY_IN_CATEGORY
     BulkSkippedTransaction:
       type: object
       additionalProperties: false
       required:
-        - transactionId
+        - id
         - reason
       properties:
-        transactionId:
+        id:
           type: string
           format: uuid
         reason:
           $ref: '#/components/schemas/BulkSkipReason'
-    BulkCategorizeResult:
+    BulkEditResult:
       type: object
       additionalProperties: false
       required:
         - requestedCount
         - changed
         - skipped
-        - maximum
+        - fieldsChanged
       properties:
         requestedCount:
           type: integer
@@ -19465,11 +19561,22 @@ components:
         skipped:
           type: array
           maxItems: 500
+          description: >-
+            Transactions left untouched, and rows written without their
+            category, with the reason.
           items:
             $ref: '#/components/schemas/BulkSkippedTransaction'
-        maximum:
-          type: integer
-          description: The maximum number of transactions per operation.
+        fieldsChanged:
+          type: array
+          description: The fields written on at least one transaction.
+          items:
+            type: string
+            enum:
+              - label
+              - paymentMethod
+              - note
+              - counterparty
+              - categoryId
     VoidTransactionRequest:
       type: object
       additionalProperties: false

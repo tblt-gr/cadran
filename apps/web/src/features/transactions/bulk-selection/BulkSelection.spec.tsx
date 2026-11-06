@@ -5,12 +5,12 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
-import { BulkCategoryResult } from './bulk-category-modal/BulkCategoryResult';
+import { BulkEditResultView } from './bulk-edit-modal/BulkEditResult';
 import { BulkSelectionToolbar } from './BulkSelectionToolbar';
 import { useBulkSelection } from './useBulkSelection';
 
 const api = vi.hoisted(() => ({
-  bulkCategorizeTransactions: vi.fn(),
+  bulkEditTransactions: vi.fn(),
   countTransactions: vi.fn(),
   getSession: vi.fn(),
   listCategories: vi.fn(),
@@ -162,7 +162,7 @@ describe('bulk selection', () => {
     fireEvent.click(pen);
     expect(pen.getAttribute('aria-pressed')).toBe('false');
     expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Changer la catégorie' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Modifier' })).toBeNull();
 
     fireEvent.click(pen);
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
@@ -177,10 +177,10 @@ describe('bulk selection', () => {
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 
-  it('puts selection and the category action on the line under the pen', () => {
+  it('puts selection and the edit action on the line under the pen', () => {
     renderHarness({ inline: true });
     const pen = screen.getByRole('button', { name: 'Édition groupée' });
-    const action = screen.getByRole('button', { name: 'Changer la catégorie' });
+    const action = screen.getByRole('button', { name: 'Modifier' });
     const controls = action.closest('[data-bulk-controls]');
     expect(controls).toBeTruthy();
     expect(controls?.contains(pen)).toBe(false);
@@ -191,9 +191,9 @@ describe('bulk selection', () => {
     ).toBe(true);
   });
 
-  it('keeps the category action disabled until something is selected', () => {
+  it('keeps the edit action disabled until something is selected', () => {
     renderHarness();
-    const action = screen.getByRole('button', { name: 'Changer la catégorie' });
+    const action = screen.getByRole('button', { name: 'Modifier' });
     expect((action as HTMLButtonElement).disabled).toBe(true);
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
@@ -219,39 +219,40 @@ describe('bulk selection', () => {
   });
 
   it('applies a category to the selected ids and reports the skipped ones', async () => {
-    api.bulkCategorizeTransactions.mockImplementation(() =>
+    api.bulkEditTransactions.mockImplementation(() =>
       ok({
         requestedCount: 2,
         changed: 1,
-        maximum: 500,
-        skipped: [{ transactionId: SECOND, reason: 'CLOSED_PERIOD' }],
+        fieldsChanged: ['categoryId'],
+        skipped: [{ id: SECOND, reason: 'CLOSED_PERIOD' }],
       }),
     );
     renderHarness();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Changer la catégorie' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
 
-    const dialog = screen.getByRole('dialog', { name: 'Changer la catégorie' });
+    const dialog = screen.getByRole('dialog', { name: 'Modifier 2 transactions' });
     expect(within(dialog).getByText('Modification', { exact: true })).toBeTruthy();
-    const confirm = within(dialog).getByRole('button', { name: 'Confirmer' }) as HTMLButtonElement;
-    expect(confirm.disabled).toBe(true);
+    const apply = within(dialog).getByRole('button', { name: 'Appliquer' }) as HTMLButtonElement;
+    expect(apply.disabled).toBe(true);
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Modifier la catégorie' }));
+    expect(apply.disabled).toBe(true);
     await chooseCategory();
-    fireEvent.click(confirm);
+    expect(apply.disabled).toBe(false);
+    fireEvent.click(apply);
 
-    await waitFor(() => expect(within(dialog).getByText('1 mouvement modifié')).toBeTruthy());
+    await waitFor(() => expect(within(dialog).getByText('1 transaction modifiée')).toBeTruthy());
     expect(within(dialog).getByText('Détail', { exact: true })).toBeTruthy();
-    expect(api.bulkCategorizeTransactions).toHaveBeenCalledWith(
+    expect(api.bulkEditTransactions).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: { categoryId: CATEGORY, scope: { type: 'IDS', ids: [FIRST, SECOND] } },
+        body: { changes: { categoryId: CATEGORY }, scope: { type: 'IDS', ids: [FIRST, SECOND] } },
         headers: expect.objectContaining({ 'Idempotency-Key': expect.any(String) }),
       }),
     );
-    expect(within(dialog).getByText('1 mouvement ignoré')).toBeTruthy();
-    expect(within(dialog).getByText(/période clôturée/i)).toBeTruthy();
+    expect(within(dialog).getByText('1 transaction ignorée')).toBeTruthy();
+    expect(within(dialog).getByText('Période clôturée')).toBeTruthy();
     expect(reloadAfterWrite).toHaveBeenCalled();
-    const details = within(dialog)
-      .getByText(/période clôturée/i)
-      .closest('details');
+    const details = within(dialog).getByText('Période clôturée').closest('details');
     expect(details?.open).toBe(false);
     expect(within(details as HTMLElement).getByText(/^Monoprix, /)).toBeTruthy();
 
@@ -260,7 +261,7 @@ describe('bulk selection', () => {
 
   it('asks to narrow the filters when the scope exceeds the limit', async () => {
     api.countTransactions.mockImplementation(() => ok({ count: 800 }));
-    api.bulkCategorizeTransactions.mockImplementation(() =>
+    api.bulkEditTransactions.mockImplementation(() =>
       problem(422, {
         type: '/problems/transactions.bulk-scope-too-large',
         status: 422,
@@ -274,12 +275,13 @@ describe('bulk selection', () => {
         name: 'Sélectionner les 800 mouvements correspondant aux filtres',
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Changer la catégorie' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Modifier la catégorie' }));
     await chooseCategory();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
 
     expect(await screen.findByText(/Affinez vos filtres/)).toBeTruthy();
-    expect(api.bulkCategorizeTransactions).toHaveBeenCalledWith(
+    expect(api.bulkEditTransactions).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
           scope: { type: 'FILTER', filters: { q: 'market' }, expectedCount: 800 },
@@ -289,7 +291,7 @@ describe('bulk selection', () => {
   });
 
   it('asks to confirm again with the new count when the matching set changed', async () => {
-    api.bulkCategorizeTransactions
+    api.bulkEditTransactions
       .mockImplementationOnce(() =>
         problem(409, {
           type: '/problems/transactions.bulk-scope-changed',
@@ -298,7 +300,7 @@ describe('bulk selection', () => {
         }),
       )
       .mockImplementationOnce(() =>
-        ok({ requestedCount: 125, changed: 125, maximum: 500, skipped: [] }),
+        ok({ requestedCount: 125, changed: 125, fieldsChanged: ['categoryId'], skipped: [] }),
       );
     renderHarness({ hasMore: true });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
@@ -307,15 +309,16 @@ describe('bulk selection', () => {
         name: 'Sélectionner les 120 mouvements correspondant aux filtres',
       }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Changer la catégorie' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Modifier la catégorie' }));
     await chooseCategory();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
 
     expect(await screen.findByText(/Le nombre de mouvements a changé : 125/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Confirmer' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Appliquer' }));
 
-    await waitFor(() => expect(api.bulkCategorizeTransactions).toHaveBeenCalledTimes(2));
-    expect(api.bulkCategorizeTransactions.mock.calls[1]?.[0].body.scope.expectedCount).toBe(125);
+    await waitFor(() => expect(api.bulkEditTransactions).toHaveBeenCalledTimes(2));
+    expect(api.bulkEditTransactions.mock.calls[1]?.[0].body.scope.expectedCount).toBe(125);
   });
 });
 
@@ -324,18 +327,18 @@ describe('bulk result', () => {
 
   it('names a skipped transaction missing from the loaded page generically', () => {
     render(
-      <BulkCategoryResult
+      <BulkEditResultView
         onDone={vi.fn()}
         pageItems={[]}
         result={{
           requestedCount: 1,
           changed: 0,
-          maximum: 500,
-          skipped: [{ transactionId: FIRST, reason: 'SPLIT' }],
+          fieldsChanged: [],
+          skipped: [{ id: FIRST, reason: 'SPLIT' }],
         }}
       />,
     );
 
-    expect(screen.getByText('Mouvement hors de la page chargée')).toBeTruthy();
+    expect(screen.getByText('Transaction hors de la page chargée')).toBeTruthy();
   });
 });
