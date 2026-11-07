@@ -116,8 +116,16 @@ final class SeedDemoDataTest extends KernelTestCase
             $this->connection->fetchFirstColumn('SELECT operation_type FROM portfolio_operations WHERE workspace_id = ? AND account_id = ? ORDER BY sequence', [$workspace, $account]),
         );
         self::assertSame('POSITIONS', $this->connection->fetchOne('SELECT detail FROM portfolio_valuations WHERE id = ?', [$takeover['valuation_id']]));
-        // One total valuation for the closed month after the takeover month.
-        self::assertSame(1, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND detail = 'TOTAL' AND superseded_at IS NULL", [$workspace, $account]));
+        // The closed month after the takeover month is valued line by line, never as a total.
+        self::assertSame(0, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND detail = 'TOTAL' AND superseded_at IS NULL", [$workspace, $account]));
+        self::assertSame(2, $this->rows("SELECT COUNT(*) FROM portfolio_valuations WHERE workspace_id = ? AND account_id = ? AND detail = 'POSITIONS' AND superseded_at IS NULL", [$workspace, $account]));
+        // The holdings view has one instrument on two accounts: the world ETF in the retained valuation of both.
+        self::assertSame(2, $this->rows(
+            "SELECT COUNT(*) FROM (SELECT DISTINCT ON (v.account_id) v.id FROM portfolio_valuations v JOIN account_financial_accounts a ON a.id = v.account_id AND a.workspace_id = v.workspace_id
+             WHERE v.workspace_id = ? AND v.superseded_at IS NULL AND v.completeness = 'COMPLETE' AND a.valuation_mode = 'PORTFOLIO' AND a.kind = 'PORTFOLIO' ORDER BY v.account_id, v.valued_on DESC) latest
+             JOIN portfolio_position_snapshots s ON s.valuation_id = latest.id JOIN portfolio_instruments i ON i.id = s.instrument_id WHERE i.name = 'ETF Monde Démo'",
+            [$workspace],
+        ));
     }
 
     public function testTheDemoLifeInsuranceContractCarriesItsSupportsFeeTermsAndRates(): void

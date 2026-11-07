@@ -8424,6 +8424,55 @@ paths:
                 $ref: '#/components/schemas/PortfolioOverviewProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/holdings:
+    get:
+      operationId: readHoldings
+      x-cadran-bounded: 'At most 50 portfolio accounts of at most 500 lines each are aggregated into at most 1000 instruments; beyond that the read is refused.'
+      summary: Read every holding of the retained valuations, aggregated by instrument across accounts
+      description: >-
+        Aggregates the position snapshots of the retained valuation of every portfolio account of the
+        workspace by instrument, with a per-account breakdown. Accounts valued in total, partially or
+        not at all contribute no line and are listed in `unsplitAccounts`. A missing price, cost or
+        valuation is null with a reason, never zero. Every figure is an exact decimal string computed
+        by the server; the order is decided by the server.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          description: Order of the items, exact decimal comparison, nulls last, then name, then instrument identifier.
+          schema:
+            type: string
+            enum: [VALUE_DESC, GAIN_DESC, PERFORMANCE_DESC, NAME_ASC]
+            default: VALUE_DESC
+      responses:
+        '200':
+          description: Workspace-scoped exact values. Response uses no-store cache control.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Holdings'
+        '400':
+          description: 'The `sort` parameter is not one of the published orders (code invalid_holdings_query).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '422':
+          description: 'More than 1000 distinct instruments (type /problems/holdings-too-large) or a bounded replay scope exceeded.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/portfolio-valuation-reminders:
     get:
       operationId: listPortfolioValuationReminders
@@ -9385,6 +9434,406 @@ components:
           description: The month that broke the chain, for MISSING_MONTH and NON_POSITIVE_GROWTH_FACTOR.
           type: [string, 'null']
           pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$'
+    HoldingsDecimal:
+      description: Exact decimal string.
+      type: string
+      pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+    HoldingsNullableDecimal:
+      description: Exact decimal string, null when the figure cannot be calculated; the reason sits beside it.
+      type: [string, 'null']
+      pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+    HoldingsShare:
+      type: object
+      additionalProperties: false
+      required: [ratio, percentDisplay, reason]
+      properties:
+        ratio:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        percentDisplay:
+          description: The percentage rounded half up to two decimals at the presentation boundary.
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        reason:
+          type: [string, 'null']
+          enum: [MIXED_ASSETS, MISSING_VALUE, ZERO_TOTAL, NEGATIVE_TOTAL, null]
+    HoldingAccountLine:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          accountId,
+          label,
+          quantity,
+          value,
+          costBasis,
+          unrealizedGain,
+          performance,
+          valuedOn,
+          priceDate,
+          priceQuality,
+        ]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        quantity:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        value:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        valuedOn:
+          type: string
+          format: date
+        priceDate:
+          type: [string, 'null']
+          format: date
+        priceQuality:
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+    HoldingLastPrice:
+      type: object
+      additionalProperties: false
+      required: [price, priceDate, priceQuality]
+      properties:
+        price:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        priceDate:
+          type: string
+          format: date
+        priceQuality:
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+    Holding:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          instrument,
+          instrumentType,
+          quantity,
+          value,
+          costBasis,
+          unrealizedGain,
+          performance,
+          averageUnitCost,
+          reason,
+          lastPrice,
+          share,
+          accounts,
+        ]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/PortfolioPositionInstrument'
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        quantity:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        value:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        averageUnitCost:
+          description: Cost basis over quantity at the instrument price precision, half even.
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        reason:
+          type: [string, 'null']
+          enum: [MISSING_PRICE, UNKNOWN_LOT_COST, MIXED_ASSETS, null]
+        lastPrice:
+          oneOf:
+            - $ref: '#/components/schemas/HoldingLastPrice'
+            - type: 'null'
+        share:
+          $ref: '#/components/schemas/HoldingsShare'
+        accounts:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HoldingAccountLine'
+    HoldingsKnownCostFigures:
+      description: >-
+        Figures over the positions whose cost AND value are both known, published beside a null full cost
+        (`UNKNOWN_LOT_COST`). They are never the total: `excludedCount` positions (value `excludedValue`) are left out.
+      type: object
+      additionalProperties: false
+      required:
+        [securitiesValue, costBasis, unrealizedGain, performance, excludedCount, excludedValue]
+      properties:
+        securitiesValue:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        excludedCount:
+          type: integer
+          minimum: 1
+        excludedValue:
+          description: Sum of the values of the excluded positions, null when one of them is unknown.
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+    HoldingsTotals:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          securitiesValue,
+          costBasis,
+          unrealizedGain,
+          performance,
+          cash,
+          totalValue,
+          reason,
+          knownCost,
+        ]
+      properties:
+        securitiesValue:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        cash:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        totalValue:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        reason:
+          type: [string, 'null']
+          enum: [MIXED_ASSETS, UNKNOWN_LOT_COST, MISSING_PRICE, NO_VALUATION, null]
+        knownCost:
+          description: Present only beside a null full cost, when at least one position has both a known cost and a known value.
+          oneOf:
+            - $ref: '#/components/schemas/HoldingsKnownCostFigures'
+            - type: 'null'
+    HoldingAllocationSlice:
+      type: object
+      additionalProperties: false
+      required: [key, label, value, share]
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        value:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        share:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+    HoldingsWarning:
+      type: object
+      additionalProperties: false
+      required: [code, accountIds]
+      properties:
+        code:
+          type: string
+          enum: [MIXED_VALUATION_DATES, STALE_PRICES, POSITIONS_CHANGED, TRUNCATED_ACCOUNTS]
+        accountIds:
+          type: array
+          maxItems: 50
+          items:
+            type: string
+            format: uuid
+    HoldingsUnsplitAccount:
+      type: object
+      additionalProperties: false
+      required: [accountId, label, reason, securitiesValue]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        reason:
+          type: string
+          enum: [TOTAL_VALUATION, PARTIAL_VALUATION, NO_VALUATION]
+        securitiesValue:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+    HoldingsAccountSummaryLine:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          instrument,
+          instrumentType,
+          quantity,
+          value,
+          costBasis,
+          unrealizedGain,
+          performance,
+          priceDate,
+          priceQuality,
+        ]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/PortfolioPositionInstrument'
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        quantity:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        value:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        priceDate:
+          type: [string, 'null']
+          format: date
+        priceQuality:
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+    HoldingsAccountSummary:
+      description: >-
+        One account from its retained valuation. `detail` tells what the valuation carries: `LINES` (detailed positions,
+        listed in `lines`), `TOTAL` (a statement total, no lines), `PARTIAL` or `NONE` (no valuation). Amounts are null
+        when unknown, never zero.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          accountId,
+          label,
+          detail,
+          valuedOn,
+          securitiesValue,
+          costBasis,
+          unrealizedGain,
+          performance,
+          cash,
+          share,
+          lines,
+          knownCost,
+        ]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        detail:
+          type: string
+          enum: [LINES, TOTAL, PARTIAL, NONE]
+        valuedOn:
+          type: [string, 'null']
+          format: date
+        securitiesValue:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        cash:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        share:
+          $ref: '#/components/schemas/HoldingsShare'
+        knownCost:
+          description: Present only beside a null full cost, when at least one position has both a known cost and a known value.
+          oneOf:
+            - $ref: '#/components/schemas/HoldingsKnownCostFigures'
+            - type: 'null'
+        lines:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/HoldingsAccountSummaryLine'
+    Holdings:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          asOf,
+          assetCode,
+          valuedFrom,
+          valuedTo,
+          quality,
+          warnings,
+          totals,
+          items,
+          allocation,
+          unsplitAccounts,
+          accounts,
+          truncated,
+        ]
+      properties:
+        asOf:
+          type: string
+          format: date
+        assetCode:
+          description: Null when the accounts mix assets.
+          type: [string, 'null']
+        valuedFrom:
+          type: [string, 'null']
+          format: date
+        valuedTo:
+          type: [string, 'null']
+          format: date
+        quality:
+          type: string
+          enum: [EXACT, DEGRADED, NOT_CALCULABLE]
+        warnings:
+          type: array
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/HoldingsWarning'
+        totals:
+          $ref: '#/components/schemas/HoldingsTotals'
+        items:
+          type: array
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/Holding'
+        allocation:
+          type: object
+          additionalProperties: false
+          required: [byInstrument, byAssetClass, byRegion, byAccount]
+          properties:
+            byInstrument:
+              type: array
+              maxItems: 1001
+              description: One slice per instrument, plus `UNSPLIT` ("Comptes valorisés en total") when accounts valued in total hold securities.
+              items:
+                $ref: '#/components/schemas/HoldingAllocationSlice'
+            byAssetClass:
+              type: array
+              maxItems: 9
+              items:
+                $ref: '#/components/schemas/HoldingAllocationSlice'
+            byRegion:
+              type: array
+              maxItems: 9
+              items:
+                $ref: '#/components/schemas/HoldingAllocationSlice'
+            byAccount:
+              description: One slice per account whose securities value is known and positive, value descending, then label.
+              type: array
+              maxItems: 50
+              items:
+                $ref: '#/components/schemas/HoldingAllocationSlice'
+        unsplitAccounts:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HoldingsUnsplitAccount'
+        accounts:
+          description: Every shown account, securities value descending (nulls last), then label, then identifier; independent of `sort`.
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HoldingsAccountSummary'
+        truncated:
+          type: boolean
     PortfolioOverviewList:
       type: object
       additionalProperties: false

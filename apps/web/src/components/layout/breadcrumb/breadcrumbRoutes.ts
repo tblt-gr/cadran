@@ -26,6 +26,7 @@ export function breadcrumbItems(
     href,
   });
   const accounts = item('navigation.accounts', '/accounts');
+  const investments = item('navigation.investments', '/investments');
   const transactions = item('navigation.transactions', '/transactions');
   const categories = item('routes.categories', '/transactions/categories');
   const budget = item('navigation.budget', '/budget');
@@ -35,7 +36,8 @@ export function breadcrumbItems(
     '/': [],
     '/accounts': [accounts],
     '/accounts/groups': [accounts, item('navigation.accountGroups')],
-    '/portfolios/instruments': [accounts, item('routes.instruments')],
+    '/investments': [investments],
+    '/investments/instruments': [investments, item('routes.instruments')],
     '/transactions': [budget, transactions],
     '/transactions/recurrences': [budget, transactions, item('routes.recurrences')],
     '/transactions/categories': [budget, transactions, categories],

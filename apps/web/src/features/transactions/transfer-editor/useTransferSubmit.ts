@@ -22,6 +22,7 @@ const relatedReads = new Set([
   'portfolio-operations',
   'portfolio-transfer-candidates',
   'portfolio-cash',
+  'holdings',
 ]);
 
 /** Submits once at a time, then refreshes every read the transfer, and the deposit the server derives from it, touch. */

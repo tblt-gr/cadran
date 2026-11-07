@@ -30,6 +30,7 @@ export function VoidOperationModal({
       client.invalidateQueries({ queryKey: ['portfolio-performance', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolio-performance-annual', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolios'] }),
+      client.invalidateQueries({ queryKey: ['holdings'] }),
       client.invalidateQueries({ queryKey: ['portfolio-cash', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['life-insurance-contract', operation.accountId] }),
       client.invalidateQueries({ queryKey: ['portfolio-positions', operation.accountId] }),

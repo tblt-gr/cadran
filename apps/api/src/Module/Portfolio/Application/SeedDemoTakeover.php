@@ -63,9 +63,11 @@ final readonly class SeedDemoTakeover implements DemoDataContributor
         for ($month = $takenOverOn->modify('first day of next month'); $month->modify('last day of this month') < $today; $month = $month->modify('first day of next month')) {
             $total += intdiv($total * self::MONTHLY_GROWTH_PER_MILLE, 1000);
             $last = $month->modify('last day of this month')->format('Y-m-d');
-            ($this->recordValuation)($account->id, new ValuationInput(
-                $last, 'TOTAL', new AmountInput(self::format($total), 'EUR'), null, null, null, null, null,
-            ));
+            // The latest closed month is valued line by line, so the world ETF is held on two accounts for the holdings view.
+            $detailed = $month->modify('first day of next month')->modify('last day of this month') >= $today;
+            ($this->recordValuation)($account->id, $detailed
+                ? new ValuationInput($last, 'POSITIONS', null, [new PriceInput($etf, '99.1000', $last), new PriceInput($bond, '41.3000', $last)], null, null, null, null)
+                : new ValuationInput($last, 'TOTAL', new AmountInput(self::format($total), 'EUR'), null, null, null, null, null));
         }
     }
 

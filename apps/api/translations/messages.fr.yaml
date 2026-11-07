@@ -360,6 +360,12 @@ api:
     performance_range_too_dense:
       title: 'Trop d’opérations pour calculer la performance'
       detail: 'Le compte compte plus de 5 000 opérations actives : la performance n’est pas calculée.'
+    invalid_holdings_query:
+      title: 'Requête de positions invalide'
+      detail: 'Choisissez un tri parmi VALUE_DESC, GAIN_DESC, PERFORMANCE_DESC ou NAME_ASC.'
+    holdings_too_large:
+      title: 'Trop d’actifs à regrouper'
+      detail: 'Les comptes détiennent plus de 1 000 actifs distincts : les positions ne sont pas regroupées.'
     cash_range_too_dense:
       title: 'Trop de mouvements d’espèces'
       detail: 'La période compte plus de 2 000 mouvements : réduisez-la.'

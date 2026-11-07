@@ -172,6 +172,175 @@ export type PortfolioReturnTrend = {
     reasonMonth: string | null;
 };
 
+/**
+ * Exact decimal string.
+ */
+export type HoldingsDecimal = string;
+
+/**
+ * Exact decimal string, null when the figure cannot be calculated; the reason sits beside it.
+ */
+export type HoldingsNullableDecimal = string | null;
+
+export type HoldingsShare = {
+    ratio: HoldingsNullableDecimal;
+    /**
+     * The percentage rounded half up to two decimals at the presentation boundary.
+     */
+    percentDisplay: HoldingsNullableDecimal;
+    reason: 'MIXED_ASSETS' | 'MISSING_VALUE' | 'ZERO_TOTAL' | 'NEGATIVE_TOTAL' | null;
+};
+
+export type HoldingAccountLine = {
+    accountId: string;
+    label: string;
+    quantity: HoldingsDecimal;
+    value: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    valuedOn: string;
+    priceDate: string | null;
+    priceQuality: PortfolioPriceQuality;
+};
+
+export type HoldingLastPrice = {
+    price: HoldingsDecimal;
+    priceDate: string;
+    priceQuality: PortfolioPriceQuality;
+};
+
+export type Holding = {
+    instrument: PortfolioPositionInstrument;
+    instrumentType: InstrumentType;
+    quantity: HoldingsDecimal;
+    value: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    /**
+     * Cost basis over quantity at the instrument price precision, half even.
+     */
+    averageUnitCost: HoldingsNullableDecimal;
+    reason: 'MISSING_PRICE' | 'UNKNOWN_LOT_COST' | 'MIXED_ASSETS' | null;
+    lastPrice: HoldingLastPrice | null;
+    share: HoldingsShare;
+    accounts: Array<HoldingAccountLine>;
+};
+
+/**
+ * Figures over the positions whose cost AND value are both known, published beside a null full cost (`UNKNOWN_LOT_COST`). They are never the total: `excludedCount` positions (value `excludedValue`) are left out.
+ */
+export type HoldingsKnownCostFigures = {
+    securitiesValue: HoldingsDecimal;
+    costBasis: HoldingsDecimal;
+    unrealizedGain: HoldingsDecimal;
+    performance: HoldingsNullableDecimal;
+    excludedCount: number;
+    /**
+     * Sum of the values of the excluded positions, null when one of them is unknown.
+     */
+    excludedValue: HoldingsNullableDecimal;
+};
+
+export type HoldingsTotals = {
+    securitiesValue: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    cash: HoldingsNullableDecimal;
+    totalValue: HoldingsNullableDecimal;
+    reason: 'MIXED_ASSETS' | 'UNKNOWN_LOT_COST' | 'MISSING_PRICE' | 'NO_VALUATION' | null;
+    /**
+     * Present only beside a null full cost, when at least one position has both a known cost and a known value.
+     */
+    knownCost: HoldingsKnownCostFigures | null;
+};
+
+export type HoldingAllocationSlice = {
+    key: string;
+    label: string;
+    value: HoldingsDecimal;
+    share: HoldingsNullableDecimal;
+};
+
+export type HoldingsWarning = {
+    code: 'MIXED_VALUATION_DATES' | 'STALE_PRICES' | 'POSITIONS_CHANGED' | 'TRUNCATED_ACCOUNTS';
+    accountIds: Array<string>;
+};
+
+export type HoldingsUnsplitAccount = {
+    accountId: string;
+    label: string;
+    reason: 'TOTAL_VALUATION' | 'PARTIAL_VALUATION' | 'NO_VALUATION';
+    securitiesValue: HoldingsNullableDecimal;
+};
+
+export type HoldingsAccountSummaryLine = {
+    instrument: PortfolioPositionInstrument;
+    instrumentType: InstrumentType;
+    quantity: HoldingsDecimal;
+    value: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    priceDate: string | null;
+    priceQuality: PortfolioPriceQuality;
+};
+
+/**
+ * One account from its retained valuation. `detail` tells what the valuation carries: `LINES` (detailed positions, listed in `lines`), `TOTAL` (a statement total, no lines), `PARTIAL` or `NONE` (no valuation). Amounts are null when unknown, never zero.
+ */
+export type HoldingsAccountSummary = {
+    accountId: string;
+    label: string;
+    detail: 'LINES' | 'TOTAL' | 'PARTIAL' | 'NONE';
+    valuedOn: string | null;
+    securitiesValue: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    cash: HoldingsNullableDecimal;
+    share: HoldingsShare;
+    /**
+     * Present only beside a null full cost, when at least one position has both a known cost and a known value.
+     */
+    knownCost: HoldingsKnownCostFigures | null;
+    lines: Array<HoldingsAccountSummaryLine>;
+};
+
+export type Holdings = {
+    asOf: string;
+    /**
+     * Null when the accounts mix assets.
+     */
+    assetCode: string | null;
+    valuedFrom: string | null;
+    valuedTo: string | null;
+    quality: 'EXACT' | 'DEGRADED' | 'NOT_CALCULABLE';
+    warnings: Array<HoldingsWarning>;
+    totals: HoldingsTotals;
+    items: Array<Holding>;
+    allocation: {
+        /**
+         * One slice per instrument, plus `UNSPLIT` ("Comptes valorisés en total") when accounts valued in total hold securities.
+         */
+        byInstrument: Array<HoldingAllocationSlice>;
+        byAssetClass: Array<HoldingAllocationSlice>;
+        byRegion: Array<HoldingAllocationSlice>;
+        /**
+         * One slice per account whose securities value is known and positive, value descending, then label.
+         */
+        byAccount: Array<HoldingAllocationSlice>;
+    };
+    unsplitAccounts: Array<HoldingsUnsplitAccount>;
+    /**
+     * Every shown account, securities value descending (nulls last), then label, then identifier; independent of `sort`.
+     */
+    accounts: Array<HoldingsAccountSummary>;
+    truncated: boolean;
+};
+
 export type PortfolioOverviewList = {
     /**
      * Sum over the shown active accounts, one asset only; gain, cost and performance are null unless every valued account has a computable gain.
@@ -15258,6 +15427,52 @@ export type ListPortfoliosResponses = {
 };
 
 export type ListPortfoliosResponse = ListPortfoliosResponses[keyof ListPortfoliosResponses];
+
+export type ReadHoldingsData = {
+    body?: never;
+    path?: never;
+    query?: {
+        /**
+         * Order of the items, exact decimal comparison, nulls last, then name, then instrument identifier.
+         */
+        sort?: 'VALUE_DESC' | 'GAIN_DESC' | 'PERFORMANCE_DESC' | 'NAME_ASC';
+    };
+    url: '/api/v1/holdings';
+};
+
+export type ReadHoldingsErrors = {
+    /**
+     * The `sort` parameter is not one of the published orders (code invalid_holdings_query).
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * More than 1000 distinct instruments (type /problems/holdings-too-large) or a bounded replay scope exceeded.
+     */
+    422: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadHoldingsError = ReadHoldingsErrors[keyof ReadHoldingsErrors];
+
+export type ReadHoldingsResponses = {
+    /**
+     * Workspace-scoped exact values. Response uses no-store cache control.
+     */
+    200: Holdings;
+};
+
+export type ReadHoldingsResponse = ReadHoldingsResponses[keyof ReadHoldingsResponses];
 
 export type ListPortfolioValuationRemindersData = {
     body?: never;

@@ -10,6 +10,7 @@
   gap: var(--spacing-2);
 }
 .figure {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -92,4 +93,8 @@
   border: var(--border-none);
   background: var(--color-transparent);
   cursor: pointer;
+}
+
+.reserveCorner {
+  padding-right: var(--spacing-12);
 }

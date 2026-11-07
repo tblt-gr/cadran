@@ -1,0 +1,6 @@
+.cell {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  gap: var(--spacing-1);
+}
