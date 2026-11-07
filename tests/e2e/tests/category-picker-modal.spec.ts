@@ -51,6 +51,7 @@ test('goal modal category control has a mobile touch target', async ({ browser }
     await page.goto('/goals');
     await settled(page);
     await page.getByRole('button', { name: 'Nouvel objectif', exact: true }).click();
+    await settled(page);
     const dialog = page.getByRole('dialog', { name: 'Nouvel objectif' });
     await dialog.getByLabel('Indicateur', { exact: true }).selectOption('CATEGORY_SPENDING');
     await dialog.evaluate((element) => element.setAttribute('data-touch-audit', ''));

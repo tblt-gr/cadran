@@ -70,7 +70,7 @@ test.describe('monthly budget', () => {
     await page.goto('/');
     await navigateTo(page, 'Budget');
 
-    await page.getByRole('link', { name: 'Objectifs', exact: true }).click();
+    await page.getByRole('main').getByRole('link', { name: 'Objectifs', exact: true }).click();
     await settled(page);
 
     await expect(page).toHaveURL(/\/goals$/);
