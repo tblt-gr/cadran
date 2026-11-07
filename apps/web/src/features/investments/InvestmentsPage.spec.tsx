@@ -204,7 +204,7 @@ describe('InvestmentsPage', () => {
     expect(screen.queryByText('Aucune position détenue')).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
-    expect(screen.getByText('Aucune position détenue')).toBeTruthy();
+    expect(screen.queryByText('Aucune position détenue')).toBeNull();
     expect(screen.getByText(/Assurance vie est valorisé en total/)).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Par compte' })).toBeTruthy();
   });
@@ -271,13 +271,16 @@ describe('InvestmentsPage', () => {
     );
   });
 
-  it('says no position is held while naming the account valued as a total', async () => {
+  it('keeps only the notices when several accounts have no detail by asset', async () => {
     api.readHoldings.mockImplementation(() =>
       success(
         holdingsFixture({
           items: [],
           warnings: [],
-          unsplitAccounts: [unsplitAccount],
+          unsplitAccounts: [
+            unsplitAccount,
+            { ...unsplitAccount, accountId: 'second-account', label: 'PEA global' },
+          ],
           totals: {
             securitiesValue: '0',
             costBasis: null,
@@ -292,7 +295,17 @@ describe('InvestmentsPage', () => {
       ),
     );
     renderPage();
+    expect(await screen.findByText(/Assurance vie est valorisé en total/)).toBeTruthy();
+    expect(screen.getByText(/PEA global est valorisé en total/)).toBeTruthy();
+    expect(screen.queryByText('Aucune position détenue')).toBeNull();
+  });
+
+  it('keeps the empty-position panel when there is no account valued as a total', async () => {
+    api.readHoldings.mockImplementation(() =>
+      success(holdingsFixture({ items: [], unsplitAccounts: [] })),
+    );
+    renderPage();
     expect(await screen.findByText('Aucune position détenue')).toBeTruthy();
-    expect(screen.getByText(/Assurance vie est valorisé en total/)).toBeTruthy();
+    expect(screen.queryByText(/est valorisé en total/)).toBeNull();
   });
 });

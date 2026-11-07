@@ -53,18 +53,20 @@ export function HoldingsView({
     return (
       <>
         {holdings.accounts.length > 0 ? viewControl : null}
-        <section className={`card ${styles.empty}`}>
-          <h3>{t(noAccount ? 'investments.empty.noAccount' : 'investments.empty.noPosition')}</h3>
-          {noAccount ? (
-            <a
-              className="primary-action"
-              href="/accounts"
-              onClick={(event) => handleClientNavigation(event, '/accounts')}
-            >
-              {t('investments.empty.addAccount')}
-            </a>
-          ) : null}
-        </section>
+        {holdings.unsplitAccounts.length === 0 ? (
+          <section className={`card ${styles.empty}`}>
+            <h3>{t(noAccount ? 'investments.empty.noAccount' : 'investments.empty.noPosition')}</h3>
+            {noAccount ? (
+              <a
+                className="primary-action"
+                href="/accounts"
+                onClick={(event) => handleClientNavigation(event, '/accounts')}
+              >
+                {t('investments.empty.addAccount')}
+              </a>
+            ) : null}
+          </section>
+        ) : null}
         {hasTotals ? (
           <>
             <HoldingsSummary holdings={holdings} />
