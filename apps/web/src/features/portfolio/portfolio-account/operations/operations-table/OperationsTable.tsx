@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioOperation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
@@ -70,11 +71,15 @@ export function OperationsTable({ items, onDetail, onEdit, onVoid, onReorder }: 
                     </span>
                   </td>
                   <td>
-                    {operation.type === 'SWITCH'
-                      ? `${operation.legs?.filter((leg) => leg.direction === 'OUT').length ?? 0} supports vendus, ${operation.legs?.filter((leg) => leg.direction === 'IN').length ?? 0} achetés`
-                      : hasField(operation.type, 'legs')
-                        ? `${operation.legs?.length ?? 0} supports`
-                        : (operation.instrument?.name ?? <EmptyValue label="Aucun instrument" />)}
+                    {operation.type === 'SWITCH' ? (
+                      `${operation.legs?.filter((leg) => leg.direction === 'OUT').length ?? 0} supports vendus, ${operation.legs?.filter((leg) => leg.direction === 'IN').length ?? 0} achetés`
+                    ) : hasField(operation.type, 'legs') ? (
+                      `${operation.legs?.length ?? 0} supports`
+                    ) : operation.instrument ? (
+                      <InstrumentLink instrument={operation.instrument} />
+                    ) : (
+                      <EmptyValue label="Aucun instrument" />
+                    )}
                   </td>
                   <td className={styles.number}>
                     {cell(

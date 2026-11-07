@@ -119,6 +119,7 @@ describe('InstrumentPicker', () => {
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByRole('option')).toBeTruthy();
+    expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
     expect(screen.queryByTestId('instrument-picker-skeleton')).toBeNull();
 
     api.listInstruments.mockImplementation(() => new Promise(() => undefined));
@@ -139,6 +140,7 @@ describe('InstrumentPicker', () => {
     fireEvent.keyDown(picker, { key: 'ArrowDown' });
     fireEvent.keyDown(picker, { key: 'Enter' });
     expect(onChange).toHaveBeenLastCalledWith(instrument);
+    expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
     expect(api.listInstruments.mock.calls[0]?.[0].query).not.toHaveProperty('instrumentType');
     expect(picker.getAttribute('aria-expanded')).toBe('false');
   });
@@ -356,6 +358,7 @@ describe('InstrumentPicker', () => {
     fireEvent.mouseDown(option);
     fireEvent.blur(picker);
     expect(onChange).toHaveBeenLastCalledWith(instrument);
+    expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
     fireEvent.focus(picker);
     await screen.findByRole('option');
     fireEvent.blur(picker);

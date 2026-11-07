@@ -93,6 +93,9 @@ describe('PositionLotsModal', () => {
       '360,60',
     );
     expect(screen.getByTestId('position-lots-skeleton')).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: "Voir l'instrument ETF Monde" }).getAttribute('href'),
+    ).toBe('/investments/instruments/instrument-1');
 
     resolve?.({ data: lots, response: new Response('{}', { status: 200 }) });
     await screen.findAllByText('Achat');

@@ -20,6 +20,7 @@ export interface AuditFixtures {
   spendingPlan: string;
   portfolio: string;
   insurance: string;
+  instrument: string;
 }
 
 export async function resolveFixtures(page: Page): Promise<AuditFixtures> {
@@ -61,6 +62,10 @@ export async function resolveFixtures(page: Page): Promise<AuditFixtures> {
       new RegExp(`^${spendingMonth}$`),
     ),
     portfolio: await link('/accounts', /^\/portfolios\/[0-9a-f-]{36}$/, /Compte-titres/),
+    instrument: await link(
+      '/investments/instruments',
+      /^\/investments\/instruments\/[0-9a-f-]{36}$/,
+    ),
     insurance: await link('/accounts', /^\/portfolios\/[0-9a-f-]{36}$/, /Assurance/i),
   };
 }
@@ -89,6 +94,7 @@ export const routeCases = [
   '/investments',
   '/investments?view=asset',
   '/investments/instruments',
+  'instrument',
   '/parameters/interface',
   '/parameters/profile',
   '/parameters/metric-policy',

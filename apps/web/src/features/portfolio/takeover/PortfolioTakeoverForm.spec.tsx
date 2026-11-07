@@ -59,6 +59,7 @@ function renderForm(props: Partial<React.ComponentProps<typeof PortfolioTakeover
 function fillFirstRow() {
   fireEvent.click(screen.getByRole('button', { name: 'Choisir un instrument' }));
   fireEvent.change(screen.getByLabelText('Quantité'), { target: { value: '5' } });
+  expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
   fireEvent.change(screen.getByLabelText('Coût de revient total'), { target: { value: '480' } });
   fireEvent.change(screen.getByLabelText('Cours'), { target: { value: '101.5' } });
 }

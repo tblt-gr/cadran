@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { InsuranceIncomeDetail } from './insurance-income-detail/InsuranceIncomeDetail';
 import { SwitchOperationDetail } from './switch-operation-detail/SwitchOperationDetail';
 import type { PortfolioOperation } from '@cadran/api-client';
@@ -49,11 +50,15 @@ export function OperationDetailModal({
   const amount = (value: { value: string; assetCode: string } | null) =>
     value === null ? null : `${formatDecimal(value.value, locale)} ${value.assetCode}`;
   const instrumentText = (item: PortfolioOperation['instrument']) =>
-    item
-      ? [item.name, item.isin, item.ticker]
-          .filter((part) => part !== null && part !== '')
-          .join(' · ')
-      : null;
+    item ? (
+      <>
+        <InstrumentLink instrument={item} />
+        {[item.isin, item.ticker]
+          .filter(Boolean)
+          .map((part) => ` · ${part}`)
+          .join('')}
+      </>
+    ) : null;
 
   return (
     <Modal

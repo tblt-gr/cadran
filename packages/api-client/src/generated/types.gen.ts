@@ -210,6 +210,42 @@ export type HoldingLastPrice = {
     priceQuality: PortfolioPriceQuality;
 };
 
+export type InstrumentHolding = {
+    instrument: Instrument;
+    holding: Holding | null;
+    accounts: Array<InstrumentAccountHistory>;
+    totals: InstrumentHoldingTotals;
+    truncated: boolean;
+};
+
+export type InstrumentAccountHistory = {
+    accountId: string;
+    label: string;
+    quantity: HoldingsNullableDecimal;
+    value: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    realizedGain: HoldingsNullableDecimal;
+    income: HoldingsNullableDecimal;
+    feesAndTaxes: HoldingsNullableDecimal;
+    /**
+     * Active operations referencing the instrument, null when history exceeds the read bound.
+     */
+    operationCount: number | null;
+    firstOperationOn: string | null;
+    lastOperationOn: string | null;
+    reason: InstrumentHoldingReason;
+};
+
+export type InstrumentHoldingTotals = {
+    realizedGain: HoldingsNullableDecimal;
+    income: HoldingsNullableDecimal;
+    feesAndTaxes: HoldingsNullableDecimal;
+    totalGain: HoldingsNullableDecimal;
+    reason: InstrumentHoldingReason;
+};
+
+export type InstrumentHoldingReason = 'UNKNOWN_LOT_COST' | 'HISTORY_TOO_LARGE' | 'NO_VALUATION' | 'MISSING_PRICE' | 'MIXED_ASSETS' | null;
+
 export type Holding = {
     instrument: PortfolioPositionInstrument;
     instrumentType: InstrumentType;
@@ -9068,6 +9104,45 @@ export type CreateInstrumentResponses = {
 };
 
 export type CreateInstrumentResponse = CreateInstrumentResponses[keyof CreateInstrumentResponses];
+
+export type ReadInstrumentHoldingData = {
+    body?: never;
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/instruments/{id}/holding';
+};
+
+export type ReadInstrumentHoldingErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ReadInstrumentHoldingError = ReadInstrumentHoldingErrors[keyof ReadInstrumentHoldingErrors];
+
+export type ReadInstrumentHoldingResponses = {
+    /**
+     * The instrument, retained holding and exact lifetime contributions.
+     */
+    200: InstrumentHolding;
+};
+
+export type ReadInstrumentHoldingResponse = ReadInstrumentHoldingResponses[keyof ReadInstrumentHoldingResponses];
 
 export type ReadInstrumentData = {
     body?: never;

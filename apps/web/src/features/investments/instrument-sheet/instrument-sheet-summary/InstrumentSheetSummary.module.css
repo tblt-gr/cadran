@@ -1,0 +1,39 @@
+.summary {
+  display: grid;
+  min-width: 0;
+  gap: var(--spacing-4);
+}
+
+/* Six indicators: two columns on phones and tablets, three on desktop; spacing only, no rules. */
+.strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-4);
+}
+
+.note {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.dateBlock {
+  display: block;
+  width: 16rem;
+  max-width: 100%;
+  height: var(--font-size-label);
+}
+
+@media (min-width: 64rem) {
+  .strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.positive {
+  color: var(--positive);
+}
+
+.negative {
+  color: var(--negative);
+}

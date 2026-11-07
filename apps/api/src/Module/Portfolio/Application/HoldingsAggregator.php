@@ -30,7 +30,7 @@ final class HoldingsAggregator
      *
      * @return array<string, mixed>
      */
-    public static function aggregate(array $accounts, \DateTimeImmutable $asOf, string $sort, bool $truncated): array
+    public static function aggregate(array $accounts, \DateTimeImmutable $asOf, string $sort, bool $truncated, ?string $instrumentId = null): array
     {
         $byInstrument = [];
         $unsplit = [];
@@ -69,6 +69,20 @@ final class HoldingsAggregator
                 $byInstrument[$instrument->id]['lines'][] = ['account' => $account, 'position' => $position, 'valuedOn' => $valuation->valuedOn->format('Y-m-d')];
                 $contributing[$account->accountId] = $valuation->valuedOn->format('Y-m-d');
             }
+        }
+        if (null !== $instrumentId) {
+            $group = $byInstrument[$instrumentId] ?? null;
+            $items = null === $group ? [] : [self::item($group['instrument'], $group['lines'])];
+            $assets = array_unique(array_map(static fn (HoldingsAccount $account): string => $account->assetCode, $accounts));
+            $mixed = count($assets) > 1;
+            if ($mixed) {
+                $items = array_map(static fn (HoldingRow $item): HoldingRow => $item->withoutAmounts(), $items);
+            }
+            // Keep the same whole-portfolio denominator as the Investments page, while computing only this item.
+            $securities = self::sum(array_map(static fn (HoldingsAccount $account): ?string => $account->view?->valuation->securitiesValue?->toString(), $accounts));
+            $items = self::share($items, $securities, $mixed);
+
+            return ['items' => array_map(static fn (HoldingRow $item): array => $item->toArray(), $items), 'truncated' => $truncated];
         }
         if (count($byInstrument) > self::MAX_ITEMS) {
             throw new HoldingsTooLarge('The holdings span more distinct instruments than the read bound.');

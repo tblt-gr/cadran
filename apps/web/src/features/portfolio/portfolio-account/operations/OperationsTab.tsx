@@ -1,4 +1,7 @@
-import { dismissPortfolioDetailSelection } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
+import {
+  dismissPortfolioDetailSelection,
+  instrumentFromLocation,
+} from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { Account, PortfolioOperation } from '@cadran/api-client';
 import { useEffect, useState, type RefObject } from 'react';
 import { OperationDetailModal } from './operation-detail-modal/OperationDetailModal';
@@ -34,7 +37,10 @@ export function OperationsTab({
   onCreate: () => void;
   contractRequired?: boolean;
 }) {
-  const [filters, setFilters] = useState<OperationFilterValues>(noFilters);
+  const [filters, setFilters] = useState<OperationFilterValues>(() => ({
+    ...noFilters,
+    instrumentId: instrumentFromLocation(),
+  }));
   const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<PortfolioOperation | null>(null);
   const [voiding, setVoiding] = useState<PortfolioOperation | null>(null);

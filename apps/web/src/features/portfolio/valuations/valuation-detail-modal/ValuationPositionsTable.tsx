@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioValuation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
@@ -39,7 +40,15 @@ export function ValuationPositionsTable({ valuation }: { valuation: PortfolioVal
           <tbody>
             {valuation.positions.map((line) => (
               <tr key={line.instrument.id}>
-                <th scope="row">{line.instrument.name ?? line.instrument.id}</th>
+                <th scope="row">
+                  {line.instrument.name ? (
+                    <InstrumentLink
+                      instrument={{ id: line.instrument.id, name: line.instrument.name }}
+                    />
+                  ) : (
+                    line.instrument.id
+                  )}
+                </th>
                 <td className={styles.number}>{formatDecimal(line.quantity, locale)}</td>
                 <td className={styles.number}>
                   {!detailed ? (

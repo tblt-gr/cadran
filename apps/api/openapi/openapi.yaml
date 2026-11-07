@@ -2210,6 +2210,36 @@ paths:
                 $ref: '#/components/schemas/InstrumentProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
+  /api/v1/instruments/{id}/holding:
+    get:
+      operationId: readInstrumentHolding
+      summary: Read an instrument holding and lifetime account gains
+      description: >-
+        Uses retained valuations and one bounded active history per account, up to 50 accounts.
+        Unknown, malformed and foreign instruments answer the same instrument_not_found 404.
+        Histories beyond 5000 operations return an account row with all figures, count and dates
+        null and HISTORY_TOO_LARGE; other accounts remain computed. No financial data is logged.
+      tags:
+        - Portfolio
+      security:
+        - sessionCookie: []
+      parameters:
+        - $ref: '#/components/parameters/InstrumentId'
+      responses:
+        '200':
+          description: The instrument, retained holding and exact lifetime contributions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InstrumentHolding'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/WorkspaceForbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
   /api/v1/instruments/{id}:
     get:
       operationId: readInstrument
@@ -9507,6 +9537,102 @@ components:
           format: date
         priceQuality:
           $ref: '#/components/schemas/PortfolioPriceQuality'
+    InstrumentHolding:
+      type: object
+      additionalProperties: false
+      required: [instrument, holding, accounts, totals, truncated]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/Instrument'
+        holding:
+          oneOf:
+            - $ref: '#/components/schemas/Holding'
+            - type: 'null'
+        accounts:
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/InstrumentAccountHistory'
+        totals:
+          $ref: '#/components/schemas/InstrumentHoldingTotals'
+        truncated:
+          type: boolean
+    InstrumentAccountHistory:
+      x-cadran-asset-scope: >-
+        Amounts are in the asset of the account identified by accountId. Operation entry requires
+        that asset to equal the enclosing instrument.currencyCode; quantities are instrument units.
+        No currency conversion is performed.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          accountId,
+          label,
+          quantity,
+          value,
+          unrealizedGain,
+          realizedGain,
+          income,
+          feesAndTaxes,
+          operationCount,
+          firstOperationOn,
+          lastOperationOn,
+          reason,
+        ]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+          maxLength: 120
+        quantity:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        value:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        realizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        income:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        feesAndTaxes:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        operationCount:
+          description: Active operations referencing the instrument, null when history exceeds the read bound.
+          type: [integer, 'null']
+          minimum: 0
+          maximum: 5000
+        firstOperationOn:
+          type: [string, 'null']
+          format: date
+        lastOperationOn:
+          type: [string, 'null']
+          format: date
+        reason:
+          $ref: '#/components/schemas/InstrumentHoldingReason'
+    InstrumentHoldingTotals:
+      x-cadran-asset-scope: >-
+        Amounts are in the common asset of the contributing accounts, which operation entry
+        requires to equal the enclosing instrument.currencyCode. Mixed account assets yield null
+        totals with MIXED_ASSETS; no currency conversion is performed.
+      type: object
+      additionalProperties: false
+      required: [realizedGain, income, feesAndTaxes, totalGain, reason]
+      properties:
+        realizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        income:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        feesAndTaxes:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        totalGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        reason:
+          $ref: '#/components/schemas/InstrumentHoldingReason'
+    InstrumentHoldingReason:
+      type: [string, 'null']
+      enum: [UNKNOWN_LOT_COST, HISTORY_TOO_LARGE, NO_VALUATION, MISSING_PRICE, MIXED_ASSETS, null]
     Holding:
       type: object
       additionalProperties: false

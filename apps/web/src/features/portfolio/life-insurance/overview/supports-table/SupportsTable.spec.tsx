@@ -8,6 +8,7 @@ it('keeps exact quantity, dated stale price, cost, UC gain and euro interest dis
   render(<SupportsTable summary={summaryFixture()} />);
   const table = screen.getByRole('table', { name: 'Supports du contrat' });
   const uc = within(table).getByRole('row', { name: /Fonds UC Démo/ });
+  expect(within(uc).getByRole('link', { name: "Voir l'instrument Fonds UC Démo" })).toBeTruthy();
   expect(uc.textContent).toContain('49,70');
   expect(uc.textContent).toContain('Prix ancien');
   expect(uc.textContent).toContain('198,80');
@@ -34,6 +35,7 @@ it('shows mobile support facts and missing/non-calculable data without inventing
   ];
   render(<SupportCards summary={summary} />);
   const card = screen.getByRole('article', { name: 'Fonds UC Démo' });
+  expect(within(card).getByRole('link', { name: "Voir l'instrument Fonds UC Démo" })).toBeTruthy();
   expect(within(card).getByText('Date indisponible · Prix manquant')).toBeTruthy();
   expect(within(card).getAllByText(/Non calculable/).length).toBeGreaterThan(0);
   expect(within(card).getByText('Coût de revient')).toBeTruthy();

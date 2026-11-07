@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import {
   readPortfolioPositionLots,
   type PortfolioPosition,
@@ -47,6 +48,9 @@ export function PositionLotsModal({ accountId, asOf, position, onClose }: Props)
   return (
     <Modal intent="detail" close={onClose} title={`Lots : ${position.instrument.name}`}>
       <div className={styles.content}>
+        <p>
+          <InstrumentLink instrument={position.instrument} />
+        </p>
         <dl className={styles.figures}>
           <div>
             <dt>Quantité détenue</dt>

@@ -17,6 +17,7 @@ use App\Module\Portfolio\Application\InvalidInstrumentInput;
 use App\Module\Portfolio\Application\ListInstruments;
 use App\Module\Portfolio\Application\ReactivateInstrument;
 use App\Module\Portfolio\Application\ReadInstrument;
+use App\Module\Portfolio\Application\ReadInstrumentHolding;
 use App\Module\Portfolio\Application\StaleInstrumentVersion;
 use App\Module\Portfolio\Application\UpdateInstrument;
 use App\Module\Portfolio\Application\UpdateInstrumentInput;
@@ -132,6 +133,24 @@ final readonly class InstrumentController
         }
 
         return self::json(InstrumentRepresentation::one($instrument));
+    }
+
+    #[Route('/api/v1/instruments/{id}/holding', name: 'api_v1_instruments_holding', methods: ['GET'])]
+    public function holding(string $id, ReadInstrumentHolding $read): Response
+    {
+        if (!self::identifier($id)) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
+        }
+        try {
+            $result = $read($id);
+        } catch (InstrumentNotFound) {
+            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
+        } catch (WorkspaceAccessDenied) {
+            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+        }
+        $result['instrument'] = InstrumentRepresentation::one($result['instrument']);
+
+        return self::json($result);
     }
 
     #[Route('/api/v1/instruments/{id}', name: 'api_v1_instruments_update', methods: ['PUT'])]

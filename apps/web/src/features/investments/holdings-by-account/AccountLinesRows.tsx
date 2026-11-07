@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { HoldingsAccountSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { NotComputable } from '@/features/investments/explain-info/NotComputable';
@@ -19,7 +20,9 @@ export function AccountLinesRows({
   return account.lines.map((line) => (
     <tr className={styles.lineRow} key={line.instrument.id}>
       <th scope="row">
-        <strong className={styles.name}>{line.instrument.name}</strong>
+        <strong className={styles.name}>
+          <InstrumentLink instrument={line.instrument} />
+        </strong>
         <span className={styles.identifier}>
           {holdingsInstrumentLine(line.instrument, line.instrumentType)}
         </span>

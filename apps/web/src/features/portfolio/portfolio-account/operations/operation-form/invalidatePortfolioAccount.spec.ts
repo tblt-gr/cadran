@@ -13,7 +13,8 @@ describe('invalidatePortfolioAccount', () => {
     expect(keys).toContainEqual(['portfolio-operations', 'acc-1']);
     expect(keys).toContainEqual(['portfolios']);
     expect(keys).toContainEqual(['holdings']);
+    expect(keys).toContainEqual(['instrument-holding']);
     expect(keys).toContainEqual(['account', 'acc-1']);
-    expect(keys).toHaveLength(16);
+    expect(keys).toHaveLength(17);
   });
 });

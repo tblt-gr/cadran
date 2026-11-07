@@ -61,7 +61,13 @@ export function breadcrumbItems(
   let trail = staticRoutes[path];
   if (!trail) {
     const accountRoute = /^\/(accounts|portfolios)\/([^/]+)$/.exec(path);
-    if (accountRoute) {
+    if (/^\/investments\/instruments\/[^/]+$/.test(path)) {
+      trail = [
+        investments,
+        item('routes.instruments', '/investments/instruments'),
+        { label: account?.label ?? 'Instrument', pending: account?.pending !== false },
+      ];
+    } else if (accountRoute) {
       const label =
         account?.label ??
         t(account?.pending === false ? 'breadcrumb.account' : 'breadcrumb.loadingAccount');

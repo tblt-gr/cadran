@@ -96,6 +96,11 @@ afterEach(() => {
 });
 
 describe('OperationForm', () => {
+  it('keeps the operation instrument picker as form controls without sheet links', async () => {
+    renderForm({ operation: operationFixture() });
+    await screen.findByLabelText('Type');
+    expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
+  });
   it('preserves the buy draft across stacked cancellation and creation without submitting it', async () => {
     const { onSubmit } = renderForm({}, () =>
       api.listInstruments.mockImplementation(() => ok({ items: [] })),

@@ -96,6 +96,13 @@ describe('AuthenticatedApp route table', () => {
       matchAuthenticatedRoute(routes, '/investments/instruments')?.route.redirect,
     ).toBeUndefined();
     expect(matchAuthenticatedRoute(routes, '/investments/other')).toBeNull();
+    expect(
+      matchAuthenticatedRoute(
+        routes,
+        '/investments/instruments/00000000-0000-7000-8000-000000000001',
+      ),
+    ).toBeTruthy();
+    expect(matchAuthenticatedRoute(routes, '/investments/instruments/invalid')).toBeNull();
   });
 
   it('does not match the dashboard root or an unrelated path', () => {

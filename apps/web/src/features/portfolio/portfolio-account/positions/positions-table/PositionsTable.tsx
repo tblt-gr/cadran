@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { DecimalAmount, PortfolioPosition } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -37,7 +38,9 @@ export function PositionsTable({ items, onLots, onReorder }: Props) {
               return (
                 <tr key={item.instrument.id}>
                   <th className={styles.instrument} scope="row">
-                    <span>{item.instrument.name}</span>
+                    <span>
+                      <InstrumentLink instrument={item.instrument} />
+                    </span>
                     {item.instrument.isin ? <small>{item.instrument.isin}</small> : null}
                     {orderDependent ? (
                       <button

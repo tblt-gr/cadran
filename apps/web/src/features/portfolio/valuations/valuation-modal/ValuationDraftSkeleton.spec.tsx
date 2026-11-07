@@ -33,6 +33,7 @@ it('keeps the form grid, labels and disclosure in the same places while the draf
     />,
   );
   const loadedForm = loaded.container.querySelector('form')!;
+  expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
   expect(labels(loadedForm)).toEqual(loadingLabels);
   expect(loadedForm.children[1]!.className).toBe(gridClass);
   expect(loadedForm.querySelector('details')?.open).toBe(false);

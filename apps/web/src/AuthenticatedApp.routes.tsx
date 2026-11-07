@@ -81,6 +81,10 @@ const InstrumentsPage = lazyComponent(
   () => import('@/features/investments/instruments/InstrumentsPage'),
   'InstrumentsPage',
 );
+const InstrumentSheetPage = lazyComponent(
+  () => import('@/features/investments/instrument-sheet/InstrumentSheetPage'),
+  'InstrumentSheetPage',
+);
 const PortfolioAccountPage = lazyComponent(
   () => import('@/features/portfolio/portfolio-account/PortfolioAccountPage'),
   'PortfolioAccountPage',
@@ -140,6 +144,11 @@ export function buildAuthenticatedRoutes(
       pattern: /^\/investments\/instruments$/,
       preload: InstrumentsPage.preload,
       render: () => <InstrumentsPage />,
+    },
+    {
+      pattern: new RegExp(`^/investments/instruments/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
+      preload: InstrumentSheetPage.preload,
+      render: (match) => <InstrumentSheetPage key={match[1]} instrumentId={match[1]!} />,
     },
     {
       pattern: /^\/portfolios\/(?!instruments$)([^/]+)$/,

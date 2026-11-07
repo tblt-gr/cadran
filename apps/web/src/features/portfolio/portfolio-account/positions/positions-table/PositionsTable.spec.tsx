@@ -37,6 +37,9 @@ describe('PositionsTable', () => {
 
     const row = within(screen.getAllByRole('row')[1]!);
     expect(row.getByText('ETF Monde')).toBeTruthy();
+    expect(
+      row.getByRole('link', { name: "Voir l'instrument ETF Monde" }).getAttribute('href'),
+    ).toBe('/investments/instruments/instrument-1');
     expect(row.getByText('FR0014000MR3')).toBeTruthy();
     expect(row.getByText(/106,87/)).toBeTruthy();
     expect(row.getByText(/320,60/)).toBeTruthy();

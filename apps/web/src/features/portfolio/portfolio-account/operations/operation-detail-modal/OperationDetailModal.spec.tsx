@@ -18,6 +18,13 @@ describe('insurance detail', () => {
           onOpenOperation={vi.fn()}
           operation={operationFixture({
             type: 'EURO_FUND_INTEREST',
+            instrument: {
+              id: 'fund',
+              name: 'Fonds euros',
+              isin: null,
+              ticker: null,
+              status: 'ACTIVE',
+            },
             interestBasis: 'NET_OF_MANAGEMENT_FEES',
             rateYear: 2026,
             feeNature: 'MANAGEMENT',
@@ -28,6 +35,7 @@ describe('insurance detail', () => {
     expect(screen.getByText('Net de frais de gestion')).toBeTruthy();
     expect(screen.getByText('2026')).toBeTruthy();
     expect(screen.getByText('Frais de gestion')).toBeTruthy();
+    expect(screen.getByRole('link', { name: /^Voir l.instrument/ })).toBeTruthy();
   });
 
   it('shows sold and bought supports separately, the manual fee and dated informative terms', () => {

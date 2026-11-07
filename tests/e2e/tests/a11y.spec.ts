@@ -67,13 +67,29 @@ keyboardJourneys();
 test('budget variance names its positive and negative signs with the server status', async ({
   page,
 }) => {
+  const response = page.waitForResponse(
+    (result) => result.url().includes('/comparisons') && result.ok(),
+  );
   await page.goto(fixtures.spendingPlan);
   await settled(page);
+  const { comparisons } = (await (await response).json()) as {
+    comparisons: Array<{ scopeType: string; scopeLabel: string; actual: string | null }>;
+  };
+  const target = comparisons.find(({ scopeType, actual }) => {
+    if (scopeType !== 'CATEGORY' || actual === null || actual.startsWith('-')) return false;
+    const [whole, fraction = ''] = actual.split('.');
+    const units = BigInt(whole!);
+    return units > 1n || (units === 1n && /[1-9]/.test(fraction));
+  });
+  expect(
+    target !== undefined,
+    'the spending fixture needs a category actual strictly above one',
+  ).toBe(true);
+  const scope = `Catégorie · ${target!.scopeLabel}`;
   const row = page
     .getByRole('row')
-    .filter({ has: page.getByRole('button', { name: 'Modifier', exact: true }) })
-    .first();
-  const scope = (await row.getByRole('cell').first().innerText()).trim();
+    .filter({ has: page.getByRole('cell', { name: scope, exact: true }) });
+  await expect(row).toHaveCount(1);
   const comparison = page
     .getByRole('region', { name: 'Résultats', exact: true })
     .getByRole('article')
@@ -91,7 +107,7 @@ test('budget variance names its positive and negative signs with the server stat
     await settled(page);
   }
   try {
-    // The demo's first target has booked spending. The server computes both comparisons;
+    // The selected target has server-confirmed spending. The server computes both comparisons;
     // the browser only changes a target and checks the resulting signed announcement.
     await setTarget('1');
     await expect(

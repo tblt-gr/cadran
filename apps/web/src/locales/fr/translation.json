@@ -1743,7 +1743,7 @@
         "status": "Statut",
         "statuses": {
           "active": "Actifs",
-          "inactive": "Inactifs",
+          "inactive": "Archivés",
           "all": "Tous"
         }
       }

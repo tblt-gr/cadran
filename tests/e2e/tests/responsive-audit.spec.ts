@@ -27,6 +27,7 @@ interface RouteIds {
   accountId: string;
   planId: string;
   portfolioId: string;
+  instrumentId: string;
 }
 
 const ids: Partial<RouteIds> = {};
@@ -61,6 +62,7 @@ function routes(): string[] {
     '/investments',
     '/investments?view=asset',
     '/investments/instruments',
+    `/investments/instruments/${ids.instrumentId}`,
     `/portfolios/${ids.portfolioId}`,
     `/portfolios/${ids.portfolioId}?tab=valuations`,
     `/portfolios/${ids.portfolioId}?tab=account`,
@@ -109,6 +111,13 @@ test.beforeAll(async ({ browser }) => {
   ids.planId = (
     await firstHref(browser, '/budget/plans', /^\/budget\/plans\/[0-9a-f-]{36}$/)
   ).split('/')[3];
+  ids.instrumentId = (
+    await firstHref(
+      browser,
+      '/investments/instruments',
+      /^\/investments\/instruments\/[0-9a-f-]{36}$/,
+    )
+  ).split('/')[3];
   ids.portfolioId = (await firstHref(browser, '/accounts', /^\/portfolios\/[0-9a-f-]{36}$/)).split(
     '/',
   )[2];
@@ -139,6 +148,7 @@ const PATTERNS = [
   '/investments',
   '/investments?view=asset',
   '/investments/instruments',
+  '/investments/instruments/:instrument',
   '/portfolios/:portfolio',
   '/portfolios/:portfolio?tab=valuations',
   '/portfolios/:portfolio?tab=account',
@@ -173,6 +183,18 @@ test.describe('responsive audit', () => {
 
           const coarse = await page.evaluate(() => matchMedia('(pointer: coarse)').matches);
           expect(coarse, 'the touch viewports emulate a coarse pointer').toBe(viewport.touch);
+
+          if (pattern === '/investments/instruments/:instrument' && viewport.width === 360) {
+            const caption = page.getByRole('table', { name: 'Par compte' }).locator('caption');
+            const widths = await caption.evaluate((element) => ({
+              caption: element.getBoundingClientRect().width,
+              table: element.closest('table')!.getBoundingClientRect().width,
+            }));
+            expect(
+              widths.caption,
+              'the mobile caption spans its table instead of shrinking to its words',
+            ).toBeGreaterThanOrEqual(widths.table - 1);
+          }
 
           const findings: AuditFinding[] = await auditLayout(page, coarse);
           if (process.env.E2E_AUDIT_DUMP) {

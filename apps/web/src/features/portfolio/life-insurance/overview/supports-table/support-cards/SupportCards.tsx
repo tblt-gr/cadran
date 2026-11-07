@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import type { Summary } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import {
@@ -28,7 +29,9 @@ export function SupportCards({ summary }: { summary: Summary | null }) {
             const cells = supportCells(row, summary.assetCode);
             return (
               <article className={styles.support} key={row.instrumentId} aria-label={row.name}>
-                <h4>{row.name}</h4>
+                <h4>
+                  <InstrumentLink instrument={{ id: row.instrumentId, name: row.name }} />
+                </h4>
                 <dl>
                   {cells.slice(1).map((cell, index) => (
                     <div key={supportHeaders[index + 1]}>

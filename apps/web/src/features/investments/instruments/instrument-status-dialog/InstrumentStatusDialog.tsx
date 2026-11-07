@@ -14,7 +14,7 @@ export function InstrumentStatusDialog({
   onCancel?: () => void;
   onConfirm: () => void;
 }) {
-  const deactivate = instrument.status === 'ACTIVE';
+  const archive = instrument.status === 'ACTIVE';
   return (
     <form
       className={styles.dialog}
@@ -24,7 +24,7 @@ export function InstrumentStatusDialog({
       }}
     >
       <p>
-        {deactivate
+        {archive
           ? 'Cet instrument ne sera plus proposé lors des nouvelles opérations. Son historique restera lisible.'
           : 'Cet instrument sera de nouveau proposé lors des nouvelles opérations.'}
       </p>
@@ -36,13 +36,7 @@ export function InstrumentStatusDialog({
           </button>
         ) : null}
         <button className="primary-action" disabled={pending} type="submit">
-          {pending
-            ? 'Enregistrement…'
-            : error
-              ? 'Réessayer'
-              : deactivate
-                ? 'Désactiver'
-                : 'Réactiver'}
+          {pending ? 'Enregistrement…' : error ? 'Réessayer' : archive ? 'Archiver' : 'Réactiver'}
         </button>
       </ModalActions>
     </form>

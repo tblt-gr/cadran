@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { Holding, Holdings } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { NotComputable } from '@/features/investments/explain-info/NotComputable';
@@ -37,7 +38,9 @@ export function HoldingRow({
     <>
       <tr>
         <th scope="row">
-          <strong className={styles.name}>{instrument.name}</strong>
+          <strong className={styles.name}>
+            <InstrumentLink instrument={instrument} />
+          </strong>
           <span className={styles.identifier}>
             {holdingsInstrumentLine(instrument, holding.instrumentType)}
           </span>

@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioOverviewAllocation } from '@cadran/api-client';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { useState } from 'react';
@@ -86,7 +87,15 @@ export function AllocationCard({
           <tbody>
             {allocation.items.map((item) => (
               <tr key={item.key}>
-                <th scope="row">{label(item.key, item.label)}</th>
+                <th scope="row">
+                  {allocation.by === 'INSTRUMENT' && /^[0-9a-f-]{36}$/i.test(item.key) ? (
+                    <InstrumentLink
+                      instrument={{ id: item.key, name: label(item.key, item.label) }}
+                    />
+                  ) : (
+                    label(item.key, item.label)
+                  )}
+                </th>
                 <td className="money">{money(item.value)}</td>
                 <td className="money">
                   {item.share === null ? 'Non calculable' : formatRatioPercentage(item.share, 'fr')}
@@ -170,7 +179,14 @@ export function AllocationCard({
               label="Légende de la répartition"
               items={allocation.slices.map((item) => ({
                 key: item.key,
-                label: label(item.key, item.label),
+                label:
+                  allocation.by === 'INSTRUMENT' && /^[0-9a-f-]{36}$/i.test(item.key) ? (
+                    <InstrumentLink
+                      instrument={{ id: item.key, name: label(item.key, item.label) }}
+                    />
+                  ) : (
+                    label(item.key, item.label)
+                  ),
                 amount: money(item.value),
                 share: formatRatioPercentage(item.share!, 'fr'),
                 barPercent: ratioToPercent(item.share!),

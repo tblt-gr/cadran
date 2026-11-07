@@ -103,6 +103,21 @@ describe('OperationsTable', () => {
     }
   });
 
+  it('opens the instrument sheet from a read-only operation name', () => {
+    render(
+      <OperationsTable
+        items={[buy]}
+        onDetail={vi.fn()}
+        onEdit={vi.fn()}
+        onVoid={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByRole('link', { name: "Voir l'instrument ETF Monde" }).getAttribute('href'),
+    ).toBe('/investments/instruments/i1');
+  });
+
   it('badges voided and replaced rows and disables their edit and void actions', () => {
     render(
       <OperationsTable

@@ -1,0 +1,106 @@
+.panel {
+  overflow: hidden;
+}
+.scroll {
+  overflow-x: auto;
+}
+.panel table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.panel caption {
+  padding: var(--spacing-4);
+  text-align: left;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-card-title);
+  color: var(--text-primary);
+}
+.panel th,
+.panel td {
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
+  text-align: left;
+  vertical-align: middle;
+}
+.panel thead th {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
+}
+.panel tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+.panel td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.panel tbody tr:last-child > * {
+  border-bottom: var(--border-none);
+}
+.panel a {
+  display: inline-flex;
+  min-height: var(--touch-target-min);
+  align-items: center;
+}
+.panel tbody th a {
+  color: var(--text-primary);
+}
+.number {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.reason {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+.valueBlock {
+  width: 5rem;
+  max-width: 100%;
+  height: var(--font-size-label);
+}
+.nameBlock {
+  width: 8rem;
+  max-width: 100%;
+  height: var(--font-size-body);
+}
+@media (max-width: 47.99rem) {
+  .panel caption,
+  .panel table,
+  .panel tbody,
+  .panel tr {
+    display: block;
+  }
+  .panel thead {
+    display: none;
+  }
+  .panel tr {
+    padding: var(--spacing-3);
+    border-bottom: var(--border-line-subtle);
+  }
+  .panel tbody th,
+  .panel td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--spacing-3);
+    padding: var(--spacing-2) var(--spacing-none);
+    border: var(--border-none);
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .panel tbody th::before,
+  .panel td::before {
+    content: attr(data-label);
+    color: var(--text-secondary);
+    font-size: var(--font-size-xs);
+  }
+}
+.panel td.positive {
+  color: var(--positive);
+}
+.panel td.negative {
+  color: var(--negative);
+}

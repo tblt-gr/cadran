@@ -20,7 +20,7 @@ final readonly class ReadHoldings
     }
 
     /** @return array<string, mixed> */
-    public function __invoke(?string $sort): array
+    public function __invoke(?string $sort, ?string $instrumentId = null): array
     {
         $sort ??= 'VALUE_DESC';
         if (!in_array($sort, HoldingsAggregator::SORTS, true)) {
@@ -40,6 +40,6 @@ final readonly class ReadHoldings
             $inputs[] = new HoldingsAccount($account->id, $account->label, $account->assetCode, $view);
         }
 
-        return HoldingsAggregator::aggregate($inputs, $this->calendar->today(), $sort, count($accounts) > ListPortfolios::MAX_ACCOUNTS);
+        return HoldingsAggregator::aggregate($inputs, $this->calendar->today(), $sort, count($accounts) > ListPortfolios::MAX_ACCOUNTS, $instrumentId);
     }
 }

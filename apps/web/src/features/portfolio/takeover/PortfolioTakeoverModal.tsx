@@ -55,6 +55,7 @@ export function PortfolioTakeoverModal({
         client.invalidateQueries({ queryKey: ['accounts'] }),
         client.invalidateQueries({ queryKey: ['net-worth'] }),
         client.invalidateQueries({ queryKey: ['holdings'] }),
+        client.invalidateQueries({ queryKey: ['instrument-holding'] }),
       ]);
     },
   });

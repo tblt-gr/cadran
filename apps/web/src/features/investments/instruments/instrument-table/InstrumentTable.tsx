@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { Instrument } from '@cadran/api-client';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -53,7 +54,9 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
-                <th scope="row">{item.name}</th>
+                <th scope="row">
+                  <InstrumentLink instrument={item} />
+                </th>
                 <td>{item.isin ?? ' - '}</td>
                 <td>{item.ticker ?? ' - '}</td>
                 <td>{typeLabels[item.instrumentType]}</td>
@@ -62,7 +65,7 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
                 <td>{item.currencyCode}</td>
                 <td>
                   <StatusBadge tone={item.status === 'ACTIVE' ? 'positive' : 'info'}>
-                    {item.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
+                    {item.status === 'ACTIVE' ? 'Actif' : 'Archivé'}
                   </StatusBadge>
                 </td>
                 <td>
@@ -79,8 +82,8 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
                       {
                         id: 'status',
                         icon: 'archive',
-                        label: `${item.status === 'ACTIVE' ? 'Désactiver' : 'Réactiver'} ${item.name}`,
-                        text: item.status === 'ACTIVE' ? 'Désactiver' : 'Réactiver',
+                        label: `${item.status === 'ACTIVE' ? 'Archiver' : 'Réactiver'} ${item.name}`,
+                        text: item.status === 'ACTIVE' ? 'Archiver' : 'Réactiver',
                         onSelect: () => onStatus(item),
                       },
                     ]}

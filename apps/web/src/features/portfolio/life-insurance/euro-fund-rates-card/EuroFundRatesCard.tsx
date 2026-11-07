@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { LifeInsuranceEuroFundRate, LifeInsuranceEuroFund } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -40,7 +41,7 @@ export function EuroFundRatesCard({
           .filter((f) => f.missingLastYear)
           .map((f) => (
             <p key={f.instrument.id}>
-              {f.instrument.name} :{' '}
+              <InstrumentLink instrument={f.instrument} /> :{' '}
               <StatusBadge tone="warning">{`Taux ${lastClosedYear} non renseigné`}</StatusBadge>
             </p>
           ))}
@@ -70,8 +71,15 @@ export function EuroFundRatesCard({
                 <tr key={item.id}>
                   <td>{item.year}</td>
                   <td>
-                    {euroFunds.find((f) => f.instrument.id === item.instrumentId)?.instrument
-                      .name ?? 'Support indisponible'}
+                    {euroFunds.some((f) => f.instrument.id === item.instrumentId) ? (
+                      <InstrumentLink
+                        instrument={
+                          euroFunds.find((f) => f.instrument.id === item.instrumentId)!.instrument
+                        }
+                      />
+                    ) : (
+                      'Support indisponible'
+                    )}
                   </td>
                   <td>{formatDecimal(item.servedRate, 'fr-FR')} %</td>
                   <td>
