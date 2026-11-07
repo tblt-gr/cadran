@@ -1,5 +1,6 @@
 import type { Holding, Holdings } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { NotComputable } from '@/features/investments/explain-info/NotComputable';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Icon } from '@/components/ui/icon/Icon';
 import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
@@ -28,6 +29,8 @@ export function HoldingRow({
 }) {
   const { t } = useTranslation();
   const { instrument } = holding;
+  const figureName = (column: string) =>
+    t('investments.notComputable.figure', { column, name: instrument.name });
   const dash = (label: string) => <EmptyValue label={label} />;
 
   return (
@@ -58,13 +61,18 @@ export function HoldingRow({
           )}
         </td>
         <td className={styles.number} data-label={t('investments.table.value')}>
-          {holding.value === null
-            ? t(
+          {holding.value === null ? (
+            <NotComputable
+              figure={figureName(t('investments.table.value'))}
+              reason={t(
                 holding.reason === 'MIXED_ASSETS'
                   ? 'investments.summary.mixedAssets'
                   : 'investments.table.missingPrice',
-              )
-            : holdingsMoney(holding.value, assetCode)}
+              )}
+            />
+          ) : (
+            holdingsMoney(holding.value, assetCode)
+          )}
         </td>
         <td className={styles.number} data-label={t('investments.table.gain')}>
           {holding.unrealizedGain !== null ? (
@@ -73,10 +81,17 @@ export function HoldingRow({
               performance={holding.performance}
               value={holding.unrealizedGain}
             />
-          ) : holding.reason === 'UNKNOWN_LOT_COST' ? (
-            t('investments.table.unknownCost')
           ) : (
-            dash(t('investments.table.gainNotCalculable'))
+            <NotComputable
+              figure={figureName(t('investments.table.gain'))}
+              reason={t(
+                holding.reason === 'UNKNOWN_LOT_COST'
+                  ? 'investments.table.unknownCost'
+                  : holding.reason === 'MIXED_ASSETS'
+                    ? 'investments.summary.mixedAssets'
+                    : 'investments.table.gainNotCalculable',
+              )}
+            />
           )}
         </td>
         <td className={styles.number} data-label={t('investments.table.share')}>
@@ -88,7 +103,7 @@ export function HoldingRow({
           <button
             aria-expanded={open}
             aria-label={t('investments.table.accountsToggle', { name: instrument.name })}
-            className={`icon-button ${styles.chevron}`}
+            className={`icon-ghost ${styles.chevron}`}
             onClick={onToggle}
             type="button"
           >

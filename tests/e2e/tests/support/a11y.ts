@@ -87,7 +87,7 @@ export const routeCases = [
   'multi-year',
   '/goals',
   '/investments',
-  '/investments?view=account',
+  '/investments?view=asset',
   '/investments/instruments',
   '/parameters/interface',
   '/parameters/profile',

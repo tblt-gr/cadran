@@ -33,21 +33,26 @@ export function HoldingsView({
 
   const byAccount = view === 'account';
   const viewControl = (
-    <SegmentedControl
-      disabled={!holdings}
-      label={t('investments.view.label')}
-      onChange={onViewChange}
-      options={[
-        { value: 'asset', label: t('investments.view.asset') },
-        { value: 'account', label: t('investments.view.account') },
-      ]}
-      value={view}
-    />
+    <div className={styles.viewSwitch}>
+      <SegmentedControl
+        disabled={!holdings}
+        label={t('investments.view.label')}
+        onChange={onViewChange}
+        options={[
+          { value: 'account', label: t('investments.view.account') },
+          { value: 'asset', label: t('investments.view.asset') },
+        ]}
+        value={view}
+      />
+    </div>
   );
   if (holdings && holdings.items.length === 0 && (!byAccount || holdings.accounts.length === 0)) {
     const noAccount = isNoInvestmentAccount(holdings);
+    // Accounts valued as a total still have totals and an allocation by account.
+    const hasTotals = holdings.totals.securitiesValue !== null;
     return (
       <>
+        {holdings.accounts.length > 0 ? viewControl : null}
         <section className={`card ${styles.empty}`}>
           <h3>{t(noAccount ? 'investments.empty.noAccount' : 'investments.empty.noPosition')}</h3>
           {noAccount ? (
@@ -60,23 +65,33 @@ export function HoldingsView({
             </a>
           ) : null}
         </section>
+        {hasTotals ? (
+          <>
+            <HoldingsSummary holdings={holdings} />
+            <HoldingsWarnings holdings={holdings} />
+          </>
+        ) : null}
         <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} />
-        {holdings.accounts.length > 0 ? viewControl : null}
+        {hasTotals ? (
+          <div className={styles.grid}>
+            <HoldingsAllocationCard holdings={holdings} view={view} />
+          </div>
+        ) : null}
       </>
     );
   }
 
   return (
     <>
+      {viewControl}
       <HoldingsSummary holdings={holdings} />
       {holdings ? <HoldingsWarnings holdings={holdings} /> : null}
       {holdings && !byAccount ? (
         <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} />
       ) : null}
       <div className={styles.grid}>
-        <HoldingsAllocationCard holdings={holdings} />
+        <HoldingsAllocationCard holdings={holdings} view={view} />
       </div>
-      {viewControl}
       {byAccount ? (
         <HoldingsByAccountTable holdings={holdings} />
       ) : (

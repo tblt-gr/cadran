@@ -7,7 +7,7 @@ import styles from './InvestmentsPage.module.css';
 export function InvestmentsPageSkeleton({
   status,
   sort = DEFAULT_HOLDINGS_SORT,
-  view = 'asset',
+  view = 'account',
 }: {
   status: string;
   sort?: HoldingsSort;

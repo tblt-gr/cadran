@@ -10,12 +10,6 @@
   gap: var(--spacing-3);
 }
 
-.description {
-  margin: var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-body);
-}
-
 .grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -31,4 +25,11 @@
 .empty h3 {
   margin: var(--spacing-none);
   font-size: var(--font-size-card-title);
+}
+
+/* The page content is a flex column: without this the control would stretch to its full width. */
+.viewSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }

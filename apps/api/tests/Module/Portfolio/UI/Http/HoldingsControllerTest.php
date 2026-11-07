@@ -84,7 +84,8 @@ final class HoldingsControllerTest extends WebTestCase
         self::assertSame('130.00', $item['unrealizedGain']);
         self::assertSame('0.094203', $item['performance']);
         self::assertSame('92.0000', $item['averageUnitCost']);
-        self::assertSame('100.00', self::map($item['share'])['percentDisplay']);
+        // 1510 of 2210: the 700 of the total-valued account weighs in the denominator.
+        self::assertSame('68.33', self::map($item['share'])['percentDisplay']);
         self::assertSame(['PEA', 'CTO'], array_column(self::list($item['accounts']), 'label'));
         self::assertSame(['code' => 'MIXED_VALUATION_DATES'], ['code' => self::map(self::list($holdings['warnings'])[0])['code']]);
         self::assertSame('2026-10-31', $holdings['valuedFrom']);
@@ -100,9 +101,17 @@ final class HoldingsControllerTest extends WebTestCase
         self::assertSame('1000.00', self::list($accounts[0]['lines'])[0]['value']);
         self::assertFalse($holdings['truncated']);
         $totals = self::map($holdings['totals']);
-        self::assertSame('1510.00', $totals['securitiesValue']);
-        self::assertSame('130.00', $totals['unrealizedGain']);
-        self::assertNull($totals['reason']);
+        self::assertSame('2210.00', $totals['securitiesValue']);
+        // The total-valued Assurance-vie has no frozen position: its cost is unknown, never a zero cost.
+        self::assertNull($totals['costBasis']);
+        self::assertNull($totals['unrealizedGain']);
+        self::assertSame('UNKNOWN_LOT_COST', $totals['reason']);
+        // The two costed lines are shown apart (1510 of value, 1380 of cost); the bare total account is the one exclusion.
+        self::assertSame(['securitiesValue' => '1510.00', 'costBasis' => '1380.00', 'unrealizedGain' => '130.00', 'performance' => '0.094203', 'excludedCount' => 1, 'excludedValue' => '700.00'], $totals['knownCost']);
+        self::assertNull($accounts[1]['costBasis']);
+        self::assertNull($accounts[1]['unrealizedGain']);
+        $slices = self::list(self::map($holdings['allocation'])['byAccount']);
+        self::assertSame(['PEA', 'Assurance-vie', 'CTO'], array_column($slices, 'label'));
         self::assertNotNull($totals['totalValue']);
         self::assertStringContainsString('no-store', (string) $this->client->getResponse()->headers->get('Cache-Control'));
     }

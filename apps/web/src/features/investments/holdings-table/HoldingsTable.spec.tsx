@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { holdingsFixture } from '@/features/investments/holdingsFixture';
+import { expectExplanation } from '@/features/investments/explain-info/explanationDialog';
 import { HoldingsTable } from './HoldingsTable';
 
 afterEach(cleanup);
@@ -60,7 +61,7 @@ describe('HoldingsTable', () => {
     expect(screen.queryByRole('link', { name: 'PEA' })).toBeNull();
   });
 
-  it('explains an unknown cost and a missing price in text, never as zero', () => {
+  it('explains an unknown cost and a missing price in a modal, never as zero', async () => {
     const base = holdingsFixture();
     const [first, second] = base.items;
     render(
@@ -82,18 +83,28 @@ describe('HoldingsTable', () => {
         sort="VALUE_DESC"
       />,
     );
-    expect(
-      within(rowOf('Action A')).getByText('Valeur non calculable : cours manquant'),
-    ).toBeTruthy();
+    expect(screen.queryByText('Valeur non calculable : cours manquant')).toBeNull();
+    await expectExplanation(
+      within(rowOf('Action A')).getByRole('button', {
+        name: 'Expliquer : Valeur (Action A) non calculable',
+      }),
+      'Valeur (Action A)',
+      'Valeur non calculable : cours manquant',
+    );
     const unknown = holdingsFixture();
     cleanup();
     render(<HoldingsTable holdings={unknown} onSortChange={vi.fn()} sort="VALUE_DESC" />);
-    expect(
-      within(rowOf('Action A')).getByText("Plus-value non calculable : coût d'origine inconnu"),
-    ).toBeTruthy();
+    expect(screen.queryByText(/Plus-value non calculable/)).toBeNull();
+    await expectExplanation(
+      within(rowOf('Action A')).getByRole('button', {
+        name: 'Expliquer : Plus-value latente (Action A) non calculable',
+      }),
+      'Plus-value latente (Action A)',
+      "Plus-value non calculable : coût d'origine inconnu",
+    );
   });
 
-  it('tells mixed units in place of the value and keeps null sub-row amounts safe', () => {
+  it('tells mixed units in a modal and keeps null sub-row amounts safe', async () => {
     const base = holdingsFixture();
     const [first] = base.items;
     render(
@@ -125,14 +136,32 @@ describe('HoldingsTable', () => {
         sort="VALUE_DESC"
       />,
     );
-    expect(
-      within(rowOf('MSCI World')).getByText(
-        'Totaux non calculés : les comptes utilisent plusieurs unités.',
-      ),
-    ).toBeTruthy();
+    await expectExplanation(
+      within(rowOf('MSCI World')).getByRole('button', {
+        name: 'Expliquer : Valeur (MSCI World) non calculable',
+      }),
+      'Valeur (MSCI World)',
+      'Totaux non calculés : les comptes utilisent plusieurs unités.',
+    );
     fireEvent.click(screen.getByRole('button', { name: /Détail par compte/ }));
     expect(screen.getByRole('link', { name: 'PEA' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', { name: 'Expliquer : Valeur (MSCI World, PEA) non calculable' }),
+    ).toBeTruthy();
     expect(screen.queryByText(/NaN|undefined/)).toBeNull();
+  });
+
+  it('keeps every numeric cell and the chevron borderless on one line', () => {
+    const { container } = render(
+      <HoldingsTable holdings={holdingsFixture()} onSortChange={vi.fn()} sort="VALUE_DESC" />,
+    );
+    const cells = [...container.querySelectorAll('tbody tr:first-child td[data-label]')];
+    expect(cells.length).toBe(6);
+    // Quantity, prices, value, gain and share carry the nowrap numeric class.
+    for (const cell of cells) expect(cell.className).toMatch(/number/);
+    const chevron = screen.getAllByRole('button', { name: /Détail par compte/ })[0]!;
+    expect(chevron.className).toMatch(/icon-ghost/);
+    expect(chevron.className).not.toMatch(/icon-button/);
   });
 
   it('labels every cell for the stacked mobile layout', () => {

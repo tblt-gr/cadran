@@ -96,7 +96,6 @@
     "staleFreshness": "Mis à jour il y a {{count}} jours"
   },
   "investments": {
-    "description": "Vos actifs, tous comptes confondus.",
     "loading": "Chargement des positions…",
     "tabs": {
       "label": "Investissements",
@@ -120,11 +119,13 @@
       "assetClass": "Classe d'actifs",
       "region": "Région",
       "instrument": "Actif",
+      "account": "Compte",
       "donut": "Répartition des titres par {{criterion}}",
       "criterionName": {
         "assetClass": "classe d'actifs",
         "region": "région",
-        "instrument": "actif"
+        "instrument": "actif",
+        "account": "compte"
       },
       "caption": "Répartition des titres",
       "label": "Libellé",
@@ -151,6 +152,18 @@
       "gainNotCalculable": "Plus-value non calculable",
       "notCalculable": "Non calculable",
       "accountsLabel": "Comptes détenant {{name}}"
+    },
+    "notComputable": {
+      "explain": "Expliquer : {{label}} non calculable",
+      "figure": "{{column}} ({{name}})",
+      "costUnknown": "Prix de revient non calculable : coût d'origine inconnu"
+    },
+    "partial": {
+      "explain": "Expliquer : {{label}} calculé sur une partie des positions",
+      "explanation_one": "Calculé sur les positions dont le coût est connu uniquement. {{count}} position sans coût exclue.",
+      "explanation_other": "Calculé sur les positions dont le coût est connu uniquement. {{count}} positions sans coût exclues.",
+      "explanationWithValue_one": "Calculé sur les positions dont le coût est connu uniquement. {{count}} position sans coût exclue ({{value}}).",
+      "explanationWithValue_other": "Calculé sur les positions dont le coût est connu uniquement. {{count}} positions sans coût exclues ({{value}})."
     },
     "view": {
       "label": "Affichage des positions",

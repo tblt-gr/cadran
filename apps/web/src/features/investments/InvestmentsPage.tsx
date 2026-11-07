@@ -54,7 +54,7 @@ export function InvestmentsPage() {
   );
   const changeView = useCallback(
     (next: HoldingsViewMode) => {
-      writeUrl('view', next === 'account' ? 'account' : null);
+      writeUrl('view', next === 'asset' ? 'asset' : null);
       setView(next);
     },
     [writeUrl],

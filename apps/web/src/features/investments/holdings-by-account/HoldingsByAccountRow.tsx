@@ -1,10 +1,12 @@
 import type { HoldingsAccountSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { NotComputable } from '@/features/investments/explain-info/NotComputable';
 import { Icon } from '@/components/ui/icon/Icon';
 import { holdingsDay, holdingsMoney, holdingsPercent } from '@/features/investments/holdingsFormat';
 import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { PartialFigure } from '@/features/investments/known-cost-line/PartialFigure';
 import { AccountLinesRows } from './AccountLinesRows';
 import styles from './HoldingsByAccountTable.module.css';
 
@@ -60,17 +62,39 @@ export function HoldingsByAccountRow({
             : holdingsMoney(account.securitiesValue, assetCode)}
         </td>
         <td className={styles.number} data-label={t('investments.byAccount.gain')}>
-          {account.unrealizedGain !== null ? (
-            <UnrealizedGain
-              assetCode={assetCode ?? ''}
-              performance={account.performance}
-              value={account.unrealizedGain}
-            />
-          ) : detailed && account.securitiesValue !== null ? (
-            t('investments.table.unknownCost')
-          ) : (
-            dash(t('investments.table.gainNotCalculable'))
-          )}
+          <div className={styles.gainCell}>
+            {account.unrealizedGain !== null ? (
+              <UnrealizedGain
+                assetCode={assetCode ?? ''}
+                performance={account.performance}
+                value={account.unrealizedGain}
+              />
+            ) : account.knownCost ? (
+              <span className={styles.gainRow}>
+                <UnrealizedGain
+                  assetCode={assetCode ?? ''}
+                  performance={account.knownCost.performance}
+                  value={account.knownCost.unrealizedGain}
+                />
+                <PartialFigure
+                  assetCode={assetCode}
+                  figureLabel={`${t('investments.byAccount.gain')} (${account.label})`}
+                  figures={account.knownCost}
+                  placement="inline"
+                />
+              </span>
+            ) : detailed && account.securitiesValue !== null ? (
+              <NotComputable
+                figure={t('investments.notComputable.figure', {
+                  column: t('investments.byAccount.gain'),
+                  name: account.label,
+                })}
+                reason={t('investments.table.unknownCost')}
+              />
+            ) : (
+              dash(t('investments.table.gainNotCalculable'))
+            )}
+          </div>
         </td>
         <td className={styles.number} data-label={t('investments.byAccount.share')}>
           {account.share.percentDisplay === null
@@ -85,7 +109,7 @@ export function HoldingsByAccountRow({
             <button
               aria-expanded={open}
               aria-label={t('investments.byAccount.linesToggle', { name: account.label })}
-              className={`icon-button ${styles.chevron}`}
+              className={`icon-ghost ${styles.chevron}`}
               onClick={onToggle}
               type="button"
             >

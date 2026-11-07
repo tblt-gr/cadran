@@ -12,35 +12,42 @@ use App\Module\Portfolio\Domain\Valuation\ValuationDetail;
 /**
  * The "per account" reading of the holdings: one summary per account from its retained valuation, so an account
  * valued in total still shows its value. A LINES account sums its lines, hence the page never disagrees with itself.
+ *
+ * @phpstan-type SummaryLine array{instrument: array{id: string, name: string, isin: ?string, ticker: ?string, status: string, quantityPrecision: int}, instrumentType: string, quantity: string, value: ?string, costBasis: ?string, unrealizedGain: ?string, performance: ?string, priceDate: ?string, priceQuality: string}
+ * @phpstan-type Summary array{accountId: string, label: string, detail: string, valuedOn: ?string, securitiesValue: ?string, costBasis: ?string, unrealizedGain: ?string, performance: ?string, cash: ?string, share: array{ratio: ?string, percentDisplay: ?string, reason: ?string}, lines: list<SummaryLine>, knownCost: ?array<string, mixed>}
  */
 final class HoldingsAccountSummaries
 {
     /**
-     * @param list<HoldingsAccount>                                                                   $accounts
-     * @param list<array{accountId: string, label: string, reason: string, securitiesValue: ?string}> $unsplit
+     * @param list<HoldingsAccount> $accounts
      *
-     * @return list<array{accountId: string, label: string, detail: string, valuedOn: ?string, securitiesValue: ?string, costBasis: ?string, unrealizedGain: ?string, performance: ?string, cash: ?string, share: array{ratio: ?string, percentDisplay: ?string, reason: ?string}, lines: list<array<string, mixed>>}>
+     * @return list<Summary>
      */
-    public static function of(array $accounts, ?string $itemsSecurities, array $unsplit, bool $mixed): array
+    public static function figures(array $accounts, bool $mixed): array
     {
-        $denominator = $itemsSecurities;
-        foreach ($unsplit as $account) {
-            $denominator = null === $denominator || null === $account['securitiesValue'] ? null : ExactDecimal::addForResponse($denominator, $account['securitiesValue']);
-        }
-        $summaries = array_map(static fn (HoldingsAccount $account): array => self::summary($account, $mixed), $accounts);
-        $summaries = array_map(static fn (array $summary): array => [...$summary, 'share' => HoldingsShares::of($summary['securitiesValue'], $denominator, $mixed)], $summaries);
+        return array_map(static fn (HoldingsAccount $account): array => self::summary($account, $mixed), $accounts);
+    }
+
+    /**
+     * @param list<Summary> $figures
+     *
+     * @return list<Summary>
+     */
+    public static function withShares(array $figures, ?string $securitiesTotal, bool $mixed): array
+    {
+        $summaries = array_map(static fn (array $summary): array => [...$summary, 'share' => HoldingsShares::of($summary['securitiesValue'], $securitiesTotal, $mixed)], $figures);
         usort($summaries, static fn (array $left, array $right): int => HoldingsAggregator::nullsLast($left['securitiesValue'], $right['securitiesValue'])
             ?: HoldingsAggregator::labelKey($left['label']) <=> HoldingsAggregator::labelKey($right['label']) ?: strcmp($left['accountId'], $right['accountId']));
 
         return $summaries;
     }
 
-    /** @return array{accountId: string, label: string, detail: string, valuedOn: ?string, securitiesValue: ?string, costBasis: ?string, unrealizedGain: ?string, performance: ?string, cash: ?string, share: array{ratio: ?string, percentDisplay: ?string, reason: ?string}, lines: list<array<string, mixed>>} */
+    /** @return Summary */
     private static function summary(HoldingsAccount $account, bool $mixed): array
     {
         $valuation = $account->view?->valuation;
         $base = ['accountId' => $account->accountId, 'label' => $account->label, 'detail' => 'NONE', 'valuedOn' => null, 'securitiesValue' => null,
-            'costBasis' => null, 'unrealizedGain' => null, 'performance' => null, 'cash' => null, 'share' => HoldingsShares::of(null, null, $mixed), 'lines' => []];
+            'costBasis' => null, 'unrealizedGain' => null, 'performance' => null, 'cash' => null, 'share' => HoldingsShares::of(null, null, $mixed), 'lines' => [], 'knownCost' => null];
         if (null === $account->view || null === $valuation) {
             return $base;
         }
@@ -53,9 +60,14 @@ final class HoldingsAccountSummaries
             $cost = null;
         } elseif (ValuationDetail::TOTAL === $valuation->detail) {
             $base['detail'] = 'TOTAL';
-            $securities = $valuation->securitiesValue?->toString();
-            // A statement total is not scoped like positions: no cost, hence no gain.
-            $cost = null;
+            // The frozen securities and costs of the retained valuation, exactly as the accounts overview exposes them.
+            $overview = PortfolioUnrealizedGain::of($account->view);
+            $securities = $overview['securitiesValue'];
+            $cost = $overview['costBasis'];
+            // Without any frozen position the overview figure is a cost of zero, not a known cost: here it stays unknown.
+            if ([] === $valuation->positions && null !== $securities && !ExactDecimal::isZeroForResponse($securities)) {
+                $cost = null;
+            }
         } else {
             $base['detail'] = 'LINES';
             foreach ($valuation->positions as $position) {
@@ -73,8 +85,13 @@ final class HoldingsAccountSummaries
         }
         $gain = null !== $securities && null !== $cost ? ExactDecimal::subtractForResponse($securities, $cost) : null;
 
+        // Only beside an unknown full cost over known values: what is costed is shown apart, never as the total.
+        $known = 'LINES' === $base['detail'] && null === $cost && null !== $securities
+            ? HoldingsKnownCost::of(array_map(static fn (array $line): array => ['value' => $line['value'], 'cost' => $line['costBasis']], $lines))
+            : null;
+
         return [...$base, 'securitiesValue' => $securities, 'costBasis' => $cost, 'unrealizedGain' => $gain,
-            'performance' => PortfolioUnrealizedGain::performance($gain, $cost), 'lines' => $lines];
+            'performance' => PortfolioUnrealizedGain::performance($gain, $cost), 'lines' => $lines, 'knownCost' => $known];
     }
 
     /** @return array{instrument: array{id: string, name: string, isin: ?string, ticker: ?string, status: string, quantityPrecision: int}, instrumentType: string, quantity: string, value: ?string, costBasis: ?string, unrealizedGain: ?string, performance: ?string, priceDate: ?string, priceQuality: string} */

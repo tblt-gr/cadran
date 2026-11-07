@@ -1,51 +1,65 @@
 .summary {
   display: grid;
-  gap: var(--spacing-3);
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  min-width: 0;
   gap: var(--spacing-4);
 }
 
-.card {
+/* One column at 360 px, a 2x2 grid, then four columns; dividers stay local to the cells. */
+.strip {
   display: grid;
-  align-content: start;
-  min-width: 0;
-  gap: var(--spacing-2);
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
 }
 
-.card h3,
-.card p,
+.strip > * + * {
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
 .note {
   margin: var(--spacing-none);
-}
-
-.card h3 {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
-}
-
-.value {
-  font-size: var(--font-size-kpi);
-  font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-}
-
-.note {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-
-.block {
-  height: var(--font-size-kpi);
-  width: 60%;
 }
 
 .dateBlock {
-  height: var(--font-size-label);
+  display: block;
   width: 16rem;
   max-width: 100%;
+  height: var(--font-size-label);
+}
+
+@media (min-width: 36rem) {
+  .strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .strip > * + * {
+    padding-top: var(--spacing-none);
+    border-top: var(--border-none);
+  }
+
+  .strip > :nth-child(even) {
+    padding-left: var(--spacing-4);
+    border-left: var(--border-line-subtle);
+  }
+
+  .strip > :nth-child(n + 3) {
+    padding-top: var(--spacing-4);
+    border-top: var(--border-line-subtle);
+  }
+}
+
+@media (min-width: 64rem) {
+  .strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .strip > * + *,
+  .strip > :nth-child(n + 3) {
+    padding-top: var(--spacing-none);
+    padding-left: var(--spacing-4);
+    border-top: var(--border-none);
+    border-left: var(--border-line-subtle);
+  }
 }

@@ -2,7 +2,13 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { holdingsFixture, totalAccountSummary, unsplitAccount } from './holdingsFixture';
+import {
+  allTotalHoldings,
+  holdingsFixture,
+  knownCostFigures,
+  unsplitAccount,
+} from './holdingsFixture';
+import { expectExplanation } from '@/features/investments/explain-info/explanationDialog';
 import { InvestmentsPage } from './InvestmentsPage';
 
 const api = vi.hoisted(() => ({ readHoldings: vi.fn() }));
@@ -24,7 +30,7 @@ function renderPage() {
 }
 
 describe('InvestmentsPage', () => {
-  beforeEach(() => window.history.replaceState({}, '', '/investments'));
+  beforeEach(() => window.history.replaceState({}, '', '/investments?view=asset'));
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
@@ -39,7 +45,7 @@ describe('InvestmentsPage', () => {
         }),
     );
     renderPage();
-    expect(screen.getByText('Vos actifs, tous comptes confondus.')).toBeTruthy();
+    expect(screen.queryByText('Vos actifs, tous comptes confondus.')).toBeNull();
     expect(screen.getByRole('link', { name: 'Positions' })).toBeTruthy();
     const skeleton = screen.getByTestId('investments-skeleton');
     expect(skeleton.querySelectorAll('[role="status"]')).toHaveLength(1);
@@ -65,7 +71,7 @@ describe('InvestmentsPage', () => {
   });
 
   it('reads the order from the sort parameter and writes it back when a header is used', async () => {
-    window.history.replaceState({}, '', '/investments?sort=NAME_ASC');
+    window.history.replaceState({}, '', '/investments?view=asset&sort=NAME_ASC');
     api.readHoldings.mockImplementation(() => success(holdingsFixture()));
     renderPage();
     await screen.findByText('MSCI World');
@@ -77,7 +83,7 @@ describe('InvestmentsPage', () => {
     await waitFor(() =>
       expect(api.readHoldings.mock.calls.at(-1)![0].query).toEqual({ sort: 'GAIN_DESC' }),
     );
-    expect(window.location.search).toBe('?sort=GAIN_DESC');
+    expect(window.location.search).toBe('?view=asset&sort=GAIN_DESC');
   });
 
   it('keeps the rows and the opened details while another order is read', async () => {
@@ -96,29 +102,79 @@ describe('InvestmentsPage', () => {
     expect(screen.getByRole('link', { name: 'PEA' })).toBeTruthy();
   });
 
-  it('switches to the account view through the view parameter and keeps the sort', async () => {
+  it('shows the known-cost figures as the gain and cost card values', async () => {
+    const base = holdingsFixture();
+    api.readHoldings.mockImplementation(() =>
+      success(holdingsFixture({ totals: { ...base.totals, knownCost: knownCostFigures } })),
+    );
+    renderPage();
+    await screen.findAllByRole('button', { name: /calculé sur une partie des positions/ });
+    const card = screen.getByRole('heading', { name: 'Plus-value latente' }).closest('article')!;
+    expect(within(card).getByText(/\+2\s454,65/)).toBeTruthy();
+    expect(within(card).getByText('(+6,15 %)')).toBeTruthy();
+    expect(within(card).queryByText(/Plus-value non calculable/)).toBeNull();
+    const cost = screen.getByRole('heading', { name: 'Prix de revient' }).closest('article')!;
+    expect(within(cost).getByText(/39\s887,16/)).toBeTruthy();
+    await expectExplanation(
+      within(card).getByRole('button', {
+        name: 'Expliquer : Plus-value latente calculé sur une partie des positions',
+      }),
+      'Plus-value latente',
+      /1 position sans coût exclue \(1\s239,00\s€\)/,
+    );
+  });
+
+  it('puts the view control first, before the summary cards, loaded or not', async () => {
+    api.readHoldings.mockImplementation(() => success(holdingsFixture()));
+    renderPage();
+    const before = (control: HTMLElement) =>
+      control.compareDocumentPosition(screen.getByText('Valeur des titres')) &
+      Node.DOCUMENT_POSITION_FOLLOWING;
+    expect(before(screen.getByRole('group', { name: 'Affichage des positions' }))).toBeTruthy();
+    await screen.findByText('MSCI World');
+    expect(before(screen.getByRole('group', { name: 'Affichage des positions' }))).toBeTruthy();
+  });
+
+  it('opens on the account view by default, whatever an invalid view parameter says', async () => {
+    api.readHoldings.mockImplementation(() => success(holdingsFixture()));
+    for (const url of ['/investments', '/investments?view=bogus']) {
+      window.history.replaceState({}, '', url);
+      const { unmount } = renderPage();
+      expect(await screen.findByRole('link', { name: 'CTO' })).toBeTruthy();
+      const segments = screen
+        .getByRole('group', { name: 'Affichage des positions' })
+        .querySelectorAll('button');
+      expect([...segments].map((button) => button.textContent)).toEqual([
+        'Par compte',
+        'Par actif',
+      ]);
+      expect(screen.getByRole('button', { name: 'Par compte' }).getAttribute('aria-pressed')).toBe(
+        'true',
+      );
+      expect(screen.queryByRole('table', { name: 'Positions par actif' })).toBeNull();
+      unmount();
+    }
+  });
+
+  it('switches views through the view parameter and keeps the sort', async () => {
     window.history.replaceState({}, '', '/investments?sort=GAIN_DESC');
     api.readHoldings.mockImplementation(() => success(holdingsFixture()));
     renderPage();
-    await screen.findByText('MSCI World');
-    expect(screen.getByRole('button', { name: 'Par actif' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
-    expect(screen.queryByRole('table', { name: 'Positions par compte' })).toBeNull();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
-    expect(screen.getByRole('table', { name: 'Positions par compte' })).toBeTruthy();
-    expect(screen.queryByRole('table', { name: 'Positions par actif' })).toBeNull();
-    expect(window.location.search).toBe('?sort=GAIN_DESC&view=account');
-    expect(api.readHoldings).toHaveBeenCalledTimes(1);
+    await screen.findByRole('link', { name: 'CTO' });
 
     fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
-    expect(window.location.search).toBe('?sort=GAIN_DESC');
     expect(screen.getByRole('table', { name: 'Positions par actif' })).toBeTruthy();
+    expect(screen.queryByRole('table', { name: 'Positions par compte' })).toBeNull();
+    expect(window.location.search).toBe('?sort=GAIN_DESC&view=asset');
+    expect(api.readHoldings).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    expect(window.location.search).toBe('?sort=GAIN_DESC');
+    expect(screen.getByRole('table', { name: 'Positions par compte' })).toBeTruthy();
   });
 
-  it('opens on the account view from the URL and shows the unsplit notice only by asset', async () => {
-    window.history.replaceState({}, '', '/investments?view=account');
+  it('shows the unsplit notice only in the asset view', async () => {
+    window.history.replaceState({}, '', '/investments');
     api.readHoldings.mockImplementation(() =>
       success(holdingsFixture({ unsplitAccounts: [unsplitAccount] })),
     );
@@ -129,27 +185,32 @@ describe('InvestmentsPage', () => {
     expect(screen.getByText(/est valorisé en total : ses titres/)).toBeTruthy();
   });
 
-  it('keeps the view control reachable when only accounts valued as a total are held', async () => {
-    api.readHoldings.mockImplementation(() =>
-      success(
-        holdingsFixture({
-          items: [],
-          warnings: [],
-          unsplitAccounts: [unsplitAccount],
-          accounts: [totalAccountSummary],
-        }),
-      ),
-    );
+  it('fills the cards and the donut by account when only accounts valued as a total are held', async () => {
+    window.history.replaceState({}, '', '/investments');
+    api.readHoldings.mockImplementation(() => success(allTotalHoldings()));
     renderPage();
-    expect(await screen.findByText('Aucune position détenue')).toBeTruthy();
-    expect(screen.getByText(/Assurance vie est valorisé en total/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    expect(await screen.findByText('Valorisation en total : titres non détaillés')).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Positions par compte' })).toBeTruthy();
-    expect(screen.getByText('Valorisation en total : titres non détaillés')).toBeTruthy();
+    const panel = screen.getByRole('region', { name: 'Synthèse des positions' });
+    expect(within(panel).getByText(/800,00/)).toBeTruthy();
+    expect(
+      within(panel).getByRole('button', { name: 'Expliquer : Plus-value latente non calculable' }),
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Compte' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    const legend = screen.getByRole('table', { name: 'Répartition des titres' });
+    expect(within(legend).getByText('Assurance vie')).toBeTruthy();
+    expect(screen.queryByText('Aucune position détenue')).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    expect(screen.getByText('Aucune position détenue')).toBeTruthy();
+    expect(screen.getByText(/Assurance vie est valorisé en total/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Par compte' })).toBeTruthy();
   });
 
   it('shows the view control as real disabled buttons while loading', () => {
-    window.history.replaceState({}, '', '/investments?view=account');
+    window.history.replaceState({}, '', '/investments');
     api.readHoldings.mockImplementation(() => new Promise(() => undefined));
     renderPage();
     const skeleton = screen.getByTestId('investments-skeleton');
@@ -160,7 +221,7 @@ describe('InvestmentsPage', () => {
   });
 
   it('ignores an unknown sort parameter', async () => {
-    window.history.replaceState({}, '', '/investments?sort=DROP');
+    window.history.replaceState({}, '', '/investments?view=asset&sort=DROP');
     api.readHoldings.mockImplementation(() => success(holdingsFixture()));
     renderPage();
     await screen.findByText('MSCI World');
@@ -198,6 +259,7 @@ describe('InvestmentsPage', () => {
             cash: null,
             totalValue: null,
             reason: 'NO_VALUATION',
+            knownCost: null,
           },
         }),
       ),
@@ -224,6 +286,7 @@ describe('InvestmentsPage', () => {
             cash: '10.00',
             totalValue: '810.00',
             reason: null,
+            knownCost: null,
           },
         }),
       ),

@@ -228,6 +228,21 @@ export type Holding = {
     accounts: Array<HoldingAccountLine>;
 };
 
+/**
+ * Figures over the positions whose cost AND value are both known, published beside a null full cost (`UNKNOWN_LOT_COST`). They are never the total: `excludedCount` positions (value `excludedValue`) are left out.
+ */
+export type HoldingsKnownCostFigures = {
+    securitiesValue: HoldingsDecimal;
+    costBasis: HoldingsDecimal;
+    unrealizedGain: HoldingsDecimal;
+    performance: HoldingsNullableDecimal;
+    excludedCount: number;
+    /**
+     * Sum of the values of the excluded positions, null when one of them is unknown.
+     */
+    excludedValue: HoldingsNullableDecimal;
+};
+
 export type HoldingsTotals = {
     securitiesValue: HoldingsNullableDecimal;
     costBasis: HoldingsNullableDecimal;
@@ -236,6 +251,10 @@ export type HoldingsTotals = {
     cash: HoldingsNullableDecimal;
     totalValue: HoldingsNullableDecimal;
     reason: 'MIXED_ASSETS' | 'UNKNOWN_LOT_COST' | 'MISSING_PRICE' | 'NO_VALUATION' | null;
+    /**
+     * Present only beside a null full cost, when at least one position has both a known cost and a known value.
+     */
+    knownCost: HoldingsKnownCostFigures | null;
 };
 
 export type HoldingAllocationSlice = {
@@ -283,6 +302,10 @@ export type HoldingsAccountSummary = {
     performance: HoldingsNullableDecimal;
     cash: HoldingsNullableDecimal;
     share: HoldingsShare;
+    /**
+     * Present only beside a null full cost, when at least one position has both a known cost and a known value.
+     */
+    knownCost: HoldingsKnownCostFigures | null;
     lines: Array<HoldingsAccountSummaryLine>;
 };
 
@@ -299,9 +322,16 @@ export type Holdings = {
     totals: HoldingsTotals;
     items: Array<Holding>;
     allocation: {
+        /**
+         * One slice per instrument, plus `UNSPLIT` ("Comptes valorisés en total") when accounts valued in total hold securities.
+         */
         byInstrument: Array<HoldingAllocationSlice>;
         byAssetClass: Array<HoldingAllocationSlice>;
         byRegion: Array<HoldingAllocationSlice>;
+        /**
+         * One slice per account whose securities value is known and positive, value descending, then label.
+         */
+        byAccount: Array<HoldingAllocationSlice>;
     };
     unsplitAccounts: Array<HoldingsUnsplitAccount>;
     /**

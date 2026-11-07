@@ -1,6 +1,6 @@
 import type { HoldingsAccountSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { NotComputable } from '@/features/investments/explain-info/NotComputable';
 import { holdingsInstrumentLine, holdingsMoney } from '@/features/investments/holdingsFormat';
 import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
 import { formatDecimal } from '@/lib/decimal';
@@ -28,13 +28,21 @@ export function AccountLinesRows({
         {formatDecimal(line.quantity, 'fr')}
       </td>
       <td className={styles.number} data-label={t('investments.byAccount.securities')}>
-        {line.value !== null
-          ? holdingsMoney(line.value, assetCode)
-          : t(
+        {line.value !== null ? (
+          holdingsMoney(line.value, assetCode)
+        ) : (
+          <NotComputable
+            figure={t('investments.notComputable.figure', {
+              column: t('investments.byAccount.securities'),
+              name: `${line.instrument.name}, ${account.label}`,
+            })}
+            reason={t(
               assetCode === null
                 ? 'investments.summary.mixedAssets'
                 : 'investments.table.missingPrice',
             )}
+          />
+        )}
       </td>
       <td className={styles.number} colSpan={3} data-label={t('investments.byAccount.gain')}>
         {line.unrealizedGain !== null ? (
@@ -43,10 +51,18 @@ export function AccountLinesRows({
             performance={line.performance}
             value={line.unrealizedGain}
           />
-        ) : line.value !== null ? (
-          t('investments.table.unknownCost')
         ) : (
-          <EmptyValue label={t('investments.table.gainNotCalculable')} />
+          <NotComputable
+            figure={t('investments.notComputable.figure', {
+              column: t('investments.byAccount.gain'),
+              name: `${line.instrument.name}, ${account.label}`,
+            })}
+            reason={t(
+              line.value !== null
+                ? 'investments.table.unknownCost'
+                : 'investments.table.gainNotCalculable',
+            )}
+          />
         )}
       </td>
     </tr>

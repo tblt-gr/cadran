@@ -8,7 +8,7 @@
 
 .panel table {
   width: 100%;
-  min-width: 56rem;
+  min-width: 60rem;
   border-collapse: collapse;
 }
 
@@ -43,6 +43,7 @@
 
 .number {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .name,
@@ -87,6 +88,11 @@
 
 .chevron[aria-expanded='true'] {
   transform: rotate(90deg);
+}
+
+/* Icon only: no fill, no border; the shared focus ring and colour hover remain. */
+.chevron {
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .toggle {

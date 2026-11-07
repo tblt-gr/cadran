@@ -16,7 +16,7 @@ export function parseHoldingsSort(value: string | null): HoldingsSort {
 export type HoldingsViewMode = 'asset' | 'account';
 
 export function parseHoldingsView(value: string | null): HoldingsViewMode {
-  return value === 'account' ? 'account' : 'asset';
+  return value === 'asset' ? 'asset' : 'account';
 }
 
 /** One read of every holding. The key stays under `holdings`, which every portfolio write invalidates. */

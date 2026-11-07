@@ -43,6 +43,7 @@
 
 .number {
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .name,
@@ -76,6 +77,11 @@
 
 .chevron[aria-expanded='true'] {
   transform: rotate(90deg);
+}
+
+/* Icon only: no fill, no border; the shared focus ring and colour hover remain. */
+.chevron {
+  transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .toggle {
@@ -149,4 +155,17 @@
     justify-content: flex-end;
     width: auto;
   }
+}
+
+.gainCell {
+  display: grid;
+  min-width: 0;
+  gap: var(--spacing-1);
+}
+
+.gainRow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
 }

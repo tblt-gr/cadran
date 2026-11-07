@@ -91,7 +91,7 @@ export function HoldingsTable({ holdings, sort, onSortChange }: HoldingsTablePro
                       </td>
                     ))}
                     <td className={styles.toggle}>
-                      <button className={`icon-button ${styles.chevron}`} disabled type="button">
+                      <button className={`icon-ghost ${styles.chevron}`} disabled type="button">
                         <Icon name="chevron-right" size={14} />
                       </button>
                     </td>

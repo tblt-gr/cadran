@@ -9557,10 +9557,43 @@ components:
           maxItems: 50
           items:
             $ref: '#/components/schemas/HoldingAccountLine'
+    HoldingsKnownCostFigures:
+      description: >-
+        Figures over the positions whose cost AND value are both known, published beside a null full cost
+        (`UNKNOWN_LOT_COST`). They are never the total: `excludedCount` positions (value `excludedValue`) are left out.
+      type: object
+      additionalProperties: false
+      required:
+        [securitiesValue, costBasis, unrealizedGain, performance, excludedCount, excludedValue]
+      properties:
+        securitiesValue:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        excludedCount:
+          type: integer
+          minimum: 1
+        excludedValue:
+          description: Sum of the values of the excluded positions, null when one of them is unknown.
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
     HoldingsTotals:
       type: object
       additionalProperties: false
-      required: [securitiesValue, costBasis, unrealizedGain, performance, cash, totalValue, reason]
+      required:
+        [
+          securitiesValue,
+          costBasis,
+          unrealizedGain,
+          performance,
+          cash,
+          totalValue,
+          reason,
+          knownCost,
+        ]
       properties:
         securitiesValue:
           $ref: '#/components/schemas/HoldingsNullableDecimal'
@@ -9577,6 +9610,11 @@ components:
         reason:
           type: [string, 'null']
           enum: [MIXED_ASSETS, UNKNOWN_LOT_COST, MISSING_PRICE, NO_VALUATION, null]
+        knownCost:
+          description: Present only beside a null full cost, when at least one position has both a known cost and a known value.
+          oneOf:
+            - $ref: '#/components/schemas/HoldingsKnownCostFigures'
+            - type: 'null'
     HoldingAllocationSlice:
       type: object
       additionalProperties: false
@@ -9674,6 +9712,7 @@ components:
           cash,
           share,
           lines,
+          knownCost,
         ]
       properties:
         accountId:
@@ -9699,6 +9738,11 @@ components:
           $ref: '#/components/schemas/HoldingsNullableDecimal'
         share:
           $ref: '#/components/schemas/HoldingsShare'
+        knownCost:
+          description: Present only beside a null full cost, when at least one position has both a known cost and a known value.
+          oneOf:
+            - $ref: '#/components/schemas/HoldingsKnownCostFigures'
+            - type: 'null'
         lines:
           type: array
           maxItems: 500
@@ -9753,21 +9797,28 @@ components:
         allocation:
           type: object
           additionalProperties: false
-          required: [byInstrument, byAssetClass, byRegion]
+          required: [byInstrument, byAssetClass, byRegion, byAccount]
           properties:
             byInstrument:
               type: array
-              maxItems: 1000
+              maxItems: 1001
+              description: One slice per instrument, plus `UNSPLIT` ("Comptes valorisés en total") when accounts valued in total hold securities.
               items:
                 $ref: '#/components/schemas/HoldingAllocationSlice'
             byAssetClass:
               type: array
-              maxItems: 8
+              maxItems: 9
               items:
                 $ref: '#/components/schemas/HoldingAllocationSlice'
             byRegion:
               type: array
-              maxItems: 8
+              maxItems: 9
+              items:
+                $ref: '#/components/schemas/HoldingAllocationSlice'
+            byAccount:
+              description: One slice per account whose securities value is known and positive, value descending, then label.
+              type: array
+              maxItems: 50
               items:
                 $ref: '#/components/schemas/HoldingAllocationSlice'
         unsplitAccounts:

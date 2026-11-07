@@ -67,8 +67,18 @@ final class PortfolioOverviewOpenApiContractTest extends TestCase
         self::assertSame(50, self::map($properties['unsplitAccounts'])['maxItems']);
         self::assertSame(50, self::map($properties['accounts'])['maxItems']);
         self::assertSame(500, self::map(self::map(self::map($schemas['HoldingsAccountSummary'])['properties'])['lines'])['maxItems']);
-        foreach (['Holding', 'HoldingAccountLine', 'HoldingsTotals', 'HoldingAllocationSlice', 'HoldingsShare', 'HoldingsAccountSummary', 'HoldingsAccountSummaryLine'] as $schema) {
+        foreach (['Holding', 'HoldingAccountLine', 'HoldingsTotals', 'HoldingAllocationSlice', 'HoldingsShare', 'HoldingsAccountSummary', 'HoldingsAccountSummaryLine', 'HoldingsKnownCostFigures', 'HoldingsTotals'] as $schema) {
             self::assertFalse(self::map($schemas[$schema])['additionalProperties'], $schema);
+        }
+        $allocation = self::map($properties['allocation']);
+        self::assertSame(['byInstrument', 'byAssetClass', 'byRegion', 'byAccount'], $allocation['required']);
+        self::assertFalse($allocation['additionalProperties']);
+        self::assertSame(50, self::map(self::map($allocation['properties'])['byAccount'])['maxItems']);
+        self::assertSame(['securitiesValue', 'costBasis', 'unrealizedGain', 'performance', 'excludedCount', 'excludedValue'], self::map($schemas['HoldingsKnownCostFigures'])['required']);
+        foreach (['HoldingsTotals', 'HoldingsAccountSummary'] as $schema) {
+            $required = self::map($schemas[$schema])['required'];
+            self::assertIsArray($required);
+            self::assertContains('knownCost', $required, $schema);
         }
         $amount = self::map($schemas['HoldingsNullableDecimal']);
         self::assertSame(['string', 'null'], $amount['type']);

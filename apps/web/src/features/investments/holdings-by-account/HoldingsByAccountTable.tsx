@@ -70,7 +70,7 @@ export function HoldingsByAccountTable({ holdings }: { holdings: Holdings | null
                       </td>
                     ))}
                     <td className={styles.toggle}>
-                      <button className={`icon-button ${styles.chevron}`} disabled type="button">
+                      <button className={`icon-ghost ${styles.chevron}`} disabled type="button">
                         <Icon name="chevron-right" size={14} />
                       </button>
                     </td>

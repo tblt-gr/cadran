@@ -19,29 +19,41 @@ export function KpiFigure({
   note,
   reason,
   size,
-  onExplain,
+  onExplain = null,
+  extra,
+  reserveCorner = false,
 }: {
   label: string;
-  explainLabel: string;
+  /** Without it the figure has no explain button. */
+  explainLabel?: string;
   /** `null` while loading: only the value becomes a block. */
   value: ReactNode | null;
   tone?: string;
   note?: string;
   reason?: string;
   size: 'display' | 'lead' | 'compact';
-  onExplain: (() => void) | null;
+  onExplain?: (() => void) | null;
+  /** Content after the value, such as a button pinned in the corner by its own class. */
+  extra?: ReactNode;
+  /** Keeps the top-right corner free for a pinned button. */
+  reserveCorner?: boolean;
 }) {
   return (
-    <article className={`${styles.figure} ${sizes[size]}`}>
+    <article
+      className={`${styles.figure} ${sizes[size]} ${reserveCorner ? styles.reserveCorner : ''}`.trim()}
+    >
       <div className={styles.heading}>
         <h3>{label}</h3>
-        <InfoButton disabled={!onExplain} label={explainLabel} onClick={onExplain ?? undefined} />
+        {explainLabel === undefined ? null : (
+          <InfoButton disabled={!onExplain} label={explainLabel} onClick={onExplain ?? undefined} />
+        )}
       </div>
       <div className={`${styles.value} ${tone}`}>
         {value ?? <SkeletonBlock className={styles.valueSkeleton} />}
       </div>
       {note ? <p className={styles.note}>{note}</p> : null}
       {reason ? <StatusBadge tone="warning">{reason}</StatusBadge> : null}
+      {extra}
     </article>
   );
 }

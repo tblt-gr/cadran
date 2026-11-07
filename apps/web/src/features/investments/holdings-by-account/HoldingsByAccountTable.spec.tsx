@@ -1,7 +1,12 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
-import { holdingsFixture, totalAccountSummary } from '@/features/investments/holdingsFixture';
+import {
+  holdingsFixture,
+  knownCostFigures,
+  totalAccountSummary,
+} from '@/features/investments/holdingsFixture';
+import { expectExplanation } from '@/features/investments/explain-info/explanationDialog';
 import { HoldingsByAccountTable } from './HoldingsByAccountTable';
 
 afterEach(cleanup);
@@ -42,7 +47,7 @@ describe('HoldingsByAccountTable', () => {
     expect(within(pea).getByText('31 octobre 2026')).toBeTruthy();
   });
 
-  it('discloses the lines of a detailed account with the not-computable texts', () => {
+  it('discloses the lines of a detailed account with an explained dash for the unknown cost', async () => {
     render(<HoldingsByAccountTable holdings={holdingsFixture()} />);
     const toggle = screen.getByRole('button', { name: /Détail par actif : CTO/ });
     expect(toggle.getAttribute('aria-expanded')).toBe('false');
@@ -51,8 +56,13 @@ describe('HoldingsByAccountTable', () => {
     expect(toggle.getAttribute('aria-expanded')).toBe('true');
     expect(screen.getByText('IE00B4L5Y983 · ETF')).toBeTruthy();
     expect(screen.getByText('A · Action')).toBeTruthy();
-    expect(screen.getAllByText("Plus-value non calculable : coût d'origine inconnu")).toHaveLength(
-      2,
+    expect(screen.queryByText(/Plus-value non calculable/)).toBeNull();
+    await expectExplanation(
+      screen.getByRole('button', {
+        name: 'Expliquer : Plus-value latente (Action A, CTO) non calculable',
+      }),
+      'Plus-value latente (Action A, CTO)',
+      "Plus-value non calculable : coût d'origine inconnu",
     );
     expect(screen.getByText(/\+30,00/)).toBeTruthy();
     const quantity = screen.getByText('20').closest('td')!;
@@ -61,7 +71,7 @@ describe('HoldingsByAccountTable', () => {
     expect(screen.queryByText('A · Action')).toBeNull();
   });
 
-  it('tells a missing price and mixed units in place of the line value, never zero', () => {
+  it('explains a missing price and mixed units in a modal instead of the line value, never zero', async () => {
     const base = holdingsFixture();
     const cto = base.accounts[0]!;
     const { rerender } = render(
@@ -73,7 +83,14 @@ describe('HoldingsByAccountTable', () => {
       />,
     );
     fireEvent.click(screen.getByRole('button', { name: /Détail par actif/ }));
-    expect(screen.getByText('Valeur non calculable : cours manquant')).toBeTruthy();
+    expect(screen.queryByText('Valeur non calculable : cours manquant')).toBeNull();
+    await expectExplanation(
+      screen.getByRole('button', {
+        name: /Expliquer : Valeur des titres \(.*CTO\) non calculable/,
+      }),
+      /Valeur des titres \(.*CTO\)/,
+      'Valeur non calculable : cours manquant',
+    );
     rerender(
       <HoldingsByAccountTable
         holdings={{
@@ -90,9 +107,13 @@ describe('HoldingsByAccountTable', () => {
         }}
       />,
     );
-    expect(
-      screen.getByText('Totaux non calculés : les comptes utilisent plusieurs unités.'),
-    ).toBeTruthy();
+    await expectExplanation(
+      screen.getByRole('button', {
+        name: /Expliquer : Valeur des titres \(.*CTO\) non calculable/,
+      }),
+      /Valeur des titres \(.*CTO\)/,
+      'Totaux non calculés : les comptes utilisent plusieurs unités.',
+    );
   });
 
   it('names an account valued as a total without a disclosure and links the detailed entry', () => {
@@ -134,6 +155,52 @@ describe('HoldingsByAccountTable', () => {
     expect(none.className).toMatch(/greyed/);
     expect(within(none).queryByText(/^0/)).toBeNull();
     expect(within(none).getAllByText('-').length).toBeGreaterThan(0);
+  });
+
+  it('shows the known-cost gain as the account gain with its modal explanation', async () => {
+    const base = holdingsFixture();
+    render(
+      <HoldingsByAccountTable
+        holdings={{
+          ...base,
+          accounts: [{ ...base.accounts[0]!, knownCost: knownCostFigures }, base.accounts[1]!],
+        }}
+      />,
+    );
+    const cto = rowOf('CTO');
+    const gainCell = within(cto)
+      .getByRole('button', {
+        name: 'Expliquer : Plus-value latente (CTO) calculé sur une partie des positions',
+      })
+      .closest('td')!;
+    expect(gainCell.getAttribute('data-label')).toBe('Plus-value latente');
+    expect(within(gainCell).getByText(/\+2\s454,65/)).toBeTruthy();
+    expect(within(gainCell).getByText('(+6,15 %)')).toBeTruthy();
+    expect(within(gainCell).queryByText(/Plus-value non calculable/)).toBeNull();
+    await expectExplanation(
+      within(gainCell).getByRole('button', {
+        name: 'Expliquer : Plus-value latente (CTO) calculé sur une partie des positions',
+      }),
+      'Plus-value latente (CTO)',
+      /1 position sans coût exclue/,
+    );
+    // One grid child, so the stacked mobile layout keeps its label column.
+    expect(gainCell.children).toHaveLength(1);
+    expect(
+      within(rowOf('PEA')).queryByRole('button', { name: /calculé sur une partie des positions/ }),
+    ).toBeNull();
+  });
+
+  it('keeps a dash and its explanation on an account without known-cost figures', async () => {
+    render(<HoldingsByAccountTable holdings={holdingsFixture()} />);
+    expect(within(rowOf('CTO')).queryByText(/Plus-value non calculable/)).toBeNull();
+    await expectExplanation(
+      within(rowOf('CTO')).getByRole('button', {
+        name: 'Expliquer : Plus-value latente (CTO) non calculable',
+      }),
+      'Plus-value latente (CTO)',
+      "Plus-value non calculable : coût d'origine inconnu",
+    );
   });
 
   it('labels every cell for the stacked mobile layout', () => {

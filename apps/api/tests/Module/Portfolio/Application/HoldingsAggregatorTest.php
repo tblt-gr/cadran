@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Application\HoldingsAccount;
 use App\Module\Portfolio\Application\HoldingsAggregator;
+use App\Module\Portfolio\Application\HoldingsKnownCost;
 use App\Module\Portfolio\Application\HoldingsTooLarge;
 use App\Module\Portfolio\Application\ValuationView;
 use App\Module\Portfolio\Domain\AssetClass;
@@ -112,7 +113,7 @@ final class HoldingsAggregatorTest extends TestCase
 
     public function testThePerAccountViewMatchesTheWorkedExampleAndAddsATotalValuedAccount(): void
     {
-        $av = self::account('00000000-0000-7000-8000-0000000000c3', 'Assurance-vie', '2026-11-01', '10.00', [], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $av = self::account('00000000-0000-7000-8000-0000000000c3', 'Assurance-vie', '2026-11-01', '10.00', [self::line(self::A, '1', null, null, '450.00')], detail: ValuationDetail::TOTAL, securities: '500.00');
         $result = HoldingsAggregator::aggregate([...self::example(), $av], self::day('2026-11-04'), 'NAME_ASC', false);
 
         $accounts = self::list($result['accounts']);
@@ -135,8 +136,9 @@ final class HoldingsAggregatorTest extends TestCase
         self::assertSame('33.22', self::map($pea['share'])['percentDisplay']);
         self::assertSame('TOTAL', $total['detail']);
         self::assertSame('500.00', $total['securitiesValue']);
-        self::assertNull($total['costBasis']);
-        self::assertNull($total['unrealizedGain']);
+        self::assertSame('450.00', $total['costBasis']);
+        self::assertSame('50.00', $total['unrealizedGain']);
+        self::assertSame('0.111111', $total['performance']);
         self::assertSame([], $total['lines']);
 
         $totals = self::map($result['totals']);
@@ -200,10 +202,17 @@ final class HoldingsAggregatorTest extends TestCase
         }
     }
 
-    public function testATotalAccountNeverCarriesACostEvenWhenPositionsAreFrozen(): void
+    public function testATotalAccountCarriesItsFrozenCostAndNullWhenItIsUnknown(): void
     {
-        $total = self::account(self::PEA, 'AV', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $total = self::account(self::PEA, 'AV', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5.00')], detail: ValuationDetail::TOTAL, securities: '500.00');
         $account = self::list(HoldingsAggregator::aggregate([$total], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts'])[0];
+        self::assertSame('500.00', $account['securitiesValue']);
+        self::assertSame('5.00', $account['costBasis']);
+        self::assertSame('495.00', $account['unrealizedGain']);
+        self::assertSame('99.000000', $account['performance']);
+
+        $unknown = self::account(self::PEA, 'AV', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', null)], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $account = self::list(HoldingsAggregator::aggregate([$unknown], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts'])[0];
         self::assertSame('500.00', $account['securitiesValue']);
         self::assertNull($account['costBasis']);
         self::assertNull($account['unrealizedGain']);
@@ -243,6 +252,105 @@ final class HoldingsAggregatorTest extends TestCase
         self::assertSame([], HoldingsAggregator::aggregate([], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']);
     }
 
+    public function testTheKnownCostFiguresSitBesideTheNullTotalOfTheWorkedExample(): void
+    {
+        $result = HoldingsAggregator::aggregate(self::example(), self::day('2026-11-04'), 'VALUE_DESC', false);
+        $totals = self::map($result['totals']);
+        self::assertNull($totals['costBasis']);
+        self::assertSame('UNKNOWN_LOT_COST', $totals['reason']);
+        self::assertSame([
+            'securitiesValue' => '1510.00', 'costBasis' => '1380.00', 'unrealizedGain' => '130.00', 'performance' => '0.094203',
+            'excludedCount' => 1, 'excludedValue' => '1000.00',
+        ], $totals['knownCost']);
+        $accounts = self::list($result['accounts']);
+        self::assertSame(['CTO', 'PEA'], array_column($accounts, 'label'));
+        self::assertSame([
+            'securitiesValue' => '510.00', 'costBasis' => '480.00', 'unrealizedGain' => '30.00', 'performance' => '0.062500',
+            'excludedCount' => 1, 'excludedValue' => '1000.00',
+        ], $accounts[0]['knownCost']);
+        // PEA knows its full cost: nothing to put beside it.
+        self::assertNull($accounts[1]['knownCost']);
+    }
+
+    public function testNothingKnownMeansNoKnownCostFigures(): void
+    {
+        $pea = self::account(self::PEA, 'PEA', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', null), self::line(self::A, '1', '10', '10', null)]);
+        $result = HoldingsAggregator::aggregate([$pea], self::day('2026-11-04'), 'VALUE_DESC', false);
+        self::assertSame('UNKNOWN_LOT_COST', self::map($result['totals'])['reason']);
+        self::assertNull(self::map($result['totals'])['knownCost']);
+        self::assertNull(self::list($result['accounts'])[0]['knownCost']);
+        // Everything known: no known-cost figures either.
+        self::assertNull(self::map(HoldingsAggregator::aggregate([self::account(self::PEA, 'PEA', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')])], self::day('2026-11-04'), 'VALUE_DESC', false)['totals'])['knownCost']);
+    }
+
+    public function testAnUnknownExcludedValueMakesTheExcludedValueNull(): void
+    {
+        $known = HoldingsKnownCost::of([
+            ['value' => '100.00', 'cost' => '80.00'],
+            ['value' => null, 'cost' => '50.00'],
+            ['value' => '30.00', 'cost' => null],
+        ]);
+        self::assertSame(['securitiesValue' => '100.00', 'costBasis' => '80.00', 'unrealizedGain' => '20.00', 'performance' => '0.250000', 'excludedCount' => 2, 'excludedValue' => null], $known);
+        self::assertNull(HoldingsKnownCost::of([['value' => null, 'cost' => null]]));
+    }
+
+    public function testTotalAccountsAreOneBlockIncludedWhenCostedAndExcludedWhenBare(): void
+    {
+        $costed = self::account(self::PEA, 'Chiffre', '2026-11-03', '0', [self::line(self::W, '1', null, null, '450.00')], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $bare = self::account(self::CTO, 'Nu', '2026-11-03', '0', [], detail: ValuationDetail::TOTAL, securities: '700.00');
+        $totals = self::map(HoldingsAggregator::aggregate([$costed, $bare], self::day('2026-11-04'), 'VALUE_DESC', false)['totals']);
+        self::assertSame('UNKNOWN_LOT_COST', $totals['reason']);
+        self::assertSame([
+            'securitiesValue' => '500.00', 'costBasis' => '450.00', 'unrealizedGain' => '50.00', 'performance' => '0.111111',
+            'excludedCount' => 1, 'excludedValue' => '700.00',
+        ], $totals['knownCost']);
+        // A total-valued account has no lines of its own: no per-account figures.
+        $accounts = self::list(HoldingsAggregator::aggregate([$costed, $bare], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']);
+        self::assertNull($accounts[0]['knownCost']);
+        self::assertNull($accounts[1]['knownCost']);
+    }
+
+    public function testMixedAssetsHaveNoKnownCostFigures(): void
+    {
+        $pea = self::account(self::PEA, 'PEA', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5'), self::line(self::A, '1', '10', '10', null)]);
+        $btc = self::account(self::CTO, 'Crypto', '2026-11-03', '0', [self::line(self::A, '1', '10', '10', '5')], asset: 'BTC');
+        $result = HoldingsAggregator::aggregate([$pea, $btc], self::day('2026-11-04'), 'VALUE_DESC', false);
+        self::assertNull(self::map($result['totals'])['knownCost']);
+        foreach (self::list($result['accounts']) as $account) {
+            self::assertNull($account['knownCost']);
+        }
+    }
+
+    public function testAPartialAccountWithKnownSecuritiesIsAnExcludedEntryOfTheKnownCostFigures(): void
+    {
+        $a = self::account(self::PEA, 'A', '2026-11-03', '0', [self::line(self::W, '1', '1000.00', '1000.00', '800.00')]);
+        $b = self::account(self::CTO, 'B', '2026-11-03', '0', [self::line(self::A, '1', '500.00', '500.00', null)]);
+        $partial = new HoldingsAccount('00000000-0000-7000-8000-0000000000c3', 'P', 'EUR', self::view(
+            '00000000-0000-7000-8000-0000000000c3', '2026-11-02', '0', [], ValuationDetail::POSITIONS, ValuationCompleteness::PARTIAL, '400.00',
+        ));
+        $result = HoldingsAggregator::aggregate([$a, $b, $partial], self::day('2026-11-04'), 'VALUE_DESC', false);
+        $totals = self::map($result['totals']);
+        self::assertSame('1900.00', $totals['securitiesValue']);
+        self::assertNull($totals['costBasis']);
+        self::assertSame('UNKNOWN_LOT_COST', $totals['reason']);
+        self::assertSame([
+            'securitiesValue' => '1000.00', 'costBasis' => '800.00', 'unrealizedGain' => '200.00', 'performance' => '0.250000',
+            'excludedCount' => 2, 'excludedValue' => '900.00',
+        ], $totals['knownCost']);
+        $summary = array_values(array_filter(self::list($result['accounts']), static fn (array $account): bool => 'P' === $account['label']))[0];
+        self::assertNull($summary['knownCost']);
+    }
+
+    public function testANoneAccountMakesTheTotalUnknownAndIsNeverCountedAsExcluded(): void
+    {
+        $a = self::account(self::PEA, 'A', '2026-11-03', '0', [self::line(self::W, '1', '1000.00', '1000.00', '800.00'), self::line(self::A, '1', '500.00', '500.00', null)]);
+        $none = new HoldingsAccount('00000000-0000-7000-8000-0000000000c4', 'Vide', 'EUR', null);
+        $totals = self::map(HoldingsAggregator::aggregate([$a, $none], self::day('2026-11-04'), 'VALUE_DESC', false)['totals']);
+        self::assertNull($totals['securitiesValue']);
+        self::assertSame('NO_VALUATION', $totals['reason']);
+        self::assertNull($totals['knownCost']);
+    }
+
     public function testNoAccountIsNotCalculable(): void
     {
         $result = HoldingsAggregator::aggregate([], self::day('2026-11-04'), 'VALUE_DESC', false);
@@ -270,26 +378,128 @@ final class HoldingsAggregatorTest extends TestCase
             ['accountId' => '00000000-0000-7000-8000-0000000000c4', 'label' => 'Vide', 'reason' => 'NO_VALUATION', 'securitiesValue' => null],
         ], $result['unsplitAccounts']);
         $totals = self::map($result['totals']);
-        self::assertSame('510.00', $totals['securitiesValue']);
+        // One unsplit account has no known value: the securities total is unknown, never a partial sum.
+        self::assertNull($totals['securitiesValue']);
         self::assertNull($totals['cash']);
         self::assertNull($totals['totalValue']);
         self::assertSame('NO_VALUATION', $totals['reason']);
         self::assertSame(1, count(self::items($result)));
     }
 
-    public function testATotalValuedAccountCountsInTheTotalValue(): void
+    public function testATotalValuedAccountCountsInEverySecuritiesTotal(): void
     {
         $cto = self::account(self::CTO, 'CTO', '2026-11-03', '120.00', [self::line(self::W, '5', '102.0000', '510.00', '480.00')]);
-        $total = self::account(self::PEA, 'AV', '2026-11-03', '10.00', [], detail: ValuationDetail::TOTAL, securities: '700.00');
+        $total = self::account(self::PEA, 'AV', '2026-11-03', '10.00', [self::line(self::A, '1', null, null, '450.00')], detail: ValuationDetail::TOTAL, securities: '700.00');
         $result = HoldingsAggregator::aggregate([$cto, $total], self::day('2026-11-04'), 'VALUE_DESC', false);
         $totals = self::map($result['totals']);
+        // 510 + 700 = 1210 securities, 480 + 450 = 930 cost, 1210 - 930 = 280 gain, 280 / 930 = 0.301075.
+        self::assertSame('1210.00', $totals['securitiesValue']);
+        self::assertSame('930.00', $totals['costBasis']);
+        self::assertSame('280.00', $totals['unrealizedGain']);
+        self::assertSame('0.301075', $totals['performance']);
         self::assertSame('1340.00', $totals['totalValue']);
-        self::assertSame('510.00', $totals['securitiesValue']);
-        self::assertSame('30.00', $totals['unrealizedGain']);
-        self::assertSame('0.062500', $totals['performance']);
         self::assertNull($totals['reason']);
         self::assertSame('EXACT', $result['quality']);
         self::assertSame([], $result['warnings']);
+        // The item share is weighed against the full securities total: 510 / 1210.
+        self::assertSame('42.15', self::map(self::items($result)[0]['share'])['percentDisplay']);
+    }
+
+    public function testATotalAccountWithoutFrozenPositionsHasAnUnknownCostNotAZeroCost(): void
+    {
+        $bare = self::account(self::PEA, 'AV', '2026-11-03', '10.00', [], detail: ValuationDetail::TOTAL, securities: '700.00');
+        $cto = self::account(self::CTO, 'CTO', '2026-11-03', '0', [self::line(self::W, '5', '102.0000', '510.00', '480.00')]);
+        $result = HoldingsAggregator::aggregate([$cto, $bare], self::day('2026-11-04'), 'VALUE_DESC', false);
+        $account = array_values(array_filter(self::list($result['accounts']), static fn (array $summary): bool => 'AV' === $summary['label']))[0];
+        self::assertSame('700.00', $account['securitiesValue']);
+        self::assertNull($account['costBasis']);
+        self::assertNull($account['unrealizedGain']);
+        self::assertNull($account['performance']);
+        $totals = self::map($result['totals']);
+        self::assertSame('1210.00', $totals['securitiesValue']);
+        self::assertNull($totals['costBasis']);
+        self::assertNull($totals['unrealizedGain']);
+        self::assertNull($totals['performance']);
+        self::assertSame('UNKNOWN_LOT_COST', $totals['reason']);
+        self::assertSame('1220.00', $totals['totalValue']);
+
+        // An empty total-valued account holds nothing: its zero cost is not a guess.
+        $empty = self::account(self::PEA, 'Vide', '2026-11-03', '0', [], detail: ValuationDetail::TOTAL, securities: '0');
+        $summary = self::list(HoldingsAggregator::aggregate([$empty], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts'])[0];
+        self::assertSame('0', $summary['costBasis']);
+    }
+
+    public function testAnAllTotalWorkspaceHasFiguresAndAnUnsplitSliceEverywhere(): void
+    {
+        $one = self::account(self::PEA, 'Un', '2026-11-03', '10.00', [self::line(self::W, '1', null, null, '900.00')], detail: ValuationDetail::TOTAL, securities: '1000.00');
+        $two = self::account(self::CTO, 'Deux', '2026-11-03', '5.00', [self::line(self::A, '1', null, null, '450.00')], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $result = HoldingsAggregator::aggregate([$one, $two], self::day('2026-11-04'), 'VALUE_DESC', false);
+
+        $totals = self::map($result['totals']);
+        self::assertSame('1500.00', $totals['securitiesValue']);
+        self::assertSame('1350.00', $totals['costBasis']);
+        self::assertSame('150.00', $totals['unrealizedGain']);
+        self::assertSame('0.111111', $totals['performance']);
+        self::assertSame('15.00', $totals['cash']);
+        self::assertSame('1515.00', $totals['totalValue']);
+        self::assertSame([], $result['items']);
+        $allocation = self::map($result['allocation']);
+        foreach (['byInstrument', 'byAssetClass', 'byRegion'] as $key) {
+            $slices = self::list($allocation[$key]);
+            self::assertSame([['key' => 'UNSPLIT', 'label' => 'Comptes valorisés en total', 'value' => '1500.00', 'share' => '1.000000000000000000000000']], $slices, $key);
+        }
+        $byAccount = self::list($allocation['byAccount']);
+        self::assertSame(['Un', 'Deux'], array_column($byAccount, 'label'));
+        self::assertSame([self::PEA, self::CTO], array_column($byAccount, 'key'));
+        self::assertSame(['0.666667', '0.333333'], array_map(static fn (array $slice): string => (string) \Brick\Math\BigDecimal::of(self::string($slice['share']))->toScale(6, \Brick\Math\RoundingMode::HalfUp), $byAccount));
+        $accounts = self::list($result['accounts']);
+        self::assertSame(['1000.00', '500.00'], array_column($accounts, 'securitiesValue'));
+        self::assertSame(['900.00', '450.00'], array_column($accounts, 'costBasis'));
+        self::assertSame(['100.00', '50.00'], array_column($accounts, 'unrealizedGain'));
+        self::assertSame(['0.111111', '0.111111'], array_column($accounts, 'performance'));
+        self::assertSame(['66.67', '33.33'], array_map(static fn (array $account): mixed => self::map($account['share'])['percentDisplay'], $accounts));
+    }
+
+    public function testAnUnknownFrozenCostOfATotalAccountNullsTheGainWithItsReason(): void
+    {
+        $known = self::account(self::PEA, 'Un', '2026-11-03', '0', [self::line(self::W, '1', null, null, '900.00')], detail: ValuationDetail::TOTAL, securities: '1000.00');
+        $unknown = self::account(self::CTO, 'Deux', '2026-11-03', '0', [self::line(self::A, '1', null, null, null)], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $result = HoldingsAggregator::aggregate([$known, $unknown], self::day('2026-11-04'), 'VALUE_DESC', false);
+        $totals = self::map($result['totals']);
+        self::assertSame('1500.00', $totals['securitiesValue']);
+        self::assertNull($totals['costBasis']);
+        self::assertNull($totals['unrealizedGain']);
+        self::assertNull($totals['performance']);
+        self::assertSame('UNKNOWN_LOT_COST', $totals['reason']);
+        $accounts = self::list($result['accounts']);
+        self::assertNull($accounts[1]['unrealizedGain']);
+        self::assertSame('100.00', $accounts[0]['unrealizedGain']);
+    }
+
+    public function testMixedAssetsWithATotalAccountStillNullEverything(): void
+    {
+        $total = self::account(self::PEA, 'Un', '2026-11-03', '0', [self::line(self::W, '1', null, null, '900.00')], detail: ValuationDetail::TOTAL, securities: '1000.00');
+        $btc = self::account(self::CTO, 'Crypto', '2026-11-03', '0', [], detail: ValuationDetail::TOTAL, securities: '5.00', asset: 'BTC');
+        $result = HoldingsAggregator::aggregate([$total, $btc], self::day('2026-11-04'), 'VALUE_DESC', false);
+        self::assertNull(self::map($result['totals'])['securitiesValue']);
+        self::assertSame('MIXED_ASSETS', self::map($result['totals'])['reason']);
+        self::assertSame(['byInstrument' => [], 'byAssetClass' => [], 'byRegion' => [], 'byAccount' => []], $result['allocation']);
+        foreach (self::list($result['accounts']) as $account) {
+            self::assertNull($account['securitiesValue']);
+            self::assertNull($account['costBasis']);
+            self::assertSame('MIXED_ASSETS', self::map($account['share'])['reason']);
+        }
+    }
+
+    public function testTheByAccountSlicesCoverEveryKnownAccountIncludingLineAccounts(): void
+    {
+        $total = self::account(self::PEA, 'AV', '2026-11-03', '0', [self::line(self::A, '1', null, null, '450.00')], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $result = HoldingsAggregator::aggregate([...self::example(), $total], self::day('2026-11-04'), 'VALUE_DESC', false);
+        $byAccount = self::list(self::map($result['allocation'])['byAccount']);
+        self::assertSame(['CTO', 'PEA', 'AV'], array_column($byAccount, 'label'));
+        self::assertSame(['1510.00', '1000.00', '500.00'], array_column($byAccount, 'value'));
+        $unsplit = array_values(array_filter(self::list(self::map($result['allocation'])['byInstrument']), static fn (array $slice): bool => 'UNSPLIT' === $slice['key']));
+        self::assertSame('500.00', $unsplit[0]['value']);
     }
 
     public function testAMissingPriceNullsValueGainAndTotalsWithoutZero(): void
@@ -312,7 +522,7 @@ final class HoldingsAggregatorTest extends TestCase
         self::assertNull($totals['unrealizedGain']);
         self::assertNull($totals['totalValue']);
         self::assertSame('MISSING_PRICE', $totals['reason']);
-        self::assertSame(['byInstrument' => [], 'byAssetClass' => [], 'byRegion' => []], $result['allocation']);
+        self::assertSame(['byInstrument' => [], 'byAssetClass' => [], 'byRegion' => [], 'byAccount' => []], $result['allocation']);
     }
 
     public function testMixedAssetsNullEveryTotalAndShare(): void
@@ -339,7 +549,7 @@ final class HoldingsAggregatorTest extends TestCase
                 self::assertNull($line['unrealizedGain']);
             }
         }
-        self::assertSame(['byInstrument' => [], 'byAssetClass' => [], 'byRegion' => []], $result['allocation']);
+        self::assertSame(['byInstrument' => [], 'byAssetClass' => [], 'byRegion' => [], 'byAccount' => []], $result['allocation']);
     }
 
     public function testStalePricesChangedPositionsAndTruncationAreWarnings(): void

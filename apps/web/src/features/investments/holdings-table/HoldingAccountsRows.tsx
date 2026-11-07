@@ -1,6 +1,6 @@
 import type { Holding, Holdings } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { NotComputable } from '@/features/investments/explain-info/NotComputable';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
 import { formatDecimal } from '@/lib/decimal';
@@ -26,22 +26,42 @@ export function HoldingAccountsRows({
             {account.label}
           </a>
         </th>
-        <td data-label={t('investments.table.quantity')}>
+        <td className={styles.number} data-label={t('investments.table.quantity')}>
           {formatDecimal(account.quantity, 'fr')}
         </td>
-        <td colSpan={2} data-label={t('investments.table.lastPrice')}>
+        <td className={styles.number} colSpan={2} data-label={t('investments.table.lastPrice')}>
           {t('investments.table.valuedOn', { date: holdingsDay(account.valuedOn) })}
         </td>
-        <td data-label={t('investments.table.value')}>
+        <td className={styles.number} data-label={t('investments.table.value')}>
           {account.value === null ? (
-            <EmptyValue label={t('investments.table.notCalculable')} />
+            <NotComputable
+              figure={t('investments.notComputable.figure', {
+                column: t('investments.table.value'),
+                name: `${holding.instrument.name}, ${account.label}`,
+              })}
+              reason={t(
+                assetCode === null
+                  ? 'investments.summary.mixedAssets'
+                  : 'investments.table.missingPrice',
+              )}
+            />
           ) : (
             holdingsMoney(account.value, assetCode)
           )}
         </td>
-        <td data-label={t('investments.table.gain')}>
+        <td className={styles.number} data-label={t('investments.table.gain')}>
           {account.unrealizedGain === null ? (
-            <EmptyValue label={t('investments.table.gainNotCalculable')} />
+            <NotComputable
+              figure={t('investments.notComputable.figure', {
+                column: t('investments.table.gain'),
+                name: `${holding.instrument.name}, ${account.label}`,
+              })}
+              reason={t(
+                account.value === null
+                  ? 'investments.table.gainNotCalculable'
+                  : 'investments.table.unknownCost',
+              )}
+            />
           ) : (
             <UnrealizedGain
               assetCode={assetCode ?? ''}

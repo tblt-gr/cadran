@@ -21,6 +21,7 @@ export function holdingsFixture(overrides: Partial<Holdings> = {}): Holdings {
       cash: '170.00',
       totalValue: '2680.00',
       reason: 'UNKNOWN_LOT_COST',
+      knownCost: null,
     },
     items: [
       {
@@ -109,6 +110,10 @@ export function holdingsFixture(overrides: Partial<Holdings> = {}): Holdings {
         { key: 'W', label: 'MSCI World', value: '1510.00', share: '0.601594' },
         { key: 'A', label: 'Action A', value: '1000.00', share: '0.398406' },
       ],
+      byAccount: [
+        { key: CTO, label: 'CTO', value: '1510.00', share: '0.601594' },
+        { key: PEA, label: 'PEA', value: '1000.00', share: '0.398406' },
+      ],
       byAssetClass: [{ key: 'EQUITY', label: 'EQUITY', value: '2510.00', share: '1' }],
       byRegion: [
         { key: 'WORLD', label: 'WORLD', value: '1510.00', share: '0.601594' },
@@ -126,6 +131,7 @@ export function holdingsFixture(overrides: Partial<Holdings> = {}): Holdings {
         unrealizedGain: null,
         performance: null,
         cash: '120.00',
+        knownCost: null,
         share: { ratio: '0.601594', percentDisplay: '60.16', reason: null },
         lines: [
           {
@@ -176,6 +182,7 @@ export function holdingsFixture(overrides: Partial<Holdings> = {}): Holdings {
         unrealizedGain: '100.00',
         performance: '0.111111',
         cash: '50.00',
+        knownCost: null,
         share: { ratio: '0.398406', percentDisplay: '39.84', reason: null },
         lines: [
           {
@@ -223,6 +230,53 @@ export const totalAccountSummary: HoldingsAccountSummary = {
   unrealizedGain: null,
   performance: null,
   cash: null,
+  knownCost: null,
   share: { ratio: null, percentDisplay: null, reason: 'MISSING_VALUE' },
   lines: [],
+};
+
+const unsplitSlice = {
+  key: 'UNSPLIT',
+  label: 'Comptes valorisés en total',
+  value: '800.00',
+  share: '1',
+};
+
+/** Only an account valued as a statement total: no line, but totals and allocation by account. */
+export function allTotalHoldings(): Holdings {
+  return holdingsFixture({
+    items: [],
+    warnings: [],
+    quality: 'DEGRADED',
+    valuedFrom: '2026-11-01',
+    valuedTo: '2026-11-01',
+    totals: {
+      securitiesValue: '800.00',
+      costBasis: null,
+      unrealizedGain: null,
+      performance: null,
+      cash: '10.00',
+      totalValue: '810.00',
+      reason: 'UNKNOWN_LOT_COST',
+      knownCost: null,
+    },
+    allocation: {
+      byAccount: [{ key: TOTAL_ACCOUNT, label: 'Assurance vie', value: '800.00', share: '1' }],
+      byInstrument: [unsplitSlice],
+      byAssetClass: [unsplitSlice],
+      byRegion: [unsplitSlice],
+    },
+    accounts: [totalAccountSummary],
+    unsplitAccounts: [unsplitAccount],
+  });
+}
+
+/** Worked example: the cost of one position is unknown, the other is costed and valued. */
+export const knownCostFigures = {
+  securitiesValue: '42341.81',
+  costBasis: '39887.16',
+  unrealizedGain: '2454.65',
+  performance: '0.0615',
+  excludedCount: 1,
+  excludedValue: '1239.00',
 };

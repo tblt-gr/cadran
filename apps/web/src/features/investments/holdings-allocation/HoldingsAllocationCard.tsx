@@ -6,7 +6,8 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { decimalRatioForGeometry } from '@/lib/decimal';
-import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
+import { sliceCaption } from '@/features/dashboard/allocation-charts/sliceCaption';
+import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import { holdingsMoney } from '@/features/investments/holdingsFormat';
 import { sliceLabel, type AllocationCriterion } from './allocationLabels';
 import styles from './HoldingsAllocationCard.module.css';
@@ -15,12 +16,26 @@ const criterionNameKeys = {
   byAssetClass: 'investments.allocation.criterionName.assetClass',
   byRegion: 'investments.allocation.criterionName.region',
   byInstrument: 'investments.allocation.criterionName.instrument',
+  byAccount: 'investments.allocation.criterionName.account',
 } as const;
 
 /** Share of the securities by asset class, region or instrument: a donut and its legend table. */
-export function HoldingsAllocationCard({ holdings }: { holdings: Holdings | null }) {
+export function HoldingsAllocationCard({
+  holdings,
+  view,
+}: {
+  holdings: Holdings | null;
+  /** The positions view on the page: by account, the allocation starts by account too. */
+  view?: 'asset' | 'account';
+}) {
   const { t } = useTranslation();
-  const [criterion, setCriterion] = useState<AllocationCriterion>('byAssetClass');
+  const [chosen, setChosen] = useState<AllocationCriterion | null>(null);
+  // Without any line the asset views only hold the unsplit slice: the accounts are what to show.
+  const criterion: AllocationCriterion =
+    chosen ??
+    (view === 'account' || (holdings && holdings.items.length === 0)
+      ? 'byAccount'
+      : 'byAssetClass');
   const slices = holdings?.allocation[criterion] ?? [];
   const label = (slice: { key: string; label: string }) =>
     sliceLabel(criterion, slice, t('investments.allocation.unspecified'));
@@ -38,11 +53,12 @@ export function HoldingsAllocationCard({ holdings }: { holdings: Holdings | null
       <SegmentedControl
         disabled={!holdings}
         label={t('investments.allocation.criterion')}
-        onChange={setCriterion}
+        onChange={setChosen}
         options={[
           { value: 'byAssetClass', label: t('investments.allocation.assetClass') },
           { value: 'byRegion', label: t('investments.allocation.region') },
           { value: 'byInstrument', label: t('investments.allocation.instrument') },
+          { value: 'byAccount', label: t('investments.allocation.account') },
         ]}
         value={criterion}
       />
@@ -54,11 +70,20 @@ export function HoldingsAllocationCard({ holdings }: { holdings: Holdings | null
             label={t('investments.allocation.donut', { criterion: criterionName })}
             slices={slices.map((slice) => ({
               key: slice.key,
-              caption: label(slice),
+              caption: sliceCaption(
+                label(slice),
+                slice.share === null ? null : ratioToPercent(slice.share),
+              ),
               amountText: money(slice.value),
               size: decimalRatioForGeometry(slice.share!, '1'),
+              // Accounts valued as a total stand for no category: a neutral fill, no colour meaning.
+              fill: slice.key === 'UNSPLIT' ? 'var(--text-muted)' : undefined,
             }))}
-            totalText={null}
+            totalText={
+              holdings.totals.securitiesValue === null
+                ? null
+                : money(holdings.totals.securitiesValue)
+            }
           />
         ) : (
           <p className={styles.note} role="status">
