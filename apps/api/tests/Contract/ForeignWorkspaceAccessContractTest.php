@@ -348,6 +348,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
                 'targetCategoryId' => self::OWN_CATEGORY, 'targetAxes' => ['ESSENTIAL'], 'targetCounterparty' => null, 'effectiveFrom' => '2026-01-01', 'effectiveTo' => null, 'active' => true, 'version' => 1,
             ],
             'PUT /api/v1/goals/{id}' => ['label' => 'Changed', 'targetAmount' => $eur('15000.12'), 'ratio' => null, 'version' => 1],
+            'POST /api/v1/goals/{id}/stop' => ['expectedVersion' => 1, 'lastPeriod' => '2026'],
             'POST /api/v1/goals/{id}/correction-preview' => ['label' => 'Changed', 'targetAmount' => $eur('18000.00'), 'ratio' => null, 'version' => 1, 'effectiveFrom' => '2026-01', 'reason' => 'Correct the target recorded at creation.'],
             'PUT /api/v1/instruments/{id}' => ['name' => 'Changed', 'isin' => null, 'ticker' => 'CHG', 'venueMic' => null, 'instrumentType' => 'ETF', 'assetClass' => null, 'region' => null, 'currencyCode' => 'EUR', 'quantityPrecision' => 6, 'pricePrecision' => 4, 'version' => 1],
             'POST /api/v1/product-models/{id}/duplicate' => ['name' => 'Copy'],
@@ -391,7 +392,7 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     /** @return array<string, string> */
     private static function headers(): array
     {
-        return ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json'];
+        return ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json', 'HTTP_IF_MATCH' => '1'];
     }
 
     /** @return array<string, string> identifier type => seeded identifier in the caller workspace */

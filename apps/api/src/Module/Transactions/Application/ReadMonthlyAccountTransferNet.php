@@ -43,6 +43,30 @@ final readonly class ReadMonthlyAccountTransferNet
         return $nets;
     }
 
+    /**
+     * The same nets for several months with one pair read; a month over the monthly bound is null.
+     *
+     * @param list<string>        $accountIds
+     * @param list<CalendarMonth> $months
+     *
+     * @return array<string, array<string, AccountTransferNet>|null> by `YYYY-MM`, then by account identifier
+     */
+    public function forAccountsInMonths(WorkspaceScope $workspace, array $accountIds, array $months): array
+    {
+        $nets = [];
+        foreach ($this->transfers->byMonth($workspace, $months) as $key => $pairs) {
+            if (null === $pairs) {
+                $nets[$key] = null;
+                continue;
+            }
+            foreach ($accountIds as $accountId) {
+                $nets[$key][$accountId] = self::net($accountId, $pairs);
+            }
+        }
+
+        return $nets;
+    }
+
     /** @param list<MonthlyTransferPairFact> $pairs */
     private static function net(string $accountId, array $pairs): AccountTransferNet
     {

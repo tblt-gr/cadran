@@ -74,6 +74,25 @@ final readonly class Goal
         return $start <= $to && (null === $end || $end >= $from);
     }
 
+    /**
+     * The goal ending with this period, written like its start period. A stop never extends a goal
+     * and never ends it before it started.
+     */
+    public function stoppedAt(string $lastPeriod): self
+    {
+        if (!$this->periodicity->accepts($lastPeriod)) {
+            throw new InvalidGoal('A goal period is written YYYY-MM for a monthly goal and YYYY for a yearly one.');
+        }
+        if ($lastPeriod < $this->startPeriod) {
+            throw new InvalidGoal('A goal cannot end before its start period.');
+        }
+        if (null !== $this->endPeriod && $lastPeriod > $this->endPeriod) {
+            throw new InvalidGoal('A goal stop cannot extend its end period.');
+        }
+
+        return new self($this->id, $this->workspace, $this->label, $this->periodicity, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $this->startPeriod, $lastPeriod, $this->version + 1, $this->createdAt, $this->createdBy);
+    }
+
     public function reviseLabel(string $label): self
     {
         return $this->with($label);

@@ -38,6 +38,7 @@ final class ReportBudgetPerformanceTest extends WebTestCase
 {
     private const int TRANSACTIONS = 100_000;
     private const int YEARS = 15;
+    private const int GOALS = 100;
     private const int WARM_UP_RUNS = 2;
     private const int TIMED_RUNS = 20;
     private const float MONTHLY_REPORT_P95_BUDGET_MS = 300.0;
@@ -106,6 +107,7 @@ final class ReportBudgetPerformanceTest extends WebTestCase
         $this->signIn();
 
         $year = (int) $today->format('Y');
+        $this->insertGoals(self::GOALS, $today);
         $deepCursor = $this->deepCursor();
         $facetParent = $this->facetParentCategory();
         $facetFrom = $today->modify('-5 years')->format('Y-m-d');
@@ -123,6 +125,20 @@ final class ReportBudgetPerformanceTest extends WebTestCase
             'multi-year report' => [sprintf('/api/v1/reports/multi-year?from=%d&to=%d', $year - self::YEARS + 1, $year), static function (array $body): void {
                 self::assertCount(self::YEARS, self::items($body['years']));
             }],
+            // GOAL-007: one hundred current goals evaluated over the longest range (120 months), months loaded once.
+            'goal evaluations (100 goals, 120 months)' => [
+                sprintf('/api/v1/goals/evaluations?from=%s&to=%s', $today->modify('first day of this month')->modify('-119 months')->format('Y-m'), $today->format('Y-m')),
+                static function (array $body): void {
+                    self::assertCount(120, self::items($body['months']));
+                    // 120 months touch ten calendar years only when they end in December.
+                    self::assertGreaterThanOrEqual(10, count(self::items($body['years'])));
+                    self::assertLessThanOrEqual(11, count(self::items($body['years'])));
+                    $lastMonth = self::items($body['months'])[119];
+                    self::assertIsArray($lastMonth);
+                    // Four workspace metrics, six axes, three accounts and five categories at most: the other live goals share a scope and are overridden.
+                    self::assertGreaterThanOrEqual(15, count(self::items($lastMonth['items'])));
+                },
+            ],
             'monthly recap' => ['/api/v1/reports/monthly/recap?month='.$representativeMonth, static function (array $body): void {
                 self::assertCount(12, self::items($body['accounts']));
             }],
@@ -191,6 +207,7 @@ final class ReportBudgetPerformanceTest extends WebTestCase
 
         if ('1' === getenv('PERF_ASSERT')) {
             self::assertLessThanOrEqual(self::MONTHLY_REPORT_P95_BUDGET_MS * 1.2, $results['monthly recap']['p95'], 'Monthly recap p95 budget: 360 ms (monthly baseline plus 20 percent).');
+            self::assertLessThanOrEqual(self::MONTHLY_REPORT_P95_BUDGET_MS * 2, $results['goal evaluations (100 goals, 120 months)']['p95'], 'Goal evaluations p95 budget: twice the monthly report budget for 100 goals over 120 months.');
             self::assertLessThan(150.0, $results['account list']['p95'], 'Account list p95 budget: 150 ms.');
             self::assertLessThan(150.0, $results['transaction facets']['p95'], 'Transaction facets p95 budget: 150 ms.');
             self::assertLessThan(150.0, $results['transaction facets (filtered)']['p95'], 'Filtered transaction facets p95 budget: 150 ms.');
@@ -201,6 +218,46 @@ final class ReportBudgetPerformanceTest extends WebTestCase
                 $results['monthly report']['p95'],
                 sprintf('The monthly report p95 is %.1f ms; the budget is %.0f ms.', $results['monthly report']['p95'], self::MONTHLY_REPORT_P95_BUDGET_MS),
             );
+        }
+    }
+
+    /**
+     * Inserts current goals over several metrics, plus twenty that ended before the range and are not evaluated.
+     * The eighty live ones cover all seven metrics (workspace, axis, account and category scopes) and share scopes, so
+     * some are overridden: the evaluation still resolves every goal in every month, with one transfer read per month.
+     */
+    private function insertGoals(int $count, \DateTimeImmutable $today): void
+    {
+        $start = $today->modify('first day of this month')->modify('-119 months')->format('Y-m');
+        $before = $today->modify('first day of this month')->modify('-140 months')->format('Y-m');
+        $accounts = $this->connection->fetchFirstColumn('SELECT id FROM account_financial_accounts WHERE workspace_id = :w ORDER BY id LIMIT 3', ['w' => WorkspaceFixture::OWN_WORKSPACE]);
+        $categories = $this->connection->fetchFirstColumn("SELECT id FROM category_categories WHERE workspace_id = :w AND type = 'EXPENSE' ORDER BY id LIMIT 5", ['w' => WorkspaceFixture::OWN_WORKSPACE]);
+        self::assertNotEmpty($accounts);
+        self::assertNotEmpty($categories);
+        $axes = ['DISCRETIONARY', 'ESSENTIAL', 'FIXED', 'PERSONAL', 'PROFESSIONAL', 'VARIABLE'];
+        for ($index = 1; $index <= $count; ++$index) {
+            $ended = $index <= 20;
+            $metric = ['NET_SAVINGS_TRANSFERS', 'BUDGET_SURPLUS', 'SAVINGS_RATE', 'NET_SAVINGS_RATE', 'AXIS_SPENDING', 'ACCOUNT_CONTRIBUTIONS', 'CATEGORY_SPENDING'][$index % 7];
+            $rate = str_contains($metric, 'RATE');
+            [$scopeType, $scopeRef] = match ($metric) {
+                'AXIS_SPENDING' => ['AXIS', $axes[intdiv($index, 7) % 6]],
+                'ACCOUNT_CONTRIBUTIONS' => ['ACCOUNT', $accounts[intdiv($index, 7) % count($accounts)]],
+                'CATEGORY_SPENDING' => ['CATEGORY', $categories[intdiv($index, 7) % count($categories)]],
+                default => ['WORKSPACE', null],
+            };
+            $id = sprintf('00000000-0000-7000-8000-%012d', 700000 + $index);
+            $this->connection->insert('budget_goals', [
+                'id' => $id, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'label' => 'Goal '.$index, 'periodicity' => 'MONTHLY', 'metric' => $metric,
+                'scope_type' => $scopeType, 'scope_ref' => $scopeRef, 'asset_code' => 'EUR',
+                'start_period' => $ended ? $before : $start, 'end_period' => $ended ? $today->modify('first day of this month')->modify('-130 months')->format('Y-m') : null,
+                'created_at' => '2026-01-01 00:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID, 'version' => 1,
+            ]);
+            $this->connection->insert('budget_goal_versions', [
+                'id' => sprintf('00000000-0000-7000-8000-%012d', 800000 + $index), 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'goal_id' => $id, 'version_no' => 1,
+                'effective_from' => $ended ? $before : $start, 'value_type' => $rate ? 'RATE' : 'AMOUNT', 'target_amount' => $rate ? null : '1000.00', 'target_scale' => $rate ? null : 2,
+                'ratio' => $rate ? '0.10' : null, 'ratio_scale' => $rate ? 2 : null, 'schedule_mode' => null, 'reason' => null,
+                'created_at' => '2026-01-01 00:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID,
+            ]);
         }
     }
 

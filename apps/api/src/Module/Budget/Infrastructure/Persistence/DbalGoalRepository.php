@@ -95,6 +95,23 @@ final readonly class DbalGoalRepository implements GoalRepository
         return [[] === $where ? '' : ' AND '.implode(' AND ', $where), $parameters, $types];
     }
 
+    public function covering(WorkspaceScope $workspace, string $firstMonth, string $lastMonth, int $limit): array
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS." FROM budget_goals WHERE workspace_id = :workspace_id AND (CASE periodicity WHEN 'YEARLY' THEN start_period || '-01' ELSE start_period END) <= :last AND (end_period IS NULL OR (CASE periodicity WHEN 'YEARLY' THEN end_period || '-12' ELSE end_period END) >= :first) ORDER BY created_at, id LIMIT :limit",
+            ['workspace_id' => $workspace->id, 'first' => $firstMonth, 'last' => $lastMonth, 'limit' => $limit],
+            ['limit' => ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $row): Goal => GoalRow::hydrate($row, $workspace), $rows);
+    }
+
+    public function delete(Goal $goal, int $expectedVersion): bool
+    {
+        // The versions and their schedule parts go with the goal through the foreign keys' ON DELETE CASCADE.
+        return 1 === (int) $this->connection->delete('budget_goals', ['workspace_id' => $goal->workspace->id, 'id' => $goal->id, 'version' => $expectedVersion]);
+    }
+
     public function add(Goal $goal): void
     {
         $this->connection->insert('budget_goals', ['id' => $goal->id, 'workspace_id' => $goal->workspace->id, ...GoalRow::columns($goal), 'created_at' => $goal->createdAt->format('Y-m-d H:i:s.uP'), 'created_by' => $goal->createdBy]);

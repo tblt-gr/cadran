@@ -6,13 +6,17 @@ namespace App\Module\Budget\UI\Http;
 
 use App\Module\Budget\Application\Goals\CreateGoal;
 use App\Module\Budget\Application\Goals\CreateGoalInput;
+use App\Module\Budget\Application\Goals\DeleteGoal;
 use App\Module\Budget\Application\Goals\GoalConflict;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Budget\Application\Goals\GoalScheduleInput;
+use App\Module\Budget\Application\Goals\ListGoalEvaluations;
 use App\Module\Budget\Application\Goals\ListGoals;
 use App\Module\Budget\Application\Goals\ReadGoal;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
+use App\Module\Budget\Application\Goals\StopGoal;
+use App\Module\Budget\Application\Goals\StopGoalInput;
 use App\Module\Budget\Application\Goals\UpdateGoal;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Transactions\Application\IdempotencyConflict;
@@ -61,6 +65,24 @@ final readonly class GoalController
             'pageSize' => $page->pageSize,
             'total' => $page->total,
         ]);
+    }
+
+    #[Route('/api/v1/goals/evaluations', name: 'api_v1_goals_evaluations', methods: ['GET'])]
+    public function evaluations(Request $request, ListGoalEvaluations $evaluate): Response
+    {
+        try {
+            $from = $request->query->get('from');
+            $to = $request->query->get('to');
+            if (!is_string($from) || !is_string($to)) {
+                throw new GoalInputError('invalid_goal_query', 'An evaluation range needs from and to.');
+            }
+
+            return $this->envelope->json(GoalRepresentation::evaluations($evaluate($from, $to)));
+        } catch (GoalInputError $error) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, $error->errorCode);
+        } catch (WorkspaceAccessDenied) {
+            return $this->forbidden();
+        }
     }
 
     private static function pagination(Request $request, string $name, int $default): int
@@ -180,10 +202,68 @@ final readonly class GoalController
         return $this->envelope->json(GoalRepresentation::detail($result));
     }
 
+    #[Route('/api/v1/goals/{id}/stop', name: 'api_v1_goals_stop', methods: ['POST'])]
+    public function stop(string $id, Request $request, StopGoal $stop): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->notFound();
+        }
+        $body = $this->envelope->body($request);
+        if ($body instanceof Response) {
+            return $body;
+        }
+        try {
+            self::allowed($body, ['expectedVersion', 'lastPeriod'], ['expectedVersion', 'lastPeriod']);
+            $version = $body['expectedVersion'];
+            if (!is_int($version)) {
+                throw new GoalInputError('invalid_goal_query', 'A goal version is an integer.');
+            }
+            $result = $stop(new StopGoalInput($id, $version, self::string($body, 'lastPeriod')));
+        } catch (\UnexpectedValueException) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_goal_period');
+        } catch (GoalInputError $error) {
+            return $this->problem(self::inputStatus($error), $error->errorCode, $error->details);
+        } catch (GoalNotFound) {
+            return $this->notFound();
+        } catch (GoalConflict $error) {
+            return $this->problem(Response::HTTP_CONFLICT, $error->errorCode);
+        } catch (WorkspaceAccessDenied) {
+            return $this->forbidden();
+        }
+
+        return $this->envelope->json(GoalRepresentation::detail($result));
+    }
+
+    #[Route('/api/v1/goals/{id}', name: 'api_v1_goals_delete', methods: ['DELETE'])]
+    public function delete(string $id, Request $request, DeleteGoal $delete): Response
+    {
+        if (!$this->envelope->isIdentifier($id)) {
+            return $this->notFound();
+        }
+        $header = $request->headers->get('If-Match');
+        if (null === $header) {
+            return $this->problem(Response::HTTP_PRECONDITION_REQUIRED, 'goal_precondition_required');
+        }
+        if (1 !== preg_match('/^"?([1-9][0-9]{0,8})"?$/D', trim($header), $matches)) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_goal_query');
+        }
+        try {
+            $delete($id, (int) $matches[1]);
+        } catch (GoalNotFound) {
+            return $this->notFound();
+        } catch (GoalConflict $error) {
+            return $this->problem(Response::HTTP_CONFLICT, $error->errorCode);
+        } catch (WorkspaceAccessDenied) {
+            return $this->forbidden();
+        }
+
+        return new Response(null, Response::HTTP_NO_CONTENT, ['Cache-Control' => 'no-store']);
+    }
+
     /** A period or value type the model never accepts is a malformed request; the other refusals are unprocessable. */
     private static function inputStatus(GoalInputError $error): int
     {
-        return in_array($error->errorCode, ['invalid_goal_value_type', 'invalid_goal_period'], true) ? Response::HTTP_BAD_REQUEST : Response::HTTP_UNPROCESSABLE_ENTITY;
+        return in_array($error->errorCode, ['invalid_goal_value_type', 'invalid_goal_period', 'invalid_goal_query'], true) ? Response::HTTP_BAD_REQUEST : Response::HTTP_UNPROCESSABLE_ENTITY;
     }
 
     /** @param array<string, string> $details */

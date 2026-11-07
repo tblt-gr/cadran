@@ -8,6 +8,10 @@ use App\Module\Budget\Application\Goals\GoalCorrectionPreviewMonthView;
 use App\Module\Budget\Application\Goals\GoalCorrectionPreviewStateView;
 use App\Module\Budget\Application\Goals\GoalCorrectionPreviewView;
 use App\Module\Budget\Application\Goals\GoalDetailView;
+use App\Module\Budget\Application\Goals\GoalEvaluationFigure;
+use App\Module\Budget\Application\Goals\GoalEvaluationsView;
+use App\Module\Budget\Application\Goals\GoalEvaluationView;
+use App\Module\Budget\Application\Goals\GoalPeriodEvaluationView;
 use App\Module\Budget\Application\Goals\GoalSchedulePartView;
 use App\Module\Budget\Application\Goals\GoalScheduleView;
 use App\Module\Budget\Application\Goals\GoalScopeView;
@@ -25,6 +29,31 @@ final class GoalRepresentation
     public static function summary(GoalSummaryView $goal): array
     {
         return ['id' => $goal->id, 'label' => $goal->label, 'periodicity' => $goal->periodicity, 'startPeriod' => $goal->startPeriod, 'endPeriod' => $goal->endPeriod, 'metric' => $goal->metric, 'direction' => $goal->direction, 'scope' => self::scope($goal->scope), 'assetCode' => $goal->assetCode, 'currentVersion' => self::version($goal->currentVersion), 'version' => $goal->version, 'warnings' => $goal->warnings, 'status' => null === $goal->status ? null : self::status($goal->status, false)];
+    }
+
+    /** @return array<string, mixed> */
+    public static function evaluations(GoalEvaluationsView $evaluations): array
+    {
+        $period = static fn (GoalPeriodEvaluationView $view): array => ['period' => $view->period, 'items' => array_map(self::evaluation(...), $view->items)];
+
+        return ['months' => array_map($period, $evaluations->months), 'years' => array_map($period, $evaluations->years)];
+    }
+
+    /** @return array<string, mixed> */
+    private static function evaluation(GoalEvaluationView $item): array
+    {
+        $figure = static fn (?GoalEvaluationFigure $figure): ?array => null === $figure ? null : ($figure->isRate()
+            ? ['ratio' => $figure->ratio, 'percentDisplay' => $figure->percentDisplay]
+            : ['value' => $figure->value, 'assetCode' => $figure->assetCode]);
+
+        return [
+            'goalId' => $item->goalId, 'label' => $item->label, 'periodicity' => $item->periodicity, 'metric' => $item->metric,
+            'scopeType' => $item->scopeType, 'scopeRef' => $item->scopeRef, 'direction' => $item->direction, 'valueType' => $item->valueType,
+            'columnKey' => $item->columnKey, 'target' => $figure($item->target), 'achieved' => $figure($item->achieved), 'gap' => $item->gap,
+            'status' => $item->status, 'reason' => $item->reason,
+            'formula' => ['key' => $item->formulaKey, 'operands' => $item->operands],
+            'versionNo' => $item->versionNo, 'overrides' => $item->overrides, 'pace' => $item->pace,
+        ];
     }
 
     /** @return array<string, mixed> */

@@ -48,8 +48,8 @@ final readonly class BuildGoalRevision
         } catch (InvalidCalendarMonth) {
             throw new GoalInputError('invalid_effective_month', 'A goal effective month is written YYYY-MM.');
         }
-        if ($effectiveMonth < $firstMonth || ($effectiveMonth > $currentMonth && ($explicitMonth || $firstMonth <= $currentMonth))) {
-            throw new GoalInputError('invalid_effective_month', 'A goal effective month lies from its first month through the current month.');
+        if ($effectiveMonth < $firstMonth) {
+            throw new GoalInputError('invalid_effective_month', 'A goal effective month does not precede its first month.');
         }
         // Each month of a rolling correction is recomputed by the preview, so the span is bounded here,
         // where the preview and the save share their validation. A yearly amount goal stops at its own end.
@@ -86,11 +86,18 @@ final readonly class BuildGoalRevision
         } catch (InvalidGoal|\InvalidArgumentException|\DomainException $exception) {
             throw new GoalInputError(GoalValueType::AMOUNT === $valueType ? 'invalid_goal_target' : 'invalid_goal_ratio', $exception->getMessage());
         }
-        if (null !== $definition && $effectiveMonth > $currentMonth) {
-            throw new GoalInputError('invalid_effective_month', 'A goal definition cannot take effect after the current month.');
+        // A chosen month may lie ahead (a planned revision); the month a default lands on may not.
+        if (null !== $definition && !$explicitMonth && $effectiveMonth > $currentMonth) {
+            throw new GoalInputError('invalid_effective_month', 'A goal definition cannot take effect before the goal has started.');
         }
         if (null !== $definition && null !== $lastMonth && $effectiveMonth > $lastMonth) {
             throw new GoalInputError('invalid_effective_month', 'A goal definition cannot take effect after the last period of the goal.');
+        }
+
+        // A forward-looking definition earlier than one already planned would be cut short by it without any sign;
+        // a retroactive correction deliberately leaves the later versions in force.
+        if (null !== $definition && !$retroactive && [] !== array_filter($versions, static fn (GoalVersion $version): bool => $version->effectiveFrom > $effectiveMonth)) {
+            throw new GoalConflict('goal_planned_revision_exists', 'A later revision is already planned; choose a month on or after it.');
         }
 
         return new GoalRevision($definition, self::changedFields($base, $definition));

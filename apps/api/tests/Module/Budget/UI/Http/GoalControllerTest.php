@@ -809,7 +809,7 @@ final class GoalControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
         self::assertSame('correction_reason_required', $this->decode()['code']);
 
-        foreach (['2025-12', '2026-10', 'invalid'] as $month) {
+        foreach (['2025-12', '2027-01', 'invalid'] as $month) {
             $this->requestJson('PUT', '/api/v1/goals/'.$id, [...$base, 'effectiveFrom' => $month, 'reason' => 'A valid correction reason.']);
             self::assertResponseStatusCodeSame(422);
             self::assertSame('invalid_effective_month', $this->decode()['code']);
