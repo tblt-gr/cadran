@@ -10,6 +10,7 @@ export function invalidatePortfolioAccount(client: QueryClient, accountId: strin
     client.invalidateQueries({ queryKey: ['portfolio-performance', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolio-performance-annual', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolios'] }),
+    client.invalidateQueries({ queryKey: ['holdings'] }),
     client.invalidateQueries({ queryKey: ['portfolio-cash', accountId] }),
     client.invalidateQueries({ queryKey: ['life-insurance-contract', accountId] }),
     client.invalidateQueries({ queryKey: ['portfolio-positions', accountId] }),

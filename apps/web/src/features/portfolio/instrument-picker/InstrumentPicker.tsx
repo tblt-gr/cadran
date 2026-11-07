@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { InstrumentEditorModal } from '@/features/portfolio/instruments/instrument-editor-modal/InstrumentEditorModal';
+import { InstrumentEditorModal } from '@/features/investments/instruments/instrument-editor-modal/InstrumentEditorModal';
 import { InstrumentPickerSkeleton } from './InstrumentPickerSkeleton';
 import styles from './InstrumentPicker.module.css';
 

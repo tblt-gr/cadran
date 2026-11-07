@@ -26,6 +26,7 @@ export function useRecordBalance(accountId: string, onRecorded: () => void) {
       onRecorded();
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['portfolios', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['holdings'] }),
         invalidateAccountBalances(queryClient),
       ]);
     },

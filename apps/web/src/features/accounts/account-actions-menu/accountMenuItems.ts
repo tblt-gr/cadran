@@ -39,7 +39,7 @@ export interface AccountMenuHandlers {
   onRules: () => void;
 }
 
-export const INSTRUMENTS_HREF = '/portfolios/instruments';
+export const INSTRUMENTS_HREF = '/investments/instruments';
 
 export type ArrivalAction =
   | 'transaction'

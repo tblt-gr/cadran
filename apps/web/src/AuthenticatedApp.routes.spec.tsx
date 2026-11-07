@@ -29,6 +29,8 @@ describe('AuthenticatedApp route table', () => {
       '/accounts',
       '/accounts/groups',
       '/accounts/00000000-0000-7000-8000-000000000001',
+      '/investments',
+      '/investments/instruments',
       '/portfolios/instruments',
       '/portfolios/00000000-0000-7000-8000-000000000001',
       '/transactions/categories',
@@ -74,11 +76,26 @@ describe('AuthenticatedApp route table', () => {
     );
   });
 
-  it('keeps /portfolios/instruments out of the portfolio account pattern', () => {
+  it('redirects /portfolios/instruments to the instruments tab keeping only q and status', () => {
     const matched = matchAuthenticatedRoute(routes, '/portfolios/instruments');
+    expect(matched?.route.redirect).toBe(true);
     expect(matched?.match[1]).toBeUndefined();
+    const element = matched!.route.render(matched!.match) as ReactElement<{
+      to: string;
+      keepParams: string[];
+    }>;
+    expect(element.props.to).toBe('/investments/instruments');
+    expect(element.props.keepParams).toEqual(['q', 'status']);
     const account = matchAuthenticatedRoute(routes, '/portfolios/abc');
     expect(account?.match[1]).toBe('abc');
+  });
+
+  it('serves the positions and instruments tabs under /investments', () => {
+    expect(matchAuthenticatedRoute(routes, '/investments')?.route.redirect).toBeUndefined();
+    expect(
+      matchAuthenticatedRoute(routes, '/investments/instruments')?.route.redirect,
+    ).toBeUndefined();
+    expect(matchAuthenticatedRoute(routes, '/investments/other')).toBeNull();
   });
 
   it('does not match the dashboard root or an unrelated path', () => {

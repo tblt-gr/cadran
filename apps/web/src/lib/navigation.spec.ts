@@ -6,6 +6,7 @@ describe('navigationItems', () => {
     expect(navigationItems.map((item) => item.href)).toEqual([
       '/',
       '/accounts',
+      '/investments',
       '/budget',
       '/goals',
       '/parameters/interface',
@@ -16,6 +17,7 @@ describe('navigationItems', () => {
       '/budget',
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
+      '/investments',
       '/goals',
       '/parameters/interface',
     ]);
@@ -25,7 +27,8 @@ describe('navigationItems', () => {
     ['/accounts/account-id', '/accounts'],
     ['/accounts/groups', '/accounts'],
     ['/portfolios/portfolio-id', '/accounts'],
-    ['/portfolios/instruments', '/accounts'],
+    ['/investments', '/investments'],
+    ['/investments/instruments', '/investments'],
     ['/life-insurance/contract-id', '/accounts'],
     ['/budget/plans/plan-id', '/budget'],
     ['/budget/2026', '/budget'],
@@ -73,10 +76,11 @@ describe('navigationItems', () => {
     ).toBe(true);
   });
 
-  it('titles a portfolio account page apart from the instruments page', () => {
+  it('titles a portfolio account page apart from the investments pages', () => {
     expect(getRouteTitleKey('/portfolios/00000000-0000-7000-8000-000000000001')).toBe(
       'routes.portfolioAccount',
     );
-    expect(getRouteTitleKey('/portfolios/instruments')).toBe('routes.instruments');
+    expect(getRouteTitleKey('/investments/instruments')).toBe('routes.instruments');
+    expect(getRouteTitleKey('/investments')).toBe('navigation.investments');
   });
 });

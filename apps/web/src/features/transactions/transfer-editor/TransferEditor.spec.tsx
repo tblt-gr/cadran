@@ -135,6 +135,7 @@ describe('TransferEditor into a portfolio', () => {
       'portfolio-cash',
       'portfolio-operations',
       'portfolio-summary',
+      'holdings',
     ];
     for (const key of keys) client.setQueryData([key], { cached: true });
     submit();

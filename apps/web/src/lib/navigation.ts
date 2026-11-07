@@ -21,13 +21,19 @@ export const navigationItems: NavigationItem[] = [
     href: '/accounts',
     icon: 'accounts',
     labelKey: 'navigation.accounts',
-    // Investment accounts and the instruments reference are reached from the accounts overview.
+    // Investment accounts are reached from the accounts overview.
     match: (path) =>
       path === '/accounts' ||
       /^\/accounts\/[^/]+$/.test(path) ||
       path.startsWith('/portfolios/') ||
       /^\/life-insurance\/[^/]+$/.test(path),
     mobile: true,
+  },
+  {
+    href: '/investments',
+    icon: 'investments',
+    labelKey: 'navigation.investments',
+    match: (path) => path === '/investments' || path.startsWith('/investments/'),
   },
   {
     href: '/budget',
@@ -69,7 +75,7 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/accounts/groups') return 'navigation.accountGroups';
   if (/^\/accounts\/(?!groups$)[^/]+$/.test(pathname)) return 'routes.accountDetail';
   if (/^\/life-insurance\/[^/]+$/.test(pathname)) return 'routes.lifeInsurance';
-  if (pathname === '/portfolios/instruments') return 'routes.instruments';
+  if (pathname === '/investments/instruments') return 'routes.instruments';
   if (/^\/portfolios\/[^/]+$/.test(pathname)) return 'routes.portfolioAccount';
   if (/^\/budget\/\d{4}$/.test(pathname)) return 'routes.annualReport';
   if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';

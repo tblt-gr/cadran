@@ -1,0 +1,69 @@
+.card {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: var(--spacing-4);
+  container-type: inline-size;
+}
+
+.card h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}
+
+.note {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.plotSkeleton {
+  height: var(--chart-plot-height-donut);
+}
+
+.tableScroll {
+  overflow-x: auto;
+}
+
+.tableScroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tableScroll th,
+.tableScroll td {
+  padding: var(--spacing-3);
+  border-bottom: var(--border-width-thin) solid var(--border-subtle);
+  text-align: left;
+}
+
+.tableScroll thead th {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.tableScroll tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
+}
+
+.tableScroll td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+}
+
+@container (min-width: 36rem) {
+  .body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+  }
+}

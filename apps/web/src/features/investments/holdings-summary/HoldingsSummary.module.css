@@ -1,0 +1,51 @@
+.summary {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--spacing-4);
+}
+
+.card {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: var(--spacing-2);
+}
+
+.card h3,
+.card p,
+.note {
+  margin: var(--spacing-none);
+}
+
+.card h3 {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+
+.value {
+  font-size: var(--font-size-kpi);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.block {
+  height: var(--font-size-kpi);
+  width: 60%;
+}
+
+.dateBlock {
+  height: var(--font-size-label);
+  width: 16rem;
+  max-width: 100%;
+}
