@@ -21,6 +21,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 final class GoalScheduleMigrationTest extends KernelTestCase
 {
     private const string MIGRATION = 'DoctrineMigrations\\Version20260928120000';
+    private const string UNIFICATION = 'DoctrineMigrations\\Version20261108120000';
     private const string EXACT_GOAL = '00000000-0000-7000-8000-0000000000d1';
     private const string EXACT_VERSION = '00000000-0000-7000-8000-0000000000d2';
     private const string IMPOSSIBLE_GOAL = '00000000-0000-7000-8000-0000000000d3';
@@ -29,6 +30,7 @@ final class GoalScheduleMigrationTest extends KernelTestCase
     private Connection $connection;
     private WorkspaceFixture $fixture;
     private bool $migrationAtHead = true;
+    private bool $unificationAtHead = true;
 
     protected function setUp(): void
     {
@@ -39,7 +41,10 @@ final class GoalScheduleMigrationTest extends KernelTestCase
         $this->connection = $connection;
         $this->fixture = new WorkspaceFixture($connection);
         $this->fixture->reset();
-        $this->runMigration('down');
+        // The goals unification dropped the columns this fixture writes: step back past it first.
+        $this->runMigration(self::UNIFICATION, 'down');
+        $this->unificationAtHead = false;
+        $this->runMigration(self::MIGRATION, 'down');
         $this->migrationAtHead = false;
         $this->fixture->seed();
     }
@@ -50,8 +55,12 @@ final class GoalScheduleMigrationTest extends KernelTestCase
             $this->connection->rollBack();
         }
         if (!$this->migrationAtHead) {
-            $this->runMigration('up');
+            $this->runMigration(self::MIGRATION, 'up');
             $this->migrationAtHead = true;
+        }
+        if (!$this->unificationAtHead) {
+            $this->runMigration(self::UNIFICATION, 'up');
+            $this->unificationAtHead = true;
         }
         $this->fixture->reset();
         parent::tearDown();
@@ -62,7 +71,7 @@ final class GoalScheduleMigrationTest extends KernelTestCase
         $this->insertAnnualVersion(self::EXACT_GOAL, self::EXACT_VERSION, '2000.00', 2);
         $this->insertAnnualVersion(self::IMPOSSIBLE_GOAL, self::IMPOSSIBLE_VERSION, '0.10', 2);
 
-        $this->runMigration('up');
+        $this->runMigration(self::MIGRATION, 'up');
         $this->migrationAtHead = true;
 
         self::assertSame('LINEAR', $this->connection->fetchOne('SELECT schedule_mode FROM budget_goal_versions WHERE id = ?', [self::EXACT_VERSION]));
@@ -97,11 +106,11 @@ final class GoalScheduleMigrationTest extends KernelTestCase
         return (string) $value;
     }
 
-    private function runMigration(string $direction): void
+    private function runMigration(string $migration, string $direction): void
     {
         $tester = new CommandTester((new Application(self::$kernel ?? self::bootKernel()))->find('doctrine:migrations:execute'));
         $tester->execute([
-            'versions' => [self::MIGRATION],
+            'versions' => [$migration],
             '--'.$direction => true,
             '--no-interaction' => true,
         ]);

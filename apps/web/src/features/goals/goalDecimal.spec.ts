@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   isValidPositiveRatioPercentage,
+  isValidRatePercentage,
   percentageToRatio,
   ratioToPercentage,
 } from './goalDecimal';
@@ -53,5 +54,21 @@ describe('isValidPositiveRatioPercentage', () => {
   it('rejects zero and values above 100 %', () => {
     expect(isValidPositiveRatioPercentage('0')).toBe(false);
     expect(isValidPositiveRatioPercentage('100.01')).toBe(false);
+  });
+});
+
+describe('isValidRatePercentage', () => {
+  it('accepts a zero floor and the full rate, unlike a positive share', () => {
+    expect(isValidRatePercentage('0')).toBe(true);
+    expect(isValidRatePercentage('20')).toBe(true);
+    expect(isValidRatePercentage('100')).toBe(true);
+    expect(isValidPositiveRatioPercentage('0')).toBe(false);
+  });
+
+  it('refuses a rate above 100 percent, a malformed entry and an excess of precision', () => {
+    expect(isValidRatePercentage('100.5')).toBe(false);
+    expect(isValidRatePercentage('-1')).toBe(false);
+    expect(isValidRatePercentage('')).toBe(false);
+    expect(isValidRatePercentage('0.0000001')).toBe(false);
   });
 });

@@ -24,7 +24,7 @@ final class GoalRepresentation
     /** @return array<string, mixed> */
     public static function summary(GoalSummaryView $goal): array
     {
-        return ['id' => $goal->id, 'label' => $goal->label, 'kind' => $goal->kind, 'metric' => $goal->metric, 'direction' => $goal->direction, 'scope' => self::scope($goal->scope), 'assetCode' => $goal->assetCode, 'state' => $goal->state, 'currentVersion' => self::version($goal->currentVersion), 'version' => $goal->version, 'warnings' => $goal->warnings, 'status' => null === $goal->status ? null : self::status($goal->status, false)];
+        return ['id' => $goal->id, 'label' => $goal->label, 'periodicity' => $goal->periodicity, 'startPeriod' => $goal->startPeriod, 'endPeriod' => $goal->endPeriod, 'metric' => $goal->metric, 'direction' => $goal->direction, 'scope' => self::scope($goal->scope), 'assetCode' => $goal->assetCode, 'currentVersion' => self::version($goal->currentVersion), 'version' => $goal->version, 'warnings' => $goal->warnings, 'status' => null === $goal->status ? null : self::status($goal->status, false)];
     }
 
     /** @return array<string, mixed> */
@@ -80,7 +80,7 @@ final class GoalRepresentation
     {
         $schedule = null === $version->schedule ? null : ['mode' => $version->schedule->mode, 'parts' => array_map(static fn (GoalSchedulePartView $part): array => ['month' => $part->month, 'amount' => $part->amount, 'cumulative' => $part->cumulative], $version->schedule->parts)];
 
-        return ['versionNo' => $version->versionNo, 'effectiveFrom' => $version->effectiveFrom, 'year' => $version->year, 'targetAmount' => $version->targetAmount, 'ratio' => $version->ratio, 'schedule' => $schedule];
+        return ['versionNo' => $version->versionNo, 'effectiveFrom' => $version->effectiveFrom, 'valueType' => $version->valueType, 'targetAmount' => $version->targetAmount, 'ratio' => $version->ratio, 'schedule' => $schedule];
     }
 
     /** @return array<string, mixed> */
@@ -96,7 +96,8 @@ final class GoalRepresentation
         $base = [
             'goalId' => $status->goalId,
             'month' => $status->month,
-            'kind' => $status->kind,
+            'periodicity' => $status->periodicity,
+            'valueType' => $status->valueType,
             'direction' => $status->direction,
             'goalVersion' => $status->goalVersion,
             'provisional' => $status->provisional,
@@ -107,16 +108,26 @@ final class GoalRepresentation
             'reason' => $status->reason,
             'quality' => $status->quality,
         ];
-        if ('ROLLING_RATIO' === $status->kind) {
+        if ('MONTHLY' === $status->periodicity) {
             $reference = $status->referenceIncome;
+            $monthly = [...$base, 'ratio' => $status->ratio, 'referenceIncome' => null === $reference ? null : ['value' => $reference->value?->toString(), 'usableMonths' => $reference->usableMonths, 'windowStart' => $reference->windowStart, 'windowEnd' => $reference->windowEnd], 'actual' => $status->actual];
+            if ($includeMonths) {
+                $monthly['months'] = self::statusMonths($status);
+            }
 
-            return [...$base, 'ratio' => $status->ratio, 'referenceIncome' => null === $reference ? null : ['value' => $reference->value?->toString(), 'usableMonths' => $reference->usableMonths, 'windowStart' => $reference->windowStart, 'windowEnd' => $reference->windowEnd], 'actual' => $status->actual];
+            return $monthly;
         }
         $annual = [...$base, 'scheduleMode' => $status->scheduleMode, 'achieved' => $status->achieved, 'expected' => $status->expected, 'remaining' => $status->remaining, 'excess' => $status->excess, 'progressRatio' => $status->progressRatio, 'progressRatioDisplay' => $status->progressRatioDisplay];
         if ($includeMonths) {
-            $annual['months'] = array_map(static fn (GoalStatusMonthView $month): array => ['month' => $month->month, 'state' => $month->state, 'value' => $month->value, 'expectedPart' => $month->expectedPart, 'cumulativeValue' => $month->cumulativeValue, 'cumulativeExpected' => $month->cumulativeExpected, 'goalVersion' => $month->goalVersion, 'policyVersion' => $month->policyVersion], $status->months);
+            $annual['months'] = self::statusMonths($status);
         }
 
         return $annual;
+    }
+
+    /** @return list<array<string, mixed>> */
+    private static function statusMonths(GoalStatusView $status): array
+    {
+        return array_map(static fn (GoalStatusMonthView $month): array => ['month' => $month->month, 'state' => $month->state, 'value' => $month->value, 'expectedPart' => $month->expectedPart, 'cumulativeValue' => $month->cumulativeValue, 'cumulativeExpected' => $month->cumulativeExpected, 'goalVersion' => $month->goalVersion, 'policyVersion' => $month->policyVersion], $status->months);
     }
 }

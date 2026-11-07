@@ -30,7 +30,6 @@ export function breadcrumbItems(
   const transactions = item('navigation.transactions', '/transactions');
   const categories = item('routes.categories', '/transactions/categories');
   const budget = item('navigation.budget', '/budget');
-  const plans = item('routes.budgetPlans', '/budget/plans');
   const settings = item('navigation.settings', '/parameters/interface');
   const staticRoutes: Record<string, BreadcrumbItem[]> = {
     '/': [],
@@ -50,7 +49,6 @@ export function breadcrumbItems(
     '/categories': [budget, transactions, categories],
     '/categories/rules': [budget, transactions, categories, item('routes.categorizationRules')],
     '/budget': [budget],
-    '/budget/plans': [budget, plans],
     '/goals': [item('navigation.goals')],
     '/parameters/interface': [settings, item('settings.tabs.interface')],
     '/parameters/profile': [settings, item('settings.tabs.profile')],
@@ -77,8 +75,6 @@ export function breadcrumbItems(
         pending: account?.pending !== false,
       };
       trail = [accounts, accountItem];
-    } else if (/^\/budget\/plans\/[^/]+$/.test(path)) {
-      trail = [budget, plans, item('routes.budgetPlan')];
     } else if (/^\/budget\/\d{4}\/\d{2}$/.test(path)) {
       const [, , year, month] = path.split('/');
       trail = [

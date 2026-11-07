@@ -158,9 +158,9 @@ final class GoalScheduleControllerTest extends WebTestCase
         self::assertSame('0', $this->scalar('SELECT count(*) FROM budget_goals'));
     }
 
-    public function testARollingGoalRefusesASchedule(): void
+    public function testAShareGoalRefusesASchedule(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Rate', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.1', 'startMonth' => '2026-09', 'schedule' => ['mode' => 'LINEAR']]);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Rate', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.1', 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'ROLLING_INCOME_SHARE', 'schedule' => ['mode' => 'LINEAR']]);
 
         self::assertResponseStatusCodeSame(422);
         self::assertSame('0', $this->scalar('SELECT count(*) FROM budget_goals'));
@@ -353,7 +353,7 @@ final class GoalScheduleControllerTest extends WebTestCase
      */
     private function create(string $target, array|string|null $schedule = null): array
     {
-        $payload = ['label' => 'Savings', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2026, 'targetAmount' => ['value' => $target, 'assetCode' => 'EUR']];
+        $payload = ['label' => 'Savings', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => $target, 'assetCode' => 'EUR']];
         if (null !== $schedule) {
             $payload['schedule'] = $schedule;
         }
@@ -364,15 +364,15 @@ final class GoalScheduleControllerTest extends WebTestCase
 
     private function insertForeignGoal(int $partCount = 12): void
     {
-        $this->connection->insert('budget_goals', ['id' => self::FOREIGN_GOAL, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'label' => 'Foreign', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'state' => 'ACTIVE', 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID, 'closed_at' => null, 'version' => 1]);
+        $this->connection->insert('budget_goals', ['id' => self::FOREIGN_GOAL, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'label' => 'Foreign', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'start_period' => '2026', 'end_period' => '2026', 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID, 'version' => 1]);
         $this->connection->transactional(fn () => $this->insertVersion(self::FOREIGN_VERSION, 1, $partCount));
     }
 
     private function insertLegacyOwnGoal(string $target, int $targetScale, int $year, bool $withLinearSchedule): void
     {
-        $this->connection->insert('budget_goals', ['id' => self::LEGACY_GOAL, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'label' => 'Legacy', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'state' => 'ACTIVE', 'created_at' => '2025-01-01 12:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID, 'closed_at' => null, 'version' => 1]);
+        $this->connection->insert('budget_goals', ['id' => self::LEGACY_GOAL, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'label' => 'Legacy', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'start_period' => (string) $year, 'end_period' => (string) $year, 'created_at' => '2025-01-01 12:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID, 'version' => 1]);
         $this->connection->transactional(function () use ($target, $targetScale, $year, $withLinearSchedule): void {
-            $this->connection->insert('budget_goal_versions', ['id' => self::LEGACY_VERSION, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'goal_id' => self::LEGACY_GOAL, 'version_no' => 1, 'effective_from' => sprintf('%d-01', $year), 'year' => $year, 'target_amount' => $target, 'target_scale' => $targetScale, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => $withLinearSchedule ? 'LINEAR' : null, 'reason' => null, 'created_at' => '2025-01-01 12:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID]);
+            $this->connection->insert('budget_goal_versions', ['id' => self::LEGACY_VERSION, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'goal_id' => self::LEGACY_GOAL, 'version_no' => 1, 'effective_from' => sprintf('%d-01', $year), 'value_type' => 'AMOUNT', 'target_amount' => $target, 'target_scale' => $targetScale, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => $withLinearSchedule ? 'LINEAR' : null, 'reason' => null, 'created_at' => '2025-01-01 12:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID]);
             if (!$withLinearSchedule) {
                 return;
             }
@@ -384,7 +384,7 @@ final class GoalScheduleControllerTest extends WebTestCase
 
     private function insertVersion(string $id, int $number, int $partCount): void
     {
-        $this->connection->insert('budget_goal_versions', ['id' => $id, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'goal_id' => self::FOREIGN_GOAL, 'version_no' => $number, 'effective_from' => '2026-09', 'year' => 2026, 'target_amount' => '1200.00', 'target_scale' => 2, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => 'LINEAR', 'reason' => null, 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID]);
+        $this->connection->insert('budget_goal_versions', ['id' => $id, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'goal_id' => self::FOREIGN_GOAL, 'version_no' => $number, 'effective_from' => '2026-09', 'value_type' => 'AMOUNT', 'target_amount' => '1200.00', 'target_scale' => 2, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => 'LINEAR', 'reason' => null, 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID]);
         for ($month = 1; $month <= $partCount; ++$month) {
             $this->connection->insert('budget_goal_schedule_parts', ['goal_version_id' => $id, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'month_index' => $month, 'amount' => '100.00', 'amount_scale' => 2]);
         }

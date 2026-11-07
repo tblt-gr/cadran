@@ -66,14 +66,14 @@ test.describe('monthly budget', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
-  test('reaches the budget plans from the month page', async ({ page }) => {
+  test('reaches the goals from the month page', async ({ page }) => {
     await page.goto('/');
     await navigateTo(page, 'Budget');
 
-    await page.getByRole('link', { name: 'Gérer les plans et objectifs' }).click();
+    await page.getByRole('link', { name: 'Objectifs', exact: true }).click();
     await settled(page);
 
-    await expect(page).toHaveURL(/\/budget\/plans$/);
+    await expect(page).toHaveURL(/\/goals$/);
     await expect(page.getByRole('main')).toBeVisible();
   });
 });

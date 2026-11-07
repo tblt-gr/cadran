@@ -11,6 +11,7 @@ function GoalCardSkeleton() {
         <div className={styles.goalIdentity}>
           <SkeletonTitle size="page" />
           <SkeletonBlock className={skeletonStyles.metric} />
+          <SkeletonBlock className={skeletonStyles.metric} />
         </div>
         <SkeletonBlock className={skeletonStyles.menu} />
       </div>

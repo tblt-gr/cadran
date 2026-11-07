@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\UI\Http;
 
-use App\Module\Budget\Application\Goals\CloseGoal;
 use App\Module\Budget\Application\Goals\CreateGoal;
 use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Budget\Application\Goals\GoalConflict;
@@ -39,15 +38,14 @@ final readonly class GoalController
     public function list(Request $request, ListGoals $list): Response
     {
         try {
-            $rawYear = $request->query->get('year');
-            if (null !== $rawYear && 1 !== preg_match('/^[0-9]{4}$/D', $rawYear)) {
-                throw new GoalInputError('invalid_goal_query', 'A year is four digits.');
+            $rawCurrent = $request->query->get('current');
+            if (null !== $rawCurrent && !in_array($rawCurrent, ['true', 'false'], true)) {
+                throw new GoalInputError('invalid_goal_query', 'The current filter is true or false.');
             }
-            $rawMonth = $request->query->get('month');
             $page = $list(
-                null === $rawYear ? null : (int) $rawYear,
-                $request->query->getString('state', 'active'),
-                $rawMonth,
+                $request->query->has('periodicity') ? $request->query->getString('periodicity') : null,
+                $request->query->has('period') ? $request->query->getString('period') : null,
+                'false' !== $rawCurrent,
                 self::pagination($request, 'page', 1),
                 self::pagination($request, 'pageSize', ListGoals::DEFAULT_PAGE_SIZE),
             );
@@ -108,14 +106,14 @@ final readonly class GoalController
             return $body;
         }
         try {
-            self::allowed($body, ['label', 'kind', 'metric', 'scope', 'year', 'targetAmount', 'ratio', 'startMonth', 'schedule'], ['label', 'kind', 'metric', 'scope']);
+            self::allowed($body, ['label', 'periodicity', 'metric', 'scope', 'startPeriod', 'endPeriod', 'valueType', 'targetAmount', 'ratio', 'schedule'], ['label', 'periodicity', 'metric', 'scope', 'startPeriod', 'valueType']);
             $scope = self::object($body['scope']);
             self::allowed($scope, ['type', 'ref'], ['type', 'ref']);
             $target = null === ($body['targetAmount'] ?? null) ? null : self::object($body['targetAmount']);
             if (null !== $target) {
                 self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
             }
-            $input = (new CreateGoalInput(self::string($body, 'label'), self::string($body, 'kind'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::nullableInteger($body, 'year'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::nullableString($body, 'startMonth'), self::schedule($body)));
+            $input = (new CreateGoalInput(self::string($body, 'label'), self::string($body, 'periodicity'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::string($body, 'startPeriod'), self::nullableString($body, 'endPeriod'), self::string($body, 'valueType'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::schedule($body)));
             $result = $this->idempotentExecution->execute(
                 'goal.create',
                 $this->idempotencyEnvelope->idempotency($request, false),
@@ -128,7 +126,7 @@ final readonly class GoalController
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->idempotencyEnvelope->idempotencyProblem($exception);
         } catch (GoalInputError $error) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode, $error->details);
+            return $this->problem(self::inputStatus($error), $error->errorCode, $error->details);
         } catch (\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_goal_target');
         } catch (GoalConflict $error) {
@@ -168,7 +166,7 @@ final readonly class GoalController
         try {
             $result = $update(GoalUpdateRequest::from($id, $body));
         } catch (GoalInputError $error) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode, $error->details);
+            return $this->problem(self::inputStatus($error), $error->errorCode, $error->details);
         } catch (\UnexpectedValueException) {
             return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_goal_target');
         } catch (GoalNotFound) {
@@ -182,30 +180,10 @@ final readonly class GoalController
         return $this->envelope->json(GoalRepresentation::detail($result));
     }
 
-    #[Route('/api/v1/goals/{id}/close', name: 'api_v1_goals_close', methods: ['POST'])]
-    public function close(string $id, Request $request, CloseGoal $close): Response
+    /** A period or value type the model never accepts is a malformed request; the other refusals are unprocessable. */
+    private static function inputStatus(GoalInputError $error): int
     {
-        if (!$this->envelope->isIdentifier($id)) {
-            return $this->notFound();
-        }
-        $body = $this->envelope->body($request);
-        if ($body instanceof Response) {
-            return $body;
-        }
-        try {
-            self::allowed($body, ['version'], ['version']);
-            $result = $close($id, self::integer($body, 'version'));
-        } catch (\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_goal_target');
-        } catch (GoalNotFound) {
-            return $this->notFound();
-        } catch (GoalConflict $error) {
-            return $this->problem(Response::HTTP_CONFLICT, $error->errorCode);
-        } catch (WorkspaceAccessDenied) {
-            return $this->forbidden();
-        }
-
-        return $this->envelope->json(GoalRepresentation::detail($result));
+        return in_array($error->errorCode, ['invalid_goal_value_type', 'invalid_goal_period'], true) ? Response::HTTP_BAD_REQUEST : Response::HTTP_UNPROCESSABLE_ENTITY;
     }
 
     /** @param array<string, string> $details */
@@ -302,28 +280,6 @@ final readonly class GoalController
         $value = $body[$field] ?? null;
         if (null !== $value && !is_string($value)) {
             throw new \UnexpectedValueException('A nullable goal string is required.');
-        }
-
-        return $value;
-    }
-
-    /** @param array<mixed> $body */
-    private static function integer(array $body, string $field): int
-    {
-        $value = $body[$field] ?? null;
-        if (!is_int($value)) {
-            throw new \UnexpectedValueException('A goal integer is required.');
-        }
-
-        return $value;
-    }
-
-    /** @param array<mixed> $body */
-    private static function nullableInteger(array $body, string $field): ?int
-    {
-        $value = $body[$field] ?? null;
-        if (null !== $value && !is_int($value)) {
-            throw new \UnexpectedValueException('A nullable goal integer is required.');
         }
 
         return $value;

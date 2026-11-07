@@ -863,19 +863,23 @@ export type PortfolioAnnualPerformance = {
     inception: PortfolioAnnualPeriodLine;
 };
 
-export type EmptyObject = {
-    [key: string]: never;
-};
+export type GoalPeriodicity = 'MONTHLY' | 'YEARLY';
 
-export type GoalKind = 'ANNUAL' | 'ROLLING_RATIO';
+/**
+ * AMOUNT is an amount in the workspace currency; INCOME_SHARE a share of the period cash income; ROLLING_INCOME_SHARE (monthly goals only) a share of the average cash income of the twelve complete months before the month; RATE the target rate itself (savings rate metrics only).
+ */
+export type GoalValueType = 'AMOUNT' | 'INCOME_SHARE' | 'ROLLING_INCOME_SHARE' | 'RATE';
 
-export type GoalMetric = 'NET_SAVINGS_TRANSFERS' | 'BUDGET_SURPLUS' | 'CATEGORY_SPENDING' | 'AXIS_SPENDING' | 'ACCOUNT_CONTRIBUTIONS';
+/**
+ * `YYYY-MM` for a monthly goal, `YYYY` for a yearly goal.
+ */
+export type GoalPeriod = string;
+
+export type GoalMetric = 'NET_SAVINGS_TRANSFERS' | 'BUDGET_SURPLUS' | 'CATEGORY_SPENDING' | 'AXIS_SPENDING' | 'ACCOUNT_CONTRIBUTIONS' | 'SAVINGS_RATE' | 'NET_SAVINGS_RATE';
 
 export type GoalDirection = 'MINIMUM' | 'CEILING';
 
 export type GoalScopeType = 'WORKSPACE' | 'CATEGORY' | 'AXIS' | 'ACCOUNT';
-
-export type GoalState = 'ACTIVE' | 'CLOSED';
 
 export type GoalDecimal = string;
 
@@ -891,21 +895,38 @@ export type GoalAmountInput = {
 
 export type CreateGoalRequest = {
     label: string;
-    kind: GoalKind;
+    periodicity: GoalPeriodicity;
     metric: GoalMetric;
     scope: GoalScopeInput;
-    year?: number | null;
-    targetAmount?: GoalAmountInput | null;
-    ratio?: GoalDecimal | null;
-    startMonth?: string | null;
+    startPeriod: GoalPeriod;
     /**
-     * Monthly calendar of an annual goal; LINEAR when omitted. Refused on a rolling goal.
+     * Null for a recurring goal without end; equal to startPeriod for a one-off goal; never before startPeriod. A period outside its periodicity format answers 400.
+     */
+    endPeriod?: GoalPeriod | null;
+    /**
+     * A value type the metric or periodicity does not take (an amount for a savings rate, a rolling share on a yearly goal) answers 400.
+     */
+    valueType: GoalValueType;
+    /**
+     * Required with AMOUNT, refused otherwise.
+     */
+    targetAmount?: GoalAmountInput | null;
+    /**
+     * Required with the three other value types, refused with AMOUNT.
+     */
+    ratio?: GoalDecimal | null;
+    /**
+     * Monthly calendar of a yearly amount goal; LINEAR when omitted. Refused on every other goal.
      */
     schedule?: GoalScheduleInput | null;
 };
 
 export type UpdateGoalRequest = {
     label: string;
+    /**
+     * Defaults to the value type in effect.
+     */
+    valueType?: GoalValueType | null;
     targetAmount?: GoalAmountInput | null;
     ratio?: GoalDecimal | null;
     version: number;
@@ -918,9 +939,17 @@ export type UpdateGoalRequest = {
      */
     reason?: string | null;
     /**
-     * New monthly calendar of an annual goal. When omitted, a linear schedule follows a changed target; a custom one requires its twelve new parts with the new target.
+     * New monthly calendar of a yearly amount goal. When omitted, a linear schedule follows a changed target; a custom one requires its twelve new parts with the new target.
      */
     schedule?: GoalScheduleInput | null;
+    /**
+     * Accepted only to return goal_identity_immutable; clients should omit it.
+     */
+    periodicity?: GoalPeriodicity;
+    /**
+     * Accepted only to return goal_identity_immutable; clients should omit it.
+     */
+    startPeriod?: GoalPeriod;
     /**
      * Accepted only to return goal_identity_immutable; clients should omit it.
      */
@@ -929,10 +958,6 @@ export type UpdateGoalRequest = {
      * Accepted only to return goal_identity_immutable; clients should omit it.
      */
     scope?: GoalScopeInput;
-};
-
-export type CloseGoalRequest = {
-    version: number;
 };
 
 export type GoalScope = {
@@ -1183,11 +1208,11 @@ export type EmergencyFundCoverage = {
 export type GoalVersion = {
     versionNo: number;
     effectiveFrom: string;
-    year: number | null;
+    valueType: GoalValueType;
     targetAmount: GoalDecimal | null;
     ratio: GoalDecimal | null;
     /**
-     * Twelve monthly parts summing exactly to targetAmount; null for a rolling goal, or for a pre-schedule annual version whose target could not be split (not calculable).
+     * Twelve monthly parts summing exactly to targetAmount; null for every goal but a yearly amount goal, or for a pre-schedule version whose target could not be split (not calculable).
      */
     schedule: GoalSchedule | null;
 };
@@ -1224,7 +1249,7 @@ export type GoalVersionChangeValue = string | [
 ] | null;
 
 export type GoalVersionChange = {
-    field: 'targetAmount' | 'ratio' | 'scheduleMode' | 'schedule';
+    field: 'valueType' | 'targetAmount' | 'ratio' | 'scheduleMode' | 'schedule';
     before: GoalVersionChangeValue;
     after: GoalVersionChangeValue;
 };
@@ -1255,12 +1280,13 @@ export type GoalVersionHistory = {
 export type GoalSummary = {
     id: string;
     label: string;
-    kind: GoalKind;
+    periodicity: GoalPeriodicity;
+    startPeriod: GoalPeriod;
+    endPeriod: GoalPeriod | null;
     metric: GoalMetric;
     direction: GoalDirection;
     scope: GoalScope;
     assetCode: string;
-    state: GoalState;
     currentVersion: GoalVersion;
     version: number;
     warnings: Array<'REFERENCE_ARCHIVED'>;
@@ -1272,7 +1298,7 @@ export type GoalList = {
     page: number;
     pageSize: number;
     /**
-     * Goals of the selected year and state, at most 50.
+     * Goals matching the filters across all pages.
      */
     total: number;
 };
@@ -1303,7 +1329,7 @@ export type GoalStatusMetricPolicy = {
     versions: Array<number>;
 };
 
-export type GoalStatusReason = 'MISSING_MONTH_VALUE' | 'MIXED_METRIC_POLICIES' | 'NO_REFERENCE_INCOME' | 'GOAL_NOT_STARTED' | 'REFERENCE_ARCHIVED' | 'FUTURE_MONTH' | null;
+export type GoalStatusReason = 'MISSING_MONTH_VALUE' | 'MIXED_METRIC_POLICIES' | 'NO_REFERENCE_INCOME' | 'MISSING_CASH_INCOME' | 'GOAL_NOT_STARTED' | 'GOAL_ENDED' | 'EVALUATION_NOT_AVAILABLE' | 'REFERENCE_ARCHIVED' | 'FUTURE_MONTH' | null;
 
 export type GoalStatusValue = string | null;
 
@@ -1325,11 +1351,12 @@ export type GoalStatusReferenceIncome = {
     windowEnd: string;
 };
 
-export type GoalAnnualStatus = {
+export type GoalYearlyStatus = {
     goalId: string;
     month: string;
-    kind: 'ANNUAL';
+    periodicity: 'YEARLY';
     direction: GoalDirection;
+    valueType: GoalValueType | null;
     goalVersion: number | null;
     scheduleMode: 'LINEAR' | 'CUSTOM' | null;
     provisional: boolean;
@@ -1351,11 +1378,12 @@ export type GoalAnnualStatus = {
     months: Array<GoalStatusMonth>;
 };
 
-export type GoalAnnualStatusSummary = {
+export type GoalYearlyStatusSummary = {
     goalId: string;
     month: string;
-    kind: 'ANNUAL';
+    periodicity: 'YEARLY';
     direction: GoalDirection;
+    valueType: GoalValueType | null;
     goalVersion: number | null;
     scheduleMode: 'LINEAR' | 'CUSTOM' | null;
     provisional: boolean;
@@ -1373,11 +1401,35 @@ export type GoalAnnualStatusSummary = {
     quality: 'COMPLETE' | 'PROVISIONAL' | 'PARTIAL' | 'EMPTY';
 };
 
-export type GoalRollingStatus = {
+export type GoalMonthlyStatus = {
     goalId: string;
     month: string;
-    kind: 'ROLLING_RATIO';
+    periodicity: 'MONTHLY';
     direction: GoalDirection;
+    valueType: GoalValueType | null;
+    goalVersion: number | null;
+    provisional: boolean;
+    metricPolicy: GoalStatusMetricPolicy;
+    ratio: GoalStatusValue;
+    referenceIncome: GoalStatusReferenceIncome | null;
+    target: GoalStatusValue;
+    actual: GoalStatusValue;
+    gap: GoalStatusValue;
+    status: 'MET' | 'MISSED' | 'WITHIN' | 'OVER' | 'NOT_CALCULABLE';
+    reason: GoalStatusReason;
+    quality: 'COMPLETE' | 'PROVISIONAL' | 'PARTIAL' | 'EMPTY';
+    /**
+     * The months of the read year from the goal start to the read month, each compared with its own target (expectedPart).
+     */
+    months: Array<GoalStatusMonth>;
+};
+
+export type GoalMonthlyStatusSummary = {
+    goalId: string;
+    month: string;
+    periodicity: 'MONTHLY';
+    direction: GoalDirection;
+    valueType: GoalValueType | null;
     goalVersion: number | null;
     provisional: boolean;
     metricPolicy: GoalStatusMetricPolicy;
@@ -1392,185 +1444,16 @@ export type GoalRollingStatus = {
 };
 
 export type GoalStatus = ({
-    kind: 'ANNUAL';
-} & GoalAnnualStatus) | ({
-    kind: 'ROLLING_RATIO';
-} & GoalRollingStatus);
+    periodicity: 'YEARLY';
+} & GoalYearlyStatus) | ({
+    periodicity: 'MONTHLY';
+} & GoalMonthlyStatus);
 
 export type GoalStatusSummary = ({
-    kind: 'ANNUAL';
-} & GoalAnnualStatusSummary) | ({
-    kind: 'ROLLING_RATIO';
-} & GoalRollingStatus);
-
-export type BudgetPeriodType = 'MONTH' | 'YEAR';
-
-export type BudgetPlanState = 'DRAFT' | 'ACTIVE' | 'CLOSED';
-
-export type BudgetScopeType = 'CATEGORY' | 'GROUP' | 'AXIS';
-
-export type BudgetValueType = 'AMOUNT' | 'RATIO';
-
-export type BudgetComparisonStatus = 'WITHIN_TARGET' | 'ON_TARGET' | 'OVER_TARGET' | 'NON_CALCULABLE';
-
-export type BudgetComparisonReason = 'MISSING_TARGET' | 'MIXED_ASSETS' | 'NO_ACCOUNT' | 'ZERO_CASH_INCOME' | 'UNKNOWN_METRIC_POLICY' | 'MIXED_METRIC_POLICIES';
-
-export type BudgetPeriod = string;
-
-export type BudgetExactDecimal = string;
-
-export type BudgetPlan = {
-    id: string;
-    periodType: BudgetPeriodType;
-    period: BudgetPeriod;
-    assetCode: string;
-    state: BudgetPlanState;
-    version: number;
-};
-
-export type BudgetPlanPage = {
-    items: Array<BudgetPlan>;
-    page: number;
-    pageSize: number;
-    total: number;
-};
-
-export type BudgetTarget = {
-    id: string;
-    planId: string;
-    scopeType: BudgetScopeType;
-    scopeId: string;
-    valueType: BudgetValueType;
-    amount: BudgetExactDecimal | null;
-    ratio: BudgetExactDecimal | null;
-    version: number;
-};
-
-export type BudgetTargetDetail = {
-    id: string;
-    scopeType: BudgetScopeType;
-    scopeId: string;
-    /**
-     * Workspace-scoped category or group label, or a stable human-readable analytic axis label.
-     */
-    scopeLabel: string;
-    valueType: BudgetValueType;
-    storedAmount: BudgetExactDecimal | null;
-    storedRatio: BudgetExactDecimal | null;
-    /**
-     * Response-only calculated decimal string. Ratio products preserve their natural scale up to 24 decimal places and are rounded HALF_UP to 24 places beyond that boundary; the result is never persisted.
-     */
-    resolvedAmount: BudgetExactDecimal | null;
-    nonCalculableReason: 'MIXED_ASSETS' | 'NO_ACCOUNT' | 'ZERO_CASH_INCOME' | 'UNKNOWN_METRIC_POLICY' | 'MIXED_METRIC_POLICIES' | null;
-    overlapping: boolean;
-    version: number;
-};
-
-export type BudgetPlanDetail = {
-    metricPolicy: MetricPolicyReference;
-    id: string;
-    periodType: BudgetPeriodType;
-    period: BudgetPeriod;
-    assetCode: string;
-    state: BudgetPlanState;
-    version: number;
-    targets: Array<BudgetTargetDetail>;
-};
-
-export type BudgetComparison = {
-    /**
-     * The part of `actual` coming from planned (upcoming) transactions, negated like `actual`; null when none falls in the scope.
-     */
-    upcomingAmount: BudgetExactDecimal | null;
-    upcomingCount: number;
-    targetId: string;
-    scopeType: BudgetScopeType;
-    scopeId: string;
-    /**
-     * Workspace-scoped category or group label, or a stable human-readable analytic axis label.
-     */
-    scopeLabel: string;
-    actual: BudgetExactDecimal | null;
-    actualReason: BudgetComparisonReason | null;
-    target: BudgetExactDecimal | null;
-    targetReason: BudgetComparisonReason | null;
-    /**
-     * Exact target minus actual amount; positive means budget remains.
-     */
-    variance: BudgetExactDecimal | null;
-    status: BudgetComparisonStatus;
-    includedTransactions: Array<BudgetComparisonTransaction>;
-    pendingCount: number;
-    overlapping: boolean;
-    /**
-     * Human-readable built-in metric policy applied to this comparison; not a selectable or persisted identifier.
-     */
-    policy: string;
-};
-
-export type BudgetComparisonTransaction = {
-    /**
-     * True when this source is a planned transaction counted as if booked on its date.
-     */
-    upcoming: boolean;
-    /**
-     * Stable internal key for rendering; the interface presents the readable transaction fields instead.
-     */
-    id: string;
-    bookedOn: string;
-    /**
-     * Label shown for the transaction, which is the user's display label when set, otherwise the source label.
-     */
-    rawLabel: string;
-    /**
-     * Exact signed sum of this transaction's splits retained in the comparison scope.
-     */
-    amount: BudgetExactDecimal;
-    assetCode: string;
-};
-
-export type BudgetComparisons = {
-    includesUpcoming: boolean;
-    metricPolicy: MetricPolicyReference;
-    planId: string;
-    period: string;
-    assetCode: string;
-    status: 'AVAILABLE' | 'NO_TARGETS';
-    reason: BudgetComparisonReason | null;
-    comparisons: Array<BudgetComparison>;
-};
-
-export type CreateBudgetPlanRequest = {
-    periodType: BudgetPeriodType;
-    period: BudgetPeriod;
-    assetCode: string;
-};
-
-export type UpdateBudgetPlanRequest = {
-    periodType: BudgetPeriodType;
-    period: BudgetPeriod;
-    assetCode: string;
-    version: number;
-};
-
-export type CreateBudgetTargetRequest = {
-    scopeType: BudgetScopeType;
-    scopeId: string;
-    valueType: BudgetValueType;
-    amount: BudgetExactDecimal | null;
-    ratio: BudgetExactDecimal | null;
-};
-
-export type UpdateBudgetTargetRequest = {
-    valueType: BudgetValueType;
-    amount: BudgetExactDecimal | null;
-    ratio: BudgetExactDecimal | null;
-    version: number;
-};
-
-export type DeleteBudgetTargetRequest = {
-    version: number;
-};
+    periodicity: 'YEARLY';
+} & GoalYearlyStatusSummary) | ({
+    periodicity: 'MONTHLY';
+} & GoalMonthlyStatusSummary);
 
 export type FoundationStatus = {
     status: 'ready';
@@ -7404,12 +7287,15 @@ export type ListGoalsData = {
     body?: never;
     path?: never;
     query?: {
-        year?: number;
-        state?: 'active' | 'closed';
+        periodicity?: GoalPeriodicity;
         /**
-         * Status month; defaults to the current workspace-local month, or December for a past year.
+         * Keep the goals covering this month (`YYYY-MM`) or year (`YYYY`). The status is read at that month (the current month for the current year, December for a past year).
          */
-        month?: string;
+        period?: string;
+        /**
+         * Only goals whose end period is null or not past; `false` lists them all.
+         */
+        current?: boolean;
         page?: number;
         pageSize?: number;
     };
@@ -7443,7 +7329,7 @@ export type ListGoalsError = ListGoalsErrors[keyof ListGoalsErrors];
 
 export type ListGoalsResponses = {
     /**
-     * Goals visible in the selected year, bounded to 50.
+     * Goals matching the filters, one bounded page.
      */
     200: GoalList;
 };
@@ -7493,7 +7379,7 @@ export type CreateGoalErrors = {
      */
     415: Problem;
     /**
-     * The goal or its monthly schedule is invalid; a sum mismatch carries the exact figures. A rolling correction reaching back more than 120 months, current month included, is refused with correction_span_exceeded.
+     * The goal or its monthly schedule is invalid; a sum mismatch carries the exact figures. A correction reaching back more than 120 months, current month included, is refused with correction_span_exceeded.
      */
     422: GoalProblem;
     /**
@@ -7723,7 +7609,7 @@ export type ReadGoalError = ReadGoalErrors[keyof ReadGoalErrors];
 
 export type ReadGoalResponses = {
     /**
-     * The goal detail; rolling goals include the recomputed current reference income.
+     * The goal detail; goals on a rolling income share include the recomputed current reference income.
      */
     200: GoalDetail;
 };
@@ -7840,7 +7726,7 @@ export type PreviewGoalCorrectionErrors = {
      */
     415: Problem;
     /**
-     * correction_reason_required, invalid_effective_month, correction_span_exceeded (a rolling correction reaching back more than 120 months, current month included), or another invalid goal definition.
+     * correction_reason_required, invalid_effective_month, correction_span_exceeded (a correction reaching back more than 120 months, current month included), or another invalid goal definition.
      */
     422: GoalProblem;
     /**
@@ -7853,7 +7739,7 @@ export type PreviewGoalCorrectionError = PreviewGoalCorrectionErrors[keyof Previ
 
 export type PreviewGoalCorrectionResponses = {
     /**
-     * Before and after status from the proposed effective month through the workspace-local current month, capped at an annual goal's year end. Each month selects the latest effective definition, so a retroactive correction yields to an existing definition with a later effective month.
+     * Before and after status from the proposed effective month through the workspace-local current month, capped at the goal's last covered month. Each month selects the latest effective definition, so a retroactive correction yields to an existing definition with a later effective month.
      */
     200: GoalCorrectionPreview;
 };
@@ -7898,67 +7784,6 @@ export type ListGoalVersionsResponses = {
 };
 
 export type ListGoalVersionsResponse = ListGoalVersionsResponses[keyof ListGoalVersionsResponses];
-
-export type CloseGoalData = {
-    body: CloseGoalRequest;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/goals/{id}/close';
-};
-
-export type CloseGoalErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type CloseGoalError = CloseGoalErrors[keyof CloseGoalErrors];
-
-export type CloseGoalResponses = {
-    /**
-     * The closed goal, retained for historical reads.
-     */
-    200: GoalDetail;
-};
-
-export type CloseGoalResponse = CloseGoalResponses[keyof CloseGoalResponses];
 
 export type ReadGoalStatusData = {
     body?: never;
@@ -8015,631 +7840,6 @@ export type ReadGoalStatusResponses = {
 };
 
 export type ReadGoalStatusResponse = ReadGoalStatusResponses[keyof ReadGoalStatusResponses];
-
-export type ListBudgetPlansData = {
-    body?: never;
-    path?: never;
-    query?: {
-        page?: number;
-        pageSize?: number;
-    };
-    url: '/api/v1/budget-plans';
-};
-
-export type ListBudgetPlansErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * The session is attached to no workspace, so there is nothing to read.
-     */
-    403: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type ListBudgetPlansError = ListBudgetPlansErrors[keyof ListBudgetPlansErrors];
-
-export type ListBudgetPlansResponses = {
-    /**
-     * One page of budget plans from the calling workspace.
-     */
-    200: BudgetPlanPage;
-};
-
-export type ListBudgetPlansResponse = ListBudgetPlansResponses[keyof ListBudgetPlansResponses];
-
-export type CreateBudgetPlanData = {
-    body: CreateBudgetPlanRequest;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path?: never;
-    query?: never;
-    url: '/api/v1/budget-plans';
-};
-
-export type CreateBudgetPlanErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type CreateBudgetPlanError = CreateBudgetPlanErrors[keyof CreateBudgetPlanErrors];
-
-export type CreateBudgetPlanResponses = {
-    /**
-     * The draft plan was created.
-     */
-    201: BudgetPlan;
-};
-
-export type CreateBudgetPlanResponse = CreateBudgetPlanResponses[keyof CreateBudgetPlanResponses];
-
-export type ReadBudgetPlanData = {
-    body?: never;
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-plans/{id}';
-};
-
-export type ReadBudgetPlanErrors = {
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * The session is attached to no workspace, so there is nothing to read.
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type ReadBudgetPlanError = ReadBudgetPlanErrors[keyof ReadBudgetPlanErrors];
-
-export type ReadBudgetPlanResponses = {
-    /**
-     * The plan, including exact and resolved target values.
-     */
-    200: BudgetPlanDetail;
-};
-
-export type ReadBudgetPlanResponse = ReadBudgetPlanResponses[keyof ReadBudgetPlanResponses];
-
-export type UpdateBudgetPlanData = {
-    body: UpdateBudgetPlanRequest;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-plans/{id}';
-};
-
-export type UpdateBudgetPlanErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type UpdateBudgetPlanError = UpdateBudgetPlanErrors[keyof UpdateBudgetPlanErrors];
-
-export type UpdateBudgetPlanResponses = {
-    /**
-     * The updated draft plan.
-     */
-    200: BudgetPlan;
-};
-
-export type UpdateBudgetPlanResponse = UpdateBudgetPlanResponses[keyof UpdateBudgetPlanResponses];
-
-export type ReadBudgetComparisonsData = {
-    body?: never;
-    path: {
-        id: string;
-    };
-    query?: {
-        /**
-         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
-         */
-        includeUpcoming?: boolean;
-    };
-    url: '/api/v1/budget-plans/{id}/comparisons';
-};
-
-export type ReadBudgetComparisonsErrors = {
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * The session is attached to no workspace, so there is nothing to read.
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type ReadBudgetComparisonsError = ReadBudgetComparisonsErrors[keyof ReadBudgetComparisonsErrors];
-
-export type ReadBudgetComparisonsResponses = {
-    /**
-     * Exact target-to-actual comparisons, or an explicit no-target state.
-     */
-    200: BudgetComparisons;
-};
-
-export type ReadBudgetComparisonsResponse = ReadBudgetComparisonsResponses[keyof ReadBudgetComparisonsResponses];
-
-export type ExplainBudgetComparisonData = {
-    body?: never;
-    path: {
-        id: string;
-        targetId: string;
-    };
-    query?: {
-        /**
-         * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
-         */
-        includeUpcoming?: boolean;
-    };
-    url: '/api/v1/budget-plans/{id}/comparisons/{targetId}/explain';
-};
-
-export type ExplainBudgetComparisonErrors = {
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * The session is attached to no workspace, so there is nothing to read.
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type ExplainBudgetComparisonError = ExplainBudgetComparisonErrors[keyof ExplainBudgetComparisonErrors];
-
-export type ExplainBudgetComparisonResponses = {
-    /**
-     * The exact calculation details for the addressed comparison.
-     */
-    200: MonthlyKpiExplanation;
-};
-
-export type ExplainBudgetComparisonResponse = ExplainBudgetComparisonResponses[keyof ExplainBudgetComparisonResponses];
-
-export type ActivateBudgetPlanData = {
-    body: EmptyObject;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-plans/{id}/activate';
-};
-
-export type ActivateBudgetPlanErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type ActivateBudgetPlanError = ActivateBudgetPlanErrors[keyof ActivateBudgetPlanErrors];
-
-export type ActivateBudgetPlanResponses = {
-    /**
-     * The active plan.
-     */
-    200: BudgetPlan;
-};
-
-export type ActivateBudgetPlanResponse = ActivateBudgetPlanResponses[keyof ActivateBudgetPlanResponses];
-
-export type CloseBudgetPlanData = {
-    body: EmptyObject;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-plans/{id}/close';
-};
-
-export type CloseBudgetPlanErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type CloseBudgetPlanError = CloseBudgetPlanErrors[keyof CloseBudgetPlanErrors];
-
-export type CloseBudgetPlanResponses = {
-    /**
-     * The closed plan.
-     */
-    200: BudgetPlan;
-};
-
-export type CloseBudgetPlanResponse = CloseBudgetPlanResponses[keyof CloseBudgetPlanResponses];
-
-export type CreateBudgetTargetData = {
-    body: CreateBudgetTargetRequest;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        planId: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-plans/{planId}/targets';
-};
-
-export type CreateBudgetTargetErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type CreateBudgetTargetError = CreateBudgetTargetErrors[keyof CreateBudgetTargetErrors];
-
-export type CreateBudgetTargetResponses = {
-    /**
-     * The target was created and inherits its plan context.
-     */
-    201: BudgetTarget;
-};
-
-export type CreateBudgetTargetResponse = CreateBudgetTargetResponses[keyof CreateBudgetTargetResponses];
-
-export type DeleteBudgetTargetData = {
-    body: DeleteBudgetTargetRequest;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-targets/{id}';
-};
-
-export type DeleteBudgetTargetErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type DeleteBudgetTargetError = DeleteBudgetTargetErrors[keyof DeleteBudgetTargetErrors];
-
-export type DeleteBudgetTargetResponses = {
-    /**
-     * The target was deleted.
-     */
-    204: void;
-};
-
-export type DeleteBudgetTargetResponse = DeleteBudgetTargetResponses[keyof DeleteBudgetTargetResponses];
-
-export type UpdateBudgetTargetData = {
-    body: UpdateBudgetTargetRequest;
-    headers: {
-        /**
-         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
-         */
-        'X-CSRF-TOKEN': string;
-    };
-    path: {
-        id: string;
-    };
-    query?: never;
-    url: '/api/v1/budget-targets/{id}';
-};
-
-export type UpdateBudgetTargetErrors = {
-    /**
-     * The request body or a query parameter is missing or malformed.
-     */
-    400: Problem;
-    /**
-     * The request carries no authenticated session.
-     */
-    401: Problem;
-    /**
-     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
-     */
-    403: Problem;
-    /**
-     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
-     */
-    404: Problem;
-    /**
-     * The owner password has already been defined.
-     */
-    409: Problem;
-    /**
-     * The JSON request body exceeds the 16 KiB mutation limit.
-     */
-    413: Problem;
-    /**
-     * The endpoint requires an application/json request body.
-     */
-    415: Problem;
-    /**
-     * The password does not satisfy the account password policy.
-     */
-    422: Problem;
-    /**
-     * An unexpected server error occurred.
-     */
-    500: Problem;
-};
-
-export type UpdateBudgetTargetError = UpdateBudgetTargetErrors[keyof UpdateBudgetTargetErrors];
-
-export type UpdateBudgetTargetResponses = {
-    /**
-     * The updated target.
-     */
-    200: BudgetTarget;
-};
-
-export type UpdateBudgetTargetResponse = UpdateBudgetTargetResponses[keyof UpdateBudgetTargetResponses];
 
 export type ListAccountGroupsData = {
     body?: never;

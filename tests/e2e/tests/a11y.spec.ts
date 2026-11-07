@@ -64,67 +64,6 @@ test('account actions remain reachable when the viewport shrinks', async ({ page
 
 keyboardJourneys();
 
-test('budget variance names its positive and negative signs with the server status', async ({
-  page,
-}) => {
-  const response = page.waitForResponse(
-    (result) => result.url().includes('/comparisons') && result.ok(),
-  );
-  await page.goto(fixtures.spendingPlan);
-  await settled(page);
-  const { comparisons } = (await (await response).json()) as {
-    comparisons: Array<{ scopeType: string; scopeLabel: string; actual: string | null }>;
-  };
-  const target = comparisons.find(({ scopeType, actual }) => {
-    if (scopeType !== 'CATEGORY' || actual === null || actual.startsWith('-')) return false;
-    const [whole, fraction = ''] = actual.split('.');
-    const units = BigInt(whole!);
-    return units > 1n || (units === 1n && /[1-9]/.test(fraction));
-  });
-  expect(
-    target !== undefined,
-    'the spending fixture needs a category actual strictly above one',
-  ).toBe(true);
-  const scope = `Catégorie · ${target!.scopeLabel}`;
-  const row = page
-    .getByRole('row')
-    .filter({ has: page.getByRole('cell', { name: scope, exact: true }) });
-  await expect(row).toHaveCount(1);
-  const comparison = page
-    .getByRole('region', { name: 'Résultats', exact: true })
-    .getByRole('article')
-    .filter({ has: page.getByRole('heading', { name: scope, exact: true }) });
-  const editor = page.getByRole('dialog');
-  await row.getByRole('button', { name: 'Modifier', exact: true }).click();
-  const original = await editor.getByLabel('Montant', { exact: true }).inputValue();
-  await editor.getByRole('button', { name: 'Fermer', exact: true }).click();
-
-  async function setTarget(value: string) {
-    await row.getByRole('button', { name: 'Modifier', exact: true }).click();
-    await editor.getByLabel('Montant', { exact: true }).fill(value);
-    await editor.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-    await expect(editor).toBeHidden();
-    await settled(page);
-  }
-  try {
-    // The selected target has server-confirmed spending. The server computes both comparisons;
-    // the browser only changes a target and checks the resulting signed announcement.
-    await setTarget('1');
-    await expect(
-      comparison.getByRole('img', { name: /^Écart restant : -[\d\s,.]+€ : Dépassement$/ }),
-    ).toBeVisible();
-    await setTarget('1000000');
-    await expect(
-      comparison.getByRole('img', { name: /^Écart restant : \+[\d\s,.]+€ : Dans le budget$/ }),
-    ).toBeVisible();
-  } finally {
-    // Keep the shared demo plan intact, including when a sign or status assertion fails.
-    if (await editor.isVisible())
-      await editor.getByRole('button', { name: 'Fermer', exact: true }).click();
-    await setTarget(original);
-  }
-});
-
 test('invalid transaction and transfer errors describe their controls', async ({ page }) => {
   for (const modal of ['transaction error', 'transfer error'] as const) {
     await openAuditModal(page, modal, fixtures);

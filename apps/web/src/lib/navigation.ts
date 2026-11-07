@@ -78,8 +78,6 @@ export function getRouteTitleKey(pathname: string): ParseKeys {
   if (pathname === '/investments/instruments') return 'routes.instruments';
   if (/^\/portfolios\/[^/]+$/.test(pathname)) return 'routes.portfolioAccount';
   if (/^\/budget\/\d{4}$/.test(pathname)) return 'routes.annualReport';
-  if (/^\/budget\/plans\/[^/]+$/.test(pathname)) return 'routes.budgetPlan';
-  if (pathname === '/budget/plans') return 'routes.budgetPlans';
   if (pathname === '/parameters/metric-policy') return 'routes.metricPolicy';
   if (pathname === '/parameters/catalog') return 'navigation.catalog';
   if (pathname === '/parameters/product-models') return 'navigation.productModels';

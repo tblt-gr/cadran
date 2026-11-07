@@ -1,4 +1,4 @@
-import type { GoalStatus, GoalSummary } from '@cadran/api-client';
+import type { GoalMonthlyStatus, GoalStatus, GoalSummary } from '@cadran/api-client';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
@@ -7,16 +7,17 @@ import { GoalCard } from './GoalCard';
 const baseGoal: GoalSummary = {
   id: '00000000-0000-7000-8000-000000000001',
   label: 'Épargne',
-  kind: 'ROLLING_RATIO',
+  periodicity: 'MONTHLY',
+  startPeriod: '2026-01',
+  endPeriod: null,
   metric: 'AXIS_SPENDING',
   direction: 'MINIMUM',
   scope: { type: 'AXIS', label: 'Discrétionnaire', archived: false },
   assetCode: 'EUR',
-  state: 'ACTIVE',
   currentVersion: {
     versionNo: 1,
     effectiveFrom: '2026-09',
-    year: null,
+    valueType: 'INCOME_SHARE',
     targetAmount: null,
     ratio: '0.30',
     schedule: null,
@@ -26,10 +27,11 @@ const baseGoal: GoalSummary = {
   status: null,
 };
 
-const notCalculableRollingStatus: GoalStatus = {
+const notCalculableMonthlyStatus: GoalMonthlyStatus = {
   goalId: baseGoal.id,
   month: '2026-09',
-  kind: 'ROLLING_RATIO',
+  periodicity: 'MONTHLY',
+  valueType: 'INCOME_SHARE',
   direction: 'MINIMUM',
   goalVersion: 1,
   provisional: false,
@@ -42,6 +44,7 @@ const notCalculableRollingStatus: GoalStatus = {
   status: 'NOT_CALCULABLE',
   reason: 'MIXED_METRIC_POLICIES',
   quality: 'PARTIAL',
+  months: [],
 };
 
 function noop() {}
@@ -52,8 +55,8 @@ describe('GoalCard', () => {
   it('shows the reason immediately after the status heading when the status is not calculable', () => {
     render(
       <GoalCard
-        goal={{ ...baseGoal, status: notCalculableRollingStatus }}
-        onClose={noop}
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, status: notCalculableMonthlyStatus }}
         onDetail={noop}
         onEdit={noop}
       />,
@@ -68,8 +71,8 @@ describe('GoalCard', () => {
   it('never shows a bare zero or dash for a null value without its reason', () => {
     render(
       <GoalCard
-        goal={{ ...baseGoal, status: notCalculableRollingStatus }}
-        onClose={noop}
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, status: notCalculableMonthlyStatus }}
         onDetail={noop}
         onEdit={noop}
       />,
@@ -83,11 +86,11 @@ describe('GoalCard', () => {
   it('explains a future-month status with its own reason', () => {
     render(
       <GoalCard
+        currentMonth="2026-09"
         goal={{
           ...baseGoal,
-          status: { ...notCalculableRollingStatus, month: '2027-01', reason: 'FUTURE_MONTH' },
+          status: { ...notCalculableMonthlyStatus, month: '2027-01', reason: 'FUTURE_MONTH' },
         }}
-        onClose={noop}
         onDetail={noop}
         onEdit={noop}
       />,
@@ -96,9 +99,9 @@ describe('GoalCard', () => {
     expect(screen.getAllByText('Ce mois n’a pas encore commencé').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('labels a rolling minimum goal\'s second amount "Cible" rather than a cumulative expected amount', () => {
+  it('labels a monthly minimum goal\'s second amount "Cible" rather than a cumulative expected amount', () => {
     const status: GoalStatus = {
-      ...notCalculableRollingStatus,
+      ...notCalculableMonthlyStatus,
       target: '750.00',
       actual: '500.00',
       gap: '-250.00',
@@ -107,7 +110,12 @@ describe('GoalCard', () => {
       quality: 'COMPLETE',
     };
     render(
-      <GoalCard goal={{ ...baseGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
+      <GoalCard
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, status }}
+        onDetail={noop}
+        onEdit={noop}
+      />,
     );
 
     expect(screen.getByText(/Il manque 250,00\s€/)).toBeTruthy();
@@ -115,9 +123,9 @@ describe('GoalCard', () => {
     expect(screen.queryByText(/Objectif à cette date/)).toBeNull();
   });
 
-  it('labels a rolling ceiling goal\'s second amount "Limite" rather than a cumulative expected amount', () => {
+  it('labels a monthly ceiling goal\'s second amount "Limite" rather than a cumulative expected amount', () => {
     const status: GoalStatus = {
-      ...notCalculableRollingStatus,
+      ...notCalculableMonthlyStatus,
       direction: 'CEILING',
       target: '750.00',
       actual: '500.00',
@@ -128,8 +136,8 @@ describe('GoalCard', () => {
     };
     render(
       <GoalCard
+        currentMonth="2026-09"
         goal={{ ...baseGoal, direction: 'CEILING', status }}
-        onClose={noop}
         onDetail={noop}
         onEdit={noop}
       />,
@@ -142,10 +150,11 @@ describe('GoalCard', () => {
   it('labels the annual remaining row "Reste à atteindre" when excess is not calculable', () => {
     const annualGoal: GoalSummary = {
       ...baseGoal,
-      kind: 'ANNUAL',
+      periodicity: 'YEARLY',
+      startPeriod: '2026',
       currentVersion: {
         ...baseGoal.currentVersion,
-        year: 2026,
+        valueType: 'AMOUNT',
         targetAmount: '2000.00',
         ratio: null,
       },
@@ -153,7 +162,8 @@ describe('GoalCard', () => {
     const status: GoalStatus = {
       goalId: baseGoal.id,
       month: '2026-09',
-      kind: 'ANNUAL',
+      periodicity: 'YEARLY',
+      valueType: 'AMOUNT',
       direction: 'MINIMUM',
       goalVersion: 1,
       scheduleMode: 'LINEAR',
@@ -173,7 +183,12 @@ describe('GoalCard', () => {
       months: [],
     };
     render(
-      <GoalCard goal={{ ...annualGoal, status }} onClose={noop} onDetail={noop} onEdit={noop} />,
+      <GoalCard
+        currentMonth="2026-09"
+        goal={{ ...annualGoal, status }}
+        onDetail={noop}
+        onEdit={noop}
+      />,
     );
 
     expect(
@@ -186,7 +201,8 @@ describe('GoalCard', () => {
     const status: GoalStatus = {
       goalId: baseGoal.id,
       month: '2026-09',
-      kind: 'ANNUAL',
+      periodicity: 'YEARLY',
+      valueType: 'AMOUNT',
       direction: 'MINIMUM',
       goalVersion: 1,
       scheduleMode: 'LINEAR',
@@ -207,17 +223,18 @@ describe('GoalCard', () => {
     };
     const annual: GoalSummary = {
       ...baseGoal,
-      kind: 'ANNUAL',
+      periodicity: 'YEARLY',
+      startPeriod: '2026',
       currentVersion: {
         ...baseGoal.currentVersion,
-        year: 2026,
+        valueType: 'AMOUNT',
         targetAmount: '12000',
         ratio: null,
       },
       status,
     };
     const { rerender } = render(
-      <GoalCard goal={annual} onClose={noop} onDetail={noop} onEdit={noop} />,
+      <GoalCard currentMonth="2026-09" goal={annual} onDetail={noop} onEdit={noop} />,
     );
     expect(screen.getByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
     expect(screen.getByText('En avance')).toBeTruthy();
@@ -226,29 +243,29 @@ describe('GoalCard', () => {
     expect(screen.getByText(/Objectif attendu à cette date : 9\s000,00\s€/)).toBeTruthy();
     expect(screen.getByTestId('gauge-marker').getAttribute('style')).toContain('left: 75%');
 
-    rerender(<GoalCard goal={annual} onClose={noop} onEdit={noop} />);
+    rerender(<GoalCard currentMonth="2026-09" goal={annual} onEdit={noop} />);
     expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
   });
 
-  it('offers no monthly detail for a rolling goal, which has no month-by-month breakdown', () => {
+  it('offers the monthly detail of a monthly goal as well', () => {
     render(
       <GoalCard
-        goal={{ ...baseGoal, status: notCalculableRollingStatus }}
-        onClose={noop}
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, status: notCalculableMonthlyStatus }}
         onDetail={noop}
         onEdit={noop}
       />,
     );
 
-    expect(screen.queryByRole('button', { name: 'Voir le détail mensuel' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Voir le détail mensuel' })).toBeTruthy();
   });
 
-  it('keeps the history action available after the goal is closed', () => {
+  it('keeps the history action available after the goal has ended', () => {
     const onHistory = vi.fn();
     render(
       <GoalCard
-        goal={{ ...baseGoal, state: 'CLOSED' }}
-        onClose={noop}
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, endPeriod: '2026-08' }}
         onEdit={noop}
         onHistory={onHistory}
       />,
@@ -259,27 +276,94 @@ describe('GoalCard', () => {
     expect(onHistory).toHaveBeenCalledOnce();
   });
 
-  it('flags a closed goal that missed its target and leaves an open or met one unflagged', () => {
-    const missed = { ...notCalculableRollingStatus, status: 'MISSED' as const };
+  it('flags an ended goal that missed its target and leaves a running or met one unflagged', () => {
+    const missed = { ...notCalculableMonthlyStatus, status: 'MISSED' as const };
     const { container, rerender } = render(
       <GoalCard
-        goal={{ ...baseGoal, state: 'CLOSED', status: missed }}
-        onClose={noop}
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, endPeriod: '2026-08', status: missed }}
         onEdit={noop}
       />,
     );
     expect(container.querySelector('[data-failed="true"]')).not.toBeNull();
 
-    rerender(<GoalCard goal={{ ...baseGoal, status: missed }} onClose={noop} onEdit={noop} />);
+    rerender(
+      <GoalCard currentMonth="2026-09" goal={{ ...baseGoal, status: missed }} onEdit={noop} />,
+    );
     expect(container.querySelector('[data-failed]')).toBeNull();
 
     rerender(
       <GoalCard
-        goal={{ ...baseGoal, state: 'CLOSED', status: { ...missed, status: 'MET' } }}
-        onClose={noop}
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, endPeriod: '2026-08', status: { ...missed, status: 'MET' } }}
         onEdit={noop}
       />,
     );
     expect(container.querySelector('[data-failed]')).toBeNull();
+  });
+
+  it('states the periodicity and span of the goal under its metric', () => {
+    const { rerender } = render(<GoalCard currentMonth="2026-09" goal={baseGoal} onEdit={noop} />);
+    expect(screen.getByText('Mensuel, depuis janvier 2026')).toBeTruthy();
+
+    rerender(
+      <GoalCard
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, endPeriod: '2026-01' }}
+        onEdit={noop}
+      />,
+    );
+    expect(screen.getByText('Mensuel, janvier 2026')).toBeTruthy();
+
+    rerender(
+      <GoalCard
+        currentMonth="2026-09"
+        goal={{ ...baseGoal, periodicity: 'YEARLY', startPeriod: '2025', endPeriod: '2026' }}
+        onEdit={noop}
+      />,
+    );
+    expect(screen.getByText('Annuel, de 2025 à 2026')).toBeTruthy();
+  });
+
+  it('shows a rate goal as percentages and omits the share caption', () => {
+    const rateGoal: GoalSummary = {
+      ...baseGoal,
+      metric: 'SAVINGS_RATE',
+      scope: { type: 'WORKSPACE', label: 'Espace', archived: false },
+      currentVersion: { ...baseGoal.currentVersion, valueType: 'RATE', ratio: '0.20' },
+      status: {
+        ...notCalculableMonthlyStatus,
+        valueType: 'RATE',
+        ratio: '0.20',
+        target: '0.20',
+        actual: '0.15',
+        gap: '-0.05',
+        reason: null,
+        status: 'MISSED',
+        quality: 'COMPLETE',
+      },
+    };
+    render(<GoalCard currentMonth="2026-09" goal={rateGoal} onEdit={noop} />);
+
+    expect(screen.getByText(/Taux d’épargne/)).toBeTruthy();
+    expect(screen.getByText(/Il manque 5,00\s%/)).toBeTruthy();
+    expect(screen.queryByText(/Ratio visé/)).toBeNull();
+  });
+
+  it('explains a goal that is not yet started with its own reason', () => {
+    render(
+      <GoalCard
+        currentMonth="2026-09"
+        goal={{
+          ...baseGoal,
+          status: { ...notCalculableMonthlyStatus, reason: 'GOAL_NOT_STARTED' },
+        }}
+        onEdit={noop}
+      />,
+    );
+
+    expect(
+      screen.getAllByText('L’objectif ne s’applique pas encore à ce mois').length,
+    ).toBeGreaterThan(0);
   });
 });

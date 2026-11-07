@@ -10,12 +10,12 @@ use App\Module\Budget\Application\Goals\GoalMonthSource;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
-use App\Module\Budget\Domain\Goals\GoalKind;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
-use App\Module\Budget\Domain\Goals\GoalState;
+use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
@@ -29,6 +29,7 @@ use App\Module\Foundation\Application\WorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Application\AnnualMonth;
 use App\Module\Reporting\Application\MonthFigures;
@@ -57,7 +58,7 @@ final class ReadGoalStatusTest extends TestCase
         for ($index = 1; $index <= 9; ++$index) {
             $months[] = self::month(2026, $index, 9 === $index ? MonthState::PROVISIONAL : MonthState::COMPLETE, 'netSavingsTransfers', '180.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
         $version = self::annualVersion(1, '2026-01', '2000.00');
 
         $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-09');
@@ -80,7 +81,7 @@ final class ReadGoalStatusTest extends TestCase
         for ($index = 1; $index <= 5; ++$index) {
             $months[] = self::month(2026, $index, MonthState::COMPLETE, 'axis:DISCRETIONARY', '150.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-05');
 
@@ -95,7 +96,7 @@ final class ReadGoalStatusTest extends TestCase
         for ($index = 1; $index <= 8; ++$index) {
             $months[] = self::month(2026, $index, MonthState::COMPLETE, 'netSavingsTransfers', '260.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '2000.00')], $months)(self::GOAL_ID, '2026-08');
 
@@ -112,7 +113,7 @@ final class ReadGoalStatusTest extends TestCase
         for ($index = 1; $index <= 8; ++$index) {
             $months[] = self::month(2026, $index, MonthState::COMPLETE, 'netSavingsTransfers', '250.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '2000.00')], $months)(self::GOAL_ID, '2026-08');
 
@@ -127,8 +128,8 @@ final class ReadGoalStatusTest extends TestCase
         $maximum = '99999999999999999999999999';
         $target = DecimalValue::fromString($maximum);
         $schedule = GoalSchedule::custom($target, [$target, ...array_fill(0, 11, DecimalValue::zero())], 0);
-        $version = GoalVersion::annual(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-01', 2026, $target, $schedule, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $version = GoalVersion::amount(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-01', $target, $schedule, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
         $months = [self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '-'.$maximum)];
 
         $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-09');
@@ -145,8 +146,8 @@ final class ReadGoalStatusTest extends TestCase
         $maximum = '99999999999999999999999999';
         $target = DecimalValue::fromString($maximum);
         $schedule = GoalSchedule::custom($target, [$target, ...array_fill(0, 11, DecimalValue::zero())], 0);
-        $version = GoalVersion::annual(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-01', 2026, $target, $schedule, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $version = GoalVersion::amount(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-01', $target, $schedule, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
         $months = [
             self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', $maximum),
             self::month(2026, 2, MonthState::COMPLETE, 'netSavingsTransfers', $maximum),
@@ -168,7 +169,7 @@ final class ReadGoalStatusTest extends TestCase
         for ($index = 1; $index <= 11; ++$index) {
             $months[] = self::month(2026, $index, MonthState::COMPLETE, 'axis:DISCRETIONARY', 11 === $index ? '250.00' : '100.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-11');
 
@@ -185,7 +186,7 @@ final class ReadGoalStatusTest extends TestCase
             $state = $index < 4 ? MonthState::NO_DATA : MonthState::COMPLETE;
             $months[] = self::month(2026, $index, $state, 'netSavingsTransfers', MonthState::NO_DATA === $state ? null : '150.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
         $version1 = self::annualVersion(1, '2026-01', '1200.00');
         $version2 = self::annualVersion(2, '2026-07', '2400.00');
 
@@ -206,7 +207,7 @@ final class ReadGoalStatusTest extends TestCase
             self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '100.00', 1),
             self::month(2026, 2, MonthState::COMPLETE, 'netSavingsTransfers', '100.00', 2),
         ];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-02');
 
@@ -226,8 +227,8 @@ final class ReadGoalStatusTest extends TestCase
             $months[] = self::month((int) $date->format('Y'), (int) $date->format('n'), $state, 'cashIncome', MonthState::NO_DATA === $state ? null : '2500.00');
         }
         $months[] = self::month(2026, 9, MonthState::PROVISIONAL, 'axis:DISCRETIONARY', '800.00');
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
-        $version = GoalVersion::rolling(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-09', DecimalValue::fromString('0.30'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+        $version = GoalVersion::share(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-09', GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString('0.30'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
 
         $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-09');
 
@@ -246,8 +247,8 @@ final class ReadGoalStatusTest extends TestCase
             $months[] = self::month((int) $date->format('Y'), (int) $date->format('n'), MonthState::COMPLETE, 'cashIncome', '2500.00');
         }
         $months[] = self::month(2026, 9, MonthState::PROVISIONAL, 'netSavingsTransfers', '-120.00');
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
-        $version = GoalVersion::rolling(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-09', DecimalValue::fromString('0.20'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $version = GoalVersion::share(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-09', GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString('0.20'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
 
         $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-09');
 
@@ -264,8 +265,8 @@ final class ReadGoalStatusTest extends TestCase
             $months[] = self::month((int) $date->format('Y'), (int) $date->format('n'), MonthState::COMPLETE, 'cashIncome', '2500.00', 1);
         }
         $months[] = self::month(2026, 9, MonthState::PROVISIONAL, 'netSavingsTransfers', '600.00', 2);
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
-        $version = GoalVersion::rolling(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-09', DecimalValue::fromString('0.20'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $version = GoalVersion::share(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, '2026-09', GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString('0.20'), new \DateTimeImmutable('2026-09-01'), WorkspaceFixture::OWNER_ID);
 
         $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-09');
 
@@ -285,7 +286,7 @@ final class ReadGoalStatusTest extends TestCase
             $months[] = self::month((int) $date->format('Y'), (int) $date->format('n'), MonthState::NO_DATA, 'cashIncome', null);
         }
         $months[] = self::month(2026, 9, MonthState::COMPLETE, 'netSavingsTransfers', '300.00');
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::rollingVersion('2026-01', '0.20')], $months)(self::GOAL_ID, '2026-09');
 
@@ -301,7 +302,7 @@ final class ReadGoalStatusTest extends TestCase
     public function testAnnualGoalBeforeItsYearIsNotStarted(): void
     {
         $months = [self::month(2025, 12, MonthState::COMPLETE, 'netSavingsTransfers', '0')];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2025-12');
 
@@ -318,7 +319,7 @@ final class ReadGoalStatusTest extends TestCase
     {
         $months = self::referenceIncomes('2500.00');
         $months[] = self::month(2026, 8, MonthState::COMPLETE, 'netSavingsTransfers', '0');
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::rollingVersion('2026-09', '0.20')], $months)(self::GOAL_ID, '2026-08');
 
@@ -334,7 +335,7 @@ final class ReadGoalStatusTest extends TestCase
     public function testRollingMonthWithoutDataIsPartialAndNeverMetOrMissed(): void
     {
         $months = self::referenceIncomes('2500.00');
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::rollingVersion('2026-01', '0.20')], $months)(self::GOAL_ID, '2026-09');
 
@@ -353,7 +354,7 @@ final class ReadGoalStatusTest extends TestCase
         for ($index = 1; $index <= 5; ++$index) {
             $months[] = self::month(2026, $index, MonthState::COMPLETE, 'netSavingsTransfers', 4 === $index ? null : '100.00');
         }
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-05');
 
@@ -378,7 +379,7 @@ final class ReadGoalStatusTest extends TestCase
         $months[] = self::monthWith(2026, 9, MonthState::PROVISIONAL, ['budgetExpenses' => '300.00', 'ownCategory:'.self::CATEGORY_ID => '300.00'], [self::CATEGORY_ID]);
         $categories = new InMemoryCategoryRepository();
         $categories->add(self::category(self::CATEGORY_ID, null, WorkspaceFixture::own(), new \DateTimeImmutable('2026-06-01')));
-        $goal = self::goal(GoalKind::ROLLING_RATIO, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID);
 
         $status = $this->reader($goal, [self::rollingVersion('2026-01', '0.10')], $months, $categories)(self::GOAL_ID, '2026-09');
 
@@ -406,7 +407,7 @@ final class ReadGoalStatusTest extends TestCase
             self::monthWith(2026, 1, MonthState::COMPLETE, ['budgetExpenses' => '1500.00', 'ownCategory:'.self::CATEGORY_ID => '40.10', 'ownCategory:'.$child => '9.905000000000000000000001', 'ownCategory:'.$sibling => '999.00', 'ownCategory:'.$foreignChild => '450.00'], $ids),
             self::monthWith(2026, 2, MonthState::COMPLETE, ['budgetExpenses' => '10.00', 'ownCategory:'.self::CATEGORY_ID => '10.00', 'ownCategory:'.$child => null], $ids),
         ];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months, $categories)(self::GOAL_ID, '2026-02');
 
@@ -434,7 +435,7 @@ final class ReadGoalStatusTest extends TestCase
             self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '0'),
             self::month(2026, 2, MonthState::COMPLETE, 'netSavingsTransfers', '0'),
         ];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months, transfers: new FixedTransferPairReader($pairs))(self::GOAL_ID, '2026-02');
 
@@ -452,7 +453,7 @@ final class ReadGoalStatusTest extends TestCase
             'netSavingsTransfers' => new MonthlyMetricView('100.00', 'USD', null),
         ], [], [], []);
         $months = [new AnnualMonth($month, MonthState::COMPLETE, false, false, $figures)];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-01');
 
@@ -466,7 +467,7 @@ final class ReadGoalStatusTest extends TestCase
         $other = '00000000-0000-7000-8000-000000000302';
         $pairs = ['2026-01' => [self::pair('00000000-0000-7000-8000-000000000401', $other, self::ACCOUNT_ID, '250.00', '2026-01-15', assetCode: 'USD')]];
         $months = [self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '0')];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months, transfers: new FixedTransferPairReader($pairs))(self::GOAL_ID, '2026-01');
 
@@ -478,11 +479,140 @@ final class ReadGoalStatusTest extends TestCase
     {
         $months = [self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', '0')];
         $pairs = ['2026-01' => [self::pair('00000000-0000-7000-8000-000000000401', '00000000-0000-7000-8000-000000000302', self::ACCOUNT_ID, '250.125', '2026-01-15')]];
-        $goal = self::goal(GoalKind::ANNUAL, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_ID);
 
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months, transfers: new FixedTransferPairReader($pairs, WorkspaceFixture::other()))(self::GOAL_ID, '2026-01');
 
         self::assertSame('0', $status->achieved);
+    }
+
+    public function testAMonthlyAmountCeilingComparesEachMonthWithItsOwnTarget(): void
+    {
+        // January 380.00 and February 410.50 are history; March spends exactly the 400.00 ceiling: within.
+        $months = [
+            self::month(2026, 1, MonthState::COMPLETE, 'axis:DISCRETIONARY', '380.00'),
+            self::month(2026, 2, MonthState::COMPLETE, 'axis:DISCRETIONARY', '410.50'),
+            self::month(2026, 3, MonthState::COMPLETE, 'axis:DISCRETIONARY', '400.00'),
+        ];
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+
+        $status = $this->reader($goal, [self::monthlyAmount('2026-01', '400.00')], $months)(self::GOAL_ID, '2026-03');
+
+        self::assertSame('MONTHLY', $status->periodicity);
+        self::assertSame('AMOUNT', $status->valueType);
+        self::assertSame('400.00', $status->target);
+        self::assertSame('400.00', $status->actual);
+        self::assertSame('0.00', $status->gap);
+        self::assertSame('WITHIN', $status->status);
+        self::assertNull($status->reason);
+        self::assertSame(['380.00', '410.50', '400.00'], array_map(static fn ($month): ?string => $month->value, $status->months));
+        self::assertSame(['400.00', '400.00', '400.00'], array_map(static fn ($month): ?string => $month->expectedPart, $status->months));
+    }
+
+    public function testAMonthlyCeilingIsOverBySomeCentsAndKeepsEveryDecimal(): void
+    {
+        $months = [self::month(2026, 2, MonthState::COMPLETE, 'axis:DISCRETIONARY', '410.505')];
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+
+        $status = $this->reader($goal, [self::monthlyAmount('2026-01', '400.00')], $months)(self::GOAL_ID, '2026-02');
+
+        self::assertSame('10.505', $status->gap);
+        self::assertSame('OVER', $status->status);
+    }
+
+    public function testAMonthlyIncomeShareTargetsTheMonthCashIncomeExactly(): void
+    {
+        // 40 % of the 3000.00 cash income of the month is a 1200.00 ceiling; 1150.00 spent leaves 50.00 of room.
+        $month = self::monthWith(2026, 3, MonthState::COMPLETE, ['cashIncome' => '3000.00', 'axis:ESSENTIAL' => '1150.00'], []);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'ESSENTIAL');
+
+        $status = $this->reader($goal, [self::monthlyShare(GoalValueType::INCOME_SHARE, '2026-01', '0.40')], [$month])(self::GOAL_ID, '2026-03');
+
+        self::assertSame('INCOME_SHARE', $status->valueType);
+        self::assertStringStartsWith('1200', (string) $status->target);
+        self::assertSame(0, ExactDecimal::compareForResponse((string) $status->target, '1200'));
+        self::assertSame(0, ExactDecimal::compareForResponse((string) $status->gap, '-50'));
+        self::assertSame('WITHIN', $status->status);
+        self::assertSame('0.40', $status->ratio);
+    }
+
+    public function testAMonthlyIncomeShareWithoutCashIncomeIsNotCalculableNeverZero(): void
+    {
+        $month = self::month(2026, 3, MonthState::COMPLETE, 'axis:ESSENTIAL', '100.00');
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'ESSENTIAL');
+
+        $status = $this->reader($goal, [self::monthlyShare(GoalValueType::INCOME_SHARE, '2026-01', '0.40')], [$month])(self::GOAL_ID, '2026-03');
+
+        self::assertNull($status->target);
+        self::assertNull($status->gap);
+        self::assertSame('NOT_CALCULABLE', $status->status);
+        self::assertSame('MISSING_CASH_INCOME', $status->reason);
+    }
+
+    public function testASavingsRateFloorIsMetAtEqualityAndMissedBelowIt(): void
+    {
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::SAVINGS_RATE, GoalScopeType::WORKSPACE);
+        $versions = [self::monthlyShare(GoalValueType::RATE, '2026-01', '0.20')];
+
+        $met = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'cashSavingsRate', '0.20')])(self::GOAL_ID, '2026-03');
+        $missed = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'cashSavingsRate', '0.199999999999999999999999')])(self::GOAL_ID, '2026-03');
+
+        self::assertSame('RATE', $met->valueType);
+        self::assertSame('MET', $met->status);
+        self::assertSame('MISSED', $missed->status);
+        self::assertSame('-0.000000000000000000000001', $missed->gap);
+    }
+
+    public function testAZeroSavingsRateFloorIsMeaningfulAndANullRateIsNotCalculable(): void
+    {
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_RATE, GoalScopeType::WORKSPACE);
+        $versions = [self::monthlyShare(GoalValueType::RATE, '2026-01', '0')];
+
+        $zero = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'netSavingsRate', '0')])(self::GOAL_ID, '2026-03');
+        $negative = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'netSavingsRate', '-0.05')])(self::GOAL_ID, '2026-03');
+        $unknown = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'netSavingsRate', null)])(self::GOAL_ID, '2026-03');
+
+        self::assertSame('MET', $zero->status);
+        self::assertSame('MISSED', $negative->status);
+        self::assertSame('NOT_CALCULABLE', $unknown->status);
+        self::assertNull($unknown->actual);
+    }
+
+    public function testAOneOffMonthlyGoalIsNotCalculableOutsideItsMonth(): void
+    {
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY', '2026-01');
+        $months = [self::month(2026, 2, MonthState::COMPLETE, 'axis:DISCRETIONARY', '10.00')];
+
+        $status = $this->reader($goal, [self::monthlyAmount('2026-01', '400.00')], $months)(self::GOAL_ID, '2026-02');
+
+        self::assertSame('NOT_CALCULABLE', $status->status);
+        self::assertSame('GOAL_ENDED', $status->reason);
+        self::assertNull($status->actual);
+    }
+
+    public function testAYearlyShareGoalIsNotEvaluatedYetAndNeverReadsAsZero(): void
+    {
+        $goal = self::goal(GoalPeriodicity::YEARLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'ESSENTIAL');
+        $months = [self::month(2026, 3, MonthState::COMPLETE, 'axis:ESSENTIAL', '100.00')];
+
+        $status = $this->reader($goal, [self::monthlyShare(GoalValueType::INCOME_SHARE, '2026-01', '0.40')], $months)(self::GOAL_ID, '2026-03');
+
+        self::assertSame('YEARLY', $status->periodicity);
+        self::assertSame('NOT_CALCULABLE', $status->status);
+        self::assertSame('EVALUATION_NOT_AVAILABLE', $status->reason);
+        self::assertNull($status->achieved);
+    }
+
+    public function testAMonthlyAmountComparisonMayExceedTheStorageIntegerWidth(): void
+    {
+        $maximum = '99999999999999999999999999';
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'DISCRETIONARY');
+        $months = [self::month(2026, 3, MonthState::COMPLETE, 'axis:DISCRETIONARY', $maximum.'.5')];
+
+        $status = $this->reader($goal, [self::monthlyAmount('2026-01', $maximum)], $months)(self::GOAL_ID, '2026-03');
+
+        self::assertSame('0.5', $status->gap);
+        self::assertSame('OVER', $status->status);
     }
 
     /**
@@ -511,21 +641,35 @@ final class ReadGoalStatusTest extends TestCase
         );
     }
 
-    private static function goal(GoalKind $kind, GoalMetric $metric, GoalScopeType $scope, ?string $scopeRef = null): Goal
+    private static function goal(GoalPeriodicity $periodicity, GoalMetric $metric, GoalScopeType $scope, ?string $scopeRef = null, ?string $end = null): Goal
     {
-        return new Goal(self::GOAL_ID, WorkspaceFixture::own(), 'Goal', $kind, $metric, $scope, $scopeRef, AssetCode::fromString('EUR'), GoalState::ACTIVE, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $start = GoalPeriodicity::YEARLY === $periodicity ? '2026' : '2026-01';
+
+        return new Goal(self::GOAL_ID, WorkspaceFixture::own(), 'Goal', $periodicity, $metric, $scope, $scopeRef, AssetCode::fromString('EUR'), $start, $end, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
     }
 
     private static function annualVersion(int $version, string $effectiveFrom, string $target): GoalVersion
     {
         $amount = DecimalValue::fromString($target);
 
-        return GoalVersion::annual(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, $version, $effectiveFrom, 2026, $amount, GoalSchedule::linear($amount, 2), new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        return GoalVersion::amount(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, $version, $effectiveFrom, $amount, GoalSchedule::linear($amount, 2), new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+    }
+
+    private static function monthlyAmount(string $effectiveFrom, string $target): GoalVersion
+    {
+        return GoalVersion::amount(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, $effectiveFrom, DecimalValue::fromString($target), null, new \DateTimeImmutable($effectiveFrom.'-01'), WorkspaceFixture::OWNER_ID);
+    }
+
+    private static function monthlyShare(GoalValueType $type, string $effectiveFrom, string $ratio): GoalVersion
+    {
+        return GoalValueType::RATE === $type
+            ? GoalVersion::rate(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, $effectiveFrom, DecimalValue::fromString($ratio), new \DateTimeImmutable($effectiveFrom.'-01'), WorkspaceFixture::OWNER_ID)
+            : GoalVersion::share(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, $effectiveFrom, $type, DecimalValue::fromString($ratio), new \DateTimeImmutable($effectiveFrom.'-01'), WorkspaceFixture::OWNER_ID);
     }
 
     private static function rollingVersion(string $effectiveFrom, string $ratio): GoalVersion
     {
-        return GoalVersion::rolling(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, $effectiveFrom, DecimalValue::fromString($ratio), new \DateTimeImmutable($effectiveFrom.'-01'), WorkspaceFixture::OWNER_ID);
+        return GoalVersion::share(self::VERSION_ID, WorkspaceFixture::own(), self::GOAL_ID, 1, $effectiveFrom, GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString($ratio), new \DateTimeImmutable($effectiveFrom.'-01'), WorkspaceFixture::OWNER_ID);
     }
 
     /** @return list<AnnualMonth> the twelve complete months before 2026-09, each with the same cash income */

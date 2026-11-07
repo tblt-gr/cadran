@@ -63,7 +63,6 @@ const ProfileSettingsPage = lazyComponent(
   () => import('@/features/settings/ProfileSettingsPage'),
   'ProfileSettingsPage',
 );
-const BudgetPage = lazyComponent(() => import('@/features/budget/BudgetPage'), 'BudgetPage');
 const MonthlyBudgetPage = lazyComponent(
   () => import('@/features/budget/monthly-budget/MonthlyBudgetPage'),
   'MonthlyBudgetPage',
@@ -235,11 +234,12 @@ export function buildAuthenticatedRoutes(
         />
       ),
     },
-    { pattern: /^\/budget\/plans$/, preload: BudgetPage.preload, render: () => <BudgetPage /> },
     {
-      pattern: /^\/budget\/plans\/([^/]+)$/,
-      preload: BudgetPage.preload,
-      render: (match) => <BudgetPage planId={match[1]} />,
+      // Budget plans and targets are goals now; their former pages and bookmarks land on the goals.
+      pattern: /^\/budget\/plans(?:\/[^/]+)?$/,
+      preload: GoalsPage.preload,
+      redirect: true,
+      render: () => <RouteRedirect to="/goals" />,
     },
     { pattern: /^\/goals$/, preload: GoalsPage.preload, render: () => <GoalsPage /> },
     {
@@ -259,8 +259,9 @@ export function buildAuthenticatedRoutes(
     },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
+      preload: GoalsPage.preload,
       redirect: true,
-      render: (match) => <BudgetRouteRedirect href={`/budget/plans/${match[1]}`} />,
+      render: () => <RouteRedirect to="/goals" />,
     },
     {
       pattern: /^\/budget\/(\d{4})\/(-?\d+)$/,

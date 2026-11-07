@@ -25,7 +25,6 @@ const WIDTHS = [
 
 interface RouteIds {
   accountId: string;
-  planId: string;
   portfolioId: string;
   instrumentId: string;
 }
@@ -54,8 +53,6 @@ function routes(): string[] {
     '/transactions/categories/rules',
     '/transactions/recurrences',
     `/budget/${period.replace('-', '/')}`,
-    '/budget/plans',
-    `/budget/plans/${ids.planId}`,
     `/budget/${now.getFullYear()}`,
     `/budget/${now.getFullYear()}?view=multi`,
     '/goals',
@@ -108,9 +105,6 @@ test.beforeAll(async ({ browser }) => {
   ids.accountId = (await firstHref(browser, '/accounts', /^\/accounts\/[0-9a-f-]{36}$/)).split(
     '/',
   )[2];
-  ids.planId = (
-    await firstHref(browser, '/budget/plans', /^\/budget\/plans\/[0-9a-f-]{36}$/)
-  ).split('/')[3];
   ids.instrumentId = (
     await firstHref(
       browser,
@@ -140,8 +134,6 @@ const PATTERNS = [
   '/transactions/categories/rules',
   '/transactions/recurrences',
   '/budget/:year/:month',
-  '/budget/plans',
-  '/budget/plans/:plan',
   '/budget/:year',
   '/budget/:year?view=multi',
   '/goals',
@@ -315,15 +307,6 @@ const MODALS: ModalCase[] = [
       await page.goto('/transactions/categories');
       await settled(page);
       await page.getByRole('button', { name: 'Nouvelle catégorie' }).click();
-      return 'Enregistrer';
-    },
-  },
-  {
-    name: 'budget target',
-    open: async (page, ids) => {
-      await page.goto(`/budget/plans/${ids.planId}`);
-      await settled(page);
-      await page.getByRole('button', { name: 'Ajouter un objectif' }).click();
       return 'Enregistrer';
     },
   },

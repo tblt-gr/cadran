@@ -53,14 +53,14 @@ final readonly class ListGoalVersions
 
     private static function definition(GoalVersion $version): GoalVersionView
     {
-        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->year, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, $version->year));
+        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->valueType->value, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, (int) substr($version->effectiveFrom, 0, 4)));
     }
 
     /** @return list<GoalVersionChangeView> */
     private static function changes(?GoalVersion $before, GoalVersion $after): array
     {
         $changes = [];
-        foreach (['targetAmount', 'ratio', 'scheduleMode', 'schedule'] as $field) {
+        foreach (['valueType', 'targetAmount', 'ratio', 'scheduleMode', 'schedule'] as $field) {
             $old = self::field($before, $field);
             $new = self::field($after, $field);
             if ($old !== $new) {
@@ -74,6 +74,7 @@ final readonly class ListGoalVersions
     private static function field(?GoalVersion $version, string $field): mixed
     {
         return match ($field) {
+            'valueType' => $version?->valueType->value,
             'targetAmount' => $version?->targetAmount?->toString(),
             'ratio' => $version?->ratio?->toString(),
             'scheduleMode' => $version?->scheduleMode(),

@@ -174,11 +174,11 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
 
       <HeaderActions>
         <a
-          aria-label={t('budget.monthly.managePlans')}
+          aria-label={t('budget.monthly.goals')}
           className="icon-button"
-          href="/budget/plans"
-          onClick={(event) => handleClientNavigation(event, '/budget/plans')}
-          title={t('budget.monthly.managePlans')}
+          href="/goals"
+          onClick={(event) => handleClientNavigation(event, '/goals')}
+          title={t('budget.monthly.goals')}
         >
           <Icon name="budget" size={18} />
         </a>

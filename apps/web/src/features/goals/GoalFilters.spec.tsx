@@ -1,63 +1,58 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { GoalFilters } from './GoalFilters';
+
+function renderFilters(props: Partial<React.ComponentProps<typeof GoalFilters>> = {}) {
+  const handlers = { onPeriodicityChange: vi.fn(), onIncludeEndedChange: vi.fn() };
+  render(<GoalFilters includeEnded={false} periodicity={null} {...handlers} {...props} />);
+  return handlers;
+}
+
+function openFilters() {
+  fireEvent.click(screen.getByRole('button', { name: 'Filtres des objectifs' }));
+}
 
 describe('GoalFilters', () => {
   afterEach(() => cleanup());
 
-  it('bounds the month picker to the current year, capped at the current month', () => {
-    render(
-      <GoalFilters
-        currentMonth="2026-09"
-        month="2026-09"
-        includeClosed={false}
-        onIncludeClosedChange={() => {}}
-        onMonthChange={() => {}}
-        onYearChange={() => {}}
-        year={2026}
-      />,
-    );
+  it('shows no filter count while both defaults hold', () => {
+    renderFilters();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres d’état des objectifs' }));
-    const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
-    expect(monthInput.min).toBe('2026-01');
-    expect(monthInput.max).toBe('2026-09');
+    expect(screen.queryByText(/filtre(s)? actif/)).toBeNull();
   });
 
-  it('allows any month of a past year, uncapped by the current month', () => {
-    render(
-      <GoalFilters
-        currentMonth="2026-09"
-        month="2024-12"
-        includeClosed={false}
-        onIncludeClosedChange={() => {}}
-        onMonthChange={() => {}}
-        onYearChange={() => {}}
-        year={2024}
-      />,
-    );
+  it('counts the periodicity and the ended goals as changed filters', () => {
+    renderFilters({ includeEnded: true, periodicity: 'MONTHLY' });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres d’état des objectifs' }));
-    const monthInput = screen.getByLabelText('Mois') as HTMLInputElement;
-    expect(monthInput.min).toBe('2024-01');
-    expect(monthInput.max).toBe('2024-12');
+    expect(screen.getByText('2 filtres actifs')).toBeTruthy();
   });
 
-  it('disables the month picker for a future year, whose goals have no month to show yet', () => {
-    render(
-      <GoalFilters
-        currentMonth="2026-09"
-        month="2027-01"
-        includeClosed={false}
-        onIncludeClosedChange={() => {}}
-        onMonthChange={() => {}}
-        onYearChange={() => {}}
-        year={2027}
-      />,
-    );
+  it('offers the periodicity with every goal selected by default and reports a change', () => {
+    const { onPeriodicityChange } = renderFilters();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres d’état des objectifs' }));
-    expect((screen.getByLabelText('Mois') as HTMLInputElement).disabled).toBe(true);
+    openFilters();
+    const select = screen.getByLabelText('Périodicité') as HTMLSelectElement;
+    expect(select.value).toBe('');
+    expect([...select.options].map((option) => option.textContent)).toEqual([
+      'Toutes',
+      'Mensuel',
+      'Annuel',
+    ]);
+    fireEvent.change(select, { target: { value: 'YEARLY' } });
+    expect(onPeriodicityChange).toHaveBeenCalledWith('YEARLY');
+    fireEvent.change(select, { target: { value: '' } });
+    expect(onPeriodicityChange).toHaveBeenLastCalledWith(null);
+  });
+
+  it('switches between the current goals and all of them', () => {
+    const { onIncludeEndedChange } = renderFilters();
+
+    openFilters();
+    expect((screen.getByRole('radio', { name: 'En cours' }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+    fireEvent.click(screen.getByRole('radio', { name: 'Tous' }));
+    expect(onIncludeEndedChange).toHaveBeenCalledWith(true);
   });
 });

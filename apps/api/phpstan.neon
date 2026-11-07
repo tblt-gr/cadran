@@ -13,12 +13,12 @@ parameters:
                 containerXmlPaths:
                     - var/cache/test/App_KernelTestDebugContainer.xml
     ignoreErrors:
-        # Published reason values kept in the contract enum even though no producer emits them today.
+        # Kept so stored MonthlyProjectionReason values still decode.
         -
-            message: '#^Unused App\\Module\\Budget\\Domain\\BudgetComparisonReason::MIXED_METRIC_POLICIES$#'
+            message: '#^Unused App\\Module\\Reporting\\Domain\\MonthlyProjectionReason::MIXED_METRIC_POLICIES$#'
             identifier: shipmonk.deadEnumCase
             count: 1
-            path: src/Module/Budget/Domain/BudgetComparisonReason.php
+            path: src/Module/Reporting/Domain/MonthlyProjectionReason.php
         # Kept so stored MonthlyProjectionReason values still decode (decision of the metric policy ticket RPT-006).
         -
             message: '#^Unused App\\Module\\Reporting\\Domain\\MonthlyProjectionReason::MISSING_BENEFIT_SOURCE$#'

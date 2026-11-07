@@ -50,9 +50,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         'overview' => 'accountGroup',
         'audit-events' => 'auditEvent',
         'balances' => 'snapshot',
-        'budget-plans' => 'budgetPlan',
-        'budget-targets' => 'budgetTarget',
-        'comparisons' => 'budgetTarget',
         'categories' => 'category',
         'categorization-rules' => 'rule',
         'dismissals' => 'dismissal',
@@ -77,8 +74,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     private const string INSURANCE_ACCOUNT = '00000000-0000-7000-8000-00000000f005';
     private const string INSTRUMENT = '00000000-0000-7000-8000-00000000f006';
     private const string EURO_FUND = '00000000-0000-7000-8000-00000000f007';
-    private const string PLAN = '00000000-0000-7000-8000-00000000f008';
-    private const string TARGET = '00000000-0000-7000-8000-00000000f009';
     private const string RULE = '00000000-0000-7000-8000-00000000f00a';
     private const string GOAL = '00000000-0000-7000-8000-00000000f00b';
     private const string RECURRENCE = '00000000-0000-7000-8000-00000000f00c';
@@ -108,8 +103,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
     private const string OWN_PORTFOLIO_ACCOUNT = '00000000-0000-7000-8000-00000000e005';
     private const string OWN_INSTRUMENT = '00000000-0000-7000-8000-00000000e006';
     private const string OWN_OVERRIDE = '00000000-0000-7000-8000-00000000e007';
-    private const string OWN_PLAN = '00000000-0000-7000-8000-00000000e008';
-    private const string OWN_TARGET = '00000000-0000-7000-8000-00000000e009';
     private const string OWN_SNAPSHOT = '00000000-0000-7000-8000-00000000e00a';
     private const string AT = '2026-09-01 12:00:00+00';
 
@@ -192,7 +185,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
                 'accounts' === $previous && str_contains($path, 'life-insurance') => 'insuranceAccount',
                 'accounts' === $previous && str_contains($path, 'portfolio-') => 'portfolioAccount',
                 'accounts' === $previous => 'account',
-                'budget-plans' === $previous => 'budgetPlan',
                 // A ledger identifier is a category for income and expense, an account otherwise.
                 'income' === $previous || 'expense' === $previous => 'category',
                 'account' === $previous => 'account',
@@ -330,13 +322,9 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         $operation = ['type' => 'DEPOSIT', 'tradeDate' => '2026-03-02', 'grossAmount' => $eur('10')];
 
         return match ($method.' '.$template) {
-            'POST /api/v1/budget-plans/{id}/activate', 'POST /api/v1/budget-plans/{id}/close',
             'POST /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw', 'POST /api/v1/transactions/{id}/duplicate' => new \stdClass(),
             'PATCH /api/v1/accounts/{id}/balances/{snapshotId}' => ['amount' => '1.00', 'amountAssetCode' => 'EUR', 'comment' => null, 'version' => 1],
-            'POST /api/v1/accounts/{id}/balances/{snapshotId}/withdraw', 'DELETE /api/v1/budget-targets/{id}' => ['version' => 1],
-            'POST /api/v1/budget-plans/{planId}/targets' => ['scopeType' => 'AXIS', 'scopeId' => 'ESSENTIAL', 'valueType' => 'AMOUNT', 'amount' => '300.00', 'ratio' => null],
-            'PUT /api/v1/budget-plans/{id}' => ['periodType' => 'YEAR', 'period' => '2027', 'assetCode' => 'USD', 'version' => 1],
-            'PUT /api/v1/budget-targets/{id}' => ['valueType' => 'AMOUNT', 'amount' => '450.125', 'ratio' => null, 'version' => 1],
+            'POST /api/v1/accounts/{id}/balances/{snapshotId}/withdraw' => ['version' => 1],
             'PUT /api/v1/account-groups/{id}' => ['label' => 'Changed', 'parentId' => null, 'version' => 1],
             'PUT /api/v1/accounts/{id}' => [
                 'label' => 'Changed', 'kind' => 'SAVINGS', 'productCode' => null, 'productModelId' => null, 'institution' => null, 'maskedIdentifier' => null,
@@ -415,8 +403,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'instrument' => self::OWN_INSTRUMENT,
             'override' => self::OWN_OVERRIDE,
             'snapshot' => self::OWN_SNAPSHOT,
-            'budgetPlan' => self::OWN_PLAN,
-            'budgetTarget' => self::OWN_TARGET,
         ];
     }
 
@@ -429,8 +415,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
             'insuranceAccount' => self::INSURANCE_ACCOUNT,
             'accountGroup' => self::GROUP,
             'auditEvent' => self::AUDIT_EVENT,
-            'budgetPlan' => self::PLAN,
-            'budgetTarget' => self::TARGET,
             'category' => self::CATEGORY,
             'dismissal' => self::FINGERPRINT,
             'euroFundRate' => self::EURO_FUND_RATE,
@@ -462,8 +446,6 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         $this->connection->insert('account_rule_overrides', ['id' => self::OWN_OVERRIDE, 'account_id' => self::OWN_ACCOUNT, 'workspace_id' => $own, 'rule_kind' => 'DEPOSIT_CEILING', 'amount_value' => '30000', 'amount_asset' => 'EUR', 'valid_from' => '2026-01-01', 'valid_to' => null, 'reason' => 'Negotiated with the branch.', 'author_id' => WorkspaceFixture::OWNER_ID, 'recorded_at' => self::AT]);
         $this->connection->insert('account_balance_snapshots', ['id' => self::OWN_SNAPSHOT, 'workspace_id' => $own, 'account_id' => self::OWN_ACCOUNT, 'as_of' => '2026-03-31', 'amount_value' => '10', 'amount_literal' => '10', 'amount_asset' => 'EUR', 'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'comment' => null, 'version' => 1, 'recorded_at' => self::AT, 'recorded_by' => WorkspaceFixture::OWNER_ID, 'superseded_at' => null]);
         $this->connection->insert('category_categories', ['id' => self::OWN_CATEGORY, 'workspace_id' => $own, 'type' => 'EXPENSE', 'label' => 'Own', 'parent_id' => null, 'icon' => null, 'color' => null, 'default_analytic_axes' => '[]', 'budget_included' => true, 'sort_order' => 0, 'depth' => 1, 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT, 'archived_at' => null], ['budget_included' => ParameterType::BOOLEAN]);
-        $this->connection->insert('budget_plans', ['id' => self::OWN_PLAN, 'workspace_id' => $own, 'period_type' => 'MONTH', 'period' => '2026-09-01', 'asset_code' => 'EUR', 'state' => 'DRAFT', 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
-        $this->connection->insert('budget_targets', ['id' => self::OWN_TARGET, 'workspace_id' => $own, 'plan_id' => self::OWN_PLAN, 'scope_type' => 'CATEGORY', 'scope_id' => self::OWN_CATEGORY, 'value_type' => 'AMOUNT', 'amount_value' => '10', 'amount_scale' => 0, 'ratio_value' => null, 'ratio_scale' => null, 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
     }
 
     private function seedOtherWorkspace(): void
@@ -488,16 +470,14 @@ final class ForeignWorkspaceAccessContractTest extends WebTestCase
         ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);
 
         $db->insert('account_balance_snapshots', ['id' => self::SNAPSHOT, 'workspace_id' => $other, 'account_id' => self::ACCOUNT, 'as_of' => '2026-03-31', 'amount_value' => '10', 'amount_literal' => '10', 'amount_asset' => 'EUR', 'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'comment' => null, 'version' => 1, 'recorded_at' => self::AT, 'recorded_by' => $owner, 'superseded_at' => null]);
-        $db->insert('budget_plans', ['id' => self::PLAN, 'workspace_id' => $other, 'period_type' => 'MONTH', 'period' => '2026-09-01', 'asset_code' => 'EUR', 'state' => 'DRAFT', 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
-        $db->insert('budget_targets', ['id' => self::TARGET, 'workspace_id' => $other, 'plan_id' => self::PLAN, 'scope_type' => 'CATEGORY', 'scope_id' => self::CATEGORY, 'value_type' => 'AMOUNT', 'amount_value' => '10', 'amount_scale' => 0, 'ratio_value' => null, 'ratio_scale' => null, 'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT]);
         $db->insert('transaction_categorization_rules', [
             'id' => self::RULE, 'workspace_id' => $other, 'label' => 'Private rule', 'priority' => 10, 'account_scope' => '[]',
             'conditions' => '{"direction":"OUT"}', 'target_category_id' => self::CATEGORY, 'target_axes' => '[]', 'target_counterparty' => null,
             'effective_from' => '2026-01-01', 'effective_to' => null, 'active' => true, 'deactivated_reason' => null, 'applied_count' => 0,
             'version' => 1, 'created_at' => self::AT, 'updated_at' => self::AT, 'archived_at' => null,
         ], ['active' => ParameterType::BOOLEAN]);
-        $db->insert('budget_goals', ['id' => self::GOAL, 'workspace_id' => $other, 'label' => 'Private goal', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'state' => 'ACTIVE', 'created_at' => self::AT, 'created_by' => $owner, 'closed_at' => null, 'version' => 1]);
-        $db->insert('budget_goal_versions', ['id' => self::GOAL_VERSION, 'workspace_id' => $other, 'goal_id' => self::GOAL, 'version_no' => 1, 'effective_from' => '2026-09', 'year' => 2026, 'target_amount' => '100.00', 'target_scale' => 2, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => null, 'reason' => null, 'created_at' => self::AT, 'created_by' => $owner]);
+        $db->insert('budget_goals', ['id' => self::GOAL, 'workspace_id' => $other, 'label' => 'Private goal', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'start_period' => '2026', 'end_period' => '2026', 'created_at' => self::AT, 'created_by' => $owner, 'version' => 1]);
+        $db->insert('budget_goal_versions', ['id' => self::GOAL_VERSION, 'workspace_id' => $other, 'goal_id' => self::GOAL, 'version_no' => 1, 'effective_from' => '2026-09', 'value_type' => 'AMOUNT', 'target_amount' => '100.00', 'target_scale' => 2, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => null, 'reason' => null, 'created_at' => self::AT, 'created_by' => $owner]);
 
         $db->insert('transaction_recurrences', [
             'id' => self::RECURRENCE, 'workspace_id' => $other, 'account_id' => self::ACCOUNT, 'label' => 'Private rent', 'counterparty' => null,

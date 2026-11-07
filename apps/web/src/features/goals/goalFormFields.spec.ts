@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { initialSchedule, monthsBefore, scopeFor } from './goalFormFields';
+import {
+  firstGoalMonth,
+  initialSchedule,
+  isRateMetric,
+  lastGoalMonth,
+  monthsBefore,
+  scopeFor,
+  valueTypesFor,
+} from './goalFormFields';
 
 describe('scopeFor', () => {
   it('maps each metric to its scope type', () => {
@@ -38,5 +46,33 @@ describe('monthsBefore', () => {
     expect(monthsBefore('2026-09', 8)).toBe('2026-01');
     expect(monthsBefore('2026-09', 9)).toBe('2025-12');
     expect(monthsBefore('2026-09', 119)).toBe('2016-10');
+  });
+});
+
+describe('valueTypesFor', () => {
+  it('gives a rate metric only the rate, on both periodicities', () => {
+    expect(valueTypesFor('SAVINGS_RATE', 'MONTHLY')).toEqual(['RATE']);
+    expect(valueTypesFor('NET_SAVINGS_RATE', 'YEARLY')).toEqual(['RATE']);
+    expect(isRateMetric('SAVINGS_RATE')).toBe(true);
+    expect(isRateMetric('BUDGET_SURPLUS')).toBe(false);
+  });
+
+  it('offers the rolling share to a monthly goal only', () => {
+    expect(valueTypesFor('CATEGORY_SPENDING', 'MONTHLY')).toEqual([
+      'AMOUNT',
+      'INCOME_SHARE',
+      'ROLLING_INCOME_SHARE',
+    ]);
+    expect(valueTypesFor('CATEGORY_SPENDING', 'YEARLY')).toEqual(['AMOUNT', 'INCOME_SHARE']);
+  });
+});
+
+describe('goal months', () => {
+  it('maps a period to the first and last month it covers', () => {
+    expect(firstGoalMonth('MONTHLY', '2026-11')).toBe('2026-11');
+    expect(firstGoalMonth('YEARLY', '2026')).toBe('2026-01');
+    expect(lastGoalMonth('MONTHLY', '2027-03')).toBe('2027-03');
+    expect(lastGoalMonth('YEARLY', '2027')).toBe('2027-12');
+    expect(lastGoalMonth('YEARLY', null)).toBeNull();
   });
 });

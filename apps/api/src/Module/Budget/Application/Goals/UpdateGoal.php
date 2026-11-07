@@ -8,8 +8,8 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
+use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
-use App\Module\Budget\Domain\Goals\GoalState;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Budget\Domain\Goals\GoalVersionResolver;
 use App\Module\Budget\Domain\Goals\InvalidGoal;
@@ -22,7 +22,7 @@ final readonly class UpdateGoal
     public function __construct(
         private CallerWorkspaceContext $caller, private GoalRepository $goals, private GoalVersionRepository $versions,
         private TransactionBoundary $transactions, private RecordAuditEvent $audit, private PresentGoal $present,
-        private BuildGoalRevision $revision,
+        private BuildGoalRevision $revision, private ResolveOpenEffectiveMonth $openMonth,
     ) {
     }
 
@@ -44,9 +44,6 @@ final readonly class UpdateGoal
             if ($current->version !== $input->expectedVersion) {
                 throw new GoalConflict('stale_goal_version', 'This goal changed; reload and try again.');
             }
-            if (GoalState::CLOSED === $current->state) {
-                throw new GoalConflict('goal_closed', 'A closed goal cannot be edited.');
-            }
             $existing = $this->versions->listByGoal($context->workspace, $current->id, 51);
             $revision = ($this->revision)($current, $existing, $input, $context->actorId);
             $definition = $revision->definition;
@@ -56,6 +53,13 @@ final readonly class UpdateGoal
             }
             if (null !== $definition && count($existing) >= 50) {
                 throw new GoalConflict('goal_version_limit', 'A goal may have at most 50 versions.');
+            }
+            if (null !== $definition) {
+                // A default effective month that is the first month of a yearly goal moves to the first open month of that year.
+                $defaulted = null === $input->effectiveFrom && GoalPeriodicity::YEARLY === $current->periodicity && $definition->effectiveFrom === $current->firstMonth();
+                $effective = ($this->openMonth)($context->workspace, $definition->effectiveFrom, $defaulted ? substr($definition->effectiveFrom, 0, 4).'-12' : $definition->effectiveFrom)
+                    ?? throw new GoalConflict('goal_closed_period', 'A goal definition cannot take effect in a closed month.');
+                $definition = $definition->startingAt($effective);
             }
             try {
                 $updated = $label === $current->label ? $current->reviseDefinition() : $current->reviseLabel($label);

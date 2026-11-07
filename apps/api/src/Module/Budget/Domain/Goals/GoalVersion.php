@@ -17,7 +17,7 @@ final readonly class GoalVersion
         public string $goalId,
         public int $versionNo,
         public string $effectiveFrom,
-        public ?int $year,
+        public GoalValueType $valueType,
         public ?DecimalValue $targetAmount,
         public ?DecimalValue $ratio,
         public ?GoalSchedule $schedule,
@@ -36,24 +36,28 @@ final readonly class GoalVersion
         if ($retroactive !== (null !== $reason)) {
             throw new InvalidGoal('Only a retroactive goal definition carries a correction reason.');
         }
-        if (null !== $targetAmount) {
-            self::positiveWithScale($targetAmount, 'target amount');
-            if (null === $year || null !== $ratio) {
-                throw new InvalidGoal('An annual goal definition carries a year and target amount only.');
+        if (GoalValueType::AMOUNT === $valueType) {
+            if (null === $targetAmount || null !== $ratio) {
+                throw new InvalidGoal('An amount goal definition carries a target amount only.');
+            }
+            self::scaled($targetAmount, 'target amount');
+            if ($targetAmount->compareTo(DecimalValue::zero()) <= 0) {
+                throw new InvalidGoal('A goal target amount is positive.');
             }
             if (null !== $schedule && 0 !== ExactDecimal::sum(...$schedule->parts)->compareTo($targetAmount)) {
-                throw new InvalidGoal('An annual goal schedule sums exactly to its target amount.');
+                throw new InvalidGoal('A goal schedule sums exactly to its target amount.');
             }
-        } elseif (null !== $ratio) {
-            self::positiveWithScale($ratio, 'ratio');
-            if (null !== $schedule) {
-                throw new InvalidGoal('A rolling goal definition has no monthly schedule.');
-            }
-            if (null !== $year || $ratio->compareTo(DecimalValue::fromString('1')) > 0) {
-                throw new InvalidGoal('A rolling goal ratio lies in (0, 1].');
-            }
-        } else {
-            throw new InvalidGoal('A goal definition carries a target amount or ratio.');
+
+            return;
+        }
+        if (null !== $targetAmount || null === $ratio || null !== $schedule) {
+            throw new InvalidGoal('A share or rate goal definition carries a ratio and no amount or schedule.');
+        }
+        self::scaled($ratio, 'ratio');
+        // A savings rate of zero is a meaningful floor; a share of zero is not a target.
+        $floor = GoalValueType::RATE === $valueType ? $ratio->compareTo(DecimalValue::zero()) < 0 : $ratio->compareTo(DecimalValue::zero()) <= 0;
+        if ($floor || $ratio->compareTo(DecimalValue::fromString('1')) > 0) {
+            throw new InvalidGoal(GoalValueType::RATE === $valueType ? 'A goal rate lies in [0, 1].' : 'A goal share lies in (0, 1].');
         }
     }
 
@@ -62,14 +66,30 @@ final readonly class GoalVersion
      * whose target could not be split linearly when it was migrated: its
      * monthly calendar is then not calculable rather than invented.
      */
-    public static function annual(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, int $year, DecimalValue $targetAmount, ?GoalSchedule $schedule, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
+    public static function amount(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, DecimalValue $targetAmount, ?GoalSchedule $schedule, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
     {
-        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, $year, $targetAmount, null, $schedule, $reason, $createdAt, $createdBy, $retroactive);
+        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, GoalValueType::AMOUNT, $targetAmount, null, $schedule, $reason, $createdAt, $createdBy, $retroactive);
     }
 
-    public static function rolling(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, DecimalValue $ratio, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
+    /** A share of the period's cash income or of the rolling average income. */
+    public static function share(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, GoalValueType $valueType, DecimalValue $ratio, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
     {
-        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, null, null, $ratio, null, $reason, $createdAt, $createdBy, $retroactive);
+        if (GoalValueType::INCOME_SHARE !== $valueType && GoalValueType::ROLLING_INCOME_SHARE !== $valueType) {
+            throw new InvalidGoal('A share definition uses an income share value type.');
+        }
+
+        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, $valueType, null, $ratio, null, $reason, $createdAt, $createdBy, $retroactive);
+    }
+
+    public static function rate(string $id, WorkspaceScope $workspace, string $goalId, int $versionNo, string $effectiveFrom, DecimalValue $ratio, \DateTimeImmutable $createdAt, string $createdBy, bool $retroactive = false, ?string $reason = null): self
+    {
+        return new self($id, $workspace, $goalId, $versionNo, $effectiveFrom, GoalValueType::RATE, null, $ratio, null, $reason, $createdAt, $createdBy, $retroactive);
+    }
+
+    /** The same definition taking effect in another month. */
+    public function startingAt(string $effectiveFrom): self
+    {
+        return new self($this->id, $this->workspace, $this->goalId, $this->versionNo, $effectiveFrom, $this->valueType, $this->targetAmount, $this->ratio, $this->schedule, $this->reason, $this->createdAt, $this->createdBy, $this->retroactive);
     }
 
     public function scheduleMode(): ?string
@@ -77,10 +97,10 @@ final readonly class GoalVersion
         return $this->schedule?->mode->value;
     }
 
-    private static function positiveWithScale(DecimalValue $value, string $field): void
+    private static function scaled(DecimalValue $value, string $field): void
     {
-        if ($value->compareTo(DecimalValue::zero()) <= 0 || $value->scale() > 8) {
-            throw new InvalidGoal(sprintf('A goal %s is positive and carries at most eight decimal places.', $field));
+        if ($value->scale() > 8) {
+            throw new InvalidGoal(sprintf('A goal %s carries at most eight decimal places.', $field));
         }
     }
 }

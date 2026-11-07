@@ -21,8 +21,6 @@ export const modalCases = [
   'account edit',
   'category create',
   'category edit',
-  'budget target create',
-  'budget target edit',
   'goal create',
   'goal edit',
   'operation create',
@@ -51,21 +49,19 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
           ? '/accounts'
           : name.startsWith('category')
             ? '/transactions/categories'
-            : name.startsWith('budget')
-              ? fixtures.plan
-              : name.startsWith('goal')
-                ? '/goals'
-                : name.startsWith('operation')
-                  ? `${fixtures.portfolio}?tab=operations`
-                  : name.startsWith('valuation')
-                    ? `${fixtures.portfolio}?tab=valuations`
-                    : name === 'insurance operation'
-                      ? `${fixtures.insurance}?tab=operations`
-                      : name.startsWith('insurance valuation')
-                        ? `${fixtures.insurance}?tab=valuations`
-                        : name.startsWith('insurance')
-                          ? `${fixtures.insurance}?tab=contract`
-                          : '/transactions';
+            : name.startsWith('goal')
+              ? '/goals'
+              : name.startsWith('operation')
+                ? `${fixtures.portfolio}?tab=operations`
+                : name.startsWith('valuation')
+                  ? `${fixtures.portfolio}?tab=valuations`
+                  : name === 'insurance operation'
+                    ? `${fixtures.insurance}?tab=operations`
+                    : name.startsWith('insurance valuation')
+                      ? `${fixtures.insurance}?tab=valuations`
+                      : name.startsWith('insurance')
+                        ? `${fixtures.insurance}?tab=contract`
+                        : '/transactions';
   await page.goto(route);
   await settled(page);
   const button = (label: string | RegExp) =>
@@ -133,26 +129,18 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
     const trigger =
       name === 'category create'
         ? 'Nouvelle catégorie'
-        : name === 'budget target create'
-          ? 'Ajouter un objectif'
-          : name === 'budget target edit'
-            ? 'Modifier'
-            : name === 'goal create'
-              ? 'Nouvel objectif'
-              : name === 'operation create' || name === 'insurance operation'
-                ? 'Nouvelle opération'
-                : name.startsWith('valuation') || name.startsWith('insurance valuation')
-                  ? 'Nouvelle valorisation'
-                  : name === 'insurance contract'
-                    ? 'Modifier'
-                    : name === 'insurance fee'
-                      ? 'Ajouter un barème'
-                      : 'Renseigner un taux';
-    // Target editing belongs to a table row; a draft plan may also have a summary edit button.
-    const target =
-      name === 'budget target edit'
-        ? page.getByRole('row').getByRole('button', { name: 'Modifier', exact: true }).first()
-        : button(trigger).first();
+        : name === 'goal create'
+          ? 'Nouvel objectif'
+          : name === 'operation create' || name === 'insurance operation'
+            ? 'Nouvelle opération'
+            : name.startsWith('valuation') || name.startsWith('insurance valuation')
+              ? 'Nouvelle valorisation'
+              : name === 'insurance contract'
+                ? 'Modifier'
+                : name === 'insurance fee'
+                  ? 'Ajouter un barème'
+                  : 'Renseigner un taux';
+    const target = button(trigger).first();
     if (trigger === 'Nouvelle valorisation') {
       // The valuation action lives in the account menu at the end of the shell header.
       await button(/^Actions du compte/).click();

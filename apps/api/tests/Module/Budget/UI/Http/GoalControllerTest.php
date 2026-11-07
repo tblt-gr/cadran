@@ -66,13 +66,17 @@ final class GoalControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testItCreatesEditsListsAndClosesAnAnnualGoalWithImmutableDefinitions(): void
+    public function testItCreatesEditsAndListsAYearlyGoalWithImmutableDefinitions(): void
     {
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
         self::assertResponseStatusCodeSame(201);
         $created = $this->decode();
         self::assertSame('EUR', $created['assetCode']);
         self::assertSame('MINIMUM', $created['direction']);
+        self::assertSame('YEARLY', $created['periodicity']);
+        self::assertSame('2026', $created['startPeriod']);
+        self::assertSame('2026', $created['endPeriod']);
+        self::assertSame('AMOUNT', self::arr($created['currentVersion'])['valueType']);
         self::assertSame('12000.00', self::arr($created['currentVersion'])['targetAmount']);
         self::assertSame(1, $created['version']);
         $id = $this->id($created);
@@ -91,21 +95,12 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame(3, $renamed['version']);
         self::assertCount(2, self::items($renamed['versions']));
 
-        $this->client->request('GET', '/api/v1/goals?year=2026&state=active');
+        $this->client->request('GET', '/api/v1/goals');
         self::assertResponseIsSuccessful();
-        self::assertCount(1, self::items($this->decode()['items']));
-
-        $this->requestJson('POST', '/api/v1/goals/'.$id.'/close', ['version' => 3]);
-        self::assertResponseIsSuccessful();
-        self::assertSame('CLOSED', $this->decode()['state']);
-        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Cannot edit', 'targetAmount' => null, 'ratio' => null, 'version' => 4]);
-        self::assertResponseStatusCodeSame(409);
-        self::assertSame('goal_closed', $this->decode()['code']);
-        $this->client->request('GET', '/api/v1/goals?year=2026&state=closed');
         self::assertCount(1, self::items($this->decode()['items']));
 
         $events = $this->connection->fetchFirstColumn('SELECT event_type FROM audit_events WHERE workspace_id = ? AND entity_id = ? ORDER BY occurred_at', [WorkspaceFixture::OWN_WORKSPACE, $id]);
-        self::assertSame(['goal.created', 'goal.updated', 'goal.updated', 'goal.closed'], $events);
+        self::assertSame(['goal.created', 'goal.updated', 'goal.updated'], $events);
         $encodedDiffs = self::strings($this->connection->fetchFirstColumn('SELECT after_json::text FROM audit_events WHERE workspace_id = ? AND entity_id = ?', [WorkspaceFixture::OWN_WORKSPACE, $id]));
         self::assertStringNotContainsString('12000', implode('', $encodedDiffs));
         self::assertStringNotContainsString('Annual savings', implode('', $encodedDiffs));
@@ -113,14 +108,14 @@ final class GoalControllerTest extends WebTestCase
 
     public function testCreatingAnAnnualGoalWithAMismatchedCurrencyIsRejected(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Annual savings', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2026, 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'USD']]);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Annual savings', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'USD']]);
         self::assertResponseStatusCodeSame(422);
         self::assertSame('unsupported_goal_currency', $this->decode()['code']);
     }
 
     public function testRollingGoalExposesAnExplicitMissingReferenceIncome(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Savings ratio', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.30', 'startMonth' => '2026-09']);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Savings ratio', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.30', 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'ROLLING_INCOME_SHARE']);
         self::assertResponseStatusCodeSame(201);
         $goal = $this->decode();
         self::assertNull(self::arr($goal['referenceIncome'])['value']);
@@ -147,7 +142,7 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('PARTIAL', $status['quality']);
         self::assertCount(9, self::items($status['months']));
 
-        $this->client->request('GET', '/api/v1/goals?year=2026&month=2026-09');
+        $this->client->request('GET', '/api/v1/goals?period=2026-09');
         self::assertResponseIsSuccessful();
         $summary = self::arr(self::items($this->decode()['items'])[0]);
         $summaryStatus = self::arr($summary['status']);
@@ -199,21 +194,24 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('future_goal_month', $this->decode()['code']);
     }
 
-    public function testListRejectsAFutureMonthAndAMonthOutsideItsYear(): void
+    public function testListReadsAFutureMonthAsNotCalculableAndRejectsMalformedPeriods(): void
     {
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
 
-        $this->client->request('GET', '/api/v1/goals?year=2026&month=2026-10');
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('future_goal_month', $this->decode()['code']);
+        $this->client->request('GET', '/api/v1/goals?period=2026-10');
+        self::assertResponseIsSuccessful();
+        $status = self::arr(self::arr(self::items($this->decode()['items'])[0])['status']);
+        self::assertSame('2026-10', $status['month']);
+        self::assertSame('FUTURE_MONTH', $status['reason']);
 
-        $this->client->request('GET', '/api/v1/goals?year=2026&month=2025-12');
-        self::assertResponseStatusCodeSame(400);
-        self::assertSame('invalid_goal_query', $this->decode()['code']);
-
-        $this->client->request('GET', '/api/v1/goals?year=2026&month=2026-13');
-        self::assertResponseStatusCodeSame(400);
-        self::assertSame('invalid_goal_month', $this->decode()['code']);
+        foreach (['2026-13', '26', '2026-1', 'abc', '1899', '2032'] as $period) {
+            $this->client->request('GET', '/api/v1/goals?period='.$period);
+            self::assertResponseStatusCodeSame(400, $period);
+        }
+        foreach (['periodicity=WEEKLY', 'current=maybe', 'year=2026', 'state=closed'] as $query) {
+            $this->client->request('GET', '/api/v1/goals?'.$query);
+            self::assertTrue(in_array($this->client->getResponse()->getStatusCode(), [200, 400], true), $query);
+        }
     }
 
     public function testFutureAndForeignGoalStatusAreRejectedWithoutLeakingTheGoal(): void
@@ -285,7 +283,7 @@ final class GoalControllerTest extends WebTestCase
         $archived = '00000000-0000-7000-8000-0000000000d2';
         $this->insertAccount($active, null);
         $this->insertAccount($archived, '2026-09-10 12:00:00+00');
-        $payload = fn (string $id): array => ['label' => 'Contributions', 'kind' => 'ANNUAL', 'metric' => 'ACCOUNT_CONTRIBUTIONS', 'scope' => ['type' => 'ACCOUNT', 'ref' => $id], 'year' => 2026, 'targetAmount' => ['value' => '5000.00', 'assetCode' => 'EUR']];
+        $payload = fn (string $id): array => ['label' => 'Contributions', 'periodicity' => 'YEARLY', 'metric' => 'ACCOUNT_CONTRIBUTIONS', 'scope' => ['type' => 'ACCOUNT', 'ref' => $id], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '5000.00', 'assetCode' => 'EUR']];
 
         $this->requestJson('POST', '/api/v1/goals', $payload($archived));
         self::assertResponseStatusCodeSame(422);
@@ -320,26 +318,20 @@ final class GoalControllerTest extends WebTestCase
 
     public function testEveryForbiddenMetricScopePairIsRejectedBeforeReferenceLookup(): void
     {
-        $metrics = [
-            'NET_SAVINGS_TRANSFERS' => ['ANNUAL:WORKSPACE', 'ROLLING_RATIO:WORKSPACE'],
-            'BUDGET_SURPLUS' => ['ANNUAL:WORKSPACE'],
-            'CATEGORY_SPENDING' => ['ANNUAL:CATEGORY', 'ROLLING_RATIO:CATEGORY'],
-            'AXIS_SPENDING' => ['ANNUAL:AXIS', 'ROLLING_RATIO:AXIS'],
-            'ACCOUNT_CONTRIBUTIONS' => ['ANNUAL:ACCOUNT'],
+        $allowed = [
+            'NET_SAVINGS_TRANSFERS' => 'WORKSPACE', 'BUDGET_SURPLUS' => 'WORKSPACE', 'SAVINGS_RATE' => 'WORKSPACE', 'NET_SAVINGS_RATE' => 'WORKSPACE',
+            'CATEGORY_SPENDING' => 'CATEGORY', 'AXIS_SPENDING' => 'AXIS', 'ACCOUNT_CONTRIBUTIONS' => 'ACCOUNT',
         ];
-        foreach (['ANNUAL', 'ROLLING_RATIO'] as $kind) {
-            foreach (array_keys($metrics) as $metric) {
+        foreach (['YEARLY' => '2026', 'MONTHLY' => '2026-09'] as $periodicity => $start) {
+            foreach ($allowed as $metric => $allowedScope) {
                 foreach (['WORKSPACE', 'CATEGORY', 'AXIS', 'ACCOUNT'] as $scope) {
-                    if (in_array($kind.':'.$scope, $metrics[$metric], true)) {
+                    if ($allowedScope === $scope) {
                         continue;
                     }
-                    $payload = ['label' => 'Invalid pair', 'kind' => $kind, 'metric' => $metric, 'scope' => ['type' => $scope, 'ref' => 'WORKSPACE' === $scope ? null : '00000000-0000-7000-8000-0000000000c1']];
-                    if ('ANNUAL' === $kind) {
-                        $payload += ['year' => 2026, 'targetAmount' => ['value' => '100.00', 'assetCode' => 'EUR']];
-                    } else {
-                        $payload += ['ratio' => '0.30', 'startMonth' => '2026-09'];
-                    }
-                    $this->requestJson('POST', '/api/v1/goals', $payload);
+                    $this->requestJson('POST', '/api/v1/goals', [
+                        'label' => 'Invalid pair', 'periodicity' => $periodicity, 'metric' => $metric, 'scope' => ['type' => $scope, 'ref' => 'WORKSPACE' === $scope ? null : '00000000-0000-7000-8000-0000000000c1'],
+                        'startPeriod' => $start, 'endPeriod' => null, 'valueType' => 'RATE', 'ratio' => '0.30',
+                    ]);
                     self::assertResponseStatusCodeSame(422);
                     self::assertSame('invalid_goal_metric_scope', $this->decode()['code']);
                 }
@@ -347,17 +339,170 @@ final class GoalControllerTest extends WebTestCase
         }
     }
 
-    public function testActiveGoalAndDefinitionVersionLimitsAreEnforced(): void
+    public function testEveryRefusedValueTypeAnswersBadRequestAndAcceptedOnesCreate(): void
     {
-        for ($index = 1; $index <= 50; ++$index) {
+        $send = function (string $periodicity, string $metric, string $scopeType, ?string $ref, string $valueType, bool $amount): void {
+            $this->requestJson('POST', '/api/v1/goals', [
+                'label' => 'Matrix', 'periodicity' => $periodicity, 'metric' => $metric, 'scope' => ['type' => $scopeType, 'ref' => $ref],
+                'startPeriod' => 'YEARLY' === $periodicity ? '2026' : '2026-11', 'endPeriod' => null, 'valueType' => $valueType,
+                ...($amount ? ['targetAmount' => ['value' => '400.00', 'assetCode' => 'EUR']] : ['ratio' => '0.2']),
+            ]);
+        };
+        foreach ([['MONTHLY', 'SAVINGS_RATE', 'AMOUNT', true], ['YEARLY', 'NET_SAVINGS_RATE', 'INCOME_SHARE', false], ['YEARLY', 'NET_SAVINGS_TRANSFERS', 'ROLLING_INCOME_SHARE', false], ['MONTHLY', 'BUDGET_SURPLUS', 'RATE', false], ['MONTHLY', 'BUDGET_SURPLUS', 'NOPE', false]] as [$periodicity, $metric, $valueType, $amount]) {
+            $send($periodicity, $metric, 'WORKSPACE', null, $valueType, $amount);
+            self::assertResponseStatusCodeSame(400, $metric.' '.$valueType);
+            self::assertSame('invalid_goal_value_type', $this->decode()['code']);
+        }
+        foreach ([['MONTHLY', 'SAVINGS_RATE', 'RATE', false], ['YEARLY', 'NET_SAVINGS_RATE', 'RATE', false], ['MONTHLY', 'BUDGET_SURPLUS', 'ROLLING_INCOME_SHARE', false], ['YEARLY', 'BUDGET_SURPLUS', 'INCOME_SHARE', false], ['MONTHLY', 'NET_SAVINGS_TRANSFERS', 'AMOUNT', true]] as [$periodicity, $metric, $valueType, $amount]) {
+            $send($periodicity, $metric, 'WORKSPACE', null, $valueType, $amount);
+            self::assertResponseStatusCodeSame(201, $metric.' '.$valueType);
+        }
+    }
+
+    public function testAMonthlyAmountGoalWithoutEndIsCreatedAndListedForALaterPeriod(): void
+    {
+        $category = '00000000-0000-7000-8000-0000000000c1';
+        $this->insertCategory($category, WorkspaceFixture::OWN_WORKSPACE);
+
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Courses', 'periodicity' => 'MONTHLY', 'metric' => 'CATEGORY_SPENDING', 'scope' => ['type' => 'CATEGORY', 'ref' => $category], 'startPeriod' => '2026-11', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '400.00', 'assetCode' => 'EUR']]);
+
+        self::assertResponseStatusCodeSame(201);
+        $goal = $this->decode();
+        self::assertNull($goal['endPeriod']);
+        self::assertSame('2026-11', $goal['startPeriod']);
+        self::assertSame('CEILING', $goal['direction']);
+        self::assertNull(self::arr($goal['currentVersion'])['schedule']);
+        self::assertSame('2026-11', self::arr($goal['currentVersion'])['effectiveFrom']);
+        $this->client->request('GET', '/api/v1/goals?period=2027-03');
+        self::assertCount(1, self::items($this->decode()['items']));
+        $this->client->request('GET', '/api/v1/goals?period=2026-10');
+        self::assertCount(0, self::items($this->decode()['items']));
+        $this->client->request('GET', '/api/v1/goals?periodicity=YEARLY');
+        self::assertCount(0, self::items($this->decode()['items']));
+    }
+
+    public function testTheStatusOfAMonthlyGoalIsReadMonthByMonthWithoutCumulatingTheTargets(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Savings floor', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-07', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '100.00', 'assetCode' => 'EUR']]);
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-09');
+
+        self::assertResponseIsSuccessful();
+        $status = $this->decode();
+        self::assertSame('MONTHLY', $status['periodicity']);
+        self::assertSame('AMOUNT', $status['valueType']);
+        self::assertSame('100.00', $status['target']);
+        self::assertSame(['2026-07', '2026-08', '2026-09'], array_column(self::items($status['months']), 'month'));
+        self::assertSame(['100.00', '100.00', '100.00'], array_column(self::items($status['months']), 'expectedPart'));
+        self::assertSame('NOT_CALCULABLE', $status['status']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/status?month=2026-06');
+        self::assertSame('GOAL_NOT_STARTED', $this->decode()['reason']);
+    }
+
+    public function testPeriodsOutsideTheirFormatOrOrderAnswerBadRequest(): void
+    {
+        $base = ['label' => 'Periods', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '10.00', 'assetCode' => 'EUR']];
+        foreach ([['2026-11', '2026-10'], ['2026', null], ['2026-13', null], ['2026-11', '2026'], ['1899-12', null], ['2032-01', null]] as [$start, $end]) {
+            $this->requestJson('POST', '/api/v1/goals', [...$base, 'startPeriod' => $start, 'endPeriod' => $end]);
+            self::assertResponseStatusCodeSame(400, $start.' '.$end);
+            self::assertSame('invalid_goal_period', $this->decode()['code']);
+        }
+        $this->requestJson('POST', '/api/v1/goals', [...$base, 'periodicity' => 'YEARLY', 'startPeriod' => '2027', 'endPeriod' => '2026']);
+        self::assertResponseStatusCodeSame(400);
+        $this->requestJson('POST', '/api/v1/goals', [...$base, 'startPeriod' => '2026-11', 'endPeriod' => '2026-11']);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('2026-11', $this->decode()['endPeriod']);
+    }
+
+    public function testAVersionEffectiveInAClosedMonthIsRefusedAtCreationAndOnUpdate(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Monthly', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '100.00', 'assetCode' => 'EUR']]);
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+        $this->closeMonth(2026, 8, '00000000-0000-7000-8000-0000000000a1');
+        $this->closeMonth(2026, 9, '00000000-0000-7000-8000-0000000000a2');
+
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Closed start', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-08', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '100.00', 'assetCode' => 'EUR']]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('goal_closed_period', $this->decode()['code']);
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Monthly', 'targetAmount' => ['value' => '120.00', 'assetCode' => 'EUR'], 'version' => 1]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('goal_closed_period', $this->decode()['code']);
+        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
+
+        // A rename carries no definition and stays allowed in a closed month.
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Monthly renamed', 'version' => 1]);
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testAYearlyGoalStartsAtTheFirstOpenMonthOfItsYearAndIsRefusedWhenEveryMonthIsClosed(): void
+    {
+        $this->closeMonth(2026, 1, '00000000-0000-7000-8000-0000000000a1');
+
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+
+        self::assertResponseStatusCodeSame(201);
+        $goal = $this->decode();
+        self::assertSame('2026', $goal['startPeriod']);
+        self::assertSame('2026-02', self::arr($goal['currentVersion'])['effectiveFrom']);
+
+        for ($month = 2; $month <= 12; ++$month) {
+            $this->closeMonth(2026, $month, sprintf('00000000-0000-7000-8000-%012d', 100 + $month));
+        }
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'label' => 'Second']);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('goal_closed_period', $this->decode()['code']);
+    }
+
+    public function testAnAmountForAYearlyScheduleIsRefusedOnAMonthlyGoalAndRateGoalsCarryNone(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Monthly schedule', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '100.00', 'assetCode' => 'EUR'], 'schedule' => ['mode' => 'LINEAR']]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_goal_schedule', $this->decode()['code']);
+    }
+
+    public function testAValueTypeCanChangeOnAnUpdateAndIsRecordedInTheHistory(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Rate', 'periodicity' => 'MONTHLY', 'metric' => 'SAVINGS_RATE', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'RATE', 'ratio' => '0.10']);
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Rate', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '10.00', 'assetCode' => 'EUR'], 'version' => 1]);
+        self::assertResponseStatusCodeSame(400);
+        self::assertSame('invalid_goal_value_type', $this->decode()['code']);
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Rate', 'ratio' => '0', 'version' => 1]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('0', self::arr($this->decode()['currentVersion'])['ratio']);
+        self::assertSame('RATE', self::arr($this->decode()['currentVersion'])['valueType']);
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Rate', 'ratio' => '1.01', 'version' => 2]);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testTheCurrentGoalLimitCountsOnlyGoalsWhoseEndIsNotPast(): void
+    {
+        for ($index = 1; $index <= 100; ++$index) {
             $this->insertGoal(sprintf('00000000-0000-7000-8000-%012d', $index), WorkspaceFixture::OWN_WORKSPACE, sprintf('00000000-0000-7000-9000-%012d', $index));
         }
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
         self::assertResponseStatusCodeSame(409);
         self::assertSame('goal_limit_reached', $this->decode()['code']);
 
-        $this->connection->executeStatement('DELETE FROM budget_goal_versions WHERE workspace_id = ?', [WorkspaceFixture::OWN_WORKSPACE]);
-        $this->connection->executeStatement('DELETE FROM budget_goals WHERE workspace_id = ?', [WorkspaceFixture::OWN_WORKSPACE]);
+        $this->connection->executeStatement("UPDATE budget_goals SET start_period = '2025', end_period = '2025' WHERE workspace_id = ? AND id = ?", [WorkspaceFixture::OWN_WORKSPACE, '00000000-0000-7000-8000-000000000001']);
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $this->client->request('GET', '/api/v1/goals?pageSize=100');
+        self::assertSame(100, $this->decode()['total']);
+        $this->client->request('GET', '/api/v1/goals?current=false&pageSize=100');
+        self::assertSame(101, $this->decode()['total']);
+    }
+
+    public function testTheDefinitionVersionLimitIsEnforced(): void
+    {
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
         $goal = $this->decode();
         $id = $this->id($goal);
@@ -371,7 +516,7 @@ final class GoalControllerTest extends WebTestCase
 
     public function testAFutureAnnualGoalDefinitionCannotBeEditedBeforeItsFirstMonth(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Future savings', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2027, 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'EUR']]);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Future savings', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2027', 'endPeriod' => '2027', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'EUR']]);
         self::assertResponseStatusCodeSame(201);
         $goal = $this->decode();
         self::assertSame('2027-01', self::arr($goal['currentVersion'])['effectiveFrom']);
@@ -384,7 +529,7 @@ final class GoalControllerTest extends WebTestCase
 
     public function testAFutureRollingGoalDefinitionCannotBeEditedBeforeItsFirstMonth(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Future ratio', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.20', 'startMonth' => '2027-01']);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Future ratio', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.20', 'startPeriod' => '2027-01', 'endPeriod' => null, 'valueType' => 'ROLLING_INCOME_SHARE']);
         self::assertResponseStatusCodeSame(201);
         $id = $this->id($this->decode());
 
@@ -396,11 +541,11 @@ final class GoalControllerTest extends WebTestCase
         $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Future ratio renamed', 'version' => 1]);
         self::assertResponseIsSuccessful();
 
-        $this->client->request('GET', '/api/v1/goals?year=2026&state=active');
+        $this->client->request('GET', '/api/v1/goals?period=2026');
         self::assertResponseIsSuccessful();
         self::assertCount(0, self::items($this->decode()['items']));
 
-        $this->client->request('GET', '/api/v1/goals?year=2027&state=active');
+        $this->client->request('GET', '/api/v1/goals?period=2027');
         self::assertResponseIsSuccessful();
         $items = self::items($this->decode()['items']);
         self::assertCount(1, $items);
@@ -417,7 +562,7 @@ final class GoalControllerTest extends WebTestCase
 
     public function testEditingTheTargetOfAnAnnualGoalWhoseYearHasElapsedIsRejected(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Past savings', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2025, 'targetAmount' => ['value' => '9000.00', 'assetCode' => 'EUR']]);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Past savings', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2025', 'endPeriod' => '2025', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '9000.00', 'assetCode' => 'EUR']]);
         self::assertResponseStatusCodeSame(201);
         $id = $this->id($this->decode());
 
@@ -474,15 +619,12 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('2026-08', self::arr($updated['currentVersion'])['effectiveFrom']);
     }
 
-    public function testEditingAndClosingAnotherWorkspacesGoalAnswersNotFound(): void
+    public function testEditingAnotherWorkspacesGoalAnswersNotFound(): void
     {
         $foreign = '00000000-0000-7000-8000-0000000000e9';
         $this->insertGoal($foreign, WorkspaceFixture::OTHER_WORKSPACE);
 
         $this->requestJson('PUT', '/api/v1/goals/'.$foreign, ['label' => 'Changed', 'targetAmount' => null, 'ratio' => null, 'version' => 1]);
-        self::assertResponseStatusCodeSame(404);
-
-        $this->requestJson('POST', '/api/v1/goals/'.$foreign.'/close', ['version' => 1]);
         self::assertResponseStatusCodeSame(404);
     }
 
@@ -491,17 +633,17 @@ final class GoalControllerTest extends WebTestCase
         $atLimit = str_repeat('9', 26);
         $overLimit = str_repeat('9', 27);
 
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Boundary', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2026, 'targetAmount' => ['value' => $overLimit, 'assetCode' => 'EUR']]);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Boundary', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => $overLimit, 'assetCode' => 'EUR']]);
         self::assertResponseStatusCodeSame(422);
 
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Boundary', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2026, 'targetAmount' => ['value' => $atLimit, 'assetCode' => 'EUR']]);
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Boundary', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => $atLimit, 'assetCode' => 'EUR']]);
         self::assertResponseStatusCodeSame(201);
         self::assertSame($atLimit, self::arr($this->decode()['currentVersion'])['targetAmount']);
     }
 
     public function testRatioAcceptsOneAndTheSmallestEightDecimalStepAndRejectsOneDecimalTooMany(): void
     {
-        $payload = fn (string $ratio): array => ['label' => 'Ratio boundary', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => $ratio, 'startMonth' => '2026-09'];
+        $payload = fn (string $ratio): array => ['label' => 'Ratio boundary', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => $ratio, 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'ROLLING_INCOME_SHARE'];
 
         $this->requestJson('POST', '/api/v1/goals', $payload('1'));
         self::assertResponseStatusCodeSame(201);
@@ -548,7 +690,7 @@ final class GoalControllerTest extends WebTestCase
 
     public function testAFutureAnnualGoalCanBeRenamedWithoutSubmittingAFutureDefinitionMonth(): void
     {
-        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'year' => 2027]);
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'startPeriod' => '2027', 'endPeriod' => '2027', 'valueType' => 'AMOUNT']);
         self::assertResponseStatusCodeSame(201);
         $id = $this->id($this->decode());
 
@@ -706,7 +848,7 @@ final class GoalControllerTest extends WebTestCase
 
     public function testRollingCorrectionSpanIsBoundedAtOneHundredTwentyMonthsForPreviewAndSave(): void
     {
-        $rolling = static fn (string $start): array => ['label' => 'Old ratio', 'kind' => 'ROLLING_RATIO', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.30', 'startMonth' => $start];
+        $rolling = static fn (string $start): array => ['label' => 'Old ratio', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'ratio' => '0.30', 'startPeriod' => $start, 'endPeriod' => null, 'valueType' => 'ROLLING_INCOME_SHARE'];
         $correction = static fn (string $from): array => ['label' => 'Old ratio', 'ratio' => '0.35', 'targetAmount' => null, 'version' => 1, 'effectiveFrom' => $from, 'reason' => 'Correct the original ratio.'];
 
         // At 2026-09, 2016-09 is the 121st month and 2016-10 the 120th.
@@ -794,13 +936,13 @@ final class GoalControllerTest extends WebTestCase
     /** @return array<string, mixed> */
     private function annualPayload(): array
     {
-        return ['label' => 'Annual savings', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'year' => 2026, 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'EUR']];
+        return ['label' => 'Annual savings', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '12000.00', 'assetCode' => 'EUR']];
     }
 
     /** @return array<string, mixed> */
     private function categoryPayload(string $id): array
     {
-        return ['label' => 'Leisure cap', 'kind' => 'ANNUAL', 'metric' => 'CATEGORY_SPENDING', 'scope' => ['type' => 'CATEGORY', 'ref' => $id], 'year' => 2026, 'targetAmount' => ['value' => '1200.00', 'assetCode' => 'EUR']];
+        return ['label' => 'Leisure cap', 'periodicity' => 'YEARLY', 'metric' => 'CATEGORY_SPENDING', 'scope' => ['type' => 'CATEGORY', 'ref' => $id], 'startPeriod' => '2026', 'endPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '1200.00', 'assetCode' => 'EUR']];
     }
 
     private function insertCategory(string $id, string $workspaceId): void
@@ -808,9 +950,14 @@ final class GoalControllerTest extends WebTestCase
         $this->connection->insert('category_categories', ['id' => $id, 'workspace_id' => $workspaceId, 'type' => 'EXPENSE', 'label' => 'Leisure '.substr($id, -2), 'parent_id' => null, 'icon' => null, 'color' => null, 'default_analytic_axes' => '[]', 'budget_included' => true, 'sort_order' => 0, 'depth' => 1, 'version' => 1, 'created_at' => '2026-09-01 12:00:00+00', 'updated_at' => '2026-09-01 12:00:00+00', 'archived_at' => null]);
     }
 
+    private function closeMonth(int $year, int $month, string $id): void
+    {
+        $this->connection->insert('account_period_closures', ['id' => $id, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'year' => $year, 'month' => $month, 'closed_at' => '2026-09-01 10:00:00+00', 'closed_by' => WorkspaceFixture::OWNER_ID, 'version' => 1]);
+    }
+
     private function insertGoal(string $id, string $workspace, string $versionId = '00000000-0000-7000-8000-0000000000f9'): void
     {
-        $this->connection->insert('budget_goals', ['id' => $id, 'workspace_id' => $workspace, 'label' => 'Foreign', 'kind' => 'ANNUAL', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'state' => 'ACTIVE', 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID, 'closed_at' => null, 'version' => 1]);
+        $this->connection->insert('budget_goals', ['id' => $id, 'workspace_id' => $workspace, 'label' => 'Foreign', 'periodicity' => 'YEARLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'start_period' => '2026', 'end_period' => '2026', 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID, 'version' => 1]);
         $this->insertVersion($versionId, $workspace, $id, 1);
     }
 
@@ -821,7 +968,7 @@ final class GoalControllerTest extends WebTestCase
 
     private function insertVersion(string $id, string $workspace, string $goalId, int $number): void
     {
-        $this->connection->insert('budget_goal_versions', ['id' => $id, 'workspace_id' => $workspace, 'goal_id' => $goalId, 'version_no' => $number, 'effective_from' => '2026-09', 'year' => 2026, 'target_amount' => '100.00', 'target_scale' => 2, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => null, 'reason' => null, 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID]);
+        $this->connection->insert('budget_goal_versions', ['id' => $id, 'workspace_id' => $workspace, 'goal_id' => $goalId, 'version_no' => $number, 'effective_from' => '2026-09', 'value_type' => 'AMOUNT', 'target_amount' => '100.00', 'target_scale' => 2, 'ratio' => null, 'ratio_scale' => null, 'schedule_mode' => null, 'reason' => null, 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID]);
     }
 
     /** @param array<string, mixed> $body */
@@ -940,7 +1087,7 @@ final class GoalControllerTest extends WebTestCase
         $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'label' => 'Second']);
         self::assertResponseStatusCodeSame(201);
 
-        $this->client->request('GET', '/api/v1/goals?year=2026&pageSize=1&page=2');
+        $this->client->request('GET', '/api/v1/goals?pageSize=1&page=2');
         self::assertResponseIsSuccessful();
         $page = $this->decode();
         self::assertCount(1, self::items($page['items']));
@@ -949,7 +1096,7 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame(2, $page['total']);
 
         foreach (['pageSize=0', 'pageSize=101', 'page=0', 'page=1001', 'pageSize=abc'] as $query) {
-            $this->client->request('GET', '/api/v1/goals?year=2026&'.$query);
+            $this->client->request('GET', '/api/v1/goals?'.$query);
             self::assertResponseStatusCodeSame(400, $query);
         }
     }

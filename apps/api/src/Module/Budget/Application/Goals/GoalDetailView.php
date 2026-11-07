@@ -12,10 +12,10 @@ final class GoalDetailView extends GoalSummaryView
      * @param array{value: ?string, reason: ?string}|null $resolvedMonthlyTarget
      */
     public function __construct(
-        string $id, string $label, string $kind, string $metric, string $direction, GoalScopeView $scope, string $assetCode,
-        string $state, GoalVersionView $currentVersion, int $version, array $warnings, public array $versions,
+        string $id, string $label, string $periodicity, string $startPeriod, ?string $endPeriod, string $metric, string $direction, GoalScopeView $scope, string $assetCode,
+        GoalVersionView $currentVersion, int $version, array $warnings, public array $versions,
         public ?ReferenceIncomeView $referenceIncome, public ?array $resolvedMonthlyTarget,
     ) {
-        parent::__construct($id, $label, $kind, $metric, $direction, $scope, $assetCode, $state, $currentVersion, $version, $warnings);
+        parent::__construct($id, $label, $periodicity, $startPeriod, $endPeriod, $metric, $direction, $scope, $assetCode, $currentVersion, $version, $warnings);
     }
 }

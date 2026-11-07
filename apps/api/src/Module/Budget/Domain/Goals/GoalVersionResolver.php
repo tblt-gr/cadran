@@ -13,7 +13,7 @@ final class GoalVersionResolver
     {
         $selected = null;
         foreach ($versions as $version) {
-            if ($version->effectiveFrom > $month->key() || (null !== $version->year && $version->year !== $month->year)) {
+            if ($version->effectiveFrom > $month->key()) {
                 continue;
             }
             if (null === $selected

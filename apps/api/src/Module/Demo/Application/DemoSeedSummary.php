@@ -12,7 +12,7 @@ final readonly class DemoSeedSummary
         public int $transactions,
         public int $transfers,
         public int $closedMonths,
-        public int $budgetPlans,
+        public int $goals,
     ) {
     }
 }

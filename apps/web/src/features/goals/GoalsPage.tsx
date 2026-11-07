@@ -1,5 +1,4 @@
 import {
-  closeGoal,
   createGoal,
   listGoals,
   readGoal,
@@ -10,6 +9,7 @@ import {
   type CreateGoalRequest,
   type GoalDetail,
   type GoalCorrectionPreview,
+  type GoalPeriodicity,
   type GoalSummary,
   type UpdateGoalRequest,
 } from '@cadran/api-client';
@@ -25,7 +25,6 @@ import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import { CloseGoalDialog } from './CloseGoalDialog';
 import { GoalCard } from './GoalCard';
 import { GoalDetailModal } from './GoalDetailModal';
 import { GoalFilters } from './GoalFilters';
@@ -42,24 +41,19 @@ import { GoalFormSkeleton } from './GoalFormSkeleton';
 import { GoalStatusTableSkeleton } from './GoalStatusTableSkeleton';
 import { GoalHistoryTableSkeleton } from './history/GoalHistoryTableSkeleton';
 
-// The server caps a year's goals at 50, so a single page always holds the whole list.
-const GOALS_PAGE_SIZE = 50;
+// The server caps the current goals at 100 and a page at 100: one page holds the whole current list.
+const GOALS_PAGE_SIZE = 100;
 
 type Editor = GoalSummary | 'create' | null;
-function currentYear(timeZone: string) {
-  return Number.parseInt(currentMonthIn(timeZone).slice(0, 4), 10);
-}
 export function GoalsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const timeZone = useWorkspaceTimeZone();
   const workspaceMonth = currentMonthIn(timeZone);
-  const [year, setYear] = useState(() => currentYear(timeZone));
-  const [includeClosed, setIncludeClosed] = useState(false);
-  const [month, setMonth] = useState(workspaceMonth);
+  const [periodicity, setPeriodicity] = useState<GoalPeriodicity | null>(null);
+  const [includeEnded, setIncludeEnded] = useState(false);
   const [detailTarget, setDetailTarget] = useState<GoalSummary | null>(null);
   const [editor, setEditor] = useState<Editor>(null);
-  const [closeTarget, setCloseTarget] = useState<GoalSummary | null>(null);
   const [historyTarget, setHistoryTarget] = useState<GoalSummary | null>(null);
   const formArea = useRef<HTMLDivElement>(null);
   const wasConfirming = useRef(false);
@@ -77,16 +71,17 @@ export function GoalsPage() {
     wasConfirming.current = correction !== null;
   }, [correction]);
   const baseCurrency = useWorkspaceBaseCurrency();
-  // A future year has no elapsed month to send: the server then falls back to its own reference
-  // month rather than rejecting the whole list, and no month of it can be detailed yet.
-  const futureYear = year > currentYear(timeZone);
-  const listMonth = futureYear ? undefined : month;
-  const listGoalsOfState = (state: 'active' | 'closed') => ({
-    queryKey: ['goals', year, listMonth, state],
-    queryFn: async ({ signal }: { signal: AbortSignal }) => {
+  const goals = useQuery({
+    queryKey: ['goals', periodicity, includeEnded],
+    queryFn: async ({ signal }) => {
       const result = await listGoals({
         ...authApiOptions(),
-        query: { year, month: listMonth, state, page: 1, pageSize: GOALS_PAGE_SIZE },
+        query: {
+          ...(periodicity === null ? {} : { periodicity }),
+          current: !includeEnded,
+          page: 1,
+          pageSize: GOALS_PAGE_SIZE,
+        },
         signal,
       });
       if (!result.response?.ok || !result.data) throw goalRequestError(result);
@@ -94,11 +89,8 @@ export function GoalsPage() {
     },
     retry: false,
   });
-  const activeGoals = useQuery(listGoalsOfState('active'));
-  const closedGoals = useQuery({ ...listGoalsOfState('closed'), enabled: includeClosed });
-  // Only the active list gates the page: closed goals load behind it and fail on their own.
-  const failedQuery = activeGoals.isError ? activeGoals : null;
-  const listPending = activeGoals.isPending && activeGoals.data === undefined;
+  const failedQuery = goals.isError ? goals : null;
+  const listPending = goals.isPending && goals.data === undefined;
   const detail = useQuery({
     enabled: editor !== null && editor !== 'create',
     queryKey: ['goal', editor && editor !== 'create' ? editor.id : ''],
@@ -114,13 +106,12 @@ export function GoalsPage() {
     retry: false,
   });
   const statusDetail = useQuery({
-    enabled: detailTarget !== null && !futureYear,
-    queryKey: ['goal-status', detailTarget?.id, month],
+    enabled: detailTarget !== null,
+    queryKey: ['goal-status', detailTarget?.id],
     queryFn: async ({ signal }) => {
       const result = await readGoalStatus({
         ...authApiOptions(),
         path: { id: detailTarget!.id },
-        query: { month },
         signal,
       });
       if (!result.response?.ok || !result.data) throw goalRequestError(result);
@@ -211,27 +202,8 @@ export function GoalsPage() {
     },
     onError: reloadOnConflict,
   });
-  const close = useMutation({
-    mutationFn: async (goal: GoalSummary) => {
-      const result = await withCsrfRetry(() =>
-        closeGoal({ ...authApiOptions(), path: { id: goal.id }, body: { version: goal.version } }),
-      );
-      if (!result.response?.ok || !result.data) throw goalRequestError(result);
-      return result.data;
-    },
-    onSuccess: async () => {
-      setCloseTarget(null);
-      setSaved(true);
-      await refresh();
-    },
-  });
-  const closedFailed = includeClosed && closedGoals.isError;
   const errorKind = goalErrorKind(failedQuery?.error, failedQuery !== null);
-  // Active goals come first; the closed ones follow, greyed, only when asked for.
-  const items = [
-    ...(activeGoals.data?.items ?? []),
-    ...(includeClosed ? (closedGoals.data?.items ?? []) : []),
-  ];
+  const items = goals.data?.items ?? [];
   const editingSummary = editor && editor !== 'create' ? editor : null;
   const latestDetail = detail.data as GoalDetail | undefined;
   const editingGoal: GoalSummary | null =
@@ -261,22 +233,10 @@ export function GoalsPage() {
       <EmergencyFundCard />
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('goals.saved')}</Toast> : null}
       <GoalFilters
-        currentMonth={workspaceMonth}
-        includeClosed={includeClosed}
-        month={month}
-        onIncludeClosedChange={setIncludeClosed}
-        onMonthChange={setMonth}
-        onYearChange={(nextYear) => {
-          setYear(nextYear);
-          setMonth(
-            nextYear === currentYear(timeZone)
-              ? workspaceMonth
-              : nextYear < currentYear(timeZone)
-                ? `${nextYear}-12`
-                : `${nextYear}-01`,
-          );
-        }}
-        year={year}
+        includeEnded={includeEnded}
+        onIncludeEndedChange={setIncludeEnded}
+        onPeriodicityChange={setPeriodicity}
+        periodicity={periodicity}
       />
       {listPending ? (
         <GoalsPageSkeleton status={t('goals.loading')} />
@@ -293,15 +253,15 @@ export function GoalsPage() {
             </button>
           ) : null}
         </section>
-      ) : items.length === 0 && !closedFailed ? null : (
+      ) : items.length === 0 ? null : (
         <section className={styles.list} aria-label={t('goals.list')}>
           <div className={styles.grid}>
             {items.map((goal) => (
               <GoalCard
+                currentMonth={workspaceMonth}
                 goal={goal}
                 key={goal.id}
-                onClose={setCloseTarget}
-                onDetail={futureYear ? undefined : setDetailTarget}
+                onDetail={setDetailTarget}
                 onEdit={(target) => {
                   save.reset();
                   preview.reset();
@@ -313,10 +273,8 @@ export function GoalsPage() {
               />
             ))}
           </div>
-          {closedFailed ? (
-            <p className={styles.notice} role="alert">
-              {t('goals.closedError')}
-            </p>
+          {goals.data && goals.data.total > items.length ? (
+            <p className={styles.notice}>{t('goals.truncated', { count: items.length })}</p>
           ) : null}
         </section>
       )}
@@ -340,12 +298,6 @@ export function GoalsPage() {
               <div hidden={correction !== null} ref={formArea}>
                 <GoalForm
                   baseCurrency={baseCurrency}
-                  firstEffectiveMonth={latestDetail?.versions.reduce(
-                    (first, item) => (item.effectiveFrom < first ? item.effectiveFrom : first),
-                    latestDetail.versions[0]?.effectiveFrom ??
-                      editingGoal?.currentVersion.effectiveFrom ??
-                      workspaceMonth,
-                  )}
                   goal={editor === 'create' ? undefined : (editingGoal ?? editor)}
                   key={
                     editor === 'create'
@@ -419,7 +371,7 @@ export function GoalsPage() {
       {detailTarget ? (
         statusDetail.isPending ? (
           <Modal intent="detail" close={() => setDetailTarget(null)} title={t('goals.detailTitle')}>
-            <GoalStatusTableSkeleton />
+            <GoalStatusTableSkeleton periodicity={detailTarget.periodicity} />
           </Modal>
         ) : statusDetail.data ? (
           <GoalDetailModal
@@ -432,27 +384,6 @@ export function GoalsPage() {
             <p role="alert">{t('goals.error')}</p>
           </Modal>
         )
-      ) : null}
-      {closeTarget ? (
-        <Modal
-          intent="archive"
-          close={() => {
-            setCloseTarget(null);
-            close.reset();
-          }}
-          title={t('goals.closeTitle')}
-        >
-          <CloseGoalDialog
-            onCancel={() => {
-              setCloseTarget(null);
-              close.reset();
-            }}
-            error={goalErrorKind(close.error, close.isError)}
-            goal={closeTarget}
-            onConfirm={() => close.mutate(closeTarget)}
-            pending={close.isPending}
-          />
-        </Modal>
       ) : null}
     </div>
   );

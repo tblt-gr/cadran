@@ -23,7 +23,6 @@ final readonly class GoalStatusInputs
      */
     public function __construct(
         public array $months,
-        public ?ReferenceIncomeView $referenceIncome,
         public ?array $categoryFacts,
         public array $accountTransfers = [],
     ) {

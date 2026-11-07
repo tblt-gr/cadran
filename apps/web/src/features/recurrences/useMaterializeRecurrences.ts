@@ -19,7 +19,6 @@ const LEDGER_QUERY_FAMILIES = [
   'monthly-recap',
   'monthly-report',
   'period-status',
-  'budget-comparisons',
   'annual-report',
   'multi-year-report',
   'recurrences',

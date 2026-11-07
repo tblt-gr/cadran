@@ -105,12 +105,6 @@ final class ExactDecimal
         return (string) BigDecimal::of($numerator)->dividedBy(BigDecimal::of($denominator), $precision, BrickRoundingMode::HalfUp);
     }
 
-    /** Negates an API-only calculated decimal while preserving its scale. */
-    public static function negateForResponse(string $value): string
-    {
-        return (string) BigDecimal::of($value)->negated();
-    }
-
     /** Orders API-only calculated decimals without converting through a float. */
     public static function compareForResponse(string $left, string $right): int
     {

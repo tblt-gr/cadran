@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Domain\Goals;
 
+use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -13,24 +14,27 @@ final readonly class Goal
         public string $id,
         public WorkspaceScope $workspace,
         public string $label,
-        public GoalKind $kind,
+        public GoalPeriodicity $periodicity,
         public GoalMetric $metric,
         public GoalScopeType $scopeType,
         public ?string $scopeRef,
         public AssetCode $assetCode,
-        public GoalState $state,
+        public string $startPeriod,
+        public ?string $endPeriod,
         public int $version,
         public \DateTimeImmutable $createdAt,
         public string $createdBy,
-        public ?\DateTimeImmutable $closedAt = null,
     ) {
         self::identifier($id);
         self::identifier($createdBy);
         if ($label !== trim($label) || mb_strlen($label) < 1 || mb_strlen($label) > 80) {
             throw new InvalidGoal('A goal label contains between 1 and 80 trimmed characters.');
         }
-        if (!$metric->accepts($kind, $scopeType)) {
-            throw new InvalidGoal('The goal metric, kind and scope do not match.');
+        if (!$periodicity->accepts($startPeriod) || (null !== $endPeriod && !$periodicity->accepts($endPeriod))) {
+            throw new InvalidGoal('A goal period is written YYYY-MM for a monthly goal and YYYY for a yearly one.');
+        }
+        if (null !== $endPeriod && $endPeriod < $startPeriod) {
+            throw new InvalidGoal('A goal end period does not precede its start period.');
         }
         if ((GoalScopeType::WORKSPACE === $scopeType) !== (null === $scopeRef)) {
             throw new InvalidGoal('Only a workspace goal omits its scope reference.');
@@ -41,9 +45,6 @@ final readonly class Goal
         if ($version < 1) {
             throw new InvalidGoal('A goal version must be positive.');
         }
-        if ((GoalState::CLOSED === $state) !== (null !== $closedAt)) {
-            throw new InvalidGoal('A closed goal carries its closing instant.');
-        }
     }
 
     public function direction(): GoalDirection
@@ -51,28 +52,58 @@ final readonly class Goal
         return $this->metric->direction();
     }
 
+    /** A goal is current while its end period is not past; a goal without end always is. */
+    public function isCurrent(CalendarMonth $today): bool
+    {
+        return null === $this->endPeriod || $this->endPeriod >= $this->periodOf($today);
+    }
+
+    /** Whether the goal covers any month of a period written `YYYY-MM` or `YYYY`. */
+    public function coversPeriod(string $period): bool
+    {
+        if (1 === preg_match('/^[0-9]{4}$/D', $period)) {
+            [$from, $to] = [$period.'-01', $period.'-12'];
+        } elseif (GoalPeriodicity::MONTHLY->accepts($period)) {
+            [$from, $to] = [$period, $period];
+        } else {
+            throw new InvalidGoal('A period is written YYYY-MM or YYYY.');
+        }
+        $start = $this->firstMonth();
+        $end = $this->lastMonth();
+
+        return $start <= $to && (null === $end || $end >= $from);
+    }
+
     public function reviseLabel(string $label): self
     {
-        return $this->with($label, $this->state, $this->closedAt);
+        return $this->with($label);
     }
 
     public function reviseDefinition(): self
     {
-        return $this->with($this->label, $this->state, $this->closedAt);
+        return $this->with($this->label);
     }
 
-    public function close(\DateTimeImmutable $at): self
+    /** The first covered month, `YYYY-MM`. */
+    public function firstMonth(): string
     {
-        if (GoalState::CLOSED === $this->state) {
-            throw new InvalidGoal('A closed goal cannot be closed again.');
-        }
-
-        return $this->with($this->label, GoalState::CLOSED, $at);
+        return GoalPeriodicity::YEARLY === $this->periodicity ? $this->startPeriod.'-01' : $this->startPeriod;
     }
 
-    private function with(string $label, GoalState $state, ?\DateTimeImmutable $closedAt): self
+    /** The last covered month, `YYYY-MM`, null without end. */
+    public function lastMonth(): ?string
     {
-        return new self($this->id, $this->workspace, $label, $this->kind, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $state, $this->version + 1, $this->createdAt, $this->createdBy, $closedAt);
+        return null === $this->endPeriod ? null : (GoalPeriodicity::YEARLY === $this->periodicity ? $this->endPeriod.'-12' : $this->endPeriod);
+    }
+
+    private function periodOf(CalendarMonth $month): string
+    {
+        return GoalPeriodicity::YEARLY === $this->periodicity ? (string) $month->year : $month->key();
+    }
+
+    private function with(string $label): self
+    {
+        return new self($this->id, $this->workspace, $label, $this->periodicity, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $this->startPeriod, $this->endPeriod, $this->version + 1, $this->createdAt, $this->createdBy);
     }
 
     private static function identifier(string $value): void

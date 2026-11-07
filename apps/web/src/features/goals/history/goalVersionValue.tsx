@@ -1,3 +1,4 @@
+import type { GoalValueType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
@@ -8,6 +9,7 @@ export const FIELD_LABELS = {
   schedule: 'goals.history.fields.schedule',
   scheduleMode: 'goals.history.fields.scheduleMode',
   targetAmount: 'goals.history.fields.targetAmount',
+  valueType: 'goals.history.fields.valueType',
 } as const;
 
 export type GoalVersionField = keyof typeof FIELD_LABELS;
@@ -24,6 +26,7 @@ export function useGoalVersionValue(assetCode: string) {
     if (Array.isArray(value)) return t('goals.history.customSchedule');
     if (value === 'LINEAR') return t('goals.schedule.modeLinear');
     if (value === 'CUSTOM') return t('goals.schedule.modeCustom');
+    if (field === 'valueType') return t(`goals.history.valueTypes.${value as GoalValueType}`);
     if (field === 'ratio') return formatRatioPercentage(value, i18n.language);
     return formatAmount(value, assetCode, i18n.language);
   };
