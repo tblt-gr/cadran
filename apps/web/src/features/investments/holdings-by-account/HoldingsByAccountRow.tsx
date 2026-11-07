@@ -46,7 +46,7 @@ export function HoldingsByAccountRow({
                 {t(`investments.byAccount.${account.detail as 'TOTAL' | 'PARTIAL' | 'NONE'}`)}
               </span>
               <a
-                className={styles.identifier}
+                className={`${styles.identifier} ${styles.valuationLink}`}
                 href={valuationsHref}
                 onClick={(event) => handleClientNavigation(event, valuationsHref)}
               >
