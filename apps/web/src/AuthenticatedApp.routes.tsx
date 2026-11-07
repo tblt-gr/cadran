@@ -73,8 +73,12 @@ const BudgetYearPage = lazyComponent(
   'BudgetYearPage',
 );
 const GoalsPage = lazyComponent(() => import('@/features/goals/GoalsPage'), 'GoalsPage');
+const InvestmentsPage = lazyComponent(
+  () => import('@/features/investments/InvestmentsPage'),
+  'InvestmentsPage',
+);
 const InstrumentsPage = lazyComponent(
-  () => import('@/features/portfolio/instruments/InstrumentsPage'),
+  () => import('@/features/investments/instruments/InstrumentsPage'),
   'InstrumentsPage',
 );
 const PortfolioAccountPage = lazyComponent(
@@ -122,6 +126,18 @@ export function buildAuthenticatedRoutes(
     },
     {
       pattern: /^\/portfolios\/instruments$/,
+      preload: InstrumentsPage.preload,
+      redirect: true,
+      // Fixed target, only the instruments filters are carried over: no open redirect.
+      render: () => <RouteRedirect keepParams={['q', 'status']} to="/investments/instruments" />,
+    },
+    {
+      pattern: /^\/investments$/,
+      preload: InvestmentsPage.preload,
+      render: () => <InvestmentsPage />,
+    },
+    {
+      pattern: /^\/investments\/instruments$/,
       preload: InstrumentsPage.preload,
       render: () => <InstrumentsPage />,
     },

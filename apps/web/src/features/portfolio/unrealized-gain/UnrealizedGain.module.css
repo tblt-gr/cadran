@@ -5,6 +5,9 @@
   gap: var(--spacing-2);
   font-variant-numeric: tabular-nums;
 }
+.figures > span {
+  white-space: nowrap;
+}
 .gain {
   color: var(--positive);
 }

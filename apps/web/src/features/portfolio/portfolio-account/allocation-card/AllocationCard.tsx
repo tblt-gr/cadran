@@ -18,7 +18,7 @@ import { reasonLabels } from '@/features/portfolio/portfolio-account/overviewLab
 import {
   instrumentClasses,
   instrumentRegions,
-} from '@/features/portfolio/instruments/instrument-form/instrumentOptions';
+} from '@/features/investments/instruments/instrument-form/instrumentOptions';
 import styles from './AllocationCard.module.css';
 const choices: { value: AllocationBy; label: string }[] = [
   { value: 'INSTRUMENT', label: 'Instrument' },

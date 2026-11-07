@@ -95,6 +95,113 @@
     "missingFreshness_other": "{{count}} valorisations manquantes",
     "staleFreshness": "Mis à jour il y a {{count}} jours"
   },
+  "investments": {
+    "loading": "Chargement des positions…",
+    "tabs": {
+      "label": "Investissements",
+      "positions": "Positions",
+      "instruments": "Instruments"
+    },
+    "summary": {
+      "label": "Synthèse des positions",
+      "securities": "Valeur des titres",
+      "gain": "Plus-value latente",
+      "cost": "Prix de revient",
+      "cash": "Liquidités",
+      "valuedOn": "Valorisé au {{date}}",
+      "valuedBetween": "Valorisations du {{from}} au {{to}}",
+      "mixedAssets": "Totaux non calculés : les comptes utilisent plusieurs unités.",
+      "notCalculable": "Non calculable"
+    },
+    "allocation": {
+      "title": "Répartition",
+      "criterion": "Critère de répartition",
+      "assetClass": "Classe d'actifs",
+      "region": "Région",
+      "instrument": "Actif",
+      "account": "Compte",
+      "donut": "Répartition des titres par {{criterion}}",
+      "criterionName": {
+        "assetClass": "classe d'actifs",
+        "region": "région",
+        "instrument": "actif",
+        "account": "compte"
+      },
+      "caption": "Répartition des titres",
+      "label": "Libellé",
+      "amount": "Montant",
+      "share": "Part",
+      "unspecified": "Non renseignée",
+      "notCalculable": "Répartition non calculable"
+    },
+    "table": {
+      "caption": "Positions par actif",
+      "asset": "Actif",
+      "quantity": "Quantité",
+      "averageCost": "PRU",
+      "lastPrice": "Dernier cours",
+      "value": "Valeur",
+      "gain": "Plus-value latente",
+      "share": "Part",
+      "detail": "Détail",
+      "accountsToggle": "Détail par compte : {{name}}",
+      "valuedOn": "Valorisé le {{date}}",
+      "sortBy": "Trier par {{column}}",
+      "unknownCost": "Plus-value non calculable : coût d'origine inconnu",
+      "missingPrice": "Valeur non calculable : cours manquant",
+      "gainNotCalculable": "Plus-value non calculable",
+      "notCalculable": "Non calculable",
+      "accountsLabel": "Comptes détenant {{name}}"
+    },
+    "notComputable": {
+      "explain": "Expliquer : {{label}} non calculable",
+      "figure": "{{column}} ({{name}})",
+      "costUnknown": "Prix de revient non calculable : coût d'origine inconnu"
+    },
+    "partial": {
+      "explain": "Expliquer : {{label}} calculé sur une partie des positions",
+      "explanation_one": "Calculé sur les positions dont le coût est connu uniquement. {{count}} position sans coût exclue.",
+      "explanation_other": "Calculé sur les positions dont le coût est connu uniquement. {{count}} positions sans coût exclues.",
+      "explanationWithValue_one": "Calculé sur les positions dont le coût est connu uniquement. {{count}} position sans coût exclue ({{value}}).",
+      "explanationWithValue_other": "Calculé sur les positions dont le coût est connu uniquement. {{count}} positions sans coût exclues ({{value}})."
+    },
+    "view": {
+      "label": "Affichage des positions",
+      "asset": "Par actif",
+      "account": "Par compte"
+    },
+    "byAccount": {
+      "caption": "Positions par compte",
+      "account": "Compte",
+      "securities": "Valeur des titres",
+      "gain": "Plus-value latente",
+      "share": "Part",
+      "valuedOn": "Valorisé le",
+      "detail": "Détail",
+      "linesToggle": "Détail par actif : {{name}}",
+      "TOTAL": "Valorisation en total : titres non détaillés",
+      "PARTIAL": "Valorisation partielle : titres non détaillés",
+      "NONE": "Aucune valorisation"
+    },
+    "unsplit": {
+      "message": "{{label}} est valorisé en total : ses titres ne sont pas détaillés par actif.",
+      "action": "Saisir une valorisation détaillée"
+    },
+    "warnings": {
+      "POSITIONS_CHANGED": "Des opérations sont postérieures à la dernière valorisation de {{labels}}.",
+      "STALE_PRICES": "Certains cours datent de plus de 7 jours.",
+      "TRUNCATED_ACCOUNTS": "Seuls les 50 premiers comptes sont agrégés."
+    },
+    "empty": {
+      "noAccount": "Aucun compte d'investissement",
+      "addAccount": "Ajouter un compte",
+      "noPosition": "Aucune position détenue"
+    },
+    "error": {
+      "title": "Les positions sont indisponibles.",
+      "retry": "Réessayer"
+    }
+  },
   "navigation": {
     "accounts": "Comptes",
     "budget": "Budget",
@@ -104,6 +211,7 @@
     "explore": "Explorer Cadran",
     "goals": "Objectifs",
     "home": "Synthèse",
+    "investments": "Investissements",
     "mainLabel": "Navigation principale",
     "mobileLabel": "Navigation mobile",
     "moreDialog": "Navigation complémentaire",

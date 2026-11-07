@@ -1,0 +1,65 @@
+.summary {
+  display: grid;
+  min-width: 0;
+  gap: var(--spacing-4);
+}
+
+/* One column at 360 px, a 2x2 grid, then four columns; dividers stay local to the cells. */
+.strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}
+
+.strip > * + * {
+  padding-top: var(--spacing-4);
+  border-top: var(--border-line-subtle);
+}
+
+.note {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.dateBlock {
+  display: block;
+  width: 16rem;
+  max-width: 100%;
+  height: var(--font-size-label);
+}
+
+@media (min-width: 36rem) {
+  .strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .strip > * + * {
+    padding-top: var(--spacing-none);
+    border-top: var(--border-none);
+  }
+
+  .strip > :nth-child(even) {
+    padding-left: var(--spacing-4);
+    border-left: var(--border-line-subtle);
+  }
+
+  .strip > :nth-child(n + 3) {
+    padding-top: var(--spacing-4);
+    border-top: var(--border-line-subtle);
+  }
+}
+
+@media (min-width: 64rem) {
+  .strip {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .strip > * + *,
+  .strip > :nth-child(n + 3) {
+    padding-top: var(--spacing-none);
+    padding-left: var(--spacing-4);
+    border-top: var(--border-none);
+    border-left: var(--border-line-subtle);
+  }
+}

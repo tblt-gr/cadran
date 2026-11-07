@@ -1,0 +1,5 @@
+.corner {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+}

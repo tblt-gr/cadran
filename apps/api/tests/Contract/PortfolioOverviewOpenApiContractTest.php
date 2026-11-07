@@ -47,6 +47,43 @@ final class PortfolioOverviewOpenApiContractTest extends TestCase
         self::assertSame(8, self::map($allocation['slices'])['maxItems']);
     }
 
+    public function testTheHoldingsContractIsBoundedExactAndClosed(): void
+    {
+        $document = self::map(Yaml::parseFile(dirname(__DIR__, 2).'/openapi/openapi.yaml'));
+        $get = self::map(self::map(self::map($document['paths'])['/api/v1/holdings'])['get']);
+        self::assertSame('readHoldings', $get['operationId']);
+        self::assertSame([['sessionCookie' => []]], $get['security']);
+        $responses = $get['responses'];
+        self::assertIsArray($responses);
+        foreach (['200', '400', '401', '403', '422', '500'] as $status) {
+            self::assertArrayHasKey($status, $responses);
+        }
+        $schemas = self::map(self::map($document['components'])['schemas']);
+        $holdings = self::map($schemas['Holdings']);
+        self::assertFalse($holdings['additionalProperties']);
+        self::assertSame(['asOf', 'assetCode', 'valuedFrom', 'valuedTo', 'quality', 'warnings', 'totals', 'items', 'allocation', 'unsplitAccounts', 'accounts', 'truncated'], $holdings['required']);
+        $properties = self::map($holdings['properties']);
+        self::assertSame(1000, self::map($properties['items'])['maxItems']);
+        self::assertSame(50, self::map($properties['unsplitAccounts'])['maxItems']);
+        self::assertSame(50, self::map($properties['accounts'])['maxItems']);
+        self::assertSame(500, self::map(self::map(self::map($schemas['HoldingsAccountSummary'])['properties'])['lines'])['maxItems']);
+        foreach (['Holding', 'HoldingAccountLine', 'HoldingsTotals', 'HoldingAllocationSlice', 'HoldingsShare', 'HoldingsAccountSummary', 'HoldingsAccountSummaryLine', 'HoldingsKnownCostFigures', 'HoldingsTotals'] as $schema) {
+            self::assertFalse(self::map($schemas[$schema])['additionalProperties'], $schema);
+        }
+        $allocation = self::map($properties['allocation']);
+        self::assertSame(['byInstrument', 'byAssetClass', 'byRegion', 'byAccount'], $allocation['required']);
+        self::assertFalse($allocation['additionalProperties']);
+        self::assertSame(50, self::map(self::map($allocation['properties'])['byAccount'])['maxItems']);
+        self::assertSame(['securitiesValue', 'costBasis', 'unrealizedGain', 'performance', 'excludedCount', 'excludedValue'], self::map($schemas['HoldingsKnownCostFigures'])['required']);
+        foreach (['HoldingsTotals', 'HoldingsAccountSummary'] as $schema) {
+            $required = self::map($schemas[$schema])['required'];
+            self::assertIsArray($required);
+            self::assertContains('knownCost', $required, $schema);
+        }
+        $amount = self::map($schemas['HoldingsNullableDecimal']);
+        self::assertSame(['string', 'null'], $amount['type']);
+    }
+
     /** @return array<string, mixed> */
     private static function map(mixed $value): array
     {

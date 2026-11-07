@@ -54,6 +54,7 @@ export function PortfolioTakeoverModal({
         client.invalidateQueries({ queryKey: ['portfolio-takeover', account.id] }),
         client.invalidateQueries({ queryKey: ['accounts'] }),
         client.invalidateQueries({ queryKey: ['net-worth'] }),
+        client.invalidateQueries({ queryKey: ['holdings'] }),
       ]);
     },
   });

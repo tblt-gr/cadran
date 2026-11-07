@@ -1,0 +1,35 @@
+.page,
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.header {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}
+
+.empty {
+  display: grid;
+  justify-items: start;
+  gap: var(--spacing-3);
+}
+
+.empty h3 {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-card-title);
+}
+
+/* The page content is a flex column: without this the control would stretch to its full width. */
+.viewSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}

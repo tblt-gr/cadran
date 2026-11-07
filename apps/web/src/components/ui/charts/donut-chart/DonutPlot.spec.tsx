@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { DonutChart } from './DonutChart';
 import { DonutPlot } from './DonutPlot';
@@ -61,5 +61,23 @@ describe('DonutPlot', () => {
 
     // The chart library loads on demand, after the box is measured.
     expect(await screen.findByRole('img', { name: 'Diagramme' }, { timeout: 5000 })).toBeTruthy();
+  });
+
+  it('swaps the centre to the hovered slice amount and caption', () => {
+    const { container } = render(
+      <DonutChart
+        height={200}
+        label="Diagramme"
+        slices={slices}
+        totalText="100,00 €"
+        width={200}
+      />,
+    );
+    const sector = container.querySelectorAll('.recharts-pie-sector')[0]!;
+    fireEvent.mouseEnter(sector);
+    expect(screen.getByText('30,00 €')).toBeTruthy();
+    // The caption is wrapped over tspans, so it is read from the drawing's text.
+    expect(container.querySelector('svg')!.textContent).toMatch(/Loyer/);
+    expect(screen.queryByText('100,00 €')).toBeNull();
   });
 });

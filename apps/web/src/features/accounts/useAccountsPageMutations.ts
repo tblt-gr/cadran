@@ -45,6 +45,7 @@ export function useAccountsPageMutations({
       queryClient.invalidateQueries({ queryKey: ['accounts'] }),
       queryClient.invalidateQueries({ queryKey: ['account'] }),
       queryClient.invalidateQueries({ queryKey: ['portfolios', 'overview'] }),
+      queryClient.invalidateQueries({ queryKey: ['holdings'] }),
     ]);
   }
 
@@ -134,6 +135,7 @@ export function useAccountsPageMutations({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['accounts'] }),
         queryClient.invalidateQueries({ queryKey: ['portfolios', 'overview'] }),
+        queryClient.invalidateQueries({ queryKey: ['holdings'] }),
         invalidateAccountBalances(queryClient),
       ]);
     },

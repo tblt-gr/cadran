@@ -1,0 +1,5 @@
+.text {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  line-height: var(--line-height-body);
+}

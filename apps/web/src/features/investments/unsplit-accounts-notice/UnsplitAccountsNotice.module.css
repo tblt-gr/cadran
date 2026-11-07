@@ -1,0 +1,22 @@
+.list {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-3);
+  list-style: none;
+}
+
+.notice {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-2) var(--spacing-4);
+}
+
+.notice a {
+  display: inline-flex;
+  min-height: var(--touch-target-min);
+  align-items: center;
+}
