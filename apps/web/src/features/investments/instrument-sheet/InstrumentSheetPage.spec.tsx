@@ -49,7 +49,9 @@ describe('InstrumentSheetPage', () => {
   it('keeps static chrome and labels while values load', () => {
     read.mockReturnValue(new Promise(() => {}));
     mount();
-    expect(screen.getByRole('button', { name: 'Modifier' }).hasAttribute('disabled')).toBe(true);
+    expect(
+      screen.getByRole('button', { name: 'Actions de l’instrument' }).hasAttribute('disabled'),
+    ).toBe(true);
     expect(screen.getByRole('heading', { name: 'Quantité détenue' })).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Par compte' })).toBeTruthy();
     expect(document.querySelectorAll('[data-skeleton]').length).toBeGreaterThan(0);
@@ -74,6 +76,19 @@ describe('InstrumentSheetPage', () => {
       }),
     ).toBeNull();
   });
+  it('colours realized, unrealized and total gains by sign, never zero or income', async () => {
+    read.mockResolvedValue(ok());
+    mount();
+    await screen.findByRole('heading', { name: data.instrument.name });
+    const tone = (text: RegExp) =>
+      screen
+        .getAllByText(text)
+        .map((node) => node.closest('[class*="positive"], [class*="negative"]')?.className ?? '');
+    expect(tone(/\+77,50/).some((name) => /positive/.test(name))).toBe(true);
+    expect(tone(/\+39,20/).every((name) => /positive/.test(name))).toBe(true);
+    expect(tone(/\+28,80/).every((name) => /positive/.test(name))).toBe(true);
+    expect(tone(/\+15,00/).every((name) => name === '')).toBe(true);
+  });
   it.each(['instrument_not_found'])(
     'shows a missing or foreign instrument without a table',
     async (code) => {
@@ -81,7 +96,11 @@ describe('InstrumentSheetPage', () => {
       mount();
       await screen.findByRole('heading', { name: 'Instrument introuvable' });
       expect(screen.queryByRole('table')).toBeNull();
-      expect(screen.getByRole('link', { name: 'Voir tous les instruments' })).toBeTruthy();
+      expect(screen.queryByRole('link', { name: 'Voir tous les instruments' })).toBeNull();
+      expect(
+        (screen.getByRole('button', { name: 'Actions de l’instrument' }) as HTMLButtonElement)
+          .disabled,
+      ).toBe(true);
     },
   );
   it('keeps the header and retries an error', async () => {
@@ -111,6 +130,7 @@ describe('InstrumentSheetPage', () => {
     read.mockResolvedValue(ok({ ...data, instrument: { ...data.instrument, status: 'INACTIVE' } }));
     mount();
     await screen.findByText('Archivé');
+    fireEvent.click(screen.getByRole('button', { name: /^Actions de l’instrument/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
     expect(screen.getByRole('dialog').textContent).toBe('Édition existante');
   });
@@ -118,6 +138,7 @@ describe('InstrumentSheetPage', () => {
     read.mockResolvedValue(ok());
     mount();
     await screen.findByRole('heading', { name: data.instrument.name });
+    fireEvent.click(screen.getByRole('button', { name: /^Actions de l’instrument/ }));
     fireEvent.click(screen.getByRole('button', { name: 'Archiver' }));
     expect(screen.getByRole('dialog').textContent).toBe('Statut existant');
   });

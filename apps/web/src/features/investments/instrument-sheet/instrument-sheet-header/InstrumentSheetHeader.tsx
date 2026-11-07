@@ -7,7 +7,8 @@ import {
   instrumentClasses,
   instrumentRegions,
 } from '@/features/investments/instruments/instrument-form/instrumentOptions';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import styles from './InstrumentSheetHeader.module.css';
 
 const title = (options: readonly (readonly [string, string])[], value: string | null) =>
@@ -39,31 +40,41 @@ export function InstrumentSheetHeader({
     : null;
   return (
     <header className={styles.header}>
-      <a
-        href="/investments/instruments"
-        onClick={(event) => handleClientNavigation(event, '/investments/instruments')}
-      >
-        Voir tous les instruments
-      </a>
       <div className={styles.heading}>
         {instrument?.status === 'INACTIVE' ? <StatusBadge tone="info">Archivé</StatusBadge> : null}
+        <p className={styles.identity}>
+          {instrument ? parts : pending ? <SkeletonBlock className={styles.identityBlock} /> : null}
+        </p>
       </div>
-      <p className={styles.identity}>
-        {instrument ? parts : pending ? <SkeletonBlock className={styles.identityBlock} /> : null}
-      </p>
-      <div className={styles.actions}>
-        <button className="secondary-action" type="button" disabled={!instrument} onClick={onEdit}>
-          Modifier
-        </button>
-        <button
-          className="secondary-action"
-          type="button"
+      <HeaderActions>
+        <ActionMenu
           disabled={!instrument}
-          onClick={onStatus}
-        >
-          {instrument?.status === 'INACTIVE' ? 'Réactiver' : 'Archiver'}
-        </button>
-      </div>
+          triggerVariant="framed"
+          label={
+            instrument ? `Actions de l’instrument ${instrument.name}` : 'Actions de l’instrument'
+          }
+          items={
+            instrument
+              ? [
+                  {
+                    id: 'edit',
+                    icon: 'edit',
+                    label: 'Modifier',
+                    text: 'Modifier',
+                    onSelect: onEdit,
+                  },
+                  {
+                    id: 'status',
+                    icon: 'archive',
+                    label: instrument.status === 'INACTIVE' ? 'Réactiver' : 'Archiver',
+                    text: instrument.status === 'INACTIVE' ? 'Réactiver' : 'Archiver',
+                    onSelect: onStatus,
+                  },
+                ]
+              : []
+          }
+        />
+      </HeaderActions>
     </header>
   );
 }

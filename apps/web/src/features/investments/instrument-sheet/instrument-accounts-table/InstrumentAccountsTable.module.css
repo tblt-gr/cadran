@@ -12,6 +12,8 @@
   padding: var(--spacing-4);
   text-align: left;
   font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-card-title);
+  color: var(--text-primary);
 }
 .panel th,
 .panel td {
@@ -22,15 +24,28 @@
 }
 .panel thead th {
   font-size: var(--font-size-xs);
-  color: var(--text-secondary);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-muted);
 }
 .panel tbody th {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-normal);
+}
+.panel td {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.panel tbody tr:last-child > * {
+  border-bottom: var(--border-none);
 }
 .panel a {
   display: inline-flex;
   min-height: var(--touch-target-min);
   align-items: center;
+}
+.panel tbody th a {
+  color: var(--text-primary);
 }
 .number {
   font-variant-numeric: tabular-nums;
@@ -43,6 +58,12 @@
 }
 .valueBlock {
   width: 5rem;
+  max-width: 100%;
+  height: var(--font-size-label);
+}
+.nameBlock {
+  width: 8rem;
+  max-width: 100%;
   height: var(--font-size-body);
 }
 @media (max-width: 47.99rem) {
@@ -76,4 +97,10 @@
     color: var(--text-secondary);
     font-size: var(--font-size-xs);
   }
+}
+.panel td.positive {
+  color: var(--positive);
+}
+.panel td.negative {
+  color: var(--negative);
 }

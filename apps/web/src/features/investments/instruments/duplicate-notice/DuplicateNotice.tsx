@@ -23,7 +23,7 @@ export function DuplicateNotice({
         {candidates.map((candidate) => (
           <li key={candidate.id}>
             {candidate.name} · {candidate.isin ?? 'sans ISIN'} · {candidate.ticker ?? 'sans ticker'}{' '}
-            · {candidate.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
+            · {candidate.status === 'ACTIVE' ? 'Actif' : 'Archivé'}
             {onUse ? (
               <button
                 aria-label={`Utiliser ${candidate.name}`}

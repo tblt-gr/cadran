@@ -4,6 +4,7 @@ import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { KpiFigure } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/KpiFigure';
 import { holdingsDay, holdingsMoney } from '@/features/investments/holdingsFormat';
 import { formatDecimal } from '@/lib/decimal';
+import { sheetGainTone } from '@/features/investments/instrument-sheet/sheetGainTone';
 import { sheetReason } from '@/features/investments/instrument-sheet/sheetReason';
 import styles from './InstrumentSheetSummary.module.css';
 
@@ -17,6 +18,10 @@ export function InstrumentSheetSummary({ data }: { data: InstrumentHolding | nul
   const empty = data !== null && !holding && data.accounts.length === 0;
   const figure = (value: string | null | undefined, signed = false) =>
     data ? empty ? <EmptyValue label="Aucune détention" /> : money(value, signed) : null;
+  const tone = (value: string | null | undefined) => {
+    const sign = data && !empty ? sheetGainTone(value) : null;
+    return sign ? styles[sign] : '';
+  };
   const dates = holding?.accounts.map((account) => account.valuedOn).sort() ?? [];
   return (
     <section className={`card ${styles.summary}`} aria-label="Synthèse de l'instrument">
@@ -38,15 +43,22 @@ export function InstrumentSheetSummary({ data }: { data: InstrumentHolding | nul
         <KpiFigure
           label="Plus-value latente"
           size="lead"
+          tone={tone(holding?.unrealizedGain)}
           value={figure(holding?.unrealizedGain, true)}
         />
         <KpiFigure
           label="Plus-value réalisée"
           size="lead"
+          tone={tone(data?.totals.realizedGain)}
           value={figure(data?.totals.realizedGain, true)}
         />
         <KpiFigure label="Revenus perçus" size="lead" value={figure(data?.totals.income, true)} />
-        <KpiFigure label="Gain total" size="lead" value={figure(data?.totals.totalGain, true)} />
+        <KpiFigure
+          label="Gain total"
+          size="lead"
+          tone={tone(data?.totals.totalGain)}
+          value={figure(data?.totals.totalGain, true)}
+        />
       </div>
       <p className={styles.note}>
         {data === null ? (

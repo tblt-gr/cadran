@@ -63,7 +63,7 @@ async function openEdit(name = 'ETF Monde') {
   fireEvent.click(await screen.findByRole('button', { name: `Actions pour ${name}` }));
   fireEvent.click(await screen.findByRole('button', { name: `Modifier ${name}` }));
 }
-async function openStatus(verb = 'Désactiver', name = 'ETF Monde') {
+async function openStatus(verb = 'Archiver', name = 'ETF Monde') {
   fireEvent.click(await screen.findByRole('button', { name: `Actions pour ${name}` }));
   fireEvent.click(await screen.findByRole('button', { name: `${verb} ${name}` }));
 }
@@ -98,7 +98,7 @@ describe('InstrumentsPage', () => {
       '/investments',
     );
   });
-  it('refreshes the holdings once an instrument is deactivated', async () => {
+  it('refreshes the holdings once an instrument is archived', async () => {
     setup();
     api.deactivateInstrument.mockImplementation(() =>
       success({ ...instrument, status: 'INACTIVE' }),
@@ -106,7 +106,7 @@ describe('InstrumentsPage', () => {
     const { queryClient } = renderPage();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
     await openStatus();
-    fireEvent.click(await screen.findByRole('button', { name: 'Désactiver' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Archiver' }));
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['holdings'] }));
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['instrument-holding'] });
   });
@@ -218,7 +218,7 @@ describe('InstrumentsPage', () => {
     renderPage();
     await screen.findByText('ETF Monde');
     fireEvent.click(screen.getByRole('button', { name: 'Filtres' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Inactifs' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Archivés' }));
     await waitFor(() =>
       expect(api.listInstruments).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: expect.objectContaining({ status: 'inactive' }) }),
@@ -270,7 +270,7 @@ describe('InstrumentsPage', () => {
     api.deactivateInstrument.mockImplementation(() => problem('server_error', 500));
     renderPage();
     await openStatus();
-    fireEvent.click(await screen.findByRole('button', { name: 'Désactiver' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Archiver' }));
     await screen.findByText('La modification est indisponible. Réessayez.');
     fireEvent.keyDown(document, { key: 'Escape' });
     await openStatus();
@@ -282,10 +282,10 @@ describe('InstrumentsPage', () => {
     renderPage();
     await openStatus();
     const calls = api.listInstruments.mock.calls.length;
-    fireEvent.click(await screen.findByRole('button', { name: 'Désactiver' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Archiver' }));
     expect((await screen.findByRole('status')).textContent).toContain('déjà été modifié');
     await waitFor(() => expect(api.listInstruments.mock.calls.length).toBeGreaterThan(calls));
-    expect(screen.queryByRole('button', { name: 'Désactiver' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Archiver' })).toBeNull();
   });
   it.each([
     ['invalid_instrument_isin', 'Cet ISIN est invalide.'],

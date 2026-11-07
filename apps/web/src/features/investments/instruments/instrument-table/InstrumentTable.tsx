@@ -65,7 +65,7 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
                 <td>{item.currencyCode}</td>
                 <td>
                   <StatusBadge tone={item.status === 'ACTIVE' ? 'positive' : 'info'}>
-                    {item.status === 'ACTIVE' ? 'Actif' : 'Inactif'}
+                    {item.status === 'ACTIVE' ? 'Actif' : 'Archivé'}
                   </StatusBadge>
                 </td>
                 <td>
@@ -82,8 +82,8 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
                       {
                         id: 'status',
                         icon: 'archive',
-                        label: `${item.status === 'ACTIVE' ? 'Désactiver' : 'Réactiver'} ${item.name}`,
-                        text: item.status === 'ACTIVE' ? 'Désactiver' : 'Réactiver',
+                        label: `${item.status === 'ACTIVE' ? 'Archiver' : 'Réactiver'} ${item.name}`,
+                        text: item.status === 'ACTIVE' ? 'Archiver' : 'Réactiver',
                         onSelect: () => onStatus(item),
                       },
                     ]}

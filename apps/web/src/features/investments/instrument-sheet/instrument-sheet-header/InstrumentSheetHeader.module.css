@@ -1,9 +1,7 @@
 .header {
-  display: grid;
-  gap: var(--spacing-3);
+  display: block;
 }
-.heading,
-.actions {
+.heading {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -12,10 +10,12 @@
 .identity {
   margin: var(--spacing-none);
   color: var(--text-secondary);
+  font-size: var(--font-size-label);
   overflow-wrap: anywhere;
 }
 .identityBlock {
+  display: block;
   width: 24rem;
   max-width: 100%;
-  height: var(--font-size-body);
+  height: var(--font-size-label);
 }
