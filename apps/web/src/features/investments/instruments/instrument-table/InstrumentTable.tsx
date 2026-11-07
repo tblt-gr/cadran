@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { Instrument } from '@cadran/api-client';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -53,7 +54,9 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
           <tbody>
             {items.map((item) => (
               <tr key={item.id}>
-                <th scope="row">{item.name}</th>
+                <th scope="row">
+                  <InstrumentLink instrument={item} />
+                </th>
                 <td>{item.isin ?? ' - '}</td>
                 <td>{item.ticker ?? ' - '}</td>
                 <td>{typeLabels[item.instrumentType]}</td>

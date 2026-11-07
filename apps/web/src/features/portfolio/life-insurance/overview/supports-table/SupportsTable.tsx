@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import {
   allocationEmpty,
@@ -46,7 +47,9 @@ export function SupportsTable({ summary }: { summary: Summary | null }) {
                         {supportCells(row, summary.assetCode).map((cell, index) =>
                           index === 0 ? (
                             <th scope="row" key={index}>
-                              {cell}
+                              <InstrumentLink
+                                instrument={{ id: row.instrumentId, name: row.name }}
+                              />
                             </th>
                           ) : (
                             <td className={index >= 2 ? 'money' : undefined} key={index}>

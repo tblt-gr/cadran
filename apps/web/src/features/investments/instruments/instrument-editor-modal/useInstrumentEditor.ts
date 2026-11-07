@@ -71,6 +71,7 @@ export function useInstrumentEditor(
         client.invalidateQueries({ queryKey: ['instruments'] }),
         client.invalidateQueries({ queryKey: ['instrument-picker'] }),
         client.invalidateQueries({ queryKey: ['holdings'] }),
+        client.invalidateQueries({ queryKey: ['instrument-holding'] }),
       ]);
     },
     onError: async (error) => {

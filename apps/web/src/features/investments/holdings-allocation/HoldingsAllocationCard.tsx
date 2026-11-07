@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { Holdings } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -106,7 +107,13 @@ export function HoldingsAllocationCard({
               <tbody>
                 {slices.map((slice) => (
                   <tr key={slice.key}>
-                    <th scope="row">{label(slice)}</th>
+                    <th scope="row">
+                      {criterion === 'byInstrument' && slice.key !== 'UNSPLIT' ? (
+                        <InstrumentLink instrument={{ id: slice.key, name: label(slice) }} />
+                      ) : (
+                        label(slice)
+                      )}
+                    </th>
                     <td className="money">{money(slice.value)}</td>
                     <td className="money">
                       {slice.share === null ? (

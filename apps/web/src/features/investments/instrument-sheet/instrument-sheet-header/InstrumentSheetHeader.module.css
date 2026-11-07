@@ -1,0 +1,21 @@
+.header {
+  display: grid;
+  gap: var(--spacing-3);
+}
+.heading,
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+.identity {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.identityBlock {
+  width: 24rem;
+  max-width: 100%;
+  height: var(--font-size-body);
+}

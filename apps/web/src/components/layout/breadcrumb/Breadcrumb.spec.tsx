@@ -26,6 +26,10 @@ describe('global breadcrumb', () => {
     ['/accounts/groups', ['Accueil', 'Comptes', 'Groupes de comptes']],
     ['/investments', ['Accueil', 'Investissements']],
     ['/investments/instruments', ['Accueil', 'Investissements', 'Instruments']],
+    [
+      '/investments/instruments/00000000-0000-7000-8000-000000000001',
+      ['Accueil', 'Investissements', 'Instruments', 'Instrument'],
+    ],
     ['/transactions', ['Accueil', 'Budget', 'Transactions']],
     ['/transactions/recurrences', ['Accueil', 'Budget', 'Transactions', 'Récurrences']],
     ['/transactions/categories', ['Accueil', 'Budget', 'Transactions', 'Catégories']],
@@ -81,6 +85,22 @@ describe('global breadcrumb', () => {
     expect(within(nav).getByRole('link', { name: 'Paramètres' }).getAttribute('href')).toBe(
       '/parameters/interface',
     );
+  });
+
+  it('shows the instrument name under Investments and Instruments', () => {
+    const path = '/investments/instruments/00000000-0000-7000-8000-000000000001';
+    render(
+      <AppShell path={path} setPath={vi.fn()}>
+        <AccountLabel path={path} label="ETF Monde" />
+      </AppShell>,
+    );
+    const nav = screen.getByRole('navigation', { name: 'Fil d’Ariane' });
+    expect(within(nav).getByText('ETF Monde').getAttribute('aria-current')).toBe('page');
+    expect(
+      within(nav)
+        .getAllByRole('link')
+        .map((link) => link.getAttribute('href')),
+    ).toEqual(['/', '/investments', '/investments/instruments']);
   });
 
   it('hangs a portfolio under Comptes and keeps its name as the current page', () => {

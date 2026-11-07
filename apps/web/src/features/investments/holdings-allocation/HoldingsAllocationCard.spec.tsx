@@ -24,6 +24,11 @@ describe('HoldingsAllocationCard', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Actif' }));
     expect(within(table).getByText('MSCI World')).toBeTruthy();
+    expect(
+      within(table)
+        .getByRole('link', { name: "Voir l'instrument MSCI World" })
+        .getAttribute('href'),
+    ).toBe(`/investments/instruments/${holdingsFixture().items[0]!.instrument.id}`);
     expect(within(table).getByText('60,16 %')).toBeTruthy();
   });
 

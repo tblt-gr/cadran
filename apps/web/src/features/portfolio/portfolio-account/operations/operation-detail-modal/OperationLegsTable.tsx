@@ -1,3 +1,4 @@
+import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioOperationLeg } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -32,7 +33,11 @@ export function OperationLegsTable({
             <tr key={leg.index}>
               <td>{leg.direction === 'IN' ? 'Entrée' : 'Sortie'}</td>
               <th scope="row">
-                {leg.instrument?.name ?? <EmptyValue label="Support indisponible" />}
+                {leg.instrument ? (
+                  <InstrumentLink instrument={leg.instrument} />
+                ) : (
+                  <EmptyValue label="Support indisponible" />
+                )}
               </th>
               <td>{formatDecimal(leg.quantity, i18n.language)}</td>
               <td>{formatDecimal(leg.unitPrice, i18n.language)}</td>

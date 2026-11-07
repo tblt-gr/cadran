@@ -24,6 +24,7 @@ export function InstrumentStatusModal({
     Promise.all([
       client.invalidateQueries({ queryKey: ['instruments'] }),
       client.invalidateQueries({ queryKey: ['holdings'] }),
+      client.invalidateQueries({ queryKey: ['instrument-holding'] }),
     ]);
   const changeStatus = useMutation({
     mutationFn: async (item: Instrument) => {

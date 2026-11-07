@@ -39,3 +39,12 @@ export function dismissPortfolioDetailSelection(returnFocus?: RefObject<HTMLElem
   );
   window.dispatchEvent(new PopStateEvent('popstate'));
 }
+
+/** Only a UUID from the sheet deep link may initialize the operation picker. */
+export function instrumentFromLocation(): string | null {
+  const value = new URLSearchParams(window.location.search).get('instrument');
+  return value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+    ? value
+    : null;
+}

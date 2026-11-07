@@ -86,6 +86,11 @@ describe('InstrumentsPage', () => {
     setup();
     renderPage();
     await screen.findByText(instrument.name);
+    expect(
+      screen
+        .getByRole('link', { name: `Voir l'instrument ${instrument.name}` })
+        .getAttribute('href'),
+    ).toBe(`/investments/instruments/${instrument.id}`);
     expect(screen.getByRole('link', { name: 'Instruments' }).getAttribute('aria-current')).toBe(
       'page',
     );
@@ -103,6 +108,7 @@ describe('InstrumentsPage', () => {
     await openStatus();
     fireEvent.click(await screen.findByRole('button', { name: 'Désactiver' }));
     await waitFor(() => expect(invalidate).toHaveBeenCalledWith({ queryKey: ['holdings'] }));
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['instrument-holding'] });
   });
   it('replaces its one named cold-load skeleton and keeps instruments during a refetch', async () => {
     api.listAssets.mockResolvedValue(

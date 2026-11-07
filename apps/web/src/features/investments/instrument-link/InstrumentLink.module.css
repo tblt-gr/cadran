@@ -1,0 +1,7 @@
+.link {
+  display: inline-flex;
+  min-height: var(--touch-target-min);
+  align-items: center;
+  color: inherit;
+  overflow-wrap: anywhere;
+}

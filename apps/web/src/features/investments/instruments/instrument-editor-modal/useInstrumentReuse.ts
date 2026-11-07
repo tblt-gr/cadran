@@ -58,6 +58,7 @@ export function useInstrumentReuse({
         client.invalidateQueries({ queryKey: ['instruments'] }),
         client.invalidateQueries({ queryKey: ['instrument-picker'] }),
         client.invalidateQueries({ queryKey: ['holdings'] }),
+        client.invalidateQueries({ queryKey: ['instrument-holding'] }),
         client.invalidateQueries({ queryKey: ['instrument', instrument.id] }),
       ]);
     },

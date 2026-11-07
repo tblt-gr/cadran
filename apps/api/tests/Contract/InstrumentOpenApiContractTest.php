@@ -22,6 +22,20 @@ final class InstrumentOpenApiContractTest extends TestCase
         self::assertSame('reactivateInstrument', self::map(self::map($paths['/api/v1/instruments/{id}/reactivate'] ?? null)['post'] ?? null)['operationId'] ?? null);
 
         $schemas = self::map(self::map($document['components'] ?? null)['schemas'] ?? null);
+        self::assertSame('readInstrumentHolding', self::map(self::map($paths['/api/v1/instruments/{id}/holding'] ?? null)['get'] ?? null)['operationId'] ?? null);
+        $sheet = self::map($schemas['InstrumentHolding'] ?? null);
+        self::assertFalse($sheet['additionalProperties']);
+        self::assertSame(['instrument', 'holding', 'accounts', 'totals', 'truncated'], $sheet['required']);
+        self::assertSame(50, self::map(self::map($sheet['properties'])['accounts'])['maxItems']);
+        $history = self::map($schemas['InstrumentAccountHistory'] ?? null);
+        self::assertFalse($history['additionalProperties']);
+        $historyScope = $history['x-cadran-asset-scope'];
+        self::assertIsString($historyScope);
+        self::assertStringContainsString('account identified by accountId', $historyScope);
+        $totalsScope = self::map($schemas['InstrumentHoldingTotals'])['x-cadran-asset-scope'];
+        self::assertIsString($totalsScope);
+        self::assertStringContainsString('no currency conversion', strtolower($totalsScope));
+        self::assertSame(['integer', 'null'], self::map(self::map($history['properties'])['operationCount'])['type']);
         $instrument = self::map($schemas['Instrument'] ?? null);
         self::assertSame([
             'id', 'name', 'isin', 'ticker', 'venueMic', 'instrumentType', 'assetClass', 'region',

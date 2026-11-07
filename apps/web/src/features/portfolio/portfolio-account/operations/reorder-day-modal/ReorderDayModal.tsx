@@ -64,6 +64,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
         client.invalidateQueries({ queryKey: ['portfolio-performance-annual', accountId] }),
         client.invalidateQueries({ queryKey: ['portfolios'] }),
         client.invalidateQueries({ queryKey: ['holdings'] }),
+        client.invalidateQueries({ queryKey: ['instrument-holding'] }),
         client.invalidateQueries({ queryKey: ['portfolio-operation-day', accountId, tradeDate] }),
         client.invalidateQueries({ queryKey: ['portfolio-operations', accountId] }),
         client.invalidateQueries({ queryKey: ['portfolio-operation'] }),

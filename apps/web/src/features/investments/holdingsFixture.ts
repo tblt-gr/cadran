@@ -107,8 +107,18 @@ export function holdingsFixture(overrides: Partial<Holdings> = {}): Holdings {
     ],
     allocation: {
       byInstrument: [
-        { key: 'W', label: 'MSCI World', value: '1510.00', share: '0.601594' },
-        { key: 'A', label: 'Action A', value: '1000.00', share: '0.398406' },
+        {
+          key: '00000000-0000-7000-8000-0000000000b1',
+          label: 'MSCI World',
+          value: '1510.00',
+          share: '0.601594',
+        },
+        {
+          key: '00000000-0000-7000-8000-0000000000b2',
+          label: 'Action A',
+          value: '1000.00',
+          share: '0.398406',
+        },
       ],
       byAccount: [
         { key: CTO, label: 'CTO', value: '1510.00', share: '0.601594' },

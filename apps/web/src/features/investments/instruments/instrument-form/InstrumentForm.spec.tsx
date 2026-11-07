@@ -26,6 +26,7 @@ describe('InstrumentForm euro fund', () => {
       </QueryClientProvider>,
     );
     expect(screen.getByLabelText('Ticker').closest('details')).toBeNull();
+    expect(document.querySelector('a[href^="/investments/instruments/"]')).toBeNull();
     expect(screen.getByLabelText('Place de cotation (MIC)').closest('details')?.open).toBe(false);
     fireEvent.click(screen.getByText('Champs avancés'));
     expect(screen.getByLabelText('Précision des prix').closest('details')?.open).toBe(true);
