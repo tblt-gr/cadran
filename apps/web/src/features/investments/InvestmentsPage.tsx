@@ -6,36 +6,59 @@ import { InvestmentsPageSkeleton } from './InvestmentsPageSkeleton';
 import {
   DEFAULT_HOLDINGS_SORT,
   parseHoldingsSort,
+  parseHoldingsView,
   useHoldings,
   type HoldingsSort,
+  type HoldingsViewMode,
 } from './useHoldings';
 import styles from './InvestmentsPage.module.css';
 
-function readUrlSort(): HoldingsSort {
-  return parseHoldingsSort(new URLSearchParams(window.location.search).get('sort'));
+function readUrl(): { sort: HoldingsSort; view: HoldingsViewMode } {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    sort: parseHoldingsSort(params.get('sort')),
+    view: parseHoldingsView(params.get('view')),
+  };
 }
 
 /** Every holding of the portfolio accounts, grouped by instrument. */
 export function InvestmentsPage() {
   const { t } = useTranslation();
-  const [sort, setSort] = useState<HoldingsSort>(readUrlSort);
+  const [sort, setSort] = useState<HoldingsSort>(() => readUrl().sort);
+  const [view, setView] = useState<HoldingsViewMode>(() => readUrl().view);
   const holdings = useHoldings(sort);
 
   useEffect(() => {
     function applyUrlSort() {
-      if (window.location.pathname === '/investments') setSort(readUrlSort());
+      if (window.location.pathname !== '/investments') return;
+      const next = readUrl();
+      setSort(next.sort);
+      setView(next.view);
     }
     window.addEventListener('popstate', applyUrlSort);
     return () => window.removeEventListener('popstate', applyUrlSort);
   }, []);
 
-  const changeSort = useCallback((next: HoldingsSort) => {
+  const writeUrl = useCallback((name: string, value: string | null) => {
     const url = new URL(window.location.href);
-    if (next === DEFAULT_HOLDINGS_SORT) url.searchParams.delete('sort');
-    else url.searchParams.set('sort', next);
+    if (value === null) url.searchParams.delete(name);
+    else url.searchParams.set(name, value);
     window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
-    setSort(next);
   }, []);
+  const changeSort = useCallback(
+    (next: HoldingsSort) => {
+      writeUrl('sort', next === DEFAULT_HOLDINGS_SORT ? null : next);
+      setSort(next);
+    },
+    [writeUrl],
+  );
+  const changeView = useCallback(
+    (next: HoldingsViewMode) => {
+      writeUrl('view', next === 'account' ? 'account' : null);
+      setView(next);
+    },
+    [writeUrl],
+  );
 
   return (
     <div className={styles.page}>
@@ -48,10 +71,16 @@ export function InvestmentsPage() {
           </button>
         </section>
       ) : holdings.data === undefined ? (
-        <InvestmentsPageSkeleton sort={sort} status={t('investments.loading')} />
+        <InvestmentsPageSkeleton sort={sort} view={view} status={t('investments.loading')} />
       ) : (
         <div className={styles.content}>
-          <HoldingsView holdings={holdings.data} onSortChange={changeSort} sort={sort} />
+          <HoldingsView
+            holdings={holdings.data}
+            onSortChange={changeSort}
+            onViewChange={changeView}
+            sort={sort}
+            view={view}
+          />
         </div>
       )}
     </div>

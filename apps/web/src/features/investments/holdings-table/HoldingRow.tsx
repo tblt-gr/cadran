@@ -6,15 +6,13 @@ import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedG
 import { formatDecimal } from '@/lib/decimal';
 import {
   holdingsDay,
+  holdingsInstrumentLine,
   holdingsMoney,
   holdingsPercent,
   holdingsUnitPrice,
 } from '@/features/investments/holdingsFormat';
-import { instrumentTypes } from '@/features/investments/instruments/instrument-form/instrumentOptions';
 import { HoldingAccountsRows } from './HoldingAccountsRows';
 import styles from './HoldingsTable.module.css';
-
-const typeNames: ReadonlyMap<string, string> = new Map(instrumentTypes);
 
 /** The aggregated line of one instrument, with its per-account rows when disclosed. */
 export function HoldingRow({
@@ -30,8 +28,6 @@ export function HoldingRow({
 }) {
   const { t } = useTranslation();
   const { instrument } = holding;
-  const identifier = instrument.isin ?? instrument.ticker;
-  const kind = typeNames.get(holding.instrumentType) ?? holding.instrumentType;
   const dash = (label: string) => <EmptyValue label={label} />;
 
   return (
@@ -40,7 +36,7 @@ export function HoldingRow({
         <th scope="row">
           <strong className={styles.name}>{instrument.name}</strong>
           <span className={styles.identifier}>
-            {identifier === null ? kind : `${identifier} · ${kind}`}
+            {holdingsInstrumentLine(instrument, holding.instrumentType)}
           </span>
         </th>
         <td className={styles.number} data-label={t('investments.table.quantity')}>

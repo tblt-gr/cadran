@@ -9619,6 +9619,91 @@ components:
           enum: [TOTAL_VALUATION, PARTIAL_VALUATION, NO_VALUATION]
         securitiesValue:
           $ref: '#/components/schemas/HoldingsNullableDecimal'
+    HoldingsAccountSummaryLine:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          instrument,
+          instrumentType,
+          quantity,
+          value,
+          costBasis,
+          unrealizedGain,
+          performance,
+          priceDate,
+          priceQuality,
+        ]
+      properties:
+        instrument:
+          $ref: '#/components/schemas/PortfolioPositionInstrument'
+        instrumentType:
+          $ref: '#/components/schemas/InstrumentType'
+        quantity:
+          $ref: '#/components/schemas/HoldingsDecimal'
+        value:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        priceDate:
+          type: [string, 'null']
+          format: date
+        priceQuality:
+          $ref: '#/components/schemas/PortfolioPriceQuality'
+    HoldingsAccountSummary:
+      description: >-
+        One account from its retained valuation. `detail` tells what the valuation carries: `LINES` (detailed positions,
+        listed in `lines`), `TOTAL` (a statement total, no lines), `PARTIAL` or `NONE` (no valuation). Amounts are null
+        when unknown, never zero.
+      type: object
+      additionalProperties: false
+      required:
+        [
+          accountId,
+          label,
+          detail,
+          valuedOn,
+          securitiesValue,
+          costBasis,
+          unrealizedGain,
+          performance,
+          cash,
+          share,
+          lines,
+        ]
+      properties:
+        accountId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        detail:
+          type: string
+          enum: [LINES, TOTAL, PARTIAL, NONE]
+        valuedOn:
+          type: [string, 'null']
+          format: date
+        securitiesValue:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        costBasis:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        unrealizedGain:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        performance:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        cash:
+          $ref: '#/components/schemas/HoldingsNullableDecimal'
+        share:
+          $ref: '#/components/schemas/HoldingsShare'
+        lines:
+          type: array
+          maxItems: 500
+          items:
+            $ref: '#/components/schemas/HoldingsAccountSummaryLine'
     Holdings:
       type: object
       additionalProperties: false
@@ -9634,6 +9719,7 @@ components:
           items,
           allocation,
           unsplitAccounts,
+          accounts,
           truncated,
         ]
       properties:
@@ -9689,6 +9775,12 @@ components:
           maxItems: 50
           items:
             $ref: '#/components/schemas/HoldingsUnsplitAccount'
+        accounts:
+          description: Every shown account, securities value descending (nulls last), then label, then identifier; independent of `sort`.
+          type: array
+          maxItems: 50
+          items:
+            $ref: '#/components/schemas/HoldingsAccountSummary'
         truncated:
           type: boolean
     PortfolioOverviewList:

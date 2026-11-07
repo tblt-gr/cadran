@@ -257,6 +257,35 @@ export type HoldingsUnsplitAccount = {
     securitiesValue: HoldingsNullableDecimal;
 };
 
+export type HoldingsAccountSummaryLine = {
+    instrument: PortfolioPositionInstrument;
+    instrumentType: InstrumentType;
+    quantity: HoldingsDecimal;
+    value: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    priceDate: string | null;
+    priceQuality: PortfolioPriceQuality;
+};
+
+/**
+ * One account from its retained valuation. `detail` tells what the valuation carries: `LINES` (detailed positions, listed in `lines`), `TOTAL` (a statement total, no lines), `PARTIAL` or `NONE` (no valuation). Amounts are null when unknown, never zero.
+ */
+export type HoldingsAccountSummary = {
+    accountId: string;
+    label: string;
+    detail: 'LINES' | 'TOTAL' | 'PARTIAL' | 'NONE';
+    valuedOn: string | null;
+    securitiesValue: HoldingsNullableDecimal;
+    costBasis: HoldingsNullableDecimal;
+    unrealizedGain: HoldingsNullableDecimal;
+    performance: HoldingsNullableDecimal;
+    cash: HoldingsNullableDecimal;
+    share: HoldingsShare;
+    lines: Array<HoldingsAccountSummaryLine>;
+};
+
 export type Holdings = {
     asOf: string;
     /**
@@ -275,6 +304,10 @@ export type Holdings = {
         byRegion: Array<HoldingAllocationSlice>;
     };
     unsplitAccounts: Array<HoldingsUnsplitAccount>;
+    /**
+     * Every shown account, securities value descending (nulls last), then label, then identifier; independent of `sort`.
+     */
+    accounts: Array<HoldingsAccountSummary>;
     truncated: boolean;
 };
 

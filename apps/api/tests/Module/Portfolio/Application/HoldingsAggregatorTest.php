@@ -110,6 +110,139 @@ final class HoldingsAggregatorTest extends TestCase
         self::assertSame([self::A, self::W, '00000000-0000-7000-8000-000000000b09'], $names);
     }
 
+    public function testThePerAccountViewMatchesTheWorkedExampleAndAddsATotalValuedAccount(): void
+    {
+        $av = self::account('00000000-0000-7000-8000-0000000000c3', 'Assurance-vie', '2026-11-01', '10.00', [], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $result = HoldingsAggregator::aggregate([...self::example(), $av], self::day('2026-11-04'), 'NAME_ASC', false);
+
+        $accounts = self::list($result['accounts']);
+        // Securities descending: CTO 1510, AV 500, PEA 1000 -> CTO, PEA, AV.
+        self::assertSame(['CTO', 'PEA', 'Assurance-vie'], array_column($accounts, 'label'));
+        [$cto, $pea, $total] = $accounts;
+        self::assertSame('LINES', $cto['detail']);
+        self::assertSame('1510.00', $cto['securitiesValue']);
+        self::assertNull($cto['costBasis']);
+        self::assertNull($cto['unrealizedGain']);
+        self::assertSame('120.00', $cto['cash']);
+        self::assertSame('2026-11-03', $cto['valuedOn']);
+        self::assertSame(['1000.00', '510.00'], array_column(self::list($cto['lines']), 'value'));
+        self::assertSame(['Action Alpha', 'ETF Monde'], array_column(array_map(static fn (array $line): array => self::map($line['instrument']), self::list($cto['lines'])), 'name'));
+        self::assertSame('1000.00', $pea['securitiesValue']);
+        self::assertSame('900.00', $pea['costBasis']);
+        self::assertSame('100.00', $pea['unrealizedGain']);
+        self::assertSame('0.111111', $pea['performance']);
+        // Denominator 1510 + 1000 + 500 = 3010.
+        self::assertSame('33.22', self::map($pea['share'])['percentDisplay']);
+        self::assertSame('TOTAL', $total['detail']);
+        self::assertSame('500.00', $total['securitiesValue']);
+        self::assertNull($total['costBasis']);
+        self::assertNull($total['unrealizedGain']);
+        self::assertSame([], $total['lines']);
+
+        $totals = self::map($result['totals']);
+        $sum = '0';
+        foreach ($accounts as $account) {
+            $sum = (string) \Brick\Math\BigDecimal::of($sum)->plus(self::string($account['securitiesValue']));
+        }
+        self::assertSame((string) \Brick\Math\BigDecimal::of(self::string($totals['totalValue']))->minus(self::string($totals['cash'])), $sum);
+        foreach ($accounts as $account) {
+            if ('LINES' === $account['detail']) {
+                $lines = '0';
+                foreach (self::list($account['lines']) as $line) {
+                    $lines = (string) \Brick\Math\BigDecimal::of($lines)->plus(self::string($line['value']));
+                }
+                self::assertSame($account['securitiesValue'], $lines);
+            }
+        }
+    }
+
+    public function testThePerAccountViewShowsPartialAndMissingValuationsWithoutZero(): void
+    {
+        $partial = new HoldingsAccount('00000000-0000-7000-8000-0000000000c3', 'PER', 'EUR', self::view(
+            '00000000-0000-7000-8000-0000000000c3', '2026-11-02', '5.00', [], ValuationDetail::POSITIONS, ValuationCompleteness::PARTIAL, null,
+        ));
+        $none = new HoldingsAccount('00000000-0000-7000-8000-0000000000c4', 'Vide', 'EUR', null);
+        $accounts = self::list(HoldingsAggregator::aggregate([$none, $partial, ...self::example()], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']);
+        self::assertSame(['CTO', 'PEA', 'PER', 'Vide'], array_column($accounts, 'label'));
+        self::assertSame('PARTIAL', $accounts[2]['detail']);
+        self::assertNull($accounts[2]['securitiesValue']);
+        self::assertSame('5.00', $accounts[2]['cash']);
+        self::assertSame('NONE', $accounts[3]['detail']);
+        self::assertNull($accounts[3]['valuedOn']);
+        self::assertNull($accounts[3]['cash']);
+        // A null account value makes the denominator unknown: no share, never zero.
+        self::assertSame('MISSING_VALUE', self::map($accounts[0]['share'])['reason']);
+    }
+
+    public function testAccountsTieOnLabelThenIdentifier(): void
+    {
+        $one = self::account('00000000-0000-7000-8000-0000000000c9', 'Meme', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')]);
+        $two = self::account('00000000-0000-7000-8000-0000000000c1', 'meme', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')]);
+        $ids = array_column(self::list(HoldingsAggregator::aggregate([$one, $two], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']), 'accountId');
+        self::assertSame(['00000000-0000-7000-8000-0000000000c1', '00000000-0000-7000-8000-0000000000c9'], $ids);
+    }
+
+    public function testMixedAssetsNullThePerAccountAmountsAndShares(): void
+    {
+        $btc = self::account(self::CTO, 'Crypto', '2026-11-03', '1', [self::line(self::A, '1', '10', '10', '5')], asset: 'BTC');
+        $pea = self::account(self::PEA, 'PEA', '2026-11-03', '1', [self::line(self::W, '1', '10', '10', '5')]);
+        foreach (self::list(HoldingsAggregator::aggregate([$pea, $btc], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']) as $account) {
+            foreach (['securitiesValue', 'costBasis', 'unrealizedGain', 'performance', 'cash'] as $key) {
+                self::assertNull($account[$key], $key);
+            }
+            self::assertSame('MIXED_ASSETS', self::map($account['share'])['reason']);
+            self::assertSame('LINES', $account['detail']);
+            foreach (self::list($account['lines']) as $line) {
+                self::assertSame('1', $line['quantity']);
+                self::assertNull($line['value']);
+                self::assertNull($line['unrealizedGain']);
+            }
+        }
+    }
+
+    public function testATotalAccountNeverCarriesACostEvenWhenPositionsAreFrozen(): void
+    {
+        $total = self::account(self::PEA, 'AV', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')], detail: ValuationDetail::TOTAL, securities: '500.00');
+        $account = self::list(HoldingsAggregator::aggregate([$total], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts'])[0];
+        self::assertSame('500.00', $account['securitiesValue']);
+        self::assertNull($account['costBasis']);
+        self::assertNull($account['unrealizedGain']);
+        self::assertNull($account['performance']);
+    }
+
+    public function testAccentedLabelsSortCaseAndAccentInsensitively(): void
+    {
+        $zebra = self::account(self::CTO, 'Zebra', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')]);
+        $epargne = self::account(self::PEA, 'Épargne', '2026-11-03', '0', [self::line(self::W, '1', '10', '10', '5')]);
+        $labels = array_column(self::list(HoldingsAggregator::aggregate([$zebra, $epargne], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']), 'label');
+        self::assertSame(['Épargne', 'Zebra'], $labels);
+    }
+
+    public function testAnUnpricedLineNullsTheAccountAndAVeryLargeValueStaysExact(): void
+    {
+        $huge = '99999999999999999999999999.99';
+        $pea = self::account(self::PEA, 'PEA', '2026-11-03', '0', [
+            self::line(self::W, '10', null, null, '900.00'),
+            self::line(self::A, '1', $huge, $huge, '1.00'),
+        ]);
+        $big = self::account(self::CTO, 'Gros', '2026-11-03', '0', [self::line(self::A, '1', $huge, $huge, '1.00')]);
+        $accounts = self::list(HoldingsAggregator::aggregate([$pea, $big], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']);
+        self::assertSame(['Gros', 'PEA'], array_column($accounts, 'label'));
+        self::assertSame($huge, $accounts[0]['securitiesValue']);
+        self::assertSame('99999999999999999999999998.99', $accounts[0]['unrealizedGain']);
+        self::assertNull($accounts[1]['securitiesValue']);
+        self::assertNull($accounts[1]['unrealizedGain']);
+        self::assertNull($accounts[1]['performance']);
+        self::assertSame('MISSING_VALUE', self::map($accounts[1]['share'])['reason']);
+        $lines = self::list($accounts[1]['lines']);
+        self::assertSame([$huge, null], array_column($lines, 'value'));
+    }
+
+    public function testNoAccountHasNoSummary(): void
+    {
+        self::assertSame([], HoldingsAggregator::aggregate([], self::day('2026-11-04'), 'VALUE_DESC', false)['accounts']);
+    }
+
     public function testNoAccountIsNotCalculable(): void
     {
         $result = HoldingsAggregator::aggregate([], self::day('2026-11-04'), 'VALUE_DESC', false);

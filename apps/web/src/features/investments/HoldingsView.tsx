@@ -6,7 +6,9 @@ import { HoldingsTable } from './holdings-table/HoldingsTable';
 import { HoldingsWarnings } from './holdings-warnings/HoldingsWarnings';
 import { UnsplitAccountsNotice } from './unsplit-accounts-notice/UnsplitAccountsNotice';
 import { isNoInvestmentAccount } from './holdingsFormat';
-import type { HoldingsSort } from './useHoldings';
+import { HoldingsByAccountTable } from './holdings-by-account/HoldingsByAccountTable';
+import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
+import type { HoldingsSort, HoldingsViewMode } from './useHoldings';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import styles from './InvestmentsPage.module.css';
 
@@ -15,13 +17,34 @@ interface HoldingsViewProps {
   holdings: Holdings | null;
   sort: HoldingsSort;
   onSortChange: (sort: HoldingsSort) => void;
+  view: HoldingsViewMode;
+  onViewChange: (view: HoldingsViewMode) => void;
 }
 
 /** Summary, allocation and table of the positions, or the reason there is nothing to list. */
-export function HoldingsView({ holdings, sort, onSortChange }: HoldingsViewProps) {
+export function HoldingsView({
+  holdings,
+  sort,
+  onSortChange,
+  view,
+  onViewChange,
+}: HoldingsViewProps) {
   const { t } = useTranslation();
 
-  if (holdings && holdings.items.length === 0) {
+  const byAccount = view === 'account';
+  const viewControl = (
+    <SegmentedControl
+      disabled={!holdings}
+      label={t('investments.view.label')}
+      onChange={onViewChange}
+      options={[
+        { value: 'asset', label: t('investments.view.asset') },
+        { value: 'account', label: t('investments.view.account') },
+      ]}
+      value={view}
+    />
+  );
+  if (holdings && holdings.items.length === 0 && (!byAccount || holdings.accounts.length === 0)) {
     const noAccount = isNoInvestmentAccount(holdings);
     return (
       <>
@@ -38,6 +61,7 @@ export function HoldingsView({ holdings, sort, onSortChange }: HoldingsViewProps
           ) : null}
         </section>
         <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} />
+        {holdings.accounts.length > 0 ? viewControl : null}
       </>
     );
   }
@@ -46,11 +70,18 @@ export function HoldingsView({ holdings, sort, onSortChange }: HoldingsViewProps
     <>
       <HoldingsSummary holdings={holdings} />
       {holdings ? <HoldingsWarnings holdings={holdings} /> : null}
-      {holdings ? <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} /> : null}
+      {holdings && !byAccount ? (
+        <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} />
+      ) : null}
       <div className={styles.grid}>
         <HoldingsAllocationCard holdings={holdings} />
       </div>
-      <HoldingsTable holdings={holdings} onSortChange={onSortChange} sort={sort} />
+      {viewControl}
+      {byAccount ? (
+        <HoldingsByAccountTable holdings={holdings} />
+      ) : (
+        <HoldingsTable holdings={holdings} onSortChange={onSortChange} sort={sort} />
+      )}
     </>
   );
 }

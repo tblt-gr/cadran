@@ -91,6 +91,13 @@ final class HoldingsControllerTest extends WebTestCase
         self::assertSame('2026-11-03', $holdings['valuedTo']);
         self::assertSame('DEGRADED', $holdings['quality']);
         self::assertSame([['accountId' => self::AV, 'label' => 'Assurance-vie', 'reason' => 'TOTAL_VALUATION', 'securitiesValue' => '700.00']], $holdings['unsplitAccounts']);
+        $accounts = self::list($holdings['accounts']);
+        self::assertSame(['PEA', 'Assurance-vie', 'CTO'], array_column($accounts, 'label'));
+        self::assertSame(['LINES', 'TOTAL', 'LINES'], array_column($accounts, 'detail'));
+        self::assertSame(['1000.00', '700.00', '510.00'], array_column($accounts, 'securitiesValue'));
+        self::assertSame('100.00', $accounts[0]['unrealizedGain']);
+        self::assertSame([], $accounts[1]['lines']);
+        self::assertSame('1000.00', self::list($accounts[0]['lines'])[0]['value']);
         self::assertFalse($holdings['truncated']);
         $totals = self::map($holdings['totals']);
         self::assertSame('1510.00', $totals['securitiesValue']);
@@ -109,6 +116,9 @@ final class HoldingsControllerTest extends WebTestCase
         sort($labels);
         self::assertSame(['Assurance-vie', 'CTO', 'PEA'], $labels);
         self::assertNotContains('Voisin', $labels);
+        $accounts = self::list($holdings['accounts']);
+        self::assertSame(['Assurance-vie', 'CTO', 'PEA'], array_column($accounts, 'label'));
+        self::assertSame(['NONE', 'NONE', 'NONE'], array_column($accounts, 'detail'));
         self::assertSame('NO_VALUATION', self::map($holdings['totals'])['reason']);
         self::assertNull(self::map($holdings['totals'])['totalValue']);
         self::assertStringNotContainsString('Titre voisin', (string) $this->client->getResponse()->getContent());
@@ -123,6 +133,7 @@ final class HoldingsControllerTest extends WebTestCase
         $holdings = $this->holdings();
         self::assertTrue($holdings['truncated']);
         self::assertCount(50, self::list($holdings['unsplitAccounts']));
+        self::assertCount(50, self::list($holdings['accounts']));
         self::assertSame([], self::list($holdings['warnings'])[0]['accountIds']);
         self::assertSame('TRUNCATED_ACCOUNTS', self::list($holdings['warnings'])[0]['code']);
     }
@@ -143,6 +154,16 @@ final class HoldingsControllerTest extends WebTestCase
         $dense = array_values(array_filter(self::list($holdings['unsplitAccounts']), static fn (array $account): bool => self::CTO === $account['accountId']));
         self::assertSame([['accountId' => self::CTO, 'label' => 'CTO', 'reason' => 'NO_VALUATION', 'securitiesValue' => null]], $dense);
         self::assertNull(self::map($holdings['totals'])['totalValue']);
+    }
+
+    public function testAnotherWorkspaceAccountIsAbsentFromThePerAccountView(): void
+    {
+        $this->login();
+        $this->holdETF(self::PEA, '10', '90.00', '2026-10-31', '100.00');
+        $ids = array_column(self::list($this->holdings()['accounts']), 'accountId');
+        self::assertContains(self::PEA, $ids);
+        self::assertNotContains(self::FOREIGN, $ids);
+        self::assertStringNotContainsString('Voisin', (string) $this->client->getResponse()->getContent());
     }
 
     public function testEverySortIsAcceptedAndAnInvalidOneIsABadRequest(): void

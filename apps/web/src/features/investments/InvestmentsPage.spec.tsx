@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { holdingsFixture, unsplitAccount } from './holdingsFixture';
+import { holdingsFixture, totalAccountSummary, unsplitAccount } from './holdingsFixture';
 import { InvestmentsPage } from './InvestmentsPage';
 
 const api = vi.hoisted(() => ({ readHoldings: vi.fn() }));
@@ -94,6 +94,69 @@ describe('InvestmentsPage', () => {
     await waitFor(() => expect(api.readHoldings).toHaveBeenCalledTimes(2));
     expect(screen.queryByTestId('investments-skeleton')).toBeNull();
     expect(screen.getByRole('link', { name: 'PEA' })).toBeTruthy();
+  });
+
+  it('switches to the account view through the view parameter and keeps the sort', async () => {
+    window.history.replaceState({}, '', '/investments?sort=GAIN_DESC');
+    api.readHoldings.mockImplementation(() => success(holdingsFixture()));
+    renderPage();
+    await screen.findByText('MSCI World');
+    expect(screen.getByRole('button', { name: 'Par actif' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
+    expect(screen.queryByRole('table', { name: 'Positions par compte' })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    expect(screen.getByRole('table', { name: 'Positions par compte' })).toBeTruthy();
+    expect(screen.queryByRole('table', { name: 'Positions par actif' })).toBeNull();
+    expect(window.location.search).toBe('?sort=GAIN_DESC&view=account');
+    expect(api.readHoldings).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    expect(window.location.search).toBe('?sort=GAIN_DESC');
+    expect(screen.getByRole('table', { name: 'Positions par actif' })).toBeTruthy();
+  });
+
+  it('opens on the account view from the URL and shows the unsplit notice only by asset', async () => {
+    window.history.replaceState({}, '', '/investments?view=account');
+    api.readHoldings.mockImplementation(() =>
+      success(holdingsFixture({ unsplitAccounts: [unsplitAccount] })),
+    );
+    renderPage();
+    expect(await screen.findByRole('link', { name: 'CTO' })).toBeTruthy();
+    expect(screen.queryByText(/est valorisé en total : ses titres/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    expect(screen.getByText(/est valorisé en total : ses titres/)).toBeTruthy();
+  });
+
+  it('keeps the view control reachable when only accounts valued as a total are held', async () => {
+    api.readHoldings.mockImplementation(() =>
+      success(
+        holdingsFixture({
+          items: [],
+          warnings: [],
+          unsplitAccounts: [unsplitAccount],
+          accounts: [totalAccountSummary],
+        }),
+      ),
+    );
+    renderPage();
+    expect(await screen.findByText('Aucune position détenue')).toBeTruthy();
+    expect(screen.getByText(/Assurance vie est valorisé en total/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    expect(screen.getByRole('table', { name: 'Positions par compte' })).toBeTruthy();
+    expect(screen.getByText('Valorisation en total : titres non détaillés')).toBeTruthy();
+  });
+
+  it('shows the view control as real disabled buttons while loading', () => {
+    window.history.replaceState({}, '', '/investments?view=account');
+    api.readHoldings.mockImplementation(() => new Promise(() => undefined));
+    renderPage();
+    const skeleton = screen.getByTestId('investments-skeleton');
+    const byAccount = within(skeleton).getByRole('button', { name: 'Par compte' });
+    expect((byAccount as HTMLButtonElement).disabled).toBe(true);
+    expect(byAccount.getAttribute('aria-pressed')).toBe('true');
+    expect(within(skeleton).getByRole('table', { name: 'Positions par compte' })).toBeTruthy();
   });
 
   it('ignores an unknown sort parameter', async () => {

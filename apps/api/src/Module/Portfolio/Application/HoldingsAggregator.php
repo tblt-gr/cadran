@@ -81,6 +81,7 @@ final class HoldingsAggregator
         }
         $totals = self::totals($items, $unsplit, $cash, $cashMissing, $mixed, [] === $accounts);
         $items = self::share($items, $totals['securitiesValue'], $mixed);
+        $summaries = HoldingsAccountSummaries::of($accounts, $totals['securitiesValue'], $unsplit, $mixed);
         usort($items, static fn (HoldingRow $left, HoldingRow $right): int => self::compare($left, $right, $sort));
 
         $dates = array_values($contributing);
@@ -108,7 +109,7 @@ final class HoldingsAggregator
             'warnings' => $warningList, 'totals' => $totals,
             'items' => array_map(static fn (HoldingRow $item): array => $item->toArray(), $items),
             'allocation' => self::allocation($items, $totals['securitiesValue']),
-            'unsplitAccounts' => $unsplit, 'truncated' => $truncated];
+            'unsplitAccounts' => $unsplit, 'accounts' => $summaries, 'truncated' => $truncated];
     }
 
     /** @return array{accountId: string, label: string, reason: string, securitiesValue: ?string} */
@@ -131,7 +132,7 @@ final class HoldingsAggregator
         $value = self::sum(array_map(static fn (array $line): ?string => $line['value'], $accounts));
         $cost = self::sum(array_map(static fn (array $line): ?string => $line['costBasis'], $accounts));
         $gain = null !== $value && null !== $cost ? ExactDecimal::subtractForResponse($value, $cost) : null;
-        usort($accounts, static fn (array $left, array $right): int => self::nullsLast($left['value'], $right['value']) ?: strcasecmp($left['label'], $right['label']));
+        usort($accounts, static fn (array $left, array $right): int => self::nullsLast($left['value'], $right['value']) ?: self::labelKey($left['label']) <=> self::labelKey($right['label']));
 
         return new HoldingRow(
             ['id' => $instrument->id, 'name' => $instrument->name, 'isin' => $instrument->isin?->toString(),
@@ -177,7 +178,7 @@ final class HoldingsAggregator
     {
         $priced = array_values(array_filter($lines, static fn (array $line): bool => null !== $line['position']->unitPrice && null !== $line['position']->priceDate));
         usort($priced, static fn (array $left, array $right): int => $right['position']->priceDate <=> $left['position']->priceDate
-            ?: strcmp($right['valuedOn'], $left['valuedOn']) ?: strcasecmp($left['account']->label, $right['account']->label));
+            ?: strcmp($right['valuedOn'], $left['valuedOn']) ?: self::labelKey($left['account']->label) <=> self::labelKey($right['account']->label));
         $last = $priced[0]['position'] ?? null;
 
         return null === $last || null === $last->unitPrice || null === $last->priceDate ? null
@@ -269,7 +270,7 @@ final class HoldingsAggregator
     }
 
     /** @param list<?string> $values null when one is null: a missing figure is never a silent partial sum */
-    private static function sum(array $values): ?string
+    public static function sum(array $values): ?string
     {
         $sum = '0';
         foreach ($values as $value) {
@@ -292,12 +293,20 @@ final class HoldingsAggregator
         };
 
         return $order
-            ?: mb_strtolower($left->instrument['name']) <=> mb_strtolower($right->instrument['name'])
+            ?: self::labelKey($left->instrument['name']) <=> self::labelKey($right->instrument['name'])
             ?: strcmp($left->instrument['id'], $right->instrument['id']);
     }
 
+    /** Case and accent insensitive ordering key of a label: "Épargne" sorts before "Zebra" without the intl extension. */
+    public static function labelKey(string $label): string
+    {
+        return strtr(mb_strtolower($label), ['à' => 'a', 'â' => 'a', 'ä' => 'a', 'á' => 'a', 'ã' => 'a', 'å' => 'a', 'ç' => 'c', 'é' => 'e', 'è' => 'e', 'ê' => 'e',
+            'ë' => 'e', 'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i', 'ñ' => 'n', 'ó' => 'o', 'ò' => 'o', 'ô' => 'o', 'ö' => 'o', 'õ' => 'o', 'ú' => 'u',
+            'ù' => 'u', 'û' => 'u', 'ü' => 'u', 'ý' => 'y', 'ÿ' => 'y', 'œ' => 'oe', 'æ' => 'ae']);
+    }
+
     /** Descending exact order, nulls last. */
-    private static function nullsLast(?string $left, ?string $right): int
+    public static function nullsLast(?string $left, ?string $right): int
     {
         return match (true) {
             null === $left && null === $right => 0,

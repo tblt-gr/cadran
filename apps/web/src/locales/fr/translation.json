@@ -152,6 +152,24 @@
       "notCalculable": "Non calculable",
       "accountsLabel": "Comptes détenant {{name}}"
     },
+    "view": {
+      "label": "Affichage des positions",
+      "asset": "Par actif",
+      "account": "Par compte"
+    },
+    "byAccount": {
+      "caption": "Positions par compte",
+      "account": "Compte",
+      "securities": "Valeur des titres",
+      "gain": "Plus-value latente",
+      "share": "Part",
+      "valuedOn": "Valorisé le",
+      "detail": "Détail",
+      "linesToggle": "Détail par actif : {{name}}",
+      "TOTAL": "Valorisation en total : titres non détaillés",
+      "PARTIAL": "Valorisation partielle : titres non détaillés",
+      "NONE": "Aucune valorisation"
+    },
     "unsplit": {
       "message": "{{label}} est valorisé en total : ses titres ne sont pas détaillés par actif.",
       "action": "Saisir une valorisation détaillée"

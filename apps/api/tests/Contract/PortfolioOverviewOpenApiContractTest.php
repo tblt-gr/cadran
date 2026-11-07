@@ -61,11 +61,13 @@ final class PortfolioOverviewOpenApiContractTest extends TestCase
         $schemas = self::map(self::map($document['components'])['schemas']);
         $holdings = self::map($schemas['Holdings']);
         self::assertFalse($holdings['additionalProperties']);
-        self::assertSame(['asOf', 'assetCode', 'valuedFrom', 'valuedTo', 'quality', 'warnings', 'totals', 'items', 'allocation', 'unsplitAccounts', 'truncated'], $holdings['required']);
+        self::assertSame(['asOf', 'assetCode', 'valuedFrom', 'valuedTo', 'quality', 'warnings', 'totals', 'items', 'allocation', 'unsplitAccounts', 'accounts', 'truncated'], $holdings['required']);
         $properties = self::map($holdings['properties']);
         self::assertSame(1000, self::map($properties['items'])['maxItems']);
         self::assertSame(50, self::map($properties['unsplitAccounts'])['maxItems']);
-        foreach (['Holding', 'HoldingAccountLine', 'HoldingsTotals', 'HoldingAllocationSlice', 'HoldingsShare'] as $schema) {
+        self::assertSame(50, self::map($properties['accounts'])['maxItems']);
+        self::assertSame(500, self::map(self::map(self::map($schemas['HoldingsAccountSummary'])['properties'])['lines'])['maxItems']);
+        foreach (['Holding', 'HoldingAccountLine', 'HoldingsTotals', 'HoldingAllocationSlice', 'HoldingsShare', 'HoldingsAccountSummary', 'HoldingsAccountSummaryLine'] as $schema) {
             self::assertFalse(self::map($schemas[$schema])['additionalProperties'], $schema);
         }
         $amount = self::map($schemas['HoldingsNullableDecimal']);

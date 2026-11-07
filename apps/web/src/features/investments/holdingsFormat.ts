@@ -1,3 +1,4 @@
+import { instrumentTypes } from '@/features/investments/instruments/instrument-form/instrumentOptions';
 import {
   formatAmount,
   formatCalendarDay,
@@ -48,4 +49,16 @@ export function holdingsUnitPrice(value: string, assetCode: string | null): stri
   } catch {
     return `${figure} ${assetCode}`;
   }
+}
+
+const typeNames: ReadonlyMap<string, string> = new Map(instrumentTypes);
+
+/** The `{ISIN ou ticker} · {type}` line under an instrument name. */
+export function holdingsInstrumentLine(
+  instrument: { isin: string | null; ticker: string | null },
+  instrumentType: string,
+): string {
+  const kind = typeNames.get(instrumentType) ?? instrumentType;
+  const identifier = instrument.isin ?? instrument.ticker;
+  return identifier === null ? kind : `${identifier} · ${kind}`;
 }

@@ -13,6 +13,12 @@ export function parseHoldingsSort(value: string | null): HoldingsSort {
   return SORTS.find((sort) => sort === value) ?? DEFAULT_HOLDINGS_SORT;
 }
 
+export type HoldingsViewMode = 'asset' | 'account';
+
+export function parseHoldingsView(value: string | null): HoldingsViewMode {
+  return value === 'account' ? 'account' : 'asset';
+}
+
 /** One read of every holding. The key stays under `holdings`, which every portfolio write invalidates. */
 export function useHoldings(sort: HoldingsSort) {
   return useQuery({
