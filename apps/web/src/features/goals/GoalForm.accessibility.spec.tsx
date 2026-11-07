@@ -57,7 +57,7 @@ it.each(['0', '-1', '0.000000001'])(
 );
 
 it.each(['0', '100.01', '0.0000001'])(
-  'explains the positive rolling percentage constraint for %s',
+  'explains the positive income share percentage constraint for %s',
   (value) => {
     render(
       <QueryClientProvider
@@ -72,7 +72,9 @@ it.each(['0', '100.01', '0.0000001'])(
         />
       </QueryClientProvider>,
     );
-    fireEvent.click(screen.getByRole('radio', { name: 'Ratio glissant' }));
+    fireEvent.change(screen.getByLabelText('Type de valeur'), {
+      target: { value: 'INCOME_SHARE' },
+    });
     const amount = screen.getByLabelText('Pourcentage');
     fireEvent.change(amount, { target: { value } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -82,5 +84,41 @@ it.each(['0', '100.01', '0.0000001'])(
     )?.textContent;
     expect(description).toMatch(/strictement supérieur à 0 et inférieur ou égal à 100/);
     expect(description).toMatch(/6 décimales/);
+  },
+);
+
+it.each(['100.01', '-1', '0.0000001'])(
+  'explains the target rate constraint for %s, a zero floor staying valid',
+  (value) => {
+    const onSubmit = vi.fn();
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <GoalForm
+          baseCurrency="EUR"
+          pending={false}
+          submitError={null}
+          submitMismatch={null}
+          onSubmit={onSubmit}
+        />
+      </QueryClientProvider>,
+    );
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Taux' } });
+    fireEvent.change(screen.getByLabelText('Indicateur'), { target: { value: 'SAVINGS_RATE' } });
+    const rate = screen.getByLabelText('Taux cible');
+    fireEvent.change(rate, { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(rate.getAttribute('aria-invalid')).toBe('true');
+    expect(document.getElementById(rate.getAttribute('aria-describedby')!)?.textContent).toMatch(
+      /entre 0 et 100 %/,
+    );
+    expect(onSubmit).not.toHaveBeenCalled();
+
+    fireEvent.change(rate, { target: { value: '0' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ valueType: 'RATE', ratio: '0.00' }),
+    );
   },
 );

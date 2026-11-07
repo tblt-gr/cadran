@@ -99,8 +99,9 @@ else
     $console doctrine:migrations:up-to-date --no-interaction
     $scenario counts apps/api > "$counts_after"
 
-    # Tables the branch dropped or renamed on purpose are not comparable.
-    changed=$(awk 'NR == FNR { after[$1] = $2; next } ($1 in after) && $1 != "doctrine_migration_versions" && after[$1] != $2 { print $1 }' \
+    # Tables the branch dropped, renamed or restructured on purpose are not comparable: the goals
+    # unification folds the budget targets into budget_goals and budget_goal_versions.
+    changed=$(awk 'NR == FNR { after[$1] = $2; next } ($1 in after) && $1 != "doctrine_migration_versions" && $1 != "budget_goals" && $1 != "budget_goal_versions" && after[$1] != $2 { print $1 }' \
         "$counts_after" "$counts_before")
     if [ -n "$changed" ]; then
         echo "Row counts changed by the upgrade from $release_tag in: $changed" >&2

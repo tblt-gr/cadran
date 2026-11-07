@@ -15,11 +15,6 @@ use App\Module\Accounts\Application\ListAccounts;
 use App\Module\Accounts\Application\RecordAccountBalance;
 use App\Module\Accounts\Application\RecordAccountBalanceInput;
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
-use App\Module\Budget\Application\ActivateBudgetPlan;
-use App\Module\Budget\Application\CreateBudgetPlan;
-use App\Module\Budget\Application\CreateBudgetPlanInput;
-use App\Module\Budget\Application\CreateBudgetTarget;
-use App\Module\Budget\Application\CreateBudgetTargetInput;
 use App\Module\Budget\Application\Goals\CreateGoal;
 use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Categories\Application\CreateCategory;
@@ -88,9 +83,6 @@ final readonly class SeedDemoData
         private RecordAccountBalance $recordBalance,
         private ReconcileAccountBalance $reconcile,
         private ClosePeriod $closePeriod,
-        private CreateBudgetPlan $createPlan,
-        private CreateBudgetTarget $createTarget,
-        private ActivateBudgetPlan $activatePlan,
         private ClockInterface $clock,
         private CreateGoal $createGoal,
         private SeedDemoPortfolio $portfolio,
@@ -122,8 +114,7 @@ final readonly class SeedDemoData
                 array_push($balanceAdjustments, ...$contributor->balanceAdjustments());
             }
         }
-        $plans = $this->budgets($categories, $months);
-        $this->goals($categories, $today);
+        $goals = $this->goals($categories, $today, $months[0] ?? [self::START_YEAR, 1]);
         $this->recurrences($accounts['current']);
 
         $random = new DemoRandom(self::RANDOM_SEED);
@@ -223,7 +214,7 @@ final readonly class SeedDemoData
             ++$closed;
         }
 
-        return new DemoSeedSummary($this->listAccounts->__invoke(true, true, 1, 1)->total, count($categories), $transactions, $transfers, $closed, $plans);
+        return new DemoSeedSummary($this->listAccounts->__invoke(true, true, 1, 1)->total, count($categories), $transactions, $transfers, $closed, $goals);
     }
 
     /**
@@ -329,23 +320,6 @@ final readonly class SeedDemoData
         ];
     }
 
-    /**
-     * @param array<string, string> $categories
-     * @param list<array{int, int}> $months
-     */
-    private function budgets(array $categories, array $months): int
-    {
-        foreach ($months as [$year, $month]) {
-            $plan = $this->createPlan->__invoke(new CreateBudgetPlanInput('MONTH', sprintf('%04d-%02d', $year, $month), self::ASSET));
-            foreach (DemoLedgerPlan::BUDGET as $key => $cents) {
-                $this->createTarget->__invoke(new CreateBudgetTargetInput($plan->id, 'CATEGORY', $categories[$key], 'AMOUNT', DemoCents::format($cents), null));
-            }
-            $this->activatePlan->__invoke($plan->id);
-        }
-
-        return count($months);
-    }
-
     private function recurrences(string $current): void
     {
         foreach ([
@@ -359,18 +333,30 @@ final readonly class SeedDemoData
         }
     }
 
-    /** @param array<string, string> $categories */
-    private function goals(array $categories, \DateTimeImmutable $today): void
+    /**
+     * One recurring monthly ceiling without end, one yearly savings goal and one rolling
+     * share of the income, all dated so the demo ledger already evaluates them.
+     *
+     * @param array<string, string> $categories
+     * @param array{int, int}       $firstMonth
+     */
+    private function goals(array $categories, \DateTimeImmutable $today, array $firstMonth): int
     {
         $year = (int) $today->format('Y');
         $this->createGoal->__invoke(new CreateGoalInput(
-            'Épargne annuelle', 'ANNUAL', 'NET_SAVINGS_TRANSFERS', 'WORKSPACE', null,
-            $year, '7200.00', self::ASSET, null, null,
+            'Courses', 'MONTHLY', 'CATEGORY_SPENDING', 'CATEGORY', $categories['groceries'],
+            sprintf('%04d-%02d', $firstMonth[0], $firstMonth[1]), null, 'AMOUNT', DemoCents::format(DemoLedgerPlan::BUDGET['groceries']), self::ASSET, null,
         ));
         $this->createGoal->__invoke(new CreateGoalInput(
-            'Loisirs', 'ROLLING_RATIO', 'CATEGORY_SPENDING', 'CATEGORY', $categories['leisure'],
-            null, null, null, '0.05', sprintf('%04d-01', $year),
+            'Épargne annuelle', 'YEARLY', 'NET_SAVINGS_TRANSFERS', 'WORKSPACE', null,
+            (string) $year, (string) $year, 'AMOUNT', '7200.00', self::ASSET, null,
         ));
+        $this->createGoal->__invoke(new CreateGoalInput(
+            'Loisirs', 'MONTHLY', 'CATEGORY_SPENDING', 'CATEGORY', $categories['leisure'],
+            sprintf('%04d-01', $year), null, 'ROLLING_INCOME_SHARE', null, null, '0.05',
+        ));
+
+        return 3;
     }
 
     /**

@@ -7,6 +7,8 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
+import { isGoalEnded } from './goalFormFields';
+import { goalPeriodLabel } from './goalPeriod';
 import { GoalPosition } from './GoalPosition';
 import { GoalStatusBadge, NEGATIVE_GOAL_STATUSES } from './GoalStatusBadge';
 import styles from './GoalsPage.module.css';
@@ -14,12 +16,12 @@ import styles from './GoalsPage.module.css';
 interface Props {
   goal: GoalSummary;
   onEdit: (goal: GoalSummary) => void;
-  onClose: (goal: GoalSummary) => void;
   onHistory?: (goal: GoalSummary) => void;
-  /** Omitted when no month of the displayed year can be detailed yet (a future year). */
+  /** The current workspace-local month (`YYYY-MM`), which tells whether the goal has ended. */
+  currentMonth: string;
   onDetail?: (goal: GoalSummary) => void;
 }
-export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) {
+export function GoalCard({ goal, currentMonth, onEdit, onDetail, onHistory }: Props) {
   const { t, i18n } = useTranslation();
   const definition = goal.currentVersion;
   const value = definition.targetAmount
@@ -27,39 +29,29 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
     : definition.ratio
       ? formatRatioPercentage(definition.ratio, i18n.language)
       : null;
-  const closed = goal.state === 'CLOSED';
+  const ended = isGoalEnded(goal, currentMonth);
   const status = goal.status;
-  // A closed goal fades back; one that closed without meeting its target keeps a discreet red edge.
+  // An ended goal fades back; one that ended without meeting its target keeps a discreet red edge.
   const failed =
-    closed &&
+    ended &&
     status != null &&
     status.status !== 'NOT_CALCULABLE' &&
     NEGATIVE_GOAL_STATUSES.includes(status.status);
-  const detailable = status?.kind === 'ANNUAL' && onDetail !== undefined;
+  const detailable = status != null && onDetail !== undefined;
   return (
     <article
-      className={`card ${styles.goalCard} ${closed ? styles.closedCard : ''} ${failed ? styles.failedCard : ''}`}
+      className={`card ${styles.goalCard} ${ended ? styles.closedCard : ''} ${failed ? styles.failedCard : ''}`}
       data-failed={failed || undefined}
     >
       <div className={styles.cardHeading}>
         <div className={styles.goalIdentity}>
-          <h3
-            aria-label={
-              goal.kind === 'ANNUAL' && definition.year !== null
-                ? t('goals.titleWithYear', { label: goal.label, year: definition.year })
-                : undefined
-            }
-          >
-            <span>{goal.label}</span>
-            {goal.kind === 'ANNUAL' && definition.year !== null ? (
-              <span className={styles.goalYear}> ({definition.year})</span>
-            ) : null}
-          </h3>
+          <h3>{goal.label}</h3>
           <p className={styles.metric}>
             {t(`goals.metrics.${goal.metric}`)}
             {' · '}
             {t(goal.direction === 'MINIMUM' ? 'goals.minimumToReach' : 'goals.ceilingNotToExceed')}
           </p>
+          <p className={styles.metric}>{goalPeriodLabel(goal, t, i18n.language)}</p>
         </div>
         <div className={styles.cardActions}>
           {status ? <GoalStatusBadge status={status} /> : null}
@@ -68,19 +60,19 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
               {t('goals.provisional')}
             </StatusBadge>
           ) : null}
-          {closed ? (
+          {ended ? (
             <StatusBadge icon="archive" tone="info">
-              {t('goals.closedBadge')}
+              {t('goals.endedBadge')}
             </StatusBadge>
           ) : null}
           {detailable ? (
             <InfoButton label={t('goals.details')} onClick={() => onDetail(goal)} />
           ) : null}
-          {!closed || onHistory ? (
+          {!ended || onHistory ? (
             <ActionMenu
               label={t('goals.actionsFor', { label: goal.label })}
               items={[
-                ...(!closed
+                ...(!ended
                   ? [
                       {
                         id: 'edit',
@@ -99,17 +91,6 @@ export function GoalCard({ goal, onEdit, onClose, onDetail, onHistory }: Props) 
                         label: t('goals.history.openFor', { label: goal.label }),
                         text: t('goals.history.open'),
                         onSelect: () => onHistory(goal),
-                      },
-                    ]
-                  : []),
-                ...(!closed
-                  ? [
-                      {
-                        id: 'close',
-                        icon: 'archive' as const,
-                        label: t('goals.closeGoal', { label: goal.label }),
-                        text: t('goals.close'),
-                        onSelect: () => onClose(goal),
                       },
                     ]
                   : []),

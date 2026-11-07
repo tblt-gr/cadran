@@ -37,7 +37,7 @@ for (const kind of ['transaction', 'category', 'transaction edit'] as const) {
   });
 }
 
-test('budget target modal category control has a mobile touch target', async ({ browser }) => {
+test('goal modal category control has a mobile touch target', async ({ browser }) => {
   const context = await browser.newContext({
     baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
     ignoreHTTPSErrors: true,
@@ -48,23 +48,14 @@ test('budget target modal category control has a mobile touch target', async ({ 
   });
   try {
     const page = await context.newPage();
-    await page.goto('/budget/plans');
+    await page.goto('/goals');
     await settled(page);
-    const planLink = page.locator('a[href^="/budget/plans/"]').first();
-    if ((await planLink.count()) === 0) {
-      await page.getByRole('button', { name: 'Créer le premier plan' }).click();
-      const creation = page.getByRole('dialog', { name: 'Nouveau plan budgétaire' });
-      const today = new Date();
-      const period = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-      await creation.getByLabel('Période', { exact: true }).fill(period);
-      await creation.getByRole('button', { name: 'Enregistrer', exact: true }).click();
-      await expect(creation).toBeHidden();
-      await settled(page);
-    }
-    await planLink.click();
+    await page.getByRole('button', { name: 'Nouvel objectif', exact: true }).click();
     await settled(page);
-    await page.getByRole('button', { name: 'Ajouter un objectif' }).click();
-    const dialog = page.getByRole('dialog').last();
+    const dialog = page.getByRole('dialog');
+    await dialog
+      .getByRole('combobox', { name: 'Indicateur', exact: true })
+      .selectOption('CATEGORY_SPENDING');
     await dialog.evaluate((element) => element.setAttribute('data-touch-audit', ''));
     expect(await auditLayout(page, true, '[data-touch-audit]')).toEqual([]);
   } finally {

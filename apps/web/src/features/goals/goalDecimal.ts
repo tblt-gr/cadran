@@ -26,3 +26,11 @@ export function isValidPositiveRatioPercentage(percentage: string): boolean {
   const [whole, fraction] = ratio.split('.');
   return whole === '0' ? /[1-9]/.test(fraction) : whole === '1' && /^0+$/.test(fraction);
 }
+
+/** A target rate: a percentage from 0 (a meaningful floor) to 100 inclusive, with the ratio's precision. */
+export function isValidRatePercentage(percentage: string): boolean {
+  const ratio = percentageToRatio(percentage);
+  if (!ratio || ratio.length - ratio.indexOf('.') - 1 > 8) return false;
+  const [whole, fraction] = ratio.split('.');
+  return whole === '0' || (whole === '1' && /^0+$/.test(fraction!));
+}

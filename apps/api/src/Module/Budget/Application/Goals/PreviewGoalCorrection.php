@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
-use App\Module\Budget\Domain\Goals\GoalKind;
 use App\Module\Budget\Domain\Goals\GoalRepository;
-use App\Module\Budget\Domain\Goals\GoalState;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
@@ -35,9 +33,6 @@ final readonly class PreviewGoalCorrection
         if ($goal->version !== $input->expectedVersion) {
             throw new GoalConflict('stale_goal_version', 'This goal changed; reload and try again.');
         }
-        if (GoalState::CLOSED === $goal->state) {
-            throw new GoalConflict('goal_closed', 'A closed goal cannot be edited.');
-        }
         $versions = $this->versions->listByGoal($context->workspace, $goal->id, 51);
         $revision = ($this->revision)($goal, $versions, $input, $context->actorId);
         if (null === $revision->definition) {
@@ -50,24 +45,24 @@ final readonly class PreviewGoalCorrection
         $current = CalendarMonth::containing($this->calendar->today());
         $cursor = CalendarMonth::fromString($revision->definition->effectiveFrom);
         $lastMonth = $current->key();
-        if (GoalKind::ANNUAL === $goal->kind) {
-            $year = $revision->definition->year ?? throw new \LogicException('An annual goal definition carries a year.');
-            $lastMonth = min($lastMonth, sprintf('%04d-12', $year));
+        $goalLastMonth = $goal->lastMonth();
+        if (null !== $goalLastMonth) {
+            $lastMonth = min($lastMonth, $goalLastMonth);
         }
         $months = [];
         while ($cursor->key() <= $lastMonth) {
             $inputs = $this->statuses->inputs($context->workspace, $cursor, [$goal]);
             $before = $this->statuses->forGoal($goal, $versions, $cursor, $inputs);
             $after = $this->statuses->forGoal($goal, $afterVersions, $cursor, $inputs);
-            $months[] = new GoalCorrectionPreviewMonthView($cursor->key(), self::state($goal->kind, $before), self::state($goal->kind, $after));
+            $months[] = new GoalCorrectionPreviewMonthView($cursor->key(), self::state($before), self::state($after));
             $cursor = CalendarMonth::containing($cursor->firstDay()->modify('+1 month'));
         }
 
         return new GoalCorrectionPreviewView($months);
     }
 
-    private static function state(GoalKind $kind, GoalStatusView $status): GoalCorrectionPreviewStateView
+    private static function state(GoalStatusView $status): GoalCorrectionPreviewStateView
     {
-        return new GoalCorrectionPreviewStateView($status->goalVersion, GoalKind::ANNUAL === $kind ? $status->expected : $status->target, $status->status);
+        return new GoalCorrectionPreviewStateView($status->goalVersion, $status->expected ?? $status->target, $status->status);
     }
 }

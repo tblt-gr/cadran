@@ -6,6 +6,7 @@ namespace App\Tests\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Application\ReadAccountReference;
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
 use App\Module\Budget\Application\Goals\ListGoals;
 use App\Module\Budget\Application\Goals\PresentGoal;
@@ -13,12 +14,13 @@ use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\ReadReferenceIncome;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
-use App\Module\Budget\Domain\Goals\GoalKind;
+use App\Module\Budget\Domain\Goals\GoalFilter;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
-use App\Module\Budget\Domain\Goals\GoalState;
+use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
@@ -61,6 +63,9 @@ final class ListGoalsTest extends TestCase
     private const string ACCOUNT_A = '00000000-0000-7000-8000-000000000301';
     private const string ACCOUNT_B = '00000000-0000-7000-8000-000000000302';
 
+    /** @var list<GoalFilter> */
+    private array $filters = [];
+
     public function testListReadsReportingMonthsCategoriesAndScopesOncePerRequest(): void
     {
         // Every month 2025-09..2026-09: income 2500.00, savings 100.00, category spending 50.00.
@@ -71,7 +76,7 @@ final class ListGoalsTest extends TestCase
         $categories->expects(self::once())->method('list')->willReturn([self::category()]);
         $categories->expects(self::once())->method('find')->willReturn(self::category());
 
-        $items = $this->list($source, $categories)(2026, 'active')->items;
+        $items = $this->list($source, $categories)()->items;
 
         self::assertSame(1, $source->calls);
         self::assertCount(3, $items);
@@ -96,7 +101,7 @@ final class ListGoalsTest extends TestCase
             '2026-02' => [self::pair('00000000-0000-7000-8000-000000000402', self::ACCOUNT_A, self::ACCOUNT_B, '50.000000000000000000000001', '2026-02-03')],
         ]);
 
-        $items = $this->accountList($transfers)(2026, 'active')->items;
+        $items = $this->accountList($transfers)()->items;
 
         self::assertSame(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'], $transfers->months);
         self::assertSame([WorkspaceFixture::OWN_WORKSPACE], array_values(array_unique($transfers->workspaces)));
@@ -118,7 +123,7 @@ final class ListGoalsTest extends TestCase
         }
         $transfers = new CountingTransferPairReader(['2026-03' => $oversized]);
 
-        $items = $this->accountList($transfers)(2026, 'active')->items;
+        $items = $this->accountList($transfers)()->items;
 
         self::assertCount(9, $transfers->months);
         [$savings, $accountA, $accountB] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
@@ -137,8 +142,8 @@ final class ListGoalsTest extends TestCase
     {
         // The rolling goal only takes effect in 2026-08: June has no version of it yet.
         $items = $this->list(new CountingGoalMonthSource(self::months()), $this->createStub(CategoryRepository::class), [
-            self::goal(self::LATE_ROLLING_ID, GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
-        ])(2026, 'active', '2026-06')->items;
+            self::goal(self::LATE_ROLLING_ID, GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+        ])(null, '2026-06')->items;
 
         self::assertCount(1, $items);
         $status = $items[0]->status ?? self::fail('A listed goal carries its status.');
@@ -156,8 +161,8 @@ final class ListGoalsTest extends TestCase
         $source = new CountingGoalMonthSource(self::months());
 
         $items = $this->list($source, $this->createStub(CategoryRepository::class), [
-            self::goal(self::ROLLING_ID, GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
-        ])(2027, 'active')->items;
+            self::goal(self::ROLLING_ID, GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+        ])(null, '2027')->items;
 
         self::assertCount(1, $items);
         $status = $items[0]->status ?? self::fail('A listed goal carries its status.');
@@ -172,6 +177,48 @@ final class ListGoalsTest extends TestCase
         self::assertSame(0, $source->calls);
     }
 
+    public function testTheFiltersReachTheRepositoryAndTheStatusIsReadAtTheRequestedMonth(): void
+    {
+        $source = new CountingGoalMonthSource(self::months());
+        $page = $this->list($source, $this->createStub(CategoryRepository::class), [
+            self::goal(self::ROLLING_ID, GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+        ])('MONTHLY', '2026-03', false, 2, 10);
+
+        self::assertCount(1, $this->filters);
+        self::assertSame(GoalPeriodicity::MONTHLY, $this->filters[0]->periodicity);
+        self::assertSame('2026-03', $this->filters[0]->period);
+        self::assertFalse($this->filters[0]->currentOnly);
+        self::assertSame('2026-09', $this->filters[0]->today->key());
+        self::assertSame('2026-03', $page->items[0]->status?->month);
+        self::assertSame(2, $page->page);
+        self::assertSame(1, $page->total);
+    }
+
+    public function testTheListIsLimitedToCurrentGoalsByDefault(): void
+    {
+        $this->list(new CountingGoalMonthSource(self::months()), $this->createStub(CategoryRepository::class), [
+            self::goal(self::SAVINGS_ID, GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+        ])();
+
+        self::assertTrue($this->filters[0]->currentOnly);
+        self::assertNull($this->filters[0]->periodicity);
+        self::assertNull($this->filters[0]->period);
+    }
+
+    public function testAMalformedPeriodicityOrPeriodIsRefused(): void
+    {
+        $list = $this->list(new CountingGoalMonthSource(self::months()), $this->createStub(CategoryRepository::class));
+
+        foreach ([['WEEKLY', null], [null, '2026-13'], [null, '26'], [null, '1899'], [null, '2032']] as [$periodicity, $period]) {
+            try {
+                $list($periodicity, $period);
+                self::fail('A malformed filter is refused.');
+            } catch (GoalInputError $error) {
+                self::assertStringStartsWith('invalid_goal_', $error->errorCode);
+            }
+        }
+    }
+
     private function accountList(MonthlyTransferPairReader $transfers): ListGoals
     {
         $categories = $this->createStub(CategoryRepository::class);
@@ -181,9 +228,9 @@ final class ListGoalsTest extends TestCase
         );
 
         return $this->list(new CountingGoalMonthSource(self::months()), $categories, [
-            self::goal(self::SAVINGS_ID, GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
-            self::goal(self::ACCOUNT_A_GOAL_ID, GoalKind::ANNUAL, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_A),
-            self::goal(self::ACCOUNT_B_GOAL_ID, GoalKind::ANNUAL, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_B),
+            self::goal(self::SAVINGS_ID, GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+            self::goal(self::ACCOUNT_A_GOAL_ID, GoalPeriodicity::YEARLY, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_A),
+            self::goal(self::ACCOUNT_B_GOAL_ID, GoalPeriodicity::YEARLY, GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalScopeType::ACCOUNT, self::ACCOUNT_B),
         ], $transfers, $accounts);
     }
 
@@ -193,11 +240,17 @@ final class ListGoalsTest extends TestCase
         $caller = $this->createStub(CallerWorkspace::class);
         $caller->method('resolve')->willReturn(WorkspaceFixture::own());
         $goals = $this->createStub(GoalRepository::class);
-        $goals->method('listForYear')->willReturn($listed ?? [
-            self::goal(self::SAVINGS_ID, GoalKind::ANNUAL, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
-            self::goal(self::SPENDING_ID, GoalKind::ANNUAL, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID),
-            self::goal(self::ROLLING_ID, GoalKind::ROLLING_RATIO, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
-        ]);
+        $listed ??= [
+            self::goal(self::SAVINGS_ID, GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+            self::goal(self::SPENDING_ID, GoalPeriodicity::YEARLY, GoalMetric::CATEGORY_SPENDING, GoalScopeType::CATEGORY, self::CATEGORY_ID),
+            self::goal(self::ROLLING_ID, GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE),
+        ];
+        $goals->method('search')->willReturnCallback(function (WorkspaceScope $workspace, GoalFilter $filter) use ($listed): array {
+            $this->filters[] = $filter;
+
+            return $listed;
+        });
+        $goals->method('count')->willReturn(count($listed));
         $versions = $this->createStub(GoalVersionRepository::class);
         $versions->method('listByGoal')->willReturnCallback(static fn (WorkspaceScope $workspace, string $goalId): array => [self::version($goalId)]);
         $scope = new ResolveGoalScope(new ReadCategoryReference($categories), new ReadAccountReference($accounts ?? new InMemoryAccountRepository()));
@@ -221,19 +274,21 @@ final class ListGoalsTest extends TestCase
     {
         $created = new \DateTimeImmutable('2026-01-01');
         if (self::LATE_ROLLING_ID === $goalId) {
-            return GoalVersion::rolling($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-08', DecimalValue::fromString('0.20'), $created, WorkspaceFixture::OWNER_ID);
+            return GoalVersion::share($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-08', GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString('0.20'), $created, WorkspaceFixture::OWNER_ID);
         }
         if (self::ROLLING_ID === $goalId) {
-            return GoalVersion::rolling($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-01', DecimalValue::fromString('0.20'), $created, WorkspaceFixture::OWNER_ID);
+            return GoalVersion::share($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-01', GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString('0.20'), $created, WorkspaceFixture::OWNER_ID);
         }
         $target = DecimalValue::fromString('1200.00');
 
-        return GoalVersion::annual($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-01', 2026, $target, GoalSchedule::linear($target, 2), $created, WorkspaceFixture::OWNER_ID);
+        return GoalVersion::amount($goalId, WorkspaceFixture::own(), $goalId, 1, '2026-01', $target, GoalSchedule::linear($target, 2), $created, WorkspaceFixture::OWNER_ID);
     }
 
-    private static function goal(string $id, GoalKind $kind, GoalMetric $metric, GoalScopeType $scope, ?string $scopeRef = null): Goal
+    private static function goal(string $id, GoalPeriodicity $periodicity, GoalMetric $metric, GoalScopeType $scope, ?string $scopeRef = null): Goal
     {
-        return new Goal($id, WorkspaceFixture::own(), 'Goal', $kind, $metric, $scope, $scopeRef, AssetCode::fromString('EUR'), GoalState::ACTIVE, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $start = GoalPeriodicity::YEARLY === $periodicity ? '2026' : (self::LATE_ROLLING_ID === $id ? '2026-08' : '2026-01');
+
+        return new Goal($id, WorkspaceFixture::own(), 'Goal', $periodicity, $metric, $scope, $scopeRef, AssetCode::fromString('EUR'), $start, GoalPeriodicity::YEARLY === $periodicity ? '2026' : null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
     }
 
     private static function pair(string $transferId, string $source, string $target, string $amount, string $bookedOn): MonthlyTransferPairFact

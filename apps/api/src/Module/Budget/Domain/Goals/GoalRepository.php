@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Domain\Goals;
 
+use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 interface GoalRepository
@@ -14,10 +15,13 @@ interface GoalRepository
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?Goal;
 
-    /** @return list<Goal> */
-    public function listForYear(WorkspaceScope $workspace, int $year, GoalState $state, int $limit): array;
+    /** @return list<Goal> the goals matching the filter, oldest first */
+    public function search(WorkspaceScope $workspace, GoalFilter $filter, int $limit, int $offset): array;
 
-    public function countActive(WorkspaceScope $workspace): int;
+    public function count(WorkspaceScope $workspace, GoalFilter $filter): int;
+
+    /** The goals whose end period is null or not past, which the workspace limit bounds. */
+    public function countCurrent(WorkspaceScope $workspace, CalendarMonth $today): int;
 
     public function add(Goal $goal): void;
 

@@ -2,19 +2,20 @@ import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   CreateGoalRequest,
-  GoalKind,
   GoalMetric,
+  GoalPeriodicity,
   GoalScheduleInput,
   GoalSummary,
+  GoalValueType,
   UpdateGoalRequest,
 } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { formatAmount, isCanonicalUnsignedDecimal } from '@/lib/decimal';
-import { AmountInput } from './AmountInput';
 import {
   isValidPositiveRatioPercentage,
+  isValidRatePercentage,
   percentageToRatio,
   ratioToPercentage,
 } from './goalDecimal';
@@ -25,19 +26,22 @@ import {
 } from './goal-schedule-editor/GoalScheduleEditor';
 import { GoalScopeField } from './goal-scope-field/GoalScopeField';
 import {
-  annualMetrics,
   currentMonthIn,
+  firstGoalMonth,
+  goalMetrics,
   initialSchedule,
+  lastGoalMonth,
   MAX_CORRECTION_MONTHS,
   monthsBefore,
-  rollingMetrics,
   scopeFor,
+  valueTypesFor,
 } from './goalFormFields';
+import { GoalPeriodFields } from './GoalPeriodFields';
+import { GoalValueFields } from './GoalValueFields';
 import styles from './GoalsPage.module.css';
 
 interface Props {
   baseCurrency: string;
-  firstEffectiveMonth?: string;
   goal?: GoalSummary;
   pending: boolean;
   submitError: GoalErrorKind | null;
@@ -47,7 +51,6 @@ interface Props {
 export function GoalForm({
   baseCurrency,
   goal,
-  firstEffectiveMonth,
   pending,
   submitError,
   submitMismatch,
@@ -59,26 +62,27 @@ export function GoalForm({
   const timeZone = useWorkspaceTimeZone();
   const version = goal?.currentVersion;
   const workspaceMonth = currentMonthIn(timeZone);
+  const currentYear = Number(workspaceMonth.slice(0, 4));
+  const defaultStart = (next: GoalPeriodicity) =>
+    next === 'MONTHLY' ? workspaceMonth : workspaceMonth.slice(0, 4);
   const [label, setLabel] = useState(goal?.label ?? '');
-  const [kind, setKind] = useState<GoalKind>(goal?.kind ?? 'ANNUAL');
+  const [periodicity, setPeriodicity] = useState<GoalPeriodicity>(goal?.periodicity ?? 'MONTHLY');
   const [metric, setMetric] = useState<GoalMetric>(goal?.metric ?? 'NET_SAVINGS_TRANSFERS');
   const [scope, setScope] = useState(goal?.scope.id ?? goal?.scope.axis ?? '');
-  const [year, setYear] = useState(String(version?.year ?? new Date().getFullYear()));
-  const [startMonth, setStartMonth] = useState(version?.effectiveFrom ?? currentMonthIn(timeZone));
-  const annualYear = version?.year ?? Number(year);
-  const earliestEffectiveMonth =
-    goal?.kind === 'ANNUAL'
-      ? `${annualYear}-01`
-      : (firstEffectiveMonth ?? version?.effectiveFrom ?? workspaceMonth);
+  const [start, setStart] = useState(goal?.startPeriod ?? defaultStart(periodicity));
+  const [noEnd, setNoEnd] = useState(goal ? goal.endPeriod === null : true);
+  const [end, setEnd] = useState(goal?.endPeriod ?? '');
+  const [valueType, setValueType] = useState<GoalValueType>(version?.valueType ?? 'AMOUNT');
+  const monthly = periodicity === 'MONTHLY';
+  const amount = valueType === 'AMOUNT';
+  const single = !noEnd && end !== '' && end === start;
+  const firstMonth = goal ? firstGoalMonth(goal.periodicity, goal.startPeriod) : workspaceMonth;
+  const lastMonth = goal ? lastGoalMonth(goal.periodicity, goal.endPeriod) : null;
+  const earliestEffectiveMonth = firstMonth;
   const latestEffectiveMonth =
-    goal?.kind === 'ANNUAL'
-      ? `${annualYear}-${annualYear < Number(workspaceMonth.slice(0, 4)) ? '12' : workspaceMonth.slice(5)}`
-      : workspaceMonth;
-  // A rolling correction reaches back at most this many months, the current one included.
-  const oldestCorrectionMonth =
-    goal?.kind === 'ANNUAL'
-      ? earliestEffectiveMonth
-      : monthsBefore(workspaceMonth, MAX_CORRECTION_MONTHS - 1);
+    lastMonth !== null && lastMonth < workspaceMonth ? lastMonth : workspaceMonth;
+  // A correction reaches back at most this many months, the current one included.
+  const oldestCorrectionMonth = monthsBefore(workspaceMonth, MAX_CORRECTION_MONTHS - 1);
   const minEffectiveMonth =
     oldestCorrectionMonth > earliestEffectiveMonth ? oldestCorrectionMonth : earliestEffectiveMonth;
   const futureGoal = Boolean(goal && earliestEffectiveMonth > workspaceMonth);
@@ -89,7 +93,8 @@ export function GoalForm({
   const [effectiveFrom, setEffectiveFrom] = useState(defaultEffectiveMonth);
   const [reason, setReason] = useState('');
   const [value, setValue] = useState(
-    version?.targetAmount ?? (version?.ratio ? (ratioToPercentage(version.ratio) ?? '') : ''),
+    version?.targetAmount ??
+      (version?.ratio != null ? (ratioToPercentage(version.ratio) ?? '') : ''),
   );
   const [showErrors, setShowErrors] = useState(false);
   const [schedule, setSchedule] = useState<GoalScheduleValue>(() => initialSchedule(goal));
@@ -99,14 +104,22 @@ export function GoalForm({
     isCanonicalUnsignedDecimal(value) &&
     !/^0(?:\.0+)?$/.test(value) &&
     /^\d+(?:\.\d{1,8})?$/.test(value);
-  const ratioValid = isValidPositiveRatioPercentage(value);
-  const decimalValid = kind === 'ANNUAL' ? amountValid : ratioValid;
+  const decimalValid = amount
+    ? amountValid
+    : valueType === 'RATE'
+      ? isValidRatePercentage(value)
+      : isValidPositiveRatioPercentage(value);
   const scopeValid = scopeType === 'WORKSPACE' || scope !== '';
-  const yearValid =
-    /^\d{4}$/.test(year) && Number(year) >= 1900 && Number(year) <= new Date().getFullYear() + 5;
-  const periodValid = kind === 'ANNUAL' ? yearValid : /^\d{4}-\d{2}$/.test(startMonth);
+  const periodFormat = (period: string) =>
+    monthly
+      ? /^\d{4}-(0[1-9]|1[0-2])$/.test(period)
+      : /^\d{4}$/.test(period) && Number(period) >= 1900 && Number(period) <= currentYear + 5;
+  const startValid = periodFormat(start);
+  const endValid = noEnd || (periodFormat(end) && end >= start);
+  const periodValid = startValid && endValid;
+  const yearlyAmount = periodicity === 'YEARLY' && amount;
   const scheduleValid =
-    kind !== 'ANNUAL' ||
+    !yearlyAmount ||
     schedule.mode === 'LINEAR' ||
     schedule.parts.every((part) => isCanonicalUnsignedDecimal(part));
   const effectiveMonthValid =
@@ -116,18 +129,51 @@ export function GoalForm({
       effectiveFrom <= latestEffectiveMonth);
   const retroactive = Boolean(goal && effectiveFrom < workspaceMonth);
   const reasonValid = !retroactive || (reason.trim().length >= 3 && reason.trim().length <= 200);
-  function changeKind(next: GoalKind) {
-    setKind(next);
-    const nextMetric = (next === 'ANNUAL' ? annualMetrics : rollingMetrics).includes(metric)
-      ? metric
-      : 'NET_SAVINGS_TRANSFERS';
-    setMetric(nextMetric);
+  function changeValueType(next: GoalValueType) {
+    // An exact amount and a percentage are not interchangeable: never carry one into the other.
+    if (amount !== (next === 'AMOUNT')) setValue('');
+    setValueType(next);
+  }
+  function keepValueTypeAllowed(nextMetric: GoalMetric, nextPeriodicity: GoalPeriodicity) {
+    const allowed = valueTypesFor(nextMetric, nextPeriodicity);
+    if (!allowed.includes(valueType)) changeValueType(allowed[0]!);
+  }
+  function changeMetric(next: GoalMetric) {
+    setMetric(next);
     setScope('');
+    keepValueTypeAllowed(next, periodicity);
+  }
+  function changePeriodicity(next: GoalPeriodicity) {
+    const nextStart = defaultStart(next);
+    setPeriodicity(next);
+    setStart(nextStart);
+    setEnd(noEnd ? '' : nextStart);
+    keepValueTypeAllowed(metric, next);
+  }
+  function changeStart(next: string) {
+    setStart(next);
+    if (single) setEnd(next);
+  }
+  function changeNoEnd(next: boolean) {
+    setNoEnd(next);
+    setEnd(next ? '' : start);
+  }
+  function changeSingle(next: boolean) {
+    setNoEnd(!next);
+    setEnd(next ? start : '');
   }
   const scheduleField: GoalScheduleInput =
     schedule.mode === 'CUSTOM'
       ? { mode: 'CUSTOM', parts: schedule.parts as GoalScheduleInput['parts'] }
       : { mode: 'LINEAR' };
+  const formValid =
+    labelValid &&
+    decimalValid &&
+    scopeValid &&
+    periodValid &&
+    scheduleValid &&
+    effectiveMonthValid &&
+    reasonValid;
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (futureGoal) {
@@ -138,53 +184,38 @@ export function GoalForm({
       onSubmit({ label: label.trim(), version: goal.version });
       return;
     }
-    if (
-      !labelValid ||
-      !decimalValid ||
-      !scopeValid ||
-      !periodValid ||
-      !scheduleValid ||
-      !effectiveMonthValid ||
-      !reasonValid
-    ) {
+    if (!formValid) {
       setShowErrors(true);
       return;
     }
+    const target = amount
+      ? { targetAmount: { value, assetCode: goal ? goal.assetCode : baseCurrency } }
+      : { ratio: percentageToRatio(value)! };
     if (goal) {
       onSubmit({
         label: label.trim(),
         version: goal.version,
+        valueType,
         effectiveFrom,
         reason: retroactive ? reason.trim() : null,
-        ...(goal.kind === 'ANNUAL'
-          ? { targetAmount: { value, assetCode: goal.assetCode }, schedule: scheduleField }
-          : { ratio: percentageToRatio(value)! }),
+        ...target,
+        ...(yearlyAmount ? { schedule: scheduleField } : {}),
       });
       return;
     }
     onSubmit({
       label: label.trim(),
-      kind,
+      periodicity,
       metric,
       scope: { type: scopeType, ref: scopeType === 'WORKSPACE' ? null : scope },
-      ...(kind === 'ANNUAL'
-        ? {
-            year: Number(year),
-            targetAmount: { value, assetCode: baseCurrency },
-            schedule: scheduleField,
-          }
-        : { ratio: percentageToRatio(value)!, startMonth }),
+      startPeriod: start,
+      endPeriod: noEnd ? null : end,
+      valueType,
+      ...target,
+      ...(yearlyAmount ? { schedule: scheduleField } : {}),
     });
   }
-  const invalid =
-    showErrors &&
-    (!labelValid ||
-      !decimalValid ||
-      !scopeValid ||
-      !periodValid ||
-      !scheduleValid ||
-      !effectiveMonthValid ||
-      !reasonValid);
+  const invalid = showErrors && !formValid;
   const flag = (valid: boolean) => (showErrors && !valid ? true : undefined);
   return (
     <form className={styles.form} noValidate onSubmit={submit}>
@@ -218,66 +249,20 @@ export function GoalForm({
               value={label}
             />
           </label>
-          <fieldset className={styles.radios} disabled={Boolean(goal)}>
-            <legend>{t('goals.kind')}</legend>
-            {(['ANNUAL', 'ROLLING_RATIO'] as GoalKind[]).map((choice) => (
-              <label key={choice}>
-                <input
-                  checked={kind === choice}
-                  name="kind"
-                  onChange={() => changeKind(choice)}
-                  type="radio"
-                />
-                <span>{t(`goals.kinds.${choice}`)}</span>
-              </label>
-            ))}
-          </fieldset>
-        </FormGrid>
-      </div>
-      <div className={styles.group}>
-        <FormGrid>
           <label>
             <span>{t('goals.metric')}</span>
             <select
               disabled={Boolean(goal)}
-              onChange={(e) => {
-                setMetric(e.target.value as GoalMetric);
-                setScope('');
-              }}
+              onChange={(e) => changeMetric(e.target.value as GoalMetric)}
               value={metric}
             >
-              {(kind === 'ANNUAL' ? annualMetrics : rollingMetrics).map((choice) => (
+              {goalMetrics.map((choice) => (
                 <option key={choice} value={choice}>
                   {t(`goals.metrics.${choice}`)}
                 </option>
               ))}
             </select>
           </label>
-          {kind === 'ANNUAL' ? (
-            <label>
-              <span>{t('goals.year')}</span>
-              <input
-                aria-describedby={flag(yearValid) ? validationId : undefined}
-                aria-invalid={flag(yearValid)}
-                disabled={Boolean(goal)}
-                inputMode="numeric"
-                onChange={(e) => setYear(e.target.value)}
-                value={year}
-              />
-            </label>
-          ) : (
-            <label>
-              <span>{t('goals.startMonth')}</span>
-              <input
-                aria-describedby={flag(periodValid) ? validationId : undefined}
-                aria-invalid={flag(periodValid)}
-                disabled={Boolean(goal)}
-                onChange={(e) => setStartMonth(e.target.value)}
-                type="month"
-                value={startMonth}
-              />
-            </label>
-          )}
         </FormGrid>
         <GoalScopeField
           goal={goal}
@@ -289,30 +274,38 @@ export function GoalForm({
         />
       </div>
       <div className={styles.group}>
+        <GoalPeriodFields
+          end={end}
+          endValid={endValid}
+          locked={Boolean(goal)}
+          noEnd={noEnd}
+          onEndChange={setEnd}
+          onNoEndChange={changeNoEnd}
+          onPeriodicityChange={changePeriodicity}
+          onSingleChange={changeSingle}
+          onStartChange={changeStart}
+          periodicity={periodicity}
+          showErrors={showErrors}
+          single={single}
+          start={start}
+          startValid={startValid}
+          validationId={validationId}
+        />
+      </div>
+      <div className={styles.group}>
         <FormGrid>
           {!futureGoal ? (
-            <label>
-              <span>{t(kind === 'ANNUAL' ? 'goals.targetAmount' : 'goals.ratio')}</span>
-              {kind === 'ANNUAL' ? (
-                <AmountInput
-                  aria-label={t('goals.targetAmount')}
-                  aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
-                  invalid={Boolean(flag(decimalValid))}
-                  onChange={setValue}
-                  value={value}
-                />
-              ) : (
-                <input
-                  aria-label={t('goals.ratio')}
-                  aria-describedby={flag(decimalValid) ? targetErrorId : undefined}
-                  aria-invalid={flag(decimalValid)}
-                  inputMode="decimal"
-                  onChange={(e) => setValue(e.target.value)}
-                  value={value}
-                />
-              )}
-              {kind === 'ROLLING_RATIO' ? <small>{t('goals.ratioHint')}</small> : null}
-            </label>
+            <GoalValueFields
+              errorId={targetErrorId}
+              metric={metric}
+              onValueChange={setValue}
+              onValueTypeChange={changeValueType}
+              periodicity={periodicity}
+              showErrors={showErrors}
+              valid={decimalValid}
+              value={value}
+              valueType={valueType}
+            />
           ) : null}
           {goal && !futureGoal ? (
             <label>
@@ -329,31 +322,33 @@ export function GoalForm({
             </label>
           ) : null}
         </FormGrid>
-        {goal && !futureGoal ? (
-          <>
-            {retroactive ? (
-              <label>
-                <span>{t('goals.correctionReason')}</span>
-                <textarea
-                  aria-describedby={flag(reasonValid) ? validationId : undefined}
-                  aria-invalid={flag(reasonValid)}
-                  maxLength={200}
-                  minLength={3}
-                  onChange={(e) => setReason(e.target.value)}
-                  value={reason}
-                />
-                <small>{t('goals.correctionReasonHint')}</small>
-              </label>
-            ) : null}
-          </>
+        {goal && !futureGoal && retroactive ? (
+          <label>
+            <span>{t('goals.correctionReason')}</span>
+            <textarea
+              aria-describedby={flag(reasonValid) ? validationId : undefined}
+              aria-invalid={flag(reasonValid)}
+              maxLength={200}
+              minLength={3}
+              onChange={(e) => setReason(e.target.value)}
+              value={reason}
+            />
+            <small>{t('goals.correctionReasonHint')}</small>
+          </label>
         ) : null}
         {!futureGoal && flag(decimalValid) ? (
           <p className={styles.alert} id={targetErrorId} role="alert">
-            {t(kind === 'ANNUAL' ? 'goals.validation.targetAmount' : 'goals.validation.ratio')}
+            {t(
+              amount
+                ? 'goals.validation.targetAmount'
+                : valueType === 'RATE'
+                  ? 'goals.validation.rate'
+                  : 'goals.validation.ratio',
+            )}
           </p>
         ) : null}
       </div>
-      {kind === 'ANNUAL' && !futureGoal ? (
+      {yearlyAmount && !futureGoal ? (
         <div className={styles.group}>
           <GoalScheduleEditor
             assetCode={goal ? goal.assetCode : baseCurrency}

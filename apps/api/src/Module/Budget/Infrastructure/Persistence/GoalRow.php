@@ -5,10 +5,9 @@ declare(strict_types=1);
 namespace App\Module\Budget\Infrastructure\Persistence;
 
 use App\Module\Budget\Domain\Goals\Goal;
-use App\Module\Budget\Domain\Goals\GoalKind;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
-use App\Module\Budget\Domain\Goals\GoalState;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
@@ -23,18 +22,18 @@ final class GoalRow
 
         return new Goal(
             self::text($row['id'] ?? null), $workspace, self::text($row['label'] ?? null),
-            GoalKind::from(self::text($row['kind'] ?? null)), GoalMetric::from(self::text($row['metric'] ?? null)),
+            GoalPeriodicity::from(self::text($row['periodicity'] ?? null)), GoalMetric::from(self::text($row['metric'] ?? null)),
             GoalScopeType::from(self::text($row['scope_type'] ?? null)), self::nullable($row['scope_ref'] ?? null),
-            AssetCode::fromString(self::text($row['asset_code'] ?? null)), GoalState::from(self::text($row['state'] ?? null)),
+            AssetCode::fromString(self::text($row['asset_code'] ?? null)), self::text($row['start_period'] ?? null), self::nullable($row['end_period'] ?? null),
             (int) self::text($row['version'] ?? null), new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
-            self::text($row['created_by'] ?? null), null === ($row['closed_at'] ?? null) ? null : new \DateTimeImmutable(self::text($row['closed_at'])),
+            self::text($row['created_by'] ?? null),
         );
     }
 
     /** @return array<string, mixed> */
     public static function columns(Goal $goal): array
     {
-        return ['label' => $goal->label, 'kind' => $goal->kind->value, 'metric' => $goal->metric->value, 'scope_type' => $goal->scopeType->value, 'scope_ref' => $goal->scopeRef, 'asset_code' => $goal->assetCode->toString(), 'state' => $goal->state->value, 'closed_at' => $goal->closedAt?->format('Y-m-d H:i:s.uP'), 'version' => $goal->version];
+        return ['label' => $goal->label, 'periodicity' => $goal->periodicity->value, 'metric' => $goal->metric->value, 'scope_type' => $goal->scopeType->value, 'scope_ref' => $goal->scopeRef, 'asset_code' => $goal->assetCode->toString(), 'start_period' => $goal->startPeriod, 'end_period' => $goal->endPeriod, 'version' => $goal->version];
     }
 
     public static function text(mixed $value): string

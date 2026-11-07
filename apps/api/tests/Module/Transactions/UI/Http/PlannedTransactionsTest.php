@@ -30,7 +30,6 @@ final class PlannedTransactionsTest extends WebTestCase
     private const string SUBSCRIPTIONS = '00000000-0000-7000-8000-0000000000c1';
     private const string SALARY = '00000000-0000-7000-8000-0000000000c2';
     private const string OTHER_CATEGORY = '00000000-0000-7000-8000-0000000000c3';
-    private const string PLAN = '00000000-0000-7000-8000-0000000000b1';
     private const string BOOKED_SUBSCRIPTION = '00000000-0000-7000-8000-000000000101';
     private const string PENDING_CANDIDATE = '00000000-0000-7000-8000-000000000102';
     private const string BOOKED_SALARY = '00000000-0000-7000-8000-000000000103';
@@ -63,7 +62,6 @@ final class PlannedTransactionsTest extends WebTestCase
         $this->seedCategory(self::SUBSCRIPTIONS, WorkspaceFixture::OWN_WORKSPACE, 'EXPENSE', 'Abonnements');
         $this->seedCategory(self::SALARY, WorkspaceFixture::OWN_WORKSPACE, 'INCOME', 'Salaire');
         $this->seedCategory(self::OTHER_CATEGORY, WorkspaceFixture::OTHER_WORKSPACE, 'EXPENSE', 'Voisin');
-        $this->seedBudget();
 
         $this->client->request('GET', '/api/v1/session');
         $this->signIn();
@@ -97,32 +95,6 @@ final class PlannedTransactionsTest extends WebTestCase
         self::assertTrue($this->row($this->idOf($created))['auto_book']);
     }
 
-    public function testTheBudgetActualAddsThePlannedAmountOnlyWhenAskedFor(): void
-    {
-        $this->bookedSubscription();
-        $planned = $this->plan('Internet', '-29.99', '2026-11-20');
-
-        $with = $this->comparison(true);
-        self::assertSame('43.98', $with['actual']);
-        self::assertSame('29.99', $with['upcomingAmount']);
-        self::assertSame(1, $with['upcomingCount']);
-        self::assertSame(0, $with['pendingCount']);
-        self::assertSame(
-            [self::BOOKED_SUBSCRIPTION => false, $this->idOf($planned) => true],
-            $this->upcomingFlags($with),
-        );
-
-        $without = $this->comparison(false);
-        self::assertSame('13.99', $without['actual']);
-        self::assertNull($without['upcomingAmount']);
-        self::assertSame(0, $without['upcomingCount']);
-        self::assertSame(1, $without['pendingCount']);
-        self::assertSame([self::BOOKED_SUBSCRIPTION => false], $this->upcomingFlags($without));
-
-        $default = $this->comparison(null);
-        self::assertSame($without, $default);
-    }
-
     public function testAPlannedRowNeverChangesAnAccountBalance(): void
     {
         $this->bookedSubscription();
@@ -132,23 +104,6 @@ final class PlannedTransactionsTest extends WebTestCase
     }
 
     // Example 2
-
-    public function testANonPlannedPendingRowIsNeverInTheAmountAndStaysPending(): void
-    {
-        $this->bookedSubscription();
-        $this->plan('Internet', '-29.99', '2026-11-20');
-        $this->insertTransaction(self::PENDING_CANDIDATE, '-5.00', 'EXPENSE', 'PENDING', '2026-11-08', 'Candidat', self::SUBSCRIPTIONS);
-
-        $with = $this->comparison(true);
-        self::assertSame('43.98', $with['actual']);
-        self::assertSame(1, $with['pendingCount']);
-        self::assertSame(1, $with['upcomingCount']);
-
-        $without = $this->comparison(false);
-        self::assertSame('13.99', $without['actual']);
-        self::assertSame(2, $without['pendingCount']);
-        self::assertSame(0, $without['upcomingCount']);
-    }
 
     // Example 3
 
@@ -171,11 +126,6 @@ final class PlannedTransactionsTest extends WebTestCase
         self::assertSame('BOOKED', $row['state']);
         self::assertFalse($row['auto_book']);
         self::assertSame(2, (int) $row['version']);
-        $with = $this->comparison(true);
-        self::assertSame('43.98', $with['actual']);
-        self::assertNull($with['upcomingAmount']);
-        self::assertSame(0, $with['upcomingCount']);
-        self::assertSame([self::BOOKED_SUBSCRIPTION => false, $id => false], $this->upcomingFlags($with));
         self::assertSame(['-43.98'], $this->bookedSum('2026-11-01', '2026-11-30'));
         self::assertSame(1, $this->scalar("SELECT count(*) FROM audit_events WHERE event_type = 'transaction.updated' AND entity_id = ?", [$id]));
     }
@@ -302,16 +252,11 @@ final class PlannedTransactionsTest extends WebTestCase
     {
         $this->bookedSubscription();
         $planned = $this->plan('Internet', '-29.99', '2026-11-20');
-        self::assertSame('43.98', $this->comparison(true)['actual']);
 
         $rejected = $this->update($planned, ['state' => 'REJECTED']);
 
         self::assertSame('REJECTED', $rejected['state']);
         self::assertFalse($rejected['autoBook']);
-        $with = $this->comparison(true);
-        self::assertSame('13.99', $with['actual']);
-        self::assertSame(0, $with['upcomingCount']);
-        self::assertSame(0, $with['pendingCount']);
     }
 
     public function testVoidingAPlannedRowClearsTheMarker(): void
@@ -350,16 +295,9 @@ final class PlannedTransactionsTest extends WebTestCase
         self::assertIsArray($row);
         self::assertSame('PENDING', $row['state']);
         self::assertTrue($row['auto_book']);
-        $with = $this->comparison(true);
-        self::assertSame('17.99', $with['actual']);
-        self::assertSame('17.99', $with['upcomingAmount']);
-        self::assertSame(1, $with['upcomingCount']);
 
         $this->travel('2026-11-15T09:00:00+00:00');
         self::assertSame(1, $this->materialize()['transactionsBooked']);
-        $after = $this->comparison(true);
-        self::assertSame('17.99', $after['actual']);
-        self::assertNull($after['upcomingAmount']);
         self::assertSame(1, $this->scalar("SELECT count(*) FROM transaction_recurrence_occurrences WHERE status = 'RECEIVED'"));
     }
 
@@ -447,10 +385,6 @@ final class PlannedTransactionsTest extends WebTestCase
         $plain = $this->get('/api/v1/reports/monthly/budgetExpenses/explain?month=2026-11');
         self::assertFalse($plain['includesUpcoming']);
         self::assertStringNotContainsString('planned', self::string($plain['scope']));
-
-        $budget = $this->get('/api/v1/budget-plans/'.self::PLAN.'/comparisons/00000000-0000-7000-8000-0000000000e1/explain?includeUpcoming=true');
-        self::assertTrue($budget['includesUpcoming']);
-        self::assertSame(1, $budget['upcomingCount']);
     }
 
     public function testAnInvalidParameterValueIsRefusedOnEveryMonthlyRead(): void
@@ -460,7 +394,6 @@ final class PlannedTransactionsTest extends WebTestCase
             '/api/v1/reports/monthly/ledger?month=2026-11&includeUpcoming=1',
             '/api/v1/reports/monthly/recap?month=2026-11&includeUpcoming=',
             '/api/v1/reports/monthly/budgetExpenses/explain?month=2026-11&includeUpcoming=maybe',
-            '/api/v1/budget-plans/'.self::PLAN.'/comparisons?includeUpcoming=TRUE',
         ] as $uri) {
             $this->client->request('GET', $uri);
             self::assertResponseStatusCodeSame(400, $uri);
@@ -579,7 +512,6 @@ final class PlannedTransactionsTest extends WebTestCase
         self::assertIsArray($neighbour);
         self::assertSame('PENDING', $neighbour['state']);
         self::assertTrue($neighbour['auto_book']);
-        self::assertSame(0, $this->comparison(true)['upcomingCount']);
     }
 
     public function testTwoRunsRacingOnTheSameRowBookItOnceWithTheOptimisticVersion(): void
@@ -741,39 +673,6 @@ final class PlannedTransactionsTest extends WebTestCase
         self::assertIsString($value);
 
         return $value;
-    }
-
-    /** @return array<string, mixed> */
-    private function comparison(?bool $includeUpcoming): array
-    {
-        $query = null === $includeUpcoming ? '' : '?includeUpcoming='.($includeUpcoming ? 'true' : 'false');
-        $body = $this->get('/api/v1/budget-plans/'.self::PLAN.'/comparisons'.$query);
-        $comparisons = $body['comparisons'] ?? null;
-        self::assertIsArray($comparisons);
-        self::assertIsArray($comparisons[0] ?? null);
-        $first = [];
-        foreach ($comparisons[0] as $key => $value) {
-            self::assertIsString($key);
-            $first[$key] = $value;
-        }
-
-        return $first;
-    }
-
-    /**
-     * @param array<string, mixed> $comparison
-     *
-     * @return array<string, bool>
-     */
-    private function upcomingFlags(array $comparison): array
-    {
-        $flags = [];
-        foreach (self::items(['items' => $comparison['includedTransactions']]) as $source) {
-            $flags[self::string($source['id'])] = (bool) $source['upcoming'];
-        }
-        ksort($flags);
-
-        return $flags;
     }
 
     /**
@@ -958,21 +857,6 @@ final class PlannedTransactionsTest extends WebTestCase
             'id' => substr($id, 0, 24).'9'.substr($id, 25), 'workspace_id' => $workspace, 'transaction_id' => $id,
             'category_id' => 'INCOME' === $nature ? self::SALARY : $category, 'amount_value' => $amount, 'amount_scale' => 2,
             'asset_code' => 'EUR', 'created_at' => '2026-11-02 12:00:00+00',
-        ]);
-    }
-
-    private function seedBudget(): void
-    {
-        $this->connection->insert('budget_plans', [
-            'id' => self::PLAN, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'period_type' => 'MONTH', 'period' => '2026-11-01',
-            'asset_code' => 'EUR', 'state' => 'ACTIVE', 'version' => 1,
-            'created_at' => '2026-11-01 12:00:00+00', 'updated_at' => '2026-11-01 12:00:00+00',
-        ]);
-        $this->connection->insert('budget_targets', [
-            'id' => '00000000-0000-7000-8000-0000000000e1', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'plan_id' => self::PLAN,
-            'scope_type' => 'CATEGORY', 'scope_id' => self::SUBSCRIPTIONS, 'value_type' => 'AMOUNT',
-            'amount_value' => '100.00', 'amount_scale' => 2, 'ratio_value' => null, 'ratio_scale' => null,
-            'version' => 1, 'created_at' => '2026-11-01 12:00:01+00', 'updated_at' => '2026-11-01 12:00:00+00',
         ]);
     }
 

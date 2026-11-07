@@ -1,8 +1,8 @@
-import type { GoalAnnualStatus, GoalStatus } from '@cadran/api-client';
+import type { GoalStatus } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { formatAmount } from '@/lib/decimal';
+import { formatGoalFigure } from './goalFormat';
 import { formatGoalMonth } from './goalMonth';
 import styles from './GoalsPage.module.css';
 import { monthHref } from '@/features/budget/monthly-budget/budgetPeriod';
@@ -17,13 +17,15 @@ export function GoalDetailModal({
   status: GoalStatus;
 }) {
   const { t, i18n } = useTranslation();
-  const annual = status.kind === 'ANNUAL' ? (status as GoalAnnualStatus) : null;
+  const yearly = status.periodicity === 'YEARLY';
+  const figure = (value: string) =>
+    formatGoalFigure(value, status.valueType, assetCode, i18n.language);
   const emptyCell = (
     <EmptyValue label={t(`goals.reasons.${status.reason ?? 'MISSING_MONTH_VALUE'}`)} />
   );
   return (
     <Modal intent="detail" close={close} title={t('goals.detailTitle')}>
-      {annual?.months?.length ? (
+      {status.months?.length ? (
         <div className={styles.statusTableWrap}>
           <table className={styles.statusTable}>
             <caption className="sr-only">{t('goals.statusTable.caption')}</caption>
@@ -33,12 +35,16 @@ export function GoalDetailModal({
                 <th scope="col">{t('goals.statusTable.state')}</th>
                 <th scope="col">{t('goals.statusTable.value')}</th>
                 <th scope="col">{t('goals.statusTable.expected')}</th>
-                <th scope="col">{t('goals.statusTable.cumulativeValue')}</th>
-                <th scope="col">{t('goals.statusTable.cumulativeExpected')}</th>
+                {yearly ? (
+                  <>
+                    <th scope="col">{t('goals.statusTable.cumulativeValue')}</th>
+                    <th scope="col">{t('goals.statusTable.cumulativeExpected')}</th>
+                  </>
+                ) : null}
               </tr>
             </thead>
             <tbody>
-              {annual.months.map((month) => (
+              {status.months.map((month) => (
                 <tr key={month.month}>
                   <th scope="row">
                     <a href={monthHref(month.month, null)}>
@@ -46,26 +52,20 @@ export function GoalDetailModal({
                     </a>
                   </th>
                   <td>{t(`goals.statusTable.states.${month.state}`)}</td>
-                  <td>
-                    {month.value === null
-                      ? emptyCell
-                      : formatAmount(month.value, assetCode, i18n.language)}
-                  </td>
-                  <td>
-                    {month.expectedPart === null
-                      ? emptyCell
-                      : formatAmount(month.expectedPart, assetCode, i18n.language)}
-                  </td>
-                  <td>
-                    {month.cumulativeValue === null
-                      ? emptyCell
-                      : formatAmount(month.cumulativeValue, assetCode, i18n.language)}
-                  </td>
-                  <td>
-                    {month.cumulativeExpected === null
-                      ? emptyCell
-                      : formatAmount(month.cumulativeExpected, assetCode, i18n.language)}
-                  </td>
+                  <td>{month.value === null ? emptyCell : figure(month.value)}</td>
+                  <td>{month.expectedPart === null ? emptyCell : figure(month.expectedPart)}</td>
+                  {yearly ? (
+                    <>
+                      <td>
+                        {month.cumulativeValue === null ? emptyCell : figure(month.cumulativeValue)}
+                      </td>
+                      <td>
+                        {month.cumulativeExpected === null
+                          ? emptyCell
+                          : figure(month.cumulativeExpected)}
+                      </td>
+                    </>
+                  ) : null}
                 </tr>
               ))}
             </tbody>

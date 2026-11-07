@@ -5,6 +5,9 @@ export type GoalErrorKind =
   | 'correction_span_exceeded'
   | 'correction_reason_required'
   | 'emergency_fund_scope_too_large'
+  | 'goal_closed_period'
+  | 'goal_limit_reached'
+  | 'goal_version_limit'
   | 'invalid_emergency_fund_category'
   | 'invalid'
   | 'invalid_goal_schedule'
@@ -29,6 +32,9 @@ const CODE_KINDS: Record<string, GoalErrorKind> = {
   correction_reason_required: 'correction_reason_required',
   correction_span_exceeded: 'correction_span_exceeded',
   emergency_fund_scope_too_large: 'emergency_fund_scope_too_large',
+  goal_closed_period: 'goal_closed_period',
+  goal_limit_reached: 'goal_limit_reached',
+  goal_version_limit: 'goal_version_limit',
   invalid_emergency_fund_category: 'invalid_emergency_fund_category',
   invalid_goal_schedule: 'invalid_goal_schedule',
   invalid_effective_month: 'invalid_effective_month',

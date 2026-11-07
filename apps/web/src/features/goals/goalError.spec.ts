@@ -6,6 +6,9 @@ describe('goalRequestError', () => {
     'invalid_emergency_fund_category',
     'emergency_fund_scope_too_large',
     'correction_span_exceeded',
+    'goal_closed_period',
+    'goal_limit_reached',
+    'goal_version_limit',
   ])('classifies %s by its code', (code) => {
     const error = goalRequestError({
       response: new Response(null, { status: 422 }),

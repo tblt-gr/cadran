@@ -122,33 +122,6 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
         return jsonResponse({ items: [], page: 1, pageSize: 50, total: 0 });
       }
 
-      if (url.includes('/comparisons')) {
-        return jsonResponse({
-          planId: '00000000-0000-7000-8000-000000000001',
-          period: '2026-03',
-          assetCode: 'EUR',
-          status: 'AVAILABLE',
-          reason: null,
-          comparisons: [],
-        });
-      }
-
-      if (/\/api\/v1\/budget-plans\/[0-9a-f-]+$/.test(url)) {
-        return jsonResponse({
-          id: '00000000-0000-7000-8000-000000000001',
-          periodType: 'MONTH',
-          period: '2026-03',
-          assetCode: 'EUR',
-          state: 'DRAFT',
-          version: 1,
-          targets: [],
-        });
-      }
-
-      if (url.includes('/api/v1/budget-plans')) {
-        return jsonResponse({ items: [], page: 1, pageSize: 100, total: 0 });
-      }
-
       if (url.includes('/api/v1/reports/monthly/ledger')) {
         return jsonResponse({
           month: '2026-03',
@@ -221,7 +194,6 @@ describe('App', () => {
     ['/', 'Synthèse'],
     ['/transactions', 'Transactions'],
     ['/budget/2026/03', 'Budget de mars 2026'],
-    ['/budget/plans', 'Plans budgétaires'],
     ['/accounts', 'Comptes'],
     ['/accounts/demo', 'Détail du compte'],
     ['/portfolios/demo', 'Portefeuille'],
@@ -371,14 +343,14 @@ describe('App', () => {
     expect(window.location.pathname).toMatch(/^\/budget\/\d{4}\/\d{2}$/);
   });
 
-  it('redirects an old UUID-shaped budget link to the plan subroute', async () => {
+  it('redirects an old UUID-shaped budget link and the former plan pages to the goals', async () => {
     const id = '00000000-0000-7000-8000-000000000001';
     window.history.replaceState({}, '', `/budget/${id}`);
     mockApi();
 
     renderApp();
 
-    await waitFor(() => expect(window.location.pathname).toBe(`/budget/plans/${id}`));
+    await waitFor(() => expect(window.location.pathname).toBe('/goals'));
   });
 
   it('shows a recoverable error inside the shell for a foundation network failure', async () => {

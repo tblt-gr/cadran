@@ -30,17 +30,25 @@ final class GoalVersionResolverTest extends TestCase
         self::assertSame('2400.00', GoalVersionResolver::forMonth($versions, new CalendarMonth(2026, 7))->targetAmount?->toString());
     }
 
+    public function testADefinitionKeepsApplyingToLaterYearsUntilANewerOneStarts(): void
+    {
+        $versions = [self::version(2, '2027-03', '2400.00'), self::version(1, '2026-01', '2000.00')];
+
+        self::assertSame(1, GoalVersionResolver::forMonth($versions, new CalendarMonth(2026, 12))?->versionNo);
+        self::assertSame(1, GoalVersionResolver::forMonth($versions, new CalendarMonth(2027, 2))?->versionNo);
+        self::assertSame(2, GoalVersionResolver::forMonth($versions, new CalendarMonth(2028, 1))?->versionNo);
+    }
+
     private static function version(int $number, string $effectiveFrom, string $target): GoalVersion
     {
         $amount = DecimalValue::fromString($target);
 
-        return GoalVersion::annual(
+        return GoalVersion::amount(
             sprintf('00000000-0000-7000-8000-%012d', $number),
             WorkspaceScope::fromString('00000000-0000-7000-8000-0000000000a1'),
             '00000000-0000-7000-8000-000000000001',
             $number,
             $effectiveFrom,
-            2026,
             $amount,
             GoalSchedule::linear($amount, 2),
             new \DateTimeImmutable('2026-09-01'),

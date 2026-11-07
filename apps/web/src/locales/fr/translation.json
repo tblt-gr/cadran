@@ -222,8 +222,6 @@
   },
   "routes": {
     "transactions": "Transactions",
-    "budgetPlan": "Plan budgétaire",
-    "budgetPlans": "Plans budgétaires",
     "accountDetail": "Détail du compte",
     "annualReport": "Rapport",
     "lifeInsurance": "Assurance-vie",
@@ -432,8 +430,7 @@
       "netSavingsRate": "Taux d’épargne net = épargne nette par virements / revenus",
       "beginningNetWorth": "Patrimoine initial = somme des valorisations signées éligibles au dernier jour civil du mois précédent",
       "endNetWorth": "Patrimoine net = somme des valorisations signées éligibles au dernier jour effectif du mois",
-      "netWorthDelta": "Variation du patrimoine = patrimoine final − patrimoine initial",
-      "budgetComparison": "Écart budgétaire = montant réalisé − montant cible du budget"
+      "netWorthDelta": "Variation du patrimoine = patrimoine final − patrimoine initial"
     }
   },
   "states": {
@@ -3062,12 +3059,10 @@
   "goals": {
     "add": "Nouvel objectif",
     "filters": "Filtres des objectifs",
-    "year": "Année",
     "loading": "Chargement des objectifs…",
     "error": "Impossible de charger les objectifs",
     "unauthorized": "Session expirée",
     "list": "Liste des objectifs",
-    "month": "Mois",
     "achievedThisMonth": "Réalisé ce mois",
     "achievedToDate": "Cumul réalisé",
     "expectedToDate": "Objectif à cette date",
@@ -3106,7 +3101,10 @@
       "NO_REFERENCE_INCOME": "Le revenu de référence est indisponible",
       "GOAL_NOT_STARTED": "L’objectif ne s’applique pas encore à ce mois",
       "REFERENCE_ARCHIVED": "La référence de l’objectif est archivée",
-      "FUTURE_MONTH": "Ce mois n’a pas encore commencé"
+      "FUTURE_MONTH": "Ce mois n’a pas encore commencé",
+      "MISSING_CASH_INCOME": "Le revenu du mois est indisponible",
+      "GOAL_ENDED": "L’objectif est terminé pour ce mois",
+      "EVALUATION_NOT_AVAILABLE": "L’évaluation de cet objectif n’est pas encore disponible"
     },
     "statusTable": {
       "caption": "Progression mensuelle de l’objectif",
@@ -3125,16 +3123,13 @@
     },
     "createTitle": "Nouvel objectif",
     "editTitle": "Modifier l’objectif",
-    "closeTitle": "Clôturer l’objectif",
     "label": "Libellé",
-    "kind": "Type d’objectif",
     "metric": "Indicateur",
     "scope": "Périmètre",
     "chooseScope": "Choisir un périmètre",
     "accountsLoading": "Chargement des comptes…",
     "accountsError": "Impossible de charger les comptes",
     "accountsEmpty": "Aucun compte disponible",
-    "startMonth": "Mois de début",
     "effectiveFrom": "À partir de",
     "correctionReason": "Motif de la correction",
     "correctionReasonHint": "Décrivez la raison de cette correction historique (3 à 200 caractères).",
@@ -3150,34 +3145,24 @@
     "ceiling": "Plafond",
     "minimumToReach": "Minimum à atteindre",
     "ceilingNotToExceed": "Plafond à ne pas dépasser",
-    "annualPeriod": "Année {{year}}",
-    "titleWithYear": "{{label}} ({{year}})",
-    "rollingPeriod": "Ratio glissant depuis {{month}}",
-    "closedBadge": "Clôturé",
     "noValue": "Valeur non définie",
     "referenceArchived": "Référence archivée",
     "referenceIncome": "Revenu de référence : {{value}} ({{usable}}/12 mois, {{start}} à {{end}})",
     "noReferenceIncome": "Revenu de référence non calculable : aucune période utilisable.",
     "actionsFor": "Actions de l’objectif « {{label}} »",
     "editGoal": "Modifier l’objectif « {{label}} »",
-    "closeGoal": "Clôturer l’objectif « {{label}} »",
     "edit": "Modifier",
-    "close": "Clôturer",
-    "closeDescription": "Clôturer « {{label}} » le retire de la liste active. Son historique reste consultable.",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "closing": "Clôture…",
     "saved": "L’objectif a été enregistré.",
-    "kinds": {
-      "ANNUAL": "Annuel",
-      "ROLLING_RATIO": "Ratio glissant"
-    },
     "metrics": {
       "NET_SAVINGS_TRANSFERS": "Épargne nette par virements",
       "BUDGET_SURPLUS": "Excédent budgétaire",
       "CATEGORY_SPENDING": "Dépenses par catégorie",
       "AXIS_SPENDING": "Dépenses par axe",
-      "ACCOUNT_CONTRIBUTIONS": "Contributions au compte"
+      "ACCOUNT_CONTRIBUTIONS": "Contributions au compte",
+      "SAVINGS_RATE": "Taux d’épargne",
+      "NET_SAVINGS_RATE": "Taux d’épargne net"
     },
     "scopeTypes": {
       "WORKSPACE": "Espace",
@@ -3189,7 +3174,8 @@
       "scope": "Choisissez un périmètre.",
       "form": "Vérifiez le libellé, le périmètre, la période et la valeur saisie.",
       "targetAmount": "Saisissez un montant décimal exact strictement supérieur à 0, avec au plus 8 décimales. Utilisez un point comme séparateur décimal.",
-      "ratio": "Saisissez un pourcentage strictement supérieur à 0 et inférieur ou égal à 100, avec au plus 6 décimales. Utilisez un point comme séparateur décimal."
+      "ratio": "Saisissez un pourcentage strictement supérieur à 0 et inférieur ou égal à 100, avec au plus 6 décimales. Utilisez un point comme séparateur décimal.",
+      "rate": "Saisissez un taux entre 0 et 100 %, avec au plus 6 décimales. Utilisez un point comme séparateur décimal."
     },
     "errors": {
       "conflict": "Cet objectif a changé et a été rechargé. Vérifiez vos valeurs puis réessayez.",
@@ -3207,7 +3193,10 @@
       "invalid_effective_month": "Le mois choisi n’est pas valide pour cet objectif.",
       "invalid_schedule_preview": "Impossible de calculer cet aperçu de répartition.",
       "invalid_emergency_fund_category": "Une catégorie choisie n’est pas éligible : seules les catégories de dépense actives et incluses au budget peuvent être retenues.",
-      "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence."
+      "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence.",
+      "goal_closed_period": "Ce mois est clôturé : choisissez un mois ouvert ou rouvrez la période.",
+      "goal_limit_reached": "La limite de 100 objectifs en cours est atteinte.",
+      "goal_version_limit": "Cet objectif a atteint sa limite de versions."
     },
     "history": {
       "title": "Historique des versions",
@@ -3229,13 +3218,20 @@
         "targetAmount": "Montant cible",
         "ratio": "Pourcentage",
         "scheduleMode": "Mode de calendrier",
-        "schedule": "Calendrier mensuel"
+        "schedule": "Calendrier mensuel",
+        "valueType": "Type de valeur"
       },
       "appliesFrom": "À partir de {{month}}",
       "reasonLine": "Motif : {{reason}}",
       "customSchedule": "Répartition personnalisée",
       "month": "Mois",
-      "recordedOn": "Enregistrée le {{date}}"
+      "recordedOn": "Enregistrée le {{date}}",
+      "valueTypes": {
+        "AMOUNT": "Montant",
+        "INCOME_SHARE": "Part du revenu de la période",
+        "ROLLING_INCOME_SHARE": "Part du revenu moyen sur 12 mois",
+        "RATE": "Taux"
+      }
     },
     "schedule": {
       "legend": "Calendrier mensuel",
@@ -3353,11 +3349,9 @@
       "targetFixed": "Montant fixé à {{amount}}, indépendamment des dépenses.",
       "targetIncome": "{{ratio}} du revenu annuel, soit 12 fois le revenu mensuel moyen ({{income}}) sur les 12 derniers mois complets."
     },
-    "filtersOpen": "Filtres d’état des objectifs",
+    "filtersOpen": "Filtres des objectifs",
     "filtersTitle": "Filtres",
     "filtersActive_one": "{{count}} filtre actif",
-    "includeClosed": "Afficher les objectifs clôturés",
-    "closedError": "Impossible de charger les objectifs clôturés",
     "filtersActive_other": "{{count}} filtres actifs",
     "position": {
       "label": "Cumul réalisé, puis objectif",
@@ -3368,7 +3362,40 @@
       "ceilingOver": "Dépassement de {{amount}}",
       "expected": "Objectif attendu à cette date : {{amount}}",
       "ratio": "Ratio visé : {{ratio}}"
-    }
+    },
+    "periodicity": "Périodicité",
+    "periodicities": {
+      "MONTHLY": "Mensuel",
+      "YEARLY": "Annuel"
+    },
+    "allPeriodicities": "Toutes",
+    "scopeFilter": "Objectifs affichés",
+    "currentGoals": "En cours",
+    "allGoals": "Tous",
+    "start": "Début",
+    "end": "Fin",
+    "endChoices": "Fin de l’objectif",
+    "noEnd": "Sans fin",
+    "singleMonth": "Un seul mois",
+    "singleYear": "Une seule année",
+    "valueType": "Type de valeur",
+    "valueTypes": {
+      "AMOUNT": "Montant",
+      "INCOME_SHARE": "Part du revenu du mois",
+      "INCOME_SHARE_YEARLY": "Part du revenu de l’année",
+      "ROLLING_INCOME_SHARE": "Part du revenu moyen sur 12 mois",
+      "RATE": "Taux"
+    },
+    "targetRate": "Taux cible",
+    "rateHint": "Saisissez le taux visé en pourcentage, de 0 à 100 : 20 correspond à 20 %.",
+    "endedBadge": "Terminé",
+    "period": {
+      "open": "{{periodicity}}, depuis {{start}}",
+      "single": "{{periodicity}}, {{start}}",
+      "range": "{{periodicity}}, de {{start}} à {{end}}"
+    },
+    "truncated_one": "Seul {{count}} objectif est affiché : affinez les filtres pour voir les autres.",
+    "truncated_other": "Seuls {{count}} objectifs sont affichés : affinez les filtres pour voir les autres."
   },
   "budget": {
     "year": {
@@ -3381,7 +3408,7 @@
     },
     "monthly": {
       "title": "Budget de {{month}}",
-      "managePlans": "Gérer les plans et objectifs",
+      "goals": "Objectifs",
       "moreActions": "Autres actions",
       "closeMonth": "Clôturer ce mois",
       "allTransactions": "Toutes les transactions",
@@ -3590,132 +3617,11 @@
         }
       }
     },
-    "addPlan": "Nouveau plan",
-    "addFirst": "Créer le premier plan",
-    "edit": "Modifier",
-    "activate": "Activer",
-    "close": "Clôturer",
-    "loading": "Chargement des plans budgétaires…",
-    "nonCalculable": "Non calculable",
-    "overlap": "Chevauchement de périmètre",
-    "columns": {
-      "period": "Période",
-      "currency": "Devise",
-      "state": "État",
-      "scope": "Périmètre",
-      "value": "Objectif",
-      "resolved": "Montant résolu",
-      "warning": "Avertissement"
-    },
-    "periodTypes": {
-      "MONTH": "Mensuel",
-      "YEAR": "Annuel"
-    },
-    "states": {
-      "DRAFT": "Brouillon",
-      "ACTIVE": "Actif",
-      "CLOSED": "Clôturé"
-    },
-    "scopeTypes": {
-      "CATEGORY": "Catégorie",
-      "GROUP": "Groupe",
-      "AXIS": "Axe"
-    },
-    "valueTypes": {
-      "AMOUNT": "Montant exact",
-      "RATIO": "Ratio"
-    },
-    "fields": {
-      "periodType": "Type de période",
-      "period": "Période",
-      "assetCode": "Devise ou actif",
-      "scopeType": "Type de périmètre",
-      "scope": "Périmètre",
-      "valueType": "Type d’objectif",
-      "amount": "Montant",
-      "ratio": "Ratio décimal"
-    },
-    "form": {
-      "createTitle": "Nouveau plan budgétaire",
-      "editTitle": "Modifier le plan",
-      "save": "Enregistrer",
-      "saving": "Enregistrement…",
-      "chooseAxis": "Choisir un axe"
-    },
-    "target": {
-      "createTitle": "Nouvel objectif",
-      "editTitle": "Modifier l’objectif"
-    },
-    "targets": {
-      "title": "Objectifs",
-      "description": "Chaque objectif hérite de la période, de l’état et de la devise du plan.",
-      "add": "Ajouter un objectif",
-      "empty": "Ajoutez un objectif avant d’activer ce plan."
-    },
-    "comparisons": {
-      "title": "Résultats",
-      "description": "Les réalisations et écarts sont calculés par le serveur selon la politique mensuelle applicable.",
-      "loading": "Chargement des résultats budgétaires…",
-      "error": "Impossible de charger les résultats budgétaires.",
-      "empty": "Aucun objectif à comparer pour cette période.",
-      "actual": "Réalisé",
-      "target": "Objectif",
-      "variance": "Écart restant",
-      "pending_one": "{{count}} transaction en attente",
-      "pending_other": "{{count}} transactions en attente",
-      "upcoming": "à venir",
-      "upcomingAmount": "dont {{amount}} à venir",
-      "sources_one": "{{count}} transaction incluse",
-      "sources_other": "{{count}} transactions incluses",
-      "policy": {
-        "summary": "Méthode de calcul appliquée",
-        "description": "Les dépenses, frais et remboursements comptabilisés et non annulés sont inclus dans les catégories du budget. Pour les ventilations, seule la part relevant du périmètre est comptée. Les transactions en attente sont signalées, mais exclues des montants ; les virements et ajustements sont exclus."
-      },
-      "statuses": {
-        "WITHIN_TARGET": "Dans le budget",
-        "ON_TARGET": "Objectif atteint",
-        "OVER_TARGET": "Dépassement",
-        "NON_CALCULABLE": "Non calculable"
-      }
-    },
-    "empty": {
-      "title": "Aucun plan budgétaire",
-      "description": "Créez un plan mensuel ou annuel pour commencer."
-    },
-    "error": {
-      "title": "Plans indisponibles",
-      "description": "Impossible de charger les plans budgétaires. Réessayez."
-    },
-    "unauthorized": {
-      "title": "Session expirée",
-      "description": "Votre session n’autorise plus l’accès aux plans budgétaires."
-    },
     "errors": {
-      "conflict": "Les données ont changé. Rechargez le plan avant de recommencer.",
+      "conflict": "Les données ont changé. Rechargez la page avant de recommencer.",
       "invalid": "La demande est invalide ou une référence n’est plus utilisable.",
       "network": "L’opération a échoué. Réessayez.",
       "unauthorized": "Votre session n’autorise pas cette opération."
-    },
-    "validation": {
-      "period": "Saisissez une période valide pour le type choisi.",
-      "assetCode": "Saisissez un code actif valide en majuscules.",
-      "scope": "Choisissez un périmètre valide.",
-      "value": "Saisissez un décimal positif canonique."
-    },
-    "hints": {
-      "ratio": "Saisissez le ratio décimal exact : 0.30 correspond à 30 %."
-    },
-    "reasons": {
-      "MISSING_TARGET": "Objectif manquant",
-      "MIXED_ASSETS": "Actifs mélangés",
-      "NO_ACCOUNT": "Aucun compte de trésorerie",
-      "ZERO_CASH_INCOME": "Revenus de trésorerie nuls",
-      "UNKNOWN_METRIC_POLICY": "Politique d’indicateurs introuvable",
-      "MIXED_METRIC_POLICIES": "Politiques d’indicateurs différentes sur la période"
-    },
-    "toasts": {
-      "saved": "Le plan budgétaire a été enregistré.",
-      "stateChanged": "L’état du plan a été mis à jour."
     }
   },
   "metricPolicy": {

@@ -7,8 +7,9 @@ namespace App\Module\Budget\Application\Goals;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\InvalidCalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
-use App\Module\Budget\Domain\Goals\GoalKind;
+use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalScheduleMode;
+use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionResolver;
 use App\Module\Budget\Domain\Goals\InvalidGoal;
@@ -39,6 +40,7 @@ final readonly class BuildGoalRevision
         $firstMonth = min(array_map(static fn (GoalVersion $version): string => $version->effectiveFrom, $versions));
         $today = $this->calendar->today();
         $currentMonth = CalendarMonth::containing($today)->key();
+        $lastMonth = $goal->lastMonth();
         $effectiveMonth = $input->effectiveFrom ?? ($currentMonth > $firstMonth ? $currentMonth : $firstMonth);
         $explicitMonth = null !== $input->effectiveFrom;
         try {
@@ -50,10 +52,10 @@ final readonly class BuildGoalRevision
             throw new GoalInputError('invalid_effective_month', 'A goal effective month lies from its first month through the current month.');
         }
         // Each month of a rolling correction is recomputed by the preview, so the span is bounded here,
-        // where the preview and the save share their validation. An annual goal stops at its own year.
+        // where the preview and the save share their validation. A yearly amount goal stops at its own end.
         $span = ((int) substr($currentMonth, 0, 4) - (int) substr($effectiveMonth, 0, 4)) * 12
             + (int) substr($currentMonth, 5, 2) - (int) substr($effectiveMonth, 5, 2) + 1;
-        if (GoalKind::ANNUAL !== $goal->kind && $span > self::MAX_CORRECTION_MONTHS) {
+        if (!(GoalPeriodicity::YEARLY === $goal->periodicity && GoalValueType::AMOUNT === $latest->valueType) && $span > self::MAX_CORRECTION_MONTHS) {
             throw new GoalInputError('correction_span_exceeded', sprintf('A correction reaches back at most %d months.', self::MAX_CORRECTION_MONTHS));
         }
         $retroactive = $effectiveMonth < $currentMonth;
@@ -66,44 +68,58 @@ final readonly class BuildGoalRevision
         }
 
         $base = GoalVersionResolver::forMonth($versions, $effective) ?? $latest;
+        $valueType = $base->valueType;
+        if (null !== $input->valueType) {
+            $valueType = GoalValueType::tryFrom($input->valueType) ?? throw new GoalInputError('invalid_goal_value_type', 'This goal value type does not exist.');
+            if (!$goal->metric->accepts($goal->periodicity, $valueType, $goal->scopeType)) {
+                throw new GoalInputError('invalid_goal_value_type', 'This goal metric and periodicity do not take this value type.');
+            }
+        }
         try {
-            $definition = GoalKind::ANNUAL === $goal->kind
-                ? $this->annual($goal, $base, $input, $latest->versionNo + 1, $effectiveMonth, $actorId, $retroactive, $reason)
-                : $this->rolling($goal, $base, $input, $latest->versionNo + 1, $effectiveMonth, $actorId, $retroactive, $reason);
+            $definition = null === $input->valueType && null === $input->targetAmount && null === $input->targetAssetCode && null === $input->ratio && null === $input->schedule
+                ? null
+                : (GoalValueType::AMOUNT === $valueType
+                    ? $this->amount($goal, $base, $input, $latest->versionNo + 1, $effectiveMonth, $actorId, $retroactive, $reason)
+                    : $this->share($goal, $base, $valueType, $input, $latest->versionNo + 1, $effectiveMonth, $actorId, $retroactive, $reason));
         } catch (GoalInputError $exception) {
             throw $exception;
         } catch (InvalidGoal|\InvalidArgumentException|\DomainException $exception) {
-            throw new GoalInputError(GoalKind::ANNUAL === $goal->kind ? 'invalid_goal_target' : 'invalid_goal_ratio', $exception->getMessage());
+            throw new GoalInputError(GoalValueType::AMOUNT === $valueType ? 'invalid_goal_target' : 'invalid_goal_ratio', $exception->getMessage());
         }
         if (null !== $definition && $effectiveMonth > $currentMonth) {
             throw new GoalInputError('invalid_effective_month', 'A goal definition cannot take effect after the current month.');
+        }
+        if (null !== $definition && null !== $lastMonth && $effectiveMonth > $lastMonth) {
+            throw new GoalInputError('invalid_effective_month', 'A goal definition cannot take effect after the last period of the goal.');
         }
 
         return new GoalRevision($definition, self::changedFields($base, $definition));
     }
 
-    private function rolling(Goal $goal, GoalVersion $base, UpdateGoalInput $input, int $number, string $effectiveMonth, string $actorId, bool $retroactive, ?string $reason): ?GoalVersion
+    private function share(Goal $goal, GoalVersion $base, GoalValueType $valueType, UpdateGoalInput $input, int $number, string $effectiveMonth, string $actorId, bool $retroactive, ?string $reason): ?GoalVersion
     {
         if (null !== $input->targetAmount || null !== $input->targetAssetCode || null !== $input->schedule) {
-            throw new GoalInputError('invalid_goal_ratio', 'A rolling goal cannot take a target amount or schedule.');
+            throw new GoalInputError('invalid_goal_ratio', 'A share or rate goal cannot take a target amount or schedule.');
         }
-        if (null === $input->ratio) {
-            return null;
+        $ratio = null === $input->ratio ? $base->ratio : DecimalValue::fromString($input->ratio);
+        if (null === $ratio) {
+            throw new GoalInputError('invalid_goal_ratio', 'A share or rate goal needs a ratio.');
         }
-        $ratio = DecimalValue::fromString($input->ratio);
-        if (null !== $base->ratio && 0 === $ratio->compareTo($base->ratio)) {
+        if ($valueType === $base->valueType && null !== $base->ratio && 0 === $ratio->compareTo($base->ratio)) {
             return null;
         }
 
-        return GoalVersion::rolling($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason);
+        return GoalValueType::RATE === $valueType
+            ? GoalVersion::rate($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason)
+            : GoalVersion::share($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $valueType, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason);
     }
 
-    private function annual(Goal $goal, GoalVersion $base, UpdateGoalInput $input, int $number, string $effectiveMonth, string $actorId, bool $retroactive, ?string $reason): ?GoalVersion
+    private function amount(Goal $goal, GoalVersion $base, UpdateGoalInput $input, int $number, string $effectiveMonth, string $actorId, bool $retroactive, ?string $reason): ?GoalVersion
     {
         if (null !== $input->ratio) {
-            throw new GoalInputError('invalid_goal_target', 'An annual goal cannot take a ratio.');
+            throw new GoalInputError('invalid_goal_target', 'An amount goal cannot take a ratio.');
         }
-        $baseTarget = $base->targetAmount ?? throw new \LogicException('An annual version carries a target amount.');
+        $baseTarget = $base->targetAmount;
         $target = $baseTarget;
         if (null !== $input->targetAmount || null !== $input->targetAssetCode) {
             if (null === $input->targetAmount || null === $input->targetAssetCode || !AssetCode::fromString($input->targetAssetCode)->equals($goal->assetCode)) {
@@ -111,7 +127,23 @@ final readonly class BuildGoalRevision
             }
             $target = DecimalValue::fromString($input->targetAmount);
         }
-        $targetChanged = 0 !== $target->compareTo($baseTarget);
+        if (null === $target) {
+            throw new GoalInputError('invalid_goal_target', 'An amount goal needs a target amount.');
+        }
+        if (GoalPeriodicity::MONTHLY === $goal->periodicity) {
+            if (null !== $input->schedule) {
+                throw new GoalInputError('invalid_goal_schedule', 'Only a yearly goal has a monthly calendar.');
+            }
+            if (null !== $baseTarget && 0 === $target->compareTo($baseTarget)) {
+                return null;
+            }
+            if ($target->compareTo(DecimalValue::zero()) <= 0) {
+                throw new GoalInputError('invalid_goal_target', 'A goal target amount is positive.');
+            }
+
+            return GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, null, $this->calendar->now(), $actorId, $retroactive, $reason);
+        }
+        $targetChanged = null === $baseTarget || 0 !== $target->compareTo($baseTarget);
         $schedule = null;
         $scheduleError = null;
         if (null !== $input->schedule) {
@@ -141,10 +173,6 @@ final readonly class BuildGoalRevision
         if (null !== $scheduleError) {
             throw $scheduleError;
         }
-        $year = $base->year ?? throw new \LogicException('An annual version carries a year.');
-        if ((int) substr($effectiveMonth, 0, 4) !== $year) {
-            throw new GoalInputError('invalid_effective_month', 'An annual goal effective month belongs to its year.');
-        }
         if ($target->compareTo(DecimalValue::zero()) <= 0) {
             throw new GoalInputError('invalid_goal_target', 'A goal target amount is positive.');
         }
@@ -153,7 +181,7 @@ final readonly class BuildGoalRevision
         }
         $schedule ??= $this->schedules->linear($goal->assetCode, $target);
 
-        return GoalVersion::annual($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $year, $target, $schedule, $this->calendar->now(), $actorId, $retroactive, $reason);
+        return GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, $schedule, $this->calendar->now(), $actorId, $retroactive, $reason);
     }
 
     /** @return list<string> */
@@ -163,6 +191,9 @@ final readonly class BuildGoalRevision
             return [];
         }
         $fields = [];
+        if ($before->valueType !== $after->valueType) {
+            $fields[] = 'valueType';
+        }
         if ((null === $before->targetAmount) !== (null === $after->targetAmount) || (null !== $before->targetAmount && null !== $after->targetAmount && 0 !== $before->targetAmount->compareTo($after->targetAmount))) {
             $fields[] = 'targetAmount';
         }

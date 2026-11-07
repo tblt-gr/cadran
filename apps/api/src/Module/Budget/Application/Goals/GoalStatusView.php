@@ -10,8 +10,9 @@ final readonly class GoalStatusView
     public function __construct(
         public string $goalId,
         public string $month,
-        public string $kind,
+        public string $periodicity,
         public string $direction,
+        public ?string $valueType,
         public ?int $goalVersion,
         public ?string $scheduleMode,
         public bool $provisional,

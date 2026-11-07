@@ -8,9 +8,10 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\InvalidCalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalDirection;
-use App\Module\Budget\Domain\Goals\GoalKind;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
+use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Budget\Domain\Goals\GoalVersionResolver;
@@ -106,19 +107,28 @@ final readonly class ReadGoalStatus
      */
     public function future(Goal $goal, array $versions, CalendarMonth $month): GoalStatusView
     {
-        $version = GoalVersionResolver::forMonth($versions, $month);
-        $annual = GoalKind::ANNUAL === $goal->kind;
+        return $this->notCalculable($goal, GoalVersionResolver::forMonth($versions, $month), $month, 'FUTURE_MONTH', 'EMPTY');
+    }
+
+    /**
+     * A month the goal does not cover, or a definition this read does not evaluate yet, has no
+     * figure: the status names the month and the definition then in effect, never a borrowed value.
+     */
+    private function notCalculable(Goal $goal, ?GoalVersion $version, CalendarMonth $month, string $reason, string $quality): GoalStatusView
+    {
+        $amount = GoalValueType::AMOUNT === $version?->valueType;
 
         return new GoalStatusView(
             $goal->id,
             $month->key(),
-            $goal->kind->value,
+            $goal->periodicity->value,
             $goal->direction()->value,
+            $version?->valueType->value,
             $version?->versionNo,
-            $annual ? $version?->scheduleMode() : null,
+            GoalPeriodicity::YEARLY === $goal->periodicity ? $version?->scheduleMode() : null,
             false,
             self::policyFromVersions([]),
-            $annual ? $version?->targetAmount?->toString() : null,
+            $amount ? $version->targetAmount?->toString() : null,
             null,
             null,
             null,
@@ -127,10 +137,10 @@ final readonly class ReadGoalStatus
             'NOT_CALCULABLE',
             null,
             null,
-            'FUTURE_MONTH',
-            'EMPTY',
+            $reason,
+            $quality,
             [],
-            $annual ? null : $version?->ratio?->toString(),
+            $amount ? null : $version?->ratio?->toString(),
         );
     }
 
@@ -144,11 +154,13 @@ final readonly class ReadGoalStatus
     public function inputs(WorkspaceScope $workspace, CalendarMonth $month, array $goals): GoalStatusInputs
     {
         if ([] === $goals) {
-            return new GoalStatusInputs([], null, null);
+            return new GoalStatusInputs([], null);
         }
-        $rolling = [] !== array_filter($goals, static fn (Goal $goal): bool => GoalKind::ROLLING_RATIO === $goal->kind);
+        $monthly = [] !== array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::MONTHLY === $goal->periodicity);
         $categorySpending = [] !== array_filter($goals, static fn (Goal $goal): bool => GoalMetric::CATEGORY_SPENDING === $goal->metric && null !== $goal->scopeRef);
-        $start = $rolling ? ReadReferenceIncome::windowStart($month) : new CalendarMonth($month->year, 1);
+        // A monthly goal compares every month of the year with its own target, and a rolling share
+        // reads the twelve months before each of them: the window opens before January.
+        $start = $monthly ? ReadReferenceIncome::windowStart(new CalendarMonth($month->year, 1)) : new CalendarMonth($month->year, 1);
         $loaded = $this->months->between($workspace, $start, $month);
         $indexed = [];
         foreach ($loaded as $item) {
@@ -157,7 +169,6 @@ final readonly class ReadGoalStatus
 
         return new GoalStatusInputs(
             $indexed,
-            $rolling ? ReadReferenceIncome::fromMonths($month, $loaded) : null,
             $categorySpending && null !== $this->categories ? ($this->categories)($workspace) : null,
             $this->accountTransfers($workspace, $month, $goals, $indexed),
         );
@@ -214,10 +225,18 @@ final readonly class ReadGoalStatus
         $scope ??= null === $this->scope ? null : ($this->scope)($goal->workspace, $goal->scopeType, $goal->scopeRef, true);
         $archived = true === $scope?->archived;
         $categoryIds = $this->categoryBranch($goal, $inputs);
+        $version = GoalVersionResolver::forMonth($versions, $month);
+        if (!$goal->coversPeriod($month->key())) {
+            return $this->notCalculable($goal, $version, $month, $month->key() < $goal->firstMonth() ? 'GOAL_NOT_STARTED' : 'GOAL_ENDED', 'EMPTY');
+        }
+        if (GoalPeriodicity::MONTHLY === $goal->periodicity) {
+            return $this->monthly($goal, $versions, $month, $archived, $categoryIds, $inputs);
+        }
+        if (GoalValueType::AMOUNT !== $version?->valueType) {
+            return $this->notCalculable($goal, $version, $month, null === $version ? 'GOAL_NOT_STARTED' : 'EVALUATION_NOT_AVAILABLE', 'EMPTY');
+        }
 
-        return GoalKind::ANNUAL === $goal->kind
-            ? $this->annual($goal, $versions, $month, $archived, $categoryIds, $inputs)
-            : $this->rolling($goal, $versions, $month, $archived, $categoryIds, $inputs);
+        return $this->annual($goal, $versions, $month, $archived, $categoryIds, $inputs);
     }
 
     /**
@@ -308,8 +327,9 @@ final readonly class ReadGoalStatus
         return new GoalStatusView(
             $goal->id,
             $selected->key(),
-            $goal->kind->value,
+            $goal->periodicity->value,
             $goal->direction()->value,
+            $selectedVersion?->valueType->value,
             $selectedVersion?->versionNo,
             $selectedVersion?->scheduleMode(),
             MonthState::PROVISIONAL === ($months[$selected->key()]->state ?? null),
@@ -330,49 +350,51 @@ final readonly class ReadGoalStatus
     }
 
     /**
+     * Each month from the goal's start (or January) to the selected month is compared with its own
+     * target, so a recurring ceiling is read month by month and never cumulatively.
+     *
      * @param list<GoalVersion> $versions
      * @param list<string>      $categoryIds
      */
-    private function rolling(Goal $goal, array $versions, CalendarMonth $selected, bool $archived, array $categoryIds, GoalStatusInputs $inputs): GoalStatusView
+    private function monthly(Goal $goal, array $versions, CalendarMonth $selected, bool $archived, array $categoryIds, GoalStatusInputs $inputs): GoalStatusView
     {
-        $version = GoalVersionResolver::forMonth($versions, $selected);
-        $item = $inputs->months[$selected->key()] ?? new AnnualMonth($selected, MonthState::NO_DATA, false, false, null);
-        $metric = $this->metric($goal, $item, $categoryIds, $inputs);
-        $reference = $inputs->referenceIncome ?? throw new \LogicException('A rolling goal status reads its reference income.');
-        $target = null !== $reference->value && null !== $version?->ratio ? ExactDecimal::multiplyForResponse($reference->value, $version->ratio) : null;
-        $actual = $metric['value']?->toString();
-        $policyVersions = $reference->metricPolicyVersions;
-        if (null !== $item->figures?->policyVersion) {
-            $policyVersions[] = $item->figures->policyVersion;
+        $first = max($goal->firstMonth(), $selected->year.'-01');
+        $rows = [];
+        $selectedEvaluation = null;
+        for ($cursor = CalendarMonth::fromString($first); $cursor->key() <= $selected->key(); $cursor = CalendarMonth::containing($cursor->firstDay()->modify('+1 month'))) {
+            $evaluation = $this->evaluateMonth($goal, GoalVersionResolver::forMonth($versions, $cursor), $cursor, $categoryIds, $inputs);
+            $rows[] = new GoalStatusMonthView($cursor->key(), $evaluation['state'], $evaluation['actual'], $evaluation['target'], null, null, $evaluation['version']?->versionNo, $evaluation['policyVersion']);
+            $selectedEvaluation = $evaluation;
         }
-        $policy = self::policyFromVersions($policyVersions);
+        $evaluation = $selectedEvaluation ?? throw new \LogicException('A covered month yields at least one evaluation.');
+        $version = $evaluation['version'];
+        $policy = self::policyFromVersions($evaluation['policyVersions']);
         $reason = match (true) {
             null === $version => 'GOAL_NOT_STARTED',
-            null === $reference->value => 'NO_REFERENCE_INCOME',
+            null !== $evaluation['reason'] => $evaluation['reason'],
             'MIXED' === $policy->state => 'MIXED_METRIC_POLICIES',
-            null === $metric['value'] || MonthState::NO_DATA === $item->state => 'MISSING_MONTH_VALUE',
             $archived => 'REFERENCE_ARCHIVED',
             default => null,
         };
-        $gap = !self::blocksCalculation($reason) && null !== $actual && null !== $target ? ExactDecimal::subtractForResponse($actual, $target) : null;
-        $status = self::blocksCalculation($reason) || null === $target || null === $actual
-            ? 'NOT_CALCULABLE'
-            : self::rollingStatus($goal->direction(), $actual, $target);
+        $actual = $evaluation['actual'];
+        $target = $evaluation['target'];
+        $calculable = !self::blocksCalculation($reason) && null !== $actual && null !== $target;
+        $gap = $calculable ? ExactDecimal::subtractForResponse($actual, $target) : null;
         $quality = match (true) {
-            'MIXED' === $policy->state => 'PARTIAL',
-            MonthState::NO_DATA === $item->state => 'PARTIAL',
-            MonthState::PROVISIONAL === $item->state => 'PROVISIONAL',
+            'MIXED' === $policy->state, MonthState::NO_DATA->value === $evaluation['state'] => 'PARTIAL',
+            MonthState::PROVISIONAL->value === $evaluation['state'] => 'PROVISIONAL',
             default => 'COMPLETE',
         };
 
         return new GoalStatusView(
             $goal->id,
             $selected->key(),
-            $goal->kind->value,
+            $goal->periodicity->value,
             $goal->direction()->value,
+            $version?->valueType->value,
             $version?->versionNo,
             null,
-            MonthState::PROVISIONAL === $item->state,
+            MonthState::PROVISIONAL->value === $evaluation['state'],
             $policy,
             $target,
             null,
@@ -380,16 +402,60 @@ final readonly class ReadGoalStatus
             $gap,
             null,
             null,
-            $status,
+            $calculable ? self::rollingStatus($goal->direction(), $actual, $target) : 'NOT_CALCULABLE',
             null,
             null,
             $reason,
             $quality,
-            [],
+            $rows,
             $version?->ratio?->toString(),
-            $reference,
+            GoalValueType::ROLLING_INCOME_SHARE === $version?->valueType ? $evaluation['reference'] : null,
             $actual,
         );
+    }
+
+    /**
+     * The target and the figure of one month of a monthly goal.
+     *
+     * @param list<string> $categoryIds
+     *
+     * @return array{version: ?GoalVersion, state: string, target: ?string, actual: ?string, reason: ?string, policyVersion: ?int, policyVersions: list<int>, reference: ?ReferenceIncomeView}
+     */
+    private function evaluateMonth(Goal $goal, ?GoalVersion $version, CalendarMonth $month, array $categoryIds, GoalStatusInputs $inputs): array
+    {
+        $item = $inputs->months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
+        $metric = $this->metric($goal, $item, $categoryIds, $inputs);
+        $policyVersions = null === $item->figures?->policyVersion ? [] : [$item->figures->policyVersion];
+        $result = ['version' => $version, 'state' => $item->state->value, 'target' => null, 'actual' => $metric['value']?->toString(), 'reason' => null, 'policyVersion' => $item->figures?->policyVersion, 'policyVersions' => $policyVersions, 'reference' => null];
+        if (null === $version) {
+            return $result;
+        }
+        $ratio = $version->ratio;
+        switch ($version->valueType) {
+            case GoalValueType::AMOUNT:
+                $result['target'] = $version->targetAmount?->toString();
+                break;
+            case GoalValueType::RATE:
+                $result['target'] = $ratio?->toString();
+                break;
+            case GoalValueType::INCOME_SHARE:
+                $income = $item->figures?->cells['cashIncome'] ?? null;
+                $result['target'] = null !== $income?->value && null !== $ratio ? ExactDecimal::multiplyForResponse(DecimalValue::fromString($income->value), $ratio) : null;
+                $result['reason'] = null === $result['target'] ? ($income->reason ?? 'MISSING_CASH_INCOME') : null;
+                break;
+            case GoalValueType::ROLLING_INCOME_SHARE:
+                $reference = ReadReferenceIncome::fromMonths($month, array_values($inputs->months));
+                $result['reference'] = $reference;
+                $result['policyVersions'] = [...$policyVersions, ...$reference->metricPolicyVersions];
+                $result['target'] = null !== $reference->value && null !== $ratio ? ExactDecimal::multiplyForResponse($reference->value, $ratio) : null;
+                $result['reason'] = null === $reference->value ? 'NO_REFERENCE_INCOME' : null;
+                break;
+        }
+        if (null === $result['reason'] && (null === $metric['value'] || MonthState::NO_DATA === $item->state)) {
+            $result['reason'] = 'MISSING_MONTH_VALUE';
+        }
+
+        return $result;
     }
 
     /**
@@ -446,6 +512,8 @@ final readonly class ReadGoalStatus
         $cell = match ($goal->metric) {
             GoalMetric::NET_SAVINGS_TRANSFERS => 'netSavingsTransfers',
             GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
+            GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
+            GoalMetric::NET_SAVINGS_RATE => 'netSavingsRate',
             GoalMetric::AXIS_SPENDING => 'axis:'.$goal->scopeRef,
         };
         $metric = $month->figures?->cells[$cell] ?? null;

@@ -136,32 +136,29 @@ describe('AuthenticatedApp route table', () => {
     }
   });
 
-  it('routes a bare UUID under /budget to the plan detail redirect, distinct from a month key', () => {
+  it('sends a bare UUID under /budget and the former plan pages to the goals redirect, distinct from a month key', () => {
     const uuidMatch = matchAuthenticatedRoute(
       routes,
       '/budget/00000000-0000-7000-8000-000000000001',
     );
     const monthMatch = matchAuthenticatedRoute(routes, '/budget/2026/03');
 
-    expect(uuidMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000001');
+    expect(uuidMatch?.route.redirect).toBe(true);
     expect(monthMatch?.match[1]).toBe('2026');
     expect(monthMatch?.match[2]).toBe('03');
-    // The two entries are distinct routes even though both live under /budget/:x.
     expect(uuidMatch?.route).not.toBe(monthMatch?.route);
+    for (const path of ['/budget/plans', '/budget/plans/00000000-0000-7000-8000-000000000003']) {
+      expect(matchAuthenticatedRoute(routes, path)?.route.redirect, path).toBe(true);
+    }
   });
 
-  it('captures the account id and the plan id from their parameterized routes', () => {
+  it('captures the account id from its parameterized route', () => {
     const accountMatch = matchAuthenticatedRoute(
       routes,
       '/accounts/00000000-0000-7000-8000-000000000002',
     );
-    const planMatch = matchAuthenticatedRoute(
-      routes,
-      '/budget/plans/00000000-0000-7000-8000-000000000003',
-    );
 
     expect(accountMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000002');
-    expect(planMatch?.match[1]).toBe('00000000-0000-7000-8000-000000000003');
   });
 
   describe('page chunks', () => {
@@ -246,6 +243,14 @@ describe('AuthenticatedApp route table', () => {
       ['/budget/2026/7', '/budget/2026/07'],
     ])('replaces %s with %s', (path, expected) => {
       expect(redirectTarget(path)).toBe(expected);
+    });
+
+    it.each([
+      '/budget/plans',
+      '/budget/plans/00000000-0000-7000-8000-000000000003',
+      '/budget/00000000-0000-7000-8000-000000000001',
+    ])('replaces %s with the goals page', (path) => {
+      expect(redirectTarget(path)).toBe('/goals');
     });
 
     it('sends the bare /budget to the current month', () => {

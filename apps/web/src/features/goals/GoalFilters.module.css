@@ -33,9 +33,25 @@
   font-weight: var(--font-weight-semibold);
 }
 
-.fields input:not([type='checkbox']) {
-  width: 8rem;
+.fields input:not([type='checkbox']):not([type='radio']),
+.fields select {
+  width: 12rem;
   font-weight: var(--font-weight-normal);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  border: var(--border-none);
+}
+
+.choices legend {
+  margin-bottom: var(--spacing-1-5);
+  padding: var(--spacing-none);
+  font-weight: var(--font-weight-semibold);
 }
 
 .fields .check {

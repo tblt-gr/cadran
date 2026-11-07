@@ -30,7 +30,6 @@ describe('navigationItems', () => {
     ['/investments', '/investments'],
     ['/investments/instruments', '/investments'],
     ['/life-insurance/contract-id', '/accounts'],
-    ['/budget/plans/plan-id', '/budget'],
     ['/budget/2026', '/budget'],
     ['/budget/2026/10', '/budget'],
     ['/transactions', '/budget'],

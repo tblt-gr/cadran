@@ -502,11 +502,11 @@ describe('MonthlyBudgetPage', () => {
   });
 
   describe('monthly closure menu', () => {
-    it('lists the transactions entries then the closure in the overflow menu after the plans link', async () => {
+    it('lists the transactions entries then the closure in the overflow menu after the goals link', async () => {
       renderPage();
       await loaded();
 
-      const header = screen.getByRole('link', { name: 'Gérer les plans et objectifs' });
+      const header = screen.getByRole('link', { name: 'Objectifs' });
       const trigger = screen.getByRole('button', { name: 'Autres actions' });
       expect(
         header.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -747,7 +747,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyLedger.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('link', { name: 'Gérer les plans et objectifs' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Objectifs' }).getAttribute('href')).toBe('/goals');
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 

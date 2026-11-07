@@ -18,7 +18,6 @@ const UPCOMING_QUERY_FAMILIES = [
   'monthly-ledger',
   'monthly-ledger-movements',
   'monthly-kpi-explanation',
-  'budget-comparisons',
   'budget-kpi-explanation',
   'summary',
 ];

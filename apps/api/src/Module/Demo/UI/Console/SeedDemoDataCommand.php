@@ -60,12 +60,12 @@ final class SeedDemoDataCommand extends Command
         }
 
         $io->success(sprintf(
-            'Seeded %d accounts, %d categories, %d transactions, %d transfers, %d budget plans; %d month(s) closed.',
+            'Seeded %d accounts, %d categories, %d transactions, %d transfers, %d goals; %d month(s) closed.',
             $summary->accounts,
             $summary->categories,
             $summary->transactions,
             $summary->transfers,
-            $summary->budgetPlans,
+            $summary->goals,
             $summary->closedMonths,
         ));
 

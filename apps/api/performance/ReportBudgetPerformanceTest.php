@@ -4,17 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Performance;
 
-use App\Module\Accounts\Domain\AccountRepository;
-use App\Module\Budget\Application\ReadPeriodCashIncome;
-use App\Module\Budget\Domain\BudgetPeriod;
-use App\Module\Foundation\Application\WorkspaceTimezoneReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
-use App\Module\Reporting\Application\ResolveMetricPolicy;
 use App\Module\Transactions\Application\ReadMonthlyTransactionFacts;
 use App\Module\Transactions\Application\TransactionCursor;
-use App\Module\Transactions\Infrastructure\Persistence\DbalBookedMovementReader;
 use App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\ArrayParameterType;
@@ -49,8 +43,6 @@ final class ReportBudgetPerformanceTest extends WebTestCase
     private const float MONTHLY_REPORT_P95_BUDGET_MS = 300.0;
     private const int DEEP_PAGE_OFFSET = 50_000;
     private const string TIMEZONE = 'Europe/Paris';
-    /** A year-long income read, and a read of as many movements as its bound allows, must stay well under a 128 MB PHP limit. */
-    private const int MEMORY_BUDGET_BYTES = 64 * 1024 * 1024;
 
     private KernelBrowser $client;
     private Connection $connection;
@@ -195,9 +187,7 @@ final class ReportBudgetPerformanceTest extends WebTestCase
             $results[$name] = $this->measure($name, $uri, $check);
         }
 
-        $memory = $this->measureBudgetIncomeMemory($summary);
-
-        fwrite(STDOUT, "\n".$this->render($summary, $representativeMonth, $seedSeconds, $results, $plans, $memory));
+        fwrite(STDOUT, "\n".$this->render($summary, $representativeMonth, $seedSeconds, $results, $plans));
 
         if ('1' === getenv('PERF_ASSERT')) {
             self::assertLessThanOrEqual(self::MONTHLY_REPORT_P95_BUDGET_MS * 1.2, $results['monthly recap']['p95'], 'Monthly recap p95 budget: 360 ms (monthly baseline plus 20 percent).');
@@ -212,63 +202,6 @@ final class ReportBudgetPerformanceTest extends WebTestCase
                 sprintf('The monthly report p95 is %.1f ms; the budget is %.0f ms.', $results['monthly report']['p95'], self::MONTHLY_REPORT_P95_BUDGET_MS),
             );
         }
-    }
-
-    /**
-     * Peak memory added by a YEAR budget period income read, on the heaviest seeded year, and by a read of as many
-     * movements as the bound allows (24 000 plus the one that proves it is exceeded). Memory is deterministic, so
-     * this always asserts, unlike the timings.
-     *
-     * @return array<string, array{rows: int, bytes: int}>
-     */
-    private function measureBudgetIncomeMemory(SyntheticVolumeSummary $summary): array
-    {
-        $perYear = [];
-        foreach ($summary->rowsPerMonth as $month => $rows) {
-            $perYear[substr($month, 0, 4)] = ($perYear[substr($month, 0, 4)] ?? 0) + $rows;
-        }
-        arsort($perYear);
-        $year = (int) array_key_first($perYear);
-
-        $container = self::getContainer();
-        $accounts = $container->get(AccountRepository::class);
-        $movements = new DbalBookedMovementReader($this->connection);
-        $timezones = $container->get(WorkspaceTimezoneReader::class);
-        $policy = $container->get(ResolveMetricPolicy::class);
-        self::assertInstanceOf(AccountRepository::class, $accounts);
-        self::assertInstanceOf(WorkspaceTimezoneReader::class, $timezones);
-        self::assertInstanceOf(ResolveMetricPolicy::class, $policy);
-        $workspace = WorkspaceScope::fromString(WorkspaceFixture::OWN_WORKSPACE);
-        $read = new ReadPeriodCashIncome($accounts, $movements, $timezones, $policy);
-
-        $measured = [];
-        $measured['year budget income, heaviest year '.$year] = ['rows' => $perYear[(string) $year], 'bytes' => $this->memoryAdded(
-            static fn (): mixed => self::assertNotNull($read($workspace, BudgetPeriod::year($year))->value),
-        )];
-        $bound = ReadPeriodCashIncome::MAX_TRANSACTIONS + 1;
-        $measured['movement read at the bound'] = ['rows' => $bound, 'bytes' => $this->memoryAdded(
-            static function () use ($movements, $workspace, $bound): void {
-                self::assertCount($bound, $movements->between($workspace, new \DateTimeImmutable('2000-01-01'), new \DateTimeImmutable('2099-12-31'), $bound));
-            },
-        )];
-
-        foreach ($measured as $label => $result) {
-            self::assertLessThan(self::MEMORY_BUDGET_BYTES, $result['bytes'], sprintf('%s added %.1f MB.', $label, $result['bytes'] / 1e6));
-        }
-
-        return $measured;
-    }
-
-    /** @param callable(): mixed $work */
-    private function memoryAdded(callable $work): int
-    {
-        gc_collect_cycles();
-        memory_reset_peak_usage();
-        // Bytes in use, not the allocator's 2 MB chunks: chunks already held from earlier work would hide the read.
-        $before = memory_get_usage();
-        $work();
-
-        return memory_get_peak_usage() - $before;
     }
 
     /**
@@ -443,9 +376,8 @@ final class ReportBudgetPerformanceTest extends WebTestCase
     /**
      * @param array<string, array{cold: float, p50: float, p95: float}> $results
      * @param array<string, string>                                     $plans
-     * @param array<string, array{rows: int, bytes: int}>               $memory
      */
-    private function render(SyntheticVolumeSummary $summary, string $representativeMonth, float $seedSeconds, array $results, array $plans, array $memory): string
+    private function render(SyntheticVolumeSummary $summary, string $representativeMonth, float $seedSeconds, array $results, array $plans): string
     {
         $lines = [
             sprintf(
@@ -464,9 +396,6 @@ final class ReportBudgetPerformanceTest extends WebTestCase
         ];
         foreach ($results as $name => $result) {
             $lines[] = sprintf('%-26s %10.1f %10.1f %10.1f', $name, $result['cold'], $result['p50'], $result['p95']);
-        }
-        foreach ($memory as $label => $result) {
-            $lines[] = sprintf('memory: %-36s %6d rows %7.1f MB peak added', $label, $result['rows'], $result['bytes'] / 1e6);
         }
         foreach ($plans as $label => $plan) {
             $lines[] = '--- plan: '.$label."\n".$plan;

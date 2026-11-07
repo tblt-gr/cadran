@@ -123,6 +123,20 @@ describe('GoalHistoryModal', () => {
     expect(screen.getByText(/35,00 %/)).toBeTruthy();
   });
 
+  it('names the value types of a changed value type instead of printing their codes', () => {
+    const changed = [
+      {
+        ...items[0]!,
+        changes: [{ field: 'valueType' as const, before: 'AMOUNT', after: 'ROLLING_INCOME_SHARE' }],
+      },
+    ];
+    render(<GoalHistoryModal assetCode="EUR" close={vi.fn()} items={changed} />);
+    const changes = screen.getByRole('list', { name: 'Modifications de la version 2' });
+    expect(within(changes).getByText('Type de valeur')).toBeTruthy();
+    expect(within(changes).getByText(/Montant/)).toBeTruthy();
+    expect(within(changes).getByText(/Part du revenu moyen sur 12 mois/)).toBeTruthy();
+  });
+
   it('explains the empty history state', () => {
     render(<GoalHistoryModal assetCode="EUR" close={vi.fn()} items={[]} />);
     expect(screen.getByText('Aucune version n’est disponible.')).toBeTruthy();

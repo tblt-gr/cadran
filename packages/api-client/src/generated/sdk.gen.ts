@@ -2,7 +2,7 @@
 
 import type { Client, ClientMeta, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ActivateBudgetPlanData, ActivateBudgetPlanErrors, ActivateBudgetPlanResponses, ActivateMetricPolicyData, ActivateMetricPolicyErrors, ActivateMetricPolicyResponses, AddLifeInsuranceFeeTermsData, AddLifeInsuranceFeeTermsErrors, AddLifeInsuranceFeeTermsResponses, AddProductModelRuleData, AddProductModelRuleErrors, AddProductModelRuleResponses, ApplyCategorizationRulesData, ApplyCategorizationRulesErrors, ApplyCategorizationRulesResponses, ArchiveAccountData, ArchiveAccountErrors, ArchiveAccountGroupData, ArchiveAccountGroupErrors, ArchiveAccountGroupResponses, ArchiveAccountResponses, ArchiveCategorizationRuleData, ArchiveCategorizationRuleErrors, ArchiveCategorizationRuleResponses, ArchiveCategoryData, ArchiveCategoryErrors, ArchiveCategoryResponses, ArchiveProductModelData, ArchiveProductModelErrors, ArchiveProductModelResponses, ArchiveRecurrenceData, ArchiveRecurrenceErrors, ArchiveRecurrenceResponses, BulkEditTransactionsData, BulkEditTransactionsErrors, BulkEditTransactionsResponses, ChangeOwnerPasswordData, ChangeOwnerPasswordErrors, ChangeOwnerPasswordResponses, CloseBudgetPlanData, CloseBudgetPlanErrors, CloseBudgetPlanResponses, CloseGoalData, CloseGoalErrors, CloseGoalResponses, ClosePeriodData, ClosePeriodErrors, ClosePeriodResponses, CloseSessionData, CloseSessionErrors, CloseSessionResponses, ConfirmRecurrenceData, ConfirmRecurrenceErrors, ConfirmRecurrenceResponses, CorrectAccountBalanceData, CorrectAccountBalanceErrors, CorrectAccountBalanceResponses, CorrectPortfolioOperationData, CorrectPortfolioOperationErrors, CorrectPortfolioOperationResponses, CountTransactionsData, CountTransactionsErrors, CountTransactionsResponses, CreateAccountData, CreateAccountErrors, CreateAccountGroupData, CreateAccountGroupErrors, CreateAccountGroupResponses, CreateAccountResponses, CreateBudgetPlanData, CreateBudgetPlanErrors, CreateBudgetPlanResponses, CreateBudgetTargetData, CreateBudgetTargetErrors, CreateBudgetTargetResponses, CreateCategorizationRuleData, CreateCategorizationRuleErrors, CreateCategorizationRuleResponses, CreateCategoryData, CreateCategoryErrors, CreateCategoryResponses, CreateGoalData, CreateGoalErrors, CreateGoalResponses, CreateInstrumentData, CreateInstrumentErrors, CreateInstrumentResponses, CreateMetricPolicyData, CreateMetricPolicyErrors, CreateMetricPolicyResponses, CreateProductModelData, CreateProductModelErrors, CreateProductModelFromProductData, CreateProductModelFromProductErrors, CreateProductModelFromProductResponses, CreateProductModelResponses, CreateTransactionData, CreateTransactionErrors, CreateTransactionRefundData, CreateTransactionRefundErrors, CreateTransactionRefundResponses, CreateTransactionResponses, CreateTransferData, CreateTransferErrors, CreateTransferResponses, DeactivateInstrumentData, DeactivateInstrumentErrors, DeactivateInstrumentResponses, DefineInitialPasswordData, DefineInitialPasswordErrors, DefineInitialPasswordResponses, DeleteBudgetTargetData, DeleteBudgetTargetErrors, DeleteBudgetTargetResponses, DetectRecurrenceCandidatesData, DetectRecurrenceCandidatesErrors, DetectRecurrenceCandidatesResponses, DismissRecurrenceCandidateData, DismissRecurrenceCandidateErrors, DismissRecurrenceCandidateResponses, DuplicateProductModelData, DuplicateProductModelErrors, DuplicateProductModelResponses, DuplicateTransactionData, DuplicateTransactionErrors, DuplicateTransactionResponses, ExplainAnnualReportColumnData, ExplainAnnualReportColumnErrors, ExplainAnnualReportColumnResponses, ExplainBudgetComparisonData, ExplainBudgetComparisonErrors, ExplainBudgetComparisonResponses, ExplainMonthlyKpiData, ExplainMonthlyKpiErrors, ExplainMonthlyKpiResponses, GetFoundationStatusData, GetFoundationStatusErrors, GetFoundationStatusResponses, GetOwnerProfileData, GetOwnerProfileErrors, GetOwnerProfileResponses, GetSessionData, GetSessionErrors, GetSessionResponses, GetTransactionData, GetTransactionErrors, GetTransactionRefundableData, GetTransactionRefundableErrors, GetTransactionRefundableResponses, GetTransactionResponses, GetTransferData, GetTransferErrors, GetTransferResponses, ListAccountBalancesData, ListAccountBalancesErrors, ListAccountBalancesResponses, ListAccountGroupsData, ListAccountGroupsErrors, ListAccountGroupsResponses, ListAccountRuleOverridesData, ListAccountRuleOverridesErrors, ListAccountRuleOverridesResponses, ListAccountsData, ListAccountsErrors, ListAccountsResponses, ListAssetsData, ListAssetsErrors, ListAssetsResponses, ListAuditEventsData, ListAuditEventsErrors, ListAuditEventsResponses, ListBudgetPlansData, ListBudgetPlansErrors, ListBudgetPlansResponses, ListCategoriesData, ListCategoriesErrors, ListCategoriesResponses, ListCategorizationRulesData, ListCategorizationRulesErrors, ListCategorizationRulesResponses, ListGoalsData, ListGoalsErrors, ListGoalsResponses, ListGoalVersionsData, ListGoalVersionsErrors, ListGoalVersionsResponses, ListInstrumentsData, ListInstrumentsErrors, ListInstrumentsResponses, ListMetricPoliciesData, ListMetricPoliciesErrors, ListMetricPoliciesResponses, ListPeriodClosuresData, ListPeriodClosuresErrors, ListPeriodClosuresResponses, ListPortfolioOperationsData, ListPortfolioOperationsErrors, ListPortfolioOperationsResponses, ListPortfolioPositionsData, ListPortfolioPositionsErrors, ListPortfolioPositionsResponses, ListPortfoliosData, ListPortfoliosErrors, ListPortfoliosResponses, ListPortfolioTransferCandidatesData, ListPortfolioTransferCandidatesErrors, ListPortfolioTransferCandidatesResponses, ListPortfolioValuationRemindersData, ListPortfolioValuationRemindersErrors, ListPortfolioValuationRemindersResponses, ListPortfolioValuationsData, ListPortfolioValuationsErrors, ListPortfolioValuationsResponses, ListProductModelsData, ListProductModelsErrors, ListProductModelsResponses, ListProductsData, ListProductsErrors, ListProductsResponses, ListRecurrenceOccurrencesData, ListRecurrenceOccurrencesErrors, ListRecurrenceOccurrencesResponses, ListRecurrencesData, ListRecurrencesErrors, ListRecurrencesResponses, ListTransactionsData, ListTransactionsErrors, ListTransactionsResponses, MaterializeRecurrencesData, MaterializeRecurrencesErrors, MaterializeRecurrencesResponses, MergeCategoryData, MergeCategoryErrors, MergeCategoryResponses, MoveAccountData, MoveAccountErrors, MoveAccountGroupData, MoveAccountGroupErrors, MoveAccountGroupResponses, MoveAccountResponses, MoveCategoryData, MoveCategoryErrors, MoveCategoryResponses, OpenSessionData, OpenSessionErrors, OpenSessionResponses, PreviewCategorizationRulesData, PreviewCategorizationRulesErrors, PreviewCategorizationRulesResponses, PreviewCategoryImpactData, PreviewCategoryImpactErrors, PreviewCategoryImpactResponses, PreviewGoalCorrectionData, PreviewGoalCorrectionErrors, PreviewGoalCorrectionResponses, PreviewGoalScheduleData, PreviewGoalScheduleErrors, PreviewGoalScheduleResponses, PreviewPortfolioOperationData, PreviewPortfolioOperationErrors, PreviewPortfolioOperationResponses, PreviewPortfolioTakeoverData, PreviewPortfolioTakeoverErrors, PreviewPortfolioTakeoverResponses, ReactivateInstrumentData, ReactivateInstrumentErrors, ReactivateInstrumentResponses, ReadAccountData, ReadAccountErrors, ReadAccountGroupCompositionData, ReadAccountGroupCompositionErrors, ReadAccountGroupCompositionResponses, ReadAccountOverviewCompositionData, ReadAccountOverviewCompositionErrors, ReadAccountOverviewCompositionResponses, ReadAccountOverviewData, ReadAccountOverviewErrors, ReadAccountOverviewResponses, ReadAccountOverviewRowsData, ReadAccountOverviewRowsErrors, ReadAccountOverviewRowsResponses, ReadAccountReconciliationData, ReadAccountReconciliationErrors, ReadAccountReconciliationResponses, ReadAccountResponses, ReadAccountRulesData, ReadAccountRulesErrors, ReadAccountRulesResponses, ReadAccountValuationData, ReadAccountValuationErrors, ReadAccountValuationHistoryData, ReadAccountValuationHistoryErrors, ReadAccountValuationHistoryResponses, ReadAccountValuationResponses, ReadAnnualReportData, ReadAnnualReportErrors, ReadAnnualReportPreferencesData, ReadAnnualReportPreferencesErrors, ReadAnnualReportPreferencesResponses, ReadAnnualReportResponses, ReadAssetData, ReadAssetErrors, ReadAssetResponses, ReadAuditEventData, ReadAuditEventErrors, ReadAuditEventResponses, ReadBudgetComparisonsData, ReadBudgetComparisonsErrors, ReadBudgetComparisonsResponses, ReadBudgetPlanData, ReadBudgetPlanErrors, ReadBudgetPlanResponses, ReadEmergencyFundCoverageData, ReadEmergencyFundCoverageErrors, ReadEmergencyFundCoverageResponses, ReadEmergencyFundPolicyData, ReadEmergencyFundPolicyErrors, ReadEmergencyFundPolicyResponses, ReadGoalData, ReadGoalErrors, ReadGoalResponses, ReadGoalStatusData, ReadGoalStatusErrors, ReadGoalStatusResponses, ReadHoldingsData, ReadHoldingsErrors, ReadHoldingsResponses, ReadInstrumentData, ReadInstrumentErrors, ReadInstrumentHoldingData, ReadInstrumentHoldingErrors, ReadInstrumentHoldingResponses, ReadInstrumentResponses, ReadInterfacePreferencesData, ReadInterfacePreferencesErrors, ReadInterfacePreferencesResponses, ReadLifeInsuranceContractData, ReadLifeInsuranceContractErrors, ReadLifeInsuranceContractResponses, ReadLifeInsuranceIncomeAndFeesData, ReadLifeInsuranceIncomeAndFeesErrors, ReadLifeInsuranceIncomeAndFeesResponses, ReadLifeInsuranceSummaryData, ReadLifeInsuranceSummaryErrors, ReadLifeInsuranceSummaryResponses, ReadMonthlyBoundsData, ReadMonthlyBoundsErrors, ReadMonthlyBoundsResponses, ReadMonthlyLedgerData, ReadMonthlyLedgerErrors, ReadMonthlyLedgerMovementsData, ReadMonthlyLedgerMovementsErrors, ReadMonthlyLedgerMovementsResponses, ReadMonthlyLedgerResponses, ReadMonthlyProjectionData, ReadMonthlyProjectionErrors, ReadMonthlyProjectionResponses, ReadMonthlyRecapData, ReadMonthlyRecapErrors, ReadMonthlyRecapPreferencesData, ReadMonthlyRecapPreferencesErrors, ReadMonthlyRecapPreferencesResponses, ReadMonthlyRecapResponses, ReadMultiYearReportData, ReadMultiYearReportErrors, ReadMultiYearReportResponses, ReadNetWorthData, ReadNetWorthErrors, ReadNetWorthHistoryData, ReadNetWorthHistoryErrors, ReadNetWorthHistoryResponses, ReadNetWorthResponses, ReadPeriodStatusData, ReadPeriodStatusErrors, ReadPeriodStatusResponses, ReadPortfolioAllocationData, ReadPortfolioAllocationErrors, ReadPortfolioAllocationResponses, ReadPortfolioAnnualPerformanceData, ReadPortfolioAnnualPerformanceErrors, ReadPortfolioAnnualPerformanceResponses, ReadPortfolioCashData, ReadPortfolioCashErrors, ReadPortfolioCashResponses, ReadPortfolioOperationData, ReadPortfolioOperationErrors, ReadPortfolioOperationResponses, ReadPortfolioPerformanceData, ReadPortfolioPerformanceErrors, ReadPortfolioPerformanceResponses, ReadPortfolioPositionLotsData, ReadPortfolioPositionLotsErrors, ReadPortfolioPositionLotsResponses, ReadPortfolioSummaryData, ReadPortfolioSummaryErrors, ReadPortfolioSummaryResponses, ReadPortfolioTakeoverData, ReadPortfolioTakeoverErrors, ReadPortfolioTakeoverResponses, ReadPortfolioValuationData, ReadPortfolioValuationDraftData, ReadPortfolioValuationDraftErrors, ReadPortfolioValuationDraftResponses, ReadPortfolioValuationErrors, ReadPortfolioValuationHistoryData, ReadPortfolioValuationHistoryErrors, ReadPortfolioValuationHistoryResponses, ReadPortfolioValuationResponses, ReadProductData, ReadProductErrors, ReadProductModelData, ReadProductModelErrors, ReadProductModelResponses, ReadProductResponses, ReadTransactionFacetsData, ReadTransactionFacetsErrors, ReadTransactionFacetsResponses, ReconcileTransactionData, ReconcileTransactionErrors, ReconcileTransactionResponses, RecordAccountBalanceData, RecordAccountBalanceErrors, RecordAccountBalanceResponses, RecordAccountRuleOverrideData, RecordAccountRuleOverrideErrors, RecordAccountRuleOverrideResponses, RecordEuroFundRateData, RecordEuroFundRateErrors, RecordEuroFundRateResponses, RecordPortfolioOperationData, RecordPortfolioOperationErrors, RecordPortfolioOperationResponses, RecordPortfolioTakeoverData, RecordPortfolioTakeoverErrors, RecordPortfolioTakeoverResponses, RecordPortfolioValuationData, RecordPortfolioValuationErrors, RecordPortfolioValuationResponses, RefreshRecurrenceHorizonData, RefreshRecurrenceHorizonErrors, RefreshRecurrenceHorizonResponses, RemoveEuroFundRateData, RemoveEuroFundRateErrors, RemoveEuroFundRateResponses, RemoveLifeInsuranceFeeTermsData, RemoveLifeInsuranceFeeTermsErrors, RemoveLifeInsuranceFeeTermsResponses, ReopenPeriodData, ReopenPeriodErrors, ReopenPeriodResponses, ReorderPortfolioOperationsData, ReorderPortfolioOperationsErrors, ReorderPortfolioOperationsResponses, ReplaceCategoryData, ReplaceCategoryErrors, ReplaceCategoryResponses, ReplaceTransactionSplitsData, ReplaceTransactionSplitsErrors, ReplaceTransactionSplitsResponses, ResolveAccountReconciliationData, ResolveAccountReconciliationErrors, ResolveAccountReconciliationResponses, RestoreRecurrenceCandidateData, RestoreRecurrenceCandidateErrors, RestoreRecurrenceCandidateResponses, RestoreRecurrenceData, RestoreRecurrenceErrors, RestoreRecurrenceResponses, SaveAnnualReportPreferencesData, SaveAnnualReportPreferencesErrors, SaveAnnualReportPreferencesResponses, SaveInterfacePreferencesData, SaveInterfacePreferencesErrors, SaveInterfacePreferencesResponses, SaveLifeInsuranceContractData, SaveLifeInsuranceContractErrors, SaveLifeInsuranceContractResponses, SaveMonthlyRecapPreferencesData, SaveMonthlyRecapPreferencesErrors, SaveMonthlyRecapPreferencesResponses, UpdateAccountData, UpdateAccountErrors, UpdateAccountGroupData, UpdateAccountGroupErrors, UpdateAccountGroupResponses, UpdateAccountResponses, UpdateBudgetPlanData, UpdateBudgetPlanErrors, UpdateBudgetPlanResponses, UpdateBudgetTargetData, UpdateBudgetTargetErrors, UpdateBudgetTargetResponses, UpdateCategorizationRuleData, UpdateCategorizationRuleErrors, UpdateCategorizationRuleResponses, UpdateCategoryData, UpdateCategoryErrors, UpdateCategoryResponses, UpdateEmergencyFundPolicyData, UpdateEmergencyFundPolicyErrors, UpdateEmergencyFundPolicyResponses, UpdateGoalData, UpdateGoalErrors, UpdateGoalResponses, UpdateInstrumentData, UpdateInstrumentErrors, UpdateInstrumentResponses, UpdateOwnerProfileData, UpdateOwnerProfileErrors, UpdateOwnerProfileResponses, UpdateRecurrenceData, UpdateRecurrenceErrors, UpdateRecurrenceResponses, UpdateTransactionData, UpdateTransactionErrors, UpdateTransactionResponses, UpdateTransferData, UpdateTransferErrors, UpdateTransferResponses, VoidPortfolioOperationData, VoidPortfolioOperationErrors, VoidPortfolioOperationResponses, VoidTransactionData, VoidTransactionErrors, VoidTransactionResponses, VoidTransferData, VoidTransferErrors, VoidTransferResponses, WithdrawAccountBalanceData, WithdrawAccountBalanceErrors, WithdrawAccountBalanceResponses, WithdrawAccountRuleOverrideData, WithdrawAccountRuleOverrideErrors, WithdrawAccountRuleOverrideResponses, WithdrawPortfolioValuationData, WithdrawPortfolioValuationErrors, WithdrawPortfolioValuationResponses } from './types.gen';
+import type { ActivateMetricPolicyData, ActivateMetricPolicyErrors, ActivateMetricPolicyResponses, AddLifeInsuranceFeeTermsData, AddLifeInsuranceFeeTermsErrors, AddLifeInsuranceFeeTermsResponses, AddProductModelRuleData, AddProductModelRuleErrors, AddProductModelRuleResponses, ApplyCategorizationRulesData, ApplyCategorizationRulesErrors, ApplyCategorizationRulesResponses, ArchiveAccountData, ArchiveAccountErrors, ArchiveAccountGroupData, ArchiveAccountGroupErrors, ArchiveAccountGroupResponses, ArchiveAccountResponses, ArchiveCategorizationRuleData, ArchiveCategorizationRuleErrors, ArchiveCategorizationRuleResponses, ArchiveCategoryData, ArchiveCategoryErrors, ArchiveCategoryResponses, ArchiveProductModelData, ArchiveProductModelErrors, ArchiveProductModelResponses, ArchiveRecurrenceData, ArchiveRecurrenceErrors, ArchiveRecurrenceResponses, BulkEditTransactionsData, BulkEditTransactionsErrors, BulkEditTransactionsResponses, ChangeOwnerPasswordData, ChangeOwnerPasswordErrors, ChangeOwnerPasswordResponses, ClosePeriodData, ClosePeriodErrors, ClosePeriodResponses, CloseSessionData, CloseSessionErrors, CloseSessionResponses, ConfirmRecurrenceData, ConfirmRecurrenceErrors, ConfirmRecurrenceResponses, CorrectAccountBalanceData, CorrectAccountBalanceErrors, CorrectAccountBalanceResponses, CorrectPortfolioOperationData, CorrectPortfolioOperationErrors, CorrectPortfolioOperationResponses, CountTransactionsData, CountTransactionsErrors, CountTransactionsResponses, CreateAccountData, CreateAccountErrors, CreateAccountGroupData, CreateAccountGroupErrors, CreateAccountGroupResponses, CreateAccountResponses, CreateCategorizationRuleData, CreateCategorizationRuleErrors, CreateCategorizationRuleResponses, CreateCategoryData, CreateCategoryErrors, CreateCategoryResponses, CreateGoalData, CreateGoalErrors, CreateGoalResponses, CreateInstrumentData, CreateInstrumentErrors, CreateInstrumentResponses, CreateMetricPolicyData, CreateMetricPolicyErrors, CreateMetricPolicyResponses, CreateProductModelData, CreateProductModelErrors, CreateProductModelFromProductData, CreateProductModelFromProductErrors, CreateProductModelFromProductResponses, CreateProductModelResponses, CreateTransactionData, CreateTransactionErrors, CreateTransactionRefundData, CreateTransactionRefundErrors, CreateTransactionRefundResponses, CreateTransactionResponses, CreateTransferData, CreateTransferErrors, CreateTransferResponses, DeactivateInstrumentData, DeactivateInstrumentErrors, DeactivateInstrumentResponses, DefineInitialPasswordData, DefineInitialPasswordErrors, DefineInitialPasswordResponses, DetectRecurrenceCandidatesData, DetectRecurrenceCandidatesErrors, DetectRecurrenceCandidatesResponses, DismissRecurrenceCandidateData, DismissRecurrenceCandidateErrors, DismissRecurrenceCandidateResponses, DuplicateProductModelData, DuplicateProductModelErrors, DuplicateProductModelResponses, DuplicateTransactionData, DuplicateTransactionErrors, DuplicateTransactionResponses, ExplainAnnualReportColumnData, ExplainAnnualReportColumnErrors, ExplainAnnualReportColumnResponses, ExplainMonthlyKpiData, ExplainMonthlyKpiErrors, ExplainMonthlyKpiResponses, GetFoundationStatusData, GetFoundationStatusErrors, GetFoundationStatusResponses, GetOwnerProfileData, GetOwnerProfileErrors, GetOwnerProfileResponses, GetSessionData, GetSessionErrors, GetSessionResponses, GetTransactionData, GetTransactionErrors, GetTransactionRefundableData, GetTransactionRefundableErrors, GetTransactionRefundableResponses, GetTransactionResponses, GetTransferData, GetTransferErrors, GetTransferResponses, ListAccountBalancesData, ListAccountBalancesErrors, ListAccountBalancesResponses, ListAccountGroupsData, ListAccountGroupsErrors, ListAccountGroupsResponses, ListAccountRuleOverridesData, ListAccountRuleOverridesErrors, ListAccountRuleOverridesResponses, ListAccountsData, ListAccountsErrors, ListAccountsResponses, ListAssetsData, ListAssetsErrors, ListAssetsResponses, ListAuditEventsData, ListAuditEventsErrors, ListAuditEventsResponses, ListCategoriesData, ListCategoriesErrors, ListCategoriesResponses, ListCategorizationRulesData, ListCategorizationRulesErrors, ListCategorizationRulesResponses, ListGoalsData, ListGoalsErrors, ListGoalsResponses, ListGoalVersionsData, ListGoalVersionsErrors, ListGoalVersionsResponses, ListInstrumentsData, ListInstrumentsErrors, ListInstrumentsResponses, ListMetricPoliciesData, ListMetricPoliciesErrors, ListMetricPoliciesResponses, ListPeriodClosuresData, ListPeriodClosuresErrors, ListPeriodClosuresResponses, ListPortfolioOperationsData, ListPortfolioOperationsErrors, ListPortfolioOperationsResponses, ListPortfolioPositionsData, ListPortfolioPositionsErrors, ListPortfolioPositionsResponses, ListPortfoliosData, ListPortfoliosErrors, ListPortfoliosResponses, ListPortfolioTransferCandidatesData, ListPortfolioTransferCandidatesErrors, ListPortfolioTransferCandidatesResponses, ListPortfolioValuationRemindersData, ListPortfolioValuationRemindersErrors, ListPortfolioValuationRemindersResponses, ListPortfolioValuationsData, ListPortfolioValuationsErrors, ListPortfolioValuationsResponses, ListProductModelsData, ListProductModelsErrors, ListProductModelsResponses, ListProductsData, ListProductsErrors, ListProductsResponses, ListRecurrenceOccurrencesData, ListRecurrenceOccurrencesErrors, ListRecurrenceOccurrencesResponses, ListRecurrencesData, ListRecurrencesErrors, ListRecurrencesResponses, ListTransactionsData, ListTransactionsErrors, ListTransactionsResponses, MaterializeRecurrencesData, MaterializeRecurrencesErrors, MaterializeRecurrencesResponses, MergeCategoryData, MergeCategoryErrors, MergeCategoryResponses, MoveAccountData, MoveAccountErrors, MoveAccountGroupData, MoveAccountGroupErrors, MoveAccountGroupResponses, MoveAccountResponses, MoveCategoryData, MoveCategoryErrors, MoveCategoryResponses, OpenSessionData, OpenSessionErrors, OpenSessionResponses, PreviewCategorizationRulesData, PreviewCategorizationRulesErrors, PreviewCategorizationRulesResponses, PreviewCategoryImpactData, PreviewCategoryImpactErrors, PreviewCategoryImpactResponses, PreviewGoalCorrectionData, PreviewGoalCorrectionErrors, PreviewGoalCorrectionResponses, PreviewGoalScheduleData, PreviewGoalScheduleErrors, PreviewGoalScheduleResponses, PreviewPortfolioOperationData, PreviewPortfolioOperationErrors, PreviewPortfolioOperationResponses, PreviewPortfolioTakeoverData, PreviewPortfolioTakeoverErrors, PreviewPortfolioTakeoverResponses, ReactivateInstrumentData, ReactivateInstrumentErrors, ReactivateInstrumentResponses, ReadAccountData, ReadAccountErrors, ReadAccountGroupCompositionData, ReadAccountGroupCompositionErrors, ReadAccountGroupCompositionResponses, ReadAccountOverviewCompositionData, ReadAccountOverviewCompositionErrors, ReadAccountOverviewCompositionResponses, ReadAccountOverviewData, ReadAccountOverviewErrors, ReadAccountOverviewResponses, ReadAccountOverviewRowsData, ReadAccountOverviewRowsErrors, ReadAccountOverviewRowsResponses, ReadAccountReconciliationData, ReadAccountReconciliationErrors, ReadAccountReconciliationResponses, ReadAccountResponses, ReadAccountRulesData, ReadAccountRulesErrors, ReadAccountRulesResponses, ReadAccountValuationData, ReadAccountValuationErrors, ReadAccountValuationHistoryData, ReadAccountValuationHistoryErrors, ReadAccountValuationHistoryResponses, ReadAccountValuationResponses, ReadAnnualReportData, ReadAnnualReportErrors, ReadAnnualReportPreferencesData, ReadAnnualReportPreferencesErrors, ReadAnnualReportPreferencesResponses, ReadAnnualReportResponses, ReadAssetData, ReadAssetErrors, ReadAssetResponses, ReadAuditEventData, ReadAuditEventErrors, ReadAuditEventResponses, ReadEmergencyFundCoverageData, ReadEmergencyFundCoverageErrors, ReadEmergencyFundCoverageResponses, ReadEmergencyFundPolicyData, ReadEmergencyFundPolicyErrors, ReadEmergencyFundPolicyResponses, ReadGoalData, ReadGoalErrors, ReadGoalResponses, ReadGoalStatusData, ReadGoalStatusErrors, ReadGoalStatusResponses, ReadHoldingsData, ReadHoldingsErrors, ReadHoldingsResponses, ReadInstrumentData, ReadInstrumentErrors, ReadInstrumentHoldingData, ReadInstrumentHoldingErrors, ReadInstrumentHoldingResponses, ReadInstrumentResponses, ReadInterfacePreferencesData, ReadInterfacePreferencesErrors, ReadInterfacePreferencesResponses, ReadLifeInsuranceContractData, ReadLifeInsuranceContractErrors, ReadLifeInsuranceContractResponses, ReadLifeInsuranceIncomeAndFeesData, ReadLifeInsuranceIncomeAndFeesErrors, ReadLifeInsuranceIncomeAndFeesResponses, ReadLifeInsuranceSummaryData, ReadLifeInsuranceSummaryErrors, ReadLifeInsuranceSummaryResponses, ReadMonthlyBoundsData, ReadMonthlyBoundsErrors, ReadMonthlyBoundsResponses, ReadMonthlyLedgerData, ReadMonthlyLedgerErrors, ReadMonthlyLedgerMovementsData, ReadMonthlyLedgerMovementsErrors, ReadMonthlyLedgerMovementsResponses, ReadMonthlyLedgerResponses, ReadMonthlyProjectionData, ReadMonthlyProjectionErrors, ReadMonthlyProjectionResponses, ReadMonthlyRecapData, ReadMonthlyRecapErrors, ReadMonthlyRecapPreferencesData, ReadMonthlyRecapPreferencesErrors, ReadMonthlyRecapPreferencesResponses, ReadMonthlyRecapResponses, ReadMultiYearReportData, ReadMultiYearReportErrors, ReadMultiYearReportResponses, ReadNetWorthData, ReadNetWorthErrors, ReadNetWorthHistoryData, ReadNetWorthHistoryErrors, ReadNetWorthHistoryResponses, ReadNetWorthResponses, ReadPeriodStatusData, ReadPeriodStatusErrors, ReadPeriodStatusResponses, ReadPortfolioAllocationData, ReadPortfolioAllocationErrors, ReadPortfolioAllocationResponses, ReadPortfolioAnnualPerformanceData, ReadPortfolioAnnualPerformanceErrors, ReadPortfolioAnnualPerformanceResponses, ReadPortfolioCashData, ReadPortfolioCashErrors, ReadPortfolioCashResponses, ReadPortfolioOperationData, ReadPortfolioOperationErrors, ReadPortfolioOperationResponses, ReadPortfolioPerformanceData, ReadPortfolioPerformanceErrors, ReadPortfolioPerformanceResponses, ReadPortfolioPositionLotsData, ReadPortfolioPositionLotsErrors, ReadPortfolioPositionLotsResponses, ReadPortfolioSummaryData, ReadPortfolioSummaryErrors, ReadPortfolioSummaryResponses, ReadPortfolioTakeoverData, ReadPortfolioTakeoverErrors, ReadPortfolioTakeoverResponses, ReadPortfolioValuationData, ReadPortfolioValuationDraftData, ReadPortfolioValuationDraftErrors, ReadPortfolioValuationDraftResponses, ReadPortfolioValuationErrors, ReadPortfolioValuationHistoryData, ReadPortfolioValuationHistoryErrors, ReadPortfolioValuationHistoryResponses, ReadPortfolioValuationResponses, ReadProductData, ReadProductErrors, ReadProductModelData, ReadProductModelErrors, ReadProductModelResponses, ReadProductResponses, ReadTransactionFacetsData, ReadTransactionFacetsErrors, ReadTransactionFacetsResponses, ReconcileTransactionData, ReconcileTransactionErrors, ReconcileTransactionResponses, RecordAccountBalanceData, RecordAccountBalanceErrors, RecordAccountBalanceResponses, RecordAccountRuleOverrideData, RecordAccountRuleOverrideErrors, RecordAccountRuleOverrideResponses, RecordEuroFundRateData, RecordEuroFundRateErrors, RecordEuroFundRateResponses, RecordPortfolioOperationData, RecordPortfolioOperationErrors, RecordPortfolioOperationResponses, RecordPortfolioTakeoverData, RecordPortfolioTakeoverErrors, RecordPortfolioTakeoverResponses, RecordPortfolioValuationData, RecordPortfolioValuationErrors, RecordPortfolioValuationResponses, RefreshRecurrenceHorizonData, RefreshRecurrenceHorizonErrors, RefreshRecurrenceHorizonResponses, RemoveEuroFundRateData, RemoveEuroFundRateErrors, RemoveEuroFundRateResponses, RemoveLifeInsuranceFeeTermsData, RemoveLifeInsuranceFeeTermsErrors, RemoveLifeInsuranceFeeTermsResponses, ReopenPeriodData, ReopenPeriodErrors, ReopenPeriodResponses, ReorderPortfolioOperationsData, ReorderPortfolioOperationsErrors, ReorderPortfolioOperationsResponses, ReplaceCategoryData, ReplaceCategoryErrors, ReplaceCategoryResponses, ReplaceTransactionSplitsData, ReplaceTransactionSplitsErrors, ReplaceTransactionSplitsResponses, ResolveAccountReconciliationData, ResolveAccountReconciliationErrors, ResolveAccountReconciliationResponses, RestoreRecurrenceCandidateData, RestoreRecurrenceCandidateErrors, RestoreRecurrenceCandidateResponses, RestoreRecurrenceData, RestoreRecurrenceErrors, RestoreRecurrenceResponses, SaveAnnualReportPreferencesData, SaveAnnualReportPreferencesErrors, SaveAnnualReportPreferencesResponses, SaveInterfacePreferencesData, SaveInterfacePreferencesErrors, SaveInterfacePreferencesResponses, SaveLifeInsuranceContractData, SaveLifeInsuranceContractErrors, SaveLifeInsuranceContractResponses, SaveMonthlyRecapPreferencesData, SaveMonthlyRecapPreferencesErrors, SaveMonthlyRecapPreferencesResponses, UpdateAccountData, UpdateAccountErrors, UpdateAccountGroupData, UpdateAccountGroupErrors, UpdateAccountGroupResponses, UpdateAccountResponses, UpdateCategorizationRuleData, UpdateCategorizationRuleErrors, UpdateCategorizationRuleResponses, UpdateCategoryData, UpdateCategoryErrors, UpdateCategoryResponses, UpdateEmergencyFundPolicyData, UpdateEmergencyFundPolicyErrors, UpdateEmergencyFundPolicyResponses, UpdateGoalData, UpdateGoalErrors, UpdateGoalResponses, UpdateInstrumentData, UpdateInstrumentErrors, UpdateInstrumentResponses, UpdateOwnerProfileData, UpdateOwnerProfileErrors, UpdateOwnerProfileResponses, UpdateRecurrenceData, UpdateRecurrenceErrors, UpdateRecurrenceResponses, UpdateTransactionData, UpdateTransactionErrors, UpdateTransactionResponses, UpdateTransferData, UpdateTransferErrors, UpdateTransferResponses, VoidPortfolioOperationData, VoidPortfolioOperationErrors, VoidPortfolioOperationResponses, VoidTransactionData, VoidTransactionErrors, VoidTransactionResponses, VoidTransferData, VoidTransferErrors, VoidTransferResponses, WithdrawAccountBalanceData, WithdrawAccountBalanceErrors, WithdrawAccountBalanceResponses, WithdrawAccountRuleOverrideData, WithdrawAccountRuleOverrideErrors, WithdrawAccountRuleOverrideResponses, WithdrawPortfolioValuationData, WithdrawPortfolioValuationErrors, WithdrawPortfolioValuationResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -387,7 +387,7 @@ export const replaceCategory = <ThrowOnError extends boolean = false>(options: O
 });
 
 /**
- * List active or closed goals for one year
+ * List monthly and yearly goals
  */
 export const listGoals = <ThrowOnError extends boolean = false>(options?: Options<ListGoalsData, ThrowOnError>): RequestResult<ListGoalsResponses, ListGoalsErrors, ThrowOnError> => (options?.client ?? client).get<ListGoalsResponses, ListGoalsErrors, ThrowOnError>({
     security: [{
@@ -400,7 +400,7 @@ export const listGoals = <ThrowOnError extends boolean = false>(options?: Option
 });
 
 /**
- * Create an annual or rolling-ratio goal
+ * Create a monthly or yearly goal
  */
 export const createGoal = <ThrowOnError extends boolean = false>(options: Options<CreateGoalData, ThrowOnError>): RequestResult<CreateGoalResponses, CreateGoalErrors, ThrowOnError> => (options.client ?? client).post<CreateGoalResponses, CreateGoalErrors, ThrowOnError>({
     security: [{
@@ -495,6 +495,8 @@ export const readGoal = <ThrowOnError extends boolean = false>(options: Options<
 
 /**
  * Edit a goal label or append an effective-month definition
+ *
+ * Periodicity, metric and scope are immutable. A definition effective in a closed month answers 409 goal_closed_period.
  */
 export const updateGoal = <ThrowOnError extends boolean = false>(options: Options<UpdateGoalData, ThrowOnError>): RequestResult<UpdateGoalResponses, UpdateGoalErrors, ThrowOnError> => (options.client ?? client).put<UpdateGoalResponses, UpdateGoalErrors, ThrowOnError>({
     security: [{
@@ -541,23 +543,6 @@ export const listGoalVersions = <ThrowOnError extends boolean = false>(options: 
 });
 
 /**
- * Close an active goal with optimistic concurrency
- */
-export const closeGoal = <ThrowOnError extends boolean = false>(options: Options<CloseGoalData, ThrowOnError>): RequestResult<CloseGoalResponses, CloseGoalErrors, ThrowOnError> => (options.client ?? client).post<CloseGoalResponses, CloseGoalErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/goals/{id}/close',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
  * Calculate one goal's progress and status at a calendar month
  */
 export const readGoalStatus = <ThrowOnError extends boolean = false>(options: Options<ReadGoalStatusData, ThrowOnError>): RequestResult<ReadGoalStatusResponses, ReadGoalStatusErrors, ThrowOnError> => (options.client ?? client).get<ReadGoalStatusResponses, ReadGoalStatusErrors, ThrowOnError>({
@@ -568,181 +553,6 @@ export const readGoalStatus = <ThrowOnError extends boolean = false>(options: Op
         }],
     url: '/api/v1/goals/{id}/status',
     ...options
-});
-
-/**
- * List the calling workspace budget plans
- */
-export const listBudgetPlans = <ThrowOnError extends boolean = false>(options?: Options<ListBudgetPlansData, ThrowOnError>): RequestResult<ListBudgetPlansResponses, ListBudgetPlansErrors, ThrowOnError> => (options?.client ?? client).get<ListBudgetPlansResponses, ListBudgetPlansErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans',
-    ...options
-});
-
-/**
- * Create a draft monthly or annual budget plan
- */
-export const createBudgetPlan = <ThrowOnError extends boolean = false>(options: Options<CreateBudgetPlanData, ThrowOnError>): RequestResult<CreateBudgetPlanResponses, CreateBudgetPlanErrors, ThrowOnError> => (options.client ?? client).post<CreateBudgetPlanResponses, CreateBudgetPlanErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Read a plan with resolved targets and overlap warnings
- */
-export const readBudgetPlan = <ThrowOnError extends boolean = false>(options: Options<ReadBudgetPlanData, ThrowOnError>): RequestResult<ReadBudgetPlanResponses, ReadBudgetPlanErrors, ThrowOnError> => (options.client ?? client).get<ReadBudgetPlanResponses, ReadBudgetPlanErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{id}',
-    ...options
-});
-
-/**
- * Edit a draft budget plan
- */
-export const updateBudgetPlan = <ThrowOnError extends boolean = false>(options: Options<UpdateBudgetPlanData, ThrowOnError>): RequestResult<UpdateBudgetPlanResponses, UpdateBudgetPlanErrors, ThrowOnError> => (options.client ?? client).put<UpdateBudgetPlanResponses, UpdateBudgetPlanErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Compare a monthly budget plan with its scoped actual expenses
- *
- * Derives each target independently from the built-in monthly reporting policy. The response never publishes a combined total across overlapping targets and remains readable when the plan is closed.
- */
-export const readBudgetComparisons = <ThrowOnError extends boolean = false>(options: Options<ReadBudgetComparisonsData, ThrowOnError>): RequestResult<ReadBudgetComparisonsResponses, ReadBudgetComparisonsErrors, ThrowOnError> => (options.client ?? client).get<ReadBudgetComparisonsResponses, ReadBudgetComparisonsErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{id}/comparisons',
-    ...options
-});
-
-/**
- * Explain one exact monthly budget comparison
- *
- * Selects the existing scoped comparison view and exposes its formula, period, caller-workspace sources, freshness and quality. A foreign plan or target is indistinguishable from an unknown one.
- */
-export const explainBudgetComparison = <ThrowOnError extends boolean = false>(options: Options<ExplainBudgetComparisonData, ThrowOnError>): RequestResult<ExplainBudgetComparisonResponses, ExplainBudgetComparisonErrors, ThrowOnError> => (options.client ?? client).get<ExplainBudgetComparisonResponses, ExplainBudgetComparisonErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{id}/comparisons/{targetId}/explain',
-    ...options
-});
-
-/**
- * Activate a non-empty draft budget plan
- */
-export const activateBudgetPlan = <ThrowOnError extends boolean = false>(options: Options<ActivateBudgetPlanData, ThrowOnError>): RequestResult<ActivateBudgetPlanResponses, ActivateBudgetPlanErrors, ThrowOnError> => (options.client ?? client).post<ActivateBudgetPlanResponses, ActivateBudgetPlanErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{id}/activate',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Close an active budget plan
- */
-export const closeBudgetPlan = <ThrowOnError extends boolean = false>(options: Options<CloseBudgetPlanData, ThrowOnError>): RequestResult<CloseBudgetPlanResponses, CloseBudgetPlanErrors, ThrowOnError> => (options.client ?? client).post<CloseBudgetPlanResponses, CloseBudgetPlanErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{id}/close',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Add an exact amount or ratio target to a plan
- */
-export const createBudgetTarget = <ThrowOnError extends boolean = false>(options: Options<CreateBudgetTargetData, ThrowOnError>): RequestResult<CreateBudgetTargetResponses, CreateBudgetTargetErrors, ThrowOnError> => (options.client ?? client).post<CreateBudgetTargetResponses, CreateBudgetTargetErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-plans/{planId}/targets',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Delete a budget target
- */
-export const deleteBudgetTarget = <ThrowOnError extends boolean = false>(options: Options<DeleteBudgetTargetData, ThrowOnError>): RequestResult<DeleteBudgetTargetResponses, DeleteBudgetTargetErrors, ThrowOnError> => (options.client ?? client).delete<DeleteBudgetTargetResponses, DeleteBudgetTargetErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-targets/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
-});
-
-/**
- * Edit the exact value of a budget target
- */
-export const updateBudgetTarget = <ThrowOnError extends boolean = false>(options: Options<UpdateBudgetTargetData, ThrowOnError>): RequestResult<UpdateBudgetTargetResponses, UpdateBudgetTargetErrors, ThrowOnError> => (options.client ?? client).put<UpdateBudgetTargetResponses, UpdateBudgetTargetErrors, ThrowOnError>({
-    security: [{
-            in: 'cookie',
-            name: 'cadran_session',
-            type: 'apiKey'
-        }],
-    url: '/api/v1/budget-targets/{id}',
-    ...options,
-    headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-    }
 });
 
 /**
