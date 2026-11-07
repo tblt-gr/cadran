@@ -23,7 +23,17 @@ interface GoalRepository
     /** The goals whose end period is null or not past, which the workspace limit bounds. */
     public function countCurrent(WorkspaceScope $workspace, CalendarMonth $today): int;
 
+    /**
+     * The goals covering any month from `$firstMonth` through `$lastMonth` (`YYYY-MM`), oldest first and bounded.
+     *
+     * @return list<Goal>
+     */
+    public function covering(WorkspaceScope $workspace, string $firstMonth, string $lastMonth, int $limit): array;
+
     public function add(Goal $goal): void;
+
+    /** Removes the goal with its versions and schedule parts; false when the expected version is stale. */
+    public function delete(Goal $goal, int $expectedVersion): bool;
 
     public function update(Goal $goal, int $expectedVersion): bool;
 }

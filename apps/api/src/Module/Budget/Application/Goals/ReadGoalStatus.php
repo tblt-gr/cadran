@@ -31,7 +31,6 @@ use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
 use App\Module\Reporting\Domain\Aggregation\MonthValue;
 use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
-use App\Module\Transactions\Application\MonthlyTransactionScopeTooLarge;
 use App\Module\Transactions\Application\ReadMonthlyAccountTransferNet;
 
 final readonly class ReadGoalStatus
@@ -153,6 +152,16 @@ final readonly class ReadGoalStatus
      */
     public function inputs(WorkspaceScope $workspace, CalendarMonth $month, array $goals): GoalStatusInputs
     {
+        return $this->inputsBetween($workspace, new CalendarMonth($month->year, 1), $month, $goals);
+    }
+
+    /**
+     * The same facts for any run of months, which an evaluation over several years reads at once.
+     *
+     * @param list<Goal> $goals
+     */
+    public function inputsBetween(WorkspaceScope $workspace, CalendarMonth $first, CalendarMonth $last, array $goals): GoalStatusInputs
+    {
         if ([] === $goals) {
             return new GoalStatusInputs([], null);
         }
@@ -160,8 +169,8 @@ final readonly class ReadGoalStatus
         $categorySpending = [] !== array_filter($goals, static fn (Goal $goal): bool => GoalMetric::CATEGORY_SPENDING === $goal->metric && null !== $goal->scopeRef);
         // A monthly goal compares every month of the year with its own target, and a rolling share
         // reads the twelve months before each of them: the window opens before January.
-        $start = $monthly ? ReadReferenceIncome::windowStart(new CalendarMonth($month->year, 1)) : new CalendarMonth($month->year, 1);
-        $loaded = $this->months->between($workspace, $start, $month);
+        $start = $monthly ? ReadReferenceIncome::windowStart($first) : $first;
+        $loaded = $this->months->between($workspace, $start, $last);
         $indexed = [];
         foreach ($loaded as $item) {
             $indexed[$item->month->key()] = $item;
@@ -170,7 +179,7 @@ final readonly class ReadGoalStatus
         return new GoalStatusInputs(
             $indexed,
             $categorySpending && null !== $this->categories ? ($this->categories)($workspace) : null,
-            $this->accountTransfers($workspace, $month, $goals, $indexed),
+            $this->accountTransfers($workspace, $first, $last, $goals, $indexed),
         );
     }
 
@@ -183,7 +192,7 @@ final readonly class ReadGoalStatus
      *
      * @return array<string, array<string, array{value: ?DecimalValue, reason: ?string, asset: ?AssetCode}>>
      */
-    private function accountTransfers(WorkspaceScope $workspace, CalendarMonth $selected, array $goals, array $months): array
+    private function accountTransfers(WorkspaceScope $workspace, CalendarMonth $first, CalendarMonth $last, array $goals, array $months): array
     {
         $accountIds = [];
         foreach ($goals as $goal) {
@@ -196,20 +205,21 @@ final readonly class ReadGoalStatus
         }
         $accountIds = array_keys($accountIds);
         $transfers = [];
-        for ($index = 1; $index <= $selected->month; ++$index) {
-            $month = new CalendarMonth($selected->year, $index);
+        $readable = [];
+        for ($ordinal = self::ordinal($first); $ordinal <= self::ordinal($last); ++$ordinal) {
+            $month = new CalendarMonth(intdiv($ordinal - 1, 12), ($ordinal - 1) % 12 + 1);
             $state = $months[$month->key()]->state ?? MonthState::NO_DATA;
-            if (MonthState::NO_DATA === $state || MonthState::FUTURE === $state) {
-                continue;
+            if (MonthState::NO_DATA !== $state && MonthState::FUTURE !== $state) {
+                $readable[] = $month;
             }
-            try {
-                foreach ($this->accountTransfers->forAccounts($workspace, $accountIds, $month) as $accountId => $net) {
-                    $transfers[$month->key()][$accountId] = ['value' => $net->value, 'reason' => $net->reason?->value, 'asset' => $net->asset];
-                }
-            } catch (MonthlyTransactionScopeTooLarge) {
-                foreach ($accountIds as $accountId) {
-                    $transfers[$month->key()][$accountId] = ['value' => null, 'reason' => 'TRANSFER_SCOPE_TOO_LARGE', 'asset' => null];
-                }
+        }
+        // One pair read for the whole range; a month over the monthly bound makes only its account goals not calculable.
+        foreach ($this->accountTransfers->forAccountsInMonths($workspace, $accountIds, $readable) as $key => $nets) {
+            foreach ($accountIds as $accountId) {
+                $net = $nets[$accountId] ?? null;
+                $transfers[$key][$accountId] = null === $net
+                    ? ['value' => null, 'reason' => 'TRANSFER_SCOPE_TOO_LARGE', 'asset' => null]
+                    : ['value' => $net->value, 'reason' => $net->reason?->value, 'asset' => $net->asset];
             }
         }
 
@@ -463,7 +473,7 @@ final readonly class ReadGoalStatus
      *
      * @return array{value: ?DecimalValue, reason: ?string}
      */
-    private function metric(Goal $goal, AnnualMonth $month, array $categoryIds, GoalStatusInputs $inputs): array
+    public function metric(Goal $goal, AnnualMonth $month, array $categoryIds, GoalStatusInputs $inputs): array
     {
         if (MonthState::NO_DATA === $month->state || MonthState::FUTURE === $month->state) {
             return ['value' => null, 'reason' => $month->state->value];
@@ -538,7 +548,7 @@ final readonly class ReadGoalStatus
     }
 
     /** @return list<string> */
-    private function categoryBranch(Goal $goal, GoalStatusInputs $inputs): array
+    public function categoryBranch(Goal $goal, GoalStatusInputs $inputs): array
     {
         if (GoalMetric::CATEGORY_SPENDING !== $goal->metric || null === $goal->scopeRef || null === $inputs->categoryFacts) {
             return null === $goal->scopeRef ? [] : [$goal->scopeRef];

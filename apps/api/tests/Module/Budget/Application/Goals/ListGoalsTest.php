@@ -95,7 +95,7 @@ final class ListGoalsTest extends TestCase
     {
         // January: 250.125 moved from B to A. February: 50.000000000000000000000001 moved back from A to B.
         // Through September, A nets +200.124999999999999999999999 and B the exact opposite, both
-        // behind the 900.00 expected of a 1200.00 linear minimum. Nine months are read, not eighteen.
+        // behind the 900.00 expected of a 1200.00 linear minimum. The nine months are read once.
         $transfers = new CountingTransferPairReader([
             '2026-01' => [self::pair('00000000-0000-7000-8000-000000000401', self::ACCOUNT_B, self::ACCOUNT_A, '250.125', '2026-01-15')],
             '2026-02' => [self::pair('00000000-0000-7000-8000-000000000402', self::ACCOUNT_A, self::ACCOUNT_B, '50.000000000000000000000001', '2026-02-03')],
@@ -103,7 +103,8 @@ final class ListGoalsTest extends TestCase
 
         $items = $this->accountList($transfers)()->items;
 
-        self::assertSame(['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09'], $transfers->months);
+        // One range read from January through September, not one per month.
+        self::assertSame(['2026-01'], $transfers->months);
         self::assertSame([WorkspaceFixture::OWN_WORKSPACE], array_values(array_unique($transfers->workspaces)));
         [$savings, $accountA, $accountB] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
         self::assertSame('AHEAD', $savings->status);
@@ -125,7 +126,7 @@ final class ListGoalsTest extends TestCase
 
         $items = $this->accountList($transfers)()->items;
 
-        self::assertCount(9, $transfers->months);
+        self::assertCount(1, $transfers->months);
         [$savings, $accountA, $accountB] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
         self::assertSame('AHEAD', $savings->status);
         foreach ([$accountA, $accountB] as $status) {
@@ -379,6 +380,16 @@ final class CountingTransferPairReader implements MonthlyTransferPairReader
         $this->months[] = $from->format('Y-m');
         $this->workspaces[] = $workspace->id;
 
-        return $workspace->equals(WorkspaceFixture::own()) ? array_slice($this->pairsByMonth[$from->format('Y-m')] ?? [], 0, $limit) : [];
+        if (!$workspace->equals(WorkspaceFixture::own())) {
+            return [];
+        }
+        $pairs = [];
+        foreach ($this->pairsByMonth as $month => $monthPairs) {
+            if ($month >= $from->format('Y-m') && $month <= $to->format('Y-m')) {
+                array_push($pairs, ...$monthPairs);
+            }
+        }
+
+        return array_slice($pairs, 0, $limit);
     }
 }

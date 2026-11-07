@@ -765,7 +765,14 @@ final readonly class FixedTransferPairReader implements MonthlyTransferPairReade
             return [];
         }
 
-        return $this->pairsByMonth[$from->format('Y-m')] ?? [];
+        $pairs = [];
+        foreach ($this->pairsByMonth as $month => $monthPairs) {
+            if ($month >= $from->format('Y-m') && $month <= $to->format('Y-m')) {
+                array_push($pairs, ...$monthPairs);
+            }
+        }
+
+        return $pairs;
     }
 }
 

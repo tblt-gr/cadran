@@ -1273,6 +1273,78 @@ export type GoalVersionHistoryItem = {
     changes: Array<GoalVersionChange>;
 };
 
+export type StopGoalRequest = {
+    expectedVersion: number;
+    lastPeriod: GoalPeriod;
+};
+
+export type GoalEvaluationStatus = 'MET' | 'MISSED' | 'IN_PROGRESS' | 'NOT_CALCULABLE';
+
+export type GoalEvaluationReason = 'NO_REFERENCE_INCOME' | 'ZERO_CASH_INCOME' | 'NO_DATA' | 'MIXED_ASSETS' | 'REFERENCE_ARCHIVED';
+
+/**
+ * An amount in the asset of the goal, or a ratio with its percent display for a rate.
+ */
+export type GoalEvaluationFigure = {
+    value: GoalStatusValue;
+    assetCode: string;
+} | {
+    ratio: GoalStatusValue;
+    percentDisplay: string;
+};
+
+export type GoalEvaluationFormula = {
+    key: 'goals.formula.amount' | 'goals.formula.incomeShare' | 'goals.formula.rollingIncomeShare' | 'goals.formula.rate';
+    operands: {
+        target: GoalStatusValue;
+        achieved: GoalStatusValue;
+        income: GoalStatusValue;
+        ratio: GoalStatusValue;
+    };
+};
+
+export type GoalEvaluationPace = {
+    expected: GoalStatusValue;
+    status: 'AHEAD' | 'BEHIND' | 'ON_TRACK' | 'OVER_PACE';
+};
+
+export type GoalEvaluation = {
+    goalId: string;
+    label: string;
+    periodicity: GoalPeriodicity;
+    metric: GoalMetric;
+    scopeType: GoalScopeType;
+    scopeRef: string | null;
+    direction: GoalDirection;
+    valueType: GoalValueType;
+    /**
+     * The identifier of the report column showing the same figure; null for account contributions.
+     */
+    columnKey: string | null;
+    target: GoalEvaluationFigure | null;
+    achieved: GoalEvaluationFigure | null;
+    /**
+     * Signed so that a positive gap is in the goal's favour; null when the target or the achieved value is.
+     */
+    gap: GoalStatusValue;
+    status: GoalEvaluationStatus;
+    reason: GoalEvaluationReason | null;
+    formula: GoalEvaluationFormula;
+    versionNo: number;
+    overrides: Array<string>;
+    pace: GoalEvaluationPace | null;
+};
+
+export type GoalPeriodEvaluation = {
+    period: GoalPeriod;
+    items: Array<GoalEvaluation>;
+};
+
+export type GoalEvaluations = {
+    months: Array<GoalPeriodEvaluation>;
+    years: Array<GoalPeriodEvaluation>;
+};
+
 export type GoalVersionHistory = {
     items: Array<GoalVersionHistoryItem>;
 };
@@ -7399,6 +7471,46 @@ export type CreateGoalResponses = {
 
 export type CreateGoalResponse = CreateGoalResponses[keyof CreateGoalResponses];
 
+export type ListGoalEvaluationsData = {
+    body?: never;
+    path?: never;
+    query: {
+        from: string;
+        to: string;
+    };
+    url: '/api/v1/goals/evaluations';
+};
+
+export type ListGoalEvaluationsErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type ListGoalEvaluationsError = ListGoalEvaluationsErrors[keyof ListGoalEvaluationsErrors];
+
+export type ListGoalEvaluationsResponses = {
+    /**
+     * One entry per month of the range up to the current month, and one per calendar year touched by it.
+     */
+    200: GoalEvaluations;
+};
+
+export type ListGoalEvaluationsResponse = ListGoalEvaluationsResponses[keyof ListGoalEvaluationsResponses];
+
 export type PreviewGoalScheduleData = {
     body?: never;
     path?: never;
@@ -7577,6 +7689,64 @@ export type UpdateEmergencyFundPolicyResponses = {
 
 export type UpdateEmergencyFundPolicyResponse = UpdateEmergencyFundPolicyResponses[keyof UpdateEmergencyFundPolicyResponses];
 
+export type DeleteGoalData = {
+    body?: never;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+        'If-Match': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/goals/{id}';
+};
+
+export type DeleteGoalErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The owner password has already been defined.
+     */
+    409: Problem;
+    /**
+     * The If-Match header is missing.
+     */
+    428: GoalProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type DeleteGoalError = DeleteGoalErrors[keyof DeleteGoalErrors];
+
+export type DeleteGoalResponses = {
+    /**
+     * The goal, its versions and its schedule parts were deleted.
+     */
+    204: void;
+};
+
+export type DeleteGoalResponse = DeleteGoalResponses[keyof DeleteGoalResponses];
+
 export type ReadGoalData = {
     body?: never;
     path: {
@@ -7680,6 +7850,67 @@ export type UpdateGoalResponses = {
 };
 
 export type UpdateGoalResponse = UpdateGoalResponses[keyof UpdateGoalResponses];
+
+export type StopGoalData = {
+    body: StopGoalRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path: {
+        id: string;
+    };
+    query?: never;
+    url: '/api/v1/goals/{id}/stop';
+};
+
+export type StopGoalErrors = {
+    /**
+     * The request body or a query parameter is missing or malformed.
+     */
+    400: Problem;
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * The owner password has already been defined.
+     */
+    409: Problem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type StopGoalError = StopGoalErrors[keyof StopGoalErrors];
+
+export type StopGoalResponses = {
+    /**
+     * The stopped goal.
+     */
+    200: GoalDetail;
+};
+
+export type StopGoalResponse = StopGoalResponses[keyof StopGoalResponses];
 
 export type PreviewGoalCorrectionData = {
     body: UpdateGoalRequest;

@@ -40,6 +40,41 @@ final class ReadMonthlyTransferPairsTest extends TestCase
             CalendarMonth::fromString('2026-09'),
         );
     }
+
+    public function testSeveralMonthsAreReadOnceAndBucketedByEitherLegWithAnOversizedMonthRefused(): void
+    {
+        $workspace = WorkspaceScope::fromString('00000000-0000-7000-8000-000000000001');
+        $straddling = self::pair('t1', '2026-01-31', '2026-02-01');
+        $crowded = array_map(static fn (int $index): MonthlyTransferPairFact => self::pair('c'.$index, '2026-03-10', '2026-03-10'), range(0, ReadMonthlyTransactionFacts::MAX_TRANSACTIONS));
+        $reader = new class([$straddling, ...$crowded]) implements MonthlyTransferPairReader {
+            public int $reads = 0;
+
+            /** @param list<MonthlyTransferPairFact> $pairs */
+            public function __construct(private readonly array $pairs)
+            {
+            }
+
+            public function read(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
+            {
+                ++$this->reads;
+
+                return $this->pairs;
+            }
+        };
+
+        $buckets = (new ReadMonthlyTransferPairs($reader))->byMonth($workspace, [CalendarMonth::fromString('2026-01'), CalendarMonth::fromString('2026-02'), CalendarMonth::fromString('2026-03'), CalendarMonth::fromString('2026-04')]);
+
+        self::assertSame(1, $reader->reads);
+        self::assertSame([$straddling], $buckets['2026-01']);
+        self::assertSame([$straddling], $buckets['2026-02']);
+        self::assertNull($buckets['2026-03']);
+        self::assertSame([], $buckets['2026-04']);
+    }
+
+    private static function pair(string $id, string $source, string $target): MonthlyTransferPairFact
+    {
+        return new MonthlyTransferPairFact($id, null, null, null, null, null, null, null, null, null, null, $source, $target, false);
+    }
 }
 
 final class RecordingMonthlyTransferPairReader implements MonthlyTransferPairReader
