@@ -70,7 +70,8 @@ test.describe('monthly budget', () => {
     await page.goto('/');
     await navigateTo(page, 'Budget');
 
-    await page.getByRole('main').getByRole('link', { name: 'Objectifs', exact: true }).click();
+    // The sidebar also links to the goals; the page header icon button is the one under test.
+    await page.locator('a.icon-button[href="/goals"]').click();
     await settled(page);
 
     await expect(page).toHaveURL(/\/goals$/);
