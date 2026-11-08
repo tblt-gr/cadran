@@ -81,7 +81,13 @@ describe('BudgetYearPage', () => {
     expect(
       await screen.findByRole('button', { name: 'Objectifs : 1 sur 2 atteints' }),
     ).toBeTruthy();
-    expect(api.listGoalEvaluations).toHaveBeenCalledTimes(2);
+    // One request per selected year for the counter, one yearly range for the table's marks.
+    expect(api.listGoalEvaluations).toHaveBeenCalledTimes(3);
+    expect(api.listGoalEvaluations.mock.calls.map(([options]) => options.query)).toContainEqual({
+      from: '2024-01',
+      to: '2026-12',
+      granularity: 'YEAR',
+    });
   });
 
   it('does not request the goals list for the header counter, only the evaluations', async () => {

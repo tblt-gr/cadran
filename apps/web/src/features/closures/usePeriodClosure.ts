@@ -29,6 +29,8 @@ export function usePeriodClosure(period: string, onDone: () => void) {
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: statusKey(period) });
     await queryClient.invalidateQueries({ queryKey: ['period-closures'] });
+    // A closed month freezes the figures its goals are evaluated on.
+    await queryClient.invalidateQueries({ queryKey: ['goal-evaluations'] });
   }
 
   const close = useMutation({

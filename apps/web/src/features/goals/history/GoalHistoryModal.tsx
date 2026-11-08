@@ -1,10 +1,10 @@
 import type { GoalVersionHistoryItem } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
-import { HistoryVersion } from './HistoryVersion';
+import { GoalHistoryTable } from './GoalHistoryTable';
 import styles from './GoalHistory.module.css';
 
-/** Versions of a goal, newest first, each folded to its month so the page stays short. */
+/** The recorded versions of a goal as one table, newest first. */
 export function GoalHistoryModal({
   assetCode,
   close,
@@ -20,16 +20,7 @@ export function GoalHistoryModal({
       {items.length === 0 ? (
         <p className={styles.empty}>{t('goals.history.empty')}</p>
       ) : (
-        <ol aria-label={t('goals.history.caption')} className={styles.versions}>
-          {items.map((item, index) => (
-            <HistoryVersion
-              assetCode={assetCode}
-              initiallyOpen={index === 0}
-              item={item}
-              key={item.versionNo}
-            />
-          ))}
-        </ol>
+        <GoalHistoryTable assetCode={assetCode} items={items} />
       )}
     </Modal>
   );

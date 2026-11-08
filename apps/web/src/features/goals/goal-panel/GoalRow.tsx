@@ -4,6 +4,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
 import { ProgressGauge } from '@/components/ui/progress-gauge/ProgressGauge';
+import { formulaText, gapText } from './goalEvaluationText';
 import { GoalEvaluationBadge } from './GoalEvaluationBadge';
 import { goalFillRatio, goalTone, type GoalRowModel } from './goalPanelModel';
 import { goalRecurrence } from './goalRecurrence';
@@ -38,7 +39,12 @@ export function GoalRow({ row, handlers }: Props) {
   const fill = evaluation ? goalFillRatio(evaluation) : null;
 
   return (
-    <li className={styles.row} data-tone={tone ?? undefined}>
+    <li
+      className={styles.row}
+      data-goal-id={evaluation?.goalId}
+      data-tone={tone ?? undefined}
+      tabIndex={evaluation ? -1 : undefined}
+    >
       <div className={styles.rowHead}>
         <h4>{evaluation ? evaluation.label : <SkeletonBlock className={styles.labelBlock} />}</h4>
         <div className={styles.rowEnd}>
@@ -72,6 +78,19 @@ export function GoalRow({ row, handlers }: Props) {
           [
             scopeLabel(evaluation, summary),
             summary ? goalRecurrence(summary, t, i18n.language) : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')
+        ) : (
+          <SkeletonBlock className={styles.metaBlock} />
+        )}
+      </p>
+      <p className={styles.meta}>
+        {evaluation ? (
+          [
+            gapText(evaluation, t, i18n.language),
+            formulaText(evaluation, t, i18n.language),
+            t('goals.panel.version', { versionNo: evaluation.versionNo }),
           ]
             .filter(Boolean)
             .join(' · ')

@@ -29,6 +29,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
   const save = useSaveAnnualReportPreferences();
   const catalogue = useColumnCatalogue(true);
   const [selected, setSelected] = useState<string[]>(preferences.columns);
+  const [goalMarks, setGoalMarks] = useState(preferences.goalMarks);
   const full = selected.length >= MAX_ANNUAL_COLUMNS;
   const failed =
     save.isError && !(save.error instanceof AnnualRequestError && save.error.status === 409);
@@ -76,6 +77,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       {
         columns: selected,
         incompleteMonths: preferences.incompleteMonths,
+        goalMarks,
         version: preferences.version,
       },
       {
@@ -200,6 +202,14 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             },
           ]}
         />
+        <label className={styles.goalMarks}>
+          <input
+            checked={goalMarks}
+            onChange={(event) => setGoalMarks(event.target.checked)}
+            type="checkbox"
+          />
+          <span>{t('reports.annual.picker.goalMarks')}</span>
+        </label>
         <SelectedColumns columnOf={columnOf} onMove={move} onRemove={toggle} selected={selected} />
         <ModalActions>
           <button className="secondary-action" onClick={close} type="button">

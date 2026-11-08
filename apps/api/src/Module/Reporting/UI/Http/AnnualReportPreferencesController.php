@@ -19,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Reads and stores which columns the annual report shows and whether its aggregates count the running month.
+ * Reads and stores which columns the annual report shows and whether its aggregates count the running month and whether the goals colour its figures.
  *
  * The selection picks columns and nothing else, so it has no bearing on any
  * published figure.
@@ -28,6 +28,7 @@ final readonly class AnnualReportPreferencesController
 {
     private const int MAX_BODY_BYTES = 16_384;
     private const array FIELDS = ['columns', 'incompleteMonths', 'version'];
+    private const string OPTIONAL_FIELD = 'goalMarks';
 
     public function __construct(private TranslatorInterface $translator)
     {
@@ -77,6 +78,14 @@ final readonly class AnnualReportPreferencesController
     /** @param array<mixed> $body */
     private static function input(array $body): SaveAnnualPreferencesInput
     {
+        $goalMarks = null;
+        if (array_key_exists(self::OPTIONAL_FIELD, $body)) {
+            if (!is_bool($body[self::OPTIONAL_FIELD])) {
+                throw new \UnexpectedValueException('An annual report goal colouring setting is a boolean.');
+            }
+            $goalMarks = $body[self::OPTIONAL_FIELD];
+            unset($body[self::OPTIONAL_FIELD]);
+        }
         $submitted = array_keys($body);
         sort($submitted);
         $expected = self::FIELDS;
@@ -96,6 +105,7 @@ final readonly class AnnualReportPreferencesController
             self::strings($body['columns']),
             $body['incompleteMonths'],
             $body['version'],
+            $goalMarks,
         );
     }
 
@@ -121,6 +131,7 @@ final readonly class AnnualReportPreferencesController
         return new JsonResponse([
             'columns' => $view->columns,
             'incompleteMonths' => $view->incompleteMonths,
+            'goalMarks' => $view->goalMarks,
             'version' => $view->version,
         ], Response::HTTP_OK, ['Cache-Control' => 'no-store']);
     }

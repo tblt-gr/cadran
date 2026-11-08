@@ -12,6 +12,7 @@ const relatedReads = new Set([
   'monthly-bounds',
   'monthly-ledger-movements',
   'monthly-recap',
+  'goal-evaluations',
   'net-worth',
   'portfolio-summary',
   'portfolio-allocation',

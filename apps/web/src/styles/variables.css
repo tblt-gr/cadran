@@ -153,6 +153,8 @@
   --icon-size-sm: 2rem;
   --icon-size-md: 2.25rem;
   --icon-size-lg: 2.25rem;
+  /* Width of the `Objectif` column of the flows summary: a value to reach and its `i` button. */
+  --goal-column-width: calc(var(--icon-size-sm) * 3.5);
 
   /* Transitions */
   --duration-reduced-motion: 0.01ms;

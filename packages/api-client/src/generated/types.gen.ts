@@ -3610,12 +3610,20 @@ export type AnnualIncompleteMonths = 'exclude' | 'include';
 export type AnnualReportPreferences = {
     columns: Array<string>;
     incompleteMonths: AnnualIncompleteMonths;
+    /**
+     * Whether the goals colour the figures of the reports and mark them with their target.
+     */
+    goalMarks: boolean;
     version: number;
 };
 
 export type AnnualReportPreferencesInput = {
     columns: Array<string>;
     incompleteMonths: AnnualIncompleteMonths;
+    /**
+     * Omitted keeps the stored setting.
+     */
+    goalMarks?: boolean;
     /**
      * The version the caller last read. A stale one is refused with 409.
      */
@@ -7477,6 +7485,7 @@ export type ListGoalEvaluationsData = {
     query: {
         from: string;
         to: string;
+        granularity?: 'MONTH' | 'YEAR' | 'BOTH';
     };
     url: '/api/v1/goals/evaluations';
 };

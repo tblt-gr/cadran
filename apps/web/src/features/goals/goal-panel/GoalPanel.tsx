@@ -1,6 +1,6 @@
 import type { GoalSummary } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
-import { useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Drawer } from '@/components/ui/drawer/Drawer';
 import { Toast } from '@/components/ui/toast/Toast';
@@ -21,6 +21,8 @@ interface Props {
   scope: GoalPanelScope;
   close: () => void;
   returnFocus: RefObject<HTMLElement | null>;
+  /** The goal a report cell pointed at: its row takes the focus once the evaluations are in. */
+  focusGoalId?: string | null;
 }
 
 /** `Novembre 2026`, `2026`, `2024 à 2026` for a run of years, `2024, 2026` for scattered ones. */
@@ -45,10 +47,26 @@ function previousMonth(month: string): string {
  * The goals of a month or a year, opened beside the budget: evaluations from the server, the
  * create, edit, history, stop and delete actions, and the emergency fund coverage.
  */
-export function GoalPanel({ scope, close, returnFocus }: Props) {
+export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Props) {
   const { t, i18n } = useTranslation();
   const data = useGoalPanelData(scope);
   const editor = useGoalEditor();
+  const focused = useRef<string | null>(null);
+  const ready = !data.pending && data.evaluations !== undefined;
+  useEffect(() => {
+    if (!ready || focusGoalId === null || focused.current === focusGoalId) return;
+    const row = Array.from(document.querySelectorAll<HTMLElement>('[data-goal-id]')).find(
+      (candidate) => candidate.dataset.goalId === focusGoalId,
+    );
+    if (row === undefined) return;
+    focused.current = focusGoalId;
+    // After the drawer's own first-focus frame, which would otherwise take the focus back.
+    const frame = window.requestAnimationFrame(() => {
+      row.scrollIntoView?.({ block: 'center' });
+      row.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [ready, focusGoalId]);
   const workspaceMonth = currentMonthIn(useWorkspaceTimeZone());
   // `year` is the section a stop was opened from on the multi-year panel.
   const [stopTarget, setStopTarget] = useState<{ goal: GoalSummary; year: number | null } | null>(

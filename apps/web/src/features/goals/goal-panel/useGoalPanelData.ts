@@ -3,6 +3,7 @@ import {
   listGoals,
   type GoalEvaluations,
   type GoalSummary,
+  type ListGoalEvaluationsData,
 } from '@cadran/api-client';
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -23,16 +24,60 @@ export type GoalPanelScope =
 const GOALS_PAGE_SIZE = 100;
 const MAX_GOAL_PAGES = 10;
 
-/** One range per request: the server caps a request at 120 months, so each year is its own. */
-function scopeRanges(scope: GoalPanelScope): { from: string; to: string }[] {
-  if (scope.kind === 'month') return [{ from: scope.month, to: scope.month }];
+type GoalEvaluationGranularity = NonNullable<ListGoalEvaluationsData['query']['granularity']>;
+
+export interface EvaluationRange {
+  from: string;
+  to: string;
+  granularity: GoalEvaluationGranularity;
+}
+
+/**
+ * One range per request: the server caps a request at 120 months, so each year is its own. A month
+ * asks for its monthly goals only, a year for both periodicities: the same keys as the reports.
+ */
+function scopeRanges(scope: GoalPanelScope): EvaluationRange[] {
+  if (scope.kind === 'month') {
+    return [{ from: scope.month, to: scope.month, granularity: 'MONTH' }];
+  }
   const years = scope.kind === 'year' ? [scope.year] : scope.years;
-  return years.map((year) => ({ from: `${year}-01`, to: `${year}-12` }));
+  return years.map((year) => ({ from: `${year}-01`, to: `${year}-12`, granularity: 'BOTH' }));
 }
 
 // Recomputing an evaluation costs about an annual report: reuse it for a minute. A write
 // invalidates it whatever its age.
 const EVALUATIONS_STALE_TIME_MS = 60_000;
+
+function evaluationQueryOptions({ from, to, granularity }: EvaluationRange) {
+  return {
+    queryKey: ['goal-evaluations', from, to, granularity],
+    queryFn: async ({ signal }: { signal: AbortSignal }): Promise<GoalEvaluations> => {
+      const result = await listGoalEvaluations({
+        ...authApiOptions(),
+        query: { from, to, granularity },
+        signal,
+      });
+      if (!result.response?.ok || !result.data) throw goalRequestError(result);
+      return result.data;
+    },
+    staleTime: EVALUATIONS_STALE_TIME_MS,
+    retry: false,
+  };
+}
+
+/**
+ * Evaluations of one range, for a report that marks its figures: the annual report asks for
+ * `BOTH` over its year, the multi-year report for `YEAR` over its years (up to 30), the monthly
+ * budget for `MONTH`. The same keys as the panel, so the cache is shared.
+ */
+export function useGoalEvaluationRange(range: EvaluationRange, enabled = true) {
+  const query = useQuery({ ...evaluationQueryOptions(range), enabled });
+  return {
+    evaluations: query.data,
+    failed: query.isError,
+    retry: () => void query.refetch(),
+  };
+}
 
 /**
  * Evaluations of the period. The ranges are requested one after the other, so at most one request
@@ -43,20 +88,9 @@ export function useGoalEvaluations(scope: GoalPanelScope, enabled = true) {
   const ranges = scopeRanges(scope);
   const [unlocked, setUnlocked] = useState(1);
   const evaluations = useQueries({
-    queries: ranges.map(({ from, to }, index) => ({
-      queryKey: ['goal-evaluations', from, to],
-      queryFn: async ({ signal }: { signal: AbortSignal }): Promise<GoalEvaluations> => {
-        const result = await listGoalEvaluations({
-          ...authApiOptions(),
-          query: { from, to },
-          signal,
-        });
-        if (!result.response?.ok || !result.data) throw goalRequestError(result);
-        return result.data;
-      },
+    queries: ranges.map((range, index) => ({
+      ...evaluationQueryOptions(range),
       enabled: enabled && index < unlocked,
-      staleTime: EVALUATIONS_STALE_TIME_MS,
-      retry: false,
     })),
   });
   let settledPrefix = 0;

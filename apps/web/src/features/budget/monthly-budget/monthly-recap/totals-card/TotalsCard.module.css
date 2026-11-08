@@ -94,6 +94,32 @@
 .row:last-child {
   border-bottom: var(--border-none);
 }
+.row > div.withGoals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(var(--goal-column-width), auto);
+  column-gap: var(--spacing-3);
+}
+.goal {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-1);
+}
+/* Header of the `Objectif` column: over the column, at the end of the row. */
+.section h4,
+.goalHead {
+  display: flex;
+  justify-content: space-between;
+}
+.goalHead {
+  margin: var(--spacing-none);
+  justify-content: flex-end;
+}
+.row > div > [data-tone] > [data-visual-mask] {
+  color: inherit;
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+}
 .row > div > [data-visual-mask] {
   color: var(--text-secondary);
   font-size: var(--font-size-label);
@@ -114,4 +140,11 @@
   margin: var(--spacing-none);
   color: var(--text-muted);
   font-size: var(--font-size-sm);
+}
+
+.labelText {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  overflow-wrap: anywhere;
 }

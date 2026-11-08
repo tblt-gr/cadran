@@ -1118,14 +1118,16 @@ paths:
   /api/v1/goals/evaluations:
     get:
       operationId: listGoalEvaluations
-      x-cadran-bounded: 'At most 120 months and 500 goals are evaluated from one load of the reporting months; the months never go past the current month.'
+      x-cadran-bounded: 'At most 120 months (30 years with the YEAR granularity) and 500 goals are evaluated from one load of the reporting months; the months never go past the current month.'
       summary: Evaluate the goals applying to each month and year of a range
       description: >-
         Resolves, for every month (monthly goals) and calendar year (yearly goals) of the range up to the
         current month, the goal applying to each metric and scope, its target, the achieved value, the signed
         gap and a status computed by the server. Among overlapping goals of the same periodicity, metric and
         scope, the latest start wins, then the latest creation; the hidden ones are listed in `overrides`.
-        A range over 120 months, or with `from` after `to`, answers 400.
+        `granularity` limits the work to the monthly items (`MONTH`, `years` empty), the yearly items
+        (`YEAR`, `months` empty) or both (`BOTH`, the default). A range over 120 months (30 calendar years
+        with `YEAR`), with `from` after `to`, or with an unknown granularity answers 400.
       tags: [Goals]
       security: [{ sessionCookie: [] }]
       parameters:
@@ -1137,6 +1139,10 @@ paths:
           in: query
           required: true
           schema: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        - name: granularity
+          in: query
+          required: false
+          schema: { type: string, enum: [MONTH, YEAR, BOTH], default: BOTH }
       responses:
         '200':
           description: One entry per month of the range up to the current month, and one per calendar year touched by it.
@@ -17394,7 +17400,7 @@ components:
     AnnualReportPreferences:
       type: object
       additionalProperties: false
-      required: [columns, incompleteMonths, version]
+      required: [columns, goalMarks, incompleteMonths, version]
       properties:
         columns:
           type: array
@@ -17403,6 +17409,9 @@ components:
           items: { type: string, maxLength: 80 }
         incompleteMonths:
           $ref: '#/components/schemas/AnnualIncompleteMonths'
+        goalMarks:
+          description: Whether the goals colour the figures of the reports and mark them with their target.
+          type: boolean
         version:
           type: integer
           minimum: 0
@@ -17418,6 +17427,9 @@ components:
           items: { type: string, maxLength: 80 }
         incompleteMonths:
           $ref: '#/components/schemas/AnnualIncompleteMonths'
+        goalMarks:
+          description: Omitted keeps the stored setting.
+          type: boolean
         version:
           description: The version the caller last read. A stale one is refused with 409.
           type: integer

@@ -1,6 +1,7 @@
 import { MetricLabelButton } from './totals-card/MetricLabelButton';
 import { RECAP_KPIS } from './totals-card/recapKpis';
 import { RecapSettingsButton } from './totals-card/RecapSettingsButton';
+import { GoalColumnHead } from '@/features/goals/goal-mark/GoalMark';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
 import { AccountBalanceHeading } from './account-recap/AccountBalanceHeading';
@@ -18,9 +19,10 @@ const TOTAL_LABELS = RECAP_KPIS.map((kpi) => `reports.metrics.${kpi}` as const);
 function PendingMetricRow({ label }: { label?: string }) {
   return (
     <li className={totalsStyles.row}>
-      <div>
+      <div className={totalsStyles.withGoals}>
         <MetricLabelButton disabled label={label ?? null} />
         <MoneyValue skeletonClassName={totalsStyles.amountSkeleton} value={null} />
+        <span className={totalsStyles.goal} />
       </div>
     </li>
   );
@@ -39,20 +41,29 @@ export function TotalsCardPlaceholder() {
           <RecapSettingsButton disabled />
         </div>
       </header>
+      <p className={totalsStyles.goalHead}>
+        <GoalColumnHead />
+      </p>
       <ul className={totalsStyles.rows}>
         {TOTAL_LABELS.map((label) => (
           <PendingMetricRow key={label} label={t(label)} />
         ))}
       </ul>
       <section className={totalsStyles.section}>
-        <h4>{t('budget.monthly.recap.totals.axes')}</h4>
+        <h4>
+          {t('budget.monthly.recap.totals.axes')}
+          <GoalColumnHead />
+        </h4>
         <ul className={totalsStyles.rows}>
           <PendingMetricRow />
           <PendingMetricRow />
         </ul>
       </section>
       <section className={totalsStyles.section}>
-        <h4>{t('budget.monthly.recap.totals.categories')}</h4>
+        <h4>
+          {t('budget.monthly.recap.totals.categories')}
+          <GoalColumnHead />
+        </h4>
         <ul className={totalsStyles.rows}>
           <PendingMetricRow />
           <PendingMetricRow />

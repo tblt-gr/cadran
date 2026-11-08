@@ -159,5 +159,6 @@ function group(
 export const annualPreferences: AnnualReportPreferences = {
   columns: ['cashIncome', 'cashSavingsRate'],
   incompleteMonths: 'exclude',
+  goalMarks: true,
   version: 3,
 };

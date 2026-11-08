@@ -23,7 +23,7 @@ final readonly class ReadAnnualPreferences
     {
         $stored = $this->stored();
 
-        return new AnnualPreferencesView($stored->columns, $stored->incompleteMonths->value, $stored->version);
+        return new AnnualPreferencesView($stored->columns, $stored->incompleteMonths->value, $stored->version, $stored->goalMarks);
     }
 
     public function stored(): AnnualReportPreferences

@@ -98,6 +98,41 @@ final class AnnualReportPreferencesControllerTest extends WebTestCase
         self::assertSame(self::DEFAULT_FIXED, $stranger['columns']);
     }
 
+    public function testGoalColouringIsOnByDefaultKeptWhenOmittedAndStoredWhenSet(): void
+    {
+        $this->signIn();
+        self::assertTrue($this->read()['goalMarks']);
+
+        $off = $this->save(['cashIncome'], 'exclude', 0, false);
+        self::assertFalse($off['goalMarks']);
+        self::assertFalse($this->read()['goalMarks']);
+
+        // A body without the field keeps the stored setting.
+        $kept = $this->save(['cashIncome', 'axis:FIXED'], 'exclude', 1);
+        self::assertFalse($kept['goalMarks']);
+
+        $on = $this->save(['cashIncome'], 'exclude', 2, true);
+        self::assertTrue($on['goalMarks']);
+        self::assertTrue($this->read()['goalMarks']);
+    }
+
+    public function testGoalColouringIsPerWorkspaceAndMustBeABoolean(): void
+    {
+        $this->signIn();
+        $this->save(['cashIncome'], 'exclude', 0, false);
+        foreach (['yes', 0, null] as $invalid) {
+            $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
+                'columns' => ['cashIncome'], 'incompleteMonths' => 'exclude', 'version' => 1, 'goalMarks' => $invalid,
+            ], JSON_THROW_ON_ERROR));
+            self::assertResponseStatusCodeSame(422);
+        }
+        self::assertFalse($this->read()['goalMarks']);
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        self::assertTrue($this->read()['goalMarks']);
+    }
+
     public function testAStaleVersionIsAConflictAndLeavesTheStoredRowUntouched(): void
     {
         $this->signIn();
@@ -198,21 +233,22 @@ final class AnnualReportPreferencesControllerTest extends WebTestCase
      *
      * @return array<string, mixed>
      */
-    private function save(array $columns, string $incomplete, int $version): array
+    private function save(array $columns, string $incomplete, int $version, ?bool $goalMarks = null): array
     {
-        $this->put($columns, $incomplete, $version);
+        $this->put($columns, $incomplete, $version, $goalMarks);
         self::assertResponseIsSuccessful();
 
         return $this->decode();
     }
 
     /** @param list<string> $columns */
-    private function put(array $columns, string $incomplete, int $version): void
+    private function put(array $columns, string $incomplete, int $version, ?bool $goalMarks = null): void
     {
         $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
             'columns' => $columns,
             'incompleteMonths' => $incomplete,
             'version' => $version,
+            ...(null === $goalMarks ? [] : ['goalMarks' => $goalMarks]),
         ], JSON_THROW_ON_ERROR));
     }
 

@@ -355,7 +355,8 @@
         "moveUp": "Monter : {{column}}",
         "moveDown": "Descendre : {{column}}",
         "remove": "Retirer : {{column}}",
-        "unknown": "Élément introuvable"
+        "unknown": "Élément introuvable",
+        "goalMarks": "Afficher les objectifs (couleur des chiffres et bouton d’explication)"
       },
       "charts": {
         "viewData": "Voir les données",
@@ -3165,9 +3166,7 @@
       "empty": "Aucune version n’est disponible.",
       "caption": "Versions enregistrées",
       "everyMonthAmount": "{{amount}} × 12 mois",
-      "versionValue": "Version {{version}}",
       "retroactive": "Rétroactive",
-      "changesOf": "Modifications de la version {{version}}",
       "before": "Avant",
       "after": "Après",
       "impactCaption": "Impact mensuel de la correction",
@@ -3181,17 +3180,19 @@
         "schedule": "Calendrier mensuel",
         "valueType": "Type de valeur"
       },
-      "appliesFrom": "À partir de {{month}}",
       "reasonLine": "Motif : {{reason}}",
       "customSchedule": "Répartition personnalisée",
       "month": "Mois",
-      "recordedOn": "Enregistrée le {{date}}",
       "valueTypes": {
         "AMOUNT": "Montant",
         "INCOME_SHARE": "Part du revenu de la période",
         "ROLLING_INCOME_SHARE": "Part du revenu moyen sur 12 mois",
         "RATE": "Taux"
-      }
+      },
+      "version": "Version",
+      "modifiedOn": "Modifiée le",
+      "effectiveFrom": "À partir de",
+      "evolution": "Évolution"
     },
     "schedule": {
       "legend": "Calendrier mensuel",
@@ -3391,7 +3392,24 @@
       "progress": "Avancement de l’objectif « {{label}} » : {{achieved}} sur {{target}}",
       "progressButton": "Objectifs : {{met}} sur {{total}} atteints",
       "yearsRange": "{{from}} à {{to}}",
-      "emptyYearlyGoal": "Aucun objectif annuel pour cette année."
+      "emptyYearlyGoal": "Aucun objectif annuel pour cette année.",
+      "version": "Version {{versionNo}}"
+    },
+    "mark": {
+      "explain": "Objectif : {{label}}, {{status}}",
+      "error": "Les objectifs n’ont pas pu être vérifiés.",
+      "column": "Objectif"
+    },
+    "evaluation": {
+      "over": "Dépassement de {{amount}}",
+      "short": "Manque {{amount}}",
+      "margin": "Marge de {{amount}}"
+    },
+    "formula": {
+      "amount": "Écart = objectif ({{target}}) comparé au réalisé ({{achieved}}).",
+      "incomeShare": "Objectif = {{ratio}} × revenus du mois ({{income}}) = {{target}}, comparé au réalisé ({{achieved}}).",
+      "rollingIncomeShare": "Objectif = {{ratio}} × revenus de référence glissants ({{income}}) = {{target}}, comparé au réalisé ({{achieved}}).",
+      "rate": "Taux réalisé ({{achieved}}) comparé au taux visé ({{target}})."
     }
   },
   "budget": {

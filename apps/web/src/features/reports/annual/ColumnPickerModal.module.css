@@ -28,3 +28,9 @@
   width: 70%;
   height: var(--font-size-label);
 }
+
+.goalMarks {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
