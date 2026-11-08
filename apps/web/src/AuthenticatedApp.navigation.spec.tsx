@@ -14,7 +14,7 @@ const gates = vi.hoisted(() => {
   }
   return {
     accounts: createGate(),
-    goals: createGate(),
+    investments: createGate(),
     budget: createGate(),
     transactions: createGate(),
     settings: createGate(),
@@ -22,9 +22,9 @@ const gates = vi.hoisted(() => {
 });
 
 // Each page chunk stays "in flight" until its test opens the gate.
-vi.mock('@/features/goals/GoalsPage', async () => {
-  await gates.goals.opened;
-  return { GoalsPage: () => <p>Contenu des objectifs</p> };
+vi.mock('@/features/investments/InvestmentsPage', async () => {
+  await gates.investments.opened;
+  return { InvestmentsPage: () => <p>Contenu des investissements</p> };
 });
 vi.mock('@/features/budget/monthly-budget/MonthlyBudgetPage', async () => {
   await gates.budget.opened;
@@ -110,7 +110,7 @@ describe('AuthenticatedApp lazy navigation', () => {
 
     fireEvent.click(
       within(screen.getByRole('navigation', { name: 'Navigation principale' })).getByRole('link', {
-        name: 'Objectifs',
+        name: 'Investissements',
       }),
     );
 
@@ -119,12 +119,12 @@ describe('AuthenticatedApp lazy navigation', () => {
     expect(screen.queryByText('Chargement de la page…')).toBeNull();
 
     await act(async () => {
-      gates.goals.open();
+      gates.investments.open();
     });
 
-    await screen.findByText('Contenu des objectifs');
+    await screen.findByText('Contenu des investissements');
     expect(screen.queryByText('Contenu de la synthèse')).toBeNull();
-    expect(window.location.pathname).toBe('/goals');
+    expect(window.location.pathname).toBe('/investments');
   });
 
   it('returns to the top on a page change and stays put for a query change', async () => {
@@ -136,17 +136,17 @@ describe('AuthenticatedApp lazy navigation', () => {
 
     fireEvent.click(
       within(screen.getByRole('navigation', { name: 'Navigation principale' })).getByRole('link', {
-        name: 'Objectifs',
+        name: 'Investissements',
       }),
     );
     await act(async () => {
-      gates.goals.open();
+      gates.investments.open();
     });
-    await screen.findByText('Contenu des objectifs');
+    await screen.findByText('Contenu des investissements');
     expect(scrollTo).toHaveBeenCalledWith(0, 0);
 
     scrollTo.mockClear();
-    window.history.pushState({}, '', '/goals?year=2026');
+    window.history.pushState({}, '', '/investments?year=2026');
     await act(async () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
@@ -175,17 +175,17 @@ describe('AuthenticatedApp lazy navigation', () => {
     const current = () => within(sidebar).getByRole('link', { current: 'page' }).textContent;
     expect(current()).toBe('Budget');
 
-    fireEvent.click(within(sidebar).getByRole('link', { name: 'Objectifs' }));
+    fireEvent.click(within(sidebar).getByRole('link', { name: 'Investissements' }));
     await act(async () => {
-      gates.goals.open();
+      gates.investments.open();
     });
-    await screen.findByText('Contenu des objectifs');
-    expect(current()).toBe('Objectifs');
+    await screen.findByText('Contenu des investissements');
+    expect(current()).toBe('Investissements');
 
     window.history.back();
     await waitFor(() => expect(current()).toBe('Budget'));
     window.history.forward();
-    await waitFor(() => expect(current()).toBe('Objectifs'));
+    await waitFor(() => expect(current()).toBe('Investissements'));
   });
 
   it('shows the shell with the real route title while an initial page chunk is pending', async () => {

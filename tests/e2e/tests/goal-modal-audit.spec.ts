@@ -5,7 +5,8 @@ import { settled, uniqueLabel } from './support/page';
 import { ownerStorageState } from './support/session';
 
 async function openGoalDialog(page: Page, kind: 'create' | 'edit' | 'policy') {
-  await page.goto('/goals');
+  // The emergency fund card lives on the dashboard; the goals open from the budget panel.
+  await page.goto(kind === 'policy' ? '/' : '/goals');
   await settled(page);
   if (kind === 'policy') {
     await page.getByRole('button', { name: 'Modifier la politique', exact: true }).click();

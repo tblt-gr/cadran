@@ -1,6 +1,6 @@
 .region {
   position: fixed;
-  z-index: 70;
+  z-index: var(--z-toast);
   right: var(--spacing-4);
   bottom: var(--spacing-4);
   display: flex;

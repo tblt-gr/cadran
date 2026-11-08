@@ -3058,30 +3058,11 @@
   },
   "goals": {
     "add": "Nouvel objectif",
-    "filters": "Filtres des objectifs",
     "loading": "Chargement des objectifs…",
-    "error": "Impossible de charger les objectifs",
     "unauthorized": "Session expirée",
-    "list": "Liste des objectifs",
-    "achievedThisMonth": "Réalisé ce mois",
-    "achievedToDate": "Cumul réalisé",
-    "expectedToDate": "Objectif à cette date",
-    "target": "Cible",
-    "limit": "Limite",
-    "remainingToTarget": "Reste à atteindre",
-    "remainingBeforeCeiling": "Marge avant le plafond",
-    "excessOverTarget": "Au-delà de l’objectif",
-    "excessOverCeiling": "Dépassement du plafond",
     "noData": "Aucune donnée",
-    "provisional": "Données provisoires",
-    "statusMonth": "Situation pour {{month}}",
-    "details": "Voir le détail mensuel",
-    "detailTitle": "Détail de l’objectif",
-    "detailUnavailable": "Le détail mensuel n’est pas calculable.",
     "notCalculable": "Non calculable",
-    "expectedTick": "Repère à cette date : {{value}}",
     "progressLabel": "{{value}} atteint",
-    "progressTarget": "sur {{value}} au total",
     "statuses": {
       "REACHED": "Atteint",
       "AHEAD": "En avance",
@@ -3094,17 +3075,6 @@
       "WITHIN": "Dans la limite",
       "OVER": "Au-dessus de la limite",
       "NOT_CALCULABLE": "Non calculable"
-    },
-    "reasons": {
-      "MISSING_MONTH_VALUE": "Une valeur mensuelle est manquante",
-      "MIXED_METRIC_POLICIES": "Les politiques d’indicateurs diffèrent selon les mois",
-      "NO_REFERENCE_INCOME": "Le revenu de référence est indisponible",
-      "GOAL_NOT_STARTED": "L’objectif ne s’applique pas encore à ce mois",
-      "REFERENCE_ARCHIVED": "La référence de l’objectif est archivée",
-      "FUTURE_MONTH": "Ce mois n’a pas encore commencé",
-      "MISSING_CASH_INCOME": "Le revenu du mois est indisponible",
-      "GOAL_ENDED": "L’objectif est terminé pour ce mois",
-      "EVALUATION_NOT_AVAILABLE": "L’évaluation de cet objectif n’est pas encore disponible"
     },
     "statusTable": {
       "caption": "Progression mensuelle de l’objectif",
@@ -3141,12 +3111,7 @@
     "targetAmount": "Montant cible",
     "ratio": "Pourcentage",
     "ratioHint": "Saisissez un pourcentage exact entre 0 et 100 : 30 correspond à 30 %.",
-    "minimum": "Minimum",
-    "ceiling": "Plafond",
-    "minimumToReach": "Minimum à atteindre",
-    "ceilingNotToExceed": "Plafond à ne pas dépasser",
     "noValue": "Valeur non définie",
-    "referenceArchived": "Référence archivée",
     "referenceIncome": "Revenu de référence : {{value}} ({{usable}}/12 mois, {{start}} à {{end}})",
     "noReferenceIncome": "Revenu de référence non calculable : aucune période utilisable.",
     "actionsFor": "Actions de l’objectif « {{label}} »",
@@ -3163,12 +3128,6 @@
       "ACCOUNT_CONTRIBUTIONS": "Contributions au compte",
       "SAVINGS_RATE": "Taux d’épargne",
       "NET_SAVINGS_RATE": "Taux d’épargne net"
-    },
-    "scopeTypes": {
-      "WORKSPACE": "Espace",
-      "CATEGORY": "Catégorie",
-      "AXIS": "Axe",
-      "ACCOUNT": "Compte"
     },
     "validation": {
       "scope": "Choisissez un périmètre.",
@@ -3196,7 +3155,8 @@
       "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence.",
       "goal_closed_period": "Ce mois est clôturé : choisissez un mois ouvert ou rouvrez la période.",
       "goal_limit_reached": "La limite de 100 objectifs en cours est atteinte.",
-      "goal_version_limit": "Cet objectif a atteint sa limite de versions."
+      "goal_version_limit": "Cet objectif a atteint sa limite de versions.",
+      "goal_covers_closed_period": "Cet objectif couvre un mois clôturé : arrêtez-le plutôt."
     },
     "history": {
       "title": "Historique des versions",
@@ -3349,29 +3309,11 @@
       "targetFixed": "Montant fixé à {{amount}}, indépendamment des dépenses.",
       "targetIncome": "{{ratio}} du revenu annuel, soit 12 fois le revenu mensuel moyen ({{income}}) sur les 12 derniers mois complets."
     },
-    "filtersOpen": "Filtres des objectifs",
-    "filtersTitle": "Filtres",
-    "filtersActive_one": "{{count}} filtre actif",
-    "filtersActive_other": "{{count}} filtres actifs",
-    "position": {
-      "label": "Cumul réalisé, puis objectif",
-      "shortfall": "Il manque {{amount}}",
-      "surplus": "{{amount}} d’excédent",
-      "reached": "Objectif atteint",
-      "ceilingMargin": "Marge de {{amount}} avant le plafond",
-      "ceilingOver": "Dépassement de {{amount}}",
-      "expected": "Objectif attendu à cette date : {{amount}}",
-      "ratio": "Ratio visé : {{ratio}}"
-    },
     "periodicity": "Périodicité",
     "periodicities": {
       "MONTHLY": "Mensuel",
       "YEARLY": "Annuel"
     },
-    "allPeriodicities": "Toutes",
-    "scopeFilter": "Objectifs affichés",
-    "currentGoals": "En cours",
-    "allGoals": "Tous",
     "start": "Début",
     "end": "Fin",
     "endChoices": "Fin de l’objectif",
@@ -3388,14 +3330,69 @@
     },
     "targetRate": "Taux cible",
     "rateHint": "Saisissez le taux visé en pourcentage, de 0 à 100 : 20 correspond à 20 %.",
-    "endedBadge": "Terminé",
     "period": {
       "open": "{{periodicity}}, depuis {{start}}",
       "single": "{{periodicity}}, {{start}}",
       "range": "{{periodicity}}, de {{start}} à {{end}}"
     },
-    "truncated_one": "Seul {{count}} objectif est affiché : affinez les filtres pour voir les autres.",
-    "truncated_other": "Seuls {{count}} objectifs sont affichés : affinez les filtres pour voir les autres."
+    "panel": {
+      "title": "Objectifs · {{period}}",
+      "loading": "Chargement des objectifs…",
+      "unavailable": "Les objectifs sont indisponibles.",
+      "monthSection": "Ce mois-ci",
+      "yearlySection": "Objectifs annuels",
+      "emptyMonth": "Aucun objectif pour ce mois.",
+      "emptyYear": "Aucun objectif pour cette année.",
+      "scopeWorkspace": "Tout l’espace",
+      "replaced": "{{hidden}} · Remplacé ce mois-ci par {{label}}",
+      "status": {
+        "MET": "Atteint",
+        "MISSED_CEILING": "Dépassé",
+        "MISSED_MINIMUM": "Non atteint",
+        "IN_PROGRESS": "En cours",
+        "NOT_CALCULABLE": "Non calculable"
+      },
+      "pace": {
+        "AHEAD": "En avance",
+        "BEHIND": "En retard",
+        "ON_TRACK": "Dans le rythme",
+        "OVER_PACE": "Au-dessus du rythme"
+      },
+      "reasons": {
+        "NO_REFERENCE_INCOME": "Le revenu de référence est indisponible",
+        "ZERO_CASH_INCOME": "Le revenu du mois est nul",
+        "NO_DATA": "Aucune donnée pour cette période",
+        "MIXED_ASSETS": "Les actifs de la période diffèrent",
+        "REFERENCE_ARCHIVED": "La référence de l’objectif est archivée"
+      },
+      "recurrence": {
+        "monthlyOpen": "Chaque mois depuis {{start}}",
+        "monthlySingle": "{{month}} uniquement",
+        "yearlyOpen": "Chaque année depuis {{start}}",
+        "yearlySingle": "Année {{year}} uniquement",
+        "range": "De {{start}} à {{end}}"
+      },
+      "stop": {
+        "title": "Arrêter l’objectif « {{label}} »",
+        "description": "L’objectif cesse de s’appliquer après la dernière période choisie. Les périodes déjà évaluées restent consultables.",
+        "lastMonth": "Dernier mois concerné",
+        "lastYear": "Dernière année concernée",
+        "submit": "Arrêter",
+        "openFor": "Arrêter l’objectif « {{label}} »"
+      },
+      "delete": {
+        "title": "Supprimer l’objectif « {{label}} »",
+        "description": "L’objectif et son historique de versions sont supprimés définitivement.",
+        "submit": "Supprimer",
+        "keep": "Conserver",
+        "openFor": "Supprimer l’objectif « {{label}} »"
+      },
+      "replacedYear": "{{hidden}} · Remplacé cette année par {{label}}",
+      "progress": "Avancement de l’objectif « {{label}} » : {{achieved}} sur {{target}}",
+      "progressButton": "Objectifs : {{met}} sur {{total}} atteints",
+      "yearsRange": "{{from}} à {{to}}",
+      "emptyYearlyGoal": "Aucun objectif annuel pour cette année."
+    }
   },
   "budget": {
     "year": {

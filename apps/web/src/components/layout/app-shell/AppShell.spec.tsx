@@ -25,14 +25,7 @@ describe('AppShell', () => {
   it('preserves named link order in the sidebar, compact rail and mobile navigation', () => {
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
-    const expectedLabels = [
-      'Synthèse',
-      'Comptes',
-      'Investissements',
-      'Budget',
-      'Objectifs',
-      'Paramètres',
-    ];
+    const expectedLabels = ['Synthèse', 'Comptes', 'Investissements', 'Budget', 'Paramètres'];
     const labels = (container: HTMLElement) =>
       within(container)
         .getAllByRole('link')
@@ -54,7 +47,7 @@ describe('AppShell', () => {
     expect(labels(mobile)).toEqual(['Synthèse', 'Comptes', 'Budget']);
     fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(labels(sheet)).toEqual(['Investissements', 'Objectifs', 'Paramètres']);
+    expect(labels(sheet)).toEqual(['Investissements', 'Paramètres']);
   });
 
   it.each([
@@ -73,7 +66,7 @@ describe('AppShell', () => {
       within(sidebar)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/', '/accounts', '/investments', '/budget', '/goals', '/parameters/interface']);
+    ).toEqual(['/', '/accounts', '/investments', '/budget', '/parameters/interface']);
     expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
     expect(within(mobile).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
@@ -88,7 +81,8 @@ describe('AppShell', () => {
     const moreButton = screen.getByRole('button', { name: 'Plus' });
     fireEvent.click(moreButton);
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(within(sheet).getByRole('link', { name: 'Objectifs' })).toBeTruthy();
+    expect(within(sheet).getByRole('link', { name: 'Investissements' })).toBeTruthy();
+    expect(within(sheet).queryByRole('link', { name: 'Objectifs' })).toBeNull();
 
     fireEvent.click(within(sheet).getByRole('button', { name: 'Fermer' }));
 
@@ -133,8 +127,8 @@ describe('AppShell', () => {
     );
 
     const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
-    fireEvent.focus(within(sidebar).getByRole('link', { name: 'Objectifs' }));
-    expect(onNavigationIntent).toHaveBeenLastCalledWith('/goals');
+    fireEvent.focus(within(sidebar).getByRole('link', { name: 'Budget' }));
+    expect(onNavigationIntent).toHaveBeenLastCalledWith('/budget');
 
     fireEvent.click(screen.getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });

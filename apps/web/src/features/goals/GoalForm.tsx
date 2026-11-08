@@ -38,11 +38,13 @@ import {
 } from './goalFormFields';
 import { GoalPeriodFields } from './GoalPeriodFields';
 import { GoalValueFields } from './GoalValueFields';
-import styles from './GoalsPage.module.css';
+import styles from './GoalForm.module.css';
 
 interface Props {
   baseCurrency: string;
   goal?: GoalSummary;
+  /** Period a new goal starts on, when the caller knows the period it is created for. */
+  initial?: { periodicity: GoalPeriodicity; start: string };
   pending: boolean;
   submitError: GoalErrorKind | null;
   submitMismatch: GoalScheduleMismatch | null;
@@ -51,6 +53,7 @@ interface Props {
 export function GoalForm({
   baseCurrency,
   goal,
+  initial,
   pending,
   submitError,
   submitMismatch,
@@ -66,10 +69,14 @@ export function GoalForm({
   const defaultStart = (next: GoalPeriodicity) =>
     next === 'MONTHLY' ? workspaceMonth : workspaceMonth.slice(0, 4);
   const [label, setLabel] = useState(goal?.label ?? '');
-  const [periodicity, setPeriodicity] = useState<GoalPeriodicity>(goal?.periodicity ?? 'MONTHLY');
+  const [periodicity, setPeriodicity] = useState<GoalPeriodicity>(
+    goal?.periodicity ?? initial?.periodicity ?? 'MONTHLY',
+  );
   const [metric, setMetric] = useState<GoalMetric>(goal?.metric ?? 'NET_SAVINGS_TRANSFERS');
   const [scope, setScope] = useState(goal?.scope.id ?? goal?.scope.axis ?? '');
-  const [start, setStart] = useState(goal?.startPeriod ?? defaultStart(periodicity));
+  const [start, setStart] = useState(
+    goal?.startPeriod ?? initial?.start ?? defaultStart(periodicity),
+  );
   const [noEnd, setNoEnd] = useState(goal ? goal.endPeriod === null : true);
   const [end, setEnd] = useState(goal?.endPeriod ?? '');
   const [valueType, setValueType] = useState<GoalValueType>(version?.valueType ?? 'AMOUNT');

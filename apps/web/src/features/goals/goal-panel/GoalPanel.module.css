@@ -1,0 +1,186 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.section h3 {
+  margin: var(--spacing-none);
+}
+
+.rows {
+  display: flex;
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  flex-direction: column;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  padding: var(--spacing-3);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.rowHead h4 {
+  min-width: 0;
+  margin: var(--spacing-none);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+  overflow-wrap: anywhere;
+}
+
+.rowEnd {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: var(--spacing-1);
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.progress > :first-child:not(.figures) {
+  flex: 1;
+}
+
+.figures {
+  margin: var(--spacing-none);
+  font-size: var(--font-size-label);
+  white-space: nowrap;
+}
+
+.achieved {
+  font-weight: var(--font-weight-bold);
+}
+
+.row[data-tone='positive'] .achieved,
+.row[data-tone='done'] .achieved {
+  color: var(--positive);
+}
+
+.row[data-tone='negative'] .achieved {
+  color: var(--negative);
+}
+
+/* An achieved goal recedes until it is hovered or focused. */
+.row[data-tone='done']:not(:hover, :focus-within) :is(h4, .figures, .achieved, .meta, .pace) {
+  color: var(--text-muted);
+}
+
+/* The bar of an achieved goal recedes too; its fill is the only descendant with an inline width. */
+.row[data-tone='done']:not(:hover, :focus-within) [role='meter'] [style] {
+  background: var(--text-muted);
+}
+
+.meta,
+.pace,
+.note {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.meta {
+  font-size: var(--font-size-xs);
+}
+
+.pace {
+  color: var(--text-primary);
+}
+
+.replaced {
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-label);
+  list-style: none;
+}
+
+.empty {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.error p {
+  margin: var(--spacing-none);
+}
+
+.labelBlock {
+  display: block;
+  width: 60%;
+  height: var(--font-size-body);
+}
+
+.badgeBlock {
+  display: block;
+  width: calc(var(--spacing-12) * 1.5);
+  height: var(--font-size-body);
+}
+
+.metaBlock {
+  display: block;
+  width: 70%;
+  height: var(--font-size-label);
+}
+
+.dialogForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.dialogForm p {
+  margin: var(--spacing-none);
+}
+
+.dialogForm label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.barBlock {
+  display: block;
+  width: 100%;
+  height: var(--spacing-2);
+}
+
+.accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.countBlock {
+  display: block;
+  width: var(--spacing-8);
+  height: var(--font-size-label);
+}

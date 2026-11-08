@@ -59,10 +59,12 @@
   --header-height: 5rem;
   --header-height-mobile: 6.25rem;
   --z-header: 20;
+  --z-toast: 100;
   --touch-target-min: 2.75rem;
   --control-height: 2.25rem;
   --control-height-compact: 2rem;
   --modal-width: 44rem;
+  --drawer-width: 32rem;
   --navigation-link-height: 2.875rem;
   --mobile-navigation-height: 3.25rem;
   --mobile-content-bottom-offset: 4.75rem;

@@ -66,15 +66,19 @@ test.describe('monthly budget', () => {
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
   });
 
-  test('reaches the goals from the month page', async ({ page }) => {
+  test('opens the goals panel from the month page and closes it with Escape', async ({ page }) => {
     await page.goto('/');
     await navigateTo(page, 'Budget');
 
-    // The sidebar also links to the goals; the page header icon button is the one under test.
-    await page.locator('a.icon-button[href="/goals"]').click();
+    const opener = page.getByRole('button', { name: /^Objectifs/ });
+    await opener.click();
     await settled(page);
 
-    await expect(page).toHaveURL(/\/goals$/);
-    await expect(page.getByRole('main')).toBeVisible();
+    await expect(page).toHaveURL(/panel=goals$/);
+    await expect(page.getByRole('dialog', { name: /^Objectifs · / })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('dialog', { name: /^Objectifs · / })).toBeHidden();
+    await expect(opener).toBeFocused();
   });
 });

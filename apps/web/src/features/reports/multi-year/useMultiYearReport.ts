@@ -17,8 +17,9 @@ function requestError(result: { response?: Response }) {
  * first data year to the current year), which is how the page learns the
  * true range bounds before the caller narrows them.
  */
-export function useMultiYearReport(from?: number, to?: number) {
+export function useMultiYearReport(from?: number, to?: number, enabled = true) {
   return useQuery({
+    enabled,
     queryKey: ['multi-year-report', from ?? null, to ?? null],
     queryFn: async ({ signal }) => {
       const query: { from?: number; to?: number; incompleteMonths: 'include' } = {

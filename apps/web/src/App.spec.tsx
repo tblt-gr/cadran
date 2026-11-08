@@ -84,6 +84,7 @@ function mockApi({ status = 'ready' }: { status?: 'ready' | 'pending' | 'reject'
     vi.fn(async (input: Request | string) => {
       const url = typeof input === 'string' ? input : input.url;
 
+      if (url.includes('/api/v1/goals/evaluations')) return jsonResponse({ months: [], years: [] });
       if (url.endsWith('/api/v1/portfolios')) return jsonResponse({ items: [], truncated: false });
 
       if (url.endsWith('/api/v1/profile')) {
@@ -199,7 +200,6 @@ describe('App', () => {
     ['/portfolios/demo', 'Portefeuille'],
     ['/life-insurance/demo', 'Assurance-vie'],
     ['/budget/2026', 'Rapport 2026'],
-    ['/goals', 'Objectifs'],
     ['/parameters/interface', 'Paramètres'],
     ['/parameters/profile', 'Paramètres'],
     ['/parameters/catalog', 'Catalogue produits'],
@@ -343,14 +343,15 @@ describe('App', () => {
     expect(window.location.pathname).toMatch(/^\/budget\/\d{4}\/\d{2}$/);
   });
 
-  it('redirects an old UUID-shaped budget link and the former plan pages to the goals', async () => {
+  it('redirects an old UUID-shaped budget link and the former plan pages to the goals panel', async () => {
     const id = '00000000-0000-7000-8000-000000000001';
     window.history.replaceState({}, '', `/budget/${id}`);
     mockApi();
 
     renderApp();
 
-    await waitFor(() => expect(window.location.pathname).toBe('/goals'));
+    await waitFor(() => expect(window.location.pathname).toMatch(/^\/budget\/\d{4}\/\d{2}$/));
+    expect(window.location.search).toBe('?panel=goals');
   });
 
   it('shows a recoverable error inside the shell for a foundation network failure', async () => {

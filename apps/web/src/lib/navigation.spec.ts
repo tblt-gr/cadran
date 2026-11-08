@@ -8,7 +8,6 @@ describe('navigationItems', () => {
       '/accounts',
       '/investments',
       '/budget',
-      '/goals',
       '/parameters/interface',
     ]);
     expect(navigationItems.filter((item) => item.mobile).map((item) => item.href)).toEqual([
@@ -18,7 +17,6 @@ describe('navigationItems', () => {
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
       '/investments',
-      '/goals',
       '/parameters/interface',
     ]);
   });

@@ -7,6 +7,7 @@ describe('goalRequestError', () => {
     'emergency_fund_scope_too_large',
     'correction_span_exceeded',
     'goal_closed_period',
+    'goal_covers_closed_period',
     'goal_limit_reached',
     'goal_version_limit',
   ])('classifies %s by its code', (code) => {

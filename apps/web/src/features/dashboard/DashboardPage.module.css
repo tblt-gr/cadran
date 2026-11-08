@@ -5,6 +5,10 @@
   gap: var(--spacing-4);
 }
 
+.emergencyFund {
+  grid-column: 1 / -1;
+}
+
 @media (min-width: 1280px) {
   .grid:has([data-allocation-view='pie']) :global(section[aria-labelledby='net-worth-title']) {
     grid-column: span 5;

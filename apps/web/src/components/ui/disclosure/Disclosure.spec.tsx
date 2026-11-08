@@ -41,4 +41,17 @@ describe('Disclosure', () => {
       true,
     );
   });
+
+  it('spreads the title and the meta to the two ends of a full-width summary', () => {
+    render(
+      <Disclosure meta="1 / 2" onToggle={() => undefined} open={false} spread title="2026">
+        <p>Contenu</p>
+      </Disclosure>,
+    );
+
+    const summary = screen.getByText('2026').closest('summary')!;
+    expect(summary.firstElementChild!.textContent).toBe('2026');
+    expect(summary.lastElementChild!.textContent).toBe('1 / 2');
+    expect(summary.closest('details')!.className).toMatch(/spread/);
+  });
 });

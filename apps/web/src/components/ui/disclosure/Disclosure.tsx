@@ -9,6 +9,8 @@ interface DisclosureProps {
   disabled?: boolean;
   /** Short state shown beside the title, readable while the content is hidden. */
   meta?: ReactNode;
+  /** Full-width summary: the title and chevron on the left, the meta at the far end. */
+  spread?: boolean;
   onToggle: (open: boolean) => void;
   open: boolean;
   title: ReactNode;
@@ -26,11 +28,14 @@ export function Disclosure({
   meta,
   onToggle,
   open,
+  spread = false,
   title,
 }: DisclosureProps) {
   return (
     <details
-      className={compact ? `${styles.disclosure} ${styles.compact}` : styles.disclosure}
+      className={[styles.disclosure, compact && styles.compact, spread && styles.spread]
+        .filter(Boolean)
+        .join(' ')}
       onToggle={(event) => onToggle(event.currentTarget.open)}
       open={open}
     >
@@ -39,10 +44,12 @@ export function Disclosure({
         tabIndex={disabled ? -1 : undefined}
         onClick={disabled ? (event) => event.preventDefault() : undefined}
       >
-        <span aria-hidden="true" className={styles.chevron}>
-          <Icon name="chevron-right" size={compact ? 12 : 14} />
+        <span className={styles.lead}>
+          <span aria-hidden="true" className={styles.chevron}>
+            <Icon name="chevron-right" size={compact ? 12 : 14} />
+          </span>
+          <span>{title}</span>
         </span>
-        <span>{title}</span>
         {meta ? <span className={styles.meta}>{meta}</span> : null}
       </summary>
       <div className={styles.content}>{children}</div>

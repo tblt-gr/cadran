@@ -52,7 +52,7 @@ test('goal modal category control has a mobile touch target', async ({ browser }
     await settled(page);
     await page.getByRole('button', { name: 'Nouvel objectif', exact: true }).click();
     await settled(page);
-    const dialog = page.getByRole('dialog');
+    const dialog = page.getByRole('dialog', { name: 'Nouvel objectif', exact: true });
     await dialog
       .getByRole('combobox', { name: 'Indicateur', exact: true })
       .selectOption('CATEGORY_SPENDING');
