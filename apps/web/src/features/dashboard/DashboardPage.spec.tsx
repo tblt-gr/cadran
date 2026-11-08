@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { coverageShortfall, defaultPolicy } from '@/features/goals/emergency-fund/fixtures';
 import { DashboardPage } from './DashboardPage';
 
 const api = vi.hoisted(() => ({
@@ -10,6 +11,8 @@ const api = vi.hoisted(() => ({
   readNetWorthHistory: vi.fn(),
   readMonthlyProjection: vi.fn(),
   readInterfacePreferences: vi.fn(),
+  readEmergencyFundCoverage: vi.fn(),
+  readEmergencyFundPolicy: vi.fn(),
 }));
 
 vi.mock('@cadran/api-client', async (importOriginal) => ({
@@ -161,6 +164,8 @@ function renderDashboard(
 ) {
   api.readMonthlyProjection.mockImplementation(() => success(report));
   api.readInterfacePreferences.mockImplementation(() => success(preferences));
+  api.readEmergencyFundCoverage.mockImplementation(() => success(coverageShortfall));
+  api.readEmergencyFundPolicy.mockImplementation(() => success(defaultPolicy));
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
@@ -185,6 +190,15 @@ describe('DashboardPage', () => {
     vi.resetAllMocks();
     window.history.replaceState({}, '', '/');
     window.localStorage.clear();
+  });
+
+  it('shows the emergency fund card after the metric cards, with its policy action', async () => {
+    renderDashboard();
+    const fund = await screen.findByRole('heading', { name: 'Fonds d’urgence' });
+    const saving = await screen.findByRole('heading', { name: /Taux d’épargne/ });
+    expect(saving.compareDocumentPosition(fund) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier la politique' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Voir le calcul' })).toBeTruthy();
   });
 
   it('replaces its one named cold-load skeleton and keeps data during a refetch', async () => {

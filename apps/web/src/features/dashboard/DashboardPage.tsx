@@ -1,4 +1,7 @@
+import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
+import { EmergencyFundCardSkeleton } from '@/features/goals/emergency-fund/EmergencyFundCardSkeleton';
+import { lazyComponent } from '@/lib/lazyComponent';
 import { AllocationPanel } from './allocation-panel/AllocationPanel';
 import { DashboardState } from './dashboard-state/DashboardState';
 import { DashboardMetrics } from './metrics/DashboardMetrics';
@@ -13,6 +16,12 @@ import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 import { netWorthErrorKind } from './net-worth/netWorthError';
 import { useNetWorth, useNetWorthHistory } from './net-worth/useNetWorth';
 import styles from './DashboardPage.module.css';
+
+// Loaded on demand: the card and its policy and explanation modals stay out of the dashboard chunk.
+const EmergencyFundCard = lazyComponent(
+  () => import('@/features/goals/emergency-fund/EmergencyFundCard'),
+  'EmergencyFundCard',
+);
 
 export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
   const { t } = useTranslation();
@@ -51,6 +60,13 @@ export function DashboardPage({ apiVersion }: { apiVersion?: string }) {
           </>
         )}
         <DashboardMetrics />
+        <div className={styles.emergencyFund}>
+          <Suspense
+            fallback={<EmergencyFundCardSkeleton status={t('goals.emergencyFund.loading')} />}
+          >
+            <EmergencyFundCard />
+          </Suspense>
+        </div>
       </div>
 
       {missingValuationsOpen && netWorth.data ? (

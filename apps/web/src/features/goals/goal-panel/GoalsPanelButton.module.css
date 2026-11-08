@@ -1,0 +1,60 @@
+/* Borderless and transparent: the progress is part of the header, the hover shows it is a button.
+   The element selector outweighs the shared secondary-action surface. */
+button.button {
+  border: var(--border-none);
+  background: none;
+  gap: var(--spacing-2);
+}
+
+button.button:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+}
+
+.bar {
+  overflow: hidden;
+  width: calc(var(--spacing-12) + var(--spacing-4));
+  height: var(--spacing-1);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface-hover);
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--gold-300);
+}
+
+.count {
+  font-size: var(--font-size-label);
+  white-space: nowrap;
+}
+
+.barBlock {
+  display: block;
+  width: calc(var(--spacing-12) + var(--spacing-4));
+  height: var(--spacing-1);
+}
+
+.countBlock {
+  display: block;
+  width: var(--spacing-8);
+  height: var(--font-size-label);
+}
+
+@media (max-width: 42rem) {
+  .bar,
+  .barBlock {
+    display: none;
+  }
+}
+
+/* The icon-only fallback is as borderless and transparent as the progress button. */
+button.bare {
+  border: var(--border-none);
+  background: none;
+}
+
+button.bare:hover:not(:disabled) {
+  background: var(--bg-surface-hover);
+}

@@ -234,13 +234,14 @@ check-http-headers: headers-owner
 	CADRAN_SERVER_NAME=$(HEADERS_PUBLIC_HOST) $(COMPOSE) up --detach --wait app
 	CADRAN_CA_CERT=var/tls/cadran-local-ca.crt CHECK_RESOLVE=$(HEADERS_PUBLIC_HOST):$(HEADERS_PORT):127.0.0.1 sh scripts/ci/check-http-headers.sh https://$(HEADERS_PUBLIC_HOST):$(HEADERS_PORT); status=$$?; $(COMPOSE) up --detach --wait app; exit $$status
 
-# Critical-path browser tests against the isolated e2e stack (run make e2e-provision first). Uses the host network
+# Critical-path browser tests against the isolated e2e stack (run make e2e-provision first). E2E_ARGS narrows the run,
+# for instance make e2e E2E_ARGS="goal-modal-audit.spec.ts budget.spec.ts". Uses the host network
 # so the containerised runner reaches the published HTTPS port (Linux hosts).
 e2e: e2e-image e2e-stack
 	$(E2E_COMPOSE) up --detach --wait --build
 	rm -rf $(E2E_RESULTS_DIR)
 	mkdir -p $(E2E_RESULTS_DIR)
-	$(E2E_DOCKER_RUN) --user $(HOST_UID):$(HOST_GID) --env HOME=/tmp --env E2E_OUTPUT_DIR=/results/run --mount "type=bind,source=$(E2E_RESULTS_DIR),target=/results" $(E2E_IMAGE)
+	$(E2E_DOCKER_RUN) --user $(HOST_UID):$(HOST_GID) --env HOME=/tmp --env E2E_OUTPUT_DIR=/results/run --mount "type=bind,source=$(E2E_RESULTS_DIR),target=/results" $(E2E_IMAGE) $(E2E_ARGS)
 
 # Visual specs are skipped until 1.0.0 (E2E_VISUAL=1 enables them). Regenerate the visual baselines inside the e2e image (Linux fonts), never on the host.
 # tests/e2e/tests is bind-mounted so the new .png files land in the working tree.

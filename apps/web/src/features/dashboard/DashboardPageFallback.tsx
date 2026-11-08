@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { EmergencyFundCardSkeleton } from '@/features/goals/emergency-fund/EmergencyFundCardSkeleton';
 import { MetricCard } from './metrics/MetricCard';
 import { DashboardPageSkeleton } from './DashboardPageSkeleton';
 import styles from './DashboardPage.module.css';
@@ -39,6 +40,9 @@ export function DashboardPageFallback() {
         tone="positive"
         value={loading}
       />
+      <div className={styles.emergencyFund}>
+        <EmergencyFundCardSkeleton status={t('goals.emergencyFund.loading')} />
+      </div>
     </div>
   );
 }

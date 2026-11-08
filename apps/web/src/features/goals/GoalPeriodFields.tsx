@@ -1,7 +1,7 @@
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type { GoalPeriodicity } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import styles from './GoalsPage.module.css';
+import styles from './GoalForm.module.css';
 
 interface Props {
   /** Editing a goal keeps its periodicity, start and end: only the value and the label change. */

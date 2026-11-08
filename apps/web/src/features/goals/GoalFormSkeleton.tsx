@@ -2,7 +2,7 @@ import type { GoalSummary } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { GoalForm } from './GoalForm';
-import styles from './GoalsPage.module.css';
+import styles from './GoalForm.module.css';
 
 const noop = () => undefined;
 

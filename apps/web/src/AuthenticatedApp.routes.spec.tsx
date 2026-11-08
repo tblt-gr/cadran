@@ -44,6 +44,7 @@ describe('AuthenticatedApp route table', () => {
       '/transactions',
       '/transactions/recurrences',
       '/budget',
+      '/goals',
       '/budget/plans',
       '/budget/plans/00000000-0000-7000-8000-000000000001',
       '/budget/00000000-0000-7000-8000-000000000001',
@@ -246,11 +247,13 @@ describe('AuthenticatedApp route table', () => {
     });
 
     it.each([
+      '/goals',
       '/budget/plans',
       '/budget/plans/00000000-0000-7000-8000-000000000003',
       '/budget/00000000-0000-7000-8000-000000000001',
-    ])('replaces %s with the goals page', (path) => {
-      expect(redirectTarget(path)).toBe('/goals');
+    ])('replaces %s with the goals panel of the current month', (path) => {
+      expect(redirectTarget(path)).toBe('/budget/2026/09');
+      expect(window.location.search).toBe('?panel=goals');
     });
 
     it('sends the bare /budget to the current month', () => {

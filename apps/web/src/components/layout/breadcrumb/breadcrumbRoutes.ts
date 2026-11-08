@@ -49,7 +49,6 @@ export function breadcrumbItems(
     '/categories': [budget, transactions, categories],
     '/categories/rules': [budget, transactions, categories, item('routes.categorizationRules')],
     '/budget': [budget],
-    '/goals': [item('navigation.goals')],
     '/parameters/interface': [settings, item('settings.tabs.interface')],
     '/parameters/profile': [settings, item('settings.tabs.profile')],
     '/parameters/metric-policy': [settings, item('routes.metricPolicy')],

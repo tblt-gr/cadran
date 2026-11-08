@@ -1,13 +1,15 @@
 import { readMonthlyLedger } from '@cadran/api-client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
-import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { GoalPanel } from '@/features/goals/goal-panel/GoalPanel';
+import { GoalsPanelButton } from '@/features/goals/goal-panel/GoalsPanelButton';
+import { useGoalPanelOpen } from '@/features/goals/goal-panel/goalPanelSearch';
 import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -48,6 +50,8 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   const [draft, setDraft] = useState<BudgetCreationDraft>(null);
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const goalPanel = useGoalPanelOpen();
+  const goalsButton = useRef<HTMLButtonElement>(null);
   const queryMonth = parsed.kind === 'valid' ? parsed.month : '';
 
   useEffect(() => {
@@ -173,15 +177,12 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('budget.monthly.saved')}</Toast> : null}
 
       <HeaderActions>
-        <a
-          aria-label={t('budget.monthly.goals')}
-          className="icon-button"
-          href="/goals"
-          onClick={(event) => handleClientNavigation(event, '/goals')}
-          title={t('budget.monthly.goals')}
-        >
-          <Icon name="budget" size={18} />
-        </a>
+        <GoalsPanelButton
+          buttonRef={goalsButton}
+          onOpen={goalPanel.openPanel}
+          ready={!ledger.isPending}
+          scope={{ kind: 'month', month }}
+        />
         <MonthlyBudgetActions
           // Failed bounds keep the ledger disabled, hence pending forever; the closure does not need it.
           disabled={history.status !== 'error' && ledger.isPending && ledger.data === undefined}
@@ -256,6 +257,14 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         onSaved={refreshAfterSave}
         today={today}
       />
+
+      {goalPanel.open ? (
+        <GoalPanel
+          close={goalPanel.closePanel}
+          returnFocus={goalsButton}
+          scope={{ kind: 'month', month }}
+        />
+      ) : null}
 
       {editingTransactionId ? (
         <MovementEditModal

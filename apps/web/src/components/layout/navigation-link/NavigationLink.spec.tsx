@@ -5,9 +5,9 @@ import { navigationItems } from '@/lib/navigation';
 import { NavigationLink } from './NavigationLink';
 
 function renderLink(onIntent?: (href: string) => void) {
-  const item = navigationItems.find((candidate) => candidate.href === '/goals')!;
+  const item = navigationItems.find((candidate) => candidate.href === '/investments')!;
   render(<NavigationLink item={item} onIntent={onIntent} onNavigate={vi.fn()} path="/" />);
-  return screen.getByRole('link', { name: 'Objectifs' });
+  return screen.getByRole('link', { name: 'Investissements' });
 }
 
 describe('NavigationLink intent', () => {
@@ -20,7 +20,7 @@ describe('NavigationLink intent', () => {
 
     fireEvent.pointerEnter(link);
 
-    expect(onIntent).toHaveBeenCalledWith('/goals');
+    expect(onIntent).toHaveBeenCalledWith('/investments');
   });
 
   it('reports the target when the link receives keyboard focus', () => {
@@ -28,7 +28,7 @@ describe('NavigationLink intent', () => {
 
     fireEvent.focus(renderLink(onIntent));
 
-    expect(onIntent).toHaveBeenCalledWith('/goals');
+    expect(onIntent).toHaveBeenCalledWith('/investments');
   });
 
   it('works without an intent handler', () => {

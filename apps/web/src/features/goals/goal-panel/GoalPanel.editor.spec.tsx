@@ -2,11 +2,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { GoalsPage } from './GoalsPage';
-import { coverageShortfall, defaultPolicy } from './emergency-fund/fixtures';
+import { coverageShortfall, defaultPolicy } from '@/features/goals/emergency-fund/fixtures';
+import { GoalPanel } from './GoalPanel';
 
 const api = vi.hoisted(() => ({
   listGoals: vi.fn(),
+  listGoalEvaluations: vi.fn(),
   createGoal: vi.fn(),
   updateGoal: vi.fn(),
   readGoal: vi.fn(),
@@ -47,6 +48,41 @@ const goal = {
   version: 1,
   warnings: [] as 'REFERENCE_ARCHIVED'[],
 };
+/** An evaluation of a listed goal in the panel's month (monthly goals) or year (yearly goals). */
+type ListedGoal = Omit<typeof goal, 'periodicity'> & { periodicity: 'MONTHLY' | 'YEARLY' };
+function evaluationOf(summary: ListedGoal) {
+  return {
+    goalId: summary.id,
+    label: summary.label,
+    periodicity: summary.periodicity,
+    metric: summary.metric,
+    scopeType: 'WORKSPACE',
+    scopeRef: null,
+    direction: summary.direction,
+    valueType: summary.currentVersion.valueType,
+    columnKey: null,
+    target: null,
+    achieved: null,
+    gap: null,
+    status: 'IN_PROGRESS',
+    reason: null,
+    formula: {
+      key: 'goals.formula.amount',
+      operands: { target: null, achieved: null, income: null, ratio: null },
+    },
+    versionNo: 1,
+    overrides: [],
+    pace: null,
+  };
+}
+async function evaluationsOfListedGoals() {
+  const listed = (await api.listGoals()) as { data: { items: ListedGoal[] } };
+  const items = listed.data.items;
+  return ok({
+    months: [{ period: '2026-09', items: items.map(evaluationOf) }],
+    years: [],
+  });
+}
 /**
  * Real browsers dispatch a click when Enter/Space activates a focused button; jsdom does not
  * implement that default action, so this asserts the keyboard-reachable part (focus) and then
@@ -66,19 +102,24 @@ function renderPage() {
   return {
     ...render(
       <QueryClientProvider client={queryClient}>
-        <GoalsPage />
+        <GoalPanel
+          close={() => undefined}
+          returnFocus={{ current: null }}
+          scope={{ kind: 'month', month: '2026-09' }}
+        />
       </QueryClientProvider>,
     ),
     queryClient,
   };
 }
-describe('GoalsPage', () => {
+describe('GoalPanel editor', () => {
   // The page derives its default year and month from today's date, and the list mock mirrors a
   // server that rejects months after 2026-09: freezing only `Date` keeps the suite independent of
   // the real calendar while leaving the timers React Query and waitFor rely on untouched.
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'] });
     vi.setSystemTime(new Date('2026-09-15T10:00:00Z'));
+    api.listGoalEvaluations.mockImplementation(evaluationsOfListedGoals);
     api.readEmergencyFundCoverage.mockImplementation(() => ok(coverageShortfall));
     api.readEmergencyFundPolicy.mockImplementation(() => ok(defaultPolicy));
   });
@@ -98,40 +139,6 @@ describe('GoalsPage', () => {
       }),
     );
   }
-  it('replaces its one named cold-load skeleton and keeps goals during a refetch', async () => {
-    mockSession();
-    let resolveGoals: ((value: unknown) => void) | undefined;
-    api.listGoals.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          resolveGoals = resolve;
-        }),
-    );
-    const { queryClient } = renderPage();
-
-    expect(screen.getByTestId('goals-skeleton')).toBeTruthy();
-    expect(screen.getByTestId('goals-skeleton').querySelectorAll('[role="status"]')).toHaveLength(
-      1,
-    );
-    resolveGoals?.(await ok({ items: [goal] }));
-    expect(await screen.findByText(goal.label)).toBeTruthy();
-    expect(screen.queryByTestId('goals-skeleton')).toBeNull();
-
-    api.listGoals.mockImplementation(() => new Promise(() => undefined));
-    void queryClient.invalidateQueries({ queryKey: ['goals'] });
-    await waitFor(() => expect(api.listGoals).toHaveBeenCalledTimes(2));
-    expect(screen.getByText(goal.label)).toBeTruthy();
-    expect(screen.queryByTestId('goals-skeleton')).toBeNull();
-  });
-
-  it('replaces the goals skeleton with an error state after a failed cold read', async () => {
-    mockSession();
-    api.listGoals.mockRejectedValue(new TypeError('offline'));
-    renderPage();
-
-    expect(await screen.findByRole('alert')).toBeTruthy();
-    expect(screen.queryByTestId('goals-skeleton')).toBeNull();
-  });
   it('shows the empty active state and creates an annual exact goal in the shared modal', async () => {
     mockSession();
     api.listGoals.mockReturnValue(ok({ items: [] }));
@@ -177,135 +184,6 @@ describe('GoalsPage', () => {
     const keys = api.createGoal.mock.calls.map(([options]) => options.headers['Idempotency-Key']);
     expect(keys[0]).toMatch(/^[0-9a-f-]{36}$/);
     expect(keys[1]).toBe(keys[0]);
-  });
-  it('renders an accessible provisional status and opens its keyboard-usable monthly detail', async () => {
-    mockSession();
-    const originalWidth = window.innerWidth;
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 360 });
-    const status = {
-      goalId: goal.id,
-      month: '2026-09',
-      periodicity: 'YEARLY' as const,
-      valueType: 'AMOUNT' as const,
-      direction: 'MINIMUM' as const,
-      goalVersion: 1,
-      scheduleMode: 'LINEAR' as const,
-      provisional: true,
-      metricPolicy: { state: 'SINGLE' as const, version: 1, versions: [1] },
-      target: '12000',
-      achieved: '9000',
-      expected: '9000',
-      gap: '0',
-      remaining: '3000',
-      excess: '0',
-      status: 'AHEAD' as const,
-      progressRatio: '0.75',
-      progressRatioDisplay: '0.75',
-      reason: null,
-      quality: 'PROVISIONAL' as const,
-    };
-    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, status }] }));
-    api.readGoalStatus.mockReturnValue(
-      ok({
-        ...status,
-        months: [
-          {
-            month: '2026-09',
-            state: 'PROVISIONAL',
-            value: null,
-            expectedPart: '1000',
-            cumulativeValue: '9000',
-            cumulativeExpected: '9000',
-            goalVersion: 1,
-            policyVersion: 1,
-          },
-        ],
-      }),
-    );
-    renderPage();
-    expect(await screen.findByLabelText('75,00 % atteint')).toBeTruthy();
-    expect(screen.getByText('En avance')).toBeTruthy();
-    expect(screen.getByText('Données provisoires')).toBeTruthy();
-    activateWithKeyboard(screen.getByRole('button', { name: 'Voir le détail mensuel' }));
-    expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
-    // The status month is the server's own default: the page no longer picks one.
-    expect(api.readGoalStatus.mock.calls[0]![0].path).toEqual({ id: goal.id });
-    expect(api.readGoalStatus.mock.calls[0]![0].query).toBeUndefined();
-    expect((await screen.findByRole('link', { name: 'septembre 2026' })).getAttribute('href')).toBe(
-      '/budget/2026/09',
-    );
-    expect(screen.getByTitle('Une valeur mensuelle est manquante')).toBeTruthy();
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
-  });
-  it('offers the edit and history actions but no close action in the accessible menu', async () => {
-    mockSession();
-    api.listGoals.mockImplementation(() => ok({ items: [goal] }));
-    renderPage();
-    expect(await screen.findByText('Épargne')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' }));
-    expect(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' })).toBeTruthy();
-    expect(
-      screen.getByRole('button', { name: 'Historique de l’objectif « Épargne »' }),
-    ).toBeTruthy();
-    expect(screen.queryByRole('button', { name: /Clôturer/ })).toBeNull();
-  });
-  it('lists the current goals first and the ended ones once the header filter asks for all', async () => {
-    mockSession();
-    api.listGoals.mockImplementation(({ query }) =>
-      ok({
-        items: query.current
-          ? [goal]
-          : [goal, { ...goal, id: 'ended-1', label: 'Voyage', endPeriod: '2025' }],
-      }),
-    );
-    renderPage();
-    expect(await screen.findByText('Épargne')).toBeTruthy();
-    expect(screen.queryByText('Voyage')).toBeNull();
-    expect(api.listGoals.mock.calls[0]![0].query).toEqual({
-      current: true,
-      page: 1,
-      pageSize: 100,
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres des objectifs' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'Tous' }));
-    expect(await screen.findByText('Voyage')).toBeTruthy();
-  });
-  it('sends the chosen periodicity to the list', async () => {
-    mockSession();
-    api.listGoals.mockImplementation(() => ok({ items: [goal] }));
-    renderPage();
-    expect(await screen.findByText('Épargne')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Filtres des objectifs' }));
-    fireEvent.change(screen.getByLabelText('Périodicité'), { target: { value: 'MONTHLY' } });
-    await waitFor(() =>
-      expect(api.listGoals).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          query: { periodicity: 'MONTHLY', current: true, page: 1, pageSize: 100 },
-        }),
-      ),
-    );
-  });
-  it('shows neither a title nor an empty message when a year has no goal', async () => {
-    mockSession();
-    api.listGoals.mockReturnValue(ok({ items: [] }));
-    renderPage();
-    await waitFor(() => expect(screen.queryByTestId('goals-skeleton')).toBeNull());
-    expect(screen.queryByText(/Aucun objectif/)).toBeNull();
-    expect(screen.queryByRole('region', { name: 'Liste des objectifs' })).toBeNull();
-  });
-  it('marks an ended goal and keeps its history action available', async () => {
-    mockSession();
-    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, endPeriod: '2025' }] }));
-    renderPage();
-    expect(await screen.findByText('Terminé')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Actions de l’objectif « Épargne »' })).toBeTruthy();
-    expect(screen.getByRole('heading', { name: 'Épargne' })).toBeTruthy();
-  });
-  it('does not duplicate the annual schedule outside the monthly detail', async () => {
-    mockSession();
-    api.listGoals.mockReturnValue(ok({ items: [goal] }));
-    renderPage();
-    expect(screen.queryByText('Aucun calendrier mensuel pour cet objectif.')).toBeNull();
   });
   it('flags only the invalid field when an annual goal is submitted without a label', async () => {
     mockSession();
@@ -444,22 +322,6 @@ describe('GoalsPage', () => {
       ),
     );
   });
-  it('renders the goals page and the create modal without horizontal overflow at 360 px', async () => {
-    mockSession();
-    const originalWidth = window.innerWidth;
-    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 360 });
-    try {
-      api.listGoals.mockReturnValue(ok({ items: [goal] }));
-      renderPage();
-      expect(await screen.findByText('Épargne')).toBeTruthy();
-      fireEvent.click(screen.getByRole('button', { name: 'Nouvel objectif' }));
-      expect(screen.getByRole('dialog', { name: 'Nouvel objectif' })).toBeTruthy();
-      expect(screen.getByLabelText('Libellé')).toBeTruthy();
-      expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeTruthy();
-    } finally {
-      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
-    }
-  });
   it('creates a monthly goal on a rolling income share with every new field sent', async () => {
     mockSession();
     api.listGoals.mockReturnValue(ok({ items: [] }));
@@ -554,53 +416,6 @@ describe('GoalsPage', () => {
         expect.objectContaining({ body: expect.objectContaining({ ratio: '0.30' }) }),
       ),
     );
-  });
-  it('shows an error inside the detail modal, not a page-wide failure, when the status call fails', async () => {
-    mockSession();
-    const status = {
-      goalId: goal.id,
-      month: '2026-09',
-      periodicity: 'YEARLY' as const,
-      valueType: 'AMOUNT' as const,
-      direction: 'MINIMUM' as const,
-      goalVersion: 1,
-      scheduleMode: 'LINEAR' as const,
-      provisional: false,
-      metricPolicy: { state: 'SINGLE' as const, version: 1, versions: [1] },
-      target: '12000',
-      achieved: '9000',
-      expected: '9000',
-      gap: '0',
-      remaining: '3000',
-      excess: '0',
-      status: 'AHEAD' as const,
-      progressRatio: '0.75',
-      progressRatioDisplay: '0.75',
-      reason: null,
-      quality: 'COMPLETE' as const,
-    };
-    api.listGoals.mockReturnValue(ok({ items: [{ ...goal, status }] }));
-    api.readGoalStatus.mockReturnValue(
-      Promise.resolve({
-        error: {
-          type: '/problems/internal',
-          title: 'Internal Server Error',
-          status: 500,
-          detail: 'unavailable',
-        },
-        response: new Response(null, { status: 500 }),
-      }),
-    );
-    renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir le détail mensuel' }));
-    expect(await screen.findByRole('dialog', { name: 'Détail de l’objectif' })).toBeTruthy();
-    expect(await screen.findByRole('alert')).toHaveProperty(
-      'textContent',
-      'Impossible de charger les objectifs',
-    );
-    expect(
-      screen.queryByRole('heading', { name: 'Impossible de charger les objectifs' }),
-    ).toBeNull();
   });
   it('prefills the edit form from the latest version so a rename cannot revert a newer ratio', async () => {
     mockSession();

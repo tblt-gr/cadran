@@ -46,7 +46,6 @@ describe('global breadcrumb', () => {
     ['/budget/2026', ['Accueil', 'Budget', '2026', 'Rapport']],
     ['/budget/2026-03', ['Accueil', 'Page introuvable']],
     ['/reports', ['Accueil', 'Page introuvable']],
-    ['/goals', ['Accueil', 'Objectifs']],
     ['/parameters/catalog', ['Accueil', 'Paramètres', 'Catalogue produits']],
     ['/parameters/product-models', ['Accueil', 'Paramètres', 'Modèles de produits']],
     ['/parameters/interface', ['Accueil', 'Paramètres', 'Interface']],

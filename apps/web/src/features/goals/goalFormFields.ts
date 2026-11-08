@@ -22,16 +22,6 @@ export function isRateMetric(metric: GoalMetric): boolean {
   return metric === 'SAVINGS_RATE' || metric === 'NET_SAVINGS_RATE';
 }
 
-/** A goal is current while its end period is not past; one without end never ends. */
-export function isGoalEnded(
-  goal: Pick<GoalSummary, 'periodicity' | 'endPeriod'>,
-  workspaceMonth: string,
-): boolean {
-  if (goal.endPeriod === null) return false;
-  const current = goal.periodicity === 'MONTHLY' ? workspaceMonth : workspaceMonth.slice(0, 4);
-  return goal.endPeriod < current;
-}
-
 /** Mirrors the API matrix: a rate metric takes only `RATE`, a rolling share only a monthly goal. */
 export function valueTypesFor(metric: GoalMetric, periodicity: GoalPeriodicity): GoalValueType[] {
   if (isRateMetric(metric)) return ['RATE'];

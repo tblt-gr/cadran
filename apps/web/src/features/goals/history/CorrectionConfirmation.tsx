@@ -3,7 +3,7 @@ import type { GoalCorrectionPreview } from '@cadran/api-client';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GoalErrorKind } from '@/features/goals/goalError';
-import styles from '@/features/goals/GoalsPage.module.css';
+import styles from '@/features/goals/GoalForm.module.css';
 import { CorrectionImpactTable } from './CorrectionImpactTable';
 
 /** Confirmation step of a retroactive correction: the impact preview and an explicit approval. */

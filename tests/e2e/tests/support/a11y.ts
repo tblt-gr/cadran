@@ -69,7 +69,8 @@ export const routeCases = [
   'month',
   'annual',
   'multi-year',
-  '/goals',
+  'month:goals-panel',
+  'annual:goals-panel',
   '/investments',
   '/investments?view=asset',
   '/investments/instruments',
@@ -94,6 +95,8 @@ export function routePath(route: string, fixtures: AuditFixtures): string {
     const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     return `/budget/${previous.getFullYear()}/${String(previous.getMonth() + 1).padStart(2, '0')}`;
   }
+  if (route === 'month:goals-panel') return `${routePath('month', fixtures)}?panel=goals`;
+  if (route === 'annual:goals-panel') return `${routePath('annual', fixtures)}?panel=goals`;
   if (route === 'annual') return `/budget/${now.getFullYear()}`;
   if (route === 'multi-year') return `/budget/${now.getFullYear()}?view=multi`;
   const [key, tab] = route.split(':');

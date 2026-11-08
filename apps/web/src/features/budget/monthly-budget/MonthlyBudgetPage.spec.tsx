@@ -1,10 +1,12 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { MonthlyBudgetPage } from './MonthlyBudgetPage';
 
 const api = vi.hoisted(() => ({
+  listGoalEvaluations: vi.fn(),
+  listGoals: vi.fn(),
   closePeriod: vi.fn(),
   countTransactions: vi.fn(),
   readPeriodStatus: vi.fn(),
@@ -29,6 +31,15 @@ const api = vi.hoisted(() => ({
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
   ...api,
+}));
+vi.mock('@/features/goals/goal-panel/GoalPanel', () => ({
+  GoalPanel: ({ scope, close }: { scope: { month: string }; close: () => void }) => (
+    <div role="dialog" aria-label={`Panneau ${scope.month}`}>
+      <button onClick={close} type="button">
+        Fermer le panneau
+      </button>
+    </div>
+  ),
 }));
 
 const incomeId = '00000000-0000-7000-8000-000000000001';
@@ -352,6 +363,11 @@ async function loaded() {
 
 describe('MonthlyBudgetPage', () => {
   beforeEach(() => {
+    api.listGoals.mockResolvedValue({ data: { items: [] }, response: new Response('{}') });
+    api.listGoalEvaluations.mockResolvedValue({
+      data: { months: [], years: [] },
+      response: new Response('{}'),
+    });
     window.localStorage.removeItem('cadran.budget.showEmptyTransferAccounts');
     window.history.replaceState({}, '', '/budget/2026/03');
     api.readMonthlyBounds.mockReturnValue(
@@ -501,12 +517,67 @@ describe('MonthlyBudgetPage', () => {
     });
   });
 
-  describe('monthly closure menu', () => {
-    it('lists the transactions entries then the closure in the overflow menu after the goals link', async () => {
+  describe('goals panel', () => {
+    afterEach(() => window.history.replaceState({}, '', '/'));
+
+    it('opens the panel of the displayed month from the Objectifs button and closes it with Back', async () => {
+      renderPage();
+      await loaded();
+      expect(screen.queryByRole('dialog', { name: 'Panneau 2026-03' })).toBeNull();
+
+      const opener = screen.getByRole('button', { name: 'Objectifs' });
+      await waitFor(() => expect(opener.hasAttribute('disabled')).toBe(false));
+      fireEvent.click(opener);
+      expect(await screen.findByRole('dialog', { name: 'Panneau 2026-03' })).toBeTruthy();
+      expect(window.location.search).toBe('?panel=goals');
+
+      await act(async () => {
+        window.history.back();
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      });
+      expect(screen.queryByRole('dialog', { name: 'Panneau 2026-03' })).toBeNull();
+    });
+
+    it('shows the goals met out of the goals of the month on the header button', async () => {
+      const item = (id: string, status: string, periodicity = 'MONTHLY') => ({
+        goalId: id,
+        label: id,
+        periodicity,
+        status,
+      });
+      api.listGoalEvaluations.mockResolvedValue({
+        data: {
+          months: [
+            {
+              period: '2026-03',
+              items: [item('a', 'MET'), item('b', 'IN_PROGRESS'), item('c', 'NOT_CALCULABLE')],
+            },
+          ],
+          years: [{ period: '2026', items: [item('y', 'MET', 'YEARLY')] }],
+        },
+        response: new Response('{}'),
+      });
       renderPage();
       await loaded();
 
-      const header = screen.getByRole('link', { name: 'Objectifs' });
+      const button = await screen.findByRole('button', { name: 'Objectifs : 1 sur 3 atteints' });
+      expect(button.title).toBe('Objectifs : 1 sur 3 atteints');
+      expect(button.textContent).toContain('1 / 3');
+    });
+
+    it('reopens the panel when the page loads on panel=goals', async () => {
+      window.history.replaceState({}, '', '/budget/2026/03?panel=goals');
+      renderPage();
+      expect(await screen.findByRole('dialog', { name: 'Panneau 2026-03' })).toBeTruthy();
+    });
+  });
+
+  describe('monthly closure menu', () => {
+    it('lists the transactions entries then the closure in the overflow menu after the goals button', async () => {
+      renderPage();
+      await loaded();
+
+      const header = screen.getByRole('button', { name: 'Objectifs' });
       const trigger = screen.getByRole('button', { name: 'Autres actions' });
       expect(
         header.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -747,7 +818,7 @@ describe('MonthlyBudgetPage', () => {
     api.readMonthlyLedger.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     await waitFor(() => expect(api.readMonthlyLedger).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('link', { name: 'Objectifs' }).getAttribute('href')).toBe('/goals');
+    expect(screen.getByRole('button', { name: 'Objectifs' })).toBeTruthy();
     expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull();
   });
 

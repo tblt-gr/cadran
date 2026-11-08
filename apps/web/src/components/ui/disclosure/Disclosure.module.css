@@ -11,6 +11,17 @@
   list-style: none;
 }
 
+.lead {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+}
+
+.spread summary {
+  width: 100%;
+  justify-content: space-between;
+}
+
 .disclosure summary::-webkit-details-marker {
   display: none;
 }

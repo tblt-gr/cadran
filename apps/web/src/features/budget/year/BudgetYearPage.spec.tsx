@@ -7,6 +7,8 @@ import { multiYearReport } from '@/features/reports/multi-year/multiYearFixtures
 import { BudgetYearPage } from './BudgetYearPage';
 
 const api = vi.hoisted(() => ({
+  listGoalEvaluations: vi.fn(),
+  listGoals: vi.fn(),
   readAnnualReport: vi.fn(),
   readMultiYearReport: vi.fn(),
   readMonthlyBounds: vi.fn(),
@@ -16,6 +18,12 @@ const api = vi.hoisted(() => ({
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
   ...api,
+}));
+
+vi.mock('@/features/goals/goal-panel/GoalPanel', () => ({
+  GoalPanel: ({ scope }: { scope: { kind: string; year: number } }) => (
+    <div role="dialog" aria-label={`Panneau ${scope.kind} ${scope.year}`} />
+  ),
 }));
 
 const ok = <T,>(data: T) => ({ data, response: { ok: true, status: 200 } });
@@ -32,6 +40,8 @@ function renderPage(search = '') {
 }
 
 beforeEach(() => {
+  api.listGoals.mockResolvedValue(ok({ items: [] }));
+  api.listGoalEvaluations.mockResolvedValue(ok({ months: [], years: [] }));
   api.readAnnualReport.mockResolvedValue(ok(annualReport));
   api.readMultiYearReport.mockResolvedValue(ok(multiYearReport));
   api.readMonthlyBounds.mockResolvedValue(
@@ -47,6 +57,78 @@ afterEach(() => {
 });
 
 describe('BudgetYearPage', () => {
+  it('counts the yearly goals over the selected years of the multi-year view', async () => {
+    const item = (status: string) => ({
+      goalId: status,
+      label: status,
+      periodicity: 'YEARLY',
+      status,
+    });
+    api.listGoalEvaluations.mockImplementation(({ query }: { query: { from: string } }) =>
+      Promise.resolve(
+        ok({
+          months: [],
+          years: [
+            {
+              period: query.from.slice(0, 4),
+              items: query.from.startsWith('2025') ? [item('MET'), item('MISSED')] : [],
+            },
+          ],
+        }),
+      ),
+    );
+    renderPage('?view=multi&from=2025&to=2026');
+    expect(
+      await screen.findByRole('button', { name: 'Objectifs : 1 sur 2 atteints' }),
+    ).toBeTruthy();
+    expect(api.listGoalEvaluations).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not request the goals list for the header counter, only the evaluations', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport 2026/i });
+    await waitFor(() => expect(api.listGoalEvaluations).toHaveBeenCalled());
+    expect(api.listGoals).not.toHaveBeenCalled();
+  });
+
+  it('counts the yearly goals met on the header button, monthly ones excluded', async () => {
+    const item = (id: string, status: string, periodicity: string) => ({
+      goalId: id,
+      label: id,
+      periodicity,
+      status,
+    });
+    api.listGoalEvaluations.mockResolvedValue(
+      ok({
+        months: [{ period: '2026-01', items: [item('m', 'MET', 'MONTHLY')] }],
+        years: [
+          {
+            period: '2026',
+            items: [item('y1', 'MET', 'YEARLY'), item('y2', 'MISSED', 'YEARLY')],
+          },
+        ],
+      }),
+    );
+    renderPage();
+    expect(
+      await screen.findByRole('button', { name: 'Objectifs : 1 sur 2 atteints' }),
+    ).toBeTruthy();
+  });
+
+  it('opens the goals panel of the year from the header button and reopens it on reload', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport 2026/i });
+    const opener = screen.getByRole('button', { name: 'Objectifs' });
+    await waitFor(() => expect(opener.hasAttribute('disabled')).toBe(false));
+    fireEvent.click(opener);
+    expect(await screen.findByRole('dialog', { name: 'Panneau year 2026' })).toBeTruthy();
+    expect(url()).toBe('/budget/2026?panel=goals');
+
+    cleanup();
+    renderPage('?panel=goals');
+    expect(await screen.findByRole('dialog', { name: 'Panneau year 2026' })).toBeTruthy();
+  });
+
   it('shows the compact annual report by default, without any query string', async () => {
     renderPage();
     expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();

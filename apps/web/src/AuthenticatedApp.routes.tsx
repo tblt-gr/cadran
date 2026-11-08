@@ -71,7 +71,6 @@ const BudgetYearPage = lazyComponent(
   () => import('@/features/budget/year/BudgetYearPage'),
   'BudgetYearPage',
 );
-const GoalsPage = lazyComponent(() => import('@/features/goals/GoalsPage'), 'GoalsPage');
 const InvestmentsPage = lazyComponent(
   () => import('@/features/investments/InvestmentsPage'),
   'InvestmentsPage',
@@ -88,6 +87,18 @@ const PortfolioAccountPage = lazyComponent(
   () => import('@/features/portfolio/portfolio-account/PortfolioAccountPage'),
   'PortfolioAccountPage',
 );
+
+/** Goals live in a panel of the current month's budget; legacy goal and plan URLs land there. */
+function GoalsPanelRedirect({ workspaceTimeZone }: { workspaceTimeZone: string }) {
+  const month = workspaceToday(new Date(), workspaceTimeZone).slice(0, 7);
+  return (
+    <RouteRedirect
+      keepParams={[]}
+      statusKey="budget.monthly.loading"
+      to={`${monthHref(month, null)}?panel=goals`}
+    />
+  );
+}
 
 const BUDGET_PLAN_UUID_PATTERN =
   '[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}';
@@ -237,11 +248,17 @@ export function buildAuthenticatedRoutes(
     {
       // Budget plans and targets are goals now; their former pages and bookmarks land on the goals.
       pattern: /^\/budget\/plans(?:\/[^/]+)?$/,
-      preload: GoalsPage.preload,
+      preload: MonthlyBudgetPage.preload,
       redirect: true,
-      render: () => <RouteRedirect to="/goals" />,
+      render: () => <GoalsPanelRedirect workspaceTimeZone={workspaceTimeZone} />,
     },
-    { pattern: /^\/goals$/, preload: GoalsPage.preload, render: () => <GoalsPage /> },
+    {
+      // The goals page became a panel of the monthly budget.
+      pattern: /^\/goals$/,
+      preload: MonthlyBudgetPage.preload,
+      redirect: true,
+      render: () => <GoalsPanelRedirect workspaceTimeZone={workspaceTimeZone} />,
+    },
     {
       pattern: /^\/budget\/(\d{4})$/,
       preload: BudgetYearPage.preload,
@@ -259,9 +276,9 @@ export function buildAuthenticatedRoutes(
     },
     {
       pattern: new RegExp(`^/budget/(${BUDGET_PLAN_UUID_PATTERN})$`, 'i'),
-      preload: GoalsPage.preload,
+      preload: MonthlyBudgetPage.preload,
       redirect: true,
-      render: () => <RouteRedirect to="/goals" />,
+      render: () => <GoalsPanelRedirect workspaceTimeZone={workspaceTimeZone} />,
     },
     {
       pattern: /^\/budget\/(\d{4})\/(-?\d+)$/,

@@ -2,7 +2,7 @@ import type { GoalDetail } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatAmount } from '@/lib/decimal';
 import { formatGoalMonth } from './goalMonth';
-import styles from './GoalsPage.module.css';
+import styles from './GoalForm.module.css';
 
 export function ReferenceIncomeNote({ goal }: { goal: GoalDetail }) {
   const { t, i18n } = useTranslation();

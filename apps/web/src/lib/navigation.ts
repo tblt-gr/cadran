@@ -52,12 +52,6 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
-    href: '/goals',
-    icon: 'goals',
-    labelKey: 'navigation.goals',
-    match: (path) => path === '/goals',
-  },
-  {
     href: '/parameters/interface',
     icon: 'settings',
     labelKey: 'navigation.settings',
