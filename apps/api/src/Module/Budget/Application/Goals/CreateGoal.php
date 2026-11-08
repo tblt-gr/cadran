@@ -18,6 +18,7 @@ use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Budget\Domain\Goals\InvalidGoal;
+use App\Module\Budget\Domain\Goals\InvalidGoalTolerance;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
@@ -94,6 +95,7 @@ final readonly class CreateGoal
         }
         $effectiveFrom = GoalPeriodicity::YEARLY === $periodicity ? $input->startPeriod.'-01' : $input->startPeriod;
         $definitionId = $this->uuid->generate();
+        $tolerance = GoalToleranceInput::parse($input->tolerance);
         try {
             if (GoalValueType::AMOUNT === $valueType) {
                 if (null === $input->targetAmount || null !== $input->ratio) {
@@ -112,18 +114,20 @@ final readonly class CreateGoal
                 $schedule = GoalPeriodicity::YEARLY === $periodicity
                     ? ($this->schedules)($currency, $target, $input->schedule ?? new GoalScheduleInput(GoalScheduleMode::LINEAR->value, null))
                     : null;
-                $definition = GoalVersion::amount($definitionId, $workspace, $goalId, 1, $effectiveFrom, $target, $schedule, $now, $actorId);
+                $definition = GoalVersion::amount($definitionId, $workspace, $goalId, 1, $effectiveFrom, $target, $schedule, $now, $actorId, tolerance: $tolerance);
             } else {
                 if (null === $input->ratio || null !== $input->targetAmount || null !== $input->schedule) {
                     throw new GoalInputError('invalid_goal_ratio', 'A share or rate goal uses a ratio only.');
                 }
                 $ratio = DecimalValue::fromString($input->ratio);
                 $definition = GoalValueType::RATE === $valueType
-                    ? GoalVersion::rate($definitionId, $workspace, $goalId, 1, $effectiveFrom, $ratio, $now, $actorId)
-                    : GoalVersion::share($definitionId, $workspace, $goalId, 1, $effectiveFrom, $valueType, $ratio, $now, $actorId);
+                    ? GoalVersion::rate($definitionId, $workspace, $goalId, 1, $effectiveFrom, $ratio, $now, $actorId, tolerance: $tolerance)
+                    : GoalVersion::share($definitionId, $workspace, $goalId, 1, $effectiveFrom, $valueType, $ratio, $now, $actorId, tolerance: $tolerance);
             }
         } catch (GoalInputError $exception) {
             throw $exception;
+        } catch (InvalidGoalTolerance $exception) {
+            throw new GoalInputError('invalid_goal_tolerance', $exception->getMessage());
         } catch (InvalidGoal|\InvalidArgumentException|\DomainException $exception) {
             throw new GoalInputError(GoalValueType::AMOUNT === $valueType ? 'invalid_goal_target' : 'invalid_goal_ratio', $exception->getMessage());
         }

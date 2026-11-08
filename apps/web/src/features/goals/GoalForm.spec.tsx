@@ -26,6 +26,7 @@ const existing: GoalSummary = {
     valueType: 'AMOUNT',
     targetAmount: '400.00',
     ratio: null,
+    tolerance: '0',
     schedule: null,
   },
   version: 1,
@@ -65,6 +66,53 @@ describe('GoalForm', () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
+  });
+
+  it('keeps an empty tolerance strict and saves an exact amount margin', () => {
+    const submit = renderForm();
+    const tolerance = screen.getByLabelText('Tolérance');
+    expect((tolerance as HTMLInputElement).value).toBe('');
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '800' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit.mock.calls[0]![0].tolerance).toBe('0');
+    fireEvent.change(tolerance, { target: { value: '50.01' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit.mock.calls[1]![0].tolerance).toBe('50.01');
+  });
+
+  it.each(['-1', '801', 'bad'])('refuses invalid tolerance %s on its own field', (value) => {
+    const submit = renderForm();
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '800' } });
+    fireEvent.change(screen.getByLabelText('Tolérance'), { target: { value } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(screen.getByLabelText('Tolérance').getAttribute('aria-invalid')).toBe('true');
+    expect(submit).not.toHaveBeenCalled();
+  });
+
+  it('converts a point tolerance exactly for a rate and clears it when switching units', () => {
+    const submit = renderForm();
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.change(screen.getByLabelText('Indicateur'), { target: { value: 'SAVINGS_RATE' } });
+    fireEvent.change(screen.getByLabelText('Taux cible'), { target: { value: '15' } });
+    fireEvent.change(screen.getByLabelText('Tolérance'), { target: { value: '1' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit.mock.calls[0]![0].tolerance).toBe('0.01');
+    fireEvent.change(screen.getByLabelText('Indicateur'), { target: { value: 'BUDGET_SURPLUS' } });
+    expect((screen.getByLabelText('Tolérance') as HTMLInputElement).value).toBe('');
+  });
+
+  it('prefills an existing tolerance and sends zero when cleared', () => {
+    const submit = renderForm({
+      ...existing,
+      currentVersion: { ...existing.currentVersion, tolerance: '20' },
+    });
+    const field = screen.getByLabelText('Tolérance');
+    expect((field as HTMLInputElement).value).toBe('20');
+    fireEvent.change(field, { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit.mock.calls[0]![0].tolerance).toBe('0');
   });
 
   it('starts as a monthly goal from the current month with no end', () => {
@@ -173,6 +221,7 @@ describe('GoalForm', () => {
       effectiveFrom: '2026-09',
       reason: null,
       targetAmount: { value: '450.00', assetCode: 'EUR' },
+      tolerance: '0',
     });
   });
 });

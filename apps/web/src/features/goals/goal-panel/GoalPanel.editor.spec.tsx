@@ -68,10 +68,12 @@ function evaluationOf(summary: ListedGoal) {
     reason: null,
     formula: {
       key: 'goals.formula.amount',
-      operands: { target: null, achieved: null, income: null, ratio: null },
+      operands: { target: null, achieved: null, income: null, ratio: null, tolerance: null },
     },
     versionNo: 1,
     overrides: [],
+    tolerance: null,
+    withinTolerance: false,
     pace: null,
   };
 }
@@ -351,6 +353,7 @@ describe('GoalPanel editor', () => {
             endPeriod: null,
             valueType: 'ROLLING_INCOME_SHARE',
             ratio: '0.30',
+            tolerance: '0',
           },
         }),
       ),
@@ -380,6 +383,7 @@ describe('GoalPanel editor', () => {
             endPeriod: '2026',
             valueType: 'RATE',
             ratio: '0.20',
+            tolerance: '0',
           },
         }),
       ),

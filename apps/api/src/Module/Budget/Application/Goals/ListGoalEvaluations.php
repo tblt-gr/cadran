@@ -205,7 +205,8 @@ final readonly class ListGoalEvaluations
      */
     private function item(EvaluationContext $context, Goal $goal, GoalVersion $version, array $overrides, ?string $target, ?string $targetReason, ?string $achieved, ?string $achievedReason, ?string $income, bool $complete, ?array $pace, string $asset): GoalEvaluationView
     {
-        $status = GoalEvaluationRules::status($goal->direction(), $achieved, $target, $complete);
+        $tolerance = null === $target ? null : $version->toleranceAmount($income);
+        $status = GoalEvaluationRules::status($goal->direction(), $achieved, $target, $complete, $tolerance);
         $reason = GoalEvaluationStatus::NOT_CALCULABLE === $status ? ($achievedReason ?? $targetReason ?? 'NO_DATA') : null;
         if (null === $reason && true === $context->scope($this->scope, $goal)->archived) {
             $reason = 'REFERENCE_ARCHIVED';
@@ -215,6 +216,7 @@ final readonly class ListGoalEvaluations
         $targetFigure = GoalValueType::RATE === $version->valueType ? $rate($target) : $amount($target);
         $achievedFigure = $goal->metric->isRate() ? $rate($achieved) : $amount($achieved);
         $ratio = $version->ratio?->toString();
+        $toleranceFigure = GoalValueType::RATE === $version->valueType ? $rate($tolerance) : $amount($tolerance);
 
         return new GoalEvaluationView(
             $goal->id, $goal->label, $goal->periodicity->value, $goal->metric->value, $goal->scopeType->value, $goal->scopeRef, $goal->direction()->value,
@@ -226,8 +228,8 @@ final readonly class ListGoalEvaluations
                 GoalValueType::ROLLING_INCOME_SHARE => 'goals.formula.rollingIncomeShare',
                 GoalValueType::RATE => 'goals.formula.rate',
             },
-            ['target' => $target, 'achieved' => $achieved, 'income' => $income, 'ratio' => $ratio],
-            $version->versionNo, $overrides, $pace,
+            ['target' => $target, 'achieved' => $achieved, 'income' => $income, 'ratio' => $ratio, 'tolerance' => $tolerance],
+            $version->versionNo, $overrides, $pace, $toleranceFigure, GoalEvaluationRules::withinTolerance($goal->direction(), $achieved, $target, $tolerance),
         );
     }
 

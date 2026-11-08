@@ -46,6 +46,7 @@ function summary(id: string, label: string, extra: Partial<GoalSummary> = {}): G
       valueType: 'AMOUNT',
       targetAmount: '500.00',
       ratio: null,
+      tolerance: '0',
       schedule: null,
     },
     version: 3,
@@ -72,10 +73,18 @@ function evaluation(goal: GoalSummary, extra: Partial<GoalEvaluation> = {}): Goa
     reason: null,
     formula: {
       key: 'goals.formula.amount',
-      operands: { target: '500.00', achieved: '320.00', income: null, ratio: null },
+      operands: {
+        target: '500.00',
+        achieved: '320.00',
+        income: null,
+        ratio: null,
+        tolerance: null,
+      },
     },
     versionNo: 1,
     overrides: [],
+    tolerance: null,
+    withinTolerance: false,
     pace: null,
     ...extra,
   };
@@ -140,6 +149,34 @@ afterEach(() => {
 });
 
 describe('GoalPanel monthly', () => {
+  it('shows the server tolerance without changing the server status or the signed gap', async () => {
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [
+          {
+            period: '2026-11',
+            items: [
+              evaluation(g1, {
+                status: 'MET',
+                gap: '-40',
+                withinTolerance: true,
+                tolerance: { value: '50', assetCode: 'EUR' },
+              }),
+            ],
+          },
+        ],
+        years: [],
+      }),
+    );
+    renderPanel(november);
+    await loaded();
+    const row = document.querySelector(`[data-goal-id="${g1.id}"]`)!;
+    expect(row.getAttribute('data-tone')).toBe('positive');
+    expect(within(row as HTMLElement).getByText('Atteint')).toBeTruthy();
+    expect(row.textContent).toMatch(/Tolérance de 50,00\s€/);
+    expect(row.textContent).toMatch(/Manque 40,00\s€/);
+  });
+
   it('titles the panel with the month and lists only that month, ceilings first', async () => {
     api.listGoalEvaluations.mockImplementation(() =>
       ok({

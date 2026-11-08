@@ -919,6 +919,10 @@ export type CreateGoalRequest = {
      * Monthly calendar of a yearly amount goal; LINEAR when omitted. Refused on every other goal.
      */
     schedule?: GoalScheduleInput | null;
+    /**
+     * Optional margin around the target in the unit of the target, between 0 and the target; omitted or null means 0 (strict). A negative value or one above the target answers 422 invalid_goal_tolerance.
+     */
+    tolerance?: GoalDecimal | null;
 };
 
 export type UpdateGoalRequest = {
@@ -929,6 +933,10 @@ export type UpdateGoalRequest = {
     valueType?: GoalValueType | null;
     targetAmount?: GoalAmountInput | null;
     ratio?: GoalDecimal | null;
+    /**
+     * New margin around the target; omitted or null keeps the tolerance in effect and `0` makes the goal strict. A negative value or one above the target answers 422 invalid_goal_tolerance.
+     */
+    tolerance?: GoalDecimal | null;
     version: number;
     /**
      * Defaults to the workspace-local current month. A past month makes the new definition retroactive; it applies only until an existing definition with a later effective month.
@@ -1212,6 +1220,10 @@ export type GoalVersion = {
     targetAmount: GoalDecimal | null;
     ratio: GoalDecimal | null;
     /**
+     * Margin accepted around the target, in the unit of the target (an amount in the goal asset for AMOUNT, a ratio otherwise); `0` is a strict goal.
+     */
+    tolerance: GoalDecimal;
+    /**
      * Twelve monthly parts summing exactly to targetAmount; null for every goal but a yearly amount goal, or for a pre-schedule version whose target could not be split (not calculable).
      */
     schedule: GoalSchedule | null;
@@ -1249,7 +1261,7 @@ export type GoalVersionChangeValue = string | [
 ] | null;
 
 export type GoalVersionChange = {
-    field: 'valueType' | 'targetAmount' | 'ratio' | 'scheduleMode' | 'schedule';
+    field: 'valueType' | 'targetAmount' | 'ratio' | 'tolerance' | 'scheduleMode' | 'schedule';
     before: GoalVersionChangeValue;
     after: GoalVersionChangeValue;
 };
@@ -1265,6 +1277,7 @@ export type GoalVersionHistoryItem = {
     year: number | null;
     targetAmount: GoalDecimal | null;
     ratio: GoalDecimal | null;
+    tolerance: GoalDecimal;
     schedule: GoalSchedule | null;
     retroactive: boolean;
     reason: string | null;
@@ -1300,6 +1313,10 @@ export type GoalEvaluationFormula = {
         achieved: GoalStatusValue;
         income: GoalStatusValue;
         ratio: GoalStatusValue;
+        /**
+         * The margin in the unit of the target (converted to an amount for a share); null when the goal is strict.
+         */
+        tolerance: GoalStatusValue;
     };
 };
 
@@ -1333,6 +1350,14 @@ export type GoalEvaluation = {
     versionNo: number;
     overrides: Array<string>;
     pace: GoalEvaluationPace | null;
+    /**
+     * The margin accepted around the target, in the same figure shape as target; null when the goal is strict.
+     */
+    tolerance: GoalEvaluationFigure | null;
+    /**
+     * True when the achieved value is on the wrong side of the target yet inside the margin (a running minimum is judged on the bound too); false for a strict goal or a value on the right side; null when the evaluation is not calculable. The status is the server's.
+     */
+    withinTolerance: boolean | null;
 };
 
 export type GoalPeriodEvaluation = {

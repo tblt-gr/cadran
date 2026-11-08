@@ -37,6 +37,8 @@ import {
   valueTypesFor,
 } from './goalFormFields';
 import { GoalPeriodFields } from './GoalPeriodFields';
+import { GoalToleranceField } from './goal-tolerance-field/GoalToleranceField';
+import { displayTolerance, toleranceInput, validTolerance } from './goalTolerance';
 import { GoalValueFields } from './GoalValueFields';
 import styles from './GoalForm.module.css';
 
@@ -103,6 +105,10 @@ export function GoalForm({
     version?.targetAmount ??
       (version?.ratio != null ? (ratioToPercentage(version.ratio) ?? '') : ''),
   );
+  const [tolerance, setTolerance] = useState(() =>
+    version ? displayTolerance(version.tolerance ?? '0', version.valueType) : '',
+  );
+  const toleranceValid = validTolerance(tolerance, value, valueType);
   const [showErrors, setShowErrors] = useState(false);
   const [schedule, setSchedule] = useState<GoalScheduleValue>(() => initialSchedule(goal));
   const scopeType = scopeFor(metric);
@@ -138,7 +144,10 @@ export function GoalForm({
   const reasonValid = !retroactive || (reason.trim().length >= 3 && reason.trim().length <= 200);
   function changeValueType(next: GoalValueType) {
     // An exact amount and a percentage are not interchangeable: never carry one into the other.
-    if (amount !== (next === 'AMOUNT')) setValue('');
+    if (amount !== (next === 'AMOUNT')) {
+      setValue('');
+      setTolerance('');
+    }
     setValueType(next);
   }
   function keepValueTypeAllowed(nextMetric: GoalMetric, nextPeriodicity: GoalPeriodicity) {
@@ -176,6 +185,7 @@ export function GoalForm({
   const formValid =
     labelValid &&
     decimalValid &&
+    toleranceValid &&
     scopeValid &&
     periodValid &&
     scheduleValid &&
@@ -206,6 +216,7 @@ export function GoalForm({
         effectiveFrom,
         reason: retroactive ? reason.trim() : null,
         ...target,
+        tolerance: toleranceInput(tolerance, valueType)!,
         ...(yearlyAmount ? { schedule: scheduleField } : {}),
       });
       return;
@@ -219,6 +230,7 @@ export function GoalForm({
       endPeriod: noEnd ? null : end,
       valueType,
       ...target,
+      tolerance: toleranceInput(tolerance, valueType)!,
       ...(yearlyAmount ? { schedule: scheduleField } : {}),
     });
   }
@@ -312,6 +324,15 @@ export function GoalForm({
               valid={decimalValid}
               value={value}
               valueType={valueType}
+            />
+          ) : null}
+          {!futureGoal ? (
+            <GoalToleranceField
+              value={tolerance}
+              onChange={setTolerance}
+              amount={amount}
+              assetCode={goal?.assetCode ?? baseCurrency}
+              invalid={(showErrors && !toleranceValid) || submitError === 'invalid_goal_tolerance'}
             />
           ) : null}
           {goal && !futureGoal ? (

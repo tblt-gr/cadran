@@ -28,24 +28,25 @@ final class GoalVersionRow
         $retroactive = filter_var($row['retroactive'] ?? false, FILTER_VALIDATE_BOOL);
         $reason = null === ($row['reason'] ?? null) ? null : GoalRow::text($row['reason']);
         $valueType = GoalValueType::from(GoalRow::text($row['value_type'] ?? null));
+        $tolerance = DecimalValue::fromString(self::decimal($row['tolerance'] ?? '0', $row['tolerance_scale'] ?? 0));
         if (GoalValueType::AMOUNT === $valueType) {
             $target = DecimalValue::fromString(self::decimal($row['target_amount'], $row['target_scale']));
             $mode = $row['schedule_mode'] ?? null;
             $schedule = null === $mode ? null : GoalSchedule::restore(GoalScheduleMode::from(GoalRow::text($mode)), $target, array_map(static fn (array $part): DecimalValue => DecimalValue::fromString(self::decimal($part['amount'] ?? null, $part['amount_scale'] ?? null)), $parts));
 
-            return GoalVersion::amount(...[...$common, $target, $schedule, $createdAt, $createdBy, $retroactive, $reason]);
+            return GoalVersion::amount(...[...$common, $target, $schedule, $createdAt, $createdBy, $retroactive, $reason, $tolerance]);
         }
         $ratio = DecimalValue::fromString(self::decimal($row['ratio'] ?? null, $row['ratio_scale'] ?? null));
 
         return GoalValueType::RATE === $valueType
-            ? GoalVersion::rate(...[...$common, $ratio, $createdAt, $createdBy, $retroactive, $reason])
-            : GoalVersion::share(...[...$common, $valueType, $ratio, $createdAt, $createdBy, $retroactive, $reason]);
+            ? GoalVersion::rate(...[...$common, $ratio, $createdAt, $createdBy, $retroactive, $reason, $tolerance])
+            : GoalVersion::share(...[...$common, $valueType, $ratio, $createdAt, $createdBy, $retroactive, $reason, $tolerance]);
     }
 
     /** @return array<string, mixed> */
     public static function columns(GoalVersion $version): array
     {
-        return ['goal_id' => $version->goalId, 'version_no' => $version->versionNo, 'effective_from' => $version->effectiveFrom, 'value_type' => $version->valueType->value, 'target_amount' => $version->targetAmount?->toString(), 'target_scale' => $version->targetAmount?->scale(), 'ratio' => $version->ratio?->toString(), 'ratio_scale' => $version->ratio?->scale(), 'schedule_mode' => $version->scheduleMode(), 'retroactive' => $version->retroactive, 'reason' => $version->reason, 'created_at' => $version->createdAt->format('Y-m-d H:i:s.uP'), 'created_by' => $version->createdBy];
+        return ['goal_id' => $version->goalId, 'version_no' => $version->versionNo, 'effective_from' => $version->effectiveFrom, 'value_type' => $version->valueType->value, 'target_amount' => $version->targetAmount?->toString(), 'target_scale' => $version->targetAmount?->scale(), 'ratio' => $version->ratio?->toString(), 'ratio_scale' => $version->ratio?->scale(), 'tolerance' => $version->tolerance->toString(), 'tolerance_scale' => $version->tolerance->scale(), 'schedule_mode' => $version->scheduleMode(), 'retroactive' => $version->retroactive, 'reason' => $version->reason, 'created_at' => $version->createdAt->format('Y-m-d H:i:s.uP'), 'created_by' => $version->createdBy];
     }
 
     private static function decimal(mixed $value, mixed $scale): string

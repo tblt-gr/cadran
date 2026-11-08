@@ -18,6 +18,7 @@ async function openGoalDialog(page: Page, kind: 'create' | 'edit' | 'policy') {
       const creation = page.getByRole('dialog', { name: 'Nouvel objectif' });
       await creation.getByLabel('Libellé', { exact: true }).fill(label);
       await creation.getByLabel('Montant cible', { exact: true }).fill('120.00');
+      await creation.getByLabel('Tolérance', { exact: true }).fill('10.00');
       await creation.getByRole('button', { name: 'Enregistrer', exact: true }).click();
       await expect(creation).toBeHidden();
       await settled(page);
@@ -59,6 +60,16 @@ for (const kind of ['create', 'edit', 'policy'] as const) {
         const page = await context.newPage();
         const dialog = await openGoalDialog(page, kind);
         await expect(dialog).toBeVisible();
+        if (kind !== 'policy') {
+          const tolerance = dialog.getByLabel('Tolérance', { exact: true });
+          if (kind === 'edit') await expect(tolerance).toHaveValue('10.00');
+          await tolerance.focus();
+          await expect(tolerance).toBeFocused();
+          await tolerance.fill('121');
+          await dialog.getByRole('button', { name: 'Enregistrer', exact: true }).click();
+          await expect(tolerance).toHaveAttribute('aria-invalid', 'true');
+          await tolerance.fill('10');
+        }
         await expect(
           dialog.getByText(
             kind === 'create' ? 'Création' : kind === 'edit' ? 'Modification' : 'Paramétrage',

@@ -3135,7 +3135,8 @@
       "form": "Vérifiez le libellé, le périmètre, la période et la valeur saisie.",
       "targetAmount": "Saisissez un montant décimal exact strictement supérieur à 0, avec au plus 8 décimales. Utilisez un point comme séparateur décimal.",
       "ratio": "Saisissez un pourcentage strictement supérieur à 0 et inférieur ou égal à 100, avec au plus 6 décimales. Utilisez un point comme séparateur décimal.",
-      "rate": "Saisissez un taux entre 0 et 100 %, avec au plus 6 décimales. Utilisez un point comme séparateur décimal."
+      "rate": "Saisissez un taux entre 0 et 100 %, avec au plus 6 décimales. Utilisez un point comme séparateur décimal.",
+      "tolerance": "Saisissez une tolérance positive ou nulle, inférieure ou égale à la cible : au plus 8 décimales pour un montant ou 6 pour des points."
     },
     "errors": {
       "conflict": "Cet objectif a changé et a été rechargé. Vérifiez vos valeurs puis réessayez.",
@@ -3157,7 +3158,8 @@
       "goal_closed_period": "Ce mois est clôturé : choisissez un mois ouvert ou rouvrez la période.",
       "goal_limit_reached": "La limite de 100 objectifs en cours est atteinte.",
       "goal_version_limit": "Cet objectif a atteint sa limite de versions.",
-      "goal_covers_closed_period": "Cet objectif couvre un mois clôturé : arrêtez-le plutôt."
+      "goal_covers_closed_period": "Cet objectif couvre un mois clôturé : arrêtez-le plutôt.",
+      "invalid_goal_tolerance": "Saisissez une tolérance positive ou nulle, inférieure ou égale à la cible : au plus 8 décimales pour un montant ou 6 pour des points."
     },
     "history": {
       "title": "Historique des versions",
@@ -3178,7 +3180,8 @@
         "ratio": "Pourcentage",
         "scheduleMode": "Mode de calendrier",
         "schedule": "Calendrier mensuel",
-        "valueType": "Type de valeur"
+        "valueType": "Type de valeur",
+        "tolerance": "Tolérance"
       },
       "reasonLine": "Motif : {{reason}}",
       "customSchedule": "Répartition personnalisée",
@@ -3403,14 +3406,19 @@
     "evaluation": {
       "over": "Dépassement de {{amount}}",
       "short": "Manque {{amount}}",
-      "margin": "Marge de {{amount}}"
+      "margin": "Marge de {{amount}}",
+      "tolerance": "Tolérance de {{amount}}"
     },
     "formula": {
       "amount": "Écart = objectif ({{target}}) comparé au réalisé ({{achieved}}).",
       "incomeShare": "Objectif = {{ratio}} × revenus du mois ({{income}}) = {{target}}, comparé au réalisé ({{achieved}}).",
       "rollingIncomeShare": "Objectif = {{ratio}} × revenus de référence glissants ({{income}}) = {{target}}, comparé au réalisé ({{achieved}}).",
       "rate": "Taux réalisé ({{achieved}}) comparé au taux visé ({{target}})."
-    }
+    },
+    "tolerance": "Tolérance",
+    "tolerancePoints": "points",
+    "toleranceHint": "Marge acceptée autour de la cible. Vide : objectif strict.",
+    "tolerancePointValue": "{{value}} points"
   },
   "budget": {
     "year": {

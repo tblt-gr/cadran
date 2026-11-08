@@ -41,6 +41,7 @@ const items: GoalVersionHistoryItem[] = [
     year: 2026,
     targetAmount: '14400.00',
     ratio: null,
+    tolerance: '0',
     schedule: schedule('2026', '1200.00'),
     changes: [{ field: 'targetAmount' as const, before: '12000.00', after: '14400.00' }],
   },
@@ -54,6 +55,7 @@ const items: GoalVersionHistoryItem[] = [
     year: 2026,
     targetAmount: '12000.00',
     ratio: null,
+    tolerance: '0',
     schedule: schedule('2026', '1000.00'),
     changes: [],
   },
@@ -105,6 +107,22 @@ describe('GoalHistoryModal', () => {
     const evolution = within(rowOf(2)).getAllByRole('cell')[2]!;
     expect(evolution.textContent).toMatch(/12\s000,00\s€.*→.*14\s400,00\s€/);
     expect(within(rowOf(1)).getAllByRole('cell')[2]!.textContent).toBe('-');
+  });
+
+  it.each([true, false])('formats tolerance history in the target unit (amount: %s)', (amount) => {
+    const changed: GoalVersionHistoryItem = {
+      ...items[0]!,
+      targetAmount: amount ? '800' : null,
+      ratio: amount ? null : '0.15',
+      tolerance: amount ? '50' : '0.01',
+      changes: [
+        { field: 'tolerance', before: amount ? '25' : '0.005', after: amount ? '50' : '0.01' },
+      ],
+    };
+    render(<GoalHistoryModal assetCode="EUR" close={vi.fn()} items={[changed]} />);
+    const row = rowOf(2);
+    expect(within(row).getByText('Tolérance :')).toBeTruthy();
+    expect(row.textContent).toMatch(amount ? /25,00\s€.*50,00\s€/ : /0,50 %.*1,00 %/);
   });
 
   it('summarizes a custom schedule instead of listing twelve amounts', () => {

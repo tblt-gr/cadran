@@ -1,4 +1,4 @@
-import type { GoalVersionHistoryItem } from '@cadran/api-client';
+import type { GoalValueType, GoalVersionHistoryItem } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatGoalMonth } from '@/features/goals/goalMonth';
@@ -66,10 +66,19 @@ export function GoalHistoryTable({
                     {item.changes.map((change) => (
                       <li key={change.field}>
                         <span className="sr-only">{t(FIELD_LABELS[change.field])} : </span>
-                        {format(change.before, change.field)}
+                        {format(
+                          change.before,
+                          change.field,
+                          (item.changes.find((entry) => entry.field === 'valueType')?.before ??
+                            (item.targetAmount !== null ? 'AMOUNT' : 'RATE')) as GoalValueType,
+                        )}
                         <span aria-hidden="true"> → </span>
                         <span className="sr-only">{t('goals.history.after')} : </span>
-                        {format(change.after, change.field)}
+                        {format(
+                          change.after,
+                          change.field,
+                          item.targetAmount !== null ? 'AMOUNT' : 'RATE',
+                        )}
                       </li>
                     ))}
                   </ul>

@@ -41,6 +41,13 @@ afterEach(() => {
 });
 
 describe('countGoals', () => {
+  it('includes running goals within the server tolerance in the header count', () => {
+    const data = evaluations(
+      { status: 'IN_PROGRESS', periodicity: 'MONTHLY', gap: '-40', withinTolerance: true },
+      { status: 'IN_PROGRESS', periodicity: 'MONTHLY', gap: '-60', withinTolerance: false },
+    );
+    expect(countGoals(data, { kind: 'month', month: '2026-11' })).toEqual({ met: 1, total: 2 });
+  });
   it('counts the goals on target now: running ones with a favourable gap too', () => {
     const data = evaluations(
       item('IN_PROGRESS', 'MONTHLY', '0.00'),

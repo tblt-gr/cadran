@@ -24,7 +24,9 @@ it('describes invalid goal fields with the visible validation message', () => {
   for (const field of fields) {
     const id = field.getAttribute('aria-describedby');
     expect(id).toBeTruthy();
-    expect(document.getElementById(id!)?.textContent).toBeTruthy();
+    for (const reference of id!.split(/\s+/)) {
+      expect(document.getElementById(reference)?.textContent).toBeTruthy();
+    }
   }
 });
 

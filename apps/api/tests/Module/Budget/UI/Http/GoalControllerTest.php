@@ -657,6 +657,142 @@ final class GoalControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(422);
     }
 
+    public function testAToleranceIsCreatedWithTheGoalAndDefaultsToStrict(): void
+    {
+        $rate = ['label' => 'Rate', 'periodicity' => 'MONTHLY', 'metric' => 'SAVINGS_RATE', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'RATE', 'ratio' => '0.15'];
+
+        $this->requestJson('POST', '/api/v1/goals', $rate);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('0', self::arr($this->decode()['currentVersion'])['tolerance']);
+
+        $this->requestJson('POST', '/api/v1/goals', [...$rate, 'tolerance' => null]);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('0', self::arr($this->decode()['currentVersion'])['tolerance']);
+
+        $this->requestJson('POST', '/api/v1/goals', [...$rate, 'tolerance' => '0.01']);
+        self::assertResponseStatusCodeSame(201);
+        $created = $this->decode();
+        self::assertSame('0.01', self::arr($created['currentVersion'])['tolerance']);
+        self::assertSame('0.010000000000000000000000', $this->scalar('SELECT tolerance::text FROM budget_goal_versions WHERE goal_id = ?', [$this->id($created)]));
+
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'tolerance' => '12000.00']);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('12000.00', self::arr($this->decode()['currentVersion'])['tolerance']);
+    }
+
+    public function testAToleranceOutsideItsBoundsIsAFieldError(): void
+    {
+        $rate = ['label' => 'Rate', 'periodicity' => 'MONTHLY', 'metric' => 'SAVINGS_RATE', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'RATE', 'ratio' => '0.15'];
+        foreach (['-0.01', '0.16', '0.123456789', 'abc', '1e-2'] as $tolerance) {
+            $this->requestJson('POST', '/api/v1/goals', [...$rate, 'tolerance' => $tolerance]);
+            self::assertResponseStatusCodeSame(422, $tolerance);
+            self::assertSame('invalid_goal_tolerance', $this->decode()['code'], $tolerance);
+        }
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'tolerance' => '12000.01']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_goal_tolerance', $this->decode()['code']);
+        $this->requestJson('POST', '/api/v1/goals', [...$this->annualPayload(), 'tolerance' => '-1']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_goal_tolerance', $this->decode()['code']);
+        self::assertSame('0', $this->scalar('SELECT count(*) FROM budget_goals'));
+    }
+
+    public function testChangingOnlyTheToleranceAppendsAVersionListedInTheHistoryAndPreviewed(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Cap', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '800.00', 'assetCode' => 'EUR']]);
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+        $update = ['label' => 'Cap', 'targetAmount' => ['value' => '800.00', 'assetCode' => 'EUR'], 'ratio' => null];
+
+        $this->requestJson('POST', '/api/v1/goals/'.$id.'/correction-preview', [...$update, 'tolerance' => '50.00', 'version' => 1]);
+        self::assertResponseIsSuccessful();
+        self::assertNotSame([], self::items($this->decode()['months']));
+        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, [...$update, 'tolerance' => '50.00', 'version' => 1]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, self::arr($this->decode()['currentVersion'])['versionNo']);
+        self::assertSame('50.00', self::arr($this->decode()['currentVersion'])['tolerance']);
+
+        // The same margin again, or no margin submitted, changes nothing.
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, [...$update, 'tolerance' => '50', 'version' => 2]);
+        self::assertResponseIsSuccessful();
+        self::assertSame(2, self::arr($this->decode()['currentVersion'])['versionNo']);
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Cap', 'version' => 2]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('50.00', self::arr($this->decode()['currentVersion'])['tolerance']);
+
+        // A smaller target cannot leave the margin above it.
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, [...$update, 'targetAmount' => ['value' => '40.00', 'assetCode' => 'EUR'], 'version' => 2]);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_goal_tolerance', $this->decode()['code']);
+
+        // Zero makes the goal strict again.
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, [...$update, 'tolerance' => '0', 'version' => 2]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('0', self::arr($this->decode()['currentVersion'])['tolerance']);
+
+        $this->client->request('GET', '/api/v1/goals/'.$id.'/versions');
+        self::assertResponseIsSuccessful();
+        $items = self::items($this->decode()['items']);
+        self::assertCount(3, $items);
+        $strict = self::arr($items[0]);
+        self::assertSame(['tolerance'], array_column(self::items($strict['changes']), 'field'));
+        self::assertSame(['50.00', '0'], [self::arr(self::items($strict['changes'])[0])['before'], self::arr(self::items($strict['changes'])[0])['after']]);
+        self::assertSame('0', $strict['tolerance']);
+        self::assertSame('50.00', self::arr($items[1])['tolerance']);
+        self::assertSame(['tolerance'], array_column(self::items(self::arr($items[1])['changes']), 'field'));
+        self::assertSame(['valueType', 'targetAmount'], array_column(self::items(self::arr($items[2])['changes']), 'field'));
+    }
+
+    public function testAToleranceOnlyAnnualRevisionPreservesTheCalendarAndRejectsAStaleVersion(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());
+        self::assertResponseStatusCodeSame(201);
+        $created = $this->decode();
+        $id = $this->id($created);
+        $calendar = self::arr($created['currentVersion'])['schedule'];
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => $created['label'], 'tolerance' => '500.00', 'version' => 1]);
+        self::assertResponseIsSuccessful();
+        $updated = $this->decode();
+        self::assertSame('500.00', self::arr($updated['currentVersion'])['tolerance']);
+        self::assertSame($calendar, self::arr($updated['currentVersion'])['schedule']);
+        self::assertSame(2, self::arr($updated['currentVersion'])['versionNo']);
+
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => $created['label'], 'tolerance' => '400.00', 'version' => 1]);
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
+    }
+
+    public function testAnEditedToleranceReachesTheEvaluationsAndForeignWorkspacesStayIsolated(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Rate', 'periodicity' => 'MONTHLY', 'metric' => 'SAVINGS_RATE', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'endPeriod' => null, 'valueType' => 'RATE', 'ratio' => '0.15', 'tolerance' => '0.01']);
+        self::assertResponseStatusCodeSame(201);
+
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-09&to=2026-09&granularity=MONTH');
+        self::assertResponseIsSuccessful();
+        $item = self::arr(self::items(self::arr(self::items($this->decode()['months'])[0])['items'])[0]);
+        self::assertSame(['ratio' => '0.01', 'percentDisplay' => '1.00'], $item['tolerance']);
+        self::assertSame('0.01', self::arr(self::arr($item['formula'])['operands'])['tolerance'] ?? null);
+        self::assertArrayHasKey('withinTolerance', $item);
+
+        $foreign = '00000000-0000-7000-8000-0000000000e9';
+        $this->insertGoal($foreign, WorkspaceFixture::OTHER_WORKSPACE);
+        $this->requestJson('PUT', '/api/v1/goals/'.$foreign, ['label' => 'Changed', 'tolerance' => '1.00', 'version' => 1]);
+        self::assertResponseStatusCodeSame(404);
+        $this->requestJson('POST', '/api/v1/goals/'.$foreign.'/correction-preview', ['label' => 'Changed', 'tolerance' => '1.00', 'version' => 1]);
+        self::assertResponseStatusCodeSame(404);
+    }
+
+    public function testAnExistingDefinitionRowIsStrictByDefaultAfterTheMigration(): void
+    {
+        $this->insertGoal('00000000-0000-7000-8000-0000000000e8', WorkspaceFixture::OTHER_WORKSPACE);
+
+        self::assertSame('0', $this->scalar('SELECT tolerance::int FROM budget_goal_versions WHERE goal_id = ?', ['00000000-0000-7000-8000-0000000000e8']));
+        self::assertSame('0', $this->scalar('SELECT tolerance_scale FROM budget_goal_versions WHERE goal_id = ?', ['00000000-0000-7000-8000-0000000000e8']));
+    }
+
     public function testSavingWithoutAnyChangeReturnsTheGoalUnchanged(): void
     {
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());

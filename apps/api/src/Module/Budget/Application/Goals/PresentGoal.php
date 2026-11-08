@@ -50,6 +50,6 @@ final readonly class PresentGoal
 
     private static function version(GoalVersion $version): GoalVersionView
     {
-        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->valueType->value, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, (int) substr($version->effectiveFrom, 0, 4)));
+        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->valueType->value, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, (int) substr($version->effectiveFrom, 0, 4)), $version->tolerance->toString());
     }
 }

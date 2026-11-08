@@ -6,6 +6,7 @@ import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 
 export const FIELD_LABELS = {
   ratio: 'goals.history.fields.ratio',
+  tolerance: 'goals.history.fields.tolerance',
   schedule: 'goals.history.fields.schedule',
   scheduleMode: 'goals.history.fields.scheduleMode',
   targetAmount: 'goals.history.fields.targetAmount',
@@ -17,7 +18,7 @@ export type GoalVersionField = keyof typeof FIELD_LABELS;
 /** Formats a recorded goal value: amounts in the goal currency, ratios as percentages, modes translated. */
 export function useGoalVersionValue(assetCode: string) {
   const { i18n, t } = useTranslation();
-  return (value: string | string[] | null, field: GoalVersionField) => {
+  return (value: string | string[] | null, field: GoalVersionField, valueType?: GoalValueType) => {
     if (value === null) return <EmptyValue label={t('goals.notCalculable')} />;
     if (Array.isArray(value) && value.length === 12 && value.every((part) => part === value[0]))
       return t('goals.history.everyMonthAmount', {
@@ -27,7 +28,11 @@ export function useGoalVersionValue(assetCode: string) {
     if (value === 'LINEAR') return t('goals.schedule.modeLinear');
     if (value === 'CUSTOM') return t('goals.schedule.modeCustom');
     if (field === 'valueType') return t(`goals.history.valueTypes.${value as GoalValueType}`);
-    if (field === 'ratio') return formatRatioPercentage(value, i18n.language);
+    if (
+      field === 'ratio' ||
+      (field === 'tolerance' && valueType !== undefined && valueType !== 'AMOUNT')
+    )
+      return formatRatioPercentage(value, i18n.language);
     return formatAmount(value, assetCode, i18n.language);
   };
 }

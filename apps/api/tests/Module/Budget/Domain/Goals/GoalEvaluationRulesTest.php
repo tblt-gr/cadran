@@ -48,6 +48,53 @@ final class GoalEvaluationRulesTest extends TestCase
         self::assertSame($expected, GoalEvaluationRules::status($direction, $achieved, $target, $complete));
     }
 
+    /** @return iterable<string, array{GoalDirection, ?string, string, string, bool, GoalEvaluationStatus, ?bool}> */
+    public static function toleranceMatrix(): iterable
+    {
+        $c = GoalDirection::CEILING;
+        $m = GoalDirection::MINIMUM;
+        yield 'ceiling inside the margin' => [$c, '1240.00', '1200.00', '50.00', true, GoalEvaluationStatus::MET, true];
+        yield 'ceiling at the bound is met' => [$c, '1250.00', '1200.00', '50.00', true, GoalEvaluationStatus::MET, true];
+        yield 'ceiling one cent past the bound' => [$c, '1250.01', '1200.00', '50.00', true, GoalEvaluationStatus::MISSED, false];
+        yield 'ceiling within the target is not within tolerance' => [$c, '1100.00', '1200.00', '50.00', true, GoalEvaluationStatus::MET, false];
+        yield 'ceiling at the target is not within tolerance' => [$c, '1200.00', '1200.00', '50.00', true, GoalEvaluationStatus::MET, false];
+        yield 'running ceiling inside the margin' => [$c, '1240.00', '1200.00', '50.00', false, GoalEvaluationStatus::IN_PROGRESS, true];
+        yield 'running ceiling past the bound' => [$c, '1250.01', '1200.00', '50.00', false, GoalEvaluationStatus::MISSED, false];
+        yield 'minimum rate inside the margin' => [$m, '0.145', '0.15', '0.01', true, GoalEvaluationStatus::MET, true];
+        yield 'minimum rate at the bound is met' => [$m, '0.14', '0.15', '0.01', true, GoalEvaluationStatus::MET, true];
+        yield 'minimum rate below the bound' => [$m, '0.139', '0.15', '0.01', true, GoalEvaluationStatus::MISSED, false];
+        yield 'minimum reached is not within tolerance' => [$m, '0.15', '0.15', '0.01', true, GoalEvaluationStatus::MET, false];
+        yield 'running minimum inside the margin' => [$m, '760.00', '800.00', '50.00', false, GoalEvaluationStatus::IN_PROGRESS, true];
+        yield 'running minimum below the bound' => [$m, '740.00', '800.00', '50.00', false, GoalEvaluationStatus::IN_PROGRESS, false];
+        yield 'tolerance equal to the target keeps a zero minimum met' => [$m, '0', '100.00', '100.00', true, GoalEvaluationStatus::MET, true];
+        yield 'huge values at the bound' => [$c, '100000000000000000000000000.000000000000000000000000', '99999999999999999999999999.000000000000000000000000', '1', true, GoalEvaluationStatus::MET, true];
+        yield 'huge values one unit past the bound' => [$c, '100000000000000000000000000.000000000000000000000001', '99999999999999999999999999.000000000000000000000000', '1', true, GoalEvaluationStatus::MISSED, false];
+    }
+
+    #[DataProvider('toleranceMatrix')]
+    public function testToleranceWidensTheBoundOfTheStatus(GoalDirection $direction, string $achieved, string $target, string $tolerance, bool $complete, GoalEvaluationStatus $expected, bool $within): void
+    {
+        self::assertSame($expected, GoalEvaluationRules::status($direction, $achieved, $target, $complete, $tolerance));
+        self::assertSame($within, GoalEvaluationRules::withinTolerance($direction, $achieved, $target, $tolerance));
+    }
+
+    public function testWithoutToleranceTheResultsAreStrict(): void
+    {
+        foreach (['0', null] as $tolerance) {
+            self::assertSame(GoalEvaluationStatus::MISSED, GoalEvaluationRules::status(GoalDirection::CEILING, '1200.01', '1200.00', true, $tolerance));
+            self::assertSame(GoalEvaluationStatus::MISSED, GoalEvaluationRules::status(GoalDirection::MINIMUM, '0.149', '0.15', true, $tolerance));
+            self::assertFalse(GoalEvaluationRules::withinTolerance(GoalDirection::CEILING, '1200.01', '1200.00', $tolerance));
+            self::assertFalse(GoalEvaluationRules::withinTolerance(GoalDirection::MINIMUM, '0.149', '0.15', $tolerance));
+        }
+    }
+
+    public function testToleranceIsNotCalculableWithoutAFigure(): void
+    {
+        self::assertNull(GoalEvaluationRules::withinTolerance(GoalDirection::CEILING, null, '1200.00', '50.00'));
+        self::assertNull(GoalEvaluationRules::withinTolerance(GoalDirection::MINIMUM, '1.00', null, '50.00'));
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, GoalEvaluationRules::status(GoalDirection::MINIMUM, null, '1.00', true, '0.50'));
+    }
+
     public function testTheGapIsPositiveInTheGoalsFavour(): void
     {
         self::assertSame('-50.00', GoalEvaluationRules::gap(GoalDirection::CEILING, '1250.00', '1200.00'));

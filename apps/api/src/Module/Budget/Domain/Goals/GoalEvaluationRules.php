@@ -14,15 +14,16 @@ use App\Module\Foundation\Domain\ExactDecimal;
  */
 final class GoalEvaluationRules
 {
-    public static function status(GoalDirection $direction, ?string $achieved, ?string $target, bool $complete): GoalEvaluationStatus
+    /** @param ?string $tolerance a margin in the unit of the target, already converted to an amount for a share; null or zero is strict */
+    public static function status(GoalDirection $direction, ?string $achieved, ?string $target, bool $complete, ?string $tolerance = null): GoalEvaluationStatus
     {
         if (null === $achieved || null === $target) {
             return GoalEvaluationStatus::NOT_CALCULABLE;
         }
-        $comparison = ExactDecimal::compareForResponse($achieved, $target);
+        $tolerance ??= '0';
         if (GoalDirection::CEILING === $direction) {
             return match (true) {
-                $comparison > 0 => GoalEvaluationStatus::MISSED,
+                ExactDecimal::compareForResponse($achieved, ExactDecimal::addForResponse($target, $tolerance)) > 0 => GoalEvaluationStatus::MISSED,
                 $complete => GoalEvaluationStatus::MET,
                 default => GoalEvaluationStatus::IN_PROGRESS,
             };
@@ -30,9 +31,31 @@ final class GoalEvaluationRules
 
         return match (true) {
             !$complete => GoalEvaluationStatus::IN_PROGRESS,
-            $comparison < 0 => GoalEvaluationStatus::MISSED,
+            ExactDecimal::compareForResponse($achieved, ExactDecimal::subtractForResponse($target, $tolerance)) < 0 => GoalEvaluationStatus::MISSED,
             default => GoalEvaluationStatus::MET,
         };
+    }
+
+    /**
+     * Whether the achieved value is on the wrong side of the target yet not past the bound the tolerance
+     * allows. Unlike the status, a running minimum is judged on the bound too, so the display can tell a
+     * shortfall the owner accepts from one he does not.
+     */
+    public static function withinTolerance(GoalDirection $direction, ?string $achieved, ?string $target, ?string $tolerance): ?bool
+    {
+        if (null === $achieved || null === $target) {
+            return null;
+        }
+        if (null === $tolerance || ExactDecimal::isZeroForResponse($tolerance)) {
+            return false;
+        }
+        if (GoalDirection::CEILING === $direction) {
+            return ExactDecimal::compareForResponse($achieved, $target) > 0
+                && ExactDecimal::compareForResponse($achieved, ExactDecimal::addForResponse($target, $tolerance)) <= 0;
+        }
+
+        return ExactDecimal::compareForResponse($achieved, $target) < 0
+            && ExactDecimal::compareForResponse($achieved, ExactDecimal::subtractForResponse($target, $tolerance)) >= 0;
     }
 
     /** Signed so that a positive gap is always in the goal's favour. */

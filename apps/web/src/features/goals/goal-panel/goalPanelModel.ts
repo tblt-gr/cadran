@@ -56,13 +56,14 @@ export type GoalTone = 'done' | 'positive' | 'negative' | 'neutral';
  * target is already red, although the server keeps it `IN_PROGRESS` until the month is over.
  */
 export function goalTone(
-  evaluation: Pick<GoalEvaluation, 'status' | 'direction' | 'periodicity' | 'gap' | 'pace'>,
+  evaluation: Pick<GoalEvaluation, 'status' | 'direction' | 'periodicity' | 'gap' | 'pace'> &
+    Partial<Pick<GoalEvaluation, 'withinTolerance'>>,
 ): GoalTone {
   switch (evaluation.status) {
     case 'NOT_CALCULABLE':
       return 'neutral';
     case 'MET':
-      return 'done';
+      return evaluation.withinTolerance ? 'positive' : 'done';
     case 'MISSED':
       return 'negative';
     case 'IN_PROGRESS': {
@@ -72,6 +73,7 @@ export function goalTone(
           ? 'negative'
           : 'positive';
       }
+      if (evaluation.withinTolerance) return 'positive';
       if (evaluation.gap === null) return 'neutral';
       // A ceiling in the red is already MISSED server side, so a negative gap here is a minimum.
       return compareDecimals(evaluation.gap, '0') < 0 ? 'negative' : 'positive';
@@ -83,9 +85,14 @@ export function goalTone(
  * Whether a goal is on target at this moment, from server data only: met, or still running with a
  * gap that is not against the goal (a minimum already reached, a ceiling still respected).
  */
-export function isOnTarget(evaluation: Pick<GoalEvaluation, 'status' | 'gap'>): boolean {
+export function isOnTarget(
+  evaluation: Pick<GoalEvaluation, 'status' | 'gap'> &
+    Partial<Pick<GoalEvaluation, 'withinTolerance'>>,
+): boolean {
   if (evaluation.status === 'MET') return true;
-  if (evaluation.status !== 'IN_PROGRESS' || evaluation.gap == null) return false;
+  if (evaluation.status !== 'IN_PROGRESS') return false;
+  if (evaluation.withinTolerance) return true;
+  if (evaluation.gap == null) return false;
   return compareDecimals(evaluation.gap, '0') >= 0;
 }
 
