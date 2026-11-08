@@ -134,14 +134,14 @@ final readonly class GoalController
             return $body;
         }
         try {
-            self::allowed($body, ['label', 'periodicity', 'metric', 'scope', 'startPeriod', 'endPeriod', 'valueType', 'targetAmount', 'ratio', 'schedule'], ['label', 'periodicity', 'metric', 'scope', 'startPeriod', 'valueType']);
+            self::allowed($body, ['label', 'periodicity', 'metric', 'scope', 'startPeriod', 'endPeriod', 'valueType', 'targetAmount', 'ratio', 'schedule', 'tolerance'], ['label', 'periodicity', 'metric', 'scope', 'startPeriod', 'valueType']);
             $scope = self::object($body['scope']);
             self::allowed($scope, ['type', 'ref'], ['type', 'ref']);
             $target = null === ($body['targetAmount'] ?? null) ? null : self::object($body['targetAmount']);
             if (null !== $target) {
                 self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
             }
-            $input = (new CreateGoalInput(self::string($body, 'label'), self::string($body, 'periodicity'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::string($body, 'startPeriod'), self::nullableString($body, 'endPeriod'), self::string($body, 'valueType'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::schedule($body)));
+            $input = (new CreateGoalInput(self::string($body, 'label'), self::string($body, 'periodicity'), self::string($body, 'metric'), self::string($scope, 'type'), self::nullableString($scope, 'ref'), self::string($body, 'startPeriod'), self::nullableString($body, 'endPeriod'), self::string($body, 'valueType'), null === $target ? null : self::string($target, 'value'), null === $target ? null : self::string($target, 'assetCode'), self::nullableString($body, 'ratio'), self::schedule($body), self::nullableString($body, 'tolerance')));
             $result = $this->idempotentExecution->execute(
                 'goal.create',
                 $this->idempotencyEnvelope->idempotency($request, false),

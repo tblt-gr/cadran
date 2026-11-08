@@ -18,6 +18,7 @@ final readonly class UpdateGoalInput
         public ?string $effectiveFrom = null,
         public ?string $reason = null,
         public ?string $valueType = null,
+        public ?string $tolerance = null,
     ) {
     }
 }

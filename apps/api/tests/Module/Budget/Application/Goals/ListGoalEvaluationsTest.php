@@ -100,6 +100,79 @@ final class ListGoalEvaluationsTest extends TestCase
         self::assertSame('budgetSurplus', $year->columnKey);
     }
 
+    public function testAnAmountCeilingToleranceWidensTheBoundAndKeepsTheGapAgainstTheTarget(): void
+    {
+        $tolerant = GoalVersion::amount(self::G1, WorkspaceFixture::own(), self::G1, 2, '2026-07', DecimalValue::fromString('1200.00'), null, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: DecimalValue::fromString('50.00'));
+        $result = $this->evaluate(extraVersions: [$tolerant])('2026-07', '2026-11');
+        $axis = [];
+        foreach ($result->months as $month) {
+            foreach ($month->items as $item) {
+                if ('AXIS_SPENDING' === $item->metric) {
+                    $axis[$month->period] = $item;
+                }
+            }
+        }
+
+        // 1250.00 against 1200.00 + 50.00: equality at the bound is met, and the gap stays measured from the target.
+        self::assertSame([self::G1, '1200.00', '-50.00', 'MET', []], self::row($axis['2026-07']));
+        self::assertTrue($axis['2026-07']->withinTolerance);
+        self::assertSame('50.00', $axis['2026-07']->tolerance?->value);
+        self::assertSame('EUR', $axis['2026-07']->tolerance->assetCode);
+        self::assertSame('50.00', $axis['2026-07']->operands['tolerance']);
+        self::assertSame('1250.00', $axis['2026-07']->achieved?->value);
+        // 1100.00 respects the target: nothing is within tolerance, the margin is still shown.
+        self::assertSame('MET', $axis['2026-09']->status);
+        self::assertFalse($axis['2026-09']->withinTolerance);
+        self::assertSame('50.00', $axis['2026-09']->tolerance?->value);
+        // 1300.00 is past 1250.00.
+        self::assertSame('MISSED', $axis['2026-10']->status);
+        self::assertFalse($axis['2026-10']->withinTolerance);
+        // 1210.00 in the running month stays in progress, inside the margin.
+        self::assertSame('IN_PROGRESS', $axis['2026-11']->status);
+        self::assertTrue($axis['2026-11']->withinTolerance);
+    }
+
+    public function testARateMinimumToleranceIsARatioFigureAndStrictGoalsCarryNone(): void
+    {
+        $tolerant = GoalVersion::rate(self::G3, WorkspaceFixture::own(), self::G3, 2, '2026-01', DecimalValue::fromString('0.10'), new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: DecimalValue::fromString('0.01'));
+        $result = $this->evaluate(extraVersions: [$tolerant])('2026-07', '2026-11');
+        $rate = [];
+        foreach ($result->months as $month) {
+            foreach ($month->items as $item) {
+                if ('SAVINGS_RATE' === $item->metric) {
+                    $rate[$month->period] = $item;
+                }
+            }
+        }
+
+        // 0.09 against 0.10 - 0.01 is met at the bound; the strict version of this month was MISSED.
+        self::assertSame([self::G3, '0.10', '-0.01', 'MET', []], self::row($rate['2026-08']));
+        self::assertTrue($rate['2026-08']->withinTolerance);
+        self::assertSame('0.01', $rate['2026-08']->tolerance?->ratio);
+        self::assertSame('1.00', $rate['2026-08']->tolerance->percentDisplay);
+        self::assertSame('0.01', $rate['2026-08']->operands['tolerance']);
+        // 0.04 is far below the bound while the month runs: negative, not within.
+        self::assertSame('IN_PROGRESS', $rate['2026-11']->status);
+        self::assertFalse($rate['2026-11']->withinTolerance);
+
+        $strict = $this->evaluate()('2026-08', '2026-08');
+        $item = array_values(array_filter($strict->months[0]->items, static fn (GoalEvaluationView $item): bool => 'SAVINGS_RATE' === $item->metric))[0];
+        self::assertSame('MISSED', $item->status);
+        self::assertNull($item->tolerance);
+        self::assertNull($item->operands['tolerance']);
+        self::assertFalse($item->withinTolerance);
+    }
+
+    public function testANonCalculableEvaluationHasNoWithinToleranceVerdict(): void
+    {
+        $tolerant = GoalVersion::amount(self::G1, WorkspaceFixture::own(), self::G1, 2, '2026-07', DecimalValue::fromString('1200.00'), null, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: DecimalValue::fromString('50.00'));
+        $result = $this->evaluate(extraVersions: [$tolerant], withNoDataMonth: '2026-09')('2026-09', '2026-09');
+        $item = array_values(array_filter($result->months[0]->items, static fn (GoalEvaluationView $item): bool => 'AXIS_SPENDING' === $item->metric))[0];
+
+        self::assertSame('NOT_CALCULABLE', $item->status);
+        self::assertNull($item->withinTolerance);
+    }
+
     public function testARevisionTakesEffectFromItsMonthAndLeavesThePastAtItsOldTarget(): void
     {
         $revised = self::amountVersion(self::G1, 2, '2026-12', '1100.00');

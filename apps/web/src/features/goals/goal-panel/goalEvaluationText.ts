@@ -59,3 +59,21 @@ export function formulaText(evaluation: GoalEvaluation, t: TFunction, locale: st
     ratio: percent(operands.ratio, locale) ?? dash,
   });
 }
+
+/** The server margin, with ratios expressed as percentage points. */
+export function toleranceText(
+  evaluation: GoalEvaluation,
+  t: TFunction,
+  locale: string,
+): string | null {
+  const figure = evaluation.tolerance;
+  if (figure == null) return null;
+  const shown = formatEvaluationFigure(figure, locale);
+  if (shown === null) return null;
+  return t('goals.evaluation.tolerance', {
+    amount:
+      'ratio' in figure
+        ? t('goals.tolerancePointValue', { value: shown.replace(/\s*%$/, '') })
+        : shown,
+  });
+}

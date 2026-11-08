@@ -11152,6 +11152,14 @@ components:
           oneOf:
             - $ref: '#/components/schemas/GoalScheduleInput'
             - type: 'null'
+        tolerance:
+          description: >-
+            Optional margin around the target in the unit of the target, between 0 and the target;
+            omitted or null means 0 (strict). A negative value or one above the target answers 422
+            invalid_goal_tolerance.
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
     UpdateGoalRequest:
       type: object
       additionalProperties: false
@@ -11168,6 +11176,13 @@ components:
             - $ref: '#/components/schemas/GoalAmountInput'
             - type: 'null'
         ratio:
+          oneOf:
+            - $ref: '#/components/schemas/GoalDecimal'
+            - type: 'null'
+        tolerance:
+          description: >-
+            New margin around the target; omitted or null keeps the tolerance in effect and `0` makes
+            the goal strict. A negative value or one above the target answers 422 invalid_goal_tolerance.
           oneOf:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
@@ -11520,7 +11535,7 @@ components:
     GoalVersion:
       type: object
       additionalProperties: false
-      required: [versionNo, effectiveFrom, valueType, targetAmount, ratio, schedule]
+      required: [versionNo, effectiveFrom, valueType, targetAmount, ratio, tolerance, schedule]
       properties:
         versionNo: { type: integer, minimum: 1, maximum: 50 }
         effectiveFrom: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
@@ -11533,6 +11548,11 @@ components:
           oneOf:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
+        tolerance:
+          description: >-
+            Margin accepted around the target, in the unit of the target (an amount in the goal asset
+            for AMOUNT, a ratio otherwise); `0` is a strict goal.
+          $ref: '#/components/schemas/GoalDecimal'
         schedule:
           description: >-
             Twelve monthly parts summing exactly to targetAmount; null for every goal but a yearly
@@ -11593,7 +11613,11 @@ components:
       additionalProperties: false
       required: [field, before, after]
       properties:
-        field: { type: string, enum: [valueType, targetAmount, ratio, scheduleMode, schedule] }
+        field:
+          {
+            type: string,
+            enum: [valueType, targetAmount, ratio, tolerance, scheduleMode, schedule],
+          }
         before: { $ref: '#/components/schemas/GoalVersionChangeValue' }
         after: { $ref: '#/components/schemas/GoalVersionChangeValue' }
     GoalVersionAuthor:
@@ -11604,6 +11628,7 @@ components:
         id: { type: string, format: uuid }
         displayName: { type: string, minLength: 1, maxLength: 100 }
     GoalVersionHistoryItem:
+      x-cadran-asset-scope: 'Amounts are in the asset of the goal; the tolerance of a ratio goal is a ratio.'
       type: object
       additionalProperties: false
       required:
@@ -11613,6 +11638,7 @@ components:
           year,
           targetAmount,
           ratio,
+          tolerance,
           schedule,
           retroactive,
           reason,
@@ -11632,6 +11658,7 @@ components:
           oneOf:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
+        tolerance: { $ref: '#/components/schemas/GoalDecimal' }
         schedule:
           oneOf:
             - $ref: '#/components/schemas/GoalSchedule'
@@ -11642,7 +11669,7 @@ components:
         createdBy: { $ref: '#/components/schemas/GoalVersionAuthor' }
         changes:
           type: array
-          maxItems: 4
+          maxItems: 6
           items: { $ref: '#/components/schemas/GoalVersionChange' }
     StopGoalRequest:
       type: object
@@ -11689,12 +11716,15 @@ components:
         operands:
           type: object
           additionalProperties: false
-          required: [target, achieved, income, ratio]
+          required: [target, achieved, income, ratio, tolerance]
           properties:
             target: { $ref: '#/components/schemas/GoalStatusValue' }
             achieved: { $ref: '#/components/schemas/GoalStatusValue' }
             income: { $ref: '#/components/schemas/GoalStatusValue' }
             ratio: { $ref: '#/components/schemas/GoalStatusValue' }
+            tolerance:
+              description: The margin in the unit of the target (converted to an amount for a share); null when the goal is strict.
+              $ref: '#/components/schemas/GoalStatusValue'
     GoalEvaluationPace:
       type: object
       additionalProperties: false
@@ -11726,6 +11756,8 @@ components:
           versionNo,
           overrides,
           pace,
+          tolerance,
+          withinTolerance,
         ]
       properties:
         goalId: { type: string, format: uuid }
@@ -11766,6 +11798,17 @@ components:
           oneOf:
             - { $ref: '#/components/schemas/GoalEvaluationPace' }
             - { type: 'null' }
+        tolerance:
+          description: The margin accepted around the target, in the same figure shape as target; null when the goal is strict.
+          oneOf:
+            - { $ref: '#/components/schemas/GoalEvaluationFigure' }
+            - { type: 'null' }
+        withinTolerance:
+          description: >-
+            True when the achieved value is on the wrong side of the target yet inside the margin
+            (a running minimum is judged on the bound too); false for a strict goal or a value on the
+            right side; null when the evaluation is not calculable. The status is the server's.
+          type: [boolean, 'null']
     GoalPeriodEvaluation:
       type: object
       additionalProperties: false

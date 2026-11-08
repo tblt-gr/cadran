@@ -19,6 +19,7 @@ final readonly class CreateGoalInput
         public ?string $targetAssetCode,
         public ?string $ratio,
         public ?GoalScheduleInput $schedule = null,
+        public ?string $tolerance = null,
     ) {
     }
 }

@@ -53,16 +53,23 @@ final readonly class ListGoalVersions
 
     private static function definition(GoalVersion $version): GoalVersionView
     {
-        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->valueType->value, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, (int) substr($version->effectiveFrom, 0, 4)));
+        return new GoalVersionView($version->versionNo, $version->effectiveFrom, $version->valueType->value, $version->targetAmount?->toString(), $version->ratio?->toString(), null === $version->schedule ? null : GoalScheduleView::of($version->schedule, (int) substr($version->effectiveFrom, 0, 4)), $version->tolerance->toString());
     }
 
     /** @return list<GoalVersionChangeView> */
     private static function changes(?GoalVersion $before, GoalVersion $after): array
     {
         $changes = [];
-        foreach (['valueType', 'targetAmount', 'ratio', 'scheduleMode', 'schedule'] as $field) {
+        foreach (['valueType', 'targetAmount', 'ratio', 'tolerance', 'scheduleMode', 'schedule'] as $field) {
             $old = self::field($before, $field);
             $new = self::field($after, $field);
+            if ('tolerance' === $field) {
+                // A first version has no predecessor, which counts as strict, and 0.00 equals 0: only a real move of the margin is listed.
+                $old = $before?->tolerance->toString() ?? '0';
+                if (0 === DecimalValue::fromString($old)->compareTo($after->tolerance)) {
+                    continue;
+                }
+            }
             if ($old !== $new) {
                 $changes[] = new GoalVersionChangeView($field, $old, $new);
             }
@@ -77,6 +84,7 @@ final readonly class ListGoalVersions
             'valueType' => $version?->valueType->value,
             'targetAmount' => $version?->targetAmount?->toString(),
             'ratio' => $version?->ratio?->toString(),
+            'tolerance' => $version?->tolerance->toString(),
             'scheduleMode' => $version?->scheduleMode(),
             'schedule' => null === $version?->schedule ? null : self::parts($version->schedule),
             default => throw new \LogicException('Unsupported goal version field.'),

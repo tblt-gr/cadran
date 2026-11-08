@@ -4,7 +4,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
 import { ProgressGauge } from '@/components/ui/progress-gauge/ProgressGauge';
-import { formulaText, gapText } from './goalEvaluationText';
+import { formulaText, gapText, toleranceText } from './goalEvaluationText';
 import { GoalEvaluationBadge } from './GoalEvaluationBadge';
 import { goalFillRatio, goalTone, type GoalRowModel } from './goalPanelModel';
 import { goalRecurrence } from './goalRecurrence';
@@ -89,6 +89,7 @@ export function GoalRow({ row, handlers }: Props) {
         {evaluation ? (
           [
             gapText(evaluation, t, i18n.language),
+            toleranceText(evaluation, t, i18n.language),
             formulaText(evaluation, t, i18n.language),
             t('goals.panel.version', { versionNo: evaluation.versionNo }),
           ]

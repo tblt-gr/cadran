@@ -25,10 +25,12 @@ function evaluation(
     reason: null,
     formula: {
       key: 'goals.formula.amount',
-      operands: { target: null, achieved: null, income: null, ratio: null },
+      operands: { target: null, achieved: null, income: null, ratio: null, tolerance: null },
     },
     versionNo: 1,
     overrides: [],
+    tolerance: null,
+    withinTolerance: false,
     pace: null,
     ...extra,
   };
@@ -65,6 +67,28 @@ describe('goalPanelModel', () => {
     const pace = (status: 'AHEAD' | 'BEHIND' | 'ON_TRACK' | 'OVER_PACE') => ({
       expected: '1.00',
       status,
+    });
+
+    it('uses the server margin for a running monthly minimum and a met goal', () => {
+      expect(
+        goalTone(evaluation('g', 'Saving', 'IN_PROGRESS', { gap: '-40', withinTolerance: true })),
+      ).toBe('positive');
+      expect(
+        goalTone(evaluation('g', 'Saving', 'IN_PROGRESS', { gap: '-60', withinTolerance: false })),
+      ).toBe('negative');
+      expect(
+        goalTone(evaluation('g', 'Saving', 'MET', { gap: '-40', withinTolerance: true })),
+      ).toBe('positive');
+      expect(
+        goalTone(
+          evaluation('g', 'Saving', 'IN_PROGRESS', {
+            periodicity: 'YEARLY',
+            gap: '-40',
+            withinTolerance: true,
+            pace: pace('BEHIND'),
+          }),
+        ),
+      ).toBe('negative');
     });
 
     it('is neutral when the goal cannot be calculated', () => {
@@ -144,6 +168,14 @@ describe('goalPanelModel', () => {
   });
 
   describe('isOnTarget', () => {
+    it('counts a running minimum inside the server margin without counting missed or unknown statuses', () => {
+      expect(isOnTarget({ status: 'IN_PROGRESS', gap: '-40', withinTolerance: true })).toBe(true);
+      expect(isOnTarget({ status: 'IN_PROGRESS', gap: '-60', withinTolerance: false })).toBe(false);
+      expect(isOnTarget({ status: 'MISSED', gap: '-40', withinTolerance: true })).toBe(false);
+      expect(isOnTarget({ status: 'NOT_CALCULABLE', gap: null, withinTolerance: null })).toBe(
+        false,
+      );
+    });
     const on = (status: GoalEvaluation['status'], gap: string | null | undefined) =>
       isOnTarget({ status, gap: gap as string | null });
 

@@ -19,10 +19,18 @@ export function goalEvaluation(extra: Partial<GoalEvaluation> = {}): GoalEvaluat
     reason: null,
     formula: {
       key: 'goals.formula.amount',
-      operands: { target: '1200.00', achieved: '1250.00', income: null, ratio: null },
+      operands: {
+        target: '1200.00',
+        achieved: '1250.00',
+        income: null,
+        ratio: null,
+        tolerance: null,
+      },
     },
     versionNo: 1,
     overrides: [],
+    tolerance: null,
+    withinTolerance: false,
     pace: null,
     ...extra,
   };
@@ -48,7 +56,7 @@ export function rateEvaluation(extra: Partial<GoalEvaluation> = {}): GoalEvaluat
     gap: '-0.04',
     formula: {
       key: 'goals.formula.rate',
-      operands: { target: '0.10', achieved: '0.06', income: null, ratio: null },
+      operands: { target: '0.10', achieved: '0.06', income: null, ratio: null, tolerance: null },
     },
     ...extra,
   });

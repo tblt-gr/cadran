@@ -24,11 +24,19 @@ const exceeded = {
   reason: null,
   formula: {
     key: 'goals.formula.amount',
-    operands: { target: '1200.00', achieved: '1250.00', income: null, ratio: null },
+    operands: {
+      target: '1200.00',
+      achieved: '1250.00',
+      income: null,
+      ratio: null,
+      tolerance: null,
+    },
   },
   versionNo: 1,
   overrides: [],
   pace: null,
+  tolerance: null,
+  withinTolerance: false,
 };
 
 test.describe('goal marks in the annual report', () => {

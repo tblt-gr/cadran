@@ -180,6 +180,73 @@ final class GoalTest extends TestCase
         );
     }
 
+    public function testAVersionIsStrictByDefaultAndKeepsAToleranceThroughAMove(): void
+    {
+        $workspace = WorkspaceScope::fromString(self::WORKSPACE);
+        $strict = GoalVersion::rate('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', DecimalValue::fromString('0.15'), new \DateTimeImmutable('2026-09-01'), self::ACTOR);
+        $tolerant = GoalVersion::rate('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', DecimalValue::fromString('0.15'), new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString('0.01'));
+
+        self::assertSame('0', $strict->tolerance->toString());
+        self::assertSame('0.01', $tolerant->tolerance->toString());
+        self::assertSame('0.01', $tolerant->startingAt('2026-10')->tolerance->toString());
+    }
+
+    /** @return iterable<string, array{string, string}> */
+    public static function acceptedTolerances(): iterable
+    {
+        yield 'zero' => ['1200.00', '0'];
+        yield 'equal to the target' => ['1200.00', '1200.00'];
+        yield 'equal across scales' => ['1200.00', '1200.000'];
+        yield 'huge' => ['99999999999999999999999999.99999999', '99999999999999999999999999.99999999'];
+    }
+
+    #[DataProvider('acceptedTolerances')]
+    public function testAnAmountToleranceBetweenZeroAndTheTargetIsAccepted(string $target, string $tolerance): void
+    {
+        $version = GoalVersion::amount('00000000-0000-7000-8000-000000000004', WorkspaceScope::fromString(self::WORKSPACE), '00000000-0000-7000-8000-000000000001', 1, '2026-09', DecimalValue::fromString($target), null, new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString($tolerance));
+
+        self::assertSame($tolerance, $version->tolerance->toString());
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function refusedTolerances(): iterable
+    {
+        yield 'negative' => ['-0.01'];
+        yield 'above the target' => ['1200.01'];
+        yield 'nine decimals' => ['0.123456789'];
+    }
+
+    #[DataProvider('refusedTolerances')]
+    public function testAnAmountToleranceOutsideItsBoundsIsRefused(string $tolerance): void
+    {
+        $this->expectException(InvalidGoal::class);
+        GoalVersion::amount('00000000-0000-7000-8000-000000000004', WorkspaceScope::fromString(self::WORKSPACE), '00000000-0000-7000-8000-000000000001', 1, '2026-09', DecimalValue::fromString('1200.00'), null, new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString($tolerance));
+    }
+
+    public function testARatioToleranceCannotExceedTheRatio(): void
+    {
+        $workspace = WorkspaceScope::fromString(self::WORKSPACE);
+        $ok = GoalVersion::share('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', GoalValueType::INCOME_SHARE, DecimalValue::fromString('0.3'), new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString('0.3'));
+        self::assertSame('0.3', $ok->tolerance->toString());
+
+        $this->expectException(InvalidGoal::class);
+        GoalVersion::rate('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', DecimalValue::fromString('0.15'), new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString('0.16'));
+    }
+
+    public function testAShareToleranceConvertsToAnAmountWithTheIncomeOfItsTarget(): void
+    {
+        $workspace = WorkspaceScope::fromString(self::WORKSPACE);
+        // 30 % of 4000.00 is 1200.00; a margin of 1.25 points is 50.000000 of the same income.
+        $share = GoalVersion::share('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', GoalValueType::INCOME_SHARE, DecimalValue::fromString('0.3'), new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString('0.0125'));
+        $strict = GoalVersion::share('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', GoalValueType::INCOME_SHARE, DecimalValue::fromString('0.3'), new \DateTimeImmutable('2026-09-01'), self::ACTOR);
+        $rate = GoalVersion::rate('00000000-0000-7000-8000-000000000004', $workspace, '00000000-0000-7000-8000-000000000001', 1, '2026-09', DecimalValue::fromString('0.15'), new \DateTimeImmutable('2026-09-01'), self::ACTOR, tolerance: DecimalValue::fromString('0.01'));
+
+        self::assertSame('50.000000', $share->toleranceAmount('4000.00'));
+        self::assertNull($share->toleranceAmount(null));
+        self::assertNull($strict->toleranceAmount('4000.00'));
+        self::assertSame('0.01', $rate->toleranceAmount(null));
+    }
+
     public function testAShareVersionHasNoSchedule(): void
     {
         $definition = GoalVersion::share('00000000-0000-7000-8000-000000000004', WorkspaceScope::fromString(self::WORKSPACE), '00000000-0000-7000-8000-000000000001', 1, '2026-09', GoalValueType::ROLLING_INCOME_SHARE, DecimalValue::fromString('0.1'), new \DateTimeImmutable('2026-09-01'), self::ACTOR);

@@ -13,7 +13,7 @@ final class GoalUpdateRequest
     /** @param array<mixed> $body */
     public static function from(string $id, array $body): UpdateGoalInput
     {
-        self::allowed($body, ['label', 'valueType', 'targetAmount', 'ratio', 'version', 'periodicity', 'startPeriod', 'metric', 'scope', 'schedule', 'effectiveFrom', 'reason'], ['label', 'version']);
+        self::allowed($body, ['label', 'valueType', 'targetAmount', 'ratio', 'version', 'periodicity', 'startPeriod', 'metric', 'scope', 'schedule', 'effectiveFrom', 'reason', 'tolerance'], ['label', 'version']);
         $target = null === ($body['targetAmount'] ?? null) ? null : self::object($body['targetAmount']);
         if (null !== $target) {
             self::allowed($target, ['value', 'assetCode'], ['value', 'assetCode']);
@@ -31,6 +31,7 @@ final class GoalUpdateRequest
             self::nullableString($body, 'effectiveFrom'),
             self::nullableString($body, 'reason'),
             self::nullableString($body, 'valueType'),
+            self::nullableString($body, 'tolerance'),
         );
     }
 

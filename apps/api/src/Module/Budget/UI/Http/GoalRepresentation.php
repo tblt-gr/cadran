@@ -53,6 +53,7 @@ final class GoalRepresentation
             'status' => $item->status, 'reason' => $item->reason,
             'formula' => ['key' => $item->formulaKey, 'operands' => $item->operands],
             'versionNo' => $item->versionNo, 'overrides' => $item->overrides, 'pace' => $item->pace,
+            'tolerance' => $figure($item->tolerance), 'withinTolerance' => $item->withinTolerance,
         ];
     }
 
@@ -109,7 +110,7 @@ final class GoalRepresentation
     {
         $schedule = null === $version->schedule ? null : ['mode' => $version->schedule->mode, 'parts' => array_map(static fn (GoalSchedulePartView $part): array => ['month' => $part->month, 'amount' => $part->amount, 'cumulative' => $part->cumulative], $version->schedule->parts)];
 
-        return ['versionNo' => $version->versionNo, 'effectiveFrom' => $version->effectiveFrom, 'valueType' => $version->valueType, 'targetAmount' => $version->targetAmount, 'ratio' => $version->ratio, 'schedule' => $schedule];
+        return ['versionNo' => $version->versionNo, 'effectiveFrom' => $version->effectiveFrom, 'valueType' => $version->valueType, 'targetAmount' => $version->targetAmount, 'ratio' => $version->ratio, 'tolerance' => $version->tolerance, 'schedule' => $schedule];
     }
 
     /** @return array<string, mixed> */

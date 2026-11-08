@@ -181,6 +181,7 @@ describe('TotalsCard goals', () => {
               formula: {
                 key: 'goals.formula.incomeShare',
                 operands: {
+                  tolerance: null,
                   target: '1200.00',
                   achieved: '1250.00',
                   income: '4000.00',

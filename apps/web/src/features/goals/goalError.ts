@@ -11,6 +11,7 @@ export type GoalErrorKind =
   | 'goal_version_limit'
   | 'invalid_emergency_fund_category'
   | 'invalid'
+  | 'invalid_goal_tolerance'
   | 'invalid_goal_schedule'
   | 'invalid_effective_month'
   | 'invalid_schedule_preview'
@@ -30,6 +31,7 @@ export interface GoalScheduleMismatch {
 
 /** Problem `code` values mapped straight to a display kind, ranked above the HTTP status. */
 const CODE_KINDS: Record<string, GoalErrorKind> = {
+  invalid_goal_tolerance: 'invalid_goal_tolerance',
   correction_reason_required: 'correction_reason_required',
   correction_span_exceeded: 'correction_span_exceeded',
   emergency_fund_scope_too_large: 'emergency_fund_scope_too_large',

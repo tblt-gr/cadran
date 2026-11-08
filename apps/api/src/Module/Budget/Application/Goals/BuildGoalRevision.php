@@ -13,6 +13,7 @@ use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionResolver;
 use App\Module\Budget\Domain\Goals\InvalidGoal;
+use App\Module\Budget\Domain\Goals\InvalidGoalTolerance;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -76,13 +77,15 @@ final readonly class BuildGoalRevision
             }
         }
         try {
-            $definition = null === $input->valueType && null === $input->targetAmount && null === $input->targetAssetCode && null === $input->ratio && null === $input->schedule
+            $definition = null === $input->valueType && null === $input->targetAmount && null === $input->targetAssetCode && null === $input->ratio && null === $input->schedule && null === $input->tolerance
                 ? null
                 : (GoalValueType::AMOUNT === $valueType
                     ? $this->amount($goal, $base, $input, $latest->versionNo + 1, $effectiveMonth, $actorId, $retroactive, $reason)
                     : $this->share($goal, $base, $valueType, $input, $latest->versionNo + 1, $effectiveMonth, $actorId, $retroactive, $reason));
         } catch (GoalInputError $exception) {
             throw $exception;
+        } catch (InvalidGoalTolerance $exception) {
+            throw new GoalInputError('invalid_goal_tolerance', $exception->getMessage());
         } catch (InvalidGoal|\InvalidArgumentException|\DomainException $exception) {
             throw new GoalInputError(GoalValueType::AMOUNT === $valueType ? 'invalid_goal_target' : 'invalid_goal_ratio', $exception->getMessage());
         }
@@ -112,13 +115,14 @@ final readonly class BuildGoalRevision
         if (null === $ratio) {
             throw new GoalInputError('invalid_goal_ratio', 'A share or rate goal needs a ratio.');
         }
-        if ($valueType === $base->valueType && null !== $base->ratio && 0 === $ratio->compareTo($base->ratio)) {
+        $tolerance = GoalToleranceInput::parse($input->tolerance) ?? $base->tolerance;
+        if ($valueType === $base->valueType && null !== $base->ratio && 0 === $ratio->compareTo($base->ratio) && 0 === $tolerance->compareTo($base->tolerance)) {
             return null;
         }
 
         return GoalValueType::RATE === $valueType
-            ? GoalVersion::rate($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason)
-            : GoalVersion::share($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $valueType, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason);
+            ? GoalVersion::rate($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason, $tolerance)
+            : GoalVersion::share($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $valueType, $ratio, $this->calendar->now(), $actorId, $retroactive, $reason, $tolerance);
     }
 
     private function amount(Goal $goal, GoalVersion $base, UpdateGoalInput $input, int $number, string $effectiveMonth, string $actorId, bool $retroactive, ?string $reason): ?GoalVersion
@@ -137,18 +141,20 @@ final readonly class BuildGoalRevision
         if (null === $target) {
             throw new GoalInputError('invalid_goal_target', 'An amount goal needs a target amount.');
         }
+        $tolerance = GoalToleranceInput::parse($input->tolerance) ?? $base->tolerance;
+        $toleranceChanged = 0 !== $tolerance->compareTo($base->tolerance);
         if (GoalPeriodicity::MONTHLY === $goal->periodicity) {
             if (null !== $input->schedule) {
                 throw new GoalInputError('invalid_goal_schedule', 'Only a yearly goal has a monthly calendar.');
             }
-            if (null !== $baseTarget && 0 === $target->compareTo($baseTarget)) {
+            if (null !== $baseTarget && 0 === $target->compareTo($baseTarget) && !$toleranceChanged) {
                 return null;
             }
             if ($target->compareTo(DecimalValue::zero()) <= 0) {
                 throw new GoalInputError('invalid_goal_target', 'A goal target amount is positive.');
             }
 
-            return GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, null, $this->calendar->now(), $actorId, $retroactive, $reason);
+            return GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, null, $this->calendar->now(), $actorId, $retroactive, $reason, $tolerance);
         }
         $targetChanged = null === $baseTarget || 0 !== $target->compareTo($baseTarget);
         $schedule = null;
@@ -162,12 +168,16 @@ final readonly class BuildGoalRevision
         }
         if (!$targetChanged) {
             if (null === $input->schedule) {
-                return null;
+                // Only the tolerance moves: the calendar in force, custom or not, stays as it is.
+                return $toleranceChanged
+                    ? GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, $base->schedule, $this->calendar->now(), $actorId, $retroactive, $reason, $tolerance)
+                    : null;
             }
-            if (null !== $schedule && null !== $base->schedule && $schedule->sameAs($base->schedule)) {
+            if (!$toleranceChanged && null !== $schedule && null !== $base->schedule && $schedule->sameAs($base->schedule)) {
                 return null;
             }
             if (null !== $scheduleError
+                && !$toleranceChanged
                 && null === $base->schedule
                 && trim($input->label) !== $goal->label
                 && GoalScheduleMode::LINEAR->value === $input->schedule->mode
@@ -188,7 +198,7 @@ final readonly class BuildGoalRevision
         }
         $schedule ??= $this->schedules->linear($goal->assetCode, $target);
 
-        return GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, $schedule, $this->calendar->now(), $actorId, $retroactive, $reason);
+        return GoalVersion::amount($this->uuid->generate(), $goal->workspace, $goal->id, $number, $effectiveMonth, $target, $schedule, $this->calendar->now(), $actorId, $retroactive, $reason, $tolerance);
     }
 
     /** @return list<string> */
@@ -206,6 +216,9 @@ final readonly class BuildGoalRevision
         }
         if ((null === $before->ratio) !== (null === $after->ratio) || (null !== $before->ratio && null !== $after->ratio && 0 !== $before->ratio->compareTo($after->ratio))) {
             $fields[] = 'ratio';
+        }
+        if (0 !== $before->tolerance->compareTo($after->tolerance)) {
+            $fields[] = 'tolerance';
         }
         if ($before->scheduleMode() !== $after->scheduleMode()) {
             $fields[] = 'scheduleMode';

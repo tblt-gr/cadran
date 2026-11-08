@@ -331,7 +331,7 @@ final readonly class ReadGoalStatus
         $excess = null !== $achievedResponse && null !== $target ? self::positiveForResponse(ExactDecimal::subtractForResponse($achievedResponse, $target)) : null;
         $status = self::blocksCalculation($reason) || null === $target || null === $achievedResponse || null === $expected
             ? 'NOT_CALCULABLE'
-            : self::annualStatus($goal->direction(), $achievedResponse, $expected, $target);
+            : self::annualStatus($goal->direction(), $achievedResponse, $expected, $target, $selectedVersion->toleranceAmount(null));
         $ratio = null !== $achievedResponse && null !== $target ? ExactDecimal::divideForResponse($achievedResponse, $target) : null;
 
         return new GoalStatusView(
@@ -412,7 +412,7 @@ final readonly class ReadGoalStatus
             $gap,
             null,
             null,
-            $calculable ? self::rollingStatus($goal->direction(), $actual, $target) : 'NOT_CALCULABLE',
+            $calculable ? self::rollingStatus($goal->direction(), $actual, $target, $evaluation['tolerance']) : 'NOT_CALCULABLE',
             null,
             null,
             $reason,
@@ -429,14 +429,14 @@ final readonly class ReadGoalStatus
      *
      * @param list<string> $categoryIds
      *
-     * @return array{version: ?GoalVersion, state: string, target: ?string, actual: ?string, reason: ?string, policyVersion: ?int, policyVersions: list<int>, reference: ?ReferenceIncomeView}
+     * @return array{version: ?GoalVersion, state: string, target: ?string, tolerance: ?string, actual: ?string, reason: ?string, policyVersion: ?int, policyVersions: list<int>, reference: ?ReferenceIncomeView}
      */
     private function evaluateMonth(Goal $goal, ?GoalVersion $version, CalendarMonth $month, array $categoryIds, GoalStatusInputs $inputs): array
     {
         $item = $inputs->months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
         $metric = $this->metric($goal, $item, $categoryIds, $inputs);
         $policyVersions = null === $item->figures?->policyVersion ? [] : [$item->figures->policyVersion];
-        $result = ['version' => $version, 'state' => $item->state->value, 'target' => null, 'actual' => $metric['value']?->toString(), 'reason' => null, 'policyVersion' => $item->figures?->policyVersion, 'policyVersions' => $policyVersions, 'reference' => null];
+        $result = ['version' => $version, 'state' => $item->state->value, 'target' => null, 'actual' => $metric['value']?->toString(), 'reason' => null, 'policyVersion' => $item->figures?->policyVersion, 'policyVersions' => $policyVersions, 'reference' => null, 'tolerance' => null];
         if (null === $version) {
             return $result;
         }
@@ -444,14 +444,17 @@ final readonly class ReadGoalStatus
         switch ($version->valueType) {
             case GoalValueType::AMOUNT:
                 $result['target'] = $version->targetAmount?->toString();
+                $result['tolerance'] = $version->toleranceAmount(null);
                 break;
             case GoalValueType::RATE:
                 $result['target'] = $ratio?->toString();
+                $result['tolerance'] = $version->toleranceAmount(null);
                 break;
             case GoalValueType::INCOME_SHARE:
                 $income = $item->figures?->cells['cashIncome'] ?? null;
                 $result['target'] = null !== $income?->value && null !== $ratio ? ExactDecimal::multiplyForResponse(DecimalValue::fromString($income->value), $ratio) : null;
                 $result['reason'] = null === $result['target'] ? ($income->reason ?? 'MISSING_CASH_INCOME') : null;
+                $result['tolerance'] = null === $result['target'] ? null : $version->toleranceAmount($income?->value);
                 break;
             case GoalValueType::ROLLING_INCOME_SHARE:
                 $reference = ReadReferenceIncome::fromMonths($month, array_values($inputs->months));
@@ -459,6 +462,7 @@ final readonly class ReadGoalStatus
                 $result['policyVersions'] = [...$policyVersions, ...$reference->metricPolicyVersions];
                 $result['target'] = null !== $reference->value && null !== $ratio ? ExactDecimal::multiplyForResponse($reference->value, $ratio) : null;
                 $result['reason'] = null === $reference->value ? 'NO_REFERENCE_INCOME' : null;
+                $result['tolerance'] = null === $result['target'] ? null : $version->toleranceAmount($reference->value?->toString());
                 break;
         }
         if (null === $result['reason'] && (null === $metric['value'] || MonthState::NO_DATA === $item->state)) {
@@ -595,20 +599,23 @@ final readonly class ReadGoalStatus
         return new GoalStatusMetricPolicyView(count($versions) > 1 ? 'MIXED' : ([] === $versions ? 'NONE' : 'SINGLE'), 1 === count($versions) ? $versions[0] : null, $versions);
     }
 
-    private static function annualStatus(GoalDirection $direction, string $achieved, string $expected, string $target): string
+    private static function annualStatus(GoalDirection $direction, string $achieved, string $expected, string $target, ?string $tolerance): string
     {
+        $tolerance ??= '0';
         if (GoalDirection::MINIMUM === $direction) {
-            return ExactDecimal::compareForResponse($achieved, $target) >= 0 ? 'REACHED' : (ExactDecimal::compareForResponse($achieved, $expected) >= 0 ? 'AHEAD' : 'BEHIND');
+            return ExactDecimal::compareForResponse($achieved, ExactDecimal::subtractForResponse($target, $tolerance)) >= 0 ? 'REACHED' : (ExactDecimal::compareForResponse($achieved, $expected) >= 0 ? 'AHEAD' : 'BEHIND');
         }
 
-        return ExactDecimal::compareForResponse($achieved, $target) > 0 ? 'EXCEEDED' : (ExactDecimal::compareForResponse($achieved, $expected) <= 0 ? 'ON_TRACK' : 'OVER_PACE');
+        return ExactDecimal::compareForResponse($achieved, ExactDecimal::addForResponse($target, $tolerance)) > 0 ? 'EXCEEDED' : (ExactDecimal::compareForResponse($achieved, $expected) <= 0 ? 'ON_TRACK' : 'OVER_PACE');
     }
 
-    private static function rollingStatus(GoalDirection $direction, string $actual, string $target): string
+    private static function rollingStatus(GoalDirection $direction, string $actual, string $target, ?string $tolerance): string
     {
+        $tolerance ??= '0';
+
         return GoalDirection::MINIMUM === $direction
-            ? (ExactDecimal::compareForResponse($actual, $target) >= 0 ? 'MET' : 'MISSED')
-            : (ExactDecimal::compareForResponse($actual, $target) <= 0 ? 'WITHIN' : 'OVER');
+            ? (ExactDecimal::compareForResponse($actual, ExactDecimal::subtractForResponse($target, $tolerance)) >= 0 ? 'MET' : 'MISSED')
+            : (ExactDecimal::compareForResponse($actual, ExactDecimal::addForResponse($target, $tolerance)) <= 0 ? 'WITHIN' : 'OVER');
     }
 
     private static function positiveForResponse(string $value): string
