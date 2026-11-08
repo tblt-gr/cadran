@@ -786,3 +786,35 @@ describe('GoalPanel data cost', () => {
     await waitFor(() => expect(api.listGoalEvaluations).toHaveBeenCalledTimes(2));
   });
 });
+
+describe('GoalPanel summaries', () => {
+  it('finds the summary of a recent goal that sits beyond the first page of the goals list', async () => {
+    const old = Array.from({ length: 100 }, (_, index) =>
+      summary(
+        `00000000-0000-7000-8000-${String(index + 1000).padStart(12, '0')}`,
+        `Ancien ${index}`,
+      ),
+    );
+    const recent = summary('00000000-0000-7000-8000-000000009999', 'Récent');
+    api.listGoals.mockImplementation(({ query }: { query: { page: number } }) =>
+      ok({
+        items: query.page === 1 ? old : [recent],
+        page: query.page,
+        pageSize: 100,
+        total: 101,
+      }),
+    );
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [{ period: '2026-11', items: rows(evaluation(recent, { status: 'MET' })) }],
+        years: [],
+      }),
+    );
+    renderPanel(november);
+    await loaded();
+
+    expect(api.listGoals).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: 'Actions de l’objectif « Récent »' })).toBeTruthy();
+    expect(screen.getByText('Tout l’espace · Chaque mois depuis janv. 2026')).toBeTruthy();
+  });
+});

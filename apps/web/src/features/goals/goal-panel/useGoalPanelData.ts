@@ -18,8 +18,10 @@ export type GoalPanelScope =
   | { kind: 'year'; year: number }
   | { kind: 'years'; years: number[] };
 
-// The server caps the goals at 100 and a page at 100: one page holds the whole list.
+// A page holds at most 100 goals and the list is oldest first: a recent goal can sit on a later
+// page, so the list is read page after page. The server evaluates at most 500 goals.
 const GOALS_PAGE_SIZE = 100;
+const MAX_GOAL_PAGES = 10;
 
 /** One range per request: the server caps a request at 120 months, so each year is its own. */
 function scopeRanges(scope: GoalPanelScope): { from: string; to: string }[] {
@@ -92,13 +94,18 @@ function useGoalSummaries(enabled = true) {
     enabled,
     queryKey: ['goals', 'panel'],
     queryFn: async ({ signal }): Promise<GoalSummary[]> => {
-      const result = await listGoals({
-        ...authApiOptions(),
-        query: { current: false, page: 1, pageSize: GOALS_PAGE_SIZE },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) throw goalRequestError(result);
-      return result.data.items;
+      const goals: GoalSummary[] = [];
+      for (let page = 1; page <= MAX_GOAL_PAGES; page += 1) {
+        const result = await listGoals({
+          ...authApiOptions(),
+          query: { current: false, page, pageSize: GOALS_PAGE_SIZE },
+          signal,
+        });
+        if (!result.response?.ok || !result.data) throw goalRequestError(result);
+        goals.push(...result.data.items);
+        if (!(goals.length < (result.data.total ?? 0)) || result.data.items.length === 0) break;
+      }
+      return goals;
     },
     retry: false,
   });
