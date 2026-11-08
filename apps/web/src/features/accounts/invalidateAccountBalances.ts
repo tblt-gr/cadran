@@ -21,6 +21,7 @@ export async function invalidateAccountBalances(queryClient: QueryClient): Promi
       'monthly-ledger-movements',
       'annual-report',
       'multi-year-report',
+      'goal-evaluations',
     ].map((key) => queryClient.invalidateQueries({ queryKey: [key] })),
   );
 }

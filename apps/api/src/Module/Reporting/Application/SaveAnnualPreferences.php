@@ -52,12 +52,16 @@ final readonly class SaveAnnualPreferences
             }
         }
 
+        $goalMarks = $input->goalMarks;
+        if (null === $goalMarks) {
+            $goalMarks = $this->preferences->find($workspace)->goalMarks ?? true;
+        }
         $saved = (new AnnualReportPreferences($workspace, [], $incomplete, $input->version))
-            ->saved($input->columns, $incomplete, $this->calendar->now());
+            ->saved($input->columns, $incomplete, $this->calendar->now(), $goalMarks);
         if (!$this->preferences->save($saved, $input->version)) {
             throw new StaleAnnualPreferencesVersion('The annual report selection changed since it was read.');
         }
 
-        return new AnnualPreferencesView($saved->columns, $saved->incompleteMonths->value, $saved->version);
+        return new AnnualPreferencesView($saved->columns, $saved->incompleteMonths->value, $saved->version, $saved->goalMarks);
     }
 }

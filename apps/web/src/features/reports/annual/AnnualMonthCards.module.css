@@ -79,3 +79,10 @@ button.explain:hover:not(:disabled) {
 .card a:focus-visible {
   text-decoration: underline;
 }
+.card dd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-2);
+}

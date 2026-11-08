@@ -261,6 +261,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       {goalPanel.open ? (
         <GoalPanel
           close={goalPanel.closePanel}
+          focusGoalId={goalPanel.target?.goalId ?? null}
           returnFocus={goalsButton}
           scope={{ kind: 'month', month }}
         />

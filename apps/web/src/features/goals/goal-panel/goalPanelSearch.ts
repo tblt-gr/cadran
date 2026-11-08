@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 const PANEL_PARAM = 'panel';
 const PANEL_VALUE = 'goals';
+const GOAL_PARAM = 'goal';
+const PERIOD_PARAM = 'period';
 /** Marks the history entry this module pushed, so closing can step back instead of stacking. */
 const PUSHED = 'goalPanelPushed';
 
@@ -9,11 +11,41 @@ export function readGoalPanelOpen(search: string): boolean {
   return new URLSearchParams(search).get(PANEL_PARAM) === PANEL_VALUE;
 }
 
-function withPanel(open: boolean): string {
+/** The goal a report cell pointed at and the period of that cell (`YYYY-MM` or `YYYY`). */
+export interface GoalPanelTarget {
+  goalId: string;
+  period: string;
+}
+
+const PERIOD_PATTERN = /^\d{4}(-\d{2})?$/;
+
+/** The goal to focus and the period to show, read from the URL; null when the panel opens plain. */
+export function readGoalPanelTarget(search: string): GoalPanelTarget | null {
+  const params = new URLSearchParams(search);
+  const goalId = params.get(GOAL_PARAM);
+  const period = params.get(PERIOD_PARAM);
+  return goalId !== null && period !== null && PERIOD_PATTERN.test(period)
+    ? { goalId, period }
+    : null;
+}
+
+function withPanel(open: boolean, target?: GoalPanelTarget): string {
   const url = new URL(window.location.href);
   if (open) url.searchParams.set(PANEL_PARAM, PANEL_VALUE);
   else url.searchParams.delete(PANEL_PARAM);
+  url.searchParams.delete(GOAL_PARAM);
+  url.searchParams.delete(PERIOD_PARAM);
+  if (open && target) {
+    url.searchParams.set(GOAL_PARAM, target.goalId);
+    url.searchParams.set(PERIOD_PARAM, target.period);
+  }
   return `${url.pathname}${url.search}${url.hash}`;
+}
+
+/** Opens the goals panel from a figure of the page: on the period of the figure, on its goal. */
+export function pushGoalPanel(target?: GoalPanelTarget) {
+  window.history.pushState({ [PUSHED]: true }, '', withPanel(true, target));
+  window.dispatchEvent(new PopStateEvent('popstate'));
 }
 
 /**
@@ -22,15 +54,20 @@ function withPanel(open: boolean): string {
  */
 export function useGoalPanelOpen() {
   const [open, setOpen] = useState(() => readGoalPanelOpen(window.location.search));
+  const [target, setTarget] = useState(() => readGoalPanelTarget(window.location.search));
 
   useEffect(() => {
-    const sync = () => setOpen(readGoalPanelOpen(window.location.search));
+    const sync = () => {
+      setOpen(readGoalPanelOpen(window.location.search));
+      setTarget(readGoalPanelTarget(window.location.search));
+    };
     window.addEventListener('popstate', sync);
     return () => window.removeEventListener('popstate', sync);
   }, []);
 
   const openPanel = useCallback(() => {
     window.history.pushState({ [PUSHED]: true }, '', withPanel(true));
+    setTarget(null);
     setOpen(true);
   }, []);
   const closePanel = useCallback(() => {
@@ -40,8 +77,9 @@ export function useGoalPanelOpen() {
       return;
     }
     window.history.replaceState({}, '', withPanel(false));
+    setTarget(null);
     setOpen(false);
   }, []);
 
-  return { open, openPanel, closePanel };
+  return { open, openPanel, closePanel, target };
 }

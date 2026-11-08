@@ -6,6 +6,7 @@ namespace App\Tests\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Application\ReadAccountReference;
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Budget\Application\Goals\GoalEvaluationGranularity;
 use App\Module\Budget\Application\Goals\GoalEvaluationView;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
@@ -150,6 +151,48 @@ final class ListGoalEvaluationsTest extends TestCase
 
         self::assertCount(11, $result->months);
         self::assertSame(['2026'], array_map(static fn ($period) => $period->period, $result->years));
+    }
+
+    public function testTheYearGranularityLeavesMonthsEmptyAndKeepsTheYearFigures(): void
+    {
+        $both = $this->evaluate()('2026-01', '2026-11');
+        $result = $this->evaluate()('2026-01', '2026-11', GoalEvaluationGranularity::YEAR);
+
+        self::assertSame([], $result->months);
+        self::assertEquals($both->years, $result->years);
+        self::assertSame('5100.00', $result->years[0]->items[0]->achieved?->value);
+    }
+
+    public function testTheMonthGranularityLeavesYearsEmpty(): void
+    {
+        $result = $this->evaluate()('2026-07', '2026-08', GoalEvaluationGranularity::MONTH);
+
+        self::assertCount(2, $result->months);
+        self::assertSame([], $result->years);
+    }
+
+    public function testTheDefaultGranularityIsBoth(): void
+    {
+        $result = $this->evaluate()('2026-07', '2026-08');
+
+        self::assertCount(2, $result->months);
+        self::assertCount(1, $result->years);
+    }
+
+    public function testThirtyYearsAreAcceptedForTheYearGranularityAndThirtyOneAreRefused(): void
+    {
+        $result = $this->evaluate()('2026-01', '2055-12', GoalEvaluationGranularity::YEAR);
+        self::assertSame([], $result->months);
+        self::assertCount(1, $result->years);
+
+        foreach ([['2026-01', '2056-12', GoalEvaluationGranularity::YEAR], ['2026-01', '2036-01', GoalEvaluationGranularity::MONTH], ['2026-01', '2036-01', GoalEvaluationGranularity::BOTH]] as [$from, $to, $granularity]) {
+            try {
+                $this->evaluate()($from, $to, $granularity);
+                self::fail('A range over the bound of its granularity is refused.');
+            } catch (GoalInputError $error) {
+                self::assertSame('invalid_goal_query', $error->errorCode);
+            }
+        }
     }
 
     public function testAForeignWorkspaceNeverSeesTheGoalsOfAnother(): void

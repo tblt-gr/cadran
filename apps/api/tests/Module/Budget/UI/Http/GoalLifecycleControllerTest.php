@@ -165,7 +165,7 @@ final class GoalLifecycleControllerTest extends WebTestCase
         $this->createMonthly('2026-01');
         $this->insertForeignGoal();
 
-        foreach (['from=2026-01&to=2036-02', 'from=2026-05&to=2026-04', 'from=2026-01', 'from=x&to=y'] as $query) {
+        foreach (['from=2026-01&to=2036-02', 'from=2026-05&to=2026-04', 'from=2026-01', 'from=x&to=y', 'from=2026-01&to=2026-12&granularity=WEEK', 'from=2026-01&to=2056-12&granularity=YEAR'] as $query) {
             $this->client->request('GET', '/api/v1/goals/evaluations?'.$query);
             self::assertResponseStatusCodeSame(400, $query);
         }
@@ -179,6 +179,11 @@ final class GoalLifecycleControllerTest extends WebTestCase
         self::assertSame('NET_SAVINGS_TRANSFERS', $item['metric']);
         self::assertNotContains('Foreign', array_map(static fn (mixed $entry): mixed => self::arr($entry)['label'], self::list(self::arr($months[0])['items'])));
         self::assertSame([], self::list(self::arr(self::list($payload['years'])[0])['items']));
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-01&to=2026-12&granularity=YEAR');
+        self::assertResponseIsSuccessful();
+        $yearOnly = $this->decode();
+        self::assertSame([], $yearOnly['months']);
+        self::assertCount(1, self::list($yearOnly['years']));
     }
 
     public function testARevisionTakingEffectNextMonthLeavesThePastAtItsTarget(): void

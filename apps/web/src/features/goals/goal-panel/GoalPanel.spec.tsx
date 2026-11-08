@@ -191,8 +191,44 @@ describe('GoalPanel monthly', () => {
     expect(within(month).getByText('Dépassé')).toBeTruthy();
     expect(within(month).getByText('Non atteint')).toBeTruthy();
     expect(within(month).getByText('Atteint')).toBeTruthy();
-    expect(within(month).getAllByText(/500,00/).length).toBe(3);
-    expect(within(month).getAllByText(/320,00/).length).toBe(3);
+    // Each figure also appears in the gap and formula line that explains the row.
+    expect(within(month).getAllByText(/500,00/).length).toBe(6);
+    expect(within(month).getAllByText(/320,00/).length).toBe(6);
+  });
+
+  it('explains a row with its gap, formula and version, and focuses the goal a report pointed at', async () => {
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [
+          {
+            period: '2026-11',
+            items: rows(
+              evaluation(cap, { status: 'MISSED', gap: '-50.00' }),
+              evaluation(g1, { status: 'MET' }),
+            ),
+          },
+        ],
+        years: [],
+      }),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <GoalPanel
+          close={vi.fn()}
+          focusGoalId={cap.id}
+          returnFocus={{ current: null }}
+          scope={november}
+        />
+      </QueryClientProvider>,
+    );
+
+    await loaded();
+    const row = document.querySelector<HTMLElement>(`[data-goal-id="${cap.id}"]`)!;
+    await waitFor(() => expect(document.activeElement).toBe(row));
+    expect(row.textContent).toMatch(/Dépassement de 50,00/);
+    expect(row.textContent).toMatch(/Version 1/);
+    expect(document.querySelector(`[data-goal-id="${g1.id}"]`)).not.toBe(document.activeElement);
   });
 
   it('shows the winner of August with the goal it replaced, and G3 not reached', async () => {
@@ -671,9 +707,9 @@ describe('GoalPanel multi-year', () => {
     expect(await screen.findByRole('dialog', { name: 'Objectifs · 2024 à 2026' })).toBeTruthy();
     await loaded();
     expect(api.listGoalEvaluations.mock.calls.map(([options]) => options.query)).toEqual([
-      { from: '2024-01', to: '2024-12' },
-      { from: '2025-01', to: '2025-12' },
-      { from: '2026-01', to: '2026-12' },
+      { from: '2024-01', to: '2024-12', granularity: 'BOTH' },
+      { from: '2025-01', to: '2025-12', granularity: 'BOTH' },
+      { from: '2026-01', to: '2026-12', granularity: 'BOTH' },
     ]);
     expect(yearItem('2024').open).toBe(false);
     expect(yearItem('2025').open).toBe(false);

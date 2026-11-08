@@ -39,6 +39,8 @@ use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
 final readonly class ListGoalEvaluations
 {
     public const int MAX_MONTHS = 120;
+    /** Calendar years a YEAR-only range may touch: one row per year stays cheap, unlike 360 month rows. */
+    public const int MAX_YEARS = 30;
     /** Bounds the goals read for a range; it counts ended goals still covering the range, not only the 100 current ones. */
     public const int MAX_GOALS = 500;
 
@@ -52,7 +54,7 @@ final readonly class ListGoalEvaluations
     ) {
     }
 
-    public function __invoke(string $from, string $to): GoalEvaluationsView
+    public function __invoke(string $from, string $to, GoalEvaluationGranularity $granularity = GoalEvaluationGranularity::BOTH): GoalEvaluationsView
     {
         try {
             $first = CalendarMonth::fromString($from);
@@ -61,8 +63,14 @@ final readonly class ListGoalEvaluations
             throw new GoalInputError('invalid_goal_query', 'An evaluation range is written YYYY-MM.');
         }
         $span = self::ordinal($last) - self::ordinal($first) + 1;
-        if ($span < 1 || $span > self::MAX_MONTHS) {
+        if ($span < 1) {
+            throw new GoalInputError('invalid_goal_query', 'An evaluation range ends after it starts.');
+        }
+        if ($granularity->months() && $span > self::MAX_MONTHS) {
             throw new GoalInputError('invalid_goal_query', sprintf('An evaluation range covers from 1 to %d months.', self::MAX_MONTHS));
+        }
+        if (!$granularity->months() && $last->year - $first->year + 1 > self::MAX_YEARS) {
+            throw new GoalInputError('invalid_goal_query', sprintf('A yearly evaluation range covers from 1 to %d years.', self::MAX_YEARS));
         }
         $today = CalendarMonth::containing($this->calendar->today());
         $end = self::ordinal($last) > self::ordinal($today) ? $today : $last;
@@ -75,14 +83,14 @@ final readonly class ListGoalEvaluations
         if (count($goals) > self::MAX_GOALS) {
             throw new GoalInputError('invalid_goal_query', 'Too many goals cover this range.');
         }
-        $monthly = array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::MONTHLY === $goal->periodicity));
-        $yearly = array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::YEARLY === $goal->periodicity));
-        $inputs = $this->readStatus->inputsBetween($workspace, [] === $yearly ? $first : new CalendarMonth($first->year, 1), $end, $goals);
+        $monthly = $granularity->months() ? array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::MONTHLY === $goal->periodicity)) : [];
+        $yearly = $granularity->years() ? array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::YEARLY === $goal->periodicity)) : [];
+        $inputs = $this->readStatus->inputsBetween($workspace, [] === $yearly ? $first : new CalendarMonth($first->year, 1), $end, [...$monthly, ...$yearly]);
         $context = new EvaluationContext($today, $inputs);
         $context->versions = $this->versions->listByGoals($workspace, array_map(static fn (Goal $goal): string => $goal->id, $goals));
 
         $months = [];
-        for ($ordinal = self::ordinal($first); $ordinal <= self::ordinal($end); ++$ordinal) {
+        for ($ordinal = self::ordinal($first); $granularity->months() && $ordinal <= self::ordinal($end); ++$ordinal) {
             $month = new CalendarMonth(intdiv($ordinal - 1, 12), ($ordinal - 1) % 12 + 1);
             $items = [];
             foreach (GoalPrecedence::winners($monthly, $month->key()) as $winner) {
@@ -94,7 +102,7 @@ final readonly class ListGoalEvaluations
             $months[] = new GoalPeriodEvaluationView($month->key(), $items);
         }
         $years = [];
-        for ($year = $first->year; $year <= $end->year; ++$year) {
+        for ($year = $first->year; $granularity->years() && $year <= $end->year; ++$year) {
             $items = [];
             foreach (GoalPrecedence::winners($yearly, (string) $year) as $winner) {
                 $item = $this->year($context, $winner['goal'], $winner['overrides'], $year);

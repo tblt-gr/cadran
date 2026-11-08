@@ -419,7 +419,7 @@ export const createGoal = <ThrowOnError extends boolean = false>(options: Option
 /**
  * Evaluate the goals applying to each month and year of a range
  *
- * Resolves, for every month (monthly goals) and calendar year (yearly goals) of the range up to the current month, the goal applying to each metric and scope, its target, the achieved value, the signed gap and a status computed by the server. Among overlapping goals of the same periodicity, metric and scope, the latest start wins, then the latest creation; the hidden ones are listed in `overrides`. A range over 120 months, or with `from` after `to`, answers 400.
+ * Resolves, for every month (monthly goals) and calendar year (yearly goals) of the range up to the current month, the goal applying to each metric and scope, its target, the achieved value, the signed gap and a status computed by the server. Among overlapping goals of the same periodicity, metric and scope, the latest start wins, then the latest creation; the hidden ones are listed in `overrides`. `granularity` limits the work to the monthly items (`MONTH`, `years` empty), the yearly items (`YEAR`, `months` empty) or both (`BOTH`, the default). A range over 120 months (30 calendar years with `YEAR`), with `from` after `to`, or with an unknown granularity answers 400.
  */
 export const listGoalEvaluations = <ThrowOnError extends boolean = false>(options: Options<ListGoalEvaluationsData, ThrowOnError>): RequestResult<ListGoalEvaluationsResponses, ListGoalEvaluationsErrors, ThrowOnError> => (options.client ?? client).get<ListGoalEvaluationsResponses, ListGoalEvaluationsErrors, ThrowOnError>({
     security: [{

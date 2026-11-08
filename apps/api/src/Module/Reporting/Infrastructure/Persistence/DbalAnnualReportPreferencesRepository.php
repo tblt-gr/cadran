@@ -10,6 +10,7 @@ use App\Module\Reporting\Domain\AnnualReportPreferences;
 use App\Module\Reporting\Domain\AnnualReportPreferencesRepository;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
+use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
 #[AsAlias(AnnualReportPreferencesRepository::class)]
@@ -22,7 +23,7 @@ final readonly class DbalAnnualReportPreferencesRepository implements AnnualRepo
     public function find(WorkspaceScope $workspace): ?AnnualReportPreferences
     {
         $row = $this->connection->fetchAssociative(
-            'SELECT workspace_id, columns, incomplete_months, version, updated_at
+            'SELECT workspace_id, columns, incomplete_months, goal_marks, version, updated_at
              FROM reporting_annual_report_preferences WHERE workspace_id = :workspace_id',
             ['workspace_id' => $workspace->id],
         );
@@ -43,6 +44,7 @@ final readonly class DbalAnnualReportPreferencesRepository implements AnnualRepo
             IncompleteMonths::from(RecapPreferencesRow::text($row['incomplete_months'])),
             (int) RecapPreferencesRow::text($row['version']),
             new \DateTimeImmutable(RecapPreferencesRow::text($row['updated_at'])),
+            (bool) $row['goal_marks'],
         );
     }
 
@@ -54,12 +56,13 @@ final readonly class DbalAnnualReportPreferencesRepository implements AnnualRepo
         $columns = [
             'columns' => json_encode($preferences->columns, JSON_THROW_ON_ERROR),
             'incomplete_months' => $preferences->incompleteMonths->value,
+            'goal_marks' => $preferences->goalMarks,
             'version' => $preferences->version,
             'updated_at' => $preferences->updatedAt->format('Y-m-d H:i:s.uP'),
         ];
         if (AnnualReportPreferences::UNSAVED_VERSION === $expectedVersion) {
             try {
-                $this->connection->insert('reporting_annual_report_preferences', ['workspace_id' => $preferences->workspace->id, ...$columns]);
+                $this->connection->insert('reporting_annual_report_preferences', ['workspace_id' => $preferences->workspace->id, ...$columns], ['goal_marks' => ParameterType::BOOLEAN]);
             } catch (UniqueConstraintViolationException) {
                 return false;
             }
@@ -71,6 +74,7 @@ final readonly class DbalAnnualReportPreferencesRepository implements AnnualRepo
             'reporting_annual_report_preferences',
             $columns,
             ['workspace_id' => $preferences->workspace->id, 'version' => $expectedVersion],
+            ['goal_marks' => ParameterType::BOOLEAN],
         );
     }
 }

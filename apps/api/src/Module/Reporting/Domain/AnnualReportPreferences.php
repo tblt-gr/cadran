@@ -8,7 +8,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 
 /**
- * The columns and the incomplete-month setting the annual report of one workspace shows. It picks
+ * The columns, the incomplete-month setting and the goal colouring the annual report of one workspace shows. It picks
  * what is displayed and never changes a formula or a policy. Version 0 means nothing is stored yet.
  */
 final readonly class AnnualReportPreferences
@@ -23,6 +23,7 @@ final readonly class AnnualReportPreferences
         public IncompleteMonths $incompleteMonths,
         public int $version,
         public ?\DateTimeImmutable $updatedAt = null,
+        public bool $goalMarks = true,
     ) {
         if ($version < self::UNSAVED_VERSION) {
             throw new \InvalidArgumentException('An annual report preference version is never negative.');
@@ -33,8 +34,8 @@ final readonly class AnnualReportPreferences
     }
 
     /** @param list<string> $columns */
-    public function saved(array $columns, IncompleteMonths $incompleteMonths, \DateTimeImmutable $at): self
+    public function saved(array $columns, IncompleteMonths $incompleteMonths, \DateTimeImmutable $at, bool $goalMarks = true): self
     {
-        return new self($this->workspace, $columns, $incompleteMonths, $this->version + 1, $at);
+        return new self($this->workspace, $columns, $incompleteMonths, $this->version + 1, $at, $goalMarks);
     }
 }

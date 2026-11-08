@@ -62,6 +62,15 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
           ),
         };
 
+  // A figure's `i` opens the panel on its own period: that month, or that year.
+  const period = goalPanel.target?.period;
+  const panelScope: GoalPanelScope =
+    period === undefined
+      ? goalScope
+      : period.length === 7
+        ? { kind: 'month', month: period }
+        : { kind: 'year', year: Number(period) };
+
   useEffect(() => {
     const sync = () => setState(readYearView(window.location.search));
     window.addEventListener('popstate', sync);
@@ -121,7 +130,12 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
         <AnnualReportPage year={year} />
       )}
       {goalPanel.open ? (
-        <GoalPanel close={goalPanel.closePanel} returnFocus={goalsButton} scope={goalScope} />
+        <GoalPanel
+          close={goalPanel.closePanel}
+          focusGoalId={goalPanel.target?.goalId ?? null}
+          returnFocus={goalsButton}
+          scope={panelScope}
+        />
       ) : null}
     </div>
   );

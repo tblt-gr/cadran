@@ -21,6 +21,7 @@ const LEDGER_QUERY_FAMILIES = [
   'period-status',
   'annual-report',
   'multi-year-report',
+  'goal-evaluations',
   'recurrences',
   'recurrence-occurrences',
 ];

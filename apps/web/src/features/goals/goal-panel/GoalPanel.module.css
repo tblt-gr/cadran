@@ -93,6 +93,11 @@
   background: var(--text-muted);
 }
 
+.row:focus {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+
 .meta,
 .pace,
 .note {

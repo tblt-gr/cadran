@@ -8,6 +8,7 @@ use App\Module\Budget\Application\Goals\CreateGoal;
 use App\Module\Budget\Application\Goals\CreateGoalInput;
 use App\Module\Budget\Application\Goals\DeleteGoal;
 use App\Module\Budget\Application\Goals\GoalConflict;
+use App\Module\Budget\Application\Goals\GoalEvaluationGranularity;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Budget\Application\Goals\GoalScheduleInput;
@@ -77,7 +78,12 @@ final readonly class GoalController
                 throw new GoalInputError('invalid_goal_query', 'An evaluation range needs from and to.');
             }
 
-            return $this->envelope->json(GoalRepresentation::evaluations($evaluate($from, $to)));
+            $granularity = GoalEvaluationGranularity::tryFrom($request->query->getString('granularity', 'BOTH'));
+            if (null === $granularity) {
+                throw new GoalInputError('invalid_goal_query', 'A granularity is MONTH, YEAR or BOTH.');
+            }
+
+            return $this->envelope->json(GoalRepresentation::evaluations($evaluate($from, $to, $granularity)));
         } catch (GoalInputError $error) {
             return $this->problem(Response::HTTP_BAD_REQUEST, $error->errorCode);
         } catch (WorkspaceAccessDenied) {

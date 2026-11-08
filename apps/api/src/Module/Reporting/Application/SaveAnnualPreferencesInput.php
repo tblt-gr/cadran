@@ -11,6 +11,8 @@ final readonly class SaveAnnualPreferencesInput
         public array $columns,
         public string $incompleteMonths,
         public int $version,
+        /** Null keeps the stored setting (true when nothing is stored). */
+        public ?bool $goalMarks = null,
     ) {
     }
 }

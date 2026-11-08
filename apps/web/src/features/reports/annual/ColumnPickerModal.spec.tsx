@@ -87,7 +87,11 @@ describe('ColumnPickerModal', () => {
 
     const bourse = await screen.findByLabelText('Investissement › Bourse');
     expect(bourse.closest('label')?.textContent).toBe('Bourse (Investissement)');
-    const labels = screen.getAllByRole('checkbox').map((box) => box.getAttribute('aria-label'));
+    const labels = screen
+      .getAllByRole('checkbox', {
+        name: (name) => name !== '' && !name.startsWith('Afficher les objectifs'),
+      })
+      .map((box) => box.getAttribute('aria-label'));
     expect(labels).toEqual([
       'Investissement',
       'Investissement › Immobilier',
@@ -95,6 +99,21 @@ describe('ColumnPickerModal', () => {
       'Liquidités',
     ]);
     expect(screen.getByLabelText('Liquidités').closest('label')?.textContent).toBe('Liquidités');
+  });
+
+  it('saves the goal colouring setting with the columns, on by default', async () => {
+    renderModal();
+    const box = screen.getByRole('checkbox', {
+      name: /^Afficher les objectifs/,
+    }) as HTMLInputElement;
+    expect(box.checked).toBe(true);
+    fireEvent.click(box);
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(api.saveAnnualReportPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ body: expect.objectContaining({ goalMarks: false }) }),
+      ),
+    );
   });
 
   it('keeps the selection across tabs and saves it all at once', async () => {

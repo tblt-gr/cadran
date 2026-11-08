@@ -1,0 +1,41 @@
+.value[data-tone='negative'],
+.value[data-tone='negative'] a {
+  color: var(--negative);
+}
+.value[data-tone='positive'],
+.value[data-tone='positive'] a {
+  color: var(--positive);
+}
+/* A small glyph that adds no height to its row; the coarse-pointer minimum stays. */
+button.info:not(:disabled) {
+  inline-size: 1.25rem;
+  min-inline-size: 1.25rem;
+  block-size: 1.25rem;
+  min-block-size: 1.25rem;
+}
+@media (pointer: coarse) {
+  button.info:not(:disabled) {
+    inline-size: var(--touch-target-min);
+    min-inline-size: var(--touch-target-min);
+    block-size: var(--touch-target-min);
+    min-block-size: var(--touch-target-min);
+  }
+}
+.target {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+.error {
+  margin: var(--spacing-none);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-block-start: var(--border-line-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.columnHead {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
+}

@@ -10,3 +10,12 @@ it('refreshes the month bounds a movement write can move', async () => {
 
   expect(invalidate).toHaveBeenCalledWith({ queryKey: ['monthly-bounds'] });
 });
+
+it('refreshes the goal evaluations a transaction write can move', async () => {
+  const client = new QueryClient();
+  const invalidate = vi.spyOn(client, 'invalidateQueries').mockResolvedValue();
+
+  await invalidateAccountBalances(client);
+
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ['goal-evaluations'] });
+});
