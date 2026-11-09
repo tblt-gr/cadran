@@ -38,13 +38,16 @@ enum GoalMetric: string
 
     /**
      * The whole metric matrix: every metric accepts both periodicities, the rate
-     * metrics take a rate only, stocks and totals take an amount, other flows also an income share, and
+     * metrics take a rate only, stocks and total income take an amount, other flows also an income share, and
      * the rolling share is a monthly notion.
      */
     public function accepts(GoalPeriodicity $periodicity, GoalValueType $valueType, GoalScopeType $scope): bool
     {
-        if ($this->isStock() || self::TOTAL_INCOME === $this || self::TOTAL_SPENDING === $this) {
+        if ($this->isStock() || self::TOTAL_INCOME === $this) {
             return GoalValueType::AMOUNT === $valueType && $this->acceptsScope($scope);
+        }
+        if (self::TOTAL_SPENDING === $this) {
+            return in_array($valueType, [GoalValueType::AMOUNT, GoalValueType::INCOME_SHARE], true) && $this->acceptsScope($scope);
         }
         $valueAccepted = match ($valueType) {
             GoalValueType::RATE => $this->isRate(),

@@ -74,7 +74,9 @@ describe('GoalForm', () => {
       const submit = renderForm();
       fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Total mensuel' } });
       fireEvent.change(screen.getByLabelText('Indicateur'), { target: { value: metric } });
-      expect(valueTypeOptions()).toEqual(['AMOUNT']);
+      expect(valueTypeOptions()).toEqual(
+        metric === 'TOTAL_SPENDING' ? ['AMOUNT', 'INCOME_SHARE'] : ['AMOUNT'],
+      );
       expect(screen.queryByLabelText('Périmètre')).toBeNull();
       expect(screen.queryByLabelText('Sens de l’objectif')).toBeNull();
       fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '2500.01' } });
@@ -89,9 +91,73 @@ describe('GoalForm', () => {
       );
       expect(submit.mock.calls[0]![0]).not.toHaveProperty('direction');
       fireEvent.click(screen.getByRole('radio', { name: 'Annuel' }));
-      expect(valueTypeOptions()).toEqual(['AMOUNT']);
+      expect(valueTypeOptions()).toEqual(
+        metric === 'TOTAL_SPENDING' ? ['AMOUNT', 'INCOME_SHARE'] : ['AMOUNT'],
+      );
     },
   );
+
+  it.each(['Mensuel', 'Annuel'] as const)(
+    'saves total spending as a share of income with its tolerance for %s',
+    (periodicity) => {
+      const submit = renderForm();
+      fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Dépenses totales' } });
+      fireEvent.change(screen.getByLabelText('Indicateur'), {
+        target: { value: 'TOTAL_SPENDING' },
+      });
+      fireEvent.click(screen.getByRole('radio', { name: periodicity }));
+      fireEvent.change(screen.getByLabelText('Type de valeur'), {
+        target: { value: 'INCOME_SHARE' },
+      });
+      expect(
+        screen.getByRole('option', {
+          name: periodicity === 'Annuel' ? 'Part du revenu de l’année' : 'Part du revenu du mois',
+        }),
+      ).toBeTruthy();
+      fireEvent.change(screen.getByLabelText('Pourcentage'), { target: { value: '80' } });
+      fireEvent.change(screen.getByLabelText('Tolérance'), { target: { value: '2' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+      expect(submit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metric: 'TOTAL_SPENDING',
+          periodicity: periodicity === 'Annuel' ? 'YEARLY' : 'MONTHLY',
+          scope: { type: 'WORKSPACE', ref: null },
+          valueType: 'INCOME_SHARE',
+          ratio: '0.80',
+          tolerance: '0.02',
+        }),
+      );
+      expect(submit.mock.calls[0]![0]).not.toHaveProperty('targetAmount');
+      expect(submit.mock.calls[0]![0]).not.toHaveProperty('schedule');
+    },
+  );
+
+  it('preserves an existing annual total spending share and tolerance when editing', () => {
+    const submit = renderForm({
+      ...existing,
+      metric: 'TOTAL_SPENDING',
+      periodicity: 'YEARLY',
+      startPeriod: '2026',
+      scope: { type: 'WORKSPACE', label: 'Tout l’espace', archived: false },
+      currentVersion: {
+        ...existing.currentVersion,
+        valueType: 'INCOME_SHARE',
+        targetAmount: null,
+        ratio: '0.8',
+        tolerance: '0.02',
+      },
+    });
+    expect((screen.getByLabelText('Pourcentage') as HTMLInputElement).value).toBe('80');
+    expect((screen.getByLabelText('Tolérance') as HTMLInputElement).value).toBe('2');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        valueType: 'INCOME_SHARE',
+        ratio: '0.80',
+        tolerance: '0.02',
+      }),
+    );
+  });
 
   it('saves a stock minimum with an end-of-period value and amount-only target', () => {
     const submit = renderForm();

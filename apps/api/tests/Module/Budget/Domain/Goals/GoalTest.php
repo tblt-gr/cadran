@@ -47,7 +47,8 @@ final class GoalTest extends TestCase
             foreach (GoalPeriodicity::cases() as $periodicity) {
                 foreach (GoalValueType::cases() as $type) {
                     foreach (GoalScopeType::cases() as $scope) {
-                        yield $metric->value.' '.$periodicity->value.' '.$type->value.' '.$scope->value => [$metric, $periodicity, $type, $scope, GoalValueType::AMOUNT === $type && GoalScopeType::WORKSPACE === $scope];
+                        $valueAccepted = GoalValueType::AMOUNT === $type || (GoalMetric::TOTAL_SPENDING === $metric && GoalValueType::INCOME_SHARE === $type);
+                        yield $metric->value.' '.$periodicity->value.' '.$type->value.' '.$scope->value => [$metric, $periodicity, $type, $scope, $valueAccepted && GoalScopeType::WORKSPACE === $scope];
                     }
                 }
             }

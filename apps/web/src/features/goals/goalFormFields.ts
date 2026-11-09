@@ -32,9 +32,10 @@ export function isRateMetric(metric: GoalMetric): boolean {
 
 /** Mirrors the API matrix: a rate metric takes only `RATE`, a rolling share only a monthly goal. */
 export function valueTypesFor(metric: GoalMetric, periodicity: GoalPeriodicity): GoalValueType[] {
-  if (isStockMetric(metric) || metric === 'TOTAL_INCOME' || metric === 'TOTAL_SPENDING') {
+  if (isStockMetric(metric) || metric === 'TOTAL_INCOME') {
     return ['AMOUNT'];
   }
+  if (metric === 'TOTAL_SPENDING') return ['AMOUNT', 'INCOME_SHARE'];
   if (isRateMetric(metric)) return ['RATE'];
   return periodicity === 'MONTHLY'
     ? ['AMOUNT', 'INCOME_SHARE', 'ROLLING_INCOME_SHARE']

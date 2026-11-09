@@ -66,6 +66,25 @@ final class GoalControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testTotalSpendingAcceptsAnIncomeShareMonthlyAndYearly(): void
+    {
+        foreach (['MONTHLY' => '2026-09', 'YEARLY' => '2026'] as $periodicity => $start) {
+            $payload = ['label' => 'Spending share', 'periodicity' => $periodicity, 'metric' => 'TOTAL_SPENDING', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => $start, 'valueType' => 'INCOME_SHARE', 'ratio' => '0.80', 'tolerance' => '0.01'];
+            $this->requestJson('POST', '/api/v1/goals', $payload);
+            self::assertResponseStatusCodeSame(201);
+            $created = $this->decode();
+            self::assertSame('CEILING', $created['direction']);
+            self::assertSame('INCOME_SHARE', self::arr($created['currentVersion'])['valueType']);
+            self::assertSame('0.80', self::arr($created['currentVersion'])['ratio']);
+            self::assertSame('0.01', self::arr($created['currentVersion'])['tolerance']);
+
+            $this->requestJson('POST', '/api/v1/goals', [...$payload, 'valueType' => 'ROLLING_INCOME_SHARE']);
+            self::assertResponseStatusCodeSame(400);
+            $this->requestJson('POST', '/api/v1/goals', [...$payload, 'ratio' => '1.01']);
+            self::assertResponseStatusCodeSame(422);
+        }
+    }
+
     public function testTotalGoalsReuseReportIncomeAndSpendingAndRemainWorkspaceIsolated(): void
     {
         $account = '00000000-0000-7000-8000-0000000000d1';
@@ -101,7 +120,7 @@ final class GoalControllerTest extends WebTestCase
             self::assertSame($actual, self::arr($this->decode()[$column])['value']);
             $this->requestJson('POST', '/api/v1/goals', [...$payload, 'direction' => $direction]);
             self::assertResponseStatusCodeSame(422);
-            $this->requestJson('POST', '/api/v1/goals', [...$payload, 'valueType' => 'INCOME_SHARE', 'targetAmount' => null, 'ratio' => '0.5']);
+            $this->requestJson('POST', '/api/v1/goals', [...$payload, 'valueType' => 'TOTAL_SPENDING' === $metric ? 'ROLLING_INCOME_SHARE' : 'INCOME_SHARE', 'targetAmount' => null, 'ratio' => '0.5']);
             self::assertResponseStatusCodeSame(400);
         }
         $this->clock->modify('2026-11-14T12:00:00+00:00');

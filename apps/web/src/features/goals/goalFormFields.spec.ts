@@ -10,12 +10,16 @@ import {
 } from './goalFormFields';
 
 describe('scopeFor', () => {
-  it.each(['TOTAL_INCOME', 'TOTAL_SPENDING'] as const)(
-    'restricts %s to workspace amounts',
-    (metric) => {
-      expect(scopeFor(metric)).toBe('WORKSPACE');
-      expect(valueTypesFor(metric, 'MONTHLY')).toEqual(['AMOUNT']);
-      expect(valueTypesFor(metric, 'YEARLY')).toEqual(['AMOUNT']);
+  it('restricts total income to workspace amounts', () => {
+    expect(scopeFor('TOTAL_INCOME')).toBe('WORKSPACE');
+    expect(valueTypesFor('TOTAL_INCOME', 'MONTHLY')).toEqual(['AMOUNT']);
+    expect(valueTypesFor('TOTAL_INCOME', 'YEARLY')).toEqual(['AMOUNT']);
+  });
+  it.each(['MONTHLY', 'YEARLY'] as const)(
+    'allows total spending as an amount or period income share for %s',
+    (periodicity) => {
+      expect(scopeFor('TOTAL_SPENDING')).toBe('WORKSPACE');
+      expect(valueTypesFor('TOTAL_SPENDING', periodicity)).toEqual(['AMOUNT', 'INCOME_SHARE']);
     },
   );
   it('restricts stock metrics to amounts and their authorized scope type', () => {

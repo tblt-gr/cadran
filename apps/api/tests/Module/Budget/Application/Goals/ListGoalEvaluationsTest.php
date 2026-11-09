@@ -19,6 +19,7 @@ use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
+use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
@@ -369,6 +370,59 @@ final class ListGoalEvaluationsTest extends TestCase
             self::assertNull($empty->years[0]->items[0]->achieved);
             self::assertSame('NO_DATA', $empty->years[0]->items[0]->reason);
         }
+    }
+
+    /** @return iterable<string, array{string, string, bool, string, ?string, ?string, ?string, ?bool}> */
+    public static function spendingShareCases(): iterable
+    {
+        // 80% of 4000 = 3200; a one-point tolerance adds 40, inclusive.
+        yield 'tolerance boundary' => ['4000.00', '3240.00', true, 'MET', null, '3200.0000', '40.0000', true];
+        yield 'tolerance exceeded by a cent' => ['4000.00', '3240.01', true, 'MISSED', null, '3200.0000', '40.0000', false];
+        yield 'zero income with transactions' => ['0', '10', true, 'NOT_CALCULABLE', 'ZERO_CASH_INCOME', null, null, null];
+        yield 'empty period' => ['0', '0', false, 'NOT_CALCULABLE', 'NO_DATA', null, null, null];
+        yield 'large exact target' => ['99999999999999999999999999', '79999999999999999999999999.20', true, 'MET', null, '79999999999999999999999999.20', '999999999999999999999999.99', false];
+    }
+
+    #[DataProvider('spendingShareCases')]
+    public function testTotalSpendingShareUsesExactPeriodIncome(string $income, string $spent, bool $hasTransactions, string $status, ?string $reason, ?string $target, ?string $tolerance, ?bool $withinTolerance): void
+    {
+        $month = new CalendarMonth(2026, 10);
+        $cells = ['cashIncome' => new MonthlyMetricView($income, 'EUR', null), 'budgetExpenses' => new MonthlyMetricView($spent, 'EUR', null)];
+        $months = [new AnnualMonth($month, MonthState::COMPLETE, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, '2026-10-31', $cells, [], [], [], $hasTransactions))];
+        $goal = new Goal(self::G1, WorkspaceFixture::own(), 'Spending share', GoalPeriodicity::MONTHLY, GoalMetric::TOTAL_SPENDING, GoalScopeType::WORKSPACE, null, AssetCode::fromString('EUR'), '2026-01', null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $version = GoalVersion::share(self::G1, WorkspaceFixture::own(), self::G1, 2, '2026-01', GoalValueType::INCOME_SHARE, DecimalValue::fromString('0.80'), new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: DecimalValue::fromString('0.01'));
+        $item = $this->evaluate(extraVersions: [$version], customGoals: [$goal], customMonths: $months)('2026-10', '2026-10')->months[0]->items[0];
+
+        self::assertSame($status, $item->status);
+        self::assertSame($reason, $item->reason);
+        self::assertSame($target, $item->target?->value);
+        self::assertSame($tolerance, $item->tolerance?->value);
+        self::assertSame($withinTolerance, $item->withinTolerance);
+        self::assertSame('budgetExpenses', $item->columnKey);
+    }
+
+    public function testAnnualTotalSpendingShareUsesSummedIncomeAndTolerance(): void
+    {
+        $goal = new Goal(self::G1, WorkspaceFixture::own(), 'Annual spending share', GoalPeriodicity::YEARLY, GoalMetric::TOTAL_SPENDING, GoalScopeType::WORKSPACE, null, AssetCode::fromString('EUR'), '2026', null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $version = GoalVersion::share(self::G1, WorkspaceFixture::own(), self::G1, 2, '2026-01', GoalValueType::INCOME_SHARE, DecimalValue::fromString('0.80'), new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: DecimalValue::fromString('0.01'));
+        $months = [];
+        foreach ([[1, '2000.00', '2000.00'], [2, '3000.00', '2050.00']] as [$number, $income, $spent]) {
+            $month = new CalendarMonth(2026, $number);
+            $months[] = new AnnualMonth($month, MonthState::COMPLETE, false, false, new MonthFigures($month->key(), 1, 'CURRENT', 0, $month->lastDay()->format('Y-m-d'), ['cashIncome' => new MonthlyMetricView($income, 'EUR', null), 'budgetExpenses' => new MonthlyMetricView($spent, 'EUR', null)], [], [], []));
+        }
+        $item = $this->evaluate(extraVersions: [$version], customGoals: [$goal], customMonths: $months)('2026-01', '2026-11')->years[0]->items[0];
+
+        // Annual income 5000 x 80% = 4000; 1 point = 50. Spending 4050 is inside the margin.
+        self::assertSame('4000.0000', $item->target?->value);
+        self::assertSame('4050.00', $item->achieved?->value);
+        self::assertSame('50.0000', $item->tolerance?->value);
+        self::assertTrue($item->withinTolerance);
+        self::assertSame('IN_PROGRESS', $item->status);
+        self::assertSame('budgetExpenses', $item->columnKey);
+        $empty = $this->evaluate(extraVersions: [$version], customGoals: [$goal], customMonths: [])('2026-01', '2026-11')->years[0]->items[0];
+        self::assertNull($empty->target);
+        self::assertNull($empty->achieved);
+        self::assertSame('NO_DATA', $empty->reason);
     }
 
     /** @return array{0: string, 1: ?string, 2: ?string, 3: string, 4: list<string>} */
