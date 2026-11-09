@@ -274,7 +274,13 @@ final readonly class ListGoalEvaluations
      */
     private function yearFigure(EvaluationContext $context, Goal $goal, array $months): array
     {
-        if ($goal->metric->isRate()) {
+        if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true)) {
+            if ([] === array_filter($months, static fn (AnnualMonth $month): bool => true === $month->figures?->hasTransactions)) {
+                return ['value' => null, 'reason' => 'NO_DATA'];
+            }
+            $column = new AnnualColumn(GoalMetric::TOTAL_INCOME === $goal->metric ? 'cashIncome' : 'budgetExpenses', '', ColumnKind::FLOW, true);
+            $aggregate = AnnualColumnSeries::aggregate($column, $months, IncompleteMonths::INCLUDE);
+        } elseif ($goal->metric->isRate()) {
             $column = new AnnualColumn(GoalMetric::SAVINGS_RATE === $goal->metric ? 'cashSavingsRate' : 'netSavingsRate', '', ColumnKind::RATE, true);
             $aggregate = AnnualColumnSeries::aggregate($column, $months, IncompleteMonths::INCLUDE);
         } else {
@@ -306,6 +312,8 @@ final readonly class ListGoalEvaluations
         return match ($goal->metric) {
             GoalMetric::CATEGORY_SPENDING => 'category:'.$goal->scopeRef,
             GoalMetric::AXIS_SPENDING => 'axis:'.$goal->scopeRef,
+            GoalMetric::TOTAL_INCOME => 'cashIncome',
+            GoalMetric::TOTAL_SPENDING => 'budgetExpenses',
             GoalMetric::NET_SAVINGS_TRANSFERS => 'netSavingsTransfers',
             GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
             GoalMetric::SAVINGS_RATE => 'cashSavingsRate',

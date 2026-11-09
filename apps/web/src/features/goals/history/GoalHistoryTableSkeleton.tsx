@@ -26,7 +26,15 @@ export function GoalHistoryTableSkeleton() {
                 </th>
                 {cells.map((label) => (
                   <td data-label={t(label)} key={label}>
-                    <SkeletonBlock className={styles.skeletonVersion} />
+                    {label === 'goals.history.effectiveFrom' ? (
+                      <div className={styles.effectiveFrom}>
+                        <span className={styles.effectiveDate}>
+                          <SkeletonBlock className={styles.skeletonVersion} />
+                        </span>
+                      </div>
+                    ) : (
+                      <SkeletonBlock className={styles.skeletonVersion} />
+                    )}
                   </td>
                 ))}
               </tr>

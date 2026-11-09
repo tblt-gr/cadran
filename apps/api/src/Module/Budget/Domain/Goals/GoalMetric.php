@@ -6,6 +6,8 @@ namespace App\Module\Budget\Domain\Goals;
 
 enum GoalMetric: string
 {
+    case TOTAL_INCOME = 'TOTAL_INCOME';
+    case TOTAL_SPENDING = 'TOTAL_SPENDING';
     case NET_WORTH = 'NET_WORTH';
     case ACCOUNT_BALANCE = 'ACCOUNT_BALANCE';
     case NET_SAVINGS_TRANSFERS = 'NET_SAVINGS_TRANSFERS';
@@ -19,7 +21,7 @@ enum GoalMetric: string
     public function direction(): GoalDirection
     {
         return match ($this) {
-            self::CATEGORY_SPENDING, self::AXIS_SPENDING => GoalDirection::CEILING,
+            self::TOTAL_SPENDING, self::CATEGORY_SPENDING, self::AXIS_SPENDING => GoalDirection::CEILING,
             default => GoalDirection::MINIMUM,
         };
     }
@@ -36,13 +38,16 @@ enum GoalMetric: string
 
     /**
      * The whole metric matrix: every metric accepts both periodicities, the rate
-     * metrics take a rate only, the others an amount or an income share, and
+     * metrics take a rate only, stocks and total income take an amount, other flows also an income share, and
      * the rolling share is a monthly notion.
      */
     public function accepts(GoalPeriodicity $periodicity, GoalValueType $valueType, GoalScopeType $scope): bool
     {
-        if ($this->isStock()) {
+        if ($this->isStock() || self::TOTAL_INCOME === $this) {
             return GoalValueType::AMOUNT === $valueType && $this->acceptsScope($scope);
+        }
+        if (self::TOTAL_SPENDING === $this) {
+            return in_array($valueType, [GoalValueType::AMOUNT, GoalValueType::INCOME_SHARE], true) && $this->acceptsScope($scope);
         }
         $valueAccepted = match ($valueType) {
             GoalValueType::RATE => $this->isRate(),
@@ -56,7 +61,7 @@ enum GoalMetric: string
     public function acceptsScope(GoalScopeType $scope): bool
     {
         return match ($this) {
-            self::NET_WORTH, self::NET_SAVINGS_TRANSFERS, self::BUDGET_SURPLUS, self::SAVINGS_RATE, self::NET_SAVINGS_RATE => GoalScopeType::WORKSPACE === $scope,
+            self::TOTAL_INCOME, self::TOTAL_SPENDING, self::NET_WORTH, self::NET_SAVINGS_TRANSFERS, self::BUDGET_SURPLUS, self::SAVINGS_RATE, self::NET_SAVINGS_RATE => GoalScopeType::WORKSPACE === $scope,
             self::CATEGORY_SPENDING => GoalScopeType::CATEGORY === $scope,
             self::AXIS_SPENDING => GoalScopeType::AXIS === $scope,
             self::ACCOUNT_CONTRIBUTIONS, self::ACCOUNT_BALANCE => GoalScopeType::ACCOUNT === $scope,

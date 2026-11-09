@@ -21,6 +21,7 @@ final class GoalUnificationMigrationTest extends KernelTestCase
 {
     private const string MIGRATION = 'DoctrineMigrations\\Version20261108120000';
     private const string STOCK_MIGRATION = 'DoctrineMigrations\\Version20261111120000';
+    private const string TOTALS_MIGRATION = 'DoctrineMigrations\\Version20261112120000';
     private const string AT = '2026-01-01 12:00:00+00';
     private const string ESSENTIAL_PLAN = '00000000-0000-7000-8000-0000000000a1';
     private const string DRAFT_PLAN = '00000000-0000-7000-8000-0000000000a2';
@@ -44,6 +45,7 @@ final class GoalUnificationMigrationTest extends KernelTestCase
         self::bootKernel();
         $this->adopt();
         $this->fixture->reset();
+        $this->migrate('down', self::TOTALS_MIGRATION);
         $this->migrate('down', self::STOCK_MIGRATION);
         $this->migrate('down');
         $this->unified = false;
@@ -65,6 +67,7 @@ final class GoalUnificationMigrationTest extends KernelTestCase
         }
         $this->fixture->reset();
         $this->migrate('up', self::STOCK_MIGRATION);
+        $this->migrate('up', self::TOTALS_MIGRATION);
         parent::tearDown();
     }
 

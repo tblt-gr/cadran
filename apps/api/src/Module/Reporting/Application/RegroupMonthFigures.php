@@ -97,6 +97,7 @@ final readonly class RegroupMonthFigures
             $figures->budgetExpenseCategoryIds,
             $allocation,
             $figures->accountWeights,
+            $figures->hasTransactions,
         );
     }
 

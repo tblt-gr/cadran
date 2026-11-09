@@ -14,6 +14,14 @@ use PHPUnit\Framework\TestCase;
 
 final class MonthFiguresPayloadTest extends TestCase
 {
+    public function testTheSnapshotPreservesWhetherTheMonthHasTransactions(): void
+    {
+        foreach ([true, false] as $hasTransactions) {
+            $figures = new MonthFigures('2026-03', 1, 'CURRENT', 0, '2026-03-31', [], [], [], [], $hasTransactions);
+            self::assertSame($hasTransactions, MonthFigures::fromPayload($figures->toPayload())->hasTransactions);
+        }
+    }
+
     public function testAccountWeightsSurviveTheSnapshotPayloadExactly(): void
     {
         $weights = [

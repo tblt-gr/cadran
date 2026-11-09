@@ -48,15 +48,19 @@ export function GoalHistoryTable({
                 )}
               </td>
               <td data-label={t('goals.history.effectiveFrom')}>
-                {formatGoalMonth(item.effectiveFrom, i18n.language)}
-                {item.retroactive ? (
-                  <StatusBadge icon="alert" tone="warning">
-                    {t('goals.history.retroactive')}
-                  </StatusBadge>
-                ) : null}
-                {item.retroactive && item.reason ? (
-                  <small>{t('goals.history.reasonLine', { reason: item.reason })}</small>
-                ) : null}
+                <div className={styles.effectiveFrom}>
+                  <span className={styles.effectiveDate}>
+                    {formatGoalMonth(item.effectiveFrom, i18n.language)}
+                  </span>
+                  {item.retroactive ? (
+                    <StatusBadge icon="alert" tone="warning">
+                      {t('goals.history.retroactive')}
+                    </StatusBadge>
+                  ) : null}
+                  {item.retroactive && item.reason ? (
+                    <small>{t('goals.history.reasonLine', { reason: item.reason })}</small>
+                  ) : null}
+                </div>
               </td>
               <td data-label={t('goals.history.evolution')}>
                 {item.changes.length === 0 ? (

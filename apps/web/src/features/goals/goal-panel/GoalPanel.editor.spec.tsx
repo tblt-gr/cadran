@@ -599,6 +599,16 @@ describe('GoalPanel editor', () => {
     ).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Impact mensuel de la correction' })).toBeTruthy();
 
+    const confirm = screen.getByRole('button', {
+      name: 'Confirmer la correction',
+    }) as HTMLButtonElement;
+    expect(confirm.disabled).toBe(true);
+    fireEvent.click(confirm);
+    expect(api.updateGoal).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByLabelText('J’ai vérifié l’impact de cette correction.'));
+    expect(confirm.disabled).toBe(false);
+    fireEvent.click(screen.getByLabelText('J’ai vérifié l’impact de cette correction.'));
+    expect(confirm.disabled).toBe(true);
     fireEvent.click(screen.getByLabelText('J’ai vérifié l’impact de cette correction.'));
     api.readGoal.mockReturnValue(
       ok({ ...goal, version: 2, currentVersion: version, versions: [version] }),

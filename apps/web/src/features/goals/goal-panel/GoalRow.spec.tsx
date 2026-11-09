@@ -5,6 +5,88 @@ import { goalEvaluation } from '@/features/goals/goal-mark/goalEvaluationFixture
 import { GoalRow } from './GoalRow';
 
 afterEach(cleanup);
+it.each([
+  ['MET', true, true],
+  ['MET', false, false],
+  ['MET', null, false],
+  ['IN_PROGRESS', true, false],
+  ['MISSED', false, false],
+  ['NOT_CALCULABLE', null, false],
+] as const)(
+  'announces tolerance only for an achieved goal (%s, %s)',
+  (status, withinTolerance, visible) => {
+    render(
+      <ul>
+        <GoalRow
+          row={{
+            evaluation: goalEvaluation({ status, withinTolerance }),
+            summary: null,
+            replaced: [],
+          }}
+          handlers={{ onEdit: vi.fn(), onHistory: vi.fn(), onStop: vi.fn(), onDelete: vi.fn() }}
+        />
+      </ul>,
+    );
+    if (visible) expect(screen.getByText('Atteint grâce à la tolérance.')).toBeTruthy();
+    else expect(screen.queryByText('Atteint grâce à la tolérance.')).toBeNull();
+  },
+);
+it('shows no-data total income as non-calculable without a zero achieved value', () => {
+  render(
+    <ul>
+      <GoalRow
+        row={{
+          evaluation: goalEvaluation({
+            metric: 'TOTAL_INCOME',
+            scopeType: 'WORKSPACE',
+            scopeRef: null,
+            direction: 'MINIMUM',
+            achieved: null,
+            status: 'NOT_CALCULABLE',
+            reason: 'NO_DATA',
+          }),
+          summary: null,
+          replaced: [],
+        }}
+        handlers={{ onEdit: vi.fn(), onHistory: vi.fn(), onStop: vi.fn(), onDelete: vi.fn() }}
+      />
+    </ul>,
+  );
+  expect(screen.getByText('Non calculable')).toBeTruthy();
+  expect(screen.getByText('Aucune donnée pour cette période')).toBeTruthy();
+  expect(screen.queryByRole('meter')).toBeNull();
+});
+it.each(['TOTAL_INCOME', 'TOTAL_SPENDING'] as const)(
+  'renders a %s workspace row with the server status and values',
+  (metric) => {
+    render(
+      <ul>
+        <GoalRow
+          row={{
+            evaluation: goalEvaluation({
+              metric,
+              scopeType: 'WORKSPACE',
+              scopeRef: null,
+              label: 'Total mensuel',
+              direction: metric === 'TOTAL_INCOME' ? 'MINIMUM' : 'CEILING',
+              target: { value: '3000', assetCode: 'EUR' },
+              achieved: { value: '2950', assetCode: 'EUR' },
+              status: 'IN_PROGRESS',
+            }),
+            summary: null,
+            replaced: [],
+          }}
+          handlers={{ onEdit: vi.fn(), onHistory: vi.fn(), onStop: vi.fn(), onDelete: vi.fn() }}
+        />
+      </ul>,
+    );
+    expect(screen.getByRole('heading', { name: 'Total mensuel' })).toBeTruthy();
+    expect(screen.getByText('En cours')).toBeTruthy();
+    expect(screen.getByRole('listitem').textContent).toMatch(/2\s950,00/);
+    expect(screen.getByRole('listitem').textContent).toMatch(/3\s000,00/);
+    expect(screen.getByText('Tout l’espace')).toBeTruthy();
+  },
+);
 it('renders the server start, dated valuation and behind pace for a yearly stock goal', () => {
   const evaluation = goalEvaluation({
     metric: 'NET_WORTH',

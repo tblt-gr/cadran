@@ -485,6 +485,9 @@ final readonly class ReadGoalStatus
         if (MonthState::NO_DATA === $month->state || MonthState::FUTURE === $month->state) {
             return ['value' => null, 'reason' => $month->state->value];
         }
+        if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true) && false === $month->figures?->hasTransactions) {
+            return ['value' => null, 'reason' => 'NO_DATA'];
+        }
         if (GoalMetric::ACCOUNT_CONTRIBUTIONS === $goal->metric) {
             $net = $inputs->accountTransfers[$month->month->key()][$goal->scopeRef ?? ''] ?? throw new \LogicException('An account goal status reads its preloaded transfer net.');
             if (null !== $net['asset'] && !$net['asset']->equals($goal->assetCode)) {
@@ -527,6 +530,8 @@ final readonly class ReadGoalStatus
             return ['value' => ExactDecimal::sum(...$values), 'reason' => null];
         }
         $cell = match ($goal->metric) {
+            GoalMetric::TOTAL_INCOME => 'cashIncome',
+            GoalMetric::TOTAL_SPENDING => 'budgetExpenses',
             GoalMetric::NET_SAVINGS_TRANSFERS => 'netSavingsTransfers',
             GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
             GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
