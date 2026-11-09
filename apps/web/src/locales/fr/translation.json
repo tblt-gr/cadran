@@ -3095,7 +3095,17 @@
     "createTitle": "Nouvel objectif",
     "editTitle": "Modifier l’objectif",
     "label": "Libellé",
-    "metric": "Indicateur",
+    "metric": {
+      "NET_SAVINGS_TRANSFERS": "Épargne nette par virements",
+      "BUDGET_SURPLUS": "Excédent budgétaire",
+      "CATEGORY_SPENDING": "Dépenses par catégorie",
+      "AXIS_SPENDING": "Dépenses par axe",
+      "ACCOUNT_CONTRIBUTIONS": "Contributions au compte",
+      "SAVINGS_RATE": "Taux d’épargne",
+      "NET_SAVINGS_RATE": "Taux d’épargne net",
+      "NET_WORTH": "Patrimoine net",
+      "ACCOUNT_BALANCE": "Solde d’un compte"
+    },
     "scope": "Périmètre",
     "chooseScope": "Choisir un périmètre",
     "accountsLoading": "Chargement des comptes…",
@@ -3396,7 +3406,10 @@
       "progressButton": "Objectifs : {{met}} sur {{total}} atteints",
       "yearsRange": "{{from}} à {{to}}",
       "emptyYearlyGoal": "Aucun objectif annuel pour cette année.",
-      "version": "Version {{versionNo}}"
+      "version": "Version {{versionNo}}",
+      "start": "Départ {{start}}",
+      "explain": "Expliquer l’objectif « {{label}} »",
+      "details": "Détails de l’objectif « {{label}} »"
     },
     "mark": {
       "explain": "Objectif : {{label}}, {{status}}",
@@ -3413,12 +3426,21 @@
       "amount": "Écart = objectif ({{target}}) comparé au réalisé ({{achieved}}).",
       "incomeShare": "Objectif = {{ratio}} × revenus du mois ({{income}}) = {{target}}, comparé au réalisé ({{achieved}}).",
       "rollingIncomeShare": "Objectif = {{ratio}} × revenus de référence glissants ({{income}}) = {{target}}, comparé au réalisé ({{achieved}}).",
-      "rate": "Taux réalisé ({{achieved}}) comparé au taux visé ({{target}})."
+      "rate": "Taux réalisé ({{achieved}}) comparé au taux visé ({{target}}).",
+      "stock": "Valeur au {{valuationDate}} · Qualité : {{valuationQuality}}"
     },
     "tolerance": "Tolérance",
     "tolerancePoints": "points",
     "toleranceHint": "Marge acceptée autour de la cible. Vide : objectif strict.",
-    "tolerancePointValue": "{{value}} points"
+    "tolerancePointValue": "{{value}} points",
+    "stockTarget": "Valeur à la fin de la période",
+    "direction": "Sens de l’objectif",
+    "directions": {
+      "MINIMUM": "Minimum",
+      "CEILING": "Plafond"
+    },
+    "stockExplanation": "Voir la composition du patrimoine net",
+    "metricLabel": "Indicateur"
   },
   "budget": {
     "year": {

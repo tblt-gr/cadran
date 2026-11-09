@@ -15,7 +15,13 @@ export const goalMetrics: GoalMetric[] = [
   'CATEGORY_SPENDING',
   'AXIS_SPENDING',
   'ACCOUNT_CONTRIBUTIONS',
+  'NET_WORTH',
+  'ACCOUNT_BALANCE',
 ];
+
+export function isStockMetric(metric: GoalMetric): boolean {
+  return metric === 'NET_WORTH' || metric === 'ACCOUNT_BALANCE';
+}
 
 /** The rate metrics hold a target rate; every other metric holds an amount or a share of income. */
 export function isRateMetric(metric: GoalMetric): boolean {
@@ -24,6 +30,7 @@ export function isRateMetric(metric: GoalMetric): boolean {
 
 /** Mirrors the API matrix: a rate metric takes only `RATE`, a rolling share only a monthly goal. */
 export function valueTypesFor(metric: GoalMetric, periodicity: GoalPeriodicity): GoalValueType[] {
+  if (isStockMetric(metric)) return ['AMOUNT'];
   if (isRateMetric(metric)) return ['RATE'];
   return periodicity === 'MONTHLY'
     ? ['AMOUNT', 'INCOME_SHARE', 'ROLLING_INCOME_SHARE']
@@ -49,7 +56,7 @@ export function scopeFor(metric: GoalMetric): GoalScopeType {
     ? 'CATEGORY'
     : metric === 'AXIS_SPENDING'
       ? 'AXIS'
-      : metric === 'ACCOUNT_CONTRIBUTIONS'
+      : metric === 'ACCOUNT_CONTRIBUTIONS' || metric === 'ACCOUNT_BALANCE'
         ? 'ACCOUNT'
         : 'WORKSPACE';
 }

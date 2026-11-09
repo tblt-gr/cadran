@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Domain\Goals;
 
+use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 
 /**
@@ -14,6 +15,25 @@ use App\Module\Foundation\Domain\ExactDecimal;
  */
 final class GoalEvaluationRules
 {
+    /** Interpolate the stock from its opening value using complete calendar months only. */
+    public static function stockExpected(?string $start, ?string $target, int $elapsedMonths): ?string
+    {
+        if ($elapsedMonths < 0 || $elapsedMonths > 12) {
+            throw new \InvalidArgumentException('A yearly stock pace uses between zero and twelve complete months.');
+        }
+        if (null === $start || null === $target) {
+            return null;
+        }
+
+        $change = ExactDecimal::subtractForResponse($target, $start);
+        $elapsedChange = ExactDecimal::multiplyCanonicalForResponse(
+            $change,
+            DecimalValue::fromString((string) $elapsedMonths),
+        );
+
+        return ExactDecimal::addForResponse($start, ExactDecimal::divideForResponse($elapsedChange, '12'));
+    }
+
     /** @param ?string $tolerance a margin in the unit of the target, already converted to an amount for a share; null or zero is strict */
     public static function status(GoalDirection $direction, ?string $achieved, ?string $target, bool $complete, ?string $tolerance = null): GoalEvaluationStatus
     {

@@ -1,0 +1,15 @@
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  overflow-wrap: anywhere;
+}
+
+.details p,
+.details ul {
+  margin: var(--spacing-none);
+}
+
+.details ul {
+  padding-left: var(--spacing-4);
+}

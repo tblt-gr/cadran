@@ -68,7 +68,19 @@ test.describe('goal marks in the annual report', () => {
     await expect(
       panel.locator('[data-goal-id="00000000-0000-7000-8000-000000000001"]'),
     ).toBeFocused();
-    await expect(panel.getByText(/Dépassement de 50,00/)).toBeVisible();
+    await expect(panel.getByText(/Dépassement de 50,00/)).toHaveCount(0);
+    await panel
+      .getByRole('button', { name: 'Expliquer l’objectif « Audit objectif »', exact: true })
+      .click();
+    const details = page.getByRole('dialog', {
+      name: 'Détails de l’objectif « Audit objectif »',
+      exact: true,
+    });
+    await expect(details.getByText(/Dépassement de 50,00/)).toBeVisible();
+    await auditAccessibility(page);
+    await page.keyboard.press('Escape');
+    await expect(details).toBeHidden();
+    await expect(panel).toBeVisible();
     await auditAccessibility(page);
 
     await page.keyboard.press('Escape');

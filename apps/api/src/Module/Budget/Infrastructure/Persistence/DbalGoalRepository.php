@@ -16,7 +16,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(GoalRepository::class)]
 final readonly class DbalGoalRepository implements GoalRepository
 {
-    private const string COLUMNS = 'id, workspace_id, label, periodicity, metric, scope_type, scope_ref, asset_code, start_period, end_period, created_at, created_by, version';
+    private const string COLUMNS = 'id, workspace_id, label, periodicity, metric, scope_type, scope_ref, asset_code, start_period, end_period, created_at, created_by, version, direction';
 
     public function __construct(private Connection $connection)
     {

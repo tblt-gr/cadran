@@ -43,6 +43,9 @@ final class GoalTest extends TestCase
     /** @return iterable<string, array{GoalMetric, GoalPeriodicity, GoalValueType, GoalScopeType, bool}> */
     public static function matrix(): iterable
     {
+        yield 'net worth amount' => [GoalMetric::NET_WORTH, GoalPeriodicity::YEARLY, GoalValueType::AMOUNT, GoalScopeType::WORKSPACE, true];
+        yield 'balance account' => [GoalMetric::ACCOUNT_BALANCE, GoalPeriodicity::MONTHLY, GoalValueType::AMOUNT, GoalScopeType::ACCOUNT, true];
+        yield 'stock refuses share' => [GoalMetric::NET_WORTH, GoalPeriodicity::YEARLY, GoalValueType::INCOME_SHARE, GoalScopeType::WORKSPACE, false];
         yield 'savings rate takes a rate monthly' => [GoalMetric::SAVINGS_RATE, GoalPeriodicity::MONTHLY, GoalValueType::RATE, GoalScopeType::WORKSPACE, true];
         yield 'savings rate takes a rate yearly' => [GoalMetric::SAVINGS_RATE, GoalPeriodicity::YEARLY, GoalValueType::RATE, GoalScopeType::WORKSPACE, true];
         yield 'net savings rate takes a rate' => [GoalMetric::NET_SAVINGS_RATE, GoalPeriodicity::MONTHLY, GoalValueType::RATE, GoalScopeType::WORKSPACE, true];

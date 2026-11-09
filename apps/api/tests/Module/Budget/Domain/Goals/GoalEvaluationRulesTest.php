@@ -113,6 +113,27 @@ final class GoalEvaluationRulesTest extends TestCase
         self::assertSame('OVER_PACE', GoalEvaluationRules::pace(GoalDirection::CEILING, '5500.01', '5500.00'));
     }
 
+    public function testStockDirectionSurvivesRenamingAndStopping(): void
+    {
+        $goal = new Goal('00000000-0000-7000-8000-000000000001', WorkspaceFixture::own(), 'Debt cap', GoalPeriodicity::MONTHLY, GoalMetric::ACCOUNT_BALANCE, GoalScopeType::ACCOUNT, '00000000-0000-7000-8000-000000000002', AssetCode::fromString('EUR'), '2026-01', null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, GoalDirection::CEILING);
+        self::assertSame(GoalDirection::CEILING, $goal->stoppedAt('2026-03')->direction());
+        self::assertSame(GoalDirection::CEILING, $goal->reviseLabel('Loan cap')->direction());
+    }
+
+    public function testStockPaceInterpolatesFromTheOpeningValue(): void
+    {
+        $expected = GoalEvaluationRules::stockExpected('10000', '20000', 3);
+        self::assertNotNull($expected);
+        self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('12500', $expected));
+        self::assertSame('BEHIND', GoalEvaluationRules::pace(GoalDirection::MINIMUM, '12000', $expected));
+        self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('750', GoalEvaluationRules::stockExpected('1000', '0', 3) ?? throw new \LogicException('Expected a calculable pace.')));
+        self::assertNull(GoalEvaluationRules::stockExpected(null, '20000', 3));
+        self::assertNull(GoalEvaluationRules::stockExpected('10000', null, 3));
+        self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('0', GoalEvaluationRules::stockExpected('0', '10000', 0) ?? throw new \LogicException('Expected a calculable pace.')));
+        self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('99999999999999999999999999', GoalEvaluationRules::stockExpected('99999999999999999999999998', '99999999999999999999999999', 12) ?? throw new \LogicException('Expected a calculable pace.')));
+        self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('0', GoalEvaluationRules::stockExpected('-1000', '1000', 6) ?? throw new \LogicException('Expected a calculable pace.')));
+    }
+
     public function testTheLatestStartThenTheLatestCreationWinsAndHidesTheOthers(): void
     {
         $old = self::goal('00000000-0000-7000-8000-000000000001', '2026-01', null, '2026-01-01');

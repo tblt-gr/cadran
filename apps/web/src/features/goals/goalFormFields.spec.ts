@@ -10,6 +10,12 @@ import {
 } from './goalFormFields';
 
 describe('scopeFor', () => {
+  it('restricts stock metrics to amounts and their authorized scope type', () => {
+    expect(scopeFor('NET_WORTH')).toBe('WORKSPACE');
+    expect(scopeFor('ACCOUNT_BALANCE')).toBe('ACCOUNT');
+    expect(valueTypesFor('NET_WORTH', 'YEARLY')).toEqual(['AMOUNT']);
+    expect(valueTypesFor('ACCOUNT_BALANCE', 'MONTHLY')).toEqual(['AMOUNT']);
+  });
   it('maps each metric to its scope type', () => {
     expect(scopeFor('CATEGORY_SPENDING')).toBe('CATEGORY');
     expect(scopeFor('AXIS_SPENDING')).toBe('AXIS');

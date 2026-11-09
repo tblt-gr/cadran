@@ -4,7 +4,7 @@ import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
 import { ProgressGauge } from '@/components/ui/progress-gauge/ProgressGauge';
-import { formulaText, gapText, toleranceText } from './goalEvaluationText';
+import { GoalExplanation } from '@/features/goals/goal-explanation/GoalExplanation';
 import { GoalEvaluationBadge } from './GoalEvaluationBadge';
 import { goalFillRatio, goalTone, type GoalRowModel } from './goalPanelModel';
 import { goalRecurrence } from './goalRecurrence';
@@ -53,6 +53,7 @@ export function GoalRow({ row, handlers }: Props) {
           ) : (
             <SkeletonBlock className={styles.badgeBlock} />
           )}
+          <GoalExplanation evaluation={evaluation} replaced={row?.replaced ?? []} />
           {summary ? <GoalRowActions goal={summary} handlers={handlers} /> : null}
         </div>
       </div>
@@ -85,39 +86,11 @@ export function GoalRow({ row, handlers }: Props) {
           <SkeletonBlock className={styles.metaBlock} />
         )}
       </p>
-      <p className={styles.meta}>
-        {evaluation ? (
-          [
-            gapText(evaluation, t, i18n.language),
-            toleranceText(evaluation, t, i18n.language),
-            formulaText(evaluation, t, i18n.language),
-            t('goals.panel.version', { versionNo: evaluation.versionNo }),
-          ]
-            .filter(Boolean)
-            .join(' · ')
-        ) : (
-          <SkeletonBlock className={styles.metaBlock} />
-        )}
-      </p>
       {evaluation?.pace ? (
         <p className={styles.pace}>{t(`goals.panel.pace.${evaluation.pace.status}`)}</p>
       ) : null}
       {evaluation?.status === 'NOT_CALCULABLE' && evaluation.reason !== null ? (
         <p className={styles.note}>{t(`goals.panel.reasons.${evaluation.reason}`)}</p>
-      ) : null}
-      {row && row.replaced.length > 0 ? (
-        <ul className={styles.replaced}>
-          {row.replaced.map((hidden) => (
-            <li key={hidden.id}>
-              {t(
-                row.evaluation.periodicity === 'YEARLY'
-                  ? 'goals.panel.replacedYear'
-                  : 'goals.panel.replaced',
-                { hidden: hidden.label, label: row.evaluation.label },
-              )}
-            </li>
-          ))}
-        </ul>
       ) : null}
     </li>
   );

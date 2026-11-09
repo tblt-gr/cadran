@@ -20,6 +20,7 @@ use Symfony\Component\Console\Tester\CommandTester;
 final class GoalUnificationMigrationTest extends KernelTestCase
 {
     private const string MIGRATION = 'DoctrineMigrations\\Version20261108120000';
+    private const string STOCK_MIGRATION = 'DoctrineMigrations\\Version20261111120000';
     private const string AT = '2026-01-01 12:00:00+00';
     private const string ESSENTIAL_PLAN = '00000000-0000-7000-8000-0000000000a1';
     private const string DRAFT_PLAN = '00000000-0000-7000-8000-0000000000a2';
@@ -43,6 +44,7 @@ final class GoalUnificationMigrationTest extends KernelTestCase
         self::bootKernel();
         $this->adopt();
         $this->fixture->reset();
+        $this->migrate('down', self::STOCK_MIGRATION);
         $this->migrate('down');
         $this->unified = false;
         $this->fixture->seed();
@@ -62,6 +64,7 @@ final class GoalUnificationMigrationTest extends KernelTestCase
             $this->migrate('up');
         }
         $this->fixture->reset();
+        $this->migrate('up', self::STOCK_MIGRATION);
         parent::tearDown();
     }
 
@@ -301,10 +304,10 @@ final class GoalUnificationMigrationTest extends KernelTestCase
         return $result;
     }
 
-    private function migrate(string $direction): string
+    private function migrate(string $direction, string $migration = self::MIGRATION): string
     {
         $tester = new CommandTester((new Application(self::$kernel ?? self::bootKernel()))->find('doctrine:migrations:execute'));
-        $tester->execute(['versions' => [self::MIGRATION], '--'.$direction => true, '--no-interaction' => true]);
+        $tester->execute(['versions' => [$migration], '--'.$direction => true, '--no-interaction' => true]);
         $display = $tester->getDisplay();
         self::assertSame(Command::SUCCESS, $tester->getStatusCode(), $display);
 

@@ -20,6 +20,7 @@ final readonly class CreateGoalInput
         public ?string $ratio,
         public ?GoalScheduleInput $schedule = null,
         public ?string $tolerance = null,
+        public ?string $direction = null,
     ) {
     }
 }

@@ -68,6 +68,27 @@ describe('GoalForm', () => {
     vi.useRealTimers();
   });
 
+  it('saves a stock minimum with an end-of-period value and amount-only target', () => {
+    const submit = renderForm();
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Patrimoine' } });
+    fireEvent.change(screen.getByLabelText('Indicateur'), { target: { value: 'NET_WORTH' } });
+    expect(valueTypeOptions()).toEqual(['AMOUNT']);
+    expect(screen.queryByLabelText('Périmètre')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Valeur à la fin de la période'), {
+      target: { value: '20000' },
+    });
+    fireEvent.change(screen.getByLabelText('Sens de l’objectif'), { target: { value: 'CEILING' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(submit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metric: 'NET_WORTH',
+        direction: 'CEILING',
+        scope: { type: 'WORKSPACE', ref: null },
+        targetAmount: { value: '20000', assetCode: 'EUR' },
+      }),
+    );
+  });
+
   it('keeps an empty tolerance strict and saves an exact amount margin', () => {
     const submit = renderForm();
     const tolerance = screen.getByLabelText('Tolérance');

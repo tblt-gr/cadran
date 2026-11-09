@@ -51,6 +51,7 @@ final class GoalRepresentation
             'scopeType' => $item->scopeType, 'scopeRef' => $item->scopeRef, 'direction' => $item->direction, 'valueType' => $item->valueType,
             'columnKey' => $item->columnKey, 'target' => $figure($item->target), 'achieved' => $figure($item->achieved), 'gap' => $item->gap,
             'status' => $item->status, 'reason' => $item->reason,
+            'start' => $figure($item->start), 'valuationDate' => $item->valuationDate, 'valuationQuality' => $item->valuationQuality, 'explanationUrl' => $item->explanationUrl,
             'formula' => ['key' => $item->formulaKey, 'operands' => $item->operands],
             'versionNo' => $item->versionNo, 'overrides' => $item->overrides, 'pace' => $item->pace,
             'tolerance' => $figure($item->tolerance), 'withinTolerance' => $item->withinTolerance,

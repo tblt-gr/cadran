@@ -51,6 +51,7 @@ final readonly class ListGoalEvaluations
         private ReadGoalStatus $readStatus,
         private ResolveGoalScope $scope,
         private WorkspaceCalendar $calendar,
+        private ?EvaluateStockGoal $stocks = null,
     ) {
     }
 
@@ -123,6 +124,9 @@ final readonly class ListGoalEvaluations
         if (null === $version) {
             return null;
         }
+        if ($goal->metric->isStock()) {
+            return ($this->stocks ?? throw new \LogicException('Stock evaluation reader is required.'))($context, $goal, $version, $overrides, $month->firstDay(), $month->firstDay()->modify('last day of this month'));
+        }
         $item = $context->inputs->months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
         $figure = $this->monthFigure($context, $goal, $item);
         $asset = $goal->assetCode->toString();
@@ -160,6 +164,9 @@ final readonly class ListGoalEvaluations
         $version = GoalVersionResolver::forMonth($versions, $year < $context->today->year ? new CalendarMonth($year, 12) : $context->today);
         if (null === $version) {
             return null;
+        }
+        if ($goal->metric->isStock()) {
+            return ($this->stocks ?? throw new \LogicException('Stock evaluation reader is required.'))($context, $goal, $version, $overrides, new \DateTimeImmutable($year.'-01-01'), new \DateTimeImmutable($year.'-12-31'));
         }
         $included = $year < $context->today->year ? 12 : $context->today->month;
         $months = [];
@@ -303,7 +310,7 @@ final readonly class ListGoalEvaluations
             GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
             GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
             GoalMetric::NET_SAVINGS_RATE => 'netSavingsRate',
-            GoalMetric::ACCOUNT_CONTRIBUTIONS => null,
+            GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalMetric::ACCOUNT_BALANCE, GoalMetric::NET_WORTH => null,
         };
     }
 

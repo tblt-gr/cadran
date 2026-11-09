@@ -11092,6 +11092,8 @@ components:
           ACCOUNT_CONTRIBUTIONS,
           SAVINGS_RATE,
           NET_SAVINGS_RATE,
+          NET_WORTH,
+          ACCOUNT_BALANCE,
         ]
     GoalDirection:
       type: string
@@ -11126,6 +11128,9 @@ components:
       properties:
         label: { type: string, minLength: 1, maxLength: 80 }
         periodicity: { $ref: '#/components/schemas/GoalPeriodicity' }
+        direction:
+          description: Optional direction for stock goals only; defaults to MINIMUM.
+          $ref: '#/components/schemas/GoalDirection'
         metric: { $ref: '#/components/schemas/GoalMetric' }
         scope: { $ref: '#/components/schemas/GoalScopeInput' }
         startPeriod: { $ref: '#/components/schemas/GoalPeriod' }
@@ -11148,7 +11153,7 @@ components:
             - $ref: '#/components/schemas/GoalDecimal'
             - type: 'null'
         schedule:
-          description: Monthly calendar of a yearly amount goal; LINEAR when omitted. Refused on every other goal.
+          description: Monthly calendar of a yearly flow amount goal; LINEAR when omitted. Refused for stock goals and every other goal.
           oneOf:
             - $ref: '#/components/schemas/GoalScheduleInput'
             - type: 'null'
@@ -11712,12 +11717,16 @@ components:
               goals.formula.incomeShare,
               goals.formula.rollingIncomeShare,
               goals.formula.rate,
+              goals.formula.stock,
             ]
         operands:
           type: object
           additionalProperties: false
-          required: [target, achieved, income, ratio, tolerance]
+          required: [target, achieved, tolerance]
           properties:
+            start: { $ref: '#/components/schemas/GoalStatusValue' }
+            valuationDate: { type: [string, 'null'], format: date }
+            valuationQuality: { type: [string, 'null'] }
             target: { $ref: '#/components/schemas/GoalStatusValue' }
             achieved: { $ref: '#/components/schemas/GoalStatusValue' }
             income: { $ref: '#/components/schemas/GoalStatusValue' }
@@ -11772,6 +11781,13 @@ components:
           description: The identifier of the report column showing the same figure; null for account contributions.
           type: [string, 'null']
           maxLength: 80
+        start:
+          oneOf:
+            - { $ref: '#/components/schemas/GoalEvaluationFigure' }
+            - { type: 'null' }
+        valuationDate: { type: [string, 'null'], format: date }
+        valuationQuality: { type: [string, 'null'] }
+        explanationUrl: { type: [string, 'null'] }
         target:
           oneOf:
             - { $ref: '#/components/schemas/GoalEvaluationFigure' }
