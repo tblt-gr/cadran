@@ -47,6 +47,15 @@
   overflow-wrap: anywhere;
 }
 
+.selectionControl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: var(--touch-target-min);
+  min-block-size: var(--touch-target-min);
+  flex-shrink: 0;
+}
+
 .rowEnd {
   display: flex;
   align-items: center;

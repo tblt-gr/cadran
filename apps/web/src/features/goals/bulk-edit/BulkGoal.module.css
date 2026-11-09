@@ -1,0 +1,56 @@
+.selection,
+.form,
+.preview,
+.preview li,
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-inline-size: 0;
+}
+.toolbar,
+.check {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.toolbar p,
+.form p {
+  margin: var(--spacing-none);
+}
+.form label:not(.check) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.form fieldset {
+  border: var(--border-none);
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+  min-inline-size: 0;
+}
+.preview {
+  padding-inline-start: var(--spacing-4);
+}
+.preview li {
+  padding-block: var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  overflow-wrap: anywhere;
+}
+.values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-2);
+  margin: var(--spacing-none);
+}
+.values dd {
+  margin: var(--spacing-none);
+}
+.block {
+  inline-size: 100%;
+  block-size: var(--spacing-4);
+}
+.error {
+  color: var(--negative);
+}

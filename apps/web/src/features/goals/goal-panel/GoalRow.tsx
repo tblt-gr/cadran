@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { useGoalSelection } from '@/features/goals/bulk-edit/goalSelectionContext';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
@@ -22,6 +23,7 @@ interface Props {
 export function GoalRow({ row, handlers }: Props) {
   const { t, i18n } = useTranslation();
   const scopeLabel = useGoalScopeLabel();
+  const selection = useGoalSelection();
   const evaluation = row?.evaluation ?? null;
   const summary = row?.summary ?? null;
   const target = evaluation ? formatEvaluationFigure(evaluation.target, i18n.language) : null;
@@ -46,6 +48,17 @@ export function GoalRow({ row, handlers }: Props) {
       tabIndex={evaluation ? -1 : undefined}
     >
       <div className={styles.rowHead}>
+        {selection?.active && summary ? (
+          <label className={styles.selectionControl}>
+            <input
+              aria-label={t('goals.bulk.selectGoal', { label: summary.label })}
+              checked={selection.selected.has(summary.id)}
+              disabled={!selection.selected.has(summary.id) && selection.selected.size >= 100}
+              onChange={() => selection.toggle(summary.id)}
+              type="checkbox"
+            />
+          </label>
+        ) : null}
         <h4>{evaluation ? evaluation.label : <SkeletonBlock className={styles.labelBlock} />}</h4>
         <div className={styles.rowEnd}>
           {evaluation ? (

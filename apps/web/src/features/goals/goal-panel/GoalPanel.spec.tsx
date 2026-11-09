@@ -21,6 +21,8 @@ const api = vi.hoisted(() => ({
   getSession: vi.fn(),
   readEmergencyFundCoverage: vi.fn(),
   readEmergencyFundPolicy: vi.fn(),
+  previewBulkGoalEdit: vi.fn(),
+  bulkEditGoals: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
@@ -149,6 +151,78 @@ afterEach(() => {
 });
 
 describe('GoalPanel monthly', () => {
+  it('selects displayed goals only, previews one atomic request and clears after saving', async () => {
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [{ period: '2026-11', items: [evaluation(g1), evaluation(g2), evaluation(g3)] }],
+        years: [{ period: '2026', items: [evaluation(g4)] }],
+      }),
+    );
+    api.previewBulkGoalEdit.mockImplementation(({ body }) =>
+      ok({
+        effectiveFrom: body.effectiveFrom,
+        canApply: true,
+        items: body.items.map(({ goalId }: { goalId: string }) => ({
+          goalId,
+          label: goalId,
+          expectedVersion: 3,
+          valueType: 'AMOUNT',
+          assetCode: 'EUR',
+          before: { target: '500', tolerance: '15' },
+          after: { target: '500', tolerance: '0' },
+          firstAffectedMonth: '2026-11',
+          lastAffectedMonth: null,
+          changed: true,
+          laterRevisions: [],
+          overrides: [],
+          conflict: null,
+        })),
+      }),
+    );
+    api.bulkEditGoals.mockImplementation(() =>
+      ok({ effectiveFrom: '2026-11', canApply: true, items: [] }),
+    );
+    renderPanel(november);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Tout sélectionner' }));
+    expect(screen.getByText('3 objectifs sélectionnés')).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: 'Sélectionner G4' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier la sélection' }));
+    const modal = within(
+      screen.getByRole('dialog', { name: 'Modifier les objectifs sélectionnés' }),
+    );
+    expect(
+      modal.getByRole('button', { name: 'Prévisualiser les changements' }).hasAttribute('disabled'),
+    ).toBe(true);
+    fireEvent.click(modal.getByRole('checkbox', { name: 'Modifier la tolérance' }));
+    fireEvent.click(modal.getByRole('button', { name: 'Prévisualiser les changements' }));
+    await waitFor(() => expect(api.previewBulkGoalEdit).toHaveBeenCalledTimes(1));
+    expect(api.previewBulkGoalEdit.mock.calls[0]![0].body).toEqual({
+      items: [g1, g2, g3].map((goal) => ({
+        goalId: goal.id,
+        expectedVersion: 3,
+        expectedValueType: 'AMOUNT',
+        expectedAssetCode: 'EUR',
+      })),
+      effectiveFrom: '2026-11',
+      changes: { tolerance: '0' },
+    });
+    await waitFor(() =>
+      expect(
+        modal.getByRole('button', { name: 'Appliquer à la sélection' }).hasAttribute('disabled'),
+      ).toBe(false),
+    );
+    fireEvent.click(modal.getByRole('button', { name: 'Appliquer à la sélection' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('dialog', { name: 'Modifier les objectifs sélectionnés' }),
+      ).toBeNull(),
+    );
+    expect(api.bulkEditGoals).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('checkbox', { name: 'Sélectionner G1' })).toBeNull();
+  });
+
   it('shows the server tolerance without changing the server status or the signed gap', async () => {
     api.listGoalEvaluations.mockImplementation(() =>
       ok({

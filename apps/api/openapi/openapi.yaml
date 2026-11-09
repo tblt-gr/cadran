@@ -1115,6 +1115,94 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/bulk-preview:
+    post:
+      operationId: previewBulkGoalEdit
+      x-cadran-idempotency: 'Read-only preview: no definitions, versions or audit entries are persisted, so replay only recomputes the current proposal.'
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      summary: Preview shared target or tolerance changes for selected goals
+      x-cadran-bounded: 'One to 100 distinct goals; at most 50 versions per goal and 500 overlapping goals.'
+      description: >-
+        Uses the caller workspace and exact decimal strings. Omitted changes are preserved; tolerance
+        zero restores strict comparison. Target and tolerance require identical value types and assets.
+        Custom annual calendars cannot change target in bulk. Preview returns row conflicts without
+        writing; saving revalidates versions and period closure and commits all changes atomically.
+        Later revisions are preserved, and a planned later revision blocks a forward edit under the
+        existing rules. Retroactive edits require a reason. No-op definitions add no version.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkGoalRequest' }
+      responses:
+        '200':
+          description: Selected rows, their exact changes, temporal bounds and conflicts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BulkGoalResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: A stale goal, closed month or revision conflict; refresh the preview before retrying. A selected accessible row is identified by goalId and field.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Invalid batch or selected row; row errors carry goalId and field without disclosing inaccessible data.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/bulk-edit:
+    post:
+      operationId: bulkEditGoals
+      x-cadran-idempotency: 'Every items entry carries its expectedVersion. Replaying a changed batch is refused atomically with 409 stale_goal_version; unchanged definitions create no new version or audit entry.'
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      summary: Atomically revise selected goals
+      x-cadran-bounded: 'One to 100 distinct goals; at most 50 versions per goal and 500 overlapping goals.'
+      description: >-
+        Uses the caller workspace and exact decimal strings. Omitted changes are preserved; tolerance
+        zero restores strict comparison. Target and tolerance require identical value types and assets.
+        Custom annual calendars cannot change target in bulk. Preview returns row conflicts without
+        writing; saving revalidates versions and period closure and commits all changes atomically.
+        Later revisions are preserved, and a planned later revision blocks a forward edit under the
+        existing rules. Retroactive edits require a reason. No-op definitions add no version.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkGoalRequest' }
+      responses:
+        '200':
+          description: Selected rows, their exact changes, temporal bounds and conflicts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/BulkGoalResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: A stale goal, closed month or revision conflict; refresh the preview before retrying. A selected accessible row is identified by goalId and field.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Invalid batch or selected row; row errors carry goalId and field without disclosing inaccessible data.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/goals/evaluations:
     get:
       operationId: listGoalEvaluations
@@ -11300,6 +11388,13 @@ components:
           properties:
             code:
               type: string
+            goalId:
+              description: Selected accessible row that blocks the batch. Never emitted for inaccessible identifiers.
+              type: string
+              format: uuid
+            field:
+              description: Selected row field that needs correction.
+              type: string
             expected:
               description: Present with schedule_sum_mismatch; the annual target.
               type: string
@@ -11678,6 +11773,127 @@ components:
           type: array
           maxItems: 6
           items: { $ref: '#/components/schemas/GoalVersionChange' }
+    BulkGoalRequest:
+      type: object
+      additionalProperties: false
+      required: [items, effectiveFrom, changes]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [goalId, expectedVersion, expectedValueType, expectedAssetCode]
+            properties:
+              goalId: { type: string, format: uuid }
+              expectedVersion: { type: integer, minimum: 1 }
+              expectedValueType:
+                description: Target value type used to interpret the draft; must match the definition at effectiveFrom. A mismatch blocks preview and save with goal_target_unit_changed.
+                $ref: '#/components/schemas/GoalValueType'
+              expectedAssetCode:
+                description: Target asset used to interpret the draft; must match the selected goal asset.
+                type: string
+                pattern: '^[A-Z][A-Z0-9]{1,11}$'
+        effectiveFrom: { type: string, pattern: '^\d{4}-(0[1-9]|1[0-2])$' }
+        reason: { type: [string, 'null'], maxLength: 200 }
+        changes:
+          type: object
+          additionalProperties: false
+          minProperties: 1
+          properties:
+            target:
+              {
+                type: string,
+                maxLength: 80,
+                description: 'Amount or ratio in the selected goals target unit; ratio 0.15 means 15 percent.',
+              }
+            tolerance:
+              {
+                type: string,
+                maxLength: 80,
+                description: 'Margin in the target unit; zero removes tolerance, omission preserves it.',
+              }
+    BulkGoalValues:
+      type: object
+      additionalProperties: false
+      required: [target, tolerance]
+      properties:
+        target: { type: [string, 'null'] }
+        tolerance: { type: string }
+    BulkGoalResult:
+      type: object
+      additionalProperties: false
+      required: [effectiveFrom, canApply, items]
+      properties:
+        effectiveFrom: { type: string }
+        canApply: { type: boolean }
+        items:
+          type: array
+          maxItems: 100
+          items: { $ref: '#/components/schemas/BulkGoalItem' }
+    BulkGoalItem:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          goalId,
+          label,
+          expectedVersion,
+          valueType,
+          assetCode,
+          before,
+          after,
+          firstAffectedMonth,
+          lastAffectedMonth,
+          laterRevisions,
+          overrides,
+          changed,
+          conflict,
+        ]
+      properties:
+        goalId: { type: string, format: uuid }
+        label: { type: string }
+        expectedVersion: { type: integer }
+        valueType: { $ref: '#/components/schemas/GoalValueType' }
+        assetCode: { type: string }
+        before: { $ref: '#/components/schemas/BulkGoalValues' }
+        after: { $ref: '#/components/schemas/BulkGoalValues' }
+        firstAffectedMonth: { type: string }
+        lastAffectedMonth: { type: [string, 'null'] }
+        changed: { type: boolean }
+        laterRevisions:
+          type: array
+          maxItems: 50
+          items:
+            type: object
+            additionalProperties: false
+            required: [versionNo, effectiveFrom]
+            properties:
+              versionNo: { type: integer }
+              effectiveFrom: { type: string }
+        overrides:
+          type: array
+          maxItems: 500
+          items:
+            type: object
+            additionalProperties: false
+            required: [goalId, label, startPeriod, endPeriod]
+            properties:
+              goalId: { type: string, format: uuid }
+              label: { type: string }
+              startPeriod: { type: string }
+              endPeriod: { type: [string, 'null'] }
+        conflict:
+          oneOf:
+            - type: 'null'
+            - type: object
+              additionalProperties: false
+              required: [code, field]
+              properties:
+                code: { type: string }
+                field: { type: string }
     StopGoalRequest:
       type: object
       additionalProperties: false

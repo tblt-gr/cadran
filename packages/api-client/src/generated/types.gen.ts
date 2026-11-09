@@ -1055,6 +1055,14 @@ export type GoalSchedulePreview = {
 export type GoalProblem = Problem & {
     code: string;
     /**
+     * Selected accessible row that blocks the batch. Never emitted for inaccessible identifiers.
+     */
+    goalId?: string;
+    /**
+     * Selected row field that needs correction.
+     */
+    field?: string;
+    /**
      * Present with schedule_sum_mismatch; the annual target.
      */
     expected?: string;
@@ -1288,6 +1296,71 @@ export type GoalVersionHistoryItem = {
     createdAt: string;
     createdBy: GoalVersionAuthor;
     changes: Array<GoalVersionChange>;
+};
+
+export type BulkGoalRequest = {
+    items: Array<{
+        goalId: string;
+        expectedVersion: number;
+        /**
+         * Target value type used to interpret the draft; must match the definition at effectiveFrom. A mismatch blocks preview and save with goal_target_unit_changed.
+         */
+        expectedValueType: GoalValueType;
+        /**
+         * Target asset used to interpret the draft; must match the selected goal asset.
+         */
+        expectedAssetCode: string;
+    }>;
+    effectiveFrom: string;
+    reason?: string | null;
+    changes: {
+        /**
+         * Amount or ratio in the selected goals target unit; ratio 0.15 means 15 percent.
+         */
+        target?: string;
+        /**
+         * Margin in the target unit; zero removes tolerance, omission preserves it.
+         */
+        tolerance?: string;
+    };
+};
+
+export type BulkGoalValues = {
+    target: string | null;
+    tolerance: string;
+};
+
+export type BulkGoalResult = {
+    effectiveFrom: string;
+    canApply: boolean;
+    items: Array<BulkGoalItem>;
+};
+
+export type BulkGoalItem = {
+    goalId: string;
+    label: string;
+    expectedVersion: number;
+    valueType: GoalValueType;
+    assetCode: string;
+    before: BulkGoalValues;
+    after: BulkGoalValues;
+    firstAffectedMonth: string;
+    lastAffectedMonth: string | null;
+    changed: boolean;
+    laterRevisions: Array<{
+        versionNo: number;
+        effectiveFrom: string;
+    }>;
+    overrides: Array<{
+        goalId: string;
+        label: string;
+        startPeriod: string;
+        endPeriod: string | null;
+    }>;
+    conflict: null | {
+        code: string;
+        field: string;
+    };
 };
 
 export type StopGoalRequest = {
@@ -7514,6 +7587,124 @@ export type CreateGoalResponses = {
 };
 
 export type CreateGoalResponse = CreateGoalResponses[keyof CreateGoalResponses];
+
+export type PreviewBulkGoalEditData = {
+    body: BulkGoalRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/goals/bulk-preview';
+};
+
+export type PreviewBulkGoalEditErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * A stale goal, closed month or revision conflict; refresh the preview before retrying. A selected accessible row is identified by goalId and field.
+     */
+    409: GoalProblem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * Invalid batch or selected row; row errors carry goalId and field without disclosing inaccessible data.
+     */
+    422: GoalProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type PreviewBulkGoalEditError = PreviewBulkGoalEditErrors[keyof PreviewBulkGoalEditErrors];
+
+export type PreviewBulkGoalEditResponses = {
+    /**
+     * Selected rows, their exact changes, temporal bounds and conflicts.
+     */
+    200: BulkGoalResult;
+};
+
+export type PreviewBulkGoalEditResponse = PreviewBulkGoalEditResponses[keyof PreviewBulkGoalEditResponses];
+
+export type BulkEditGoalsData = {
+    body: BulkGoalRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/goals/bulk-edit';
+};
+
+export type BulkEditGoalsErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * A stale goal, closed month or revision conflict; refresh the preview before retrying. A selected accessible row is identified by goalId and field.
+     */
+    409: GoalProblem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * Invalid batch or selected row; row errors carry goalId and field without disclosing inaccessible data.
+     */
+    422: GoalProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type BulkEditGoalsError = BulkEditGoalsErrors[keyof BulkEditGoalsErrors];
+
+export type BulkEditGoalsResponses = {
+    /**
+     * Selected rows, their exact changes, temporal bounds and conflicts.
+     */
+    200: BulkGoalResult;
+};
+
+export type BulkEditGoalsResponse = BulkEditGoalsResponses[keyof BulkEditGoalsResponses];
 
 export type ListGoalEvaluationsData = {
     body?: never;

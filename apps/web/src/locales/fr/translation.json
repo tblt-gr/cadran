@@ -3443,7 +3443,56 @@
       "CEILING": "Plafond"
     },
     "stockExplanation": "Voir la composition du patrimoine net",
-    "metricLabel": "Indicateur"
+    "metricLabel": "Indicateur",
+    "bulk": {
+      "select": "Sélectionner",
+      "endSelection": "Terminer la sélection",
+      "count_one": "{{count}} objectif sélectionné",
+      "count_other": "{{count}} objectifs sélectionnés",
+      "selectAll": "Tout sélectionner",
+      "clear": "Effacer la sélection",
+      "edit": "Modifier la sélection",
+      "selectGoal": "Sélectionner {{label}}",
+      "title": "Modifier les objectifs sélectionnés",
+      "preview": "Prévisualiser les changements",
+      "previewLoading": "Calcul de la prévisualisation",
+      "effectiveFrom": "Mois d’effet commun",
+      "reason": "Motif de la correction rétroactive",
+      "changeTarget": "Modifier la cible",
+      "changeTolerance": "Modifier la tolérance",
+      "target": "Cible commune",
+      "toleranceHint": "Vide avec « Modifier la tolérance » coché : objectifs stricts. Décoché : chaque tolérance est conservée.",
+      "scopeExplanation": "Un objectif récurrent change à partir du mois choisi jusqu’à une définition ultérieure ou sa fin. Les objectifs créés indépendamment doivent être sélectionnés explicitement.",
+      "incompatible": "Ces objectifs ont des types de valeur ou des devises différents. Affinez la sélection pour partager une cible ou une tolérance.",
+      "customSchedule": "Un calendrier annuel personnalisé est sélectionné : modifiez sa cible individuellement. La tolérance conserve tous les calendriers.",
+      "beforeTarget": "Cible avant",
+      "afterTarget": "Cible après",
+      "beforeTolerance": "Tolérance avant",
+      "afterTolerance": "Tolérance après",
+      "firstMonth": "Premier mois affecté",
+      "lastMonth": "Dernier mois affecté",
+      "noEnd": "Sans fin",
+      "none": "Aucun",
+      "laterRevisions": "Révisions ultérieures conservées",
+      "overrides": "Objectifs prioritaires conservés",
+      "conflict": "Ce changement est bloqué. Vérifiez le mois, la version et la valeur du champ.",
+      "unchanged": "Définition inchangée : aucune nouvelle version.",
+      "cancel": "Annuler",
+      "apply": "Appliquer à la sélection",
+      "refreshPreview": "La sélection a changé ou une période est clôturée. Vérifiez les données puis relancez la prévisualisation.",
+      "fields": {
+        "target": "Cible",
+        "tolerance": "Tolérance",
+        "effectiveFrom": "Mois d’effet",
+        "expectedVersion": "Version",
+        "reason": "Motif",
+        "selection": "Sélection et unités"
+      },
+      "reasonHint": "De 3 à 200 caractères, hors espaces au début et à la fin.",
+      "conflicts": {
+        "goal_target_unit_changed": "Le type de valeur ou la devise de cet objectif diffère au mois choisi. Choisissez un autre mois puis relancez la prévisualisation, ou modifiez cet objectif individuellement."
+      }
+    }
   },
   "budget": {
     "year": {
