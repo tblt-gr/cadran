@@ -21,8 +21,8 @@ const api = vi.hoisted(() => ({
   getSession: vi.fn(),
   readEmergencyFundCoverage: vi.fn(),
   readEmergencyFundPolicy: vi.fn(),
-  previewBulkGoalEdit: vi.fn(),
-  bulkEditGoals: vi.fn(),
+  bulkStopGoals: vi.fn(),
+  bulkDeleteGoals: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
@@ -151,75 +151,85 @@ afterEach(() => {
 });
 
 describe('GoalPanel monthly', () => {
-  it('selects displayed goals only, previews one atomic request and clears after saving', async () => {
+  it('returns focus to the persistent create action after deleting the last displayed goal', async () => {
+    api.listGoals.mockImplementation(() => ok({ items: [g1] }));
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [{ period: '2026-11', items: [evaluation(g1)] }],
+        years: [],
+      }),
+    );
+    api.bulkDeleteGoals.mockImplementation(() => {
+      api.listGoals.mockImplementation(() => ok({ items: [] }));
+      api.listGoalEvaluations.mockImplementation(() => ok({ months: [], years: [] }));
+      return Promise.resolve({ response: new Response(null, { status: 204 }) });
+    });
+    renderPanel(november);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner les objectifs affichés' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' }),
+    );
+    const trigger = screen.getByRole('button', { name: 'Supprimer' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const modal = screen.getByRole('dialog', { name: 'Supprimer 1 objectif' });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Supprimer' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Supprimer 1 objectif' })).toBeNull(),
+    );
+    expect(screen.getByText('Aucun objectif pour ce mois.')).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Sélectionner les objectifs affichés' }),
+    ).toBeNull();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Nouvel objectif' })),
+    );
+    expect(
+      screen.getByRole('dialog', { name: /^Objectifs/ }).contains(document.activeElement),
+    ).toBe(true);
+  });
+
+  it('selects displayed goals only and confirms one atomic deletion', async () => {
     api.listGoalEvaluations.mockImplementation(() =>
       ok({
         months: [{ period: '2026-11', items: [evaluation(g1), evaluation(g2), evaluation(g3)] }],
         years: [{ period: '2026', items: [evaluation(g4)] }],
       }),
     );
-    api.previewBulkGoalEdit.mockImplementation(({ body }) =>
-      ok({
-        effectiveFrom: body.effectiveFrom,
-        canApply: true,
-        items: body.items.map(({ goalId }: { goalId: string }) => ({
-          goalId,
-          label: goalId,
-          expectedVersion: 3,
-          valueType: 'AMOUNT',
-          assetCode: 'EUR',
-          before: { target: '500', tolerance: '15' },
-          after: { target: '500', tolerance: '0' },
-          firstAffectedMonth: '2026-11',
-          lastAffectedMonth: null,
-          changed: true,
-          laterRevisions: [],
-          overrides: [],
-          conflict: null,
-        })),
-      }),
-    );
-    api.bulkEditGoals.mockImplementation(() =>
-      ok({ effectiveFrom: '2026-11', canApply: true, items: [] }),
-    );
+    api.bulkDeleteGoals.mockResolvedValue({ response: new Response(null, { status: 204 }) });
     renderPanel(november);
     await loaded();
-    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Tout sélectionner' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner les objectifs affichés' }));
+    const all = screen.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' });
+    fireEvent.click(all);
+    expect(all).toHaveProperty('checked', true);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner G2' }));
+    expect(all).toHaveProperty('indeterminate', true);
+    fireEvent.click(all);
+    fireEvent.click(all);
+    expect(screen.getByText('0 objectif sélectionné')).toBeTruthy();
+    fireEvent.click(all);
     expect(screen.getByText('3 objectifs sélectionnés')).toBeTruthy();
     expect(screen.queryByRole('checkbox', { name: 'Sélectionner G4' })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier la sélection' }));
-    const modal = within(
-      screen.getByRole('dialog', { name: 'Modifier les objectifs sélectionnés' }),
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+    const modal = within(screen.getByRole('dialog', { name: 'Supprimer 3 objectifs' }));
+    expect(api.bulkDeleteGoals).not.toHaveBeenCalled();
+    fireEvent.click(modal.getByRole('button', { name: 'Annuler' }));
+    expect(screen.getByText('3 objectifs sélectionnés')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Supprimer 3 objectifs' })).getByRole('button', {
+        name: 'Supprimer',
+      }),
     );
-    expect(
-      modal.getByRole('button', { name: 'Prévisualiser les changements' }).hasAttribute('disabled'),
-    ).toBe(true);
-    fireEvent.click(modal.getByRole('checkbox', { name: 'Modifier la tolérance' }));
-    fireEvent.click(modal.getByRole('button', { name: 'Prévisualiser les changements' }));
-    await waitFor(() => expect(api.previewBulkGoalEdit).toHaveBeenCalledTimes(1));
-    expect(api.previewBulkGoalEdit.mock.calls[0]![0].body).toEqual({
-      items: [g1, g2, g3].map((goal) => ({
-        goalId: goal.id,
-        expectedVersion: 3,
-        expectedValueType: 'AMOUNT',
-        expectedAssetCode: 'EUR',
-      })),
-      effectiveFrom: '2026-11',
-      changes: { tolerance: '0' },
+    await waitFor(() => expect(api.bulkDeleteGoals).toHaveBeenCalledOnce());
+    expect(api.bulkDeleteGoals.mock.calls[0]![0].body).toEqual({
+      items: [g1, g2, g3].map((goal) => ({ goalId: goal.id, expectedVersion: 3 })),
     });
     await waitFor(() =>
-      expect(
-        modal.getByRole('button', { name: 'Appliquer à la sélection' }).hasAttribute('disabled'),
-      ).toBe(false),
+      expect(screen.queryByRole('dialog', { name: 'Supprimer 3 objectifs' })).toBeNull(),
     );
-    fireEvent.click(modal.getByRole('button', { name: 'Appliquer à la sélection' }));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('dialog', { name: 'Modifier les objectifs sélectionnés' }),
-      ).toBeNull(),
-    );
-    expect(api.bulkEditGoals).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('checkbox', { name: 'Sélectionner G1' })).toBeNull();
   });
 
@@ -820,6 +830,34 @@ describe('GoalPanel multi-year', () => {
 
   const yearItem = (year: string) =>
     screen.getByText(year, { selector: 'summary span span' }).closest('details')!;
+
+  it('toggles only displayed goals with the master checkbox and deduplicates open years', async () => {
+    answerPerYear({
+      '2024': [evaluation(g5)],
+      '2026': [evaluation(g4)],
+    });
+    renderPanel({ kind: 'years', years: [2024, 2026] });
+    await loaded();
+    const pen = screen.getByRole('button', { name: 'Sélectionner les objectifs affichés' });
+    fireEvent.click(pen);
+    const all = screen.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' });
+    fireEvent.click(all);
+    expect(screen.getByText('1 objectif sélectionné')).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Sélectionner G4' })).toHaveProperty(
+      'checked',
+      true,
+    );
+    fireEvent.click(yearItem('2024').querySelector('summary')!);
+    await waitFor(() => expect(yearItem('2024').open).toBe(true));
+    fireEvent.click(all);
+    expect(screen.getByText('2 objectifs sélectionnés')).toBeTruthy();
+    fireEvent.click(pen);
+    expect(
+      screen.queryByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' }),
+    ).toBeNull();
+    fireEvent.click(pen);
+    expect(screen.getByText('0 objectif sélectionné')).toBeTruthy();
+  });
 
   it('asks for one year per request and lists one accordion item per year, the last one open', async () => {
     answerPerYear({

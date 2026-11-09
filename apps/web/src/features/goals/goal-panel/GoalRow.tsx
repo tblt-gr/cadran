@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { useGoalSelection } from '@/features/goals/bulk-edit/goalSelectionContext';
+import { useGoalSelection } from '@/features/goals/bulk-selection/goalSelectionContext';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';

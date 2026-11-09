@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 
 /** Deterministic goal rows keep layout and keyboard audits independent of the shared ledger. */
 export async function installBulkGoalFixtures(page: Page, yearly = false) {
@@ -32,45 +32,28 @@ export async function installBulkGoalFixtures(page: Page, yearly = false) {
     warnings: [],
     status: null,
   }));
+  let displayedGoals = goals;
   await page.route('**/api/v1/goals?*', (route) =>
-    route.fulfill({ json: { items: goals, total: goals.length, page: 1, pageSize: 100 } }),
+    route.fulfill({
+      json: { items: displayedGoals, total: displayedGoals.length, page: 1, pageSize: 100 },
+    }),
   );
   await page.route('**/api/v1/goals/evaluations*', (route) =>
     route.fulfill({
       json: {
-        months: yearly ? [] : [{ period: month, items: goals.map(evaluation) }],
-        years: yearly ? [{ period: year, items: goals.map(evaluation) }] : [],
+        months: yearly ? [] : [{ period: month, items: displayedGoals.map(evaluation) }],
+        years: yearly ? [{ period: year, items: displayedGoals.map(evaluation) }] : [],
       },
     }),
   );
-  await page.route('**/api/v1/goals/bulk-preview', (route) => {
-    const body = route.request().postDataJSON();
-    return route.fulfill({
-      json: {
-        effectiveFrom: body.effectiveFrom,
-        canApply: true,
-        items: body.items.map(({ goalId }: { goalId: string }) => ({
-          goalId,
-          label: goals.find((goal) => goal.id === goalId)!.label,
-          expectedVersion: 1,
-          valueType: 'AMOUNT',
-          assetCode: 'EUR',
-          before: { target: '1000', tolerance: '10' },
-          after: {
-            target: body.changes.target ?? '1000',
-            tolerance: body.changes.tolerance ?? '10',
-          },
-          firstAffectedMonth: body.effectiveFrom,
-          lastAffectedMonth: null,
-          changed: true,
-          laterRevisions: [],
-          overrides: [],
-          conflict: null,
-        })),
-      },
-    });
-  });
-  return { month, year, goals };
+  return {
+    month,
+    year,
+    goals,
+    clearGoals: () => {
+      displayedGoals = [];
+    },
+  };
 }
 
 function evaluation(goal: { id: string; label: string; periodicity: string }) {
@@ -99,4 +82,19 @@ function evaluation(goal: { id: string; label: string; periodicity: string }) {
     overrides: [],
     pace: null,
   };
+}
+
+/** Opens either shared confirmation without writing the ledger. */
+export async function openBulkGoalConfirmation(page: Page, action: 'stop' | 'delete') {
+  const { month } = await installBulkGoalFixtures(page);
+  await page.goto(`/budget/${month.replace('-', '/')}?panel=goals`);
+  await expect(page.locator('[data-goal-id]')).toHaveCount(4);
+  await page
+    .getByRole('button', { name: 'Sélectionner les objectifs affichés', exact: true })
+    .click();
+  await page.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' }).check();
+  await page
+    .getByRole('button', { name: action === 'stop' ? 'Arrêter' : 'Supprimer', exact: true })
+    .click();
+  return action === 'stop' ? 'Arrêter' : 'Supprimer';
 }

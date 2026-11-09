@@ -1,0 +1,80 @@
+.selection,
+.form,
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-inline-size: 0;
+}
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  min-block-size: var(--touch-target-min);
+  gap: var(--spacing-2) var(--spacing-3);
+}
+.periodicity {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+.sectionHead h3 {
+  margin: var(--spacing-none);
+}
+.selectAll {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-inline-size: var(--spacing-6);
+  min-block-size: var(--touch-target-min);
+}
+.selectAll input {
+  margin: var(--spacing-none);
+}
+.counter {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.action {
+  min-block-size: var(--touch-target-min);
+  padding: var(--spacing-none) var(--spacing-2);
+  border: var(--border-none);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+}
+.action:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+button.pen {
+  inline-size: var(--touch-target-min);
+  block-size: var(--touch-target-min);
+  border-radius: var(--radius-circle);
+}
+.toolbar p,
+.form p {
+  margin: var(--spacing-none);
+}
+.form label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.form fieldset {
+  border: var(--border-none);
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+  min-inline-size: 0;
+}
+.error {
+  color: var(--negative);
+}

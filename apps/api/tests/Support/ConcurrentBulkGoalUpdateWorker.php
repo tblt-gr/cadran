@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use App\Kernel;
-use App\Module\Budget\Application\Goals\BulkEditGoals;
 use App\Module\Budget\Application\Goals\BulkGoalInput;
+use App\Module\Budget\Application\Goals\BulkGoalLifecycle;
 use App\Module\Budget\Application\Goals\GoalBulkConflict;
 use App\Module\Identity\Infrastructure\Security\SecurityUser;
 use App\Tests\Support\WorkspaceFixture;
@@ -44,8 +44,8 @@ if (!$tokens instanceof TokenStorageInterface) {
 }
 $tokens->setToken(new UsernamePasswordToken(new SecurityUser(WorkspaceFixture::OWNER_EMAIL, 'irrelevant-hash', false), 'main'));
 $container->set(ClockInterface::class, new MockClock('2026-11-14T09:12:04+00:00'));
-$update = $container->get(BulkEditGoals::class);
-if (!$update instanceof BulkEditGoals) {
+$update = $container->get(BulkGoalLifecycle::class);
+if (!$update instanceof BulkGoalLifecycle) {
     throw new RuntimeException('UpdateGoal is unavailable.');
 }
 
@@ -56,7 +56,7 @@ while (2 !== count(glob($barrier.'.ready.*') ?: [])) {
 file_put_contents($barrier.'.calling.'.$worker, '');
 
 try {
-    $update(new BulkGoalInput(array_map(static fn (string $id): array => ['goalId' => $id, 'expectedVersion' => 1, 'expectedValueType' => 'AMOUNT', 'expectedAssetCode' => 'EUR'], explode(',', $goalId)), '2026-11', null, $amount), true);
+    $update(new BulkGoalInput(array_map(static fn (string $id): array => ['goalId' => $id, 'expectedVersion' => 1, 'lastPeriod' => '2026-10'], explode(',', $goalId))), true);
     $outcome = 'ok';
 } catch (GoalBulkConflict $exception) {
     $outcome = $exception->errorCode;

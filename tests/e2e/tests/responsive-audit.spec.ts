@@ -6,7 +6,7 @@ import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
 import { openTakeoverModal } from './support/takeover';
 import { auditAccessibility } from './support/a11y';
-import { installBulkGoalFixtures } from './support/bulk-goals';
+import { openBulkGoalConfirmation } from './support/bulk-goals';
 import {
   expandCountedFilters,
   expectFacetRowsFit,
@@ -314,19 +314,12 @@ const MODALS: ModalCase[] = [
     },
   },
   {
-    name: 'bulk goals',
-    open: async (page) => {
-      const { month } = await installBulkGoalFixtures(page);
-      await page.goto(`/budget/${month.replace('-', '/')}?panel=goals`);
-      await settled(page);
-      await page.getByRole('button', { name: 'Sélectionner', exact: true }).click();
-      await page.getByRole('button', { name: 'Tout sélectionner' }).click();
-      await page.getByRole('button', { name: 'Modifier la sélection' }).click();
-      await page.getByRole('checkbox', { name: 'Modifier la tolérance' }).check();
-      await page.getByRole('button', { name: 'Prévisualiser les changements' }).click();
-      await settled(page);
-      return 'Appliquer à la sélection';
-    },
+    name: 'bulk goal stop',
+    open: async (page) => openBulkGoalConfirmation(page, 'stop'),
+  },
+  {
+    name: 'bulk goal delete',
+    open: async (page) => openBulkGoalConfirmation(page, 'delete'),
   },
   {
     name: 'goal',

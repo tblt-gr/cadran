@@ -14,6 +14,13 @@
   margin: var(--spacing-none);
 }
 
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
 .rows {
   display: flex;
   gap: var(--spacing-3);
@@ -40,6 +47,8 @@
 }
 
 .rowHead h4 {
+  flex: 1;
+  text-align: left;
   min-width: 0;
   margin: var(--spacing-none);
   font-size: var(--font-size-body);
@@ -50,10 +59,14 @@
 .selectionControl {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-inline-size: var(--touch-target-min);
+  justify-content: flex-start;
+  min-inline-size: var(--spacing-6);
   min-block-size: var(--touch-target-min);
   flex-shrink: 0;
+}
+
+.selectionControl input {
+  margin: var(--spacing-none);
 }
 
 .rowEnd {

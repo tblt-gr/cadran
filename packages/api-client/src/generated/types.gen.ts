@@ -1298,69 +1298,19 @@ export type GoalVersionHistoryItem = {
     changes: Array<GoalVersionChange>;
 };
 
-export type BulkGoalRequest = {
+export type BulkGoalStopRequest = {
     items: Array<{
         goalId: string;
         expectedVersion: number;
-        /**
-         * Target value type used to interpret the draft; must match the definition at effectiveFrom. A mismatch blocks preview and save with goal_target_unit_changed.
-         */
-        expectedValueType: GoalValueType;
-        /**
-         * Target asset used to interpret the draft; must match the selected goal asset.
-         */
-        expectedAssetCode: string;
+        lastPeriod: GoalPeriod;
     }>;
-    effectiveFrom: string;
-    reason?: string | null;
-    changes: {
-        /**
-         * Amount or ratio in the selected goals target unit; ratio 0.15 means 15 percent.
-         */
-        target?: string;
-        /**
-         * Margin in the target unit; zero removes tolerance, omission preserves it.
-         */
-        tolerance?: string;
-    };
 };
 
-export type BulkGoalValues = {
-    target: string | null;
-    tolerance: string;
-};
-
-export type BulkGoalResult = {
-    effectiveFrom: string;
-    canApply: boolean;
-    items: Array<BulkGoalItem>;
-};
-
-export type BulkGoalItem = {
-    goalId: string;
-    label: string;
-    expectedVersion: number;
-    valueType: GoalValueType;
-    assetCode: string;
-    before: BulkGoalValues;
-    after: BulkGoalValues;
-    firstAffectedMonth: string;
-    lastAffectedMonth: string | null;
-    changed: boolean;
-    laterRevisions: Array<{
-        versionNo: number;
-        effectiveFrom: string;
-    }>;
-    overrides: Array<{
+export type BulkGoalDeleteRequest = {
+    items: Array<{
         goalId: string;
-        label: string;
-        startPeriod: string;
-        endPeriod: string | null;
+        expectedVersion: number;
     }>;
-    conflict: null | {
-        code: string;
-        field: string;
-    };
 };
 
 export type StopGoalRequest = {
@@ -7588,8 +7538,8 @@ export type CreateGoalResponses = {
 
 export type CreateGoalResponse = CreateGoalResponses[keyof CreateGoalResponses];
 
-export type PreviewBulkGoalEditData = {
-    body: BulkGoalRequest;
+export type BulkStopGoalsData = {
+    body: BulkGoalStopRequest;
     headers: {
         /**
          * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
@@ -7598,10 +7548,10 @@ export type PreviewBulkGoalEditData = {
     };
     path?: never;
     query?: never;
-    url: '/api/v1/goals/bulk-preview';
+    url: '/api/v1/goals/bulk-stop';
 };
 
-export type PreviewBulkGoalEditErrors = {
+export type BulkStopGoalsErrors = {
     /**
      * The request carries no authenticated session.
      */
@@ -7615,7 +7565,7 @@ export type PreviewBulkGoalEditErrors = {
      */
     404: Problem;
     /**
-     * A stale goal, closed month or revision conflict; refresh the preview before retrying. A selected accessible row is identified by goalId and field.
+     * A stale version or closed-period conflict; no item was changed.
      */
     409: GoalProblem;
     /**
@@ -7627,7 +7577,7 @@ export type PreviewBulkGoalEditErrors = {
      */
     415: Problem;
     /**
-     * Invalid batch or selected row; row errors carry goalId and field without disclosing inaccessible data.
+     * Invalid batch or last period; no item was changed.
      */
     422: GoalProblem;
     /**
@@ -7636,19 +7586,19 @@ export type PreviewBulkGoalEditErrors = {
     500: Problem;
 };
 
-export type PreviewBulkGoalEditError = PreviewBulkGoalEditErrors[keyof PreviewBulkGoalEditErrors];
+export type BulkStopGoalsError = BulkStopGoalsErrors[keyof BulkStopGoalsErrors];
 
-export type PreviewBulkGoalEditResponses = {
+export type BulkStopGoalsResponses = {
     /**
-     * Selected rows, their exact changes, temporal bounds and conflicts.
+     * The complete selection was stopped.
      */
-    200: BulkGoalResult;
+    204: void;
 };
 
-export type PreviewBulkGoalEditResponse = PreviewBulkGoalEditResponses[keyof PreviewBulkGoalEditResponses];
+export type BulkStopGoalsResponse = BulkStopGoalsResponses[keyof BulkStopGoalsResponses];
 
-export type BulkEditGoalsData = {
-    body: BulkGoalRequest;
+export type BulkDeleteGoalsData = {
+    body: BulkGoalDeleteRequest;
     headers: {
         /**
          * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
@@ -7657,10 +7607,10 @@ export type BulkEditGoalsData = {
     };
     path?: never;
     query?: never;
-    url: '/api/v1/goals/bulk-edit';
+    url: '/api/v1/goals/bulk-delete';
 };
 
-export type BulkEditGoalsErrors = {
+export type BulkDeleteGoalsErrors = {
     /**
      * The request carries no authenticated session.
      */
@@ -7674,7 +7624,7 @@ export type BulkEditGoalsErrors = {
      */
     404: Problem;
     /**
-     * A stale goal, closed month or revision conflict; refresh the preview before retrying. A selected accessible row is identified by goalId and field.
+     * A stale version or closed-period conflict; no item was changed.
      */
     409: GoalProblem;
     /**
@@ -7686,7 +7636,7 @@ export type BulkEditGoalsErrors = {
      */
     415: Problem;
     /**
-     * Invalid batch or selected row; row errors carry goalId and field without disclosing inaccessible data.
+     * Invalid batch or last period; no item was changed.
      */
     422: GoalProblem;
     /**
@@ -7695,16 +7645,16 @@ export type BulkEditGoalsErrors = {
     500: Problem;
 };
 
-export type BulkEditGoalsError = BulkEditGoalsErrors[keyof BulkEditGoalsErrors];
+export type BulkDeleteGoalsError = BulkDeleteGoalsErrors[keyof BulkDeleteGoalsErrors];
 
-export type BulkEditGoalsResponses = {
+export type BulkDeleteGoalsResponses = {
     /**
-     * Selected rows, their exact changes, temporal bounds and conflicts.
+     * The complete selection was deleted.
      */
-    200: BulkGoalResult;
+    204: void;
 };
 
-export type BulkEditGoalsResponse = BulkEditGoalsResponses[keyof BulkEditGoalsResponses];
+export type BulkDeleteGoalsResponse = BulkDeleteGoalsResponses[keyof BulkDeleteGoalsResponses];
 
 export type ListGoalEvaluationsData = {
     body?: never;

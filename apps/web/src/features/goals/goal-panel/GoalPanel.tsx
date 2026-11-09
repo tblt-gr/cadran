@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Drawer } from '@/components/ui/drawer/Drawer';
 import { Toast } from '@/components/ui/toast/Toast';
-import { GoalSelection } from '@/features/goals/bulk-edit/GoalSelection';
+import { GoalSelection } from '@/features/goals/bulk-selection/GoalSelection';
 import { currentMonthIn } from '@/features/goals/goalFormFields';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { DeleteGoalDialog } from './DeleteGoalDialog';
@@ -53,6 +53,7 @@ export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Pro
   const data = useGoalPanelData(scope);
   const editor = useGoalEditor();
   const focused = useRef<string | null>(null);
+  const createButton = useRef<HTMLButtonElement>(null);
   const ready = !data.pending && data.evaluations !== undefined;
   useEffect(() => {
     if (!ready || focusGoalId === null || focused.current === focusGoalId) return;
@@ -105,6 +106,7 @@ export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Pro
         footer={
           <button
             className="primary-action"
+            ref={createButton}
             onClick={() =>
               editor.openCreate(
                 monthly
@@ -122,10 +124,13 @@ export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Pro
       >
         <div className={styles.content}>
           <GoalSelection
+            fallbackFocus={createButton}
             goals={data.goals}
             key={JSON.stringify(scope)}
-            month={workspaceMonth}
+            month={displayedMonth}
+            year={displayedYear}
             ready={ready && !data.failed}
+            standalone={scope.kind === 'years'}
           >
             {data.pending ? (
               <p className="sr-only" role="status">

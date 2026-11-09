@@ -66,145 +66,132 @@ final class GoalBulkControllerTest extends WebTestCase
         parent::tearDown();
     }
 
-    public function testPreviewAndAtomicToleranceSavePreserveTargetsAndUnselectedGoals(): void
+    public function testStopsOnlySelectedGoalsAndPreservesTheirPastDefinitions(): void
     {
         $ids = [$this->createGoal(), $this->createGoal(), $this->createGoal()];
         $other = $this->createGoal();
-        $body = $this->batch($ids, ['tolerance' => '10.00']);
-        $this->requestJson('POST', '/api/v1/goals/bulk-preview', $body);
-        self::assertResponseIsSuccessful();
-        $preview = $this->decode();
-        self::assertTrue($preview['canApply']);
-        $rows = self::items($preview['items']);
-        self::assertCount(3, $rows);
-        self::assertSame('2026-11', self::arr($rows[0])['firstAffectedMonth']);
-        self::assertNull(self::arr($rows[0])['lastAffectedMonth']);
-        self::assertSame('1000.00', self::arr(self::arr($rows[0])['after'])['target']);
-        self::assertSame('4', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-        self::assertResponseIsSuccessful();
-        self::assertSame('7', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+        $body = $this->batch($ids, '2026-11');
+        $this->requestJson('POST', '/api/v1/goals/bulk-stop', $body);
+        self::assertResponseStatusCodeSame(204);
+        foreach ($ids as $id) {
+            self::assertSame('2026-11', $this->scalar('SELECT end_period FROM budget_goals WHERE id = ?', [$id]));
+            self::assertSame('2', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$id]));
+        }
         self::assertSame('1', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$other]));
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
+        self::assertSame('4', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+        $this->requestJson('POST', '/api/v1/goals/bulk-stop', $body);
         self::assertResponseStatusCodeSame(409);
-        self::assertSame('7', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-        $clear = $this->batch($ids, ['tolerance' => '0'], 2);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $clear);
-        self::assertResponseIsSuccessful();
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch($ids, ['tolerance' => '0'], 3));
-        self::assertResponseIsSuccessful();
-        self::assertSame('10', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+        self::assertSame('4', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
     }
 
-    public function testInvalidLastItemAndInaccessibleItemRollBackTheEntireBatch(): void
-    {
-        $ids = [$this->createGoal(), $this->createGoal('5.00')];
-        foreach (['-1', '10', '0.123456789'] as $invalid) {
-            $body = $this->batch($ids, ['tolerance' => $invalid]);
-            $this->requestJson('POST', '/api/v1/goals/bulk-preview', $body);
-            self::assertResponseIsSuccessful();
-            self::assertFalse($this->decode()['canApply']);
-            $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-            self::assertResponseStatusCodeSame(422);
-            self::assertSame('tolerance', $this->decode()['field']);
-            self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-        }
-        $missing = '00000000-0000-7000-8000-0000000000ff';
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$ids[0], $missing], ['tolerance' => '1']));
-        self::assertResponseStatusCodeSame(404);
-        self::assertArrayNotHasKey('goalId', $this->decode());
-        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-    }
-
-    public function testPlannedRevisionsAreShownAndBlockForwardEdit(): void
-    {
-        $id = $this->createGoal();
-        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['version' => 1, 'label' => 'Goal', 'effectiveFrom' => '2026-12', 'tolerance' => '2']);
-        self::assertResponseIsSuccessful();
-        $body = $this->batch([$id], ['tolerance' => '1'], 2);
-        $this->requestJson('POST', '/api/v1/goals/bulk-preview', $body);
-        self::assertResponseIsSuccessful();
-        $row = self::arr(self::items($this->decode()['items'])[0]);
-        self::assertSame('2026-11', $row['lastAffectedMonth']);
-        self::assertSame('goal_planned_revision_exists', self::arr($row['conflict'])['code']);
-        self::assertCount(1, self::items($row['laterRevisions']));
-        $body['effectiveFrom'] = '2026-10';
-        $body['reason'] = 'Historical correction';
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-        self::assertResponseIsSuccessful();
-        self::assertSame('3', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-    }
-
-    public function testBoundsMissingChangesDuplicatesAndClosedMonthAreRejected(): void
-    {
-        $id = $this->createGoal();
-        foreach ([$this->batch([], ['tolerance' => '1']), $this->batch([$id], []), $this->batch([$id, $id], ['tolerance' => '1'])] as $body) {
-            $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-            self::assertResponseStatusCodeSame(422);
-        }
-        $this->connection->insert('account_period_closures', ['id' => '00000000-0000-7000-8000-0000000000e1', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'year' => 2026, 'month' => 11, 'version' => 1, 'closed_at' => '2026-11-14 12:00:00+00', 'closed_by' => WorkspaceFixture::OWNER_ID]);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$id], ['tolerance' => '1']));
-        self::assertResponseStatusCodeSame(409);
-        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-    }
-
-    public function testCustomCalendarIsPreservedAndMixedTypesAreRejected(): void
-    {
-        $payload = ['label' => 'Annual', 'periodicity' => 'YEARLY', 'metric' => 'TOTAL_SPENDING', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '1000.00', 'assetCode' => 'EUR'], 'schedule' => ['mode' => 'CUSTOM', 'parts' => ['1000.00', ...array_fill(0, 11, '0.00')]]];
-        $this->requestJson('POST', '/api/v1/goals', $payload);
-        self::assertResponseStatusCodeSame(201);
-        $id = $this->id($this->decode());
-        $original = self::arr(self::arr($this->decode()['currentVersion'])['schedule']);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$id], ['tolerance' => '10.00']));
-        self::assertResponseIsSuccessful();
-        $this->client->request('GET', '/api/v1/goals/'.$id);
-        self::assertResponseIsSuccessful();
-        $current = self::arr($this->decode()['currentVersion']);
-        self::assertSame('CUSTOM', self::arr($current['schedule'])['mode']);
-        self::assertSame('1000.00', $current['targetAmount']);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$id], ['target' => '2000'], 2));
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('bulk_custom_schedule_target', $this->decode()['code']);
-        self::assertSame($original, self::arr($current['schedule']));
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Rate', 'periodicity' => 'MONTHLY', 'metric' => 'SAVINGS_RATE', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-01', 'valueType' => 'RATE', 'ratio' => '0.15']);
-        self::assertResponseStatusCodeSame(201);
-        $rate = $this->id($this->decode());
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', ['items' => [['goalId' => $id, 'expectedVersion' => 2, 'expectedValueType' => 'AMOUNT', 'expectedAssetCode' => 'EUR'], ['goalId' => $rate, 'expectedVersion' => 1, 'expectedValueType' => 'RATE', 'expectedAssetCode' => 'EUR']], 'effectiveFrom' => '2026-11', 'changes' => ['tolerance' => '0.01']]);
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('incompatible_goal_units', $this->decode()['code']);
-    }
-
-    public function testChangingTargetsPreservesDifferentTolerancesAndExactLargeValues(): void
+    public function testDeleteRemovesSelectedGoalsAndVersionsOnly(): void
     {
         $ids = [$this->createGoal(), $this->createGoal()];
-        foreach ($ids as $index => $id) {
-            $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$id], ['tolerance' => (string) ($index + 1)]));
-            self::assertResponseIsSuccessful();
-        }
-        $target = '9999999999999999999999999.12345678';
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch($ids, ['target' => $target], 2));
-        self::assertResponseIsSuccessful();
-        foreach (self::items($this->decode()['items']) as $row) {
-            self::assertSame($target, self::arr(self::arr($row)['after'])['target']);
-            self::assertSame(self::arr(self::arr($row)['before'])['tolerance'], self::arr(self::arr($row)['after'])['tolerance']);
-        }
+        $other = $this->createGoal();
+        $this->requestJson('POST', '/api/v1/goals/bulk-delete', $this->batch($ids));
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goals'));
+        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+        self::assertSame('1', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$other]));
+        $this->requestJson('POST', '/api/v1/goals/bulk-delete', $this->batch($ids));
+        self::assertResponseStatusCodeSame(404);
     }
 
-    public function testForeignSelectionDoesNotDiscloseOrWriteAndCsrfIsRequired(): void
+    public function testInvalidLastStopRollsBackEarlierStopAndAudit(): void
+    {
+        $ids = [$this->createGoal(), $this->createGoal()];
+        sort($ids);
+        $body = $this->batch($ids, '2026-11');
+        $body['items'][1]['lastPeriod'] = '2025-12';
+        $before = $this->scalar('SELECT count(*) FROM audit_events');
+        $this->requestJson('POST', '/api/v1/goals/bulk-stop', $body);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame($ids[1], $this->decode()['goalId']);
+        self::assertSame('lastPeriod', $this->decode()['field']);
+        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goals WHERE version = 1 AND end_period IS NULL'));
+        self::assertSame($before, $this->scalar('SELECT count(*) FROM audit_events'));
+    }
+
+    public function testClosedMonthsAndStaleRowsPreventEveryWrite(): void
+    {
+        $ids = [$this->createGoal(), $this->createGoal()];
+        foreach (['bulk-stop', 'bulk-delete'] as $action) {
+            $body = $this->batch($ids, '2026-10');
+            if ('bulk-delete' === $action) {
+                $body = $this->batch($ids);
+            }
+            $body['items'][1]['expectedVersion'] = 2;
+            $this->requestJson('POST', '/api/v1/goals/'.$action, $body);
+            self::assertResponseStatusCodeSame(409);
+            self::assertSame('stale_goal_version', $this->decode()['code']);
+        }
+        $this->connection->insert('account_period_closures', ['id' => '00000000-0000-7000-8000-0000000000e1', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'year' => 2026, 'month' => 11, 'closed_at' => '2026-11-14 12:00:00+00', 'closed_by' => WorkspaceFixture::OWNER_ID, 'version' => 1]);
+        $this->requestJson('POST', '/api/v1/goals/bulk-stop', $this->batch($ids, '2026-10'));
+        self::assertResponseStatusCodeSame(409);
+        $this->requestJson('POST', '/api/v1/goals/bulk-delete', $this->batch($ids));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goals WHERE version = 1 AND end_period IS NULL'));
+    }
+
+    public function testForeignAndMissingSelectionsAreIndistinguishableAndCsrfIsRequired(): void
     {
         $id = $this->createGoal();
         $foreign = '00000000-0000-7000-8000-0000000000e9';
         $this->connection->insert('budget_goals', ['id' => $foreign, 'workspace_id' => WorkspaceFixture::OTHER_WORKSPACE, 'label' => 'Foreign private goal', 'periodicity' => 'MONTHLY', 'metric' => 'TOTAL_SPENDING', 'scope_type' => 'WORKSPACE', 'scope_ref' => null, 'asset_code' => 'EUR', 'start_period' => '2026-01', 'end_period' => null, 'created_at' => '2026-09-01 12:00:00+00', 'created_by' => WorkspaceFixture::OTHER_OWNER_ID, 'version' => 1]);
-        foreach (['bulk-preview', 'bulk-edit'] as $path) {
-            $this->requestJson('POST', '/api/v1/goals/'.$path, $this->batch([$id, $foreign], ['tolerance' => '1']));
-            self::assertResponseStatusCodeSame(404);
-            self::assertArrayNotHasKey('goalId', $this->decode());
-            self::assertStringNotContainsString('Foreign private goal', (string) $this->client->getResponse()->getContent());
+        foreach (['bulk-stop', 'bulk-delete'] as $action) {
+            foreach ([$foreign, '00000000-0000-7000-8000-0000000000ff'] as $other) {
+                $this->requestJson('POST', '/api/v1/goals/'.$action, $this->batch([$id, $other], 'bulk-stop' === $action ? '2026-11' : null));
+                self::assertResponseStatusCodeSame(404);
+                self::assertArrayNotHasKey('goalId', $this->decode());
+                self::assertStringNotContainsString('Foreign private goal', (string) $this->client->getResponse()->getContent());
+            }
         }
+        self::assertSame('1', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$id]));
         $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', 'invalid');
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$id], ['tolerance' => '1']));
+        $this->requestJson('POST', '/api/v1/goals/bulk-delete', $this->batch([$id]));
         self::assertResponseStatusCodeSame(403);
-        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+    }
+
+    public function testSelectionIsBoundedDistinctAndPeriodsRespectGoalPeriodicity(): void
+    {
+        $id = $this->createGoal();
+        foreach ([[], [$id, $id], array_fill(0, 101, $id), ['invalid']] as $ids) {
+            $this->requestJson('POST', '/api/v1/goals/bulk-delete', $this->batch($ids));
+            self::assertResponseStatusCodeSame(422);
+        }
+        $this->requestJson('POST', '/api/v1/goals/bulk-stop', $this->batch([$id], '2026'));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('1', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$id]));
+    }
+
+    public function testYearlyStopPreservesEarlierSchedulesAndRemovesFutureDefinitions(): void
+    {
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Annual', 'periodicity' => 'YEARLY', 'metric' => 'TOTAL_SPENDING', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '1200.00', 'assetCode' => 'EUR'], 'schedule' => ['mode' => 'LINEAR']]);
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->id($this->decode());
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['version' => 1, 'label' => 'Annual', 'effectiveFrom' => '2027-01', 'targetAmount' => ['value' => '2400.00', 'assetCode' => 'EUR']]);
+        self::assertResponseIsSuccessful();
+        $this->requestJson('POST', '/api/v1/goals/bulk-stop', ['items' => [['goalId' => $id, 'expectedVersion' => 2, 'lastPeriod' => '2026']]]);
+        self::assertResponseStatusCodeSame(204);
+        self::assertSame('2026', $this->scalar('SELECT end_period FROM budget_goals WHERE id = ?', [$id]));
+        self::assertSame('1', $this->scalar('SELECT count(*) FROM budget_goal_versions WHERE goal_id = ?', [$id]));
+        self::assertSame('12', $this->scalar('SELECT count(*) FROM budget_goal_schedule_parts'));
+    }
+
+    public function testLateClosedDeleteRollsBackPreviouslyDeletedGoalHistoryAndAudit(): void
+    {
+        $ids = [$this->createGoal(), $this->createGoal()];
+        sort($ids);
+        $this->connection->update('budget_goals', ['start_period' => '2026-11'], ['id' => $ids[0]]);
+        $this->connection->insert('account_period_closures', ['id' => '00000000-0000-7000-8000-0000000000e1', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'year' => 2026, 'month' => 10, 'closed_at' => '2026-11-14 12:00:00+00', 'closed_by' => WorkspaceFixture::OWNER_ID, 'version' => 1]);
+        $before = $this->scalar('SELECT count(*) FROM audit_events');
+        $this->requestJson('POST', '/api/v1/goals/bulk-delete', $this->batch($ids));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame($ids[1], $this->decode()['goalId']);
+        self::assertSame('goal_covers_closed_period', $this->decode()['code']);
+        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goals'));
+        self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+        self::assertSame($before, $this->scalar('SELECT count(*) FROM audit_events'));
     }
 
     /** @return iterable<string, array{bool}> */
@@ -266,7 +253,7 @@ final class GoalBulkControllerTest extends WebTestCase
             }
             sort($outcomes);
             self::assertSame($close ? ['goal_closed_period', 'goal_closed_period'] : ['ok', 'stale_goal_version'], $outcomes);
-            self::assertSame($close ? '2' : '4', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
+            self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
             foreach ($ids as $selected) {
                 self::assertSame($close ? '1' : '2', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$selected]));
             }
@@ -287,59 +274,6 @@ final class GoalBulkControllerTest extends WebTestCase
         }
     }
 
-    public function testIndependentLaterGoalIsShownButUnselectedAndCannotStartEarly(): void
-    {
-        $id = $this->createGoal();
-        $this->requestJson('POST', '/api/v1/goals', ['label' => 'December only', 'periodicity' => 'MONTHLY', 'metric' => 'TOTAL_SPENDING', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-12', 'endPeriod' => '2026-12', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '300.00', 'assetCode' => 'EUR']]);
-        self::assertResponseStatusCodeSame(201);
-        $december = $this->id($this->decode());
-        $this->requestJson('POST', '/api/v1/goals/bulk-preview', $this->batch([$id], ['tolerance' => '1']));
-        self::assertResponseIsSuccessful();
-        $overrides = self::items(self::arr(self::items($this->decode()['items'])[0])['overrides']);
-        self::assertSame($december, self::arr($overrides[0])['goalId']);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$id], ['tolerance' => '1']));
-        self::assertResponseIsSuccessful();
-        self::assertSame('1', $this->scalar('SELECT version FROM budget_goals WHERE id = ?', [$december]));
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch([$december], ['tolerance' => '1']));
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('effectiveFrom', $this->decode()['field']);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $this->batch(array_fill(0, 101, $id), ['tolerance' => '1']));
-        self::assertResponseStatusCodeSame(422);
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', ['items' => [['goalId' => $id, 'expectedVersion' => 2, 'expectedValueType' => 'AMOUNT', 'expectedAssetCode' => 'EUR']], 'effectiveFrom' => '2026-10', 'changes' => ['tolerance' => '2']]);
-        self::assertResponseStatusCodeSame(422);
-        self::assertSame('reason', $this->decode()['field']);
-        self::assertSame('3', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-    }
-
-    public function testValuesCannotBeReinterpretedInAHistoricalTargetUnit(): void
-    {
-        $id = $this->createGoal();
-        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['version' => 1, 'label' => 'Goal', 'effectiveFrom' => '2026-11', 'valueType' => 'INCOME_SHARE', 'ratio' => '0.50']);
-        self::assertResponseIsSuccessful();
-        foreach ([['target' => '0.02'], ['tolerance' => '0.01']] as $changes) {
-            $body = ['items' => [['goalId' => $id, 'expectedVersion' => 2, 'expectedValueType' => 'INCOME_SHARE', 'expectedAssetCode' => 'EUR']], 'effectiveFrom' => '2026-10', 'changes' => $changes, 'reason' => 'Historical correction'];
-            $this->requestJson('POST', '/api/v1/goals/bulk-preview', $body);
-            self::assertResponseIsSuccessful();
-            self::assertFalse($this->decode()['canApply']);
-            $row = self::arr(self::items($this->decode()['items'])[0]);
-            self::assertSame('goal_target_unit_changed', self::arr($row['conflict'])['code']);
-            $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-            self::assertResponseStatusCodeSame(409);
-            self::assertSame($id, $this->decode()['goalId']);
-            self::assertSame('selection', $this->decode()['field']);
-            self::assertSame('2', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-        }
-        $body['items'] = [['goalId' => $id, 'expectedVersion' => 2, 'expectedValueType' => 'AMOUNT', 'expectedAssetCode' => 'USD']];
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-        self::assertResponseStatusCodeSame(409);
-        $body['items'][0]['expectedAssetCode'] = 'EUR';
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', $body);
-        self::assertResponseIsSuccessful();
-        self::assertSame('3', $this->scalar('SELECT count(*) FROM budget_goal_versions'));
-        $this->requestJson('POST', '/api/v1/goals/bulk-edit', ['items' => [['goalId' => $id, 'expectedVersion' => 3]], 'effectiveFrom' => '2026-11', 'changes' => ['tolerance' => '0.01']]);
-        self::assertResponseStatusCodeSame(422);
-    }
-
     private function createGoal(string $amount = '1000.00'): string
     {
         $this->requestJson('POST', '/api/v1/goals', ['label' => 'Goal', 'periodicity' => 'MONTHLY', 'metric' => 'TOTAL_SPENDING', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-01', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => $amount, 'assetCode' => 'EUR']]);
@@ -348,15 +282,12 @@ final class GoalBulkControllerTest extends WebTestCase
         return $this->id($this->decode());
     }
 
-    /**
-     * @param list<string>          $ids
-     * @param array<string, string> $changes
-     *
-     * @return array<string, mixed>
+    /** @param list<string> $ids
+     * @return array{items: list<array<string, mixed>>}
      */
-    private function batch(array $ids, array $changes, int $version = 1): array
+    private function batch(array $ids, ?string $lastPeriod = null): array
     {
-        return ['items' => array_map(static fn (string $id): array => ['goalId' => $id, 'expectedVersion' => $version, 'expectedValueType' => 'AMOUNT', 'expectedAssetCode' => 'EUR'], $ids), 'effectiveFrom' => '2026-11', 'changes' => $changes];
+        return ['items' => array_map(static fn (string $id): array => ['goalId' => $id, 'expectedVersion' => 1, ...(null === $lastPeriod ? [] : ['lastPeriod' => $lastPeriod])], $ids)];
     }
 
     /** @param array<string, mixed> $body */
@@ -402,13 +333,5 @@ final class GoalBulkControllerTest extends WebTestCase
         }
 
         return $fields;
-    }
-
-    /** @return list<mixed> */
-    private static function items(mixed $value): array
-    {
-        self::assertIsArray($value);
-
-        return array_values($value);
     }
 }

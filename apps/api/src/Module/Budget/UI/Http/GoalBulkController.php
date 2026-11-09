@@ -4,8 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\UI\Http;
 
-use App\Module\Budget\Application\Goals\BulkEditGoals;
-use App\Module\Budget\Application\Goals\BulkGoalItemView;
+use App\Module\Budget\Application\Goals\BulkGoalLifecycle;
 use App\Module\Budget\Application\Goals\GoalBulkConflict;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalNotFound;
@@ -16,32 +15,32 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalBulkController
 {
-    public function __construct(private BudgetHttpEnvelope $envelope, private BulkEditGoals $bulk)
+    public function __construct(private BudgetHttpEnvelope $envelope, private BulkGoalLifecycle $bulk)
     {
     }
 
-    #[Route('/api/v1/goals/bulk-preview', name: 'api_v1_goals_bulk_preview', methods: ['POST'])]
-    public function preview(Request $request): Response
-    {
-        return $this->execute($request, false);
-    }
-
-    #[Route('/api/v1/goals/bulk-edit', name: 'api_v1_goals_bulk_edit', methods: ['POST'])]
-    public function edit(Request $request): Response
+    #[Route('/api/v1/goals/bulk-stop', name: 'api_v1_goals_bulk_stop', methods: ['POST'])]
+    public function stop(Request $request): Response
     {
         return $this->execute($request, true);
     }
 
-    private function execute(Request $request, bool $save): Response
+    #[Route('/api/v1/goals/bulk-delete', name: 'api_v1_goals_bulk_delete', methods: ['POST'])]
+    public function delete(Request $request): Response
+    {
+        return $this->execute($request, false);
+    }
+
+    private function execute(Request $request, bool $stop): Response
     {
         $body = $this->envelope->body($request);
         if ($body instanceof Response) {
             return $body;
         }
         try {
-            $result = ($this->bulk)(GoalBulkRequest::from($body), $save);
+            ($this->bulk)(GoalBulkRequest::from($body, $stop), $stop);
 
-            return $this->envelope->json([...$result, 'items' => array_map(self::item(...), $result['items'])]);
+            return new Response(status: Response::HTTP_NO_CONTENT);
         } catch (GoalInputError $error) {
             return $this->problem(422, $error->errorCode, $error->details);
         } catch (GoalBulkConflict $error) {
@@ -51,19 +50,6 @@ final readonly class GoalBulkController
         } catch (WorkspaceAccessDenied) {
             return $this->problem(403, 'goal_forbidden');
         }
-    }
-
-    /** @return array<string, mixed> */
-    private static function item(BulkGoalItemView $item): array
-    {
-        return [
-            'goalId' => $item->goalId, 'label' => $item->label, 'expectedVersion' => $item->expectedVersion,
-            'valueType' => $item->valueType, 'assetCode' => $item->assetCode,
-            'before' => $item->before, 'after' => $item->after,
-            'firstAffectedMonth' => $item->firstAffectedMonth, 'lastAffectedMonth' => $item->lastAffectedMonth,
-            'laterRevisions' => $item->laterRevisions, 'overrides' => $item->overrides,
-            'changed' => $item->changed, 'conflict' => $item->conflict,
-        ];
     }
 
     /** @param array<string, string> $details */
