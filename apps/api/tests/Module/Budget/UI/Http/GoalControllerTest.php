@@ -66,6 +66,151 @@ final class GoalControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testStockGoalsReadDatedValuesAndStartWithoutDependingOnReportingMonths(): void
+    {
+        $account = '00000000-0000-7000-8000-0000000000d1';
+        $this->insertAccount($account, null);
+        $this->connection->update('account_financial_accounts', ['opened_on' => '2025-01-01'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $account]);
+        $this->stockSnapshot($account, '2025-12-31', '10000.00');
+        $this->stockSnapshot($account, '2026-03-31', '12000.00');
+        $excluded = '00000000-0000-7000-8000-0000000000d4';
+        $this->insertAccount($excluded, null);
+        $this->connection->update('account_financial_accounts', ['closed_on' => '2026-04-14'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $excluded]);
+        $this->stockSnapshot($excluded, '2026-04-14', '999.00');
+        $this->clock->modify('2026-04-15T12:00:00+00:00');
+        $this->refreshCsrf();
+        $this->client->request('GET', '/api/v1/net-worth?asOf=2026-04-15');
+        self::assertResponseIsSuccessful();
+        $contributions = $this->decode()['contributions'];
+        self::assertIsArray($contributions);
+        $closedContribution = null;
+        foreach ($contributions as $contribution) {
+            $contribution = self::arr($contribution);
+            if ($excluded === $contribution['accountId']) {
+                $closedContribution = $contribution;
+            }
+        }
+        self::assertNotNull($closedContribution);
+        self::assertFalse($closedContribution['eligible']);
+        self::assertSame('2026-04-14', $closedContribution['valuedOn']);
+        $payload = ['label' => 'Net worth', 'periodicity' => 'YEARLY', 'metric' => 'NET_WORTH', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '20000.00', 'assetCode' => 'EUR']];
+        $this->requestJson('POST', '/api/v1/goals', $payload);
+        self::assertResponseStatusCodeSame(201);
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-01&to=2026-12&granularity=YEAR');
+        self::assertResponseIsSuccessful();
+        $item = $this->stockItem('years');
+        $item = self::arr($item);
+        self::assertSame('IN_PROGRESS', $item['status']);
+        self::assertSame('BEHIND', self::arr($item['pace'])['status']);
+        $expected = self::arr($item['pace'])['expected'];
+        self::assertIsString($expected);
+        self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('12500', $expected));
+        self::assertSame('10000.00', self::arr($item['start'])['value']);
+        self::assertSame('2026-03-31', $item['valuationDate']);
+        self::assertSame('/accounts', $item['explanationUrl']);
+        $this->stockSnapshot($account, '2026-12-31', '19500.00');
+        $this->clock->modify('2026-12-31T12:00:00+00:00');
+        $this->refreshCsrf();
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-01&to=2026-12&granularity=YEAR');
+        self::assertResponseIsSuccessful();
+        $item = self::arr($this->stockItem('years'));
+        self::assertSame('MISSED', $item['status']);
+        $this->connection->update('account_balance_snapshots', ['amount_value' => '20100.00', 'amount_literal' => '20100.00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $account, 'as_of' => '2026-12-31']);
+        $url = '/api/v1/goals/evaluations?from=2026-01&to=2026-12&granularity=YEAR';
+        $this->client->request('GET', $url);
+        self::assertSame('MET', $this->stockItem('years')['status']);
+        $this->connection->update('account_balance_snapshots', ['amount_value' => '19999.99', 'amount_literal' => '19999.99'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $account, 'as_of' => '2026-12-31']);
+        $this->client->request('GET', $url);
+        self::assertSame('MISSED', $this->stockItem('years')['status']);
+        $this->connection->update('account_balance_snapshots', ['amount_value' => '19500.00', 'amount_literal' => '19500.00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $account, 'as_of' => '2026-12-31']);
+        $payload['tolerance'] = '500.00';
+        $payload['label'] = 'Tolerant net worth';
+        $this->requestJson('POST', '/api/v1/goals', $payload);
+        self::assertResponseStatusCodeSame(201);
+        $this->client->request('GET', $url);
+        $item = $this->stockItem('years');
+        self::assertSame('MET', $item['status']);
+        self::assertTrue($item['withinTolerance']);
+        $foreignAssetAccount = '00000000-0000-7000-8000-0000000000d3';
+        $this->insertAccount($foreignAssetAccount, null);
+        $this->connection->update('account_financial_accounts', ['asset_code' => 'USD'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $foreignAssetAccount]);
+        $this->stockSnapshot($foreignAssetAccount, '2026-12-31', '1.00');
+        $this->connection->update('account_balance_snapshots', ['amount_asset' => 'USD'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $foreignAssetAccount]);
+        $this->client->request('GET', $url);
+        $item = $this->stockItem('years');
+        self::assertSame('NOT_CALCULABLE', $item['status']);
+        self::assertSame('MIXED_ASSETS', $item['reason']);
+        self::assertNull($item['achieved']);
+    }
+
+    public function testAYearlyStockTargetNeedsNoTwelvePartSchedule(): void
+    {
+        $payload = ['label' => 'Tiny stock', 'periodicity' => 'YEARLY', 'metric' => 'NET_WORTH', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '0.06', 'assetCode' => 'EUR']];
+        $this->requestJson('POST', '/api/v1/goals', $payload);
+        self::assertResponseStatusCodeSame(201);
+        $goal = $this->decode();
+        $id = $this->id($goal);
+        self::assertNull(self::arr($goal['currentVersion'])['schedule']);
+        $this->requestJson('PUT', '/api/v1/goals/'.$id, ['label' => 'Tiny stock', 'version' => 1, 'targetAmount' => ['value' => '0.07', 'assetCode' => 'EUR']]);
+        self::assertResponseIsSuccessful();
+        $goal = $this->decode();
+        self::assertSame('0.07', self::arr($goal['currentVersion'])['targetAmount']);
+        self::assertNull(self::arr($goal['currentVersion'])['schedule']);
+    }
+
+    public function testAccountStockHasNoDataAndRejectsArchivedAndForeignReferences(): void
+    {
+        $account = '00000000-0000-7000-8000-0000000000d1';
+        $this->insertAccount($account, null);
+        $payload = ['label' => 'Balance ceiling', 'periodicity' => 'MONTHLY', 'metric' => 'ACCOUNT_BALANCE', 'direction' => 'CEILING', 'scope' => ['type' => 'ACCOUNT', 'ref' => $account], 'startPeriod' => '2026-09', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '1000.00', 'assetCode' => 'EUR']];
+        $this->requestJson('POST', '/api/v1/goals', $payload);
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('CEILING', $this->decode()['direction']);
+        $url = '/api/v1/goals/evaluations?from=2026-09&to=2026-09&granularity=MONTH';
+        $this->client->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $item = $this->stockItem('months');
+        self::assertSame('NOT_CALCULABLE', $item['status']);
+        self::assertSame('NO_DATA', $item['reason']);
+        self::assertNull($item['achieved']);
+        $this->stockSnapshot($account, '2026-09-01', '1000.01');
+        $this->client->request('GET', $url);
+        self::assertResponseIsSuccessful();
+        $item = $this->stockItem('months');
+        self::assertSame('MISSED', $item['status']);
+        $this->connection->update('account_financial_accounts', ['archived_at' => '2026-09-10 12:00:00+00'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $account]);
+        $this->client->request('GET', $url);
+        $item = $this->stockItem('months');
+        self::assertSame('NOT_CALCULABLE', $item['status']);
+        self::assertSame('REFERENCE_ARCHIVED', $item['reason']);
+        self::assertNull($item['achieved']);
+        $this->requestJson('POST', '/api/v1/goals', $payload);
+        self::assertResponseStatusCodeSame(422);
+        $foreign = '00000000-0000-7000-8000-0000000000d2';
+        $this->insertAccount($foreign, null);
+        $this->connection->update('account_financial_accounts', ['workspace_id' => WorkspaceFixture::OTHER_WORKSPACE], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => $foreign]);
+        $payload['scope']['ref'] = $foreign;
+        $this->requestJson('POST', '/api/v1/goals', $payload);
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    /** @return array<string, mixed> */
+    private function stockItem(string $key): array
+    {
+        $periods = $this->decode()[$key];
+        self::assertIsArray($periods);
+        $period = self::arr($periods[0]);
+        $items = $period['items'];
+        self::assertIsArray($items);
+
+        return self::arr($items[0]);
+    }
+
+    private function stockSnapshot(string $account, string $day, string $amount): void
+    {
+        $this->connection->insert('account_balance_snapshots', ['id' => substr(sha1($account.$day), 0, 8).'-0000-7000-8000-000000000000', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $account, 'as_of' => $day, 'amount_value' => $amount, 'amount_literal' => $amount, 'amount_asset' => 'EUR', 'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'version' => 1, 'recorded_at' => $day.' 12:00:00+00', 'recorded_by' => WorkspaceFixture::OWNER_ID]);
+    }
+
     public function testItCreatesEditsAndListsAYearlyGoalWithImmutableDefinitions(): void
     {
         $this->requestJson('POST', '/api/v1/goals', $this->annualPayload());

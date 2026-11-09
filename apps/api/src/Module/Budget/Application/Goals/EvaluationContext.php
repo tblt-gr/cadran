@@ -14,6 +14,9 @@ final class EvaluationContext
     /** @var array<string, list<GoalVersion>> */
     public array $versions = [];
 
+    /** @var array<string, array{?string, ?string, ?string, string}> */
+    public array $stocks = [];
+
     /** @var array<string, GoalScopeView> */
     private array $scopes = [];
 

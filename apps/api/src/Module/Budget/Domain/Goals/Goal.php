@@ -24,7 +24,11 @@ final readonly class Goal
         public int $version,
         public \DateTimeImmutable $createdAt,
         public string $createdBy,
+        public ?GoalDirection $stockDirection = null,
     ) {
+        if (null !== $stockDirection && !$metric->isStock()) {
+            throw new InvalidGoal('Only a stock goal carries an explicit direction.');
+        }
         self::identifier($id);
         self::identifier($createdBy);
         if ($label !== trim($label) || mb_strlen($label) < 1 || mb_strlen($label) > 80) {
@@ -49,7 +53,7 @@ final readonly class Goal
 
     public function direction(): GoalDirection
     {
-        return $this->metric->direction();
+        return $this->metric->isStock() ? ($this->stockDirection ?? GoalDirection::MINIMUM) : $this->metric->direction();
     }
 
     /** A goal is current while its end period is not past; a goal without end always is. */
@@ -90,7 +94,7 @@ final readonly class Goal
             throw new InvalidGoal('A goal stop cannot extend its end period.');
         }
 
-        return new self($this->id, $this->workspace, $this->label, $this->periodicity, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $this->startPeriod, $lastPeriod, $this->version + 1, $this->createdAt, $this->createdBy);
+        return new self($this->id, $this->workspace, $this->label, $this->periodicity, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $this->startPeriod, $lastPeriod, $this->version + 1, $this->createdAt, $this->createdBy, $this->stockDirection);
     }
 
     public function reviseLabel(string $label): self
@@ -122,7 +126,7 @@ final readonly class Goal
 
     private function with(string $label): self
     {
-        return new self($this->id, $this->workspace, $label, $this->periodicity, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $this->startPeriod, $this->endPeriod, $this->version + 1, $this->createdAt, $this->createdBy);
+        return new self($this->id, $this->workspace, $label, $this->periodicity, $this->metric, $this->scopeType, $this->scopeRef, $this->assetCode, $this->startPeriod, $this->endPeriod, $this->version + 1, $this->createdAt, $this->createdBy, $this->stockDirection);
     }
 
     private static function identifier(string $value): void

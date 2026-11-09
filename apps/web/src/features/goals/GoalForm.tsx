@@ -3,6 +3,7 @@ import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   CreateGoalRequest,
   GoalMetric,
+  GoalDirection,
   GoalPeriodicity,
   GoalScheduleInput,
   GoalSummary,
@@ -30,6 +31,7 @@ import {
   firstGoalMonth,
   goalMetrics,
   initialSchedule,
+  isStockMetric,
   lastGoalMonth,
   MAX_CORRECTION_MONTHS,
   monthsBefore,
@@ -39,6 +41,7 @@ import {
 import { GoalPeriodFields } from './GoalPeriodFields';
 import { GoalToleranceField } from './goal-tolerance-field/GoalToleranceField';
 import { displayTolerance, toleranceInput, validTolerance } from './goalTolerance';
+import { GoalDirectionField } from './goal-direction-field/GoalDirectionField';
 import { GoalValueFields } from './GoalValueFields';
 import styles from './GoalForm.module.css';
 
@@ -75,6 +78,7 @@ export function GoalForm({
     goal?.periodicity ?? initial?.periodicity ?? 'MONTHLY',
   );
   const [metric, setMetric] = useState<GoalMetric>(goal?.metric ?? 'NET_SAVINGS_TRANSFERS');
+  const [direction, setDirection] = useState<GoalDirection>(goal?.direction ?? 'MINIMUM');
   const [scope, setScope] = useState(goal?.scope.id ?? goal?.scope.axis ?? '');
   const [start, setStart] = useState(
     goal?.startPeriod ?? initial?.start ?? defaultStart(periodicity),
@@ -130,7 +134,7 @@ export function GoalForm({
   const startValid = periodFormat(start);
   const endValid = noEnd || (periodFormat(end) && end >= start);
   const periodValid = startValid && endValid;
-  const yearlyAmount = periodicity === 'YEARLY' && amount;
+  const yearlyAmount = periodicity === 'YEARLY' && amount && !isStockMetric(metric);
   const scheduleValid =
     !yearlyAmount ||
     schedule.mode === 'LINEAR' ||
@@ -225,6 +229,7 @@ export function GoalForm({
       label: label.trim(),
       periodicity,
       metric,
+      ...(isStockMetric(metric) ? { direction } : {}),
       scope: { type: scopeType, ref: scopeType === 'WORKSPACE' ? null : scope },
       startPeriod: start,
       endPeriod: noEnd ? null : end,
@@ -269,7 +274,7 @@ export function GoalForm({
             />
           </label>
           <label>
-            <span>{t('goals.metric')}</span>
+            <span>{t('goals.metricLabel')}</span>
             <select
               disabled={Boolean(goal)}
               onChange={(e) => changeMetric(e.target.value as GoalMetric)}
@@ -277,12 +282,15 @@ export function GoalForm({
             >
               {goalMetrics.map((choice) => (
                 <option key={choice} value={choice}>
-                  {t(`goals.metrics.${choice}`)}
+                  {t(`goals.metric.${choice}`)}
                 </option>
               ))}
             </select>
           </label>
         </FormGrid>
+        {isStockMetric(metric) ? (
+          <GoalDirectionField disabled={Boolean(goal)} value={direction} onChange={setDirection} />
+        ) : null}
         <GoalScopeField
           goal={goal}
           scope={scope}

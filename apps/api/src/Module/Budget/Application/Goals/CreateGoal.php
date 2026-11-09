@@ -9,6 +9,7 @@ use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalDirection;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
@@ -80,6 +81,10 @@ final readonly class CreateGoal
         if (!$metric->acceptsScope($scope)) {
             throw new GoalInputError('invalid_goal_metric_scope', 'The goal metric, periodicity and scope do not match.');
         }
+        $direction = null === $input->direction ? null : GoalDirection::tryFrom($input->direction);
+        if (null !== $input->direction && (null === $direction || !$metric->isStock())) {
+            throw new GoalInputError('invalid_goal_direction', 'Only stock goals accept an explicit minimum or ceiling direction.');
+        }
         $valueType = GoalValueType::tryFrom($input->valueType);
         if (null === $valueType || !$metric->accepts($periodicity, $valueType, $scope)) {
             throw new GoalInputError('invalid_goal_value_type', 'This goal metric and periodicity do not take this value type.');
@@ -89,7 +94,7 @@ final readonly class CreateGoal
         $now = $this->calendar->now();
         $goalId = $this->uuid->generate();
         try {
-            $goal = new Goal($goalId, $workspace, trim($input->label), $periodicity, $metric, $scope, $input->scopeRef, $currency, $input->startPeriod, $input->endPeriod, 1, $now, $actorId);
+            $goal = new Goal($goalId, $workspace, trim($input->label), $periodicity, $metric, $scope, $input->scopeRef, $currency, $input->startPeriod, $input->endPeriod, 1, $now, $actorId, $direction);
         } catch (InvalidGoal $exception) {
             throw new GoalInputError('invalid_goal_target', $exception->getMessage());
         }
@@ -108,10 +113,10 @@ final readonly class CreateGoal
                 if ($target->compareTo(DecimalValue::zero()) <= 0) {
                     throw new GoalInputError('invalid_goal_target', 'A goal target amount is positive.');
                 }
-                if (GoalPeriodicity::MONTHLY === $periodicity && null !== $input->schedule) {
-                    throw new GoalInputError('invalid_goal_schedule', 'Only a yearly goal has a monthly calendar.');
+                if ((GoalPeriodicity::MONTHLY === $periodicity || $metric->isStock()) && null !== $input->schedule) {
+                    throw new GoalInputError('invalid_goal_schedule', 'Only a yearly flow goal has a monthly calendar.');
                 }
-                $schedule = GoalPeriodicity::YEARLY === $periodicity
+                $schedule = GoalPeriodicity::YEARLY === $periodicity && !$metric->isStock()
                     ? ($this->schedules)($currency, $target, $input->schedule ?? new GoalScheduleInput(GoalScheduleMode::LINEAR->value, null))
                     : null;
                 $definition = GoalVersion::amount($definitionId, $workspace, $goalId, 1, $effectiveFrom, $target, $schedule, $now, $actorId, tolerance: $tolerance);

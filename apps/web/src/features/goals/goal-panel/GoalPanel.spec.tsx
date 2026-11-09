@@ -173,8 +173,16 @@ describe('GoalPanel monthly', () => {
     const row = document.querySelector(`[data-goal-id="${g1.id}"]`)!;
     expect(row.getAttribute('data-tone')).toBe('positive');
     expect(within(row as HTMLElement).getByText('Atteint')).toBeTruthy();
-    expect(row.textContent).toMatch(/Tolérance de 50,00\s€/);
-    expect(row.textContent).toMatch(/Manque 40,00\s€/);
+    expect(row.textContent).not.toMatch(/Tolérance de/);
+    fireEvent.click(
+      within(row as HTMLElement).getByRole('button', { name: /^Expliquer l’objectif/ }),
+    );
+    expect(screen.getByRole('dialog', { name: /^Détails de l’objectif/ }).textContent).toMatch(
+      /Tolérance de 50,00\s€/,
+    );
+    expect(screen.getByRole('dialog', { name: /^Détails de l’objectif/ }).textContent).toMatch(
+      /Manque 40,00\s€/,
+    );
   });
 
   it('titles the panel with the month and lists only that month, ceilings first', async () => {
@@ -229,8 +237,8 @@ describe('GoalPanel monthly', () => {
     expect(within(month).getByText('Non atteint')).toBeTruthy();
     expect(within(month).getByText('Atteint')).toBeTruthy();
     // Each figure also appears in the gap and formula line that explains the row.
-    expect(within(month).getAllByText(/500,00/).length).toBe(6);
-    expect(within(month).getAllByText(/320,00/).length).toBe(6);
+    expect(within(month).getAllByText(/500,00/).length).toBe(3);
+    expect(within(month).getAllByText(/320,00/).length).toBe(3);
   });
 
   it('explains a row with its gap, formula and version, and focuses the goal a report pointed at', async () => {
@@ -263,8 +271,11 @@ describe('GoalPanel monthly', () => {
     await loaded();
     const row = document.querySelector<HTMLElement>(`[data-goal-id="${cap.id}"]`)!;
     await waitFor(() => expect(document.activeElement).toBe(row));
-    expect(row.textContent).toMatch(/Dépassement de 50,00/);
-    expect(row.textContent).toMatch(/Version 1/);
+    expect(row.textContent).not.toMatch(/Version 1/);
+    fireEvent.click(within(row).getByRole('button', { name: /^Expliquer l’objectif/ }));
+    const details = screen.getByRole('dialog', { name: /^Détails de l’objectif/ });
+    expect(details.textContent).toMatch(/Dépassement de 50,00/);
+    expect(details.textContent).toMatch(/Version 1/);
     expect(document.querySelector(`[data-goal-id="${g1.id}"]`)).not.toBe(document.activeElement);
   });
 
@@ -294,7 +305,11 @@ describe('GoalPanel monthly', () => {
     const month = screen.getByRole('region', { name: 'Ce mois-ci' });
     const g2Row = within(month).getByRole('heading', { name: 'G2' }).closest('li')!;
     expect(within(g2Row).getByText('Atteint')).toBeTruthy();
-    expect(within(g2Row).getByText('G1 · Remplacé ce mois-ci par G2')).toBeTruthy();
+    expect(within(g2Row).queryByText('G1 · Remplacé ce mois-ci par G2')).toBeNull();
+    fireEvent.click(within(g2Row).getByRole('button', { name: 'Expliquer l’objectif « G2 »' }));
+    const details = screen.getByRole('dialog', { name: 'Détails de l’objectif « G2 »' });
+    expect(within(details).getByText('G1 · Remplacé ce mois-ci par G2')).toBeTruthy();
+    fireEvent.click(within(details).getByRole('button', { name: 'Fermer' }));
     const g3Row = within(month).getByRole('heading', { name: 'G3' }).closest('li')!;
     expect(within(g3Row).getByText('Non atteint')).toBeTruthy();
     expect(within(month).queryByRole('heading', { name: 'G1' })).toBeNull();
@@ -508,7 +523,9 @@ describe('GoalPanel yearly', () => {
     );
     renderPanel({ kind: 'year', year: 2026 });
 
-    expect(await screen.findByText('G4 · Remplacé cette année par G5')).toBeTruthy();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Expliquer l’objectif « G5 »' }));
+    expect(screen.getByText('G4 · Remplacé cette année par G5')).toBeTruthy();
   });
 
   it('lists the yearly goals with their pace, and no monthly goal', async () => {

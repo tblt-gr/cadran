@@ -34,6 +34,10 @@ final readonly class GoalEvaluationView
         public ?array $pace,
         public ?GoalEvaluationFigure $tolerance = null,
         public ?bool $withinTolerance = null,
+        public ?GoalEvaluationFigure $start = null,
+        public ?string $valuationDate = null,
+        public ?string $valuationQuality = null,
+        public ?string $explanationUrl = null,
     ) {
     }
 }

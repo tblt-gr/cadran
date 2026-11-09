@@ -143,9 +143,9 @@ final readonly class BuildGoalRevision
         }
         $tolerance = GoalToleranceInput::parse($input->tolerance) ?? $base->tolerance;
         $toleranceChanged = 0 !== $tolerance->compareTo($base->tolerance);
-        if (GoalPeriodicity::MONTHLY === $goal->periodicity) {
+        if (GoalPeriodicity::MONTHLY === $goal->periodicity || $goal->metric->isStock()) {
             if (null !== $input->schedule) {
-                throw new GoalInputError('invalid_goal_schedule', 'Only a yearly goal has a monthly calendar.');
+                throw new GoalInputError('invalid_goal_schedule', 'Only a yearly flow goal has a monthly calendar.');
             }
             if (null !== $baseTarget && 0 === $target->compareTo($baseTarget) && !$toleranceChanged) {
                 return null;

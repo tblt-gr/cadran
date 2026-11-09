@@ -114,14 +114,6 @@
   color: var(--text-primary);
 }
 
-.replaced {
-  margin: var(--spacing-none);
-  padding: var(--spacing-none);
-  color: var(--text-muted);
-  font-size: var(--font-size-label);
-  list-style: none;
-}
-
 .empty {
   margin: var(--spacing-none);
   color: var(--text-secondary);

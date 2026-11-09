@@ -1,7 +1,7 @@
 import type { GoalMetric, GoalPeriodicity, GoalValueType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { AmountInput } from './AmountInput';
-import { valueTypesFor } from './goalFormFields';
+import { isStockMetric, valueTypesFor } from './goalFormFields';
 
 interface Props {
   metric: GoalMetric;
@@ -33,7 +33,13 @@ export function GoalValueFields({
   const flagged = showErrors && !valid;
   const amount = valueType === 'AMOUNT';
   const valueLabel = t(
-    amount ? 'goals.targetAmount' : valueType === 'RATE' ? 'goals.targetRate' : 'goals.ratio',
+    isStockMetric(metric)
+      ? 'goals.stockTarget'
+      : amount
+        ? 'goals.targetAmount'
+        : valueType === 'RATE'
+          ? 'goals.targetRate'
+          : 'goals.ratio',
   );
   return (
     <>

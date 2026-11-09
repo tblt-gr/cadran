@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Budget\Infrastructure\Persistence;
 
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalDirection;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
@@ -27,13 +28,14 @@ final class GoalRow
             AssetCode::fromString(self::text($row['asset_code'] ?? null)), self::text($row['start_period'] ?? null), self::nullable($row['end_period'] ?? null),
             (int) self::text($row['version'] ?? null), new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
             self::text($row['created_by'] ?? null),
+            null === ($row['direction'] ?? null) ? null : GoalDirection::from(self::text($row['direction'])),
         );
     }
 
     /** @return array<string, mixed> */
     public static function columns(Goal $goal): array
     {
-        return ['label' => $goal->label, 'periodicity' => $goal->periodicity->value, 'metric' => $goal->metric->value, 'scope_type' => $goal->scopeType->value, 'scope_ref' => $goal->scopeRef, 'asset_code' => $goal->assetCode->toString(), 'start_period' => $goal->startPeriod, 'end_period' => $goal->endPeriod, 'version' => $goal->version];
+        return ['direction' => $goal->stockDirection?->value, 'label' => $goal->label, 'periodicity' => $goal->periodicity->value, 'metric' => $goal->metric->value, 'scope_type' => $goal->scopeType->value, 'scope_ref' => $goal->scopeRef, 'asset_code' => $goal->assetCode->toString(), 'start_period' => $goal->startPeriod, 'end_period' => $goal->endPeriod, 'version' => $goal->version];
     }
 
     public static function text(mixed $value): string

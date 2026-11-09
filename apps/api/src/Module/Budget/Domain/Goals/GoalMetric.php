@@ -6,6 +6,8 @@ namespace App\Module\Budget\Domain\Goals;
 
 enum GoalMetric: string
 {
+    case NET_WORTH = 'NET_WORTH';
+    case ACCOUNT_BALANCE = 'ACCOUNT_BALANCE';
     case NET_SAVINGS_TRANSFERS = 'NET_SAVINGS_TRANSFERS';
     case BUDGET_SURPLUS = 'BUDGET_SURPLUS';
     case CATEGORY_SPENDING = 'CATEGORY_SPENDING';
@@ -22,6 +24,11 @@ enum GoalMetric: string
         };
     }
 
+    public function isStock(): bool
+    {
+        return self::NET_WORTH === $this || self::ACCOUNT_BALANCE === $this;
+    }
+
     public function isRate(): bool
     {
         return self::SAVINGS_RATE === $this || self::NET_SAVINGS_RATE === $this;
@@ -34,6 +41,9 @@ enum GoalMetric: string
      */
     public function accepts(GoalPeriodicity $periodicity, GoalValueType $valueType, GoalScopeType $scope): bool
     {
+        if ($this->isStock()) {
+            return GoalValueType::AMOUNT === $valueType && $this->acceptsScope($scope);
+        }
         $valueAccepted = match ($valueType) {
             GoalValueType::RATE => $this->isRate(),
             GoalValueType::ROLLING_INCOME_SHARE => !$this->isRate() && GoalPeriodicity::MONTHLY === $periodicity,
@@ -46,10 +56,10 @@ enum GoalMetric: string
     public function acceptsScope(GoalScopeType $scope): bool
     {
         return match ($this) {
-            self::NET_SAVINGS_TRANSFERS, self::BUDGET_SURPLUS, self::SAVINGS_RATE, self::NET_SAVINGS_RATE => GoalScopeType::WORKSPACE === $scope,
+            self::NET_WORTH, self::NET_SAVINGS_TRANSFERS, self::BUDGET_SURPLUS, self::SAVINGS_RATE, self::NET_SAVINGS_RATE => GoalScopeType::WORKSPACE === $scope,
             self::CATEGORY_SPENDING => GoalScopeType::CATEGORY === $scope,
             self::AXIS_SPENDING => GoalScopeType::AXIS === $scope,
-            self::ACCOUNT_CONTRIBUTIONS => GoalScopeType::ACCOUNT === $scope,
+            self::ACCOUNT_CONTRIBUTIONS, self::ACCOUNT_BALANCE => GoalScopeType::ACCOUNT === $scope,
         };
     }
 }

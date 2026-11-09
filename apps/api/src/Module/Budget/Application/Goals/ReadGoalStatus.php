@@ -239,6 +239,9 @@ final readonly class ReadGoalStatus
         if (!$goal->coversPeriod($month->key())) {
             return $this->notCalculable($goal, $version, $month, $month->key() < $goal->firstMonth() ? 'GOAL_NOT_STARTED' : 'GOAL_ENDED', 'EMPTY');
         }
+        if ($goal->metric->isStock()) {
+            return $this->notCalculable($goal, $version, $month, 'EVALUATION_NOT_AVAILABLE', 'EMPTY');
+        }
         if (GoalPeriodicity::MONTHLY === $goal->periodicity) {
             return $this->monthly($goal, $versions, $month, $archived, $categoryIds, $inputs);
         }
@@ -528,6 +531,7 @@ final readonly class ReadGoalStatus
             GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
             GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
             GoalMetric::NET_SAVINGS_RATE => 'netSavingsRate',
+            GoalMetric::NET_WORTH, GoalMetric::ACCOUNT_BALANCE => throw new \LogicException('Stock metrics use dated valuations.'),
             GoalMetric::AXIS_SPENDING => 'axis:'.$goal->scopeRef,
         };
         $metric = $month->figures?->cells[$cell] ?? null;

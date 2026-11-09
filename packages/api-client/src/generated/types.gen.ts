@@ -875,7 +875,7 @@ export type GoalValueType = 'AMOUNT' | 'INCOME_SHARE' | 'ROLLING_INCOME_SHARE' |
  */
 export type GoalPeriod = string;
 
-export type GoalMetric = 'NET_SAVINGS_TRANSFERS' | 'BUDGET_SURPLUS' | 'CATEGORY_SPENDING' | 'AXIS_SPENDING' | 'ACCOUNT_CONTRIBUTIONS' | 'SAVINGS_RATE' | 'NET_SAVINGS_RATE';
+export type GoalMetric = 'NET_SAVINGS_TRANSFERS' | 'BUDGET_SURPLUS' | 'CATEGORY_SPENDING' | 'AXIS_SPENDING' | 'ACCOUNT_CONTRIBUTIONS' | 'SAVINGS_RATE' | 'NET_SAVINGS_RATE' | 'NET_WORTH' | 'ACCOUNT_BALANCE';
 
 export type GoalDirection = 'MINIMUM' | 'CEILING';
 
@@ -896,6 +896,10 @@ export type GoalAmountInput = {
 export type CreateGoalRequest = {
     label: string;
     periodicity: GoalPeriodicity;
+    /**
+     * Optional direction for stock goals only; defaults to MINIMUM.
+     */
+    direction?: GoalDirection;
     metric: GoalMetric;
     scope: GoalScopeInput;
     startPeriod: GoalPeriod;
@@ -916,7 +920,7 @@ export type CreateGoalRequest = {
      */
     ratio?: GoalDecimal | null;
     /**
-     * Monthly calendar of a yearly amount goal; LINEAR when omitted. Refused on every other goal.
+     * Monthly calendar of a yearly flow amount goal; LINEAR when omitted. Refused for stock goals and every other goal.
      */
     schedule?: GoalScheduleInput | null;
     /**
@@ -1307,12 +1311,15 @@ export type GoalEvaluationFigure = {
 };
 
 export type GoalEvaluationFormula = {
-    key: 'goals.formula.amount' | 'goals.formula.incomeShare' | 'goals.formula.rollingIncomeShare' | 'goals.formula.rate';
+    key: 'goals.formula.amount' | 'goals.formula.incomeShare' | 'goals.formula.rollingIncomeShare' | 'goals.formula.rate' | 'goals.formula.stock';
     operands: {
+        start?: GoalStatusValue;
+        valuationDate?: string | null;
+        valuationQuality?: string | null;
         target: GoalStatusValue;
         achieved: GoalStatusValue;
-        income: GoalStatusValue;
-        ratio: GoalStatusValue;
+        income?: GoalStatusValue;
+        ratio?: GoalStatusValue;
         /**
          * The margin in the unit of the target (converted to an amount for a share); null when the goal is strict.
          */
@@ -1338,6 +1345,10 @@ export type GoalEvaluation = {
      * The identifier of the report column showing the same figure; null for account contributions.
      */
     columnKey: string | null;
+    start?: GoalEvaluationFigure | null;
+    valuationDate?: string | null;
+    valuationQuality?: string | null;
+    explanationUrl?: string | null;
     target: GoalEvaluationFigure | null;
     achieved: GoalEvaluationFigure | null;
     /**

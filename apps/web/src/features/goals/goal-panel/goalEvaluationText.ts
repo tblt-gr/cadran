@@ -53,10 +53,16 @@ export function formulaText(evaluation: GoalEvaluation, t: TFunction, locale: st
   const { operands, key } = evaluation.formula;
   const dash = t('goals.noValue');
   return t(key, {
+    valuationDate: evaluation.valuationDate ?? dash,
+    valuationQuality: evaluation.valuationQuality
+      ? t(`accounts.balances.qualities.${evaluation.valuationQuality}`, {
+          defaultValue: evaluation.valuationQuality,
+        })
+      : dash,
     target: formatEvaluationFigure(evaluation.target, locale) ?? dash,
     achieved: formatEvaluationFigure(evaluation.achieved, locale) ?? dash,
-    income: amount(operands.income, evaluation, locale) ?? dash,
-    ratio: percent(operands.ratio, locale) ?? dash,
+    income: amount(operands.income ?? null, evaluation, locale) ?? dash,
+    ratio: percent(operands.ratio ?? null, locale) ?? dash,
   });
 }
 
