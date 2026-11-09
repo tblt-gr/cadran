@@ -10,6 +10,14 @@ import {
 } from './goalFormFields';
 
 describe('scopeFor', () => {
+  it.each(['TOTAL_INCOME', 'TOTAL_SPENDING'] as const)(
+    'restricts %s to workspace amounts',
+    (metric) => {
+      expect(scopeFor(metric)).toBe('WORKSPACE');
+      expect(valueTypesFor(metric, 'MONTHLY')).toEqual(['AMOUNT']);
+      expect(valueTypesFor(metric, 'YEARLY')).toEqual(['AMOUNT']);
+    },
+  );
   it('restricts stock metrics to amounts and their authorized scope type', () => {
     expect(scopeFor('NET_WORTH')).toBe('WORKSPACE');
     expect(scopeFor('ACCOUNT_BALANCE')).toBe('ACCOUNT');

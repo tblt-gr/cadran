@@ -43,6 +43,15 @@ final class GoalTest extends TestCase
     /** @return iterable<string, array{GoalMetric, GoalPeriodicity, GoalValueType, GoalScopeType, bool}> */
     public static function matrix(): iterable
     {
+        foreach ([GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING] as $metric) {
+            foreach (GoalPeriodicity::cases() as $periodicity) {
+                foreach (GoalValueType::cases() as $type) {
+                    foreach (GoalScopeType::cases() as $scope) {
+                        yield $metric->value.' '.$periodicity->value.' '.$type->value.' '.$scope->value => [$metric, $periodicity, $type, $scope, GoalValueType::AMOUNT === $type && GoalScopeType::WORKSPACE === $scope];
+                    }
+                }
+            }
+        }
         yield 'net worth amount' => [GoalMetric::NET_WORTH, GoalPeriodicity::YEARLY, GoalValueType::AMOUNT, GoalScopeType::WORKSPACE, true];
         yield 'balance account' => [GoalMetric::ACCOUNT_BALANCE, GoalPeriodicity::MONTHLY, GoalValueType::AMOUNT, GoalScopeType::ACCOUNT, true];
         yield 'stock refuses share' => [GoalMetric::NET_WORTH, GoalPeriodicity::YEARLY, GoalValueType::INCOME_SHARE, GoalScopeType::WORKSPACE, false];
@@ -70,6 +79,8 @@ final class GoalTest extends TestCase
 
     public function testRateMetricsAreMinimumsAndSpendingMetricsCeilings(): void
     {
+        self::assertSame('MINIMUM', GoalMetric::TOTAL_INCOME->direction()->value);
+        self::assertSame('CEILING', GoalMetric::TOTAL_SPENDING->direction()->value);
         self::assertSame('MINIMUM', GoalMetric::SAVINGS_RATE->direction()->value);
         self::assertSame('MINIMUM', GoalMetric::NET_SAVINGS_RATE->direction()->value);
         self::assertSame('CEILING', GoalMetric::AXIS_SPENDING->direction()->value);

@@ -89,6 +89,9 @@ export function GoalRow({ row, handlers }: Props) {
       {evaluation?.pace ? (
         <p className={styles.pace}>{t(`goals.panel.pace.${evaluation.pace.status}`)}</p>
       ) : null}
+      {evaluation?.status === 'MET' && evaluation.withinTolerance === true ? (
+        <p className={styles.note}>{t('goals.panel.metWithinTolerance')}</p>
+      ) : null}
       {evaluation?.status === 'NOT_CALCULABLE' && evaluation.reason !== null ? (
         <p className={styles.note}>{t(`goals.panel.reasons.${evaluation.reason}`)}</p>
       ) : null}

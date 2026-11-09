@@ -8,6 +8,8 @@ import type {
 import type { GoalScheduleValue } from './goal-schedule-editor/GoalScheduleEditor';
 
 export const goalMetrics: GoalMetric[] = [
+  'TOTAL_INCOME',
+  'TOTAL_SPENDING',
   'NET_SAVINGS_TRANSFERS',
   'BUDGET_SURPLUS',
   'SAVINGS_RATE',
@@ -23,14 +25,16 @@ export function isStockMetric(metric: GoalMetric): boolean {
   return metric === 'NET_WORTH' || metric === 'ACCOUNT_BALANCE';
 }
 
-/** The rate metrics hold a target rate; every other metric holds an amount or a share of income. */
+/** The rate metrics hold a target rate. */
 export function isRateMetric(metric: GoalMetric): boolean {
   return metric === 'SAVINGS_RATE' || metric === 'NET_SAVINGS_RATE';
 }
 
 /** Mirrors the API matrix: a rate metric takes only `RATE`, a rolling share only a monthly goal. */
 export function valueTypesFor(metric: GoalMetric, periodicity: GoalPeriodicity): GoalValueType[] {
-  if (isStockMetric(metric)) return ['AMOUNT'];
+  if (isStockMetric(metric) || metric === 'TOTAL_INCOME' || metric === 'TOTAL_SPENDING') {
+    return ['AMOUNT'];
+  }
   if (isRateMetric(metric)) return ['RATE'];
   return periodicity === 'MONTHLY'
     ? ['AMOUNT', 'INCOME_SHARE', 'ROLLING_INCOME_SHARE']

@@ -11094,6 +11094,8 @@ components:
           NET_SAVINGS_RATE,
           NET_WORTH,
           ACCOUNT_BALANCE,
+          TOTAL_INCOME,
+          TOTAL_SPENDING,
         ]
     GoalDirection:
       type: string

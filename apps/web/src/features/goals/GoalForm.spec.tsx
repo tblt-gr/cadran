@@ -68,6 +68,31 @@ describe('GoalForm', () => {
     vi.useRealTimers();
   });
 
+  it.each(['TOTAL_INCOME', 'TOTAL_SPENDING'] as const)(
+    'saves %s as a workspace amount without a scope or direction choice',
+    (metric) => {
+      const submit = renderForm();
+      fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Total mensuel' } });
+      fireEvent.change(screen.getByLabelText('Indicateur'), { target: { value: metric } });
+      expect(valueTypeOptions()).toEqual(['AMOUNT']);
+      expect(screen.queryByLabelText('Périmètre')).toBeNull();
+      expect(screen.queryByLabelText('Sens de l’objectif')).toBeNull();
+      fireEvent.change(screen.getByLabelText('Montant cible'), { target: { value: '2500.01' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+      expect(submit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metric,
+          scope: { type: 'WORKSPACE', ref: null },
+          valueType: 'AMOUNT',
+          targetAmount: { value: '2500.01', assetCode: 'EUR' },
+        }),
+      );
+      expect(submit.mock.calls[0]![0]).not.toHaveProperty('direction');
+      fireEvent.click(screen.getByRole('radio', { name: 'Annuel' }));
+      expect(valueTypeOptions()).toEqual(['AMOUNT']);
+    },
+  );
+
   it('saves a stock minimum with an end-of-period value and amount-only target', () => {
     const submit = renderForm();
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Patrimoine' } });

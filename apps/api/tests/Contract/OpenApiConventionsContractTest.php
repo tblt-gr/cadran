@@ -20,6 +20,15 @@ final class OpenApiConventionsContractTest extends TestCase
     /** @var array<string, mixed>|null */
     private static ?array $document = null;
 
+    public function testGoalMetricContractIncludesEveryDomainMetric(): void
+    {
+        $metric = self::schemas()['GoalMetric'];
+        self::assertEqualsCanonicalizing(
+            array_map(static fn (\App\Module\Budget\Domain\Goals\GoalMetric $metric): string => $metric->value, \App\Module\Budget\Domain\Goals\GoalMetric::cases()),
+            $metric['enum'] ?? [],
+        );
+    }
+
     public function testEveryOperationDocumentsAProblemDetailsClientError(): void
     {
         $missing = [];

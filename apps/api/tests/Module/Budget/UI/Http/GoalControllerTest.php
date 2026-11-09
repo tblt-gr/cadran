@@ -66,6 +66,74 @@ final class GoalControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testTotalGoalsReuseReportIncomeAndSpendingAndRemainWorkspaceIsolated(): void
+    {
+        $account = '00000000-0000-7000-8000-0000000000d1';
+        $this->insertAccount($account, null);
+        // Income 2950; spending 2600.01 minus a 100 refund = 2500.01.
+        // A transfer and adjustment must not move either report total.
+        foreach ([['2950.00', 'INCOME'], ['-2600.01', 'EXPENSE'], ['100.00', 'REFUND'], ['800.00', 'TRANSFER'], ['-500.00', 'ADJUSTMENT']] as $index => [$amount, $nature]) {
+            $this->connection->insert('transaction_transactions', [
+                'id' => '00000000-0000-7000-8000-00000000010'.$index, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'account_id' => $account, 'asset_code' => 'EUR', 'amount_value' => $amount, 'amount_scale' => 2,
+                'state' => 'BOOKED', 'nature' => $nature, 'source' => 'MANUAL', 'booked_on' => '2026-09-01',
+                'raw_label' => 'Total example', 'version' => 1, 'created_at' => '2026-09-01 12:00:00+00', 'updated_at' => '2026-09-01 12:00:00+00',
+            ]);
+        }
+        $goalIds = [];
+        foreach (['TOTAL_INCOME' => ['3000.00', 'MINIMUM', 'cashIncome', '2950.00', 'IN_PROGRESS'], 'TOTAL_SPENDING' => ['2500.00', 'CEILING', 'budgetExpenses', '2500.01', 'MISSED']] as $metric => [$target, $direction, $column, $actual, $status]) {
+            $payload = ['label' => $metric, 'periodicity' => 'MONTHLY', 'metric' => $metric, 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => $target, 'assetCode' => 'EUR']];
+            $this->requestJson('POST', '/api/v1/goals', $payload);
+            self::assertResponseStatusCodeSame(201);
+            $created = $this->decode();
+            $goalIds[$metric] = $this->id($created);
+            self::assertSame($direction, $created['direction']);
+            $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-09&to=2026-09');
+            self::assertResponseIsSuccessful();
+            $items = self::items(self::arr(self::items($this->decode()['months'])[0])['items']);
+            $matching = array_values(array_filter($items, static fn (mixed $item): bool => self::arr($item)['metric'] === $metric));
+            $item = self::arr($matching[0]);
+            self::assertSame($status, $item['status']);
+            self::assertSame($column, $item['columnKey']);
+            self::assertSame($actual, self::arr($item['achieved'])['value']);
+            $this->client->request('GET', '/api/v1/reports/monthly?month=2026-09');
+            self::assertResponseIsSuccessful();
+            self::assertSame($actual, self::arr($this->decode()[$column])['value']);
+            $this->requestJson('POST', '/api/v1/goals', [...$payload, 'direction' => $direction]);
+            self::assertResponseStatusCodeSame(422);
+            $this->requestJson('POST', '/api/v1/goals', [...$payload, 'valueType' => 'INCOME_SHARE', 'targetAmount' => null, 'ratio' => '0.5']);
+            self::assertResponseStatusCodeSame(400);
+        }
+        $this->clock->modify('2026-11-14T12:00:00+00:00');
+        $this->refreshCsrf();
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-10&to=2026-10');
+        self::assertResponseIsSuccessful();
+        $emptyItems = self::items(self::arr(self::items($this->decode()['months'])[0])['items']);
+        self::assertCount(2, $emptyItems);
+        foreach ($emptyItems as $emptyItem) {
+            self::assertSame('NOT_CALCULABLE', self::arr($emptyItem)['status']);
+            self::assertSame('NO_DATA', self::arr($emptyItem)['reason']);
+            self::assertNull(self::arr($emptyItem)['achieved']);
+        }
+        $this->closeMonth(2026, 10, '00000000-0000-7000-8000-0000000000e1');
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-10&to=2026-10');
+        self::assertResponseIsSuccessful();
+        self::assertSame($emptyItems, self::items(self::arr(self::items($this->decode()['months'])[0])['items']));
+        self::assertSame('false', $this->connection->fetchOne("SELECT payload->>'hasTransactions' FROM reporting_month_snapshots WHERE workspace_id = :workspace AND month = '2026-10'", ['workspace' => WorkspaceFixture::OWN_WORKSPACE]));
+        $this->client->request('DELETE', '/api/v1/session');
+        self::assertResponseStatusCodeSame(204);
+        $this->requestJson('POST', '/api/v1/session', ['email' => WorkspaceFixture::OTHER_OWNER_EMAIL, 'password' => WorkspaceFixture::OWNER_PASSWORD]);
+        self::assertResponseStatusCodeSame(204);
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-09&to=2026-09');
+        self::assertResponseIsSuccessful();
+        $items = self::items(self::arr(self::items($this->decode()['months'])[0])['items']);
+        self::assertSame([], $items);
+        foreach ($goalIds as $id) {
+            $this->client->request('GET', '/api/v1/goals/'.$id);
+            self::assertResponseStatusCodeSame(404);
+        }
+    }
+
     public function testStockGoalsReadDatedValuesAndStartWithoutDependingOnReportingMonths(): void
     {
         $account = '00000000-0000-7000-8000-0000000000d1';

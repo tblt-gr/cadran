@@ -14,7 +14,7 @@ use App\Module\Accounts\Application\NetWorthContributionView;
 final readonly class MonthFigures
 {
     /** Bumped whenever the payload layout changes; a snapshot of another version is recaptured. */
-    public const int SCHEMA_VERSION = 2;
+    public const int SCHEMA_VERSION = 3;
 
     /** Prefix of the cells holding a category's own movements, without its descendants. */
     public const string OWN_CATEGORY_PREFIX = 'ownCategory:';
@@ -43,6 +43,7 @@ final readonly class MonthFigures
         public array $budgetExpenseCategoryIds,
         public array $allocation,
         public ?array $accountWeights,
+        public bool $hasTransactions = true,
     ) {
     }
 
@@ -110,6 +111,7 @@ final readonly class MonthFigures
             $projection->budgetExpenseCategoryIds,
             $allocation,
             $accountWeights,
+            'EMPTY' !== $projection->state,
         );
     }
 
@@ -121,6 +123,7 @@ final readonly class MonthFigures
             'policyVersion' => $this->policyVersion,
             'quality' => $this->quality,
             'pendingCount' => $this->pendingCount,
+            'hasTransactions' => $this->hasTransactions,
             'netWorthAsOf' => $this->netWorthAsOf,
             'cells' => array_map(static fn (MonthlyMetricView $metric): array => [
                 'value' => $metric->value,
@@ -204,6 +207,10 @@ final readonly class MonthFigures
             throw new \UnexpectedValueException('A snapshot payload names its month, quality and valuation day.');
         }
 
+        if (!is_bool($payload['hasTransactions'] ?? null)) {
+            throw new \UnexpectedValueException('A snapshot payload records whether its month has transactions.');
+        }
+
         return new self(
             $month,
             self::integer($payload['policyVersion'] ?? null),
@@ -214,6 +221,7 @@ final readonly class MonthFigures
             self::strings($payload['budgetExpenseCategoryIds'] ?? null),
             $allocation,
             $accountWeights,
+            $payload['hasTransactions'],
         );
     }
 

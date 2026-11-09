@@ -30,6 +30,18 @@
   display: block;
   color: var(--text-secondary);
 }
+.effectiveFrom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.effectiveFrom small {
+  flex-basis: 100%;
+}
+.effectiveDate {
+  min-width: var(--spacing-12);
+}
 .changes {
   display: flex;
   flex-direction: column;

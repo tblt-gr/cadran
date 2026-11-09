@@ -3096,6 +3096,8 @@
     "editTitle": "Modifier l’objectif",
     "label": "Libellé",
     "metric": {
+      "TOTAL_INCOME": "Revenus totaux",
+      "TOTAL_SPENDING": "Dépenses totales",
       "NET_SAVINGS_TRANSFERS": "Épargne nette par virements",
       "BUDGET_SURPLUS": "Excédent budgétaire",
       "CATEGORY_SPENDING": "Dépenses par catégorie",
@@ -3358,6 +3360,7 @@
       "emptyMonth": "Aucun objectif pour ce mois.",
       "emptyYear": "Aucun objectif pour cette année.",
       "scopeWorkspace": "Tout l’espace",
+      "metWithinTolerance": "Atteint grâce à la tolérance.",
       "replaced": "{{hidden}} · Remplacé ce mois-ci par {{label}}",
       "status": {
         "MET": "Atteint",

@@ -45,6 +45,7 @@ use App\Module\Transactions\Application\ReadMonthlyAccountTransferNet;
 use App\Module\Transactions\Application\ReadMonthlyTransferPairs;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
 use App\Tests\Support\WorkspaceFixture;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Clock\MockClock;
 
@@ -310,6 +311,66 @@ final class ListGoalEvaluationsTest extends TestCase
         self::assertSame('cashSavingsRate', $rate->columnKey);
     }
 
+    /** @return iterable<string, array{GoalMetric, string, string, MonthState, string, ?string}> */
+    public static function totalCases(): iterable
+    {
+        yield 'income below minimum complete' => [GoalMetric::TOTAL_INCOME, '3000.00', '2950.00', MonthState::COMPLETE, 'MISSED', null];
+        yield 'income equality complete' => [GoalMetric::TOTAL_INCOME, '3000.00', '3000.00', MonthState::COMPLETE, 'MET', null];
+        yield 'income running' => [GoalMetric::TOTAL_INCOME, '3000.00', '2950.00', MonthState::PROVISIONAL, 'IN_PROGRESS', null];
+        yield 'spending running exceeded' => [GoalMetric::TOTAL_SPENDING, '2500.00', '2500.01', MonthState::PROVISIONAL, 'MISSED', null];
+        yield 'spending equality' => [GoalMetric::TOTAL_SPENDING, '2500.00', '2500.00', MonthState::COMPLETE, 'MET', null];
+        yield 'income empty' => [GoalMetric::TOTAL_INCOME, '3000.00', '0', MonthState::NO_DATA, 'NOT_CALCULABLE', null];
+        yield 'spending empty' => [GoalMetric::TOTAL_SPENDING, '2500.00', '0', MonthState::NO_DATA, 'NOT_CALCULABLE', null];
+        yield 'income zero with data' => [GoalMetric::TOTAL_INCOME, '3000.00', '0', MonthState::COMPLETE, 'MISSED', null];
+        yield 'spending zero with data' => [GoalMetric::TOTAL_SPENDING, '2500.00', '0', MonthState::COMPLETE, 'MET', null];
+        yield 'income tolerance equality' => [GoalMetric::TOTAL_INCOME, '3000.00', '2950.00', MonthState::COMPLETE, 'MET', '50.00'];
+        yield 'spending tolerance exceeded' => [GoalMetric::TOTAL_SPENDING, '2500.00', '2550.01', MonthState::PROVISIONAL, 'MISSED', '50.00'];
+        yield 'large exact spending' => [GoalMetric::TOTAL_SPENDING, '99999999999999999999999999', '99999999999999999999999999.01', MonthState::COMPLETE, 'MISSED', null];
+    }
+
+    #[DataProvider('totalCases')]
+    public function testTotalsReadReportCellsWithTheirFixedDirectionsAndExistingStatusRules(GoalMetric $metric, string $target, string $actual, MonthState $state, string $expectedStatus, ?string $tolerance): void
+    {
+        $column = GoalMetric::TOTAL_INCOME === $metric ? 'cashIncome' : 'budgetExpenses';
+        $month = new CalendarMonth(2026, 11);
+        $cells = [$column => new MonthlyMetricView($actual, 'EUR', null)];
+        $months = [new AnnualMonth($month, $state, false, false, MonthState::NO_DATA === $state ? null : new MonthFigures($month->key(), 1, 'CURRENT', 0, '2026-11-30', $cells, [], [], []))];
+        $goals = [new Goal(self::G1, WorkspaceFixture::own(), 'Total', GoalPeriodicity::MONTHLY, $metric, GoalScopeType::WORKSPACE, null, AssetCode::fromString('EUR'), '2026-11', null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID)];
+        $version = GoalVersion::amount(self::G1, WorkspaceFixture::own(), self::G1, 2, '2026-11', DecimalValue::fromString($target), null, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: null === $tolerance ? null : DecimalValue::fromString($tolerance));
+        $result = $this->evaluate(extraVersions: [$version], customGoals: $goals, customMonths: $months)('2026-11', '2026-11');
+        $item = $result->months[0]->items[0];
+
+        self::assertSame($column, $item->columnKey);
+        self::assertSame($expectedStatus, $item->status);
+        self::assertSame(MonthState::NO_DATA === $state ? null : $actual, $item->achieved?->value);
+        self::assertSame(MonthState::NO_DATA === $state ? 'NO_DATA' : null, $item->reason);
+    }
+
+    public function testAnnualTotalsEqualTheMatchingReportAggregates(): void
+    {
+        foreach ([GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING] as $metric) {
+            $column = GoalMetric::TOTAL_INCOME === $metric ? 'cashIncome' : 'budgetExpenses';
+            $goal = new Goal(self::G1, WorkspaceFixture::own(), 'Annual total', GoalPeriodicity::YEARLY, $metric, GoalScopeType::WORKSPACE, null, AssetCode::fromString('EUR'), '2026', null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+            $months = self::months(null);
+            // A gap month remains zero in report totals, but its monthly goal is not calculable.
+            $gap = $months[3];
+            $months[3] = new AnnualMonth($gap->month, MonthState::COMPLETE, false, false, new MonthFigures($gap->month->key(), 1, 'CURRENT', 0, '2026-04-30', [$column => new MonthlyMetricView('0', 'EUR', null)], [], [], [], false));
+            $months = array_values($months);
+            $result = $this->evaluate(customGoals: [$goal], customMonths: $months)('2026-01', '2026-11');
+            $expected = AnnualColumnSeries::aggregate(new AnnualColumn($column, 'Total', ColumnKind::FLOW, true), $months, IncompleteMonths::INCLUDE)->total?->toString();
+            self::assertNotNull($expected);
+            self::assertSame($expected, $result->years[0]->items[0]->achieved?->value);
+            self::assertSame($column, $result->years[0]->items[0]->columnKey);
+            $empty = $this->evaluate(customGoals: [$goal], customMonths: [])('2026-01', '2026-11');
+            self::assertNull($empty->years[0]->items[0]->achieved);
+            self::assertSame('NO_DATA', $empty->years[0]->items[0]->reason);
+            $emptyMonths = [new AnnualMonth(new CalendarMonth(2026, 4), MonthState::COMPLETE, false, false, new MonthFigures('2026-04', 1, 'CURRENT', 0, '2026-04-30', [$column => new MonthlyMetricView('0', 'EUR', null)], [], [], [], false))];
+            $empty = $this->evaluate(customGoals: [$goal], customMonths: $emptyMonths)('2026-01', '2026-11');
+            self::assertNull($empty->years[0]->items[0]->achieved);
+            self::assertSame('NO_DATA', $empty->years[0]->items[0]->reason);
+        }
+    }
+
     /** @return array{0: string, 1: ?string, 2: ?string, 3: string, 4: list<string>} */
     private static function row(GoalEvaluationView $item): array
     {
@@ -319,14 +380,18 @@ final class ListGoalEvaluationsTest extends TestCase
         return [$item->goalId, $figure, $item->gap, $item->status, $item->overrides];
     }
 
-    /** @param list<GoalVersion> $extraVersions */
-    private function evaluate(array $extraVersions = [], ?string $withNoDataMonth = null, ?WorkspaceScope $callerWorkspace = null, bool $withYearlyRate = false): ListGoalEvaluations
+    /**
+     * @param list<GoalVersion>  $extraVersions
+     * @param ?list<Goal>        $customGoals
+     * @param ?list<AnnualMonth> $customMonths
+     */
+    private function evaluate(array $extraVersions = [], ?string $withNoDataMonth = null, ?WorkspaceScope $callerWorkspace = null, bool $withYearlyRate = false, ?array $customGoals = null, ?array $customMonths = null): ListGoalEvaluations
     {
         $own = WorkspaceFixture::own();
         $caller = $this->createStub(CallerWorkspace::class);
         $caller->method('resolve')->willReturn($callerWorkspace ?? $own);
         $goals = $this->createStub(GoalRepository::class);
-        $all = self::goals($withYearlyRate);
+        $all = $customGoals ?? self::goals($withYearlyRate);
         $goals->method('covering')->willReturnCallback(static fn (WorkspaceScope $workspace, string $first, string $last): array => $workspace->equals($own)
             ? array_values(array_filter($all, static fn (Goal $goal): bool => $goal->firstMonth() <= $last && (null === $goal->lastMonth() || $goal->lastMonth() >= $first)))
             : []);
@@ -340,7 +405,7 @@ final class ListGoalEvaluationsTest extends TestCase
 
             return $byGoal;
         });
-        $source = new class(self::months($withNoDataMonth)) implements GoalMonthSource {
+        $source = new class($customMonths ?? self::months($withNoDataMonth)) implements GoalMonthSource {
             /** @param list<AnnualMonth> $months */
             public function __construct(private readonly array $months)
             {
@@ -408,6 +473,7 @@ final class ListGoalEvaluationsTest extends TestCase
             [$essential, $rate, $surplus] = self::FIGURES[$month->key()] ?? ['1000.00', '0.10', '460.00'];
             $cells = [
                 'cashIncome' => new MonthlyMetricView('4600.00', 'EUR', null),
+                'budgetExpenses' => new MonthlyMetricView('2500.00', 'EUR', null),
                 'axis:ESSENTIAL' => new MonthlyMetricView($essential, 'EUR', null),
                 'cashSavingsRate' => new MonthlyMetricView($rate, null, null),
                 'budgetSurplus' => new MonthlyMetricView($surplus, 'EUR', null),

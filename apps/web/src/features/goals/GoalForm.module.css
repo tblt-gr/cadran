@@ -258,6 +258,12 @@
 .correctionConfirmation p {
   margin: var(--spacing-none);
 }
+.correctionConfirmation button:disabled {
+  border: var(--border-line-subtle);
+  color: var(--text-muted);
+  background: var(--bg-surface-2);
+  cursor: not-allowed;
+}
 .confirmCheck {
   display: flex;
   align-items: flex-start;
