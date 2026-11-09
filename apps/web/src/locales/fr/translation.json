@@ -3443,7 +3443,36 @@
       "CEILING": "Plafond"
     },
     "stockExplanation": "Voir la composition du patrimoine net",
-    "metricLabel": "Indicateur"
+    "metricLabel": "Indicateur",
+    "bulk": {
+      "enter": "Sélectionner les objectifs affichés",
+      "toolbar": "Sélection des objectifs affichés",
+      "count_one": "{{count}} objectif sélectionné",
+      "count_other": "{{count}} objectifs sélectionnés",
+      "selectAll": "Sélectionner tous les objectifs affichés",
+      "selectGoal": "Sélectionner {{label}}",
+      "stop": "Arrêter",
+      "delete": "Supprimer",
+      "cancel": "Annuler",
+      "stopTitle_one": "Arrêter {{count}} objectif",
+      "stopTitle_other": "Arrêter {{count}} objectifs",
+      "deleteTitle_one": "Supprimer {{count}} objectif",
+      "deleteTitle_other": "Supprimer {{count}} objectifs",
+      "stopDescription": "Les objectifs sélectionnés cessent de s’appliquer après la dernière période choisie. Les révisions planifiées après cette fin sont supprimées ; les périodes antérieures restent consultables.",
+      "deleteDescription_one": "Cet objectif et son historique de versions seront supprimés définitivement. Cette action est irréversible.",
+      "deleteDescription_other": "Ces {{count}} objectifs et leurs historiques de versions seront supprimés définitivement. Cette action est irréversible.",
+      "stopMonthlyImpact": "Les objectifs mensuels restent applicables jusqu’au mois choisi inclus, puis cessent de s’appliquer.",
+      "stopYearlyImpact": "Les objectifs annuels restent applicables jusqu’à l’année choisie incluse, puis cessent de s’appliquer.",
+      "conflict": "La sélection a changé ou une période est clôturée. Aucune modification n’a été appliquée. Vérifiez les objectifs puis réessayez.",
+      "rowError": "{{label}} · {{field}} : {{message}}",
+      "unavailable": "Un objectif sélectionné est indisponible. Aucune modification n’a été appliquée. Fermez cette fenêtre et actualisez la sélection.",
+      "batchFailure": "Aucune modification n’a été appliquée. {{message}}",
+      "fields": {
+        "lastPeriod": "Dernière période",
+        "expectedVersion": "Version",
+        "goal": "Objectif"
+      }
+    }
   },
   "budget": {
     "year": {

@@ -1055,6 +1055,14 @@ export type GoalSchedulePreview = {
 export type GoalProblem = Problem & {
     code: string;
     /**
+     * Selected accessible row that blocks the batch. Never emitted for inaccessible identifiers.
+     */
+    goalId?: string;
+    /**
+     * Selected row field that needs correction.
+     */
+    field?: string;
+    /**
      * Present with schedule_sum_mismatch; the annual target.
      */
     expected?: string;
@@ -1288,6 +1296,21 @@ export type GoalVersionHistoryItem = {
     createdAt: string;
     createdBy: GoalVersionAuthor;
     changes: Array<GoalVersionChange>;
+};
+
+export type BulkGoalStopRequest = {
+    items: Array<{
+        goalId: string;
+        expectedVersion: number;
+        lastPeriod: GoalPeriod;
+    }>;
+};
+
+export type BulkGoalDeleteRequest = {
+    items: Array<{
+        goalId: string;
+        expectedVersion: number;
+    }>;
 };
 
 export type StopGoalRequest = {
@@ -7514,6 +7537,124 @@ export type CreateGoalResponses = {
 };
 
 export type CreateGoalResponse = CreateGoalResponses[keyof CreateGoalResponses];
+
+export type BulkStopGoalsData = {
+    body: BulkGoalStopRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/goals/bulk-stop';
+};
+
+export type BulkStopGoalsErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * A stale version or closed-period conflict; no item was changed.
+     */
+    409: GoalProblem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * Invalid batch or last period; no item was changed.
+     */
+    422: GoalProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type BulkStopGoalsError = BulkStopGoalsErrors[keyof BulkStopGoalsErrors];
+
+export type BulkStopGoalsResponses = {
+    /**
+     * The complete selection was stopped.
+     */
+    204: void;
+};
+
+export type BulkStopGoalsResponse = BulkStopGoalsResponses[keyof BulkStopGoalsResponses];
+
+export type BulkDeleteGoalsData = {
+    body: BulkGoalDeleteRequest;
+    headers: {
+        /**
+         * Double-submit CSRF token: the value of the `csrf_token` cookie from a prior safe response. Rejected with 403 if missing, altered, or expired.
+         */
+        'X-CSRF-TOKEN': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/api/v1/goals/bulk-delete';
+};
+
+export type BulkDeleteGoalsErrors = {
+    /**
+     * The request carries no authenticated session.
+     */
+    401: Problem;
+    /**
+     * On sign-in, either the credentials were valid but the account is disabled (`type: about:blank`), or the CSRF / Origin check failed (`type: /problems/csrf-token`).
+     */
+    403: Problem;
+    /**
+     * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
+     */
+    404: Problem;
+    /**
+     * A stale version or closed-period conflict; no item was changed.
+     */
+    409: GoalProblem;
+    /**
+     * The JSON request body exceeds the 16 KiB mutation limit.
+     */
+    413: Problem;
+    /**
+     * The endpoint requires an application/json request body.
+     */
+    415: Problem;
+    /**
+     * Invalid batch or last period; no item was changed.
+     */
+    422: GoalProblem;
+    /**
+     * An unexpected server error occurred.
+     */
+    500: Problem;
+};
+
+export type BulkDeleteGoalsError = BulkDeleteGoalsErrors[keyof BulkDeleteGoalsErrors];
+
+export type BulkDeleteGoalsResponses = {
+    /**
+     * The complete selection was deleted.
+     */
+    204: void;
+};
+
+export type BulkDeleteGoalsResponse = BulkDeleteGoalsResponses[keyof BulkDeleteGoalsResponses];
 
 export type ListGoalEvaluationsData = {
     body?: never;

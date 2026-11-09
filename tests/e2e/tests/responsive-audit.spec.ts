@@ -6,6 +6,7 @@ import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
 import { openTakeoverModal } from './support/takeover';
 import { auditAccessibility } from './support/a11y';
+import { openBulkGoalConfirmation } from './support/bulk-goals';
 import {
   expandCountedFilters,
   expectFacetRowsFit,
@@ -311,6 +312,14 @@ const MODALS: ModalCase[] = [
       await page.getByRole('button', { name: 'Nouvelle catégorie' }).click();
       return 'Enregistrer';
     },
+  },
+  {
+    name: 'bulk goal stop',
+    open: async (page) => openBulkGoalConfirmation(page, 'stop'),
+  },
+  {
+    name: 'bulk goal delete',
+    open: async (page) => openBulkGoalConfirmation(page, 'delete'),
   },
   {
     name: 'goal',

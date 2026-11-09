@@ -21,6 +21,8 @@ const api = vi.hoisted(() => ({
   getSession: vi.fn(),
   readEmergencyFundCoverage: vi.fn(),
   readEmergencyFundPolicy: vi.fn(),
+  bulkStopGoals: vi.fn(),
+  bulkDeleteGoals: vi.fn(),
 }));
 vi.mock('@cadran/api-client', async (original) => ({
   ...(await original<typeof import('@cadran/api-client')>()),
@@ -149,6 +151,88 @@ afterEach(() => {
 });
 
 describe('GoalPanel monthly', () => {
+  it('returns focus to the persistent create action after deleting the last displayed goal', async () => {
+    api.listGoals.mockImplementation(() => ok({ items: [g1] }));
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [{ period: '2026-11', items: [evaluation(g1)] }],
+        years: [],
+      }),
+    );
+    api.bulkDeleteGoals.mockImplementation(() => {
+      api.listGoals.mockImplementation(() => ok({ items: [] }));
+      api.listGoalEvaluations.mockImplementation(() => ok({ months: [], years: [] }));
+      return Promise.resolve({ response: new Response(null, { status: 204 }) });
+    });
+    renderPanel(november);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner les objectifs affichés' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' }),
+    );
+    const trigger = screen.getByRole('button', { name: 'Supprimer' });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const modal = screen.getByRole('dialog', { name: 'Supprimer 1 objectif' });
+    fireEvent.click(within(modal).getByRole('button', { name: 'Supprimer' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Supprimer 1 objectif' })).toBeNull(),
+    );
+    expect(screen.getByText('Aucun objectif pour ce mois.')).toBeTruthy();
+    expect(
+      screen.queryByRole('button', { name: 'Sélectionner les objectifs affichés' }),
+    ).toBeNull();
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Nouvel objectif' })),
+    );
+    expect(
+      screen.getByRole('dialog', { name: /^Objectifs/ }).contains(document.activeElement),
+    ).toBe(true);
+  });
+
+  it('selects displayed goals only and confirms one atomic deletion', async () => {
+    api.listGoalEvaluations.mockImplementation(() =>
+      ok({
+        months: [{ period: '2026-11', items: [evaluation(g1), evaluation(g2), evaluation(g3)] }],
+        years: [{ period: '2026', items: [evaluation(g4)] }],
+      }),
+    );
+    api.bulkDeleteGoals.mockResolvedValue({ response: new Response(null, { status: 204 }) });
+    renderPanel(november);
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner les objectifs affichés' }));
+    const all = screen.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' });
+    fireEvent.click(all);
+    expect(all).toHaveProperty('checked', true);
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner G2' }));
+    expect(all).toHaveProperty('indeterminate', true);
+    fireEvent.click(all);
+    fireEvent.click(all);
+    expect(screen.getByText('0 objectif sélectionné')).toBeTruthy();
+    fireEvent.click(all);
+    expect(screen.getByText('3 objectifs sélectionnés')).toBeTruthy();
+    expect(screen.queryByRole('checkbox', { name: 'Sélectionner G4' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+    const modal = within(screen.getByRole('dialog', { name: 'Supprimer 3 objectifs' }));
+    expect(api.bulkDeleteGoals).not.toHaveBeenCalled();
+    fireEvent.click(modal.getByRole('button', { name: 'Annuler' }));
+    expect(screen.getByText('3 objectifs sélectionnés')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
+    fireEvent.click(
+      within(screen.getByRole('dialog', { name: 'Supprimer 3 objectifs' })).getByRole('button', {
+        name: 'Supprimer',
+      }),
+    );
+    await waitFor(() => expect(api.bulkDeleteGoals).toHaveBeenCalledOnce());
+    expect(api.bulkDeleteGoals.mock.calls[0]![0].body).toEqual({
+      items: [g1, g2, g3].map((goal) => ({ goalId: goal.id, expectedVersion: 3 })),
+    });
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Supprimer 3 objectifs' })).toBeNull(),
+    );
+    expect(screen.queryByRole('checkbox', { name: 'Sélectionner G1' })).toBeNull();
+  });
+
   it('shows the server tolerance without changing the server status or the signed gap', async () => {
     api.listGoalEvaluations.mockImplementation(() =>
       ok({
@@ -746,6 +830,34 @@ describe('GoalPanel multi-year', () => {
 
   const yearItem = (year: string) =>
     screen.getByText(year, { selector: 'summary span span' }).closest('details')!;
+
+  it('toggles only displayed goals with the master checkbox and deduplicates open years', async () => {
+    answerPerYear({
+      '2024': [evaluation(g5)],
+      '2026': [evaluation(g4)],
+    });
+    renderPanel({ kind: 'years', years: [2024, 2026] });
+    await loaded();
+    const pen = screen.getByRole('button', { name: 'Sélectionner les objectifs affichés' });
+    fireEvent.click(pen);
+    const all = screen.getByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' });
+    fireEvent.click(all);
+    expect(screen.getByText('1 objectif sélectionné')).toBeTruthy();
+    expect(screen.getByRole('checkbox', { name: 'Sélectionner G4' })).toHaveProperty(
+      'checked',
+      true,
+    );
+    fireEvent.click(yearItem('2024').querySelector('summary')!);
+    await waitFor(() => expect(yearItem('2024').open).toBe(true));
+    fireEvent.click(all);
+    expect(screen.getByText('2 objectifs sélectionnés')).toBeTruthy();
+    fireEvent.click(pen);
+    expect(
+      screen.queryByRole('checkbox', { name: 'Sélectionner tous les objectifs affichés' }),
+    ).toBeNull();
+    fireEvent.click(pen);
+    expect(screen.getByText('0 objectif sélectionné')).toBeTruthy();
+  });
 
   it('asks for one year per request and lists one accordion item per year, the last one open', async () => {
     answerPerYear({

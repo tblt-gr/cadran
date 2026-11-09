@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Drawer } from '@/components/ui/drawer/Drawer';
 import { Toast } from '@/components/ui/toast/Toast';
+import { GoalSelection } from '@/features/goals/bulk-selection/GoalSelection';
 import { currentMonthIn } from '@/features/goals/goalFormFields';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { DeleteGoalDialog } from './DeleteGoalDialog';
@@ -52,6 +53,7 @@ export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Pro
   const data = useGoalPanelData(scope);
   const editor = useGoalEditor();
   const focused = useRef<string | null>(null);
+  const createButton = useRef<HTMLButtonElement>(null);
   const ready = !data.pending && data.evaluations !== undefined;
   useEffect(() => {
     if (!ready || focusGoalId === null || focused.current === focusGoalId) return;
@@ -104,6 +106,7 @@ export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Pro
         footer={
           <button
             className="primary-action"
+            ref={createButton}
             onClick={() =>
               editor.openCreate(
                 monthly
@@ -120,41 +123,51 @@ export function GoalPanel({ scope, close, returnFocus, focusGoalId = null }: Pro
         title={title}
       >
         <div className={styles.content}>
-          {data.pending ? (
-            <p className="sr-only" role="status">
-              {t('goals.panel.loading')}
-            </p>
-          ) : null}
-          {data.failed ? (
-            <div className={styles.error} role="alert">
-              <p>{t('goals.panel.unavailable')}</p>
-              <button className="secondary-action" onClick={data.retry} type="button">
-                {t('foundation.retry')}
-              </button>
-            </div>
-          ) : monthly ? (
-            <GoalPanelMonthly
-              evaluations={data.evaluations}
-              goals={data.goals}
-              handlers={handlers}
-              month={scope.month}
-            />
-          ) : scope.kind === 'years' ? (
-            <GoalPanelYears
-              evaluations={data.evaluations}
-              goals={data.goals}
-              handlers={handlers}
-              onStop={(goal, year) => setStopTarget({ goal, year })}
-              years={scope.years}
-            />
-          ) : (
-            <GoalPanelYearly
-              evaluations={data.evaluations}
-              goals={data.goals}
-              handlers={handlers}
-              year={scope.year}
-            />
-          )}
+          <GoalSelection
+            fallbackFocus={createButton}
+            goals={data.goals}
+            key={JSON.stringify(scope)}
+            month={displayedMonth}
+            year={displayedYear}
+            ready={ready && !data.failed}
+            standalone={scope.kind === 'years'}
+          >
+            {data.pending ? (
+              <p className="sr-only" role="status">
+                {t('goals.panel.loading')}
+              </p>
+            ) : null}
+            {data.failed ? (
+              <div className={styles.error} role="alert">
+                <p>{t('goals.panel.unavailable')}</p>
+                <button className="secondary-action" onClick={data.retry} type="button">
+                  {t('foundation.retry')}
+                </button>
+              </div>
+            ) : monthly ? (
+              <GoalPanelMonthly
+                evaluations={data.evaluations}
+                goals={data.goals}
+                handlers={handlers}
+                month={scope.month}
+              />
+            ) : scope.kind === 'years' ? (
+              <GoalPanelYears
+                evaluations={data.evaluations}
+                goals={data.goals}
+                handlers={handlers}
+                onStop={(goal, year) => setStopTarget({ goal, year })}
+                years={scope.years}
+              />
+            ) : (
+              <GoalPanelYearly
+                evaluations={data.evaluations}
+                goals={data.goals}
+                handlers={handlers}
+                year={scope.year}
+              />
+            )}
+          </GoalSelection>
         </div>
       </Drawer>
       {editor.saved ? <Toast onDismiss={editor.dismissSaved}>{t('goals.saved')}</Toast> : null}

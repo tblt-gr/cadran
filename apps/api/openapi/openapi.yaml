@@ -1115,6 +1115,88 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/GoalProblem' }
         '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/bulk-stop:
+    post:
+      operationId: bulkStopGoals
+      x-cadran-idempotency: 'Every item carries expectedVersion. Stale replays fail atomically; deleted identifiers return generic 404.'
+      x-cadran-bounded: 'One to 100 distinct goal identifiers.'
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      summary: Atomically stop selected goals after their chosen last periods
+      description: >-
+        Authorizes all identifiers in the caller workspace, locks them in stable order and applies
+        the whole selection in one transaction. A stale, inaccessible, invalid or closed-period
+        conflict cancels every write. Stop preserves prior evaluations, follows each goal periodicity
+        for lastPeriod, never extends an end and removes definitions beyond the new end. Delete
+        removes the goal and its history and refuses goals covering any closed month. Accessible
+        row errors identify goalId and field; inaccessible goals return indistinguishable 404 errors.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkGoalStopRequest' }
+      responses:
+        '204':
+          description: The complete selection was stopped.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: A stale version or closed-period conflict; no item was changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Invalid batch or last period; no item was changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
+  /api/v1/goals/bulk-delete:
+    post:
+      operationId: bulkDeleteGoals
+      x-cadran-idempotency: 'Every item carries expectedVersion. Stale replays fail atomically; deleted identifiers return generic 404.'
+      x-cadran-bounded: 'One to 100 distinct goal identifiers.'
+      tags: [Goals]
+      security: [{ sessionCookie: [] }]
+      summary: Atomically delete selected goals and their history
+      description: >-
+        Authorizes all identifiers in the caller workspace, locks them in stable order and applies
+        the whole selection in one transaction. A stale, inaccessible, invalid or closed-period
+        conflict cancels every write. Stop preserves prior evaluations, follows each goal periodicity
+        for lastPeriod, never extends an end and removes definitions beyond the new end. Delete
+        removes the goal and its history and refuses goals covering any closed month. Accessible
+        row errors identify goalId and field; inaccessible goals return indistinguishable 404 errors.
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BulkGoalDeleteRequest' }
+      responses:
+        '204':
+          description: The complete selection was deleted.
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: A stale version or closed-period conflict; no item was changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '413': { $ref: '#/components/responses/PayloadTooLarge' }
+        '415': { $ref: '#/components/responses/UnsupportedMediaType' }
+        '422':
+          description: Invalid batch or last period; no item was changed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/GoalProblem' }
+        '500': { $ref: '#/components/responses/InternalServerError' }
   /api/v1/goals/evaluations:
     get:
       operationId: listGoalEvaluations
@@ -11300,6 +11382,13 @@ components:
           properties:
             code:
               type: string
+            goalId:
+              description: Selected accessible row that blocks the batch. Never emitted for inaccessible identifiers.
+              type: string
+              format: uuid
+            field:
+              description: Selected row field that needs correction.
+              type: string
             expected:
               description: Present with schedule_sum_mismatch; the annual target.
               type: string
@@ -11678,6 +11767,39 @@ components:
           type: array
           maxItems: 6
           items: { $ref: '#/components/schemas/GoalVersionChange' }
+    BulkGoalStopRequest:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [goalId, expectedVersion, lastPeriod]
+            properties:
+              goalId: { type: string, format: uuid }
+              expectedVersion: { type: integer, minimum: 1 }
+              lastPeriod: { $ref: '#/components/schemas/GoalPeriod' }
+    BulkGoalDeleteRequest:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            type: object
+            additionalProperties: false
+            required: [goalId, expectedVersion]
+            properties:
+              goalId: { type: string, format: uuid }
+              expectedVersion: { type: integer, minimum: 1 }
     StopGoalRequest:
       type: object
       additionalProperties: false
