@@ -6,6 +6,7 @@ import type { RowSelection } from '@/features/transactions/bulk-selection/useBul
 import { TransactionDayRow } from './TransactionDayRow';
 import { groupTransactionsByDay, type DayGroup } from './groupTransactionsByDay';
 import styles from './TransactionDayList.module.css';
+import { VirtualTransactionDays } from './VirtualTransactionDays';
 
 interface TransactionDayListProps {
   /** Names each row's account. Left out on a list already scoped to one account. */
@@ -37,6 +38,17 @@ export function TransactionDayList({
   const groups: Array<DayGroup | null[]> = loading
     ? SKELETON_DAY_SIZES.map((size) => Array.from({ length: size }, () => null))
     : groupTransactionsByDay(transactions);
+
+  if (transactions !== null)
+    return (
+      <VirtualTransactionDays
+        accounts={accounts}
+        headingLevel={headingLevel}
+        label={label ?? t('transactions.list.caption')}
+        selection={selection}
+        transactions={transactions}
+      />
+    );
 
   return (
     <div

@@ -28,6 +28,24 @@
   text-transform: capitalize;
 }
 
+.windowControl {
+  position: absolute;
+  width: var(--border-width-thin);
+  height: var(--border-width-thin);
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.windowControl:focus-visible {
+  position: fixed;
+  z-index: 2;
+  top: var(--header-height);
+  left: var(--spacing-3);
+  width: auto;
+  height: auto;
+  clip-path: none;
+}
+
 .row {
   display: grid;
   align-items: center;

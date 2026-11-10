@@ -635,7 +635,7 @@ describe('AccountDetailPage', () => {
     api.updateTransaction.mockImplementation(() => success({ ...older, version: 2 }));
     renderPage();
     await loaded();
-    fireEvent.click(await screen.findByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Afficher plus' }));
     await openRowAction('Plus ancien', 'Modifier');
     const dialog = await screen.findByRole('dialog', { name: 'Modifier la transaction' });
     fireEvent.change(within(dialog).getByLabelText('Libellé'), { target: { value: 'Modifié' } });
@@ -645,7 +645,7 @@ describe('AccountDetailPage', () => {
     expect(api.listTransactions).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ cursor: undefined }) }),
     );
-    expect(await screen.findByRole('button', { name: 'Mouvements plus anciens' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Afficher plus' })).toBeTruthy();
   });
 
   it('confirms a saved transfer with a toast', async () => {
@@ -1298,7 +1298,7 @@ describe('AccountDetailPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Afficher plus' }));
 
     await waitFor(() => {
       const secondCall = api.listTransactions.mock.calls.find(
@@ -1320,9 +1320,11 @@ describe('AccountDetailPage', () => {
     });
     renderPage(account.id, '?month=2026-09');
     await loaded();
-    fireEvent.click(await screen.findByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Afficher plus' }));
     expect(
-      await screen.findByText('La liste des transactions n’a pas pu être chargée.'),
+      await screen.findByText(
+        'Les mouvements suivants n’ont pas pu être chargés. Les mouvements déjà affichés sont conservés.',
+      ),
     ).toBeTruthy();
     expect(screen.getByText('Supermarché')).toBeTruthy();
     fail = false;
@@ -1338,7 +1340,7 @@ describe('AccountDetailPage', () => {
         }),
       }),
     );
-    expect(screen.queryByRole('button', { name: 'Mouvements plus anciens' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
     expect(
       screen.queryByText('La liste n’a pas d’autre mouvement à charger pour ces filtres.'),
     ).toBeNull();

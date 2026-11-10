@@ -109,27 +109,15 @@ export function AccountMovementsSection({
             selection={bulkMode ? bulk?.rowSelection : undefined}
             transactions={items}
           />
-          {transactions.isError && !staleCursorError ? (
-            <div role="alert">
-              <p>{t('transactions.error.description')}</p>
-              <button
-                className="secondary-action"
-                type="button"
-                onClick={() => void transactions.refetch()}
-              >
-                {t('foundation.retry')}
-              </button>
-            </div>
-          ) : (
-            <TransactionListFooter
-              hideEndOfList
-              hasMore={!staleCursorError && displayedPageHasMore}
-              loadingMore={loadingMore}
-              onLoadMore={onLoadMore}
-              onReloadFromFirstPage={onReloadFromFirstPage}
-              stale={staleCursorError}
-            />
-          )}
+          <TransactionListFooter
+            hideEndOfList
+            failed={transactions.isError && !staleCursorError}
+            hasMore={!staleCursorError && displayedPageHasMore}
+            loadingMore={loadingMore}
+            onLoadMore={onLoadMore}
+            onReloadFromFirstPage={onReloadFromFirstPage}
+            stale={staleCursorError}
+          />
         </>
       )}
     </>

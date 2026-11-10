@@ -533,8 +533,8 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
     locale: 'fr-FR',
     timezoneId: 'Europe/Paris',
   });
+  const page = await context.newPage();
   try {
-    const page = await context.newPage();
     await withLongAccountLabel(page);
     await page.goto('/transactions?direction=OUTFLOW&state=BOOKED');
     await settled(page);
@@ -585,6 +585,8 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
     expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
     expect(await auditLayout(page, true)).toEqual([]);
   } finally {
+    // Aborted browser requests can leave route.fetch running in the label fixture.
+    await page.unrouteAll({ behavior: 'wait' });
     await context.close();
   }
 });
@@ -602,8 +604,8 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
     locale: 'fr-FR',
     timezoneId: 'Europe/Paris',
   });
+  const page = await context.newPage();
   try {
-    const page = await context.newPage();
     await withLongAccountLabel(page);
     await page.goto('/transactions?direction=OUTFLOW');
     await settled(page);
@@ -637,6 +639,8 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
     await settled(page);
     expect(await auditLayout(page, false)).toEqual([]);
   } finally {
+    // Drain the label fixture before disposing the request context it fetches through.
+    await page.unrouteAll({ behavior: 'wait' });
     await context.close();
   }
 });

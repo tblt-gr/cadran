@@ -59,7 +59,7 @@ export interface BulkSelection {
 
 /**
  * Selection of transactions for a bulk edit. It lives on the loaded page only and is dropped
- * as soon as the page or the result set changes, so a checkbox never refers to a row the
+ * as soon as the result set changes, so a checkbox never refers to a row the
  * user can no longer see. The filter-wide scope selects by criteria, not by id, and is
  * resolved by the server at confirmation time.
  */
@@ -71,7 +71,7 @@ export function useBulkSelection({
   resetKey,
 }: UseBulkSelectionOptions): BulkSelection {
   const pageIds = items.map((item) => item.id);
-  const signature = `${resetKey}|${pageIds.join(',')}`;
+  const signature = resetKey;
   const [state, setState] = useState<{
     filterScope: boolean;
     ids: ReadonlySet<string>;
@@ -82,9 +82,10 @@ export function useBulkSelection({
     setState({ filterScope: false, ids: new Set(), signature });
   }
 
-  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => state.ids.has(id));
+  const allPageSelected =
+    pageIds.length > 0 && (state.filterScope || pageIds.every((id) => state.ids.has(id)));
   const somePageSelected = state.ids.size > 0;
-  const countEnabled = allPageSelected && hasMore;
+  const countEnabled = allPageSelected && (hasMore || state.filterScope);
   const count = useQuery({
     queryKey: ['transactions', 'count', query],
     queryFn: async ({ signal }) => {

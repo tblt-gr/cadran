@@ -2547,8 +2547,11 @@
       }
     },
     "pagination": {
-      "next": "Mouvements plus anciens",
-      "loadingMore": "Chargement…",
+      "next": "Afficher plus",
+      "previousLoaded": "Mouvements précédents déjà chargés",
+      "nextLoaded": "Mouvements suivants déjà chargés",
+      "failed": "Les mouvements suivants n’ont pas pu être chargés. Les mouvements déjà affichés sont conservés.",
+      "loadingMore": "Chargement des mouvements suivants…",
       "endOfList": "La liste n’a pas d’autre mouvement à charger pour ces filtres.",
       "stale": "La liste a changé pendant le chargement de cette page. Rechargez depuis le début pour continuer sans risquer un doublon ou un mouvement manquant.",
       "reload": "Recharger depuis le début",
