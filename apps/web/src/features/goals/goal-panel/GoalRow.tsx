@@ -1,13 +1,15 @@
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
+import { GoalDetailModal } from '@/features/goals/goal-detail/GoalDetailModal';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { useGoalSelection } from '@/features/goals/bulk-selection/goalSelectionContext';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
-import { ProgressGauge } from '@/components/ui/progress-gauge/ProgressGauge';
 import { GoalExplanation } from '@/features/goals/goal-explanation/GoalExplanation';
 import { GoalEvaluationBadge } from './GoalEvaluationBadge';
-import { goalFillRatio, goalTone, type GoalRowModel } from './goalPanelModel';
+import { goalTone, type GoalRowModel } from './goalPanelModel';
+import { GoalProgressBar } from './GoalProgressBar';
 import { goalRecurrence } from './goalRecurrence';
 import { GoalRowActions, type GoalRowHandlers } from './GoalRowActions';
 import { useGoalScopeLabel } from './useGoalScopeLabel';
@@ -24,6 +26,7 @@ export function GoalRow({ row, handlers }: Props) {
   const { t, i18n } = useTranslation();
   const scopeLabel = useGoalScopeLabel();
   const selection = useGoalSelection();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const evaluation = row?.evaluation ?? null;
   const summary = row?.summary ?? null;
   const target = evaluation ? formatEvaluationFigure(evaluation.target, i18n.language) : null;
@@ -38,7 +41,6 @@ export function GoalRow({ row, handlers }: Props) {
     );
 
   const tone = evaluation ? goalTone(evaluation) : null;
-  const fill = evaluation ? goalFillRatio(evaluation) : null;
 
   return (
     <li
@@ -59,7 +61,15 @@ export function GoalRow({ row, handlers }: Props) {
             />
           </label>
         ) : null}
-        <h4>{evaluation ? evaluation.label : <SkeletonBlock className={styles.labelBlock} />}</h4>
+        <h4>
+          {evaluation ? (
+            <button className={styles.goalLink} onClick={() => setDetailsOpen(true)} type="button">
+              {evaluation.label}
+            </button>
+          ) : (
+            <SkeletonBlock className={styles.labelBlock} />
+          )}
+        </h4>
         <div className={styles.rowEnd}>
           {evaluation ? (
             <GoalEvaluationBadge evaluation={evaluation} />
@@ -71,18 +81,7 @@ export function GoalRow({ row, handlers }: Props) {
         </div>
       </div>
       <div className={styles.progress}>
-        {evaluation === null ? (
-          <SkeletonBlock className={styles.barBlock} />
-        ) : fill === null ? null : (
-          <ProgressGauge
-            label={t('goals.panel.progress', {
-              label: evaluation.label,
-              achieved: achieved ?? '',
-              target: target ?? '',
-            })}
-            ratio={fill}
-          />
-        )}
+        <GoalProgressBar evaluation={evaluation} />
         <p className={`money ${styles.figures}`}>
           <span className={styles.achieved}>{figure(achieved)}</span> / {figure(target)}
         </p>
@@ -107,6 +106,15 @@ export function GoalRow({ row, handlers }: Props) {
       ) : null}
       {evaluation?.status === 'NOT_CALCULABLE' && evaluation.reason !== null ? (
         <p className={styles.note}>{t(`goals.panel.reasons.${evaluation.reason}`)}</p>
+      ) : null}
+      {detailsOpen && evaluation ? (
+        <GoalDetailModal
+          goalId={evaluation.goalId}
+          label={evaluation.label}
+          evaluation={evaluation}
+          period={row?.period ?? ''}
+          close={() => setDetailsOpen(false)}
+        />
       ) : null}
     </li>
   );

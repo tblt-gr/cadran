@@ -1,0 +1,151 @@
+.content,
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+.content {
+  gap: var(--spacing-6);
+}
+
+.section :is(h3, h4, h5, p) {
+  margin: var(--spacing-none);
+}
+
+.section h3 {
+  font-size: var(--font-size-card-title);
+}
+
+.section :is(h4, h5) {
+  font-size: var(--font-size-body);
+}
+
+.content > .section + .section {
+  padding-top: var(--spacing-6);
+  border-top: var(--border-line-subtle);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.values.summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary dd {
+  font-weight: var(--font-weight-bold);
+}
+
+.evaluation[data-tone='positive'] .achieved,
+.evaluation[data-tone='done'] .achieved {
+  color: var(--positive);
+}
+
+.evaluation[data-tone='negative'] .achieved {
+  color: var(--negative);
+}
+
+.gap {
+  font-weight: var(--font-weight-bold);
+}
+
+.calculation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+}
+
+.calculation p {
+  color: var(--text-secondary);
+}
+
+.values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, calc(var(--spacing-12) * 5)), 1fr));
+  gap: var(--spacing-3);
+  margin: var(--spacing-none);
+}
+
+.values dt {
+  color: var(--text-secondary);
+}
+
+.values dd {
+  margin: var(--spacing-none);
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
+}
+
+.revisions {
+  list-style: none;
+  padding: var(--spacing-none);
+  margin: var(--spacing-none);
+}
+
+.revision {
+  border-top: var(--border-line-subtle);
+}
+
+.revision > details > summary {
+  min-height: var(--touch-target-min);
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.versionSummary,
+.versionBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.versionSummary {
+  gap: var(--spacing-1);
+}
+
+.versionTitle {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.appliedVersion,
+.effectiveDate {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
+}
+
+.versionBody {
+  gap: var(--spacing-3);
+  padding-bottom: var(--spacing-3);
+}
+
+.block {
+  display: block;
+  width: 70%;
+  height: var(--font-size-body);
+}
+
+.schedule {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums;
+}
+
+.schedule :is(th, td) {
+  text-align: left;
+  padding-block: var(--spacing-2);
+  overflow-wrap: anywhere;
+}

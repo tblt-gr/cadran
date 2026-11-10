@@ -1,7 +1,41 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
 const FOCUSABLE_SELECTOR =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+
+function focusableElements(container: HTMLElement | null): HTMLElement[] {
+  return Array.from(container?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? []).filter(
+    (element) => {
+      if (
+        element.matches(':disabled, [aria-disabled="true"], [tabindex="-1"], input[type="hidden"]')
+      )
+        return false;
+      for (
+        let ancestor: HTMLElement | null = element;
+        ancestor !== null;
+        ancestor = ancestor.parentElement
+      ) {
+        if (ancestor.hidden || ancestor.hasAttribute('inert')) return false;
+        const style = window.getComputedStyle(ancestor);
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          style.visibility === 'collapse'
+        )
+          return false;
+        // A closed disclosure keeps only its own summary in the keyboard order, including when
+        // another disclosure is nested in its hidden body.
+        if (
+          ancestor.tagName === 'DETAILS' &&
+          !ancestor.hasAttribute('open') &&
+          !ancestor.querySelector(':scope > summary')?.contains(element)
+        )
+          return false;
+      }
+      return true;
+    },
+  );
+}
 
 interface DialogLayer {
   close: RefObject<() => void>;
@@ -47,12 +81,11 @@ function handleKeyDown(event: KeyboardEvent) {
   }
   if (event.key !== 'Tab') return;
 
-  const focusableElements =
-    layer.container.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
-  if (!focusableElements?.length) return;
+  const focusable = focusableElements(layer.container.current);
+  if (!focusable.length) return;
 
-  const first = focusableElements[0];
-  const last = focusableElements[focusableElements.length - 1];
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
 
   if (event.shiftKey && document.activeElement === first) {
     event.preventDefault();
@@ -107,7 +140,8 @@ export function useDialogOverlay(close: () => void, returnFocus?: RefObject<HTML
     const focusFrame = window.requestAnimationFrame(() => {
       if (topLayer() !== layer) return;
       const preferred = container.current?.querySelector<HTMLElement>('[data-autofocus]');
-      (preferred ?? container.current?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR))?.focus();
+      const focusable = focusableElements(container.current);
+      (preferred && focusable.includes(preferred) ? preferred : focusable[0])?.focus();
     });
     return () => {
       window.cancelAnimationFrame(focusFrame);

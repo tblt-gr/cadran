@@ -65,6 +65,22 @@
   flex-shrink: 0;
 }
 
+.goalLink {
+  border: var(--border-none);
+  background: var(--color-transparent);
+  color: inherit;
+  font: inherit;
+  padding: var(--spacing-none);
+  min-height: var(--touch-target-min);
+  text-align: left;
+  cursor: pointer;
+}
+
+.goalLink:is(:hover, :focus-visible) {
+  text-decoration: underline;
+  text-underline-offset: var(--spacing-1);
+}
+
 .selectionControl input {
   margin: var(--spacing-none);
 }
@@ -184,12 +200,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
-}
-
-.barBlock {
-  display: block;
-  width: 100%;
-  height: var(--spacing-2);
 }
 
 .accordion {

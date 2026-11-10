@@ -1,0 +1,5 @@
+.pending {
+  display: block;
+  width: 100%;
+  height: var(--spacing-2);
+}

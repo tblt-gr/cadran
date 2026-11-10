@@ -1,5 +1,6 @@
 .pill {
   display: inline-flex;
+  width: fit-content;
   align-items: center;
   padding: var(--spacing-none) var(--spacing-2);
   border: var(--border-line-subtle);
