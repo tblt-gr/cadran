@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon/Icon';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
@@ -45,42 +46,41 @@ export function RefundFormSkeleton() {
         <div data-span="full">
           <p>{t('transactions.refund.allocation')}</p>
           <div className={splitStyles.editor}>
-            <div>
+            <div className={splitStyles.summary}>
               <div className={splitStyles.remaining}>
                 <span>{t('transactions.split.total')}</span>
                 <strong>
                   <SkeletonBlock className={styles.skeletonAmount} />
                 </strong>
               </div>
-              <div>
-                <div className={splitStyles.remaining}>
-                  <span>{t('transactions.split.remaining')}</span>
-                  <strong>
-                    <SkeletonBlock className={styles.skeletonAmount} />
-                  </strong>
-                </div>
-                <p className={splitStyles.hint}>
-                  <SkeletonBlock />
-                </p>
+              <div className={splitStyles.remaining}>
+                <span>{t('transactions.split.remaining')}</span>
+                <strong>
+                  <SkeletonBlock className={styles.skeletonAmount} />
+                </strong>
               </div>
             </div>
             <ol className={splitStyles.rows} />
-            <div>
-              <div className={splitStyles.actions}>
-                <button className="secondary-action" disabled type="button">
-                  {t('transactions.split.addRow')}
-                </button>
-                <button className="secondary-action" disabled type="button">
-                  {t('transactions.split.splitEvenly')}
-                </button>
-                <button className="secondary-action" disabled type="button">
-                  {t('transactions.split.undo')}
-                </button>
-              </div>
-              <p className={splitStyles.hint}>{t('transactions.split.addHelp')}</p>
-              <p className={splitStyles.hint}>
-                <SkeletonBlock />
-              </p>
+            <div className={splitStyles.actions}>
+              <button
+                aria-label={t('transactions.split.addRow')}
+                className="icon-button"
+                disabled
+                title={t('transactions.split.addRow')}
+                type="button"
+              >
+                <Icon name="add" />
+              </button>
+              <button
+                aria-label={t('transactions.split.splitEvenly')}
+                className="secondary-action"
+                disabled
+                title={t('transactions.split.splitEvenly')}
+                type="button"
+              >
+                <Icon name="columns" size={18} />
+                {t('transactions.split.equalLabel')}
+              </button>
             </div>
           </div>
         </div>

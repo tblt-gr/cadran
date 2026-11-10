@@ -120,7 +120,7 @@ describe('SplitEditor', () => {
       const { onChange } = renderEditor(rows, { direction: 'OUTFLOW' });
 
       const assign = await screen.findAllByRole('button', {
-        name: 'Compléter le montant de cette ligne',
+        name: /^Affecter le reste à la ligne/,
       });
       fireEvent.click(assign[1]);
       expect(onChange).toHaveBeenCalledWith([rows[0], { ...rows[1], amount: '25.30' }]);
@@ -259,7 +259,7 @@ describe('SplitEditor', () => {
     const { onChange } = renderEditor(rows);
 
     const assignButtons = await screen.findAllByRole('button', {
-      name: 'Compléter le montant de cette ligne',
+      name: /^Affecter le reste à la ligne/,
     });
     fireEvent.click(assignButtons[1]);
     expect(onChange).toHaveBeenCalledWith([rows[0], { ...rows[1], amount: '-25.30' }]);
@@ -414,6 +414,12 @@ describe('SplitEditor', () => {
     const current = renderControlled(initial, '-10.00');
     const split = await screen.findByRole('button', { name: 'Répartir le total à parts égales' });
     await waitFor(() => expect((split as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.queryByRole('button', { name: 'Annuler la répartition égale' })).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Ajouter une catégorie à la répartition' }).textContent,
+    ).toBe('');
+    expect(split.textContent).toBe('Parts égales');
+    expect(screen.queryByText(/Ajoute une ligne vide/)).toBeNull();
     fireEvent.click(split);
     expect(current().map((row) => row.amount)).toEqual(['-3.34', '-3.33', '-3.33']);
     fireEvent.click(screen.getByRole('button', { name: 'Annuler la répartition égale' }));
@@ -422,10 +428,7 @@ describe('SplitEditor', () => {
     fireEvent.change(screen.getByRole('textbox', { name: 'Montant de la ligne 1' }), {
       target: { value: '-4.00' },
     });
-    expect(
-      (screen.getByRole('button', { name: 'Annuler la répartition égale' }) as HTMLButtonElement)
-        .disabled,
-    ).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Annuler la répartition égale' })).toBeNull();
   });
 
   it('disables allocation helpers when the total is non-calculable', async () => {
@@ -434,9 +437,13 @@ describe('SplitEditor', () => {
     );
     api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
     renderEditor([emptySplitRow(), emptySplitRow()], { total: '-' });
-    expect(
-      await screen.findByText('Renseignez un montant de transaction exact et non nul.'),
-    ).toBeTruthy();
+    const disabledSplit = await screen.findByRole('button', {
+      name: 'Répartir le total à parts égales',
+    });
+    expect(disabledSplit.getAttribute('title')).toBe(
+      'Renseignez un montant de transaction exact et non nul.',
+    );
+    expect(screen.queryByText('Renseignez un montant de transaction exact et non nul.')).toBeNull();
     expect(
       (
         screen.getByRole('button', {
@@ -445,23 +452,23 @@ describe('SplitEditor', () => {
       ).disabled,
     ).toBe(true);
     for (const button of screen.getAllByRole('button', {
-      name: 'Compléter le montant de cette ligne',
+      name: /^Affecter le reste à la ligne/,
     })) {
       expect((button as HTMLButtonElement).disabled).toBe(true);
     }
   });
 
-  it('explains a one-line allocation and distinguishes an excess', async () => {
+  it('keeps disabled reasons in the control and distinguishes an excess', async () => {
     api.listAssets.mockImplementation(() =>
       success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
     );
     api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
     renderEditor([{ ...emptySplitRow(), amount: '-12.00' }], { total: '-10.00' });
     expect(
-      await screen.findByText(
-        'Ajoutez au moins deux lignes pour répartir le total à parts égales.',
-      ),
-    ).toBeTruthy();
+      (
+        await screen.findByRole('button', { name: 'Répartir le total à parts égales' })
+      ).getAttribute('title'),
+    ).toBe('Ajoutez au moins deux lignes pour répartir le total à parts égales.');
     expect(screen.getByText('Montant total')).toBeTruthy();
     expect(screen.getByRole('status').textContent).toContain('Dépassement');
     expect(screen.getByRole('status').textContent).toContain('2,00');

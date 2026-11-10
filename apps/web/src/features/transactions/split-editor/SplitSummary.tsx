@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon/Icon';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatAmount, isZeroDecimal } from '@/lib/decimal';
@@ -21,7 +22,7 @@ export function SplitSummary({ assetCode, complete, remaining, total }: SplitSum
     !balanced &&
     total.startsWith('-') !== remaining.startsWith('-');
   return (
-    <div>
+    <div className={styles.summary}>
       <div className={styles.remaining}>
         <span>{t('transactions.split.total')}</span>
         <strong>
@@ -30,30 +31,22 @@ export function SplitSummary({ assetCode, complete, remaining, total }: SplitSum
             : formatAmount(total, assetCode, i18n.language)}
         </strong>
       </div>
-      <div aria-live="polite" role="status">
-        <div className={styles.remaining}>
-          <span id={id}>
-            {t(excess ? 'transactions.split.excess' : 'transactions.split.remaining')}
-          </span>
-          <strong aria-labelledby={id}>
-            {remaining === null
-              ? t('transactions.split.amountUnknown')
-              : formatAmount(remaining.replace(/^-/, ''), assetCode, i18n.language)}
-          </strong>
-        </div>
-        <p className={styles.hint}>
+      <div aria-live="polite" className={styles.remaining} role="status">
+        <span id={id}>
           {t(
-            remaining === null
-              ? 'transactions.split.remainingUnknown'
-              : balanced
-                ? complete
-                  ? 'transactions.split.balanced'
-                  : 'transactions.split.incomplete'
-                : excess
-                  ? 'transactions.split.excessHelp'
-                  : 'transactions.split.remainingHelp',
+            excess
+              ? 'transactions.split.excess'
+              : balanced && !complete
+                ? 'transactions.split.incomplete'
+                : 'transactions.split.remaining',
           )}
-        </p>
+        </span>
+        <strong aria-labelledby={id}>
+          {remaining === null
+            ? t('transactions.split.amountUnknown')
+            : formatAmount(remaining.replace(/^-/, ''), assetCode, i18n.language)}
+        </strong>
+        {balanced && complete ? <Icon name="check-circle" size={16} /> : null}
       </div>
     </div>
   );

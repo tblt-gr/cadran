@@ -1,4 +1,5 @@
-import { useId, useState } from 'react';
+import { useRef, useState } from 'react';
+import { Icon } from '@/components/ui/icon/Icon';
 import { useTranslation } from 'react-i18next';
 import { isZeroDecimal } from '@/lib/decimal';
 import { toTypedAmount, type AmountDirection } from '@/lib/signedAmount';
@@ -17,7 +18,7 @@ interface SplitActionsProps {
 /** Allocation helpers own a one-step undo, valid only while their result is untouched. */
 export function SplitActions({ direction, onChange, precision, rows, total }: SplitActionsProps) {
   const { t } = useTranslation();
-  const id = useId();
+  const equalButton = useRef<HTMLButtonElement>(null);
   const [undo, setUndo] = useState<{
     before: SplitRowValues[];
     after: string;
@@ -50,50 +51,50 @@ export function SplitActions({ direction, onChange, precision, rows, total }: Sp
     onChange(next);
   }
   return (
-    <div>
-      <div className={styles.actions}>
-        <button
-          aria-describedby={`${id}-add`}
-          className="secondary-action"
-          disabled={rows.length >= MAX_SPLIT_ROWS}
-          onClick={() => onChange([...rows, emptySplitRow()])}
-          type="button"
-        >
-          {t('transactions.split.addRow')}
-        </button>
-        <button
-          aria-describedby={`${id}-equal`}
-          className="secondary-action"
-          disabled={!available}
-          onClick={redistribute}
-          type="button"
-        >
-          {t('transactions.split.splitEvenly')}
-        </button>
-        <button
-          className="secondary-action"
-          disabled={!canUndo}
-          onClick={() => {
-            if (canUndo) {
-              onChange(undo.before);
-              setUndo(null);
-            }
-          }}
-          type="button"
-        >
-          {t('transactions.split.undo')}
-        </button>
-      </div>
-      <p className={styles.hint} id={`${id}-add`}>
-        {t(
+    <div className={styles.actions}>
+      <button
+        aria-label={t('transactions.split.addRow')}
+        className="icon-button"
+        disabled={rows.length >= MAX_SPLIT_ROWS}
+        onClick={() => onChange([...rows, emptySplitRow()])}
+        title={t(
           rows.length >= MAX_SPLIT_ROWS
             ? 'transactions.split.rowLimit'
-            : 'transactions.split.addHelp',
+            : 'transactions.split.addRow',
         )}
-      </p>
-      <p className={styles.hint} id={`${id}-equal`}>
-        {t(available ? 'transactions.split.equalHelp' : `transactions.split.unavailable.${reason}`)}
-      </p>
+        type="button"
+      >
+        <Icon name="add" />
+      </button>
+      <button
+        aria-label={t('transactions.split.splitEvenly')}
+        className="secondary-action"
+        disabled={!available}
+        onClick={redistribute}
+        ref={equalButton}
+        title={t(
+          available ? 'transactions.split.splitEvenly' : `transactions.split.unavailable.${reason}`,
+        )}
+        type="button"
+      >
+        <Icon name="columns" size={18} />
+        {t('transactions.split.equalLabel')}
+      </button>
+      {canUndo ? (
+        <button
+          aria-label={t('transactions.split.undo')}
+          className="icon-ghost"
+          onClick={() => {
+            onChange(undo.before);
+            setUndo(null);
+            equalButton.current?.focus();
+          }}
+          title={t('transactions.split.undo')}
+          type="button"
+        >
+          <Icon name="arrow-left" />
+        </button>
+      ) : null}
     </div>
   );
 }

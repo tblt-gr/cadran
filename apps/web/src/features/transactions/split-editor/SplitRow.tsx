@@ -40,6 +40,8 @@ interface SplitRowProps {
   missingCategory: boolean;
   onChange: (values: SplitRowValues) => void;
   onRemove: () => void;
+  onAssignRemainder?: () => void;
+  remainderDisabled: boolean;
   preferredType: CategoryType;
   removable: boolean;
   values: SplitRowValues;
@@ -56,6 +58,8 @@ export function SplitRow({
   missingCategory,
   onChange,
   onRemove,
+  onAssignRemainder,
+  remainderDisabled,
   preferredType,
   removable,
   values,
@@ -133,15 +137,30 @@ export function SplitRow({
           />
         </label>
 
-        <button
-          aria-label={t('transactions.split.removeRow', { row: index + 1 })}
-          className="icon-button"
-          disabled={!removable}
-          onClick={onRemove}
-          type="button"
-        >
-          <Icon name="close" />
-        </button>
+        <div className={styles.rowActions}>
+          {onAssignRemainder ? (
+            <button
+              aria-label={t('transactions.split.assignRemainder', { row: index + 1 })}
+              className={`secondary-action ${styles.remainderAction}`}
+              disabled={remainderDisabled}
+              onClick={onAssignRemainder}
+              title={t('transactions.split.assignRemainder', { row: index + 1 })}
+              type="button"
+            >
+              <Icon name="move" size={16} />
+              {t('transactions.split.remainderLabel')}
+            </button>
+          ) : null}
+          <button
+            aria-label={t('transactions.split.removeRow', { row: index + 1 })}
+            className="icon-ghost"
+            disabled={!removable}
+            onClick={onRemove}
+            type="button"
+          >
+            <Icon name="close" />
+          </button>
+        </div>
       </div>
 
       {values.amount === '' ? null : (

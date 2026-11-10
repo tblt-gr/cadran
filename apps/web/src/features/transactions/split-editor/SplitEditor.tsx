@@ -142,21 +142,12 @@ export function SplitEditor({
                 missingCategory={showErrors && row.categoryId === ''}
                 onChange={(values) => updateRow(index, values)}
                 onRemove={() => removeRow(index)}
+                onAssignRemainder={!sumBalanced ? () => assignRemainder(index) : undefined}
+                remainderDisabled={exactTotal === null}
                 preferredType={preferredType}
                 removable
                 values={row}
               />
-              {!sumBalanced ? (
-                <button
-                  className="secondary-action"
-                  disabled={exactTotal === null}
-                  title={t('transactions.split.remainderHelp')}
-                  onClick={() => assignRemainder(index)}
-                  type="button"
-                >
-                  {t('transactions.split.assignRemainder')}
-                </button>
-              ) : null}
             </li>
           );
         })}
