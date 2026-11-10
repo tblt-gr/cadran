@@ -1,6 +1,6 @@
 import type { Account, Transaction } from '@cadran/api-client';
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionDayList } from './TransactionDayList';
 
@@ -35,7 +35,81 @@ function signature(element: Element): string {
 }
 
 describe('TransactionDayList', () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+  });
+
+  it('bounds mounted rows for a long single day and reveals loaded rows by keyboard controls', () => {
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    const transactions = Array.from({ length: 1000 }, (_, index) =>
+      tx(`long-${index}`, '2026-09-11', '-1.00'),
+    );
+    const { container } = render(<TransactionDayList transactions={transactions} />);
+    expect(container.querySelectorAll('[data-state]').length).toBeLessThan(200);
+    expect(screen.getByText('Libellé long-0')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Mouvements suivants déjà chargés' }));
+    expect(document.activeElement?.closest('[data-state]')?.textContent).toMatch(/Libellé long-/);
+    expect(container.querySelectorAll('[data-state]').length).toBeLessThan(200);
+  });
+
+  it('keeps one accessible day heading after the first virtual block leaves the DOM', async () => {
+    const scroll = vi.spyOn(window, 'scrollY', 'get').mockReturnValue(0);
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    render(
+      <TransactionDayList
+        transactions={Array.from({ length: 1000 }, (_, index) =>
+          tx(`scroll-${index}`, '2026-09-11', '-1.00'),
+        )}
+      />,
+    );
+    scroll.mockReturnValue(8000);
+    fireEvent.scroll(window);
+    await waitFor(() => expect(screen.queryByText('Libellé scroll-0')).toBeNull());
+    expect(screen.getAllByRole('heading', { name: /vendredi 11 septembre 2026/ })).toHaveLength(1);
+  });
+
+  it('keeps the visible row DOM and focus when an earlier pinned block is released', async () => {
+    const scroll = vi.spyOn(window, 'scrollY', 'get').mockReturnValue(0);
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    render(
+      <TransactionDayList
+        transactions={Array.from({ length: 1000 }, (_, index) =>
+          tx(`focus-${index}`, '2026-09-11', '-1.00'),
+        )}
+      />,
+    );
+    const pinned = screen.getByRole('button', {
+      name: 'Actions de la transaction « Libellé focus-0 »',
+    });
+    act(() => pinned.focus());
+    scroll.mockReturnValue(8000);
+    fireEvent.scroll(window);
+    const targetName = 'Actions de la transaction « Libellé focus-100 »';
+    const target = await screen.findByRole('button', { name: targetName });
+    expect(
+      screen.getByRole('button', { name: 'Actions de la transaction « Libellé focus-0 »' }),
+    ).toBe(pinned);
+    act(() => target.focus());
+    await waitFor(() => expect(screen.queryByText('Libellé focus-0')).toBeNull());
+    expect(screen.getByRole('button', { name: targetName })).toBe(target);
+    expect(document.activeElement).toBe(target);
+  });
+
+  it('appends to a day without remounting existing rows or repeating its heading', () => {
+    const first = tx('first', '2026-09-11', '-1.00');
+    const { rerender } = render(<TransactionDayList transactions={[first]} />);
+    const original = screen.getByRole('button', {
+      name: 'Actions de la transaction « Libellé first »',
+    });
+    act(() => original.focus());
+    rerender(<TransactionDayList transactions={[first, tx('second', '2026-09-11', '-2.00')]} />);
+    expect(
+      screen.getByRole('button', { name: 'Actions de la transaction « Libellé first »' }),
+    ).toBe(original);
+    expect(document.activeElement).toBe(original);
+    expect(screen.getAllByRole('heading', { name: /vendredi 11 septembre 2026/ })).toHaveLength(1);
+  });
 
   it('shows one heading per day with the weekday and the date, and no day total', () => {
     render(

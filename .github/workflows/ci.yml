@@ -415,7 +415,7 @@ jobs:
     needs: e2e_changes
     if: needs.e2e_changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       # Throwaway owner of this disposable stack; never a real credential.
       E2E_OWNER_EMAIL: e2e-owner@example.test

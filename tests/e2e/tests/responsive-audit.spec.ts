@@ -1,6 +1,7 @@
 import { appendFileSync } from 'node:fs';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { auditLayout, type AuditFinding } from './support/audit';
+
 import { settled } from './support/page';
 import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
@@ -13,6 +14,19 @@ import {
   expectFacetRowsFit,
   withLongAccountLabel,
 } from './support/transaction-filters';
+
+test('touch audit ignores fully clipped controls but checks them when revealed', async ({
+  page,
+}) => {
+  await page.setContent(
+    '<button style="width: 34px; height: 44px; clip-path: inset(50%)">Next</button>',
+  );
+  expect(await auditLayout(page, true)).toEqual([]);
+  await page.locator('button').evaluate((button) => (button.style.clipPath = 'none'));
+  expect(await auditLayout(page, true)).toEqual([
+    expect.objectContaining({ rule: 'touch-target' }),
+  ]);
+});
 
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
@@ -533,8 +547,8 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
     locale: 'fr-FR',
     timezoneId: 'Europe/Paris',
   });
+  const page = await context.newPage();
   try {
-    const page = await context.newPage();
     await withLongAccountLabel(page);
     await page.goto('/transactions?direction=OUTFLOW&state=BOOKED');
     await settled(page);
@@ -585,6 +599,8 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
     expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
     expect(await auditLayout(page, true)).toEqual([]);
   } finally {
+    // Aborted browser requests can leave route.fetch running in the label fixture.
+    await page.unrouteAll({ behavior: 'wait' });
     await context.close();
   }
 });
@@ -602,8 +618,8 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
     locale: 'fr-FR',
     timezoneId: 'Europe/Paris',
   });
+  const page = await context.newPage();
   try {
-    const page = await context.newPage();
     await withLongAccountLabel(page);
     await page.goto('/transactions?direction=OUTFLOW');
     await settled(page);
@@ -637,6 +653,8 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
     await settled(page);
     expect(await auditLayout(page, false)).toEqual([]);
   } finally {
+    // Drain the label fixture before disposing the request context it fetches through.
+    await page.unrouteAll({ behavior: 'wait' });
     await context.close();
   }
 });

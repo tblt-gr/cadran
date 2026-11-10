@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionListFooter } from './TransactionListFooter';
@@ -6,6 +6,52 @@ import { TransactionListFooter } from './TransactionListFooter';
 describe('TransactionListFooter', () => {
   afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('requests once per approach, does not cascade while visible, and leaves retry explicit', () => {
+    let notify: IntersectionObserverCallback | undefined;
+    const disconnect = vi.fn();
+    vi.stubGlobal(
+      'IntersectionObserver',
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          notify = callback;
+        }
+        observe() {}
+        disconnect = disconnect;
+      },
+    );
+    const onLoadMore = vi.fn();
+    const props = {
+      hasMore: true,
+      loadingMore: false,
+      onLoadMore,
+      onReloadFromFirstPage: vi.fn(),
+      stale: false,
+    };
+    const { rerender, unmount } = render(<TransactionListFooter {...props} />);
+    const intersect = (isIntersecting: boolean) =>
+      act(() =>
+        notify?.([{ isIntersecting } as IntersectionObserverEntry], {} as IntersectionObserver),
+      );
+    intersect(true);
+    intersect(true);
+    rerender(<TransactionListFooter {...props} loadingMore />);
+    rerender(<TransactionListFooter {...props} />);
+    intersect(true);
+    expect(onLoadMore).toHaveBeenCalledTimes(1);
+    intersect(false);
+    intersect(true);
+    expect(onLoadMore).toHaveBeenCalledTimes(2);
+    rerender(<TransactionListFooter {...props} failed />);
+    intersect(false);
+    intersect(true);
+    expect(onLoadMore).toHaveBeenCalledTimes(2);
+    fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+    expect(onLoadMore).toHaveBeenCalledTimes(3);
+    unmount();
+    expect(disconnect).toHaveBeenCalled();
   });
 
   it('offers to load more while more pages remain', () => {
@@ -20,7 +66,7 @@ describe('TransactionListFooter', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
     expect(onLoadMore).toHaveBeenCalledOnce();
   });
 
@@ -67,7 +113,9 @@ describe('TransactionListFooter', () => {
       />,
     );
 
-    const button = screen.getByRole('button', { name: 'Chargement…' }) as HTMLButtonElement;
+    const button = screen.getByRole('button', {
+      name: 'Chargement des mouvements suivants…',
+    }) as HTMLButtonElement;
     expect(button.disabled).toBe(true);
     expect(button.tagName).toBe('BUTTON');
   });

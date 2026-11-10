@@ -70,12 +70,15 @@ function Harness({
   hasMore = false,
   inline = false,
   resetKey = 'a',
+  extended = false,
 }: {
   hasMore?: boolean;
   inline?: boolean;
   resetKey?: string;
+  extended?: boolean;
 }) {
   const items = [tx(FIRST, 'Carrefour'), tx(SECOND, 'Monoprix')];
+  if (extended) items.push(tx('third', 'Boulangerie'));
   const [active, setActive] = useState(true);
   const bulk = useBulkSelection({
     hasMore,
@@ -153,6 +156,21 @@ describe('bulk selection', () => {
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 
+  it('keeps selected ids when more rows are appended', () => {
+    const { update } = renderHarness({ hasMore: true });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
+    update({ hasMore: true, extended: true });
+    expect(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' })).toHaveProperty(
+      'checked',
+      true,
+    );
+    expect(screen.getByRole('checkbox', { name: 'Sélectionner Boulangerie' })).toHaveProperty(
+      'checked',
+      false,
+    );
+    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+  });
+
   it('leaves the mode with the pen, dropping checkboxes and the selection', () => {
     renderHarness();
     const pen = screen.getByRole('button', { name: 'Édition groupée' });
@@ -201,7 +219,7 @@ describe('bulk selection', () => {
   });
 
   it('offers every transaction matching the filters with the exact count', async () => {
-    renderHarness({ hasMore: true });
+    const { update } = renderHarness({ hasMore: true });
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
 
     fireEvent.click(
@@ -212,6 +230,14 @@ describe('bulk selection', () => {
 
     expect(api.countTransactions).toHaveBeenCalledWith(
       expect.objectContaining({ query: { q: 'market' } }),
+    );
+    expect(
+      screen.getByText('Les 120 mouvements correspondant aux filtres sont sélectionnés'),
+    ).toBeTruthy();
+    update({ hasMore: false, extended: true });
+    expect(screen.getByRole('checkbox', { name: 'Sélectionner Boulangerie' })).toHaveProperty(
+      'checked',
+      true,
     );
     expect(
       screen.getByText('Les 120 mouvements correspondant aux filtres sont sélectionnés'),

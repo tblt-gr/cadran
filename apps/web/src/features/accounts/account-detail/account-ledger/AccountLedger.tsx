@@ -57,6 +57,7 @@ export function AccountLedger({
     loadMore,
     reloadAfterWrite,
     reloadFromFirstPage,
+    resetKey,
     staleCursorError,
     transactions,
     unauthorized,
@@ -67,7 +68,7 @@ export function AccountLedger({
     items,
     query: bulkQuery,
     reloadAfterWrite,
-    resetKey: JSON.stringify([account.id, filters, bulkMode]),
+    resetKey: JSON.stringify([resetKey, bulkMode]),
   });
 
   const activeAccounts = useQuery({

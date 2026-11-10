@@ -282,6 +282,7 @@ describe('TransactionsPage', () => {
     expect(window.location.search).toBe('?period=month&month=2026-10');
     expect(window.history.length).toBe(before + 1);
 
+    await screen.findByText(transaction.rawLabel);
     fireEvent.click(screen.getByRole('button', { name: 'Mois suivant' }));
     await waitFor(() => expect(window.location.search).toBe('?period=month&month=2026-11'));
     expect(window.history.length).toBe(before + 2);
@@ -1685,7 +1686,7 @@ describe('TransactionsPage', () => {
     renderPage();
 
     expect(await screen.findByText('CB CARREFOUR 1234')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
 
     expect(await screen.findByRole('alert')).toHaveProperty(
       'textContent',
@@ -1731,15 +1732,13 @@ describe('TransactionsPage', () => {
     renderPage();
 
     await screen.findByText('CB CARREFOUR 1234');
-    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
     await waitFor(() =>
       expect(api.listTransactions).toHaveBeenLastCalledWith(
         expect.objectContaining({ query: expect.objectContaining({ cursor: 'cursor-1' }) }),
       ),
     );
-    await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Mouvements plus anciens' })).toBeNull(),
-    );
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull());
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Actions de la transaction « CB CARREFOUR 1234 »' }),
@@ -1780,7 +1779,7 @@ describe('TransactionsPage', () => {
     await screen.findByText('CB CARREFOUR 1234');
     const firstAnnouncement = screen.getByRole('status').textContent;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mouvements plus anciens' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
 
     await screen.findByText('CB FNAC 5678');
     await waitFor(() => expect(screen.getByRole('status').textContent).not.toBe(firstAnnouncement));
@@ -2016,7 +2015,7 @@ describe('TransactionsPage option counts', () => {
         expect.objectContaining({ query: expect.objectContaining({ state: ['BOOKED'] }) }),
       ),
     );
-    expect(screen.getByText(transaction.rawLabel)).toBeTruthy();
+    expect(await screen.findByText(transaction.rawLabel)).toBeTruthy();
     expect(screen.getByRole('checkbox', { name: 'Comptabilisée' })).toHaveProperty('checked', true);
   });
 

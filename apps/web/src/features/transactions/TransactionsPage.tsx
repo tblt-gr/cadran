@@ -46,6 +46,7 @@ export function TransactionsPage() {
     loadSequence,
     reloadAfterWrite,
     reloadFromFirstPage,
+    resetKey,
     resetAllFilters,
     searchFilters,
     staleCursorError,
@@ -60,7 +61,7 @@ export function TransactionsPage() {
     query: bulkQuery,
     reloadAfterWrite,
     // Leaving the mode is a reset too: the selection never outlives it.
-    resetKey: `${loadSequence}:${bulkMode}`,
+    resetKey: `${resetKey}:${bulkMode}`,
   });
 
   const mutations = useTransactionMutations({
@@ -219,7 +220,7 @@ export function TransactionsPage() {
             />
           ) : initialLoading ? (
             <TransactionsPageSkeleton />
-          ) : transactions.isError && !staleCursorError ? (
+          ) : transactions.isError && !staleCursorError && (items.length === 0 || unauthorized) ? (
             <TransactionsState
               kind={unauthorized ? 'unauthorized' : 'error'}
               onCreate={() => openEditor('create')}
@@ -245,6 +246,7 @@ export function TransactionsPage() {
                 transactions={items}
               />
               <TransactionListFooter
+                failed={transactions.isError && !staleCursorError}
                 hasMore={!staleCursorError && Boolean(displayedPage?.nextCursor)}
                 loadingMore={transactions.isFetching && !transactions.isPending}
                 onLoadMore={loadMore}
