@@ -9,6 +9,7 @@ import type {
 
 /** A winning evaluation with the goals it hides for the period. */
 export interface GoalRowModel {
+  period?: string;
   evaluation: GoalEvaluation;
   summary: GoalSummary | null;
   replaced: { id: string; label: string }[];
@@ -38,6 +39,7 @@ export function buildRows(
 ): GoalRowModel[] {
   if (period === undefined) return [];
   return [...period.items].sort(compareEvaluations).map((evaluation) => ({
+    period: period.period,
     evaluation,
     summary: summaries.get(evaluation.goalId) ?? null,
     replaced: evaluation.overrides.flatMap((id) => {

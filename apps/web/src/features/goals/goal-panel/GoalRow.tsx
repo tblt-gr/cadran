@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
+import { GoalDetailModal } from '@/features/goals/goal-detail/GoalDetailModal';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { useGoalSelection } from '@/features/goals/bulk-selection/goalSelectionContext';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
@@ -24,6 +26,7 @@ export function GoalRow({ row, handlers }: Props) {
   const { t, i18n } = useTranslation();
   const scopeLabel = useGoalScopeLabel();
   const selection = useGoalSelection();
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const evaluation = row?.evaluation ?? null;
   const summary = row?.summary ?? null;
   const target = evaluation ? formatEvaluationFigure(evaluation.target, i18n.language) : null;
@@ -59,7 +62,15 @@ export function GoalRow({ row, handlers }: Props) {
             />
           </label>
         ) : null}
-        <h4>{evaluation ? evaluation.label : <SkeletonBlock className={styles.labelBlock} />}</h4>
+        <h4>
+          {evaluation ? (
+            <button className={styles.goalLink} onClick={() => setDetailsOpen(true)} type="button">
+              {evaluation.label}
+            </button>
+          ) : (
+            <SkeletonBlock className={styles.labelBlock} />
+          )}
+        </h4>
         <div className={styles.rowEnd}>
           {evaluation ? (
             <GoalEvaluationBadge evaluation={evaluation} />
@@ -107,6 +118,15 @@ export function GoalRow({ row, handlers }: Props) {
       ) : null}
       {evaluation?.status === 'NOT_CALCULABLE' && evaluation.reason !== null ? (
         <p className={styles.note}>{t(`goals.panel.reasons.${evaluation.reason}`)}</p>
+      ) : null}
+      {detailsOpen && evaluation ? (
+        <GoalDetailModal
+          goalId={evaluation.goalId}
+          label={evaluation.label}
+          evaluation={evaluation}
+          period={row?.period ?? ''}
+          close={() => setDetailsOpen(false)}
+        />
       ) : null}
     </li>
   );

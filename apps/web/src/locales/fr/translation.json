@@ -3058,6 +3058,26 @@
     }
   },
   "goals": {
+    "detail": {
+      "content": "Détails et historique de l’objectif",
+      "loading": "Chargement des détails de l’objectif…",
+      "error": "Les détails de cet objectif n’ont pas pu être lus.",
+      "identity": "Identité et période",
+      "periodicity": "Périodicité",
+      "MONTHLY": "Mensuelle",
+      "YEARLY": "Annuelle",
+      "applicability": "Période d’application",
+      "lifecycle": "État pour la période sélectionnée",
+      "future": "Pas encore commencé",
+      "ended": "Terminé",
+      "applicable": "Applicable",
+      "evaluation": "Évaluation : {{period}}",
+      "target": "Cible",
+      "achieved": "Réalisé",
+      "noGap": "Écart non calculable pour cette période.",
+      "version": "Version {{version}}",
+      "appliedVersion": "Version appliquée à cette période"
+    },
     "add": "Nouvel objectif",
     "loading": "Chargement des objectifs…",
     "unauthorized": "Session expirée",
