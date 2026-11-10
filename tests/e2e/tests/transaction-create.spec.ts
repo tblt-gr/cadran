@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { openTransactionSplits } from './support/transaction-splits';
 import { movementRows, settled, uniqueLabel } from './support/page';
 
 test.describe('transaction entry', () => {
@@ -59,4 +60,27 @@ test.describe('transaction entry', () => {
     await expect(editor).toBeVisible();
     await expect(editor.getByLabel('Montant')).toHaveAttribute('aria-invalid', 'true');
   });
+});
+
+test('redistributes a draft allocation and restores it by keyboard', async ({ page }) => {
+  const editor = await openTransactionSplits(page);
+  const split = editor.getByRole('button', { name: 'Répartir le total à parts égales' });
+  await expect(
+    editor.getByRole('button', { name: 'Ajouter une catégorie à la répartition' }),
+  ).toHaveText('');
+  await expect(editor.getByRole('button', { name: 'Annuler la répartition égale' })).toHaveCount(0);
+  await expect(split).toHaveText('Parts égales');
+  await split.focus();
+  await page.keyboard.press('Enter');
+  await expect(editor.getByLabel('Montant de la ligne 1', { exact: true })).toHaveValue('3.34');
+  await expect(editor.getByLabel('Montant de la ligne 2', { exact: true })).toHaveValue('3.33');
+  await expect(editor.getByLabel('Montant de la ligne 3', { exact: true })).toHaveValue('3.33');
+  await page.keyboard.press('Tab');
+  await expect(editor.getByRole('button', { name: 'Annuler la répartition égale' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(split).toBeFocused();
+  await expect(editor.getByRole('button', { name: 'Annuler la répartition égale' })).toHaveCount(0);
+  await expect(editor.getByLabel('Montant de la ligne 1', { exact: true })).toHaveValue('5.00');
+  await expect(editor.getByLabel('Montant de la ligne 2', { exact: true })).toHaveValue('3.00');
+  await expect(editor.getByLabel('Montant de la ligne 3', { exact: true })).toHaveValue('2.00');
 });

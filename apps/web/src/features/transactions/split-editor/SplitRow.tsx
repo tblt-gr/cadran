@@ -37,8 +37,11 @@ interface SplitRowProps {
   index: number;
   invalid: boolean;
   duplicateCategory: boolean;
+  missingCategory: boolean;
   onChange: (values: SplitRowValues) => void;
   onRemove: () => void;
+  onAssignRemainder?: () => void;
+  remainderDisabled: boolean;
   preferredType: CategoryType;
   removable: boolean;
   values: SplitRowValues;
@@ -52,8 +55,11 @@ export function SplitRow({
   index,
   invalid,
   duplicateCategory,
+  missingCategory,
   onChange,
   onRemove,
+  onAssignRemainder,
+  remainderDisabled,
   preferredType,
   removable,
   values,
@@ -70,7 +76,14 @@ export function SplitRow({
     <div className={styles.row}>
       <div className={styles.rowFields}>
         <CategoryPicker
-          error={categoryError}
+          error={
+            categoryError ??
+            (missingCategory
+              ? t('transactions.split.categoryRequired')
+              : duplicateCategory
+                ? t('transactions.split.duplicateCategory')
+                : null)
+          }
           label={t('transactions.split.categoryRow', { row: index + 1 })}
           labelHidden
           onChange={(categoryId, category) =>
@@ -98,7 +111,11 @@ export function SplitRow({
         <label>
           <span className="sr-only">{t('transactions.split.amountRow', { row: index + 1 })}</span>
           <input
-            aria-describedby={values.amount === '' ? undefined : hintId}
+            aria-describedby={
+              [values.amount === '' ? null : hintId, invalid ? `${hintId}-error` : null]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             aria-invalid={invalid ? true : undefined}
             aria-label={t('transactions.split.amountRow', { row: index + 1 })}
             autoComplete="off"
@@ -120,15 +137,30 @@ export function SplitRow({
           />
         </label>
 
-        <button
-          aria-label={t('transactions.split.removeRow', { row: index + 1 })}
-          className="icon-button"
-          disabled={!removable}
-          onClick={onRemove}
-          type="button"
-        >
-          <Icon name="close" />
-        </button>
+        <div className={styles.rowActions}>
+          {onAssignRemainder ? (
+            <button
+              aria-label={t('transactions.split.assignRemainder', { row: index + 1 })}
+              className={`secondary-action ${styles.remainderAction}`}
+              disabled={remainderDisabled}
+              onClick={onAssignRemainder}
+              title={t('transactions.split.assignRemainder', { row: index + 1 })}
+              type="button"
+            >
+              <Icon name="move" size={16} />
+              {t('transactions.split.remainderLabel')}
+            </button>
+          ) : null}
+          <button
+            aria-label={t('transactions.split.removeRow', { row: index + 1 })}
+            className="icon-ghost"
+            disabled={!removable}
+            onClick={onRemove}
+            type="button"
+          >
+            <Icon name="close" />
+          </button>
+        </div>
       </div>
 
       {values.amount === '' ? null : (
@@ -140,18 +172,18 @@ export function SplitRow({
         />
       )}
 
+      {invalid ? (
+        <p className={styles.rowError} id={`${hintId}-error`}>
+          {t('transactions.split.amountError')}
+        </p>
+      ) : null}
+
       <SplitAxes
         axes={values.analyticAxes}
         defaultAxes={defaultAxes}
         index={index}
         onChange={(analyticAxes) => onChange({ ...values, analyticAxes })}
       />
-
-      {duplicateCategory ? (
-        <p className={styles.rowError} role="alert">
-          {t('transactions.split.duplicateCategory')}
-        </p>
-      ) : null}
     </div>
   );
 }

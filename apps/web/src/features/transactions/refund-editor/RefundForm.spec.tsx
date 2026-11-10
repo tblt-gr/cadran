@@ -158,16 +158,14 @@ describe('RefundForm', () => {
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Remboursement' } });
 
     expect(
-      await screen.findByText(
-        'La répartition correspond encore au montant intégral. Modifiez les lignes ou utilisez « Assigner le reste à cette ligne » pour atteindre le montant du remboursement.',
-      ),
+      await screen.findByText('Ajustez la répartition au montant du remboursement.'),
     ).toBeTruthy();
     expect(
       (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
     expect(screen.getByText(/la somme des lignes doit être égale/)).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Assigner le reste à cette ligne' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Affecter le reste à la ligne/ }));
     expect((screen.getByLabelText('Montant de la ligne 1') as HTMLInputElement).value).toBe('5.00');
     expect(
       (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
