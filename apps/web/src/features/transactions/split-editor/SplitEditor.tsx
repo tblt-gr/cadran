@@ -1,17 +1,12 @@
 import type { CategoryType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { categoryContradictsAmount } from '@/features/transactions/categorySign';
-import { formatAmount, isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
+import { isCanonicalDecimal, isZeroDecimal } from '@/lib/decimal';
 import { toSignedAmount, toTypedAmount, type AmountDirection } from '@/lib/signedAmount';
 import { SplitRow, type SplitRowValues } from './SplitRow';
-import {
-  MAX_SPLIT_ROWS,
-  assignRemainderToRow,
-  canEvenSplit,
-  emptySplitRow,
-  evenSplitRows,
-  remainingAmount,
-} from './splitAllocation';
+import { assignRemainderToRow, remainingAmount } from './splitAllocation';
+import { SplitSummary } from './SplitSummary';
+import { SplitActions } from './SplitActions';
 import { useAssetPrecision } from './useAssetPrecision';
 import styles from './SplitEditor.module.css';
 
@@ -48,7 +43,7 @@ export function SplitEditor({
   showErrors,
   total,
 }: SplitEditorProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const precision = useAssetPrecision(assetCode);
   // The transaction amount itself can be blank or mid-entry (a fresh draft,
   // a stray "-" or a locale comma) before it becomes a canonical decimal: the
@@ -89,8 +84,6 @@ export function SplitEditor({
   const allocationValid =
     rows.length === 0 ||
     (sumBalanced && duplicateCategoryIds.size === 0 && !signedRows.some(rowIsIncomplete));
-  const evenSplitAvailable =
-    precision !== null && exactTotal !== null && canEvenSplit(exactTotal, precision, rows.length);
 
   function updateRow(index: number, values: SplitRowValues) {
     onChange(rows.map((row, position) => (position === index ? values : row)));
@@ -98,10 +91,6 @@ export function SplitEditor({
 
   function removeRow(index: number) {
     onChange(rows.filter((_, position) => position !== index));
-  }
-
-  function addRow() {
-    onChange([...rows, emptySplitRow()]);
   }
 
   function assignRemainder(index: number) {
@@ -117,25 +106,14 @@ export function SplitEditor({
     return { ...row, amount: signed === undefined ? row.amount : toTypedAmount(signed, direction) };
   }
 
-  function splitEvenly() {
-    if (precision === null || exactTotal === null) {
-      return;
-    }
-
-    const nextAmounts = evenSplitRows(exactTotal, precision, rows.length);
-    onChange(rows.map((row, position) => typedRow(row, nextAmounts[position])));
-  }
-
   return (
     <div className={styles.editor}>
-      <div className={styles.remaining}>
-        <span id="split-remaining-label">{t('transactions.split.remaining')}</span>
-        <strong aria-labelledby="split-remaining-label" aria-live="polite" role="status">
-          {remaining === null
-            ? t('transactions.split.remainingUnknown')
-            : formatAmount(remaining, assetCode, i18n.language)}
-        </strong>
-      </div>
+      <SplitSummary
+        assetCode={assetCode}
+        complete={allocationValid && rows.length > 0}
+        remaining={remaining}
+        total={exactTotal}
+      />
       {showErrors && !allocationValid ? (
         <p className={styles.error} role="alert">
           {t('transactions.split.remainingError')}
@@ -161,6 +139,7 @@ export function SplitEditor({
                 }
                 index={index}
                 invalid={showErrors && amountInvalid(signedRows[index]!)}
+                missingCategory={showErrors && row.categoryId === ''}
                 onChange={(values) => updateRow(index, values)}
                 onRemove={() => removeRow(index)}
                 preferredType={preferredType}
@@ -170,6 +149,8 @@ export function SplitEditor({
               {!sumBalanced ? (
                 <button
                   className="secondary-action"
+                  disabled={exactTotal === null}
+                  title={t('transactions.split.remainderHelp')}
                   onClick={() => assignRemainder(index)}
                   type="button"
                 >
@@ -181,27 +162,13 @@ export function SplitEditor({
         })}
       </ol>
 
-      <div className={styles.actions}>
-        <button
-          className="secondary-action"
-          disabled={rows.length >= MAX_SPLIT_ROWS}
-          onClick={addRow}
-          type="button"
-        >
-          {t('transactions.split.addRow')}
-        </button>
-        <button
-          className="secondary-action"
-          disabled={!evenSplitAvailable}
-          onClick={splitEvenly}
-          type="button"
-        >
-          {t('transactions.split.splitEvenly')}
-        </button>
-      </div>
-      {!evenSplitAvailable ? (
-        <p className={styles.hint}>{t('transactions.split.splitEvenlyUnavailable')}</p>
-      ) : null}
+      <SplitActions
+        direction={direction}
+        onChange={onChange}
+        precision={precision}
+        rows={rows}
+        total={exactTotal}
+      />
     </div>
   );
 }

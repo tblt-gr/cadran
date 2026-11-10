@@ -45,22 +45,43 @@ export function RefundFormSkeleton() {
         <div data-span="full">
           <p>{t('transactions.refund.allocation')}</p>
           <div className={splitStyles.editor}>
-            <div className={splitStyles.remaining}>
-              <span>{t('transactions.split.remaining')}</span>
-              <strong>
-                <SkeletonBlock className={styles.skeletonAmount} />
-              </strong>
+            <div>
+              <div className={splitStyles.remaining}>
+                <span>{t('transactions.split.total')}</span>
+                <strong>
+                  <SkeletonBlock className={styles.skeletonAmount} />
+                </strong>
+              </div>
+              <div>
+                <div className={splitStyles.remaining}>
+                  <span>{t('transactions.split.remaining')}</span>
+                  <strong>
+                    <SkeletonBlock className={styles.skeletonAmount} />
+                  </strong>
+                </div>
+                <p className={splitStyles.hint}>
+                  <SkeletonBlock />
+                </p>
+              </div>
             </div>
             <ol className={splitStyles.rows} />
-            <div className={splitStyles.actions}>
-              <button className="secondary-action" disabled type="button">
-                {t('transactions.split.addRow')}
-              </button>
-              <button className="secondary-action" disabled type="button">
-                {t('transactions.split.splitEvenly')}
-              </button>
+            <div>
+              <div className={splitStyles.actions}>
+                <button className="secondary-action" disabled type="button">
+                  {t('transactions.split.addRow')}
+                </button>
+                <button className="secondary-action" disabled type="button">
+                  {t('transactions.split.splitEvenly')}
+                </button>
+                <button className="secondary-action" disabled type="button">
+                  {t('transactions.split.undo')}
+                </button>
+              </div>
+              <p className={splitStyles.hint}>{t('transactions.split.addHelp')}</p>
+              <p className={splitStyles.hint}>
+                <SkeletonBlock />
+              </p>
             </div>
-            <p className={splitStyles.hint}>{t('transactions.split.splitEvenlyUnavailable')}</p>
           </div>
         </div>
       </FormGrid>

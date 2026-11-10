@@ -37,6 +37,7 @@ interface SplitRowProps {
   index: number;
   invalid: boolean;
   duplicateCategory: boolean;
+  missingCategory: boolean;
   onChange: (values: SplitRowValues) => void;
   onRemove: () => void;
   preferredType: CategoryType;
@@ -52,6 +53,7 @@ export function SplitRow({
   index,
   invalid,
   duplicateCategory,
+  missingCategory,
   onChange,
   onRemove,
   preferredType,
@@ -70,7 +72,14 @@ export function SplitRow({
     <div className={styles.row}>
       <div className={styles.rowFields}>
         <CategoryPicker
-          error={categoryError}
+          error={
+            categoryError ??
+            (missingCategory
+              ? t('transactions.split.categoryRequired')
+              : duplicateCategory
+                ? t('transactions.split.duplicateCategory')
+                : null)
+          }
           label={t('transactions.split.categoryRow', { row: index + 1 })}
           labelHidden
           onChange={(categoryId, category) =>
@@ -98,7 +107,11 @@ export function SplitRow({
         <label>
           <span className="sr-only">{t('transactions.split.amountRow', { row: index + 1 })}</span>
           <input
-            aria-describedby={values.amount === '' ? undefined : hintId}
+            aria-describedby={
+              [values.amount === '' ? null : hintId, invalid ? `${hintId}-error` : null]
+                .filter(Boolean)
+                .join(' ') || undefined
+            }
             aria-invalid={invalid ? true : undefined}
             aria-label={t('transactions.split.amountRow', { row: index + 1 })}
             autoComplete="off"
@@ -140,18 +153,18 @@ export function SplitRow({
         />
       )}
 
+      {invalid ? (
+        <p className={styles.rowError} id={`${hintId}-error`}>
+          {t('transactions.split.amountError')}
+        </p>
+      ) : null}
+
       <SplitAxes
         axes={values.analyticAxes}
         defaultAxes={defaultAxes}
         index={index}
         onChange={(analyticAxes) => onChange({ ...values, analyticAxes })}
       />
-
-      {duplicateCategory ? (
-        <p className={styles.rowError} role="alert">
-          {t('transactions.split.duplicateCategory')}
-        </p>
-      ) : null}
     </div>
   );
 }

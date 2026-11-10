@@ -120,7 +120,7 @@ describe('SplitEditor', () => {
       const { onChange } = renderEditor(rows, { direction: 'OUTFLOW' });
 
       const assign = await screen.findAllByRole('button', {
-        name: 'Assigner le reste à cette ligne',
+        name: 'Compléter le montant de cette ligne',
       });
       fireEvent.click(assign[1]);
       expect(onChange).toHaveBeenCalledWith([rows[0], { ...rows[1], amount: '25.30' }]);
@@ -132,7 +132,7 @@ describe('SplitEditor', () => {
       const { onChange } = renderEditor(rows, { direction: 'OUTFLOW', total: '-100.00' });
 
       const split = (await screen.findByRole('button', {
-        name: 'Répartir également',
+        name: 'Répartir le total à parts égales',
       })) as HTMLButtonElement;
       await waitFor(() => expect(split.disabled).toBe(false));
       fireEvent.click(split);
@@ -155,7 +155,9 @@ describe('SplitEditor', () => {
     const rows = [{ ...emptySplitRow(), amount: '-62.10' }];
     const { onChange } = renderEditor(rows);
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter une ligne' }));
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Ajouter une catégorie à la répartition' }),
+    );
     // The new row gets its own generated key, so compare everything else.
     const [calledWith] = onChange.mock.calls.at(-1) as [SplitRowValues[]];
     expect(calledWith).toHaveLength(2);
@@ -179,7 +181,9 @@ describe('SplitEditor', () => {
     const rows = Array.from({ length: 20 }, () => emptySplitRow());
     renderEditor(rows);
 
-    const addButton = await screen.findByRole('button', { name: 'Ajouter une ligne' });
+    const addButton = await screen.findByRole('button', {
+      name: 'Ajouter une catégorie à la répartition',
+    });
     expect((addButton as HTMLButtonElement).disabled).toBe(true);
   });
 
@@ -236,6 +240,8 @@ describe('SplitEditor', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     const amountInputs = await screen.findAllByLabelText(/^Montant de la ligne/);
     expect(amountInputs[1]?.getAttribute('aria-invalid')).toBe('true');
+    const errorId = amountInputs[1]?.getAttribute('aria-describedby')?.split(' ').at(-1);
+    expect(document.getElementById(errorId!)?.textContent).toContain('Saisissez un montant exact');
   });
 
   it('assigns the remainder to a row so the allocation balances exactly', async () => {
@@ -253,7 +259,7 @@ describe('SplitEditor', () => {
     const { onChange } = renderEditor(rows);
 
     const assignButtons = await screen.findAllByRole('button', {
-      name: 'Assigner le reste à cette ligne',
+      name: 'Compléter le montant de cette ligne',
     });
     fireEvent.click(assignButtons[1]);
     expect(onChange).toHaveBeenCalledWith([rows[0], { ...rows[1], amount: '-25.30' }]);
@@ -271,7 +277,7 @@ describe('SplitEditor', () => {
     const { onChange } = renderEditor(rows, { total: '-100.00' });
 
     const splitButton = (await screen.findByRole('button', {
-      name: 'Répartir également',
+      name: 'Répartir le total à parts égales',
     })) as HTMLButtonElement;
     await waitFor(() => expect(splitButton.disabled).toBe(false));
     fireEvent.click(splitButton);
@@ -394,6 +400,72 @@ describe('SplitEditor', () => {
 
     return () => (onRows.mock.calls.at(-1)?.[0] ?? initial) as SplitRowValues[];
   }
+
+  it('redistributes 10.00 exactly and restores entered amounts with undo', async () => {
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
+    const initial = [
+      { ...emptySplitRow(), amount: '-5.00' },
+      { ...emptySplitRow(), amount: '-3.00' },
+      { ...emptySplitRow(), amount: '-2.00' },
+    ];
+    const current = renderControlled(initial, '-10.00');
+    const split = await screen.findByRole('button', { name: 'Répartir le total à parts égales' });
+    await waitFor(() => expect((split as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(split);
+    expect(current().map((row) => row.amount)).toEqual(['-3.34', '-3.33', '-3.33']);
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler la répartition égale' }));
+    expect(current()).toEqual(initial);
+    fireEvent.click(split);
+    fireEvent.change(screen.getByRole('textbox', { name: 'Montant de la ligne 1' }), {
+      target: { value: '-4.00' },
+    });
+    expect(
+      (screen.getByRole('button', { name: 'Annuler la répartition égale' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+  });
+
+  it('disables allocation helpers when the total is non-calculable', async () => {
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }] }),
+    );
+    api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
+    renderEditor([emptySplitRow(), emptySplitRow()], { total: '-' });
+    expect(
+      await screen.findByText('Renseignez un montant de transaction exact et non nul.'),
+    ).toBeTruthy();
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Répartir le total à parts égales',
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    for (const button of screen.getAllByRole('button', {
+      name: 'Compléter le montant de cette ligne',
+    })) {
+      expect((button as HTMLButtonElement).disabled).toBe(true);
+    }
+  });
+
+  it('explains a one-line allocation and distinguishes an excess', async () => {
+    api.listAssets.mockImplementation(() =>
+      success({ items: [{ code: 'EUR', displayPrecision: 2 }], page: 1, pageSize: 100, total: 1 }),
+    );
+    api.listCategories.mockImplementation(() => success({ items: [], total: 0 }));
+    renderEditor([{ ...emptySplitRow(), amount: '-12.00' }], { total: '-10.00' });
+    expect(
+      await screen.findByText(
+        'Ajoutez au moins deux lignes pour répartir le total à parts égales.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText('Montant total')).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Dépassement');
+    expect(screen.getByRole('status').textContent).toContain('2,00');
+  });
 
   it('inherits the default axes of the picked category until they are overridden', async () => {
     const groceries = {

@@ -10,6 +10,8 @@
 .remaining {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
   justify-content: space-between;
   color: var(--text-secondary);
   font-size: var(--font-size-label);
@@ -78,6 +80,10 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-3);
+}
+
+.actions button {
+  max-width: 100%;
 }
 
 .hint {

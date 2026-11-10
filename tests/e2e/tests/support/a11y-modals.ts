@@ -3,12 +3,14 @@ import type { AuditFixtures } from './a11y';
 import { settled, uniqueLabel } from './page';
 import { openMovementEditModal } from './edit-movement';
 import { openTakeoverModal } from './takeover';
+import { openTransactionSplits } from './transaction-splits';
 import { openBulkGoalConfirmation } from './bulk-goals';
 
 export const modalCases = [
   'catalog settings',
   'product model create',
   'transaction create',
+  'transaction split',
   'transaction edit',
   'transaction error',
   'bulk edit',
@@ -42,6 +44,10 @@ export const modalCases = [
 type ModalCase = (typeof modalCases)[number];
 
 export async function openAuditModal(page: Page, name: ModalCase, fixtures: AuditFixtures) {
+  if (name === 'transaction split') {
+    await openTransactionSplits(page);
+    return;
+  }
   if (name === 'takeover create') return openTakeoverModal(page);
   if (name === 'bulk goal stop' || name === 'bulk goal delete')
     return openBulkGoalConfirmation(page, name === 'bulk goal stop' ? 'stop' : 'delete');

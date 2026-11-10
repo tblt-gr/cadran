@@ -6,6 +6,7 @@ import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
 import { openTakeoverModal } from './support/takeover';
 import { auditAccessibility } from './support/a11y';
+import { openTransactionSplits } from './support/transaction-splits';
 import { openBulkGoalConfirmation } from './support/bulk-goals';
 import {
   expandCountedFilters,
@@ -265,6 +266,13 @@ interface ModalCase {
 }
 
 const MODALS: ModalCase[] = [
+  {
+    name: 'transaction split',
+    open: async (page) => {
+      await openTransactionSplits(page);
+      return 'Enregistrer';
+    },
+  },
   {
     name: 'transaction',
     open: async (page) => {
