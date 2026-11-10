@@ -104,6 +104,8 @@ export async function auditLayout(
         );
         for (const el of targets) {
           if (!visible(el) || (el as HTMLButtonElement).disabled) continue;
+          // Visually hidden keyboard controls have no touchable area until focused.
+          if (getComputedStyle(el).clipPath === 'inset(50%)') continue;
           // Chart point hits sit closer than 44 px, so a larger target would overlap its neighbour.
           // The same values are in the chart's equivalent table, which satisfies WCAG 2.5.8
           // (equivalent control) and is audited like any other control.
