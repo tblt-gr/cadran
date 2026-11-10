@@ -202,12 +202,6 @@
   gap: var(--spacing-1);
 }
 
-.barBlock {
-  display: block;
-  width: 100%;
-  height: var(--spacing-2);
-}
-
 .accordion {
   display: flex;
   flex-direction: column;

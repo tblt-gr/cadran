@@ -53,8 +53,8 @@ export function GoalDetailModal({ goalId, label, period, evaluation, close }: Pr
           </div>
         ) : (
           <>
-            <GoalDetailIdentity goal={detail.data ?? null} period={period} />
             <GoalDetailEvaluation evaluation={evaluation} period={period} />
+            <GoalDetailIdentity goal={detail.data ?? null} period={period} />
             <GoalDetailVersions
               goal={detail.data ?? null}
               appliedVersion={evaluation.versionNo}

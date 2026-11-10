@@ -14,8 +14,59 @@
   margin: var(--spacing-none);
 }
 
-.section :is(h3, h4, h5) {
+.section h3 {
+  font-size: var(--font-size-card-title);
+}
+
+.section :is(h4, h5) {
   font-size: var(--font-size-body);
+}
+
+.content > .section + .section {
+  padding-top: var(--spacing-6);
+  border-top: var(--border-line-subtle);
+}
+
+.sectionHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.values.summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.summary dd {
+  font-weight: var(--font-weight-bold);
+}
+
+.evaluation[data-tone='positive'] .achieved,
+.evaluation[data-tone='done'] .achieved {
+  color: var(--positive);
+}
+
+.evaluation[data-tone='negative'] .achieved {
+  color: var(--negative);
+}
+
+.gap {
+  font-weight: var(--font-weight-bold);
+}
+
+.calculation {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  margin-top: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+}
+
+.calculation p {
+  color: var(--text-secondary);
 }
 
 .values {
@@ -42,11 +93,41 @@
 }
 
 .revision {
+  border-top: var(--border-line-subtle);
+}
+
+.revision > details > summary {
+  min-height: var(--touch-target-min);
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-3);
+}
+
+.versionSummary,
+.versionBody {
   display: flex;
   flex-direction: column;
+}
+
+.versionSummary {
+  gap: var(--spacing-1);
+}
+
+.versionTitle {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-bold);
+}
+
+.appliedVersion,
+.effectiveDate {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
+}
+
+.versionBody {
   gap: var(--spacing-3);
-  padding-block: var(--spacing-4);
-  border-top: var(--border-line-subtle);
+  padding-bottom: var(--spacing-3);
 }
 
 .block {

@@ -6,10 +6,10 @@ import { useGoalSelection } from '@/features/goals/bulk-selection/goalSelectionC
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
-import { ProgressGauge } from '@/components/ui/progress-gauge/ProgressGauge';
 import { GoalExplanation } from '@/features/goals/goal-explanation/GoalExplanation';
 import { GoalEvaluationBadge } from './GoalEvaluationBadge';
-import { goalFillRatio, goalTone, type GoalRowModel } from './goalPanelModel';
+import { goalTone, type GoalRowModel } from './goalPanelModel';
+import { GoalProgressBar } from './GoalProgressBar';
 import { goalRecurrence } from './goalRecurrence';
 import { GoalRowActions, type GoalRowHandlers } from './GoalRowActions';
 import { useGoalScopeLabel } from './useGoalScopeLabel';
@@ -41,7 +41,6 @@ export function GoalRow({ row, handlers }: Props) {
     );
 
   const tone = evaluation ? goalTone(evaluation) : null;
-  const fill = evaluation ? goalFillRatio(evaluation) : null;
 
   return (
     <li
@@ -82,18 +81,7 @@ export function GoalRow({ row, handlers }: Props) {
         </div>
       </div>
       <div className={styles.progress}>
-        {evaluation === null ? (
-          <SkeletonBlock className={styles.barBlock} />
-        ) : fill === null ? null : (
-          <ProgressGauge
-            label={t('goals.panel.progress', {
-              label: evaluation.label,
-              achieved: achieved ?? '',
-              target: target ?? '',
-            })}
-            ratio={fill}
-          />
-        )}
+        <GoalProgressBar evaluation={evaluation} />
         <p className={`money ${styles.figures}`}>
           <span className={styles.achieved}>{figure(achieved)}</span> / {figure(target)}
         </p>

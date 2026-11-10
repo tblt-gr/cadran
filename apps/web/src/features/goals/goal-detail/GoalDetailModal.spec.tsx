@@ -73,10 +73,15 @@ it('shows chronological recorded values and identifies the evaluated revision, i
   );
   expect(screen.getByText('Atteint grâce à la tolérance.')).toBeTruthy();
   expect(screen.getByText('Version appliquée à cette période')).toBeTruthy();
-  const versions = screen.getAllByRole('heading', { level: 4 });
+  const versions = screen.getAllByRole('heading', { level: 4, name: /^Version / });
   expect(versions.map((heading) => heading.textContent)).toEqual(['Version 1', 'Version 2']);
   expect(screen.getByText(/100,00/)).toBeTruthy();
   expect(api.readGoal.mock.calls[0]![0].path).toEqual({ id: 'goal' });
+  expect(screen.getAllByRole('heading', { level: 3 })[0]?.textContent).toBe(
+    'Avancement : Avril 2026',
+  );
+  expect(screen.getByRole('meter').getAttribute('aria-valuenow')).toBe('1');
+  expect(screen.getByRole('heading', { name: 'Comprendre le résultat' })).toBeTruthy();
 });
 it('keeps known headings during loading and handles an empty history', async () => {
   let resolve!: (value: ReturnType<typeof ok>) => void;
@@ -89,8 +94,37 @@ it('keeps known headings during loading and handles an empty history', async () 
   expect(screen.getByRole('heading', { name: 'Identité et période' })).toBeTruthy();
   expect(screen.getByRole('heading', { name: 'Historique des versions' })).toBeTruthy();
   expect(document.querySelector('[data-skeleton]')).toBeTruthy();
+  const loadingAccordion = document.querySelector('details')!;
+  expect(loadingAccordion.open).toBe(true);
+  expect(loadingAccordion.querySelector('summary')?.getAttribute('aria-disabled')).toBe('true');
   resolve(ok({ ...detail, versions: [] }));
   expect(await screen.findByText('Aucune version n’est disponible.')).toBeTruthy();
+});
+
+it('opens the applied revision by default and expands other revisions independently', async () => {
+  api.readGoal.mockResolvedValue(
+    ok({
+      ...detail,
+      versions: [
+        version,
+        { ...version, versionNo: 2, effectiveFrom: '2026-06', targetAmount: '200' },
+      ],
+    }),
+  );
+  mount();
+  await screen.findByText('Version appliquée à cette période');
+  const applied = screen.getByRole('heading', { name: 'Version 1' }).closest('details')!;
+  const other = screen.getByRole('heading', { name: 'Version 2' }).closest('details')!;
+  expect(applied.open).toBe(true);
+  expect(other.open).toBe(false);
+  fireEvent.click(other.querySelector('summary')!);
+  await waitFor(() => expect(other.open).toBe(true));
+  expect(applied.open).toBe(true);
+  fireEvent.click(applied.querySelector('summary')!);
+  await waitFor(() => expect(applied.open).toBe(false));
+  expect(applied.querySelector('summary')?.textContent).toContain(
+    'Version appliquée à cette période',
+  );
 });
 it('offers retry on a failed read', async () => {
   api.readGoal.mockRejectedValueOnce(new Error('network')).mockResolvedValueOnce(ok(detail));
@@ -112,6 +146,7 @@ it('explains non-calculable evaluation without manufacturing a zero', async () =
   );
   expect(await screen.findByText('Aucune donnée pour cette période')).toBeTruthy();
   expect(screen.getByText('Écart non calculable pour cette période.')).toBeTruthy();
+  expect(screen.queryByRole('meter')).toBeNull();
 });
 
 it('shows every server schedule part and cumulative value for a recorded revision', async () => {
@@ -148,7 +183,9 @@ it('orders retroactive revisions by effective period with version number as a ti
   mount();
   await screen.findByText('Version appliquée à cette période');
   expect(
-    screen.getAllByRole('heading', { level: 4 }).map((heading) => heading.textContent),
+    screen
+      .getAllByRole('heading', { level: 4, name: /^Version / })
+      .map((heading) => heading.textContent),
   ).toEqual(['Version 1', 'Version 3', 'Version 2']);
 });
 

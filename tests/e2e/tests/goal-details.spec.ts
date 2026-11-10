@@ -95,12 +95,56 @@ for (const width of [1280, 360]) {
       });
       await expect(modal.getByText('Version appliquée à cette période')).toBeVisible();
       await expect(modal.getByText('Atteint grâce à la tolérance.')).toBeVisible();
-      await expect(modal.getByRole('heading', { level: 4 })).toHaveText(['Version 1', 'Version 2']);
+      await expect(modal.getByRole('heading', { level: 4, name: /^Version / })).toHaveText([
+        'Version 1',
+        'Version 2',
+      ]);
+      const appliedSummary = modal.locator('summary').filter({ hasText: 'Version 1' });
+      const otherSummary = modal.locator('summary').filter({ hasText: 'Version 2' });
+      const closeButton = modal.getByRole('button', { name: 'Fermer' });
+      const content = modal.getByRole('region', { name: 'Détails et historique de l’objectif' });
+      await expect(appliedSummary.locator('..')).toHaveAttribute('open', '');
+      await expect(otherSummary.locator('..')).not.toHaveAttribute('open');
+      await expect(otherSummary).toContainText('À partir de Juin 2026');
+      await expect(closeButton).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(content).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(appliedSummary).toBeFocused();
+      await page.keyboard.press('Tab');
+      await expect(otherSummary).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(appliedSummary).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(content).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(closeButton).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(otherSummary).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(otherSummary.locator('..')).toHaveAttribute('open', '');
+      await expect(otherSummary.locator('..').getByText(/4\s000,00/)).toBeVisible();
+      await expect(appliedSummary.locator('..')).toHaveAttribute('open', '');
+      await page.keyboard.press('Space');
+      await expect(otherSummary.locator('..')).not.toHaveAttribute('open');
+      await page.keyboard.press('Tab');
+      await expect(closeButton).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(otherSummary).toBeFocused();
+      await page.keyboard.press('Shift+Tab');
+      await expect(appliedSummary).toBeFocused();
+      await page.keyboard.press('Enter');
+      await expect(appliedSummary.locator('..')).not.toHaveAttribute('open');
+      await expect(appliedSummary.getByText('Version appliquée à cette période')).toBeVisible();
+      await expect(modal.getByRole('heading', { level: 3 }).first()).toHaveText(/^Avancement : /);
+      await expect(modal.getByRole('meter')).toHaveAttribute('aria-valuenow', '0.9833');
+      const badgeBounds = await modal.getByText('Atteint', { exact: true }).boundingBox();
+      const modalBounds = await modal.boundingBox();
+      expect(badgeBounds!.width).toBeLessThan(modalBounds!.width / 2);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
         true,
       );
-      const content = modal.getByRole('region', { name: 'Détails et historique de l’objectif' });
-      await content.focus();
+      await page.keyboard.press('Shift+Tab');
       await expect(content).toBeFocused();
       await page.keyboard.press('PageDown');
       await auditAccessibility(page);
@@ -149,5 +193,6 @@ test('goal details recover from errors and explain empty history and non-calcula
   await expect(modal.getByText('Aucune version n’est disponible.')).toBeVisible();
   await expect(modal.getByText('Aucune donnée pour cette période')).toBeVisible();
   await expect(modal.getByText('Écart non calculable pour cette période.')).toBeVisible();
+  await expect(modal.getByRole('meter')).toHaveCount(0);
   await auditAccessibility(page);
 });
