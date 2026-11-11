@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Tabs } from '@/components/ui/tabs/Tabs';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { CategoryColumnOptions } from './category-column-options/CategoryColumnOptions';
 import { ColumnHeader } from './ColumnHeader';
 import { SelectedColumns, type SelectedColumn } from './SelectedColumns';
 import { AXIS_IDS, INDICATOR_COLUMN_IDS, MAX_ANNUAL_COLUMNS } from './annualColumns';
@@ -128,7 +129,19 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
   }
 
   /** The workspace's own entries: placeholders while they load, a retry when they failed. */
-  function catalogueOptions(prefix: string, pick: (data: CatalogueData) => CatalogueEntry[]) {
+  function catalogueOptions(
+    prefix: string,
+    pick: (data: CatalogueData) => CatalogueEntry[],
+    tree = false,
+  ) {
+    if (catalogue.isPending && tree) {
+      return (
+        <div aria-busy="true">
+          <SkeletonStatus>{t('reports.annual.picker.loading')}</SkeletonStatus>
+          <CategoryColumnOptions entries={null} full={full} onToggle={toggle} selected={selected} />
+        </div>
+      );
+    }
     if (catalogue.isPending) {
       return (
         <div aria-busy="true">
@@ -153,6 +166,16 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             {t('reports.retry')}
           </button>
         </div>
+      );
+    }
+    if (tree) {
+      return (
+        <CategoryColumnOptions
+          entries={pick(catalogue.data)}
+          full={full}
+          onToggle={toggle}
+          selected={selected}
+        />
       );
     }
     return options(prefix, pick(catalogue.data));
@@ -188,7 +211,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
             {
               id: 'categories',
               label: t('reports.annual.picker.categories'),
-              content: catalogueOptions('category:', (data) => data.categories),
+              content: catalogueOptions('category:', (data) => data.categories, true),
             },
             {
               id: 'accounts',
