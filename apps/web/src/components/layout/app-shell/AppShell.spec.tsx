@@ -25,7 +25,7 @@ describe('AppShell', () => {
   it('preserves named link order in the sidebar, compact rail and mobile navigation', () => {
     renderShell();
     const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
-    const expectedLabels = ['Synthèse', 'Comptes', 'Investissements', 'Budget', 'Paramètres'];
+    const expectedLabels = ['Synthèse', 'Budget', 'Comptes', 'Investissements', 'Paramètres'];
     const labels = (container: HTMLElement) =>
       within(container)
         .getAllByRole('link')
@@ -44,7 +44,7 @@ describe('AppShell', () => {
     );
 
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
-    expect(labels(mobile)).toEqual(['Synthèse', 'Comptes', 'Budget']);
+    expect(labels(mobile)).toEqual(['Synthèse', 'Budget', 'Comptes']);
     fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
     const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
     expect(labels(sheet)).toEqual(['Investissements', 'Paramètres']);
@@ -66,7 +66,7 @@ describe('AppShell', () => {
       within(sidebar)
         .getAllByRole('link')
         .map((link) => link.getAttribute('href')),
-    ).toEqual(['/', '/accounts', '/investments', '/budget', '/parameters/interface']);
+    ).toEqual(['/', '/budget', '/accounts', '/investments', '/parameters/interface']);
     expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
     expect(within(mobile).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
