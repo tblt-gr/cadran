@@ -28,6 +28,9 @@ services:
   App\Module\Foundation\Application\TransactionBoundary:
     alias: App\Module\Identity\Infrastructure\Persistence\DbalTransactionManager
 
+  App\Module\Foundation\Application\ListRevisionRepository:
+    alias: App\Module\Foundation\Infrastructure\Persistence\DbalListRevisionRepository
+
   App\Module\Categories\Application\CategoryClassificationCounter:
     alias: App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository
 

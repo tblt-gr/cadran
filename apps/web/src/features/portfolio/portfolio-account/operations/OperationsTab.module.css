@@ -23,11 +23,3 @@
   margin: var(--spacing-none);
   color: var(--text-secondary);
 }
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  gap: var(--spacing-4);
-}

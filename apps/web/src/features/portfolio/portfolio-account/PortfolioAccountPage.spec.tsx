@@ -107,10 +107,16 @@ function takeoverState(patch: object = {}) {
   };
 }
 function ok<T>(data: T, status = 200) {
-  return Promise.resolve({ data, response: new Response('{}', { status }) });
+  return Promise.resolve({
+    data,
+    response: new Response('{}', { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
+  });
 }
 function problem(status: number, body: object) {
-  return Promise.resolve({ error: body, response: new Response('{}', { status }) });
+  return Promise.resolve({
+    error: body,
+    response: new Response('{}', { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
+  });
 }
 function page(items: PortfolioOperation[]) {
   return ok({ items, page: 1, pageSize: 50, total: items.length });
@@ -1409,4 +1415,21 @@ describe('PortfolioAccountPage takeover', () => {
       expect(screen.queryByRole('button', { name: 'Saisir mes positions' })).toBeNull(),
     );
   });
+});
+
+it('appends portfolio operations and preserves rows while the next page is unavailable', async () => {
+  const second = { ...deposit, id: 'next-operation', note: 'Suite' };
+  api.listPortfolioOperations
+    .mockImplementationOnce(() => ok({ items: [deposit], page: 1, pageSize: 50, total: 51 }))
+    .mockImplementationOnce(() => problem(503, { type: '/problems/unavailable' }))
+    .mockImplementationOnce(() => ok({ items: [second], page: 2, pageSize: 50, total: 51 }));
+  renderPage();
+  const table = await loadedOperationsTable();
+  expect(within(table).getAllByRole('row')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+  await screen.findByText(/La suite de la liste est indisponible/);
+  expect(within(table).getAllByRole('row')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+  await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(3));
+  expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
 });

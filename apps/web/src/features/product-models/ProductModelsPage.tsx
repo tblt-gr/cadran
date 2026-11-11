@@ -26,7 +26,7 @@ import { FromProductForm } from './from-product-form/FromProductForm';
 import { ModelForm } from './model-form/ModelForm';
 import { ProductModelFilters } from './product-model-filters/ProductModelFilters';
 import { ProductModelList } from './product-model-list/ProductModelList';
-import { ProductModelPagination } from './product-model-pagination/ProductModelPagination';
+import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
 import { ProductModelPeriodTable } from './product-model-periods/ProductModelPeriodTable';
 import { ProductModelsState } from './product-models-state/ProductModelsState';
 import { ProductModelsPageSkeleton } from './ProductModelsPageSkeleton';
@@ -36,7 +36,7 @@ import {
   ProductModelRequestError,
   requestFailed,
 } from './productModelError';
-import { PRODUCT_MODELS_PAGE_SIZE, useProductModels } from './useProductModels';
+import { useProductModels } from './useProductModels';
 import styles from './ProductModelsPage.module.css';
 
 type Editor = 'create' | 'from-product' | null;
@@ -45,7 +45,6 @@ export function ProductModelsPage() {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [includeArchived, setIncludeArchived] = useState(false);
-  const [page, setPage] = useState(1);
   const [editor, setEditor] = useState<Editor>(null);
   const [duplicating, setDuplicating] = useState<ProductModel | null>(null);
   const [archiving, setArchiving] = useState<ProductModel | null>(null);
@@ -53,7 +52,7 @@ export function ProductModelsPage() {
   const [inspecting, setInspecting] = useState<ProductModel | null>(null);
   const [saved, setSaved] = useState<'saved' | 'archived' | null>(null);
 
-  const models = useProductModels(includeArchived, page);
+  const models = useProductModels(includeArchived);
 
   async function refreshOnStaleState(error: unknown) {
     if (
@@ -185,12 +184,6 @@ export function ProductModelsPage() {
   const unauthorized =
     models.error instanceof ProductModelRequestError && models.error.status === 401;
   const items = models.data?.items ?? [];
-  const totalPages = Math.max(1, Math.ceil((models.data?.total ?? 0) / PRODUCT_MODELS_PAGE_SIZE));
-
-  if (models.data && page > totalPages) {
-    setPage(totalPages);
-  }
-
   return (
     <div className={styles.page}>
       <SettingsTabs path="/parameters/product-models" />
@@ -203,7 +196,6 @@ export function ProductModelsPage() {
           includeArchived={includeArchived}
           onIncludeArchivedChange={(checked) => {
             setIncludeArchived(checked);
-            setPage(1);
           }}
         />
         <button
@@ -316,25 +308,25 @@ export function ProductModelsPage() {
 
       {models.isPending && models.data === undefined ? (
         <ProductModelsPageSkeleton status={t('productModels.loading')} />
-      ) : models.isError || items.length === 0 ? (
+      ) : (models.isError && !models.data) || items.length === 0 ? (
         <ProductModelsState
           kind={unauthorized ? 'unauthorized' : models.isError ? 'error' : 'empty'}
           onCreate={() => openEditor('create')}
           onRetry={() => void models.refetch()}
         />
       ) : (
-        <ProductModelList
-          models={items}
-          onAddPeriod={openAddPeriod}
-          onArchive={openArchive}
-          onDuplicate={openDuplicate}
-          onInspect={setInspecting}
-        />
+        <IncrementalList items={items} query={models}>
+          {(visibleItems) => (
+            <ProductModelList
+              models={visibleItems}
+              onAddPeriod={openAddPeriod}
+              onArchive={openArchive}
+              onDuplicate={openDuplicate}
+              onInspect={setInspecting}
+            />
+          )}
+        </IncrementalList>
       )}
-
-      {models.isSuccess && (totalPages > 1 || page > 1) ? (
-        <ProductModelPagination onPageChange={setPage} page={page} totalPages={totalPages} />
-      ) : null}
     </div>
   );
 }

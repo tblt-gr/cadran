@@ -13,6 +13,8 @@ use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Clock\MockClock;
 
 /**
  * The valuation of the day follows every trade and cash flow of a securities portfolio, from what the last complete
@@ -25,6 +27,7 @@ final class PortfolioValuationRefreshTest extends WebTestCase
     private const string A = PortfolioFixture::ETF;
     private const string B = PortfolioFixture::STOCK;
     private const string NOTE = 'Mise à jour automatique après une opération.';
+    private const string TODAY = '2026-11-10';
 
     private KernelBrowser $client;
     private Connection $connection;
@@ -35,6 +38,9 @@ final class PortfolioValuationRefreshTest extends WebTestCase
     {
         WorkspaceFixture::requireDatabase();
         $this->client = self::createClient();
+        // Every request and fixture date must stay on the same business day across midnight.
+        $this->client->disableReboot();
+        self::getContainer()->set(ClockInterface::class, new MockClock(self::TODAY.'T12:00:00+01:00'));
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;
@@ -424,12 +430,12 @@ final class PortfolioValuationRefreshTest extends WebTestCase
 
     private static function today0(): string
     {
-        return (new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris')))->format('Y-m-d');
+        return self::TODAY;
     }
 
     private function day(int $offset): string
     {
-        return (new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris')))->modify($offset.' days')->format('Y-m-d');
+        return (new \DateTimeImmutable(self::TODAY, new \DateTimeZone('Europe/Paris')))->modify($offset.' days')->format('Y-m-d');
     }
 
     /** @return array<string, mixed> */

@@ -11,9 +11,10 @@ import { OperationFormModal } from './operation-form/OperationFormModal';
 import { OperationsState } from './OperationsState';
 import { NotPortfolioState } from './NotPortfolioState';
 import { OperationsTableSkeleton } from './OperationsTableSkeleton';
+import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
 import { OperationsTable } from './operations-table/OperationsTable';
 import { useOperation } from './useOperation';
-import { OPERATIONS_PER_PAGE, useOperations } from './useOperations';
+import { useOperations } from './useOperations';
 import { OperationRequestError } from './operationError';
 import { VoidOperationModal } from './void-operation-dialog/VoidOperationModal';
 import { ReorderDayModal } from './reorder-day-modal/ReorderDayModal';
@@ -41,23 +42,18 @@ export function OperationsTab({
     ...noFilters,
     instrumentId: instrumentFromLocation(),
   }));
-  const [page, setPage] = useState(1);
   const [editing, setEditing] = useState<PortfolioOperation | null>(null);
   const [voiding, setVoiding] = useState<PortfolioOperation | null>(null);
   const [detailId, setDetailId] = useState<string | null>(() => operationFromLocation());
   const [stale, setStale] = useState(false);
   const [reordering, setReordering] = useState<PortfolioOperation | null>(null);
-  const operations = useOperations(account.id, filters, page);
+  const operations = useOperations(account.id, filters);
   const items = operations.data?.items ?? [];
   const total = operations.data?.total ?? 0;
   const detail = useOperation(
     detailId,
     items.find((item) => item.id === detailId),
   );
-  const totalPages = Math.max(1, Math.ceil(total / OPERATIONS_PER_PAGE));
-  useEffect(() => {
-    if (total > 0 && page > totalPages) setPage(totalPages);
-  }, [page, total, totalPages]);
   useEffect(() => {
     const updateDetail = () => setDetailId(operationFromLocation());
     window.addEventListener('popstate', updateDetail);
@@ -73,7 +69,6 @@ export function OperationsTab({
 
   function changeFilters(next: OperationFilterValues) {
     setStale(false);
-    setPage(1);
     setFilters(next);
   }
 
@@ -94,7 +89,7 @@ export function OperationsTab({
         <OperationsTableSkeleton status="Chargement des opérations…" />
       ) : refusal?.code === 'account_not_portfolio' ? (
         <NotPortfolioState accountId={account.id} />
-      ) : operations.isError ? (
+      ) : operations.isError && !operations.data ? (
         <OperationsState error title="Les opérations sont indisponibles">
           <button
             className="secondary-action"
@@ -122,37 +117,18 @@ export function OperationsTab({
           )}
         </OperationsState>
       ) : (
-        <OperationsTable
-          items={items}
-          onDetail={(item) => setDetailId(item.id)}
-          onEdit={setEditing}
-          onVoid={setVoiding}
-          onReorder={setReordering}
-        />
+        <IncrementalList items={items} query={operations}>
+          {(visibleItems) => (
+            <OperationsTable
+              items={visibleItems}
+              onDetail={(item) => setDetailId(item.id)}
+              onEdit={setEditing}
+              onVoid={setVoiding}
+              onReorder={setReordering}
+            />
+          )}
+        </IncrementalList>
       )}
-      {operations.isSuccess && total > OPERATIONS_PER_PAGE ? (
-        <nav aria-label="Pagination des opérations" className={styles.pagination}>
-          <button
-            className="secondary-action"
-            disabled={page === 1}
-            onClick={() => setPage((value) => value - 1)}
-            type="button"
-          >
-            Précédent
-          </button>
-          <span>
-            Page {page} sur {totalPages}
-          </span>
-          <button
-            className="secondary-action"
-            disabled={page === totalPages}
-            onClick={() => setPage((value) => value + 1)}
-            type="button"
-          >
-            Suivant
-          </button>
-        </nav>
-      ) : null}
       {creating ? (
         <OperationFormModal
           account={account}

@@ -612,6 +612,15 @@ api:
     transaction_cursor_stale:
       title: 'Page de transactions obsolète'
       detail: 'Des transactions ont changé depuis le chargement de cette page. Rechargez la liste depuis le début.'
+    list_revision_stale:
+      title: 'Liste modifiée entre-temps'
+      detail: 'Les données ou les filtres ont changé. Rechargez la liste depuis le début.'
+    list_revision_invalid:
+      title: 'Révision de liste invalide'
+      detail: 'Démarrez une liste à la première page avec une révision valide.'
+    list_revision_forbidden:
+      title: 'Liste inaccessible'
+      detail: 'Votre session ne permet pas de consulter cet espace.'
     invalid_transaction:
       title: 'Transaction invalide'
       detail: "Vérifiez le compte, le montant, la nature, les dates (au plus tard aujourd’hui, ou à la fin du mois en cours pour une transaction en attente), le libellé d'origine et la catégorie."

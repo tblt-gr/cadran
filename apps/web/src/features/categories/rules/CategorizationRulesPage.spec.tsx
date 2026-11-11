@@ -47,7 +47,13 @@ const rule: CategorizationRule = {
   archivedAt: null,
 };
 function success<T>(data: T) {
-  return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
+  return Promise.resolve({
+    data,
+    response: new Response(JSON.stringify(data), {
+      status: 200,
+      headers: { 'X-List-Revision': 'a'.repeat(64) },
+    }),
+  });
 }
 function renderPage() {
   const queryClient = new QueryClient({
@@ -98,7 +104,7 @@ describe('CategorizationRulesPage', () => {
     ).toHaveLength(1);
     resolveRules?.({
       data: { items: [rule], page: 1, pageSize: 100, total: 1 },
-      response: new Response('{}', { status: 200 }),
+      response: new Response('{}', { status: 200, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
     });
     expect(await screen.findByText(rule.label)).toBeTruthy();
     expect(screen.queryByTestId('categorization-rules-skeleton')).toBeNull();
@@ -337,11 +343,12 @@ describe('CategorizationRulesPage', () => {
     renderPage();
 
     expect(await screen.findByText(rule.label)).toBeTruthy();
-    expect(screen.getByText('Page 1 sur 2')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Page suivante' }));
+    expect(screen.queryByText('Page 1 sur 2')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
 
     expect(await screen.findByText(laterRule.label)).toBeTruthy();
-    expect(screen.getByText('Page 2 sur 2')).toBeTruthy();
+    expect(screen.getByText(rule.label)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
     expect(api.listCategorizationRules).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ page: 2, pageSize: 100 }) }),
     );
@@ -363,7 +370,7 @@ describe('CategorizationRulesPage', () => {
     renderPage();
 
     expect(await screen.findByText(rule.label)).toBeTruthy();
-    const next = screen.getByRole('button', { name: 'Page suivante' });
+    const next = screen.getByRole('button', { name: 'Afficher plus' });
     next.focus();
     fireEvent.click(next);
 
@@ -379,7 +386,8 @@ describe('CategorizationRulesPage', () => {
     resolveSecondPage(await success({ items: [laterRule], page: 2, pageSize: 100, total: 101 }));
 
     expect(await screen.findByText(laterRule.label)).toBeTruthy();
-    expect(screen.getByText('Page 2 sur 2')).toBeTruthy();
+    expect(screen.getByText(rule.label)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
     expect(api.listCategorizationRules).not.toHaveBeenCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ page: 3 }) }),
     );

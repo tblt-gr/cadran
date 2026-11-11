@@ -1,17 +1,18 @@
 import { listPortfolioOperations, type PortfolioOperationType } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import { useIncrementalList } from '@/hooks/incremental-list/useIncrementalList';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import type { OperationFilterValues } from './operation-filters/operationFilterValues';
 import { operationRequestError } from './operationError';
 
-export const OPERATIONS_PER_PAGE = 50;
+const OPERATIONS_PER_PAGE = 50;
 
-export function useOperations(accountId: string, filters: OperationFilterValues, page: number) {
-  return useQuery({
-    queryKey: ['portfolio-operations', accountId, filters, page],
-    queryFn: async ({ signal }) => {
+export function useOperations(accountId: string, filters: OperationFilterValues) {
+  return useIncrementalList({
+    queryKey: ['portfolio-operations', accountId, filters],
+    request: async ({ signal, page, revision }) => {
       const result = await listPortfolioOperations({
         ...authApiOptions(),
+        headers: { 'X-List-Revision': revision },
         path: { accountId },
         query: {
           from: filters.from || undefined,
@@ -24,9 +25,8 @@ export function useOperations(accountId: string, filters: OperationFilterValues,
         },
         signal,
       });
-      if (!result.response?.ok || !result.data) throw operationRequestError(result);
-      return result.data;
+      return result;
     },
-    retry: false,
+    requestError: operationRequestError,
   });
 }

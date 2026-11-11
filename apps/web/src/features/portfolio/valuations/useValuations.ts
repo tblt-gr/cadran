@@ -4,25 +4,26 @@ import {
   readPortfolioValuationDraft,
 } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useIncrementalList } from '@/hooks/incremental-list/useIncrementalList';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { valuationRequestError } from './valuationError';
 
-export const VALUATIONS_PER_PAGE = 24;
+const VALUATIONS_PER_PAGE = 24;
 
-export function useValuations(accountId: string, page: number, asOf?: string) {
-  return useQuery({
-    queryKey: ['portfolio-valuations', accountId, page, asOf],
-    queryFn: async ({ signal }) => {
+export function useValuations(accountId: string, asOf?: string) {
+  return useIncrementalList({
+    queryKey: ['portfolio-valuations', accountId, asOf],
+    request: async ({ signal, page, revision }) => {
       const result = await listPortfolioValuations({
         ...authApiOptions(),
+        headers: { 'X-List-Revision': revision },
         path: { accountId },
         query: { page, pageSize: VALUATIONS_PER_PAGE, to: asOf },
         signal,
       });
-      if (!result.response?.ok || !result.data) throw valuationRequestError(result);
-      return result.data;
+      return result;
     },
-    retry: false,
+    requestError: valuationRequestError,
   });
 }
 
