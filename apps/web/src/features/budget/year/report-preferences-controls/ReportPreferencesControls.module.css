@@ -10,17 +10,6 @@
   gap: var(--spacing-1);
 }
 
-.goalMarks {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-2);
-}
-
-.goalMarks[aria-pressed='true'] {
-  color: var(--gold-300);
-  background: var(--bg-surface-2);
-}
-
 .columns {
   color: var(--text-secondary);
 }

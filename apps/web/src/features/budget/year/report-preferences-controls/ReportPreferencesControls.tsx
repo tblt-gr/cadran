@@ -50,14 +50,15 @@ export function ReportPreferencesControls() {
       <div className={styles.buttons}>
         <button
           aria-busy={save.isPending || undefined}
+          aria-label={t('reports.annual.goalMarksToggle')}
           aria-pressed={preferences.data?.goalMarks === true}
-          className={`secondary-action ${styles.goalMarks}`}
+          className="icon-ghost"
           disabled={disabled}
           onClick={() => updateMarks(preferences.data?.goalMarks !== true)}
+          title={t('reports.annual.goalMarksToggle')}
           type="button"
         >
           <Icon name="goals" size={16} />
-          <span>{t('reports.annual.goalMarksToggle')}</span>
         </button>
         <button
           aria-label={t('reports.annual.columns')}
