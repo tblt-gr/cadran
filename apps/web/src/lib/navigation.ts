@@ -18,6 +18,22 @@ export const navigationItems: NavigationItem[] = [
     mobile: true,
   },
   {
+    href: '/budget',
+    icon: 'budget',
+    labelKey: 'navigation.budget',
+    // Transactions, categories and recurrences are reached from the Budget, which stays active.
+    match: (path) =>
+      path === '/budget' ||
+      path.startsWith('/budget/') ||
+      [
+        '/transactions',
+        '/transactions/recurrences',
+        '/transactions/categories',
+        '/transactions/categories/rules',
+      ].includes(path),
+    mobile: true,
+  },
+  {
     href: '/accounts',
     icon: 'accounts',
     labelKey: 'navigation.accounts',
@@ -34,22 +50,6 @@ export const navigationItems: NavigationItem[] = [
     icon: 'investments',
     labelKey: 'navigation.investments',
     match: (path) => path === '/investments' || path.startsWith('/investments/'),
-  },
-  {
-    href: '/budget',
-    icon: 'budget',
-    labelKey: 'navigation.budget',
-    // Transactions, categories and recurrences are reached from the Budget, which stays active.
-    match: (path) =>
-      path === '/budget' ||
-      path.startsWith('/budget/') ||
-      [
-        '/transactions',
-        '/transactions/recurrences',
-        '/transactions/categories',
-        '/transactions/categories/rules',
-      ].includes(path),
-    mobile: true,
   },
   {
     href: '/parameters/interface',

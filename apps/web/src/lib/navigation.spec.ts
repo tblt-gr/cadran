@@ -5,15 +5,15 @@ describe('navigationItems', () => {
   it('orders the primary, direct mobile and overflow destinations consistently', () => {
     expect(navigationItems.map((item) => item.href)).toEqual([
       '/',
+      '/budget',
       '/accounts',
       '/investments',
-      '/budget',
       '/parameters/interface',
     ]);
     expect(navigationItems.filter((item) => item.mobile).map((item) => item.href)).toEqual([
       '/',
-      '/accounts',
       '/budget',
+      '/accounts',
     ]);
     expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
       '/investments',
