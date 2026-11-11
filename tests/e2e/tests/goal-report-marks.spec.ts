@@ -41,6 +41,10 @@ const exceeded = {
 
 test.describe('goal marks in the annual report', () => {
   test('a marked cell and its explanation pass the accessibility audit', async ({ page }) => {
+    await page.route('**/api/v1/reports/annual/preferences', async (route) => {
+      const response = await route.fetch();
+      await route.fulfill({ response, json: { ...(await response.json()), goalMarks: true } });
+    });
     // The evaluations are stubbed: the audit is about the markup of a marked cell, not the rules.
     await page.route('**/api/v1/goals/evaluations*', (route) =>
       route.fulfill({

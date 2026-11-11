@@ -372,7 +372,10 @@
         "FLOW": "Total = somme des valeurs mensuelles des mois comptés dans le total ; moyenne, médiane, minimum et maximum sur les mois comptés",
         "STOCK": "Pas de total ; fin de période = valeur du dernier mois du total ; moyenne, médiane, minimum et maximum des valeurs de fin de mois sur les mois comptés",
         "RATE": "Total et moyenne = somme des numérateurs mensuels / somme des dénominateurs mensuels ; médiane, minimum et maximum des taux mensuels sur les mois comptés"
-      }
+      },
+      "goalMarksToggle": "Repères d’objectifs",
+      "goalMarksError": "Les repères d’objectifs n’ont pas pu être enregistrés.",
+      "preferencesError": "Les préférences du rapport n’ont pas pu être chargées."
     },
     "multiYear": {
       "title": "Rapport pluriannuel",

@@ -1,11 +1,7 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
-import { Toast } from '@/components/ui/toast/Toast';
-import { ColumnPickerModal } from '@/features/reports/annual/ColumnPickerModal';
-import { useAnnualReportPreferences } from '@/features/reports/annual/useAnnualReport';
 import { YearRangeSelector } from '@/features/reports/multi-year/YearRangeSelector';
+import { ReportPreferencesControls } from '@/features/budget/year/report-preferences-controls/ReportPreferencesControls';
 import { DisplayModeSwitch } from './DisplayModeSwitch';
 import type { MultiYearDisplay, YearView } from './yearViewSearch';
 import styles from './ReportToolbar.module.css';
@@ -40,9 +36,6 @@ export function ReportToolbar({
   view,
 }: ReportToolbarProps) {
   const { t } = useTranslation();
-  const preferences = useAnnualReportPreferences();
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
 
   return (
     <div className={styles.toolbar}>
@@ -74,25 +67,8 @@ export function ReportToolbar({
         {multi ? (
           <DisplayModeSwitch onChange={multi.onDisplayChange} value={multi.display} />
         ) : null}
-        <button
-          aria-label={t('reports.annual.columns')}
-          className={`icon-ghost ${styles.button}`}
-          disabled={!preferences.data}
-          onClick={() => setPickerOpen(true)}
-          title={t('reports.annual.columns')}
-          type="button"
-        >
-          <Icon name="columns" size={16} />
-        </button>
+        <ReportPreferencesControls />
       </div>
-      {pickerOpen && preferences.data ? (
-        <ColumnPickerModal
-          close={() => setPickerOpen(false)}
-          onConflict={() => setNotice(t('reports.annual.conflict'))}
-          preferences={preferences.data}
-        />
-      ) : null}
-      {notice ? <Toast onDismiss={() => setNotice(null)}>{notice}</Toast> : null}
     </div>
   );
 }

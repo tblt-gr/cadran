@@ -1,0 +1,38 @@
+.controls {
+  display: grid;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.goalMarks {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.goalMarks[aria-pressed='true'] {
+  color: var(--gold-300);
+  background: var(--bg-surface-2);
+}
+
+.columns {
+  color: var(--text-secondary);
+}
+
+.error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-label);
+}
+
+.error p {
+  margin: var(--spacing-none);
+}

@@ -14,7 +14,3 @@
   justify-content: flex-end;
   gap: var(--spacing-1);
 }
-
-.button {
-  color: var(--text-secondary);
-}

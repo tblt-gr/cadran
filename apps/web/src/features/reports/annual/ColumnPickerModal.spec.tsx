@@ -101,7 +101,7 @@ describe('ColumnPickerModal', () => {
     expect(screen.getByLabelText('Liquidités').closest('label')?.textContent).toBe('Liquidités');
   });
 
-  it('saves the goal colouring setting with the columns, on by default', async () => {
+  it('preserves and saves an existing enabled goal colouring preference', async () => {
     renderModal();
     const box = screen.getByRole('checkbox', {
       name: /^Afficher les objectifs/,

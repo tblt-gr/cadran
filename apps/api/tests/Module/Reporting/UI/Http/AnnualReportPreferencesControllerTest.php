@@ -68,6 +68,7 @@ final class AnnualReportPreferencesControllerTest extends WebTestCase
 
         self::assertSame(0, $preferences['version']);
         self::assertSame('exclude', $preferences['incompleteMonths']);
+        self::assertFalse($preferences['goalMarks']);
         self::assertSame([
             ...self::DEFAULT_FIXED,
             'account:'.$ids['Alpha'],
@@ -98,12 +99,12 @@ final class AnnualReportPreferencesControllerTest extends WebTestCase
         self::assertSame(self::DEFAULT_FIXED, $stranger['columns']);
     }
 
-    public function testGoalColouringIsOnByDefaultKeptWhenOmittedAndStoredWhenSet(): void
+    public function testGoalColouringIsOffByDefaultKeptWhenOmittedAndStoredWhenSet(): void
     {
         $this->signIn();
-        self::assertTrue($this->read()['goalMarks']);
+        self::assertFalse($this->read()['goalMarks']);
 
-        $off = $this->save(['cashIncome'], 'exclude', 0, false);
+        $off = $this->save(['cashIncome'], 'exclude', 0);
         self::assertFalse($off['goalMarks']);
         self::assertFalse($this->read()['goalMarks']);
 
@@ -114,36 +115,48 @@ final class AnnualReportPreferencesControllerTest extends WebTestCase
         $on = $this->save(['cashIncome'], 'exclude', 2, true);
         self::assertTrue($on['goalMarks']);
         self::assertTrue($this->read()['goalMarks']);
+
+        $keptOn = $this->save(['budgetExpenses', 'cashIncome'], 'include', 3);
+        self::assertTrue($keptOn['goalMarks']);
+        self::assertSame(['budgetExpenses', 'cashIncome'], $keptOn['columns']);
+        self::assertSame('include', $keptOn['incompleteMonths']);
+
+        $offAgain = $this->save(['budgetExpenses', 'cashIncome'], 'include', 4, false);
+        self::assertFalse($offAgain['goalMarks']);
+        self::assertSame($offAgain, $this->read());
     }
 
     public function testGoalColouringIsPerWorkspaceAndMustBeABoolean(): void
     {
         $this->signIn();
-        $this->save(['cashIncome'], 'exclude', 0, false);
+        $this->save(['cashIncome'], 'exclude', 0, true);
         foreach (['yes', 0, null] as $invalid) {
             $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: json_encode([
                 'columns' => ['cashIncome'], 'incompleteMonths' => 'exclude', 'version' => 1, 'goalMarks' => $invalid,
             ], JSON_THROW_ON_ERROR));
             self::assertResponseStatusCodeSame(422);
         }
-        self::assertFalse($this->read()['goalMarks']);
+        self::assertTrue($this->read()['goalMarks']);
 
         $this->client->request('DELETE', '/api/v1/session');
         $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
-        self::assertTrue($this->read()['goalMarks']);
+        self::assertFalse($this->read()['goalMarks']);
     }
 
     public function testAStaleVersionIsAConflictAndLeavesTheStoredRowUntouched(): void
     {
         $this->signIn();
-        $this->save(['cashIncome'], 'exclude', 0);
+        $this->save(['cashIncome'], 'include', 0, true);
 
-        $this->put(['budgetExpenses'], 'exclude', 0);
+        $this->put(['budgetExpenses'], 'exclude', 0, false);
         self::assertResponseStatusCodeSame(409);
-        $this->put(['budgetExpenses'], 'exclude', 7);
+        $this->put(['budgetExpenses'], 'exclude', 7, false);
         self::assertResponseStatusCodeSame(409);
 
-        self::assertSame(['cashIncome'], $this->read()['columns']);
+        $stored = $this->read();
+        self::assertSame(['cashIncome'], $stored['columns']);
+        self::assertSame('include', $stored['incompleteMonths']);
+        self::assertTrue($stored['goalMarks']);
     }
 
     public function testEveryInvalidSelectionIsRefusedWithoutStoringAnything(): void

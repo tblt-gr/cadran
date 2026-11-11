@@ -4,6 +4,7 @@ import {
   readAnnualReportPreferences,
   saveAnnualReportPreferences,
   type AnnualReportPreferencesInput,
+  type AnnualReportPreferences,
 } from '@cadran/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -83,7 +84,19 @@ export function useSaveAnnualReportPreferences() {
       void queryClient.invalidateQueries({ queryKey: ANNUAL_PREFERENCES_QUERY_KEY });
     },
     onSuccess: (data) => {
+      const previous = queryClient.getQueryData<AnnualReportPreferences>(
+        ANNUAL_PREFERENCES_QUERY_KEY,
+      );
       queryClient.setQueryData(ANNUAL_PREFERENCES_QUERY_KEY, data);
+      // Mark visibility does not change report figures. Refetching here would also restart an
+      // enabled evaluation before its observers can react to the newly disabled preference.
+      if (
+        previous &&
+        previous.incompleteMonths === data.incompleteMonths &&
+        previous.columns.length === data.columns.length &&
+        previous.columns.every((column, index) => column === data.columns[index])
+      )
+        return;
       void queryClient.invalidateQueries({ queryKey: ['annual-report'] });
       void queryClient.invalidateQueries({ queryKey: ['multi-year-report'] });
       void queryClient.invalidateQueries({ queryKey: ['goal-evaluations'] });

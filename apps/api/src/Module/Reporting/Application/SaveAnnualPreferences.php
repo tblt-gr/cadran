@@ -54,7 +54,7 @@ final readonly class SaveAnnualPreferences
 
         $goalMarks = $input->goalMarks;
         if (null === $goalMarks) {
-            $goalMarks = $this->preferences->find($workspace)->goalMarks ?? true;
+            $goalMarks = $this->preferences->find($workspace)->goalMarks ?? false;
         }
         $saved = (new AnnualReportPreferences($workspace, [], $incomplete, $input->version))
             ->saved($input->columns, $incomplete, $this->calendar->now(), $goalMarks);

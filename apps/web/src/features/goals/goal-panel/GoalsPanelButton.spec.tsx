@@ -192,3 +192,30 @@ describe('GoalsPanelButton', () => {
     await waitFor(() => expect(api.listGoalEvaluations).toHaveBeenCalledTimes(2));
   });
 });
+
+it('keeps the goal panel independently reachable without requesting or showing a cached counter', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  client.setQueryData(
+    ['goal-evaluations', '2026-01', '2026-12', 'BOTH'],
+    evaluations(item('MET', 'YEARLY')),
+  );
+  const onOpen = vi.fn();
+  render(
+    <QueryClientProvider client={client}>
+      <GoalsPanelButton
+        buttonRef={{ current: null }}
+        onOpen={onOpen}
+        ready
+        scope={{ kind: 'year', year: 2026 }}
+        evaluate={false}
+      />
+    </QueryClientProvider>,
+  );
+  const button = screen.getByRole('button', { name: 'Objectifs' });
+  expect(button.hasAttribute('disabled')).toBe(false);
+  fireEvent.click(button);
+  expect(onOpen).toHaveBeenCalledOnce();
+  await new Promise((resolve) => setTimeout(resolve, 20));
+  expect(api.listGoalEvaluations).not.toHaveBeenCalled();
+  expect(button.textContent).toBe('');
+});
