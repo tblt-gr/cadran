@@ -63,7 +63,7 @@ final class MetricPolicyControllerTest extends WebTestCase
 
         $active = self::fields($catalog['active']);
         self::assertSame(1, $active['version']);
-        self::assertSame(['EMPLOYEE_BENEFIT'], $active['cashExcludedAccountKinds']);
+        self::assertSame([], $active['cashExcludedAccountKinds']);
         self::assertSame('BUDGET_SURPLUS_OVER_CASH_INCOME', $active['savingsRateFormula']);
         self::assertSame('NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME', $active['netSavingsRateFormula']);
         self::assertTrue($active['system']);
@@ -78,27 +78,39 @@ final class MetricPolicyControllerTest extends WebTestCase
         $this->seedVoucherMonth();
 
         $report = $this->call('GET', '/api/v1/reports/monthly?month='.$this->month, 200);
-        // Hand-computed under version 1: 2000 salary stays cash, the 200 voucher
-        // credit and 200 voucher spending leave the perimeter.
-        self::assertSame('2000.00', self::metric($report, 'cashIncome'));
-        self::assertSame('200.00', self::metric($report, 'nonCashBenefits'));
-        self::assertSame('200.00', self::metric($report, 'benefitSpending'));
-        self::assertSame('300.00', self::metric($report, 'budgetExpenses'));
-        self::assertSame(['version' => 1, 'label' => 'Définition de trésorerie'], $report['metricPolicy']);
+        // 2000 salary + 200 vouchers, less 300 rent + 200 voucher spending.
+        self::assertSame('2200.00', self::metric($report, 'cashIncome'));
+        self::assertSame('0', self::metric($report, 'nonCashBenefits'));
+        self::assertSame('0', self::metric($report, 'benefitSpending'));
+        self::assertSame('500.00', self::metric($report, 'budgetExpenses'));
+        self::assertSame(['version' => 1, 'label' => 'Tous les comptes'], $report['metricPolicy']);
 
-        $created = $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Tout compte', 'cashExcludedAccountKinds' => []]);
+        self::assertSame('0.772727272727272727272727', self::metric($report, 'cashSavingsRate'));
+        self::assertSame('0.000000000000000000000000', self::metric($report, 'netSavingsRate'));
+        $this->assertVoucherReportSurfaces('2200.00', '500.00');
+        $ledger = $this->call('GET', '/api/v1/reports/monthly/ledger?month='.$this->month, 200);
+        self::assertSame('500.00', self::metric(self::fields(self::list($ledger['expenseCategories'])[0]), 'total'));
+        self::assertSame('2200.00', self::metric(self::fields(self::list($ledger['incomeCategories'])[0]), 'total'));
+        $netWorthBefore = $this->call('GET', '/api/v1/reports/monthly/recap?month='.$this->month, 200)['netWorth'];
+        self::assertSame('1800.00', self::fields(self::fields($netWorthBefore)['current'])['value']);
+
+        $created = $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
         self::assertSame(2, $created['version']);
         self::assertFalse($created['system']);
-        $activated = $this->call('PUT', '/api/v1/reports/metric-policies/active', 200, ['version' => 2, 'expectedActiveVersion' => 1, 'reason' => 'Tout compter']);
+        $activated = $this->call('PUT', '/api/v1/reports/metric-policies/active', 200, ['version' => 2, 'expectedActiveVersion' => 1, 'reason' => 'Exclure les titres']);
         self::assertSame(2, self::fields($activated['active'])['version']);
         self::assertIsString($activated['activeSince']);
 
         $report = $this->call('GET', '/api/v1/reports/monthly?month='.$this->month, 200);
-        self::assertSame('2200.00', self::metric($report, 'cashIncome'));
-        self::assertSame('500.00', self::metric($report, 'budgetExpenses'));
-        self::assertSame('0', self::metric($report, 'nonCashBenefits'));
-        self::assertSame('0', self::metric($report, 'benefitSpending'));
-        self::assertSame(['version' => 2, 'label' => 'Tout compte'], $report['metricPolicy']);
+        self::assertSame('2000.00', self::metric($report, 'cashIncome'));
+        self::assertSame('300.00', self::metric($report, 'budgetExpenses'));
+        self::assertSame('200.00', self::metric($report, 'nonCashBenefits'));
+        self::assertSame('200.00', self::metric($report, 'benefitSpending'));
+        self::assertSame(['version' => 2, 'label' => 'Sans titres'], $report['metricPolicy']);
+        self::assertSame('0.850000000000000000000000', self::metric($report, 'cashSavingsRate'));
+        self::assertSame('0.000000000000000000000000', self::metric($report, 'netSavingsRate'));
+        $this->assertVoucherReportSurfaces('2000.00', '300.00');
+        self::assertSame($netWorthBefore, $this->call('GET', '/api/v1/reports/monthly/recap?month='.$this->month, 200)['netWorth']);
         $explained = $this->call('GET', '/api/v1/reports/monthly/cashIncome/explain?month='.$this->month, 200);
         self::assertSame(2, self::fields($explained['metricPolicy'])['version']);
         $recap = $this->call('GET', '/api/v1/reports/monthly/recap?month='.$this->month, 200);
@@ -118,23 +130,26 @@ final class MetricPolicyControllerTest extends WebTestCase
             'year' => (int) $this->periodStart->format('Y'), 'month' => (int) $this->periodStart->format('n'),
             'closed_at' => '2020-01-01 10:00:00+00', 'closed_by' => WorkspaceFixture::OWNER_ID, 'version' => 1,
         ]);
-        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Tout compte', 'cashExcludedAccountKinds' => []]);
+        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
         $this->call('PUT', '/api/v1/reports/metric-policies/active', 200, ['version' => 2, 'expectedActiveVersion' => 1]);
 
         $report = $this->call('GET', '/api/v1/reports/monthly?month='.$this->month, 200);
         self::assertSame(1, self::fields($report['metricPolicy'])['version']);
-        self::assertSame('2000.00', self::metric($report, 'cashIncome'));
+        self::assertSame('2200.00', self::metric($report, 'cashIncome'));
 
         $this->connection->executeStatement("UPDATE account_period_closures SET closed_at = now() + interval '1 minute'");
         $report = $this->call('GET', '/api/v1/reports/monthly?month='.$this->month, 200);
         self::assertSame(2, self::fields($report['metricPolicy'])['version']);
-        self::assertSame('2200.00', self::metric($report, 'cashIncome'));
+        self::assertSame('2000.00', self::metric($report, 'cashIncome'));
     }
 
     public function testAMonthWhoseOnlyIncomeIsOnAnExcludedKindHasNoSavingsRate(): void
     {
         $this->account(self::VOUCHER, WorkspaceFixture::OWN_WORKSPACE, 'EMPLOYEE_BENEFIT');
         $this->transaction('01', self::VOUCHER, '200.00', 'INCOME');
+
+        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
+        $this->call('PUT', '/api/v1/reports/metric-policies/active', 200, ['version' => 2, 'expectedActiveVersion' => 1]);
 
         $report = $this->call('GET', '/api/v1/reports/monthly?month='.$this->month, 200);
 
@@ -202,7 +217,7 @@ final class MetricPolicyControllerTest extends WebTestCase
 
     public function testAnActivationIsRefusedOnceTheHistoryReachesItsBound(): void
     {
-        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Tout compte', 'cashExcludedAccountKinds' => []]);
+        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
         $this->connection->executeStatement(
             "INSERT INTO reporting_metric_policy_activations (id, workspace_id, policy_version, active_from, created_by)
              SELECT gen_random_uuid(), :workspace, 1, timestamptz '2020-01-01 00:00:00+00' + (n || ' minutes')::interval, :author
@@ -239,7 +254,8 @@ final class MetricPolicyControllerTest extends WebTestCase
         $duplicate = $this->call('POST', '/api/v1/reports/metric-policies', 409, ['label' => 'Encore', 'cashExcludedAccountKinds' => ['CASH', 'SAVINGS']]);
         self::assertSame('policy_definition_exists', $duplicate['code']);
         self::assertSame(2, $duplicate['version']);
-        $builtIn = $this->call('POST', '/api/v1/reports/metric-policies', 409, ['label' => 'Encore', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
+        $builtIn = $this->call('POST', '/api/v1/reports/metric-policies', 409, ['label' => 'Encore', 'cashExcludedAccountKinds' => []]);
+        self::assertSame('policy_definition_exists', $builtIn['code']);
         self::assertSame(1, $builtIn['version']);
 
         foreach ([
@@ -268,7 +284,7 @@ final class MetricPolicyControllerTest extends WebTestCase
 
     public function testActivationRejectsStaleUnknownAndAlreadyActiveVersions(): void
     {
-        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Tout compte', 'cashExcludedAccountKinds' => []]);
+        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
 
         $unknown = $this->call('PUT', '/api/v1/reports/metric-policies/active', 422, ['version' => 9, 'expectedActiveVersion' => 1]);
         self::assertSame('unknown_policy_version', $unknown['code']);
@@ -282,7 +298,7 @@ final class MetricPolicyControllerTest extends WebTestCase
 
     public function testTwoActivationsReadingTheSameActiveVersionLetOnlyTheFirstWin(): void
     {
-        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Tout compte', 'cashExcludedAccountKinds' => []]);
+        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
         $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans espèces', 'cashExcludedAccountKinds' => ['CASH']]);
 
         $this->call('PUT', '/api/v1/reports/metric-policies/active', 200, ['version' => 2, 'expectedActiveVersion' => 1]);
@@ -294,7 +310,7 @@ final class MetricPolicyControllerTest extends WebTestCase
 
     public function testAnotherWorkspaceNeverSeesOrActivatesAVersion(): void
     {
-        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Tout compte', 'cashExcludedAccountKinds' => []]);
+        $this->call('POST', '/api/v1/reports/metric-policies', 201, ['label' => 'Sans titres', 'cashExcludedAccountKinds' => ['EMPLOYEE_BENEFIT']]);
         $this->call('PUT', '/api/v1/reports/metric-policies/active', 200, ['version' => 2, 'expectedActiveVersion' => 1]);
         $ownUnknown = $this->call('PUT', '/api/v1/reports/metric-policies/active', 422, ['version' => 9, 'expectedActiveVersion' => 2]);
 
@@ -303,7 +319,7 @@ final class MetricPolicyControllerTest extends WebTestCase
         $catalog = $this->call('GET', '/api/v1/reports/metric-policies', 200);
         self::assertSame(1, self::fields($catalog['active'])['version']);
         self::assertCount(1, self::list($catalog['versions']));
-        self::assertStringNotContainsString('Tout compte', (string) $this->client->getResponse()->getContent());
+        self::assertStringNotContainsString('Sans titres', (string) $this->client->getResponse()->getContent());
         $foreign = $this->call('PUT', '/api/v1/reports/metric-policies/active', 422, ['version' => 2, 'expectedActiveVersion' => 1]);
         $missing = $this->call('PUT', '/api/v1/reports/metric-policies/active', 422, ['version' => 9, 'expectedActiveVersion' => 1]);
         self::assertSame($missing, $foreign);
@@ -321,6 +337,21 @@ final class MetricPolicyControllerTest extends WebTestCase
         self::assertSame(0, $this->connection->fetchOne('SELECT COUNT(*) FROM reporting_metric_policies'));
     }
 
+    private function assertVoucherReportSurfaces(string $income, string $expenses): void
+    {
+        $recap = $this->call('GET', '/api/v1/reports/monthly/recap?month='.$this->month, 200);
+        $totals = self::fields($recap['totals']);
+        self::assertSame($income, self::metric($totals, 'cashIncome'));
+        self::assertSame($expenses, self::metric($totals, 'budgetExpenses'));
+        self::assertSame($expenses, self::fields(self::list($totals['categories'])[0])['value']);
+        $annual = $this->call('GET', '/api/v1/reports/annual/'.$this->periodStart->format('Y').'?incompleteMonths=include', 200);
+        $flows = self::fields(self::fields($annual['charts'])['flows']);
+        $months = self::list($flows['months']);
+        $month = self::fields($months[(int) $this->periodStart->format('n') - 1]);
+        self::assertSame($income, self::metric($month, 'cashIncome'));
+        self::assertSame($expenses, self::metric($month, 'budgetExpenses'));
+    }
+
     private function seedVoucherMonth(): void
     {
         $this->connection->insert('category_categories', [
@@ -328,12 +359,35 @@ final class MetricPolicyControllerTest extends WebTestCase
             'default_analytic_axes' => '[]', 'budget_included' => true, 'sort_order' => 0, 'depth' => 1,
             'version' => 1, 'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
         ], ['budget_included' => ParameterType::BOOLEAN]);
+        $this->connection->insert('category_categories', [
+            'id' => '00000000-0000-7000-8000-0000000000c2', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'type' => 'INCOME', 'label' => 'Revenus',
+            'default_analytic_axes' => '[]', 'budget_included' => false, 'sort_order' => 1, 'depth' => 1,
+            'version' => 1, 'created_at' => '2026-01-01 12:00:00+00', 'updated_at' => '2026-01-01 12:00:00+00',
+        ], ['budget_included' => ParameterType::BOOLEAN]);
         $this->account(self::CURRENT, WorkspaceFixture::OWN_WORKSPACE, 'CURRENT');
         $this->account(self::VOUCHER, WorkspaceFixture::OWN_WORKSPACE, 'EMPLOYEE_BENEFIT');
+        foreach ([self::CURRENT => '0.00', self::VOUCHER => '100.00'] as $account => $balance) {
+            $this->connection->insert('account_balance_snapshots', [
+                'id' => str_replace('a', 'b', $account), 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'account_id' => $account, 'amount_asset' => 'EUR', 'amount_value' => $balance, 'amount_literal' => $balance,
+                'as_of' => $this->periodStart->modify('-1 day')->format('Y-m-d'), 'source' => 'MANUAL', 'version' => 1,
+                'reconciliation_status' => 'RECONCILED', 'recorded_by' => WorkspaceFixture::OWNER_ID,
+                'recorded_at' => $this->periodStart->format('Y-m-d').' 00:00:00+00',
+            ]);
+        }
         $this->transaction('01', self::CURRENT, '2000.00', 'INCOME');
         $this->transaction('02', self::VOUCHER, '200.00', 'INCOME');
         $this->transaction('03', self::VOUCHER, '-200.00', 'EXPENSE');
         $this->transaction('04', self::CURRENT, '-300.00', 'EXPENSE');
+        foreach (['01' => '2000.00', '02' => '200.00', '03' => '-200.00', '04' => '-300.00'] as $suffix => $amount) {
+            $this->connection->insert('transaction_splits', [
+                'id' => '00000000-0000-7000-8000-0000000002'.$suffix, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'transaction_id' => '00000000-0000-7000-8000-0000000001'.$suffix,
+                'category_id' => '00000000-0000-7000-8000-0000000000c'.(str_starts_with($amount, '-') ? '1' : '2'),
+                'amount_value' => $amount, 'amount_scale' => 2, 'asset_code' => 'EUR', 'analytic_axes' => '[]', 'position' => 0,
+                'created_at' => $this->periodStart->format('Y-m-d').' 12:00:00+00',
+            ]);
+        }
     }
 
     private function insertPolicy(string $workspace, int $version, string $label): void

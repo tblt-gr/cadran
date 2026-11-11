@@ -32,7 +32,7 @@ final class MonthlyProjectionFixture
                 new NetWorthDeltaView($month.'-01', null, null, null, null, null, null, null, null, 'MISSING', null, 0, 0, [], []),
                 [], [],
             ),
-            new MetricPolicyReference($policyVersion, 'Définition de trésorerie'),
+            new MetricPolicyReference($policyVersion, 'Tous les comptes'),
             categoryRollups: $categoryRollups,
         );
     }

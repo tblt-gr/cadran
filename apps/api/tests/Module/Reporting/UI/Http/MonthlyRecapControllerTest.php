@@ -430,11 +430,10 @@ final class MonthlyRecapControllerTest extends WebTestCase
     /**
      * Reproduces the "Tickets restaurant missing from Alimentation" report. Courses 30.00 and
      * Cantine 8.00 sit on the current account; Tickets restaurant 12.00 sits on an
-     * EMPLOYEE_BENEFIT account, outside the treasury perimeter of the active metric policy. The
-     * roll-up reaches every direct child (Alimentation = 38.00); the voucher spending is benefit
-     * spending by the policy, so it leaves every category total, not only the parent's.
+     * EMPLOYEE_BENEFIT account, inside the treasury perimeter of system v1. The
+     * roll-up reaches every direct child (Alimentation = 50.00), including voucher spending.
      */
-    public function testAParentCategoryRollsUpEverySiblingButNotSpendingOutsideTheTreasuryPerimeter(): void
+    public function testAParentCategoryRollsUpEverySiblingIncludingMealVouchersUnderVersionOne(): void
     {
         $food = '00000000-0000-7000-8000-0000000000e1';
         $groceries = '00000000-0000-7000-8000-0000000000e2';
@@ -455,16 +454,16 @@ final class MonthlyRecapControllerTest extends WebTestCase
         $totals = self::fields($this->read()['totals']);
         $categories = self::index($totals['categories'], 'id');
 
-        self::assertSame('38.00', $categories[$food]['value']);
+        self::assertSame('50.00', $categories[$food]['value']);
         self::assertSame('30.00', $categories[$groceries]['value']);
         self::assertSame('8.00', $categories[$canteen]['value']);
-        self::assertNull($categories[$vouchers]['value']);
-        self::assertSame('NO_MOVEMENTS', $categories[$vouchers]['reason']);
-        self::assertSame('38.00', self::metric($totals, 'budgetExpenses'));
-        // The voucher spending is told apart, never summed into the totals above.
-        self::assertSame('12.00', $categories[$food]['benefitSpending']);
-        self::assertSame('12.00', $categories[$vouchers]['benefitSpending']);
-        self::assertSame('EUR', $categories[$vouchers]['benefitAssetCode']);
+        self::assertSame('12.00', $categories[$vouchers]['value']);
+        self::assertNull($categories[$vouchers]['reason']);
+        self::assertSame('50.00', self::metric($totals, 'budgetExpenses'));
+        // Under v1 the voucher spending is part of the ordinary category totals.
+        self::assertNull($categories[$food]['benefitSpending']);
+        self::assertNull($categories[$vouchers]['benefitSpending']);
+        self::assertNull($categories[$vouchers]['benefitAssetCode']);
         self::assertNull($categories[$groceries]['benefitAssetCode']);
         self::assertNull($categories[$groceries]['benefitSpending']);
         self::assertNull($categories[$canteen]['benefitSpending']);
@@ -482,6 +481,10 @@ final class MonthlyRecapControllerTest extends WebTestCase
         $voucherAccount = '00000000-0000-7000-8000-0000000000a5';
         $this->signIn();
         $this->seedThreeAccounts();
+        $this->client->request('POST', '/api/v1/reports/metric-policies', server: ['CONTENT_TYPE' => 'application/json'], content: '{"label":"Sans titres","cashExcludedAccountKinds":["EMPLOYEE_BENEFIT"]}');
+        self::assertResponseStatusCodeSame(201);
+        $this->client->request('PUT', '/api/v1/reports/metric-policies/active', server: ['CONTENT_TYPE' => 'application/json'], content: '{"version":2,"expectedActiveVersion":1}');
+        self::assertResponseStatusCodeSame(200);
         $this->account($voucherAccount, WorkspaceFixture::OWN_WORKSPACE, 'Ticket Restaurant', 'EMPLOYEE_BENEFIT');
         $this->category($food, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Alimentation');
         $this->category($vouchers, WorkspaceFixture::OWN_WORKSPACE, true, 'EXPENSE', 'Tickets restaurant', $food);

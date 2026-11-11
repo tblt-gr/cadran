@@ -32,8 +32,8 @@ final readonly class MetricPolicy
     {
         return new self(
             self::SYSTEM_VERSION,
-            'Définition de trésorerie',
-            [AccountKind::EMPLOYEE_BENEFIT],
+            'Tous les comptes',
+            [],
             SavingsRateFormula::BUDGET_SURPLUS_OVER_CASH_INCOME,
             NetSavingsRateFormula::NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME,
             null,
