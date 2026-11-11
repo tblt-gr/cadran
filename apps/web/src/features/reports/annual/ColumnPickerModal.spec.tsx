@@ -20,6 +20,7 @@ const ok = <T,>(data: T) => ({ data, response: { ok: true, status: 200 } });
 const page = (label: string) => ok({ items: [{ id: `${label}-1`, label }], total: 1 });
 
 beforeEach(() => {
+  HTMLElement.prototype.scrollIntoView = vi.fn();
   api.saveAnnualReportPreferences.mockResolvedValue(ok({ ...annualPreferences, version: 4 }));
   api.listCategories.mockResolvedValue(page('Courses'));
   api.listAccountGroups.mockResolvedValue(page('Épargne'));
@@ -30,15 +31,16 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-function renderModal() {
+function renderModal(preferences = annualPreferences) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   const close = vi.fn();
+  const onConflict = vi.fn();
   render(
     <QueryClientProvider client={client}>
-      <ColumnPickerModal close={close} onConflict={vi.fn()} preferences={annualPreferences} />
+      <ColumnPickerModal close={close} onConflict={onConflict} preferences={preferences} />
     </QueryClientProvider>,
   );
-  return { close };
+  return { close, onConflict };
 }
 
 describe('ColumnPickerModal', () => {
@@ -161,7 +163,7 @@ describe('ColumnPickerModal', () => {
       within(
         screen.getByRole('heading', { name: 'Colonnes sélectionnées' }).parentElement!,
       ).getAllByRole('button').length,
-    ).toBe(annualPreferences.columns.length * 3);
+    ).toBe(annualPreferences.columns.length * 4);
   });
 
   it('moves a column up or down and saves the chosen order', async () => {
@@ -265,5 +267,70 @@ describe('ColumnPickerModal', () => {
     fireEvent.click(parent);
     expect(child.checked).toBe(false);
     expect(child.disabled).toBe(false);
+  });
+});
+
+describe('reordered column drafts', () => {
+  const preferences = {
+    ...annualPreferences,
+    columns: ['cashIncome', 'budgetExpenses', 'cashSavingsRate', 'endNetWorth'],
+  };
+  const moved = ['budgetExpenses', 'cashSavingsRate', 'endNetWorth', 'cashIncome'];
+  function moveToEnd() {
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Déplacer : Revenus' }), { key: 'End' });
+  }
+
+  it('saves a long-distance move without changing settings or the concurrency version', async () => {
+    renderModal(preferences);
+    moveToEnd();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() =>
+      expect(api.saveAnnualReportPreferences).toHaveBeenCalledWith(
+        expect.objectContaining({ body: { ...preferences, columns: moved } }),
+      ),
+    );
+  });
+
+  it('discards an unsaved reorder on cancel', () => {
+    const { close } = renderModal(preferences);
+    moveToEnd();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    expect(close).toHaveBeenCalledOnce();
+    expect(api.saveAnnualReportPreferences).not.toHaveBeenCalled();
+  });
+
+  it('retains the reordered draft after save failure and retries the exact same payload', async () => {
+    api.saveAnnualReportPreferences.mockResolvedValueOnce({ response: { ok: false, status: 500 } });
+    const { close } = renderModal(preferences);
+    moveToEnd();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    expect(await screen.findByRole('alert')).toHaveProperty(
+      'textContent',
+      'L’enregistrement a échoué. Vos modifications sont conservées : réessayez d’enregistrer.',
+    );
+    expect(close).not.toHaveBeenCalled();
+    const rows = screen.getAllByRole('listitem');
+    expect(rows.at(-1)?.textContent).toBe('Revenus');
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(close).toHaveBeenCalledOnce());
+    expect(api.saveAnnualReportPreferences).toHaveBeenCalledTimes(2);
+    expect(api.saveAnnualReportPreferences.mock.calls[0]?.[0].body).toEqual({
+      ...preferences,
+      columns: moved,
+    });
+    expect(api.saveAnnualReportPreferences.mock.calls[1]?.[0].body).toEqual({
+      ...preferences,
+      columns: moved,
+    });
+  });
+
+  it('retains version-conflict handling instead of overwriting a newer order', async () => {
+    api.saveAnnualReportPreferences.mockResolvedValueOnce({ response: { ok: false, status: 409 } });
+    const { close, onConflict } = renderModal(preferences);
+    moveToEnd();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(onConflict).toHaveBeenCalledOnce());
+    expect(close).toHaveBeenCalledOnce();
+    expect(api.saveAnnualReportPreferences).toHaveBeenCalledTimes(1);
   });
 });

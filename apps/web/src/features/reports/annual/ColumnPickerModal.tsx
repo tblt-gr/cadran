@@ -40,12 +40,12 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
     );
   }
-  function move(index: number, offset: -1 | 1) {
+  function move(index: number, target: number) {
     setSelected((current) => {
-      const target = index + offset;
       if (target < 0 || target >= current.length) return current;
       const next = [...current];
-      [next[index], next[target]] = [next[target]!, next[index]!];
+      const [id] = next.splice(index, 1);
+      next.splice(target, 0, id!);
       return next;
     });
   }
