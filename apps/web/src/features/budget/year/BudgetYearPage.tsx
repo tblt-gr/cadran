@@ -7,10 +7,7 @@ import type { GoalPanelScope } from '@/features/goals/goal-panel/useGoalPanelDat
 import { useGoalPanelOpen } from '@/features/goals/goal-panel/goalPanelSearch';
 import { AnnualReportPage } from '@/features/reports/annual/AnnualReportPage';
 import { MultiYearReportPage } from '@/features/reports/multi-year/MultiYearReportPage';
-import {
-  annualReportQueryOptions,
-  useAnnualReportPreferences,
-} from '@/features/reports/annual/useAnnualReport';
+import { annualReportQueryOptions } from '@/features/reports/annual/useAnnualReport';
 import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearReport';
 import { useMonthlyBounds } from '@/features/budget/monthly-budget/useMonthlyBounds';
 import { annualHref } from '@/features/budget/monthly-budget/budgetPeriod';
@@ -31,7 +28,6 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
   const goalPanel = useGoalPanelOpen();
   const goalsButton = useRef<HTMLButtonElement>(null);
   const bounds = useMonthlyBounds();
-  const preferences = useAnnualReportPreferences();
   // Unparameterized: the backend's default bounds say whether more than one year exists.
   const years = useMultiYearReport();
   const multiYearAvailable =
@@ -91,7 +87,6 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
       <HeaderActions>
         <GoalsPanelButton
           buttonRef={goalsButton}
-          evaluate={preferences.data?.goalMarks === true}
           onOpen={goalPanel.openPanel}
           ready={goalsReady}
           scope={goalScope}

@@ -15,8 +15,6 @@ interface Props {
   buttonRef: Ref<HTMLButtonElement>;
   /** The page's own data has settled: only then does the counter ask for the evaluations. */
   ready: boolean;
-  /** Reports with hidden marks leave evaluations to the independently opened panel. */
-  evaluate?: boolean;
 }
 
 /** Goals of the scope on target now, counted from server data: the hidden ones are not in the items. */
@@ -43,12 +41,12 @@ export function countGoals(
  * Header button of the budget pages: shows how many goals of the displayed period are met and
  * opens the goals panel. It shares the panel's query, so opening the panel is instant.
  */
-export function GoalsPanelButton({ scope, onOpen, buttonRef, ready, evaluate = true }: Props) {
+export function GoalsPanelButton({ scope, onOpen, buttonRef, ready }: Props) {
   const { t } = useTranslation();
-  const data = useGoalEvaluations(scope, ready && evaluate);
+  const data = useGoalEvaluations(scope, ready);
   const label = t('budget.monthly.goals');
 
-  if (evaluate && data.pending && data.evaluations === undefined) {
+  if (data.pending && data.evaluations === undefined) {
     return (
       <button
         aria-label={label}
@@ -64,14 +62,12 @@ export function GoalsPanelButton({ scope, onOpen, buttonRef, ready, evaluate = t
       </button>
     );
   }
-  const counts =
-    evaluate && data.evaluations && !data.failed ? countGoals(data.evaluations, scope) : null;
+  const counts = data.evaluations && !data.failed ? countGoals(data.evaluations, scope) : null;
   if (counts === null || counts.total === 0) {
     return (
       <button
         aria-label={label}
         className={`icon-button ${styles.bare}`}
-        disabled={!ready}
         onClick={onOpen}
         ref={buttonRef}
         title={label}

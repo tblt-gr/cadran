@@ -25,6 +25,7 @@ async function savePreferences(page: Page, value: Preferences) {
 }
 const toggle = (page: Page) =>
   page.getByRole('button', { name: 'Repères d’objectifs', exact: true });
+const progress = (page: Page) => page.getByRole('button', { name: /^Objectifs : \d+ sur \d+/ });
 const marks = (page: Page) => page.getByRole('button', { name: /^Objectif :/ });
 const picker = (page: Page) => page.getByRole('dialog', { name: 'Colonnes du rapport' });
 const evaluation = {
@@ -87,7 +88,7 @@ for (const [mode, search] of [
   ['compact multi-year', '?view=multi&from=2025&to=2026'],
   ['detailed multi-year', '?view=multi&from=2025&to=2026&display=detailed'],
 ] as const) {
-  test(`${mode}: toggle persists, synchronizes columns and suppresses cached marks and requests`, async ({
+  test(`${mode}: toggle persists, synchronizes columns and hides marks and keeps the goals progress`, async ({
     page,
   }) => {
     await page.goto('/budget/2026');
@@ -100,15 +101,11 @@ for (const [mode, search] of [
         goalMarks: false,
       });
       await mockEvaluations(page);
-      let requests = 0;
-      page.on('request', (request) => {
-        if (request.url().includes('/api/v1/goals/evaluations')) requests++;
-      });
       await page.goto(`/budget/2026${search}`);
       await settled(page);
       await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false');
       await expect(marks(page)).toHaveCount(0);
-      expect(requests).toBe(0);
+      await expect(progress(page)).toBeVisible();
       const sources = await page.getByRole('table').first().getByRole('link').count();
       expect(sources).toBeGreaterThan(0);
 
@@ -117,8 +114,7 @@ for (const [mode, search] of [
       await expect(toggle(page)).toHaveAttribute('aria-pressed', 'true');
       await expect.poll(() => marks(page).count()).toBeGreaterThan(0);
       await settled(page);
-      const enabledRequests = requests;
-      expect(enabledRequests).toBeGreaterThan(0);
+      await expect(progress(page)).toBeVisible();
       const saved = await readPreferences(page);
       expect(saved.columns).toEqual(['cashIncome', 'budgetExpenses']);
       expect(saved.incompleteMonths).toBe(original.incompleteMonths);
@@ -135,17 +131,16 @@ for (const [mode, search] of [
       await settled(page);
       await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false');
       await expect(marks(page)).toHaveCount(0);
-      expect(requests).toBe(enabledRequests);
+      await expect(progress(page)).toBeVisible();
       expect(await page.getByRole('table').first().getByRole('link').count()).toBe(sources);
       await page.reload();
       await settled(page);
       await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false');
-      expect(requests).toBe(enabledRequests);
+      await expect(progress(page)).toBeVisible();
       await auditAccessibility(page);
 
-      await page.getByRole('button', { name: 'Objectifs', exact: true }).click();
+      await progress(page).click();
       await expect(page.getByRole('dialog', { name: /^Objectifs · / })).toBeVisible();
-      await expect.poll(() => requests).toBeGreaterThan(enabledRequests);
       await page.keyboard.press('Escape');
     } finally {
       await page.unroute('**/api/v1/goals/evaluations*');

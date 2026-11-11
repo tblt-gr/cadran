@@ -252,34 +252,3 @@ describe('BudgetYearPage', () => {
     expect(screen.queryByRole('button', { name: /vue compacte/i })).toBeNull();
   });
 });
-
-describe('report markings disabled', () => {
-  it.each(['', '?view=multi&from=2025&to=2026', '?view=multi&from=2025&to=2026&display=detailed'])(
-    'does not request evaluations and keeps the panel button available on %s',
-    async (search) => {
-      api.readAnnualReportPreferences.mockResolvedValue(
-        ok({ ...annualPreferences, goalMarks: false }),
-      );
-      api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
-        Promise.resolve(
-          ok({
-            ...annualReport,
-            year: path.year,
-            rows: annualReport.rows.map((row) => ({
-              ...row,
-              month: `${path.year}${row.month.slice(4)}`,
-            })),
-          }),
-        ),
-      );
-      renderPage(search);
-      const toggle = await screen.findByRole('button', { name: 'Repères d’objectifs' });
-      await waitFor(() => expect(toggle.hasAttribute('disabled')).toBe(false));
-      expect(api.listGoalEvaluations).not.toHaveBeenCalled();
-      const panel = screen.getByRole('button', { name: 'Objectifs' });
-      expect(panel.hasAttribute('disabled')).toBe(false);
-      fireEvent.click(panel);
-      expect(await screen.findByRole('dialog')).toBeTruthy();
-    },
-  );
-});
