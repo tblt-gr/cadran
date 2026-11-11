@@ -118,7 +118,49 @@ describe('RefundForm', () => {
       (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
         .disabled,
     ).toBe(true);
+    const input = screen.getByLabelText('Montant');
+    fireEvent.change(input, { target: { value: '10,01' } });
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(screen.getByRole('alert').textContent).toContain('solde remboursable');
   });
+
+  it.each(['.', ','])(
+    'accepts decimal separator %s without crashing or losing the draft',
+    (separator) => {
+      const submit = vi.fn();
+      const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      render(
+        <QueryClientProvider client={queryClient}>
+          <RefundForm
+            accounts={[account]}
+            onSubmit={submit}
+            pending={false}
+            proposal={proposal}
+            submitError={null}
+            submitErrorDetail={null}
+          />
+        </QueryClientProvider>,
+      );
+      fireEvent.change(screen.getByLabelText('Date comptable'), {
+        target: { value: '2026-03-14' },
+      });
+      fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Remboursement' } });
+      const amount = screen.getByLabelText('Montant') as HTMLInputElement;
+      const save = screen.getByRole('button', {
+        name: 'Créer le remboursement',
+      }) as HTMLButtonElement;
+      for (const value of ['', '2', `2${separator}`, `2${separator}6`]) {
+        fireEvent.change(amount, { target: { value } });
+        expect(amount.value).toBe(value);
+        expect((screen.getByLabelText('Libellé') as HTMLInputElement).value).toBe('Remboursement');
+        expect(save.disabled).toBe(value === '' || value.endsWith(separator));
+      }
+      fireEvent.click(save);
+      expect(submit).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: { value: '2.6', assetCode: 'EUR' } }),
+      );
+    },
+  );
 
   it('blocks submission when the amount changes but the shown allocation is left untouched', async () => {
     api.listAssets.mockImplementation(() =>
@@ -167,6 +209,13 @@ describe('RefundForm', () => {
     expect(screen.getByText(/la somme des lignes doit être égale/)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /^Affecter le reste à la ligne/ }));
     expect((screen.getByLabelText('Montant de la ligne 1') as HTMLInputElement).value).toBe('5.00');
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '5.' } });
+    expect(
+      (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true);
+    fireEvent.change(screen.getByLabelText('Montant'), { target: { value: '5,00' } });
+
     expect(
       (screen.getByRole('button', { name: 'Créer le remboursement' }) as HTMLButtonElement)
         .disabled,

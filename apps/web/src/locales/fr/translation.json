@@ -2413,6 +2413,7 @@
       "error": "Le remboursement ne peut pas être préparé. Rechargez la liste et réessayez.",
       "remaining": "Montant encore remboursable",
       "amountTooHigh": "Le montant ne peut pas dépasser le solde remboursable affiché.",
+      "amountInvalid": "Saisissez un montant supérieur à zéro avec un point ou une virgule pour les décimales.",
       "allocation": "Répartition proposée",
       "allocationOutOfDate": "Ajustez la répartition au montant du remboursement.",
       "allocationInvalid": "Pour créer le remboursement, la somme des lignes doit être égale au montant et chaque ligne doit avoir une catégorie valide.",
