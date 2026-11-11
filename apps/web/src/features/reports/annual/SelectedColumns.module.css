@@ -44,3 +44,31 @@
   width: 50%;
   height: var(--font-size-label);
 }
+
+.help {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+.handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.row[data-dragging] {
+  background: var(--bg-surface-2);
+  outline: var(--border-line-strong);
+  outline-offset: var(--outline-offset-inset);
+}
+
+.row[data-dragging] .handle {
+  cursor: grabbing;
+}
+
+.row[data-drop-before] {
+  border-top: var(--outline-focus);
+}
+
+.row[data-drop-after] {
+  border-bottom: var(--outline-focus);
+}
