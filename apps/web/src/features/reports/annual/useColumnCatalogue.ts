@@ -16,6 +16,24 @@ export interface CatalogueEntry {
   parentLabel?: string | null;
   /** Full path of a group, the accessible name of its option. */
   path?: string;
+  /** Hierarchy and colour of a category, kept so the picker can draw the category tree. */
+  category?: CategoryMeta;
+}
+
+interface CategoryMeta {
+  parentId: string | null;
+  sortOrder: number;
+  /** Colour inherited from the nearest coloured ancestor, as the Transactions filter shows it. */
+  effectiveColor: string | null;
+}
+
+interface RawEntry {
+  id: string;
+  label: string;
+  institution?: string | null;
+  parentId?: string | null;
+  sortOrder?: number;
+  effectiveColor?: string | null;
 }
 
 interface Page<T> {
@@ -23,8 +41,9 @@ interface Page<T> {
   total: number;
 }
 
-async function collect<T extends { id: string; label: string; institution?: string | null }>(
+async function collect<T extends RawEntry>(
   fetchPage: (page: number) => Promise<{ data?: Page<T>; response?: Response }>,
+  withHierarchy = false,
 ): Promise<CatalogueEntry[]> {
   const entries: CatalogueEntry[] = [];
   let total = 0;
@@ -33,11 +52,22 @@ async function collect<T extends { id: string; label: string; institution?: stri
     if (!result.response?.ok || !result.data) throw new Error('annual-catalogue');
     total = result.data.total;
     entries.push(
-      ...result.data.items.map(({ id, institution, label }) => ({
-        id,
-        label,
-        ...(institution ? { institution } : {}),
-      })),
+      ...result.data.items.map(
+        ({ id, institution, label, parentId, sortOrder, effectiveColor }) => ({
+          id,
+          label,
+          ...(institution ? { institution } : {}),
+          ...(withHierarchy
+            ? {
+                category: {
+                  parentId: parentId ?? null,
+                  sortOrder: sortOrder ?? 0,
+                  effectiveColor: effectiveColor ?? null,
+                },
+              }
+            : {}),
+        }),
+      ),
     );
     if (result.data.items.length === 0) break;
   }
@@ -52,11 +82,13 @@ export function useColumnCatalogue(enabled: boolean) {
     queryKey: ['annual-report-catalogue'],
     queryFn: async () => {
       const [categories, groups, accounts] = await Promise.all([
-        collect((page) =>
-          listCategories({
-            ...authApiOptions(),
-            query: { includeArchived: true, page, pageSize: PAGE_SIZE },
-          }),
+        collect(
+          (page) =>
+            listCategories({
+              ...authApiOptions(),
+              query: { includeArchived: true, page, pageSize: PAGE_SIZE },
+            }),
+          true,
         ),
         listAllAccountGroups(true).then((groups): CatalogueEntry[] =>
           orderGroupsDepthFirst(groups).map(({ group, parentLabel, path }) => ({

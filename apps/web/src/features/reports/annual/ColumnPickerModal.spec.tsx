@@ -212,7 +212,58 @@ describe('ColumnPickerModal', () => {
     );
     fireEvent.click(screen.getByRole('tab', { name: 'Catégories' }));
     fireEvent.click(await screen.findByLabelText('Courses'));
-    const labels = within(screen.getByRole('list')).getAllByRole('listitem');
+    const selectedList = within(
+      screen.getByRole('heading', { name: 'Colonnes sélectionnées' }).parentElement!,
+    ).getByRole('list');
+    const labels = within(selectedList).getAllByRole('listitem');
     expect(labels[labels.length - 1]!.textContent).toContain('Courses');
+  });
+  it('draws the saved categories as a tree and keeps archived selections and the 40 limit', async () => {
+    const entry = (id: string, label: string, parentId: string | null, sortOrder: number) => ({
+      id,
+      label,
+      parentId,
+      sortOrder,
+      effectiveColor: '#336699',
+    });
+    api.listCategories.mockResolvedValue(
+      ok({
+        items: [
+          entry('child', 'Courses', 'root', 1),
+          entry('root', 'Alimentation', null, 1),
+          entry('old', 'Ancienne', null, 2),
+        ],
+        total: 3,
+      }),
+    );
+    const columns = [
+      ...Array.from({ length: 38 }, (_, index) => `account:filler-${index}`),
+      'category:old',
+      'category:root',
+    ];
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={client}>
+        <ColumnPickerModal
+          close={vi.fn()}
+          onConflict={vi.fn()}
+          preferences={{ ...annualPreferences, columns }}
+        />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('tab', { name: 'Catégories' }));
+    const child = (await screen.findByRole('checkbox', {
+      name: 'Alimentation › Courses',
+    })) as HTMLInputElement;
+    expect(screen.getByText('40 / 40')).toBeTruthy();
+    expect(child.disabled).toBe(true);
+    const parent = screen.getByRole('checkbox', { name: 'Alimentation' }) as HTMLInputElement;
+    expect(parent.checked).toBe(true);
+    expect((screen.getByRole('checkbox', { name: 'Ancienne' }) as HTMLInputElement).checked).toBe(
+      true,
+    );
+    fireEvent.click(parent);
+    expect(child.checked).toBe(false);
+    expect(child.disabled).toBe(false);
   });
 });
