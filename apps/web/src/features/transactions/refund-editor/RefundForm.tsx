@@ -59,12 +59,13 @@ export function RefundForm({
       note: '',
     })),
   );
-  const amountCanonical = isCanonicalUnsignedDecimal(amount);
+  const normalizedAmount = amount.replace(',', '.');
+  const amountCanonical = isCanonicalUnsignedDecimal(normalizedAmount);
   const amountTooHigh =
     amountCanonical &&
-    !isZeroDecimal(amount) &&
-    compareDecimals(amount, proposal.refundable.value) > 0;
-  const amountInvalid = !amountCanonical || isZeroDecimal(amount) || amountTooHigh;
+    !isZeroDecimal(normalizedAmount) &&
+    compareDecimals(normalizedAmount, proposal.refundable.value) > 0;
+  const amountInvalid = !amountCanonical || isZeroDecimal(normalizedAmount) || amountTooHigh;
   const splitAmountsValid = splits.every(
     (split) => isCanonicalUnsignedDecimal(split.amount) && !isZeroDecimal(split.amount),
   );
@@ -81,12 +82,14 @@ export function RefundForm({
   // refundable amount: it stops summing to a smaller, hand-typed amount, and
   // recomputing the allocation here would duplicate server-side rounding
   // logic. So an unedited proposal is only valid while it still matches.
-  const proposalMatchesAmount = compareDecimals(amount, proposal.refundable.value) === 0;
+  const proposalMatchesAmount =
+    amountCanonical && compareDecimals(normalizedAmount, proposal.refundable.value) === 0;
   const splitsValid = editedSplits
     ? splitAmountsValid &&
       splitCategoriesValid &&
       (proposal.proposedSplits.length === 0 || splits.length > 0) &&
-      compareDecimals(sumDecimals(splits.map((split) => split.amount)), amount) === 0
+      amountCanonical &&
+      compareDecimals(sumDecimals(splits.map((split) => split.amount)), normalizedAmount) === 0
     : proposal.proposedSplits.length === 0 || proposalMatchesAmount;
   const valid =
     accountId !== '' && bookedOn !== '' && rawLabel.trim() !== '' && !amountInvalid && splitsValid;
@@ -99,7 +102,7 @@ export function RefundForm({
     }
     onSubmit({
       accountId,
-      amount: { value: amount, assetCode: proposal.refundable.assetCode },
+      amount: { value: normalizedAmount, assetCode: proposal.refundable.assetCode },
       bookedOn,
       rawLabel,
       counterparty: counterparty.trim() || null,
@@ -148,16 +151,21 @@ export function RefundForm({
           <span>{t('transactions.fields.amount')}</span>
           <input
             data-autofocus
-            aria-describedby={amountTooHigh ? 'refund-amount-error' : undefined}
+            aria-label={t('transactions.fields.amount')}
+            aria-describedby={amountInvalid ? 'refund-amount-error' : undefined}
             aria-invalid={amountInvalid || undefined}
             autoComplete="off"
             inputMode="decimal"
             onChange={(event) => setAmount(event.target.value)}
             value={amount}
           />
-          {amountTooHigh ? (
-            <small id="refund-amount-error" role="alert">
-              {t('transactions.refund.amountTooHigh')}
+          {amountInvalid ? (
+            <small id="refund-amount-error" role={amountTooHigh ? 'alert' : undefined}>
+              {t(
+                amountTooHigh
+                  ? 'transactions.refund.amountTooHigh'
+                  : 'transactions.refund.amountInvalid',
+              )}
             </small>
           ) : null}
         </label>
@@ -203,7 +211,7 @@ export function RefundForm({
             preferredType="EXPENSE"
             rows={splits}
             showErrors={showSplitErrors}
-            total={amount}
+            total={normalizedAmount}
           />
         </div>
       </FormGrid>

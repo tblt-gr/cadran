@@ -49,6 +49,17 @@ export async function openMovementEditModal(
     await refund.getByLabel('Date comptable').fill(day ?? new Date().toISOString().slice(0, 10));
     label = uniqueLabel('Audit refund correction');
     await refund.getByLabel('Libellé', { exact: true }).fill(label);
+    const refundAmount = refund.getByLabel('Montant', { exact: true });
+    await refundAmount.fill('0.');
+    await expect(refundAmount).toHaveValue('0.');
+    await expect(
+      refund.getByRole('button', { name: 'Créer le remboursement', exact: true }),
+    ).toBeDisabled();
+    await refundAmount.fill('0,6');
+    await expect(refundAmount).toHaveValue('0,6');
+    await expect(
+      refund.getByRole('button', { name: 'Créer le remboursement', exact: true }),
+    ).toBeEnabled();
     await refund.getByRole('button', { name: 'Créer le remboursement', exact: true }).click();
     await expect(refund).toBeHidden();
     await settled(page);
