@@ -34,6 +34,12 @@ export const multiYearReport: MultiYearReport = {
       snapshotMonths: 12,
       liveMonths: 0,
       metricPolicy: { state: 'SINGLE', version: 1 },
+      flows: {
+        assetCode: 'EUR',
+        cashIncome: { value: '22000', reason: null },
+        budgetExpenses: { value: '15000', reason: null },
+        budgetSurplus: { value: '7000', reason: null },
+      },
       cells: {
         cashIncome: cell('22000', { changeReason: null }),
         endNetWorth: cell('50000', { asOf: '2024-12', changeReason: null }),
@@ -47,6 +53,12 @@ export const multiYearReport: MultiYearReport = {
       snapshotMonths: 12,
       liveMonths: 0,
       metricPolicy: { state: 'SINGLE', version: 1 },
+      flows: {
+        assetCode: 'EUR',
+        cashIncome: { value: '22000', reason: null },
+        budgetExpenses: { value: '15000', reason: null },
+        budgetSurplus: { value: '7000', reason: null },
+      },
       cells: {
         cashIncome: cell('24000', {
           change: '2000',
@@ -69,6 +81,12 @@ export const multiYearReport: MultiYearReport = {
       snapshotMonths: 8,
       liveMonths: 1,
       metricPolicy: { state: 'SINGLE', version: 1 },
+      flows: {
+        assetCode: 'EUR',
+        cashIncome: { value: '22000', reason: null },
+        budgetExpenses: { value: '15000', reason: null },
+        budgetSurplus: { value: '7000', reason: null },
+      },
       cells: {
         cashIncome: cell('18000', {
           change: null,

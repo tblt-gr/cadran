@@ -305,7 +305,17 @@ final readonly class ReadMultiYearReport
             $cells[$column->id] = $this->cell($column, $computed, $previous, $state, $previousState);
         }
 
-        return new MultiYearYearView($year, $state, $counted, $snapshotMonths, $counted - $snapshotMonths, MultiYearMetricPolicyView::of($computed->policy), $cells);
+        $flowCells = [];
+        $assetCode = null;
+        foreach (['cashIncome', 'budgetExpenses', 'budgetSurplus'] as $id) {
+            $column = $computed->catalogue->column($id);
+            assert(null !== $column);
+            $aggregate = $computed->aggregates[$id][1] ?? AnnualColumnSeries::aggregate($column, $computed->months, $computed->incomplete);
+            $assetCode ??= $aggregate->asset?->toString();
+            $flowCells[$id] = new AnnualCellView($aggregate->total?->toString(), $aggregate->totalReason?->value);
+        }
+
+        return new MultiYearYearView($year, $state, $counted, $snapshotMonths, $counted - $snapshotMonths, MultiYearMetricPolicyView::of($computed->policy), $cells, new MultiYearFlowsView($assetCode, $flowCells['cashIncome'], $flowCells['budgetExpenses'], $flowCells['budgetSurplus']));
     }
 
     private function cell(AnnualColumn $column, ComputedAnnualYear $computed, ?ComputedAnnualYear $previous, string $state, ?string $previousState): MultiYearCellView

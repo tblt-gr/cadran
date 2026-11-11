@@ -1,12 +1,20 @@
 import type { AnnualReport } from '@cadran/api-client';
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+import { cleanup, render as baseRender, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { goalEvaluation, goalPeriod } from '@/features/goals/goal-mark/goalEvaluationFixtures';
 import '@/i18n';
 import { annualReport } from '@/features/reports/annual/annualFixtures';
 import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
 import { ContinuousDetailedReport } from './ContinuousDetailedReport';
 import localStyles from './ContinuousDetailedReport.module.css';
 import { multiYearReport } from './multiYearFixtures';
+
+function render(element: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return baseRender(<QueryClientProvider client={client}>{element}</QueryClientProvider>);
+}
 
 function annualReportForYear(year: number): AnnualReport {
   return {
@@ -24,6 +32,32 @@ afterEach(() => {
 });
 
 describe('ContinuousDetailedReport', () => {
+  it('hides cached goals and does not request them when goal marks are disabled', () => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    client.setQueryData(['annual-report-preferences'], {
+      columns: ['cashIncome'],
+      incompleteMonths: 'exclude',
+      goalMarks: false,
+      version: 1,
+    });
+    client.setQueryData(['goal-evaluations', '2024-01', '2024-12', 'BOTH'], {
+      months: [goalPeriod('2024-08', goalEvaluation())],
+      years: [],
+    });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    baseRender(
+      <QueryClientProvider client={client}>
+        <ContinuousDetailedReport
+          annualReports={[annualReportForYear(2024)]}
+          report={{ ...multiYearReport, years: [multiYearReport.years[0]!] }}
+        />
+      </QueryClientProvider>,
+    );
+    expect(screen.queryByRole('button', { name: /^Objectif :/ })).toBeNull();
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+
   it('wraps its table in a vertically scrollable viewport while keeping the shared horizontal scroll', () => {
     const { container } = render(
       <ContinuousDetailedReport

@@ -49,6 +49,12 @@ final class MultiYearReportRepresentation
             'snapshotMonths' => $year->snapshotMonths,
             'liveMonths' => $year->liveMonths,
             'metricPolicy' => self::policy($year->metricPolicy),
+            'flows' => [
+                'assetCode' => $year->flows->assetCode,
+                'cashIncome' => ['value' => $year->flows->cashIncome->value, 'reason' => $year->flows->cashIncome->reason],
+                'budgetExpenses' => ['value' => $year->flows->budgetExpenses->value, 'reason' => $year->flows->budgetExpenses->reason],
+                'budgetSurplus' => ['value' => $year->flows->budgetSurplus->value, 'reason' => $year->flows->budgetSurplus->reason],
+            ],
             'cells' => (object) array_map(self::cell(...), $year->cells),
         ];
     }

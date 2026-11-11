@@ -394,6 +394,15 @@
       "detailedCaption": "Rapport détaillé {{from}}-{{to}}",
       "detailedCardsLabel": "Mois de {{from}} à {{to}}",
       "detailedSummaryCard": "Synthèse de la période détaillée",
+      "aggregatePeriod": "Période : de janvier {{from}} à décembre {{to}}.",
+      "totalIncludesProvisional": "Le total inclut le mois en cours ; le réglage des mois incomplets concerne les statistiques.",
+      "aggregateMixedPolicy": "Politiques multiples",
+      "aggregateQuality": {
+        "COMPLETE": "Complète",
+        "PARTIAL": "Partielle",
+        "PROVISIONAL": "Provisoire",
+        "EMPTY": "Aucune donnée"
+      },
       "detailedMixedPolicy": "Cette période couvre plusieurs versions de la politique d’indicateurs. Les valeurs restent rattachées à leur année d’origine.",
       "summary": {
         "average": "Moyenne des années complètes",
@@ -411,6 +420,7 @@
       },
       "charts": {
         "flows": "Flux annuels",
+        "noFlows": "Aucune donnée de flux disponible pour cette période.",
         "netWorth": "Patrimoine net",
         "unavailable": "Ajoutez les colonnes correspondantes pour afficher ce graphique."
       },

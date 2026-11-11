@@ -18057,10 +18057,20 @@ components:
     MultiYearYearState:
       type: string
       enum: [COMPLETE, PARTIAL, NO_DATA]
+    MultiYearFlows:
+      description: Annual flow totals for the chart, independent of the selected report columns.
+      type: object
+      additionalProperties: false
+      required: [assetCode, cashIncome, budgetExpenses, budgetSurplus]
+      properties:
+        assetCode: { type: [string, 'null'] }
+        cashIncome: { $ref: '#/components/schemas/AnnualCell' }
+        budgetExpenses: { $ref: '#/components/schemas/AnnualCell' }
+        budgetSurplus: { $ref: '#/components/schemas/AnnualCell' }
     MultiYearYear:
       type: object
       additionalProperties: false
-      required: [year, state, countedMonths, snapshotMonths, liveMonths, metricPolicy, cells]
+      required: [year, state, countedMonths, snapshotMonths, liveMonths, metricPolicy, cells, flows]
       properties:
         year: { type: integer }
         state: { $ref: '#/components/schemas/MultiYearYearState' }
@@ -18068,6 +18078,7 @@ components:
         snapshotMonths: { type: integer, minimum: 0, maximum: 12 }
         liveMonths: { type: integer, minimum: 0, maximum: 12 }
         metricPolicy: { $ref: '#/components/schemas/MultiYearMetricPolicy' }
+        flows: { $ref: '#/components/schemas/MultiYearFlows' }
         cells:
           type: object
           additionalProperties: { $ref: '#/components/schemas/MultiYearCell' }

@@ -3945,6 +3945,16 @@ export type MultiYearCell = {
 
 export type MultiYearYearState = 'COMPLETE' | 'PARTIAL' | 'NO_DATA';
 
+/**
+ * Annual flow totals for the chart, independent of the selected report columns.
+ */
+export type MultiYearFlows = {
+    assetCode: string | null;
+    cashIncome: AnnualCell;
+    budgetExpenses: AnnualCell;
+    budgetSurplus: AnnualCell;
+};
+
 export type MultiYearYear = {
     year: number;
     state: MultiYearYearState;
@@ -3952,6 +3962,7 @@ export type MultiYearYear = {
     snapshotMonths: number;
     liveMonths: number;
     metricPolicy: MultiYearMetricPolicy;
+    flows: MultiYearFlows;
     cells: {
         [key: string]: MultiYearCell;
     };

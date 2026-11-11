@@ -7,10 +7,12 @@ import {
   useHeaderTitleValue,
 } from '@/components/layout/header/HeaderTitleContext';
 import { annualReport } from '@/features/reports/annual/annualFixtures';
+import { goalEvaluation, goalPeriod } from '@/features/goals/goal-mark/goalEvaluationFixtures';
 import { multiYearReport } from './multiYearFixtures';
 import { BudgetYearPage } from '@/features/budget/year/BudgetYearPage';
 
 const api = vi.hoisted(() => ({
+  listGoalEvaluations: vi.fn(),
   readAnnualReport: vi.fn(),
   readMultiYearReport: vi.fn(),
   readMonthlyBounds: vi.fn(),
@@ -49,6 +51,11 @@ function renderPage(search = '?view=multi') {
 }
 
 beforeEach(() => {
+  api.listGoalEvaluations.mockImplementation(({ query }: { query: { from: string } }) =>
+    Promise.resolve(
+      ok({ months: [goalPeriod(`${query.from.slice(0, 4)}-08`, goalEvaluation())], years: [] }),
+    ),
+  );
   api.readMonthlyBounds.mockResolvedValue(
     ok({ firstDataMonth: '2022-01', currentMonth: '2026-09', timezone: 'Europe/Paris' }),
   );
@@ -263,6 +270,40 @@ describe('MultiYearReportPage', () => {
     expect(within(table).getAllByRole('link').length).toBe(15);
   });
 
+  it('shows annual flow data even when the flow columns are not selected', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    await waitFor(() =>
+      expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1),
+    );
+    const tables = [...document.querySelectorAll('details table')];
+    const flowTable = tables.find((table) => table.textContent?.includes('Dépenses'));
+    expect(flowTable).toBeTruthy();
+    expect(flowTable?.textContent).toMatch(/15\s?000,00\s?€/);
+    expect(screen.queryByText(/ajoutez les colonnes correspondantes/i)).toBeNull();
+  });
+
+  it('explains incompatible flow assets instead of claiming there is no data', async () => {
+    const unavailable = { value: null, reason: 'MIXED_ASSETS' };
+    api.readMultiYearReport.mockResolvedValue(
+      ok({
+        ...multiYearReport,
+        years: multiYearReport.years.map((year) => ({
+          ...year,
+          flows: {
+            assetCode: null,
+            cashIncome: unavailable,
+            budgetExpenses: unavailable,
+            budgetSurplus: unavailable,
+          },
+        })),
+      }),
+    );
+    renderPage();
+    await screen.findByText(/Non calculable : Actifs mélangés/i);
+    expect(screen.queryByText(/Aucune donnée de flux disponible/i)).toBeNull();
+  });
+
   it('switches to detailed mode and renders every month of the selected years in one chronology', async () => {
     api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
       Promise.resolve(
@@ -302,10 +343,44 @@ describe('MultiYearReportPage', () => {
     const rows = within(table.querySelector('tbody')!).getAllByRole('row');
     expect(rows).toHaveLength(36);
     expect(rows[0]?.textContent).toMatch(/janvier 2024/i);
+    expect(
+      within(rows[7]!)
+        .getByRole('link', { name: /2.000,50/ })
+        .getAttribute('href'),
+    ).toBe('/budget/2024/08');
+    await within(rows[7]!).findByRole('button', { name: /^Objectif :/ });
+    const cards = screen.getByRole('list', { name: /mois de 2024 à 2026/i });
+    expect(
+      within(cards)
+        .getAllByRole('link')
+        .some((link) => link.getAttribute('href') === '/budget/2024/08'),
+    ).toBe(true);
+    expect(within(cards).getAllByRole('button', { name: /^Objectif :/ }).length).toBeGreaterThan(0);
+    fireEvent.click(
+      within(table).getByRole('button', { name: /expliquer les agrégats : revenus/i }),
+    );
+    const explanation = screen.getByRole('dialog', { name: 'Revenus' });
+    expect(within(explanation).getByText(/de janvier 2024 à décembre 2026/i)).toBeTruthy();
+    expect(within(explanation).getByText('Partielle')).toBeTruthy();
+    expect(within(explanation).getByText(/2026 : Tous les comptes/)).toBeTruthy();
+    const september = within(explanation).getByRole('row', { name: /septembre 2026/i });
+    expect(within(september).getByRole('link')).toBeTruthy();
+    expect(within(explanation).getByText(/Le total inclut le mois en cours/)).toBeTruthy();
+    expect(
+      within(explanation)
+        .getAllByRole('link')
+        .some((link) => link.getAttribute('href') === '/budget/2024/08'),
+    ).toBe(true);
+    fireEvent.keyDown(document, { key: 'Escape' });
+
     expect(rows[11]?.textContent).toMatch(/décembre 2024/i);
     expect(rows[12]?.textContent).toMatch(/janvier 2025/i);
     expect(rows[35]?.textContent).toMatch(/décembre 2026/i);
     expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1);
+    for (const year of [2024, 2025, 2026]) {
+      const yearCharts = screen.getByRole('region', { name: `Rapport ${year}` });
+      expect(within(yearCharts).getByText(/principales catégories de dépenses/i)).toBeTruthy();
+    }
     const alternatives = [...document.querySelectorAll('details table')];
     expect(alternatives).toHaveLength(2);
     expect(alternatives.map((table) => table.querySelectorAll('tbody tr').length)).toEqual([
@@ -360,6 +435,33 @@ describe('MultiYearReportPage', () => {
     expect(labels).toHaveLength(37);
     expect(labels[0]).toMatch(/déc.*2023/i);
     expect(labels.filter((label) => /^déc/i.test(label ?? ''))).toHaveLength(4);
+  });
+
+  it('keeps cached detailed charts when an annual refetch fails', async () => {
+    api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
+      Promise.resolve(ok({ ...annualReport, year: path.year })),
+    );
+    const { queryClient } = renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findByRole('table', { name: /rapport détaillé/i });
+    api.readAnnualReport.mockResolvedValue(failure(500));
+    await queryClient.invalidateQueries({ queryKey: ['annual-report'] });
+    expect(screen.getByRole('region', { name: 'Rapport 2024' })).toBeTruthy();
+    expect(
+      within(screen.getByRole('region', { name: 'Rapport 2024' })).getByText(
+        'Principales catégories de dépenses',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('replaces chart skeletons when a detailed annual request fails', async () => {
+    api.readAnnualReport.mockResolvedValue(failure(500));
+    renderPage();
+    await screen.findByRole('table', { name: /pluriannuel/i });
+    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findAllByRole('alert');
+    await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
   });
 
   it('keeps the view switch present while the detailed annual reports are loading', async () => {

@@ -90,6 +90,49 @@ final class MultiYearReportControllerTest extends WebTestCase
         }
     }
 
+    public function testAnnualFlowChartDoesNotDependOnSelectedColumns(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year);
+        $this->put(['cashIncome', 'budgetExpenses', 'budgetSurplus'], 'exclude', 0);
+        $annual = $this->get('/api/v1/reports/annual/'.$this->year);
+        $this->put(['endNetWorth'], 'exclude', 1);
+        $multi = $this->multiYear($this->year, $this->year);
+        $row = self::rowsOf($multi['years'])[0];
+        $flows = self::fields($row['flows']);
+        self::assertSame('EUR', $flows['assetCode']);
+        self::assertArrayNotHasKey('budgetExpenses', self::fields($row['cells']));
+        foreach (['cashIncome', 'budgetExpenses', 'budgetSurplus'] as $id) {
+            $aggregate = self::fields(self::fields($annual['aggregates'])[$id]);
+            $chartCell = self::fields($flows[$id]);
+            self::assertSame($aggregate['totalReason'], $chartCell['reason']);
+            self::assertDecimal(self::stringOf($aggregate['total']), $chartCell['value']);
+        }
+    }
+
+    public function testAnnualFlowChartPreservesMixedPolicyReason(): void
+    {
+        $this->signIn();
+        $this->seedYear($this->year);
+        $this->connection->insert('account_period_closures', [
+            'id' => sprintf('00000000-0000-7000-8000-%012d', $this->year * 100 + 1),
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'year' => $this->year, 'month' => 1, 'closed_at' => $this->year.'-02-10 10:00:00+00',
+            'closed_by' => WorkspaceFixture::OWNER_ID, 'version' => 1,
+        ]);
+        $this->policyVersionTwoFrom($this->year.'-06-01 00:00:00+00');
+        $this->put(['endNetWorth'], 'exclude', 0);
+
+        $multi = $this->multiYear($this->year, $this->year);
+        $row = self::rowsOf($multi['years'])[0];
+        $flows = self::fields($row['flows']);
+        foreach (['cashIncome', 'budgetExpenses', 'budgetSurplus'] as $id) {
+            $cell = self::fields($flows[$id]);
+            self::assertNull($cell['value']);
+            self::assertSame('MIXED_METRIC_POLICIES', $cell['reason']);
+        }
+    }
+
     public function testAPartialYearMakesItsOwnChangeNullWithPartialYear(): void
     {
         $this->signIn();
@@ -247,6 +290,8 @@ final class MultiYearReportControllerTest extends WebTestCase
         $rows = self::rowsOf($report['years']);
         self::assertCount(1, $rows);
         self::assertDecimal('999999', self::cell($rows[0], 'cashIncome')['value']);
+        $flows = self::fields($rows[0]['flows']);
+        self::assertDecimal('999999', self::fields($flows['cashIncome'])['value']);
         self::assertStringNotContainsString('12000', (string) $this->client->getResponse()->getContent());
     }
 

@@ -1,9 +1,21 @@
 import type { AnnualColumn, AnnualReport, MultiYearReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
+import { InfoButton } from '@/components/ui/info-button/InfoButton';
+import { DetailedAggregateModal } from './DetailedAggregateModal';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
+import { GoalEvaluationsError } from '@/features/goals/goal-mark/GoalEvaluationsError';
+import { GoalMark, GoalMarkedValue } from '@/features/goals/goal-mark/GoalMark';
+import { marksFor } from '@/features/goals/goal-mark/goalMarks';
+import { useGoalEvaluations } from '@/features/goals/goal-panel/useGoalPanelData';
+import { useAnnualReportPreferences } from '@/features/reports/annual/useAnnualReport';
 import { AnnualCellValue } from '@/features/reports/annual/AnnualCellValue';
 import { isEmptyState, monthLabel } from '@/features/reports/annual/annualRowLabels';
-import { groupStartIds, withoutLeadingEmptyMonths } from '@/features/reports/annual/annualColumns';
+import {
+  annualCellHref,
+  groupStartIds,
+  withoutLeadingEmptyMonths,
+} from '@/features/reports/annual/annualColumns';
 import { ColumnHeader } from '@/features/reports/annual/ColumnHeader';
 import { useAnnualColumnLabel } from '@/features/reports/annual/columnLabel';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -38,6 +50,13 @@ function selectedColumns(reports: AnnualReport[]): AnnualColumn[] {
 export function ContinuousDetailedReport({ annualReports, report }: ContinuousDetailedReportProps) {
   const { t, i18n } = useTranslation();
   const labelOf = useAnnualColumnLabel();
+  const [explained, setExplained] = useState<string | null>(null);
+  const preferences = useAnnualReportPreferences();
+  const goalsEnabled = !preferences.isPending && preferences.data?.goalMarks !== false;
+  const goals = useGoalEvaluations(
+    { kind: 'years', years: report.years.map((year) => year.year) },
+    goalsEnabled,
+  );
   const columns = selectedColumns(annualReports);
   // The first year may start mid-year: its empty leading months are not rows of the chronology.
   const rows = annualReports.flatMap((annualReport, index) =>
@@ -102,6 +121,11 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
                     </th>
                     {columns.map((column) => {
                       const cell = row.cells[column.id];
+                      const marks = marksFor(
+                        goalsEnabled ? goals.evaluations?.months : undefined,
+                        row.month,
+                        column.id,
+                      );
                       return (
                         <td className={edge(column.id)} key={column.id}>
                           {row.state === 'FUTURE' ? (
@@ -109,12 +133,18 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
                           ) : row.state === 'NO_DATA' ? (
                             <EmptyValue quiet label={t('reports.annual.noData')} />
                           ) : (
-                            <AnnualCellValue
-                              assetCode={column.assetCode}
-                              kind={column.kind}
-                              reason={cell?.reason ?? null}
-                              value={cell?.value ?? null}
-                            />
+                            <>
+                              <GoalMarkedValue items={marks}>
+                                <AnnualCellValue
+                                  assetCode={column.assetCode}
+                                  href={annualCellHref(column.id, row.month)}
+                                  kind={column.kind}
+                                  reason={cell?.reason ?? null}
+                                  value={cell?.value ?? null}
+                                />
+                              </GoalMarkedValue>
+                              <GoalMark items={marks} period={row.month} />
+                            </>
                           )}
                         </td>
                       );
@@ -139,6 +169,14 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
                           reason={figure.reason}
                           value={figure.value}
                         />
+                        {rowId === 'total' && figure.value !== null ? (
+                          <InfoButton
+                            aria-haspopup="dialog"
+                            className={tableStyles.explain}
+                            label={t('reports.annual.explainColumn', { column: labelOf(column) })}
+                            onClick={() => setExplained(column.id)}
+                          />
+                        ) : null}
                         {figure.month ? (
                           <small>
                             {' '}
@@ -153,6 +191,7 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
             </tfoot>
           </table>
         </div>
+        {goalsEnabled && goals.failed ? <GoalEvaluationsError onRetry={goals.retry} /> : null}
       </section>
       {hasMixedPolicy ? (
         <aside className={mixedPolicyStyles.banner} role="status">
@@ -188,21 +227,32 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
               </p>
             ) : (
               <dl>
-                {columns.map((column) => (
-                  <div key={column.id}>
-                    <dt>
-                      <ColumnHeader column={column} />
-                    </dt>
-                    <dd>
-                      <AnnualCellValue
-                        assetCode={column.assetCode}
-                        kind={column.kind}
-                        reason={row.cells[column.id]?.reason ?? null}
-                        value={row.cells[column.id]?.value ?? null}
-                      />
-                    </dd>
-                  </div>
-                ))}
+                {columns.map((column) => {
+                  const marks = marksFor(
+                    goalsEnabled ? goals.evaluations?.months : undefined,
+                    row.month,
+                    column.id,
+                  );
+                  return (
+                    <div key={column.id}>
+                      <dt>
+                        <ColumnHeader column={column} />
+                      </dt>
+                      <dd>
+                        <GoalMarkedValue items={marks}>
+                          <AnnualCellValue
+                            assetCode={column.assetCode}
+                            href={annualCellHref(column.id, row.month)}
+                            kind={column.kind}
+                            reason={row.cells[column.id]?.reason ?? null}
+                            value={row.cells[column.id]?.value ?? null}
+                          />
+                        </GoalMarkedValue>
+                        <GoalMark items={marks} period={row.month} />
+                      </dd>
+                    </div>
+                  );
+                })}
               </dl>
             )}
           </li>
@@ -226,6 +276,14 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
                       reason={figure.reason}
                       value={figure.value}
                     />
+                    {rowId === 'total' && figure.value !== null ? (
+                      <InfoButton
+                        aria-haspopup="dialog"
+                        className={tableStyles.explain}
+                        label={t('reports.annual.explainColumn', { column: labelOf(column) })}
+                        onClick={() => setExplained(column.id)}
+                      />
+                    ) : null}
                     {figure.month ? (
                       <small>
                         {' '}
@@ -239,6 +297,15 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
           ))}
         </li>
       </ul>
+      {columns.find((column) => column.id === explained) ? (
+        <DetailedAggregateModal
+          annualReports={annualReports}
+          close={() => setExplained(null)}
+          column={columns.find((column) => column.id === explained)!}
+          label={labelOf(columns.find((column) => column.id === explained)!)}
+          quality={report.detailedPeriod[explained!]?.quality ?? report.quality}
+        />
+      ) : null}
     </div>
   );
 }
