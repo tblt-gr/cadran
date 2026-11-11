@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Reporting\Domain;
 
+use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Reporting\Domain\MetricPolicy;
@@ -136,7 +137,7 @@ final class MonthlyProjectionCalculatorTest extends TestCase
         self::assertSame(MonthlyProjectionReason::ZERO_CASH_INCOME, $metrics->cashSavingsRate->reason);
     }
 
-    public function testMealVouchersLeaveTheCashPerimeterUnderVersionOne(): void
+    public function testMealVouchersLeaveTheCashPerimeterOnlyUnderAnExplicitVersionTwo(): void
     {
         $metrics = MonthlyProjectionCalculator::compute(
             ['EUR'],
@@ -148,7 +149,7 @@ final class MonthlyProjectionCalculatorTest extends TestCase
                 self::movement('10.00', MonthlyMovementKind::REFUND, [self::split(self::FOOD, '10.00')], transactionId: 'voucher-refund', accountKind: 'EMPLOYEE_BENEFIT'),
             ],
             [self::FOOD => true],
-            MetricPolicy::systemV1(),
+            MetricPolicy::create(2, 'Sans titres', [AccountKind::EMPLOYEE_BENEFIT], new \DateTimeImmutable('2026-05-01T00:00:00Z'), 'user'),
         );
 
         self::assertSame('2000.00', $metrics->cashIncome->value?->toString());
@@ -164,9 +165,8 @@ final class MonthlyProjectionCalculatorTest extends TestCase
         self::assertSame(['rent'], $metrics->budgetExpenses->sourceTransactionIds);
     }
 
-    public function testAVersionExcludingNoKindCountsEverythingInCash(): void
+    public function testVersionOneCountsMealVouchersInCash(): void
     {
-        $policy = MetricPolicy::create(2, 'Tout', [], new \DateTimeImmutable('2026-05-01T00:00:00Z'), 'user');
         $metrics = MonthlyProjectionCalculator::compute(
             ['EUR'],
             [
@@ -175,7 +175,7 @@ final class MonthlyProjectionCalculatorTest extends TestCase
                 self::movement('-200.00', MonthlyMovementKind::EXPENSE, accountKind: 'EMPLOYEE_BENEFIT'),
             ],
             [],
-            $policy,
+            MetricPolicy::systemV1(),
         );
 
         self::assertSame('2200.00', $metrics->cashIncome->value?->toString());
@@ -190,7 +190,7 @@ final class MonthlyProjectionCalculatorTest extends TestCase
             ['EUR'],
             [self::movement('200.00', MonthlyMovementKind::INCOME, accountKind: 'EMPLOYEE_BENEFIT')],
             [],
-            MetricPolicy::systemV1(),
+            MetricPolicy::create(2, 'Sans titres', [AccountKind::EMPLOYEE_BENEFIT], new \DateTimeImmutable('2026-05-01T00:00:00Z'), 'user'),
         );
 
         self::assertSame('0', $metrics->cashIncome->value?->toString());
@@ -228,8 +228,8 @@ final class MonthlyProjectionCalculatorTest extends TestCase
             MetricPolicy::systemV1(),
         );
 
-        self::assertSame('9999999999999999999999.999999999999999999999999', $metrics->cashIncome->value?->toString());
-        self::assertSame('0.000000000000000000000001', $metrics->nonCashBenefits->value?->toString());
+        self::assertSame('10000000000000000000000.000000000000000000000000', $metrics->cashIncome->value?->toString());
+        self::assertSame('0', $metrics->nonCashBenefits->value?->toString());
     }
 
     /** @param list<MonthlySplit> $splits */

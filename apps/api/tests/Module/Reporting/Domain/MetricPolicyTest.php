@@ -14,14 +14,16 @@ use PHPUnit\Framework\TestCase;
 
 final class MetricPolicyTest extends TestCase
 {
-    public function testSystemVersionOneExcludesOnlyEmployeeBenefitAccounts(): void
+    public function testSystemVersionOneIncludesEveryAccountKind(): void
     {
         $policy = MetricPolicy::systemV1();
 
         self::assertSame(1, $policy->version);
-        self::assertSame('Définition de trésorerie', $policy->label);
-        self::assertSame([AccountKind::EMPLOYEE_BENEFIT], $policy->cashExcludedAccountKinds);
-        self::assertTrue($policy->isExcluded('EMPLOYEE_BENEFIT'));
+        self::assertSame('Tous les comptes', $policy->label);
+        self::assertSame([], $policy->cashExcludedAccountKinds);
+        foreach (AccountKind::cases() as $kind) {
+            self::assertFalse($policy->isExcluded($kind->value));
+        }
         self::assertFalse($policy->isExcluded('CURRENT'));
         self::assertNull($policy->createdAt);
         self::assertNull($policy->createdBy);

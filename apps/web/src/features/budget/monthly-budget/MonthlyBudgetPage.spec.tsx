@@ -62,8 +62,8 @@ const projection = {
   quality: 'CURRENT' as const,
   pendingCount: 0,
   cashIncome: projectionMetric('3000'),
-  nonCashBenefits: projectionMetric('120.5'),
-  benefitSpending: projectionMetric('80'),
+  nonCashBenefits: projectionMetric('0'),
+  benefitSpending: projectionMetric('0'),
   budgetExpenses: projectionMetric('-1000'),
   uncategorizedExpenses: projectionMetric('-25'),
   budgetSurplus: projectionMetric('2000'),
@@ -157,7 +157,7 @@ const account = {
 
 const recap = {
   month: '2026-03',
-  metricPolicy: { version: 1, label: 'Définition de trésorerie' },
+  metricPolicy: { version: 1, label: 'Tous les comptes' },
   previousAsOf: '2026-02-28',
   currentAsOf: '2026-03-15',
   provisional: true,
@@ -1058,7 +1058,17 @@ describe('MonthlyBudgetPage', () => {
     expect(within(explanationDialog).getByText('Détail', { exact: true })).toBeTruthy();
   });
 
-  it('shows every flow indicator of the former monthly report in the flow summary', async () => {
+  it('shows separate benefit figures for an explicit policy excluding employee benefits', async () => {
+    api.readMonthlyRecap.mockReturnValue(
+      ok({ ...recap, metricPolicy: { version: 2, label: 'Sans titres-restaurant' } }),
+    );
+    api.readMonthlyProjection.mockReturnValue(
+      ok({
+        ...projection,
+        nonCashBenefits: projectionMetric('120.5'),
+        benefitSpending: projectionMetric('80'),
+      }),
+    );
     renderPage();
     await loaded();
     await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
@@ -1083,6 +1093,19 @@ describe('MonthlyBudgetPage', () => {
       .getByRole('button', { name: 'Expliquer : Avantages non monétaires' })
       .closest('li')!;
     expect(row.textContent).toMatch(/120,50/);
+  });
+
+  it('shows empty benefit lines under the all-account default policy', async () => {
+    renderPage();
+    await loaded();
+    await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
+    const totals = screen.getByRole('region', { name: 'Synthèse des flux' });
+    for (const label of ['Avantages non monétaires', 'Dépenses des avantages']) {
+      const row = within(totals)
+        .getByRole('button', { name: `Expliquer : ${label}` })
+        .closest('li')!;
+      expect(row.querySelector('[data-visual-mask]')?.textContent).toBe('-');
+    }
   });
 
   it('keeps the flow summary usable when the extra indicators cannot be read', async () => {

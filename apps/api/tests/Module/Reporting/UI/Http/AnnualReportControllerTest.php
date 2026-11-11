@@ -69,7 +69,7 @@ final class AnnualReportControllerTest extends WebTestCase
 
         self::assertSame($this->year, $report['year']);
         self::assertSame('exclude', $report['incompleteMonths']);
-        self::assertSame(['state' => 'SINGLE', 'version' => 1, 'label' => 'Définition de trésorerie', 'versions' => [1]], $report['metricPolicy']);
+        self::assertSame(['state' => 'SINGLE', 'version' => 1, 'label' => 'Tous les comptes', 'versions' => [1]], $report['metricPolicy']);
         $rows = self::rows($report);
         self::assertCount(12, $rows);
         $monthlySum = [];
@@ -150,6 +150,39 @@ final class AnnualReportControllerTest extends WebTestCase
         self::assertFalse($live['closed']);
         self::assertFalse($live['snapshot']);
         self::assertSame('0', self::cell($live, 'budgetExpenses'));
+    }
+
+    public function testALegacyVersionOneSnapshotKeepsItsFiguresUntilReopenedAndClosedAgain(): void
+    {
+        $this->signIn();
+        $this->seedYear();
+        $this->connection->executeStatement("UPDATE account_financial_accounts SET kind = 'EMPLOYEE_BENEFIT' WHERE id = ?", [self::ACCOUNT]);
+        $this->closeThroughTheApi(3);
+        // Emulate figures frozen before v1 included employee benefits, without changing schema.
+        $payload = $this->connection->fetchOne('SELECT payload FROM reporting_month_snapshots');
+        self::assertIsString($payload);
+        $legacy = self::fields(json_decode($payload, true, flags: JSON_THROW_ON_ERROR));
+        $cells = self::fields($legacy['cells']);
+        foreach (['cashIncome' => '0', 'budgetExpenses' => '0', 'budgetSurplus' => '0', 'nonCashBenefits' => '3000.00', 'benefitSpending' => '300.00'] as $id => $value) {
+            $cells[$id] = array_replace(self::fields($cells[$id]), ['value' => $value]);
+        }
+        $cells['cashSavingsRate'] = array_replace(self::fields($cells['cashSavingsRate']), ['value' => null, 'reason' => 'ZERO_CASH_INCOME']);
+        $legacy['cells'] = $cells;
+        $this->connection->executeStatement('UPDATE reporting_month_snapshots SET payload = ? WHERE workspace_id = ?', [json_encode($legacy, JSON_THROW_ON_ERROR), WorkspaceFixture::OWN_WORKSPACE]);
+        $frozenPayload = $this->connection->fetchOne('SELECT payload FROM reporting_month_snapshots');
+
+        $row = self::rows($this->annual($this->year))[2];
+        self::assertSame('0', self::cell($row, 'cashIncome'));
+        self::assertSame('0', self::cell($row, 'budgetExpenses'));
+        self::assertSame($frozenPayload, $this->connection->fetchOne('SELECT payload FROM reporting_month_snapshots'));
+
+        $this->call('POST', '/api/v1/periods/'.$this->year.'-03/reopening', ['version' => 1, 'reason' => 'Include vouchers']);
+        self::assertResponseIsSuccessful();
+        $this->closeThroughTheApi(3);
+        $row = self::rows($this->annual($this->year))[2];
+        self::assertTrue($row['snapshot']);
+        self::assertSame('3000.00', self::cell($row, 'cashIncome'));
+        self::assertSame('300.00', self::cell($row, 'budgetExpenses'));
     }
 
     public function testAClosedMonthWithoutSnapshotIsCapturedByTheFirstRead(): void

@@ -18,8 +18,8 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
 
 const v1: MetricPolicy = {
   version: 1,
-  label: 'Définition de trésorerie',
-  cashExcludedAccountKinds: ['EMPLOYEE_BENEFIT'],
+  label: 'Tous les comptes',
+  cashExcludedAccountKinds: [],
   savingsRateFormula: 'BUDGET_SURPLUS_OVER_CASH_INCOME',
   netSavingsRateFormula: 'NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME',
   createdAt: null,
@@ -28,8 +28,8 @@ const v1: MetricPolicy = {
 const v2: MetricPolicy = {
   ...v1,
   version: 2,
-  label: 'Tout compte',
-  cashExcludedAccountKinds: [],
+  label: 'Sans titres-restaurant',
+  cashExcludedAccountKinds: ['EMPLOYEE_BENEFIT'],
   createdAt: '2026-05-10T08:00:00+00:00',
   system: false,
 };
@@ -86,7 +86,7 @@ describe('MetricPolicyPage', () => {
     loading.unmount();
     api.listMetricPolicies.mockReturnValue(ok(withV2));
     renderPage();
-    await screen.findByText('Tout compte');
+    await screen.findByText('Sans titres-restaurant');
     const loaded = screen.getByRole('region', { name: 'Tableau de l’historique des versions' });
     expect(loaded.tabIndex).toBe(0);
     expect(loaded.querySelector('table')).toBeTruthy();
@@ -109,8 +109,9 @@ describe('MetricPolicyPage', () => {
     resolvePolicies?.(await ok(onlySystem));
     const card = await screen.findByRole('region', { name: 'Politique active' });
     expect(card.textContent).toContain('Version 1');
-    expect(card.textContent).toContain('Définition de trésorerie');
-    expect(card.textContent).toContain('Avantage salarié');
+    expect(card.textContent).toContain('Tous les comptes');
+    expect(card.textContent).toContain('Aucun type exclu');
+    expect(card.textContent).not.toContain('Avantage salarié');
     expect(card.textContent).toContain('Excédent');
     expect(screen.getByRole('link', { name: 'Profil' })).toBeTruthy();
     expect(screen.queryByTestId('metric-policy-skeleton')).toBeNull();
@@ -127,7 +128,7 @@ describe('MetricPolicyPage', () => {
     renderPage();
 
     expect(await screen.findByText('Aucune version personnalisée pour le moment.')).toBeTruthy();
-    const row = screen.getByRole('row', { name: /Définition de trésorerie/ });
+    const row = screen.getByRole('row', { name: /Tous les comptes/ });
     expect(within(row).getByText('Active')).toBeTruthy();
     expect(within(row).queryByRole('button', { name: 'Activer la version 1' })).toBeNull();
   });
@@ -159,15 +160,15 @@ describe('MetricPolicyPage', () => {
     const dialog = screen.getByRole('dialog', { name: 'Nouvelle version de la politique' });
     expect(within(dialog).getByText('Création')).toBeTruthy();
     fireEvent.change(within(dialog).getByLabelText('Libellé'), {
-      target: { value: ' Tout compte ' },
+      target: { value: ' Sans titres-restaurant ' },
     });
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Espèces' }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Avantage salarié' }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Créer la version' }));
 
     await waitFor(() => expect(api.createMetricPolicy).toHaveBeenCalledTimes(1));
     expect(api.createMetricPolicy.mock.calls[0]![0].body).toEqual({
-      label: 'Tout compte',
-      cashExcludedAccountKinds: ['CASH'],
+      label: 'Sans titres-restaurant',
+      cashExcludedAccountKinds: ['EMPLOYEE_BENEFIT'],
     });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
@@ -187,6 +188,10 @@ describe('MetricPolicyPage', () => {
     fireEvent.change(within(dialog).getByLabelText('Libellé'), { target: { value: 'Copie' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Créer la version' }));
     expect((await within(dialog).findByRole('alert')).textContent).toContain('existe déjà');
+    expect(api.createMetricPolicy.mock.calls[0]![0].body).toEqual({
+      label: 'Copie',
+      cashExcludedAccountKinds: [],
+    });
   });
 
   it('activates a version after showing before and after and the closed-month rule', async () => {
@@ -204,9 +209,11 @@ describe('MetricPolicyPage', () => {
     fireEvent.click(within(dialog).getByText('Champs avancés'));
     expect(dialog.textContent).toContain('Avant');
     expect(dialog.textContent).toContain('Après');
+    expect(dialog.textContent).toContain('Aucun type exclu');
+    expect(dialog.textContent).toContain('Avantage salarié');
     expect(dialog.textContent).toContain('mois clôturés conservent leur version');
     fireEvent.change(within(dialog).getByLabelText('Motif (facultatif)'), {
-      target: { value: 'Titres-restaurant inclus' },
+      target: { value: 'Titres-restaurant exclus' },
     });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Activer' }));
 
@@ -214,7 +221,7 @@ describe('MetricPolicyPage', () => {
     expect(api.activateMetricPolicy.mock.calls[0]![0].body).toEqual({
       version: 2,
       expectedActiveVersion: 1,
-      reason: 'Titres-restaurant inclus',
+      reason: 'Titres-restaurant exclus',
     });
   });
 

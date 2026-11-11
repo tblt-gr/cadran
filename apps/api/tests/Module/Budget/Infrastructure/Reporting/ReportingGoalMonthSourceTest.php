@@ -129,7 +129,7 @@ final readonly class FixedIncomeProjector implements MonthlyProjector
                 $view->savingsWithdrawals, $view->netSavingsTransfers, $view->netSavingsRate, $view->beginningNetWorth,
                 $view->endNetWorth, $view->netWorthDelta, $view->beginningNetWorthState, $view->accounts,
                 $view->reconciliationStatus, $view->expensesByAxis, $view->categoryMetrics, $view->netWorth,
-                new MetricPolicyReference(1, 'Définition de trésorerie'),
+                new MetricPolicyReference(1, 'Tous les comptes'),
             );
         }
 

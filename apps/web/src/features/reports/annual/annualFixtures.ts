@@ -28,7 +28,7 @@ export const annualReport: AnnualReport = {
   year: 2026,
   today: '2026-09-24',
   incompleteMonths: 'exclude',
-  metricPolicy: { state: 'SINGLE', version: 1, label: 'Définition de trésorerie', versions: [1] },
+  metricPolicy: { state: 'SINGLE', version: 1, label: 'Tous les comptes', versions: [1] },
   columns: [
     { id: 'cashIncome', label: 'Revenus', kind: 'FLOW', assetCode: 'EUR' },
     { id: 'cashSavingsRate', label: 'Taux d’épargne', kind: 'RATE', assetCode: null },
