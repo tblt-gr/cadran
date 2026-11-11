@@ -9,7 +9,7 @@ import { DetailedReportSkeleton } from './DetailedReportSkeleton';
 import styles from './DetailedAnnualReports.module.css';
 
 interface DetailedAnnualReportsProps {
-  onReportsReady: (reports: AnnualReport[] | null) => void;
+  onReportsReady: (reports: AnnualReport[] | null, failed: boolean) => void;
   report: MultiYearReport;
 }
 
@@ -21,10 +21,11 @@ export function DetailedAnnualReports({ onReportsReady, report }: DetailedAnnual
   });
   const annualReports = results.flatMap((result) => (result.data ? [result.data] : []));
   const complete = annualReports.length === report.years.length;
+  const failed = !complete && results.some((result) => result.isError);
 
   useEffect(() => {
-    onReportsReady(complete ? annualReports : null);
-  }, [annualReports, complete, onReportsReady]);
+    onReportsReady(complete ? annualReports : null, failed);
+  }, [annualReports, complete, failed, onReportsReady]);
 
   if (results.some((result) => result.isPending)) {
     return <DetailedReportSkeleton report={report} />;

@@ -5,6 +5,7 @@ import { lazyComponent } from '@/lib/lazyComponent';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { MultiYearCards } from './MultiYearCards';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
+import { DetailedYearCharts } from './DetailedYearCharts';
 import { MultiYearChartsSkeleton, MultiYearSkeleton } from './MultiYearSkeleton';
 import type { MultiYearDisplay } from '@/features/budget/year/yearViewSearch';
 import { MultiYearTable } from './MultiYearTable';
@@ -27,8 +28,10 @@ interface MultiYearReportPageProps {
 export function MultiYearReportPage({ display, range, year }: MultiYearReportPageProps) {
   const { t } = useTranslation();
   const [detailedReports, setDetailedReports] = useState<AnnualReport[] | null>(null);
+  const [detailedFailed, setDetailedFailed] = useState(false);
 
-  const setReportsReady = useCallback((reports: AnnualReport[] | null) => {
+  const setReportsReady = useCallback((reports: AnnualReport[] | null, failed: boolean) => {
+    setDetailedFailed(failed);
     setDetailedReports((current) =>
       current !== null &&
       reports !== null &&
@@ -103,10 +106,24 @@ export function MultiYearReportPage({ display, range, year }: MultiYearReportPag
         ) : (
           <>
             <DetailedAnnualReports onReportsReady={setReportsReady} report={report.data} />
-            {detailedReports ? (
-              <Suspense fallback={<MultiYearChartsSkeleton />}>
-                <MultiYearCharts annualReports={detailedReports} report={report.data} />
-              </Suspense>
+            {!detailedFailed ? (
+              <>
+                {detailedReports &&
+                detailedReports.length === report.data.years.length &&
+                detailedReports.every(
+                  (item, index) => item.year === report.data.years[index]?.year,
+                ) ? (
+                  <Suspense fallback={<MultiYearChartsSkeleton />}>
+                    <MultiYearCharts annualReports={detailedReports} report={report.data} />
+                  </Suspense>
+                ) : (
+                  <MultiYearChartsSkeleton />
+                )}
+                <DetailedYearCharts
+                  years={report.data.years.map((item) => item.year)}
+                  reports={detailedReports}
+                />
+              </>
             ) : null}
           </>
         )}

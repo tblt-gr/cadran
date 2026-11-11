@@ -16,6 +16,7 @@ final readonly class MultiYearYearView
         public int $liveMonths,
         public MultiYearMetricPolicyView $metricPolicy,
         public array $cells,
+        public MultiYearFlowsView $flows,
     ) {
     }
 }

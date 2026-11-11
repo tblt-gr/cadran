@@ -45,6 +45,12 @@ test.describe('annual report', () => {
 
     await expect(page).toHaveURL(/\/budget\/\d{4}\?view=multi/);
     await expect(page.getByRole('table').first()).toBeVisible();
+    await page.getByRole('button', { name: 'Vue détaillée' }).click();
+    await settled(page);
+    const detailed = page.getByRole('table', { name: /^Rapport détaillé/ });
+    await expect(detailed).toBeVisible();
+    const monthlySource = detailed.locator('tbody a').first();
+    await expect(monthlySource).toHaveAttribute('href', /\/budget\/\d{4}\/\d{2}$/);
 
     await page
       .getByRole('group', { name: 'Type de rapport' })
