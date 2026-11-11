@@ -13,6 +13,8 @@ use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Clock\ClockInterface;
+use Symfony\Component\Clock\MockClock;
 
 final class PortfolioPerformanceDemoTest extends WebTestCase
 {
@@ -26,6 +28,9 @@ final class PortfolioPerformanceDemoTest extends WebTestCase
         WorkspaceFixture::requireDatabase();
         // Debug mode would keep every query backtrace of a full year of seeding in memory.
         $this->client = self::createClient(['debug' => false]);
+        $this->client->disableReboot();
+        // Keep the demonstration scenarios on one fixed business day in UTC and Paris.
+        self::getContainer()->set(ClockInterface::class, new MockClock('2026-11-10T12:00:00+00:00'));
         $connection = self::getContainer()->get(Connection::class);
         self::assertInstanceOf(Connection::class, $connection);
         $this->connection = $connection;

@@ -38,9 +38,15 @@ const account = {
   editable: true,
 } as Account;
 const ok = <T,>(data: T, status = 200) =>
-  Promise.resolve({ data, response: new Response('{}', { status }) });
+  Promise.resolve({
+    data,
+    response: new Response('{}', { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
+  });
 const refused = (status: number, body: object) =>
-  Promise.resolve({ error: body, response: new Response('{}', { status }) });
+  Promise.resolve({
+    error: body,
+    response: new Response('{}', { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
+  });
 
 /** Stands in for the page header, which owns the « Nouvelle valorisation » action. */
 function RecordingTab({ account }: { account: Account }) {
@@ -572,4 +578,22 @@ describe('360 px layout', () => {
     render(<ValuationPositionsTable valuation={positionsValuationFixture()} />);
     expect(screen.getByRole('table').parentElement?.className).toContain('scroll');
   });
+});
+
+it('appends valuations and retains a coherent history across retry', async () => {
+  const first = totalValuationFixture({ id: 'first', valuedOn: '2026-03-10' });
+  const second = totalValuationFixture({ id: 'second', valuedOn: '2026-03-09' });
+  api.listPortfolioValuations
+    .mockImplementationOnce(() => ok({ items: [first], page: 1, pageSize: 24, total: 25 }))
+    .mockImplementationOnce(() => refused(503, { type: '/problems/unavailable' }))
+    .mockImplementationOnce(() => ok({ items: [second], page: 2, pageSize: 24, total: 25 }));
+  renderTab();
+  await loaded();
+  expect(screen.getAllByRole('row')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+  await screen.findByRole('alert');
+  expect(screen.getAllByRole('row')).toHaveLength(2);
+  fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+  await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
+  expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
 });

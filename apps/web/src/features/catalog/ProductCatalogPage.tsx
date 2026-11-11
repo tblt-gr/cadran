@@ -1,5 +1,6 @@
 import { listProducts } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import { useIncrementalList } from '@/hooks/incremental-list/useIncrementalList';
+import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -34,39 +35,26 @@ export function ProductCatalogPage() {
   const { i18n, t } = useTranslation();
   const today = todayInBrowser();
   const [asOf, setAsOf] = useState(today);
-  const [page, setPage] = useState(1);
 
-  const catalogue = useQuery({
-    queryKey: ['products', asOf, page],
-    queryFn: async ({ signal }) => {
+  const catalogue = useIncrementalList({
+    queryKey: ['products', asOf],
+    request: async ({ signal, page, revision }) => {
       const result = await listProducts({
         ...authApiOptions(),
+        headers: { 'X-List-Revision': revision },
         query: { asOf, page, pageSize: PAGE_SIZE },
         signal,
       });
-      if (!result.response?.ok || !result.data) {
-        throw new ProductRequestError(result.response?.status ?? 0);
-      }
-      return result.data;
+      return result;
     },
-    retry: false,
+    requestError: (result) => new ProductRequestError(result.response?.status ?? 0),
   });
 
   const unauthorized =
     catalogue.error instanceof ProductRequestError && catalogue.error.status === 401;
   const items = catalogue.data?.items ?? [];
-  const totalPages = Math.max(1, Math.ceil((catalogue.data?.total ?? 0) / PAGE_SIZE));
-
-  // The catalogue can shrink under the current page after a migration removes a
-  // model. React re-renders with the corrected page before committing, so the
-  // empty state is never shown for a catalogue that still holds products.
-  if (catalogue.data && page > totalPages) {
-    setPage(totalPages);
-  }
-
   function chooseBusinessDate(value: string) {
     setAsOf(value);
-    setPage(1);
   }
 
   return (
@@ -81,7 +69,7 @@ export function ProductCatalogPage() {
 
       {catalogue.isPending && catalogue.data === undefined ? (
         <ProductCatalogPageSkeleton asOf={asOf} status={t('catalog.loading')} />
-      ) : catalogue.isError ? (
+      ) : catalogue.isError && !catalogue.data ? (
         <section className={`card ${styles.state}`} role="alert">
           <h2>{t(unauthorized ? 'catalog.unauthorized.title' : 'catalog.error.title')}</h2>
           <p>
@@ -107,35 +95,17 @@ export function ProductCatalogPage() {
           <p className={styles.resolved} role="status">
             {t('catalog.resolvedOn', { date: formatCalendarDay(asOf, i18n.language) })}
           </p>
-          <div className={styles.products}>
-            {items.map((product) => (
-              <ProductCard key={product.code} product={product} />
-            ))}
-          </div>
+          <IncrementalList items={items} query={catalogue}>
+            {(visibleItems) => (
+              <div className={styles.products}>
+                {visibleItems.map((product) => (
+                  <ProductCard key={product.code} product={product} />
+                ))}
+              </div>
+            )}
+          </IncrementalList>
         </>
       )}
-
-      {catalogue.isSuccess && (totalPages > 1 || page > 1) ? (
-        <nav className={styles.pagination} aria-label={t('catalog.pagination.label')}>
-          <button
-            className="secondary-action"
-            disabled={page === 1}
-            onClick={() => setPage((current) => current - 1)}
-            type="button"
-          >
-            {t('catalog.pagination.previous')}
-          </button>
-          <span>{t('catalog.pagination.position', { page, total: totalPages })}</span>
-          <button
-            className="secondary-action"
-            disabled={page >= totalPages}
-            onClick={() => setPage((current) => current + 1)}
-            type="button"
-          >
-            {t('catalog.pagination.next')}
-          </button>
-        </nav>
-      ) : null}
     </div>
   );
 }

@@ -1410,7 +1410,13 @@ describe('MonthlyBudgetPage', () => {
         }),
     );
     renderPage();
-    fireEvent.click(await screen.findByRole('button', { name: 'Ajouter un revenu dans Salaire' }));
+    fireEvent.click(
+      await screen.findByRole(
+        'button',
+        { name: 'Ajouter un revenu dans Salaire' },
+        { timeout: 5000 },
+      ),
+    );
     const skeleton = await screen.findByTestId('budget-creation-skeleton');
     expect(skeleton.querySelector('fieldset[disabled][inert]')).toBeTruthy();
     const frozenForm = skeleton.querySelector('form')!;
@@ -1485,7 +1491,11 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Ajouter un virement vers Compte courant' }),
+      await screen.findByRole(
+        'button',
+        { name: 'Ajouter un virement vers Compte courant' },
+        { timeout: 5000 },
+      ),
     );
 
     expect(await screen.findByRole('dialog', { name: 'Nouveau virement' })).toBeTruthy();

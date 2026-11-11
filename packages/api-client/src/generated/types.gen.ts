@@ -6190,6 +6190,11 @@ export type LifeInsuranceSummary = {
 };
 
 /**
+ * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+ */
+export type ListRevision = string;
+
+/**
  * When `true`, the planned (upcoming) transactions of the month, pending rows the booking job will book on their date, are counted as if booked and reported apart. Defaults to `false`: they are then treated like any other pending row. Net worth and balances never include them. Any other value is refused with 400.
  */
 export type IncludeUpcoming = boolean;
@@ -6841,6 +6846,12 @@ export type ReadAssetResponse = ReadAssetResponses[keyof ReadAssetResponses];
 
 export type ListProductsData = {
     body?: never;
+    headers?: {
+        /**
+         * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+         */
+        'X-List-Revision'?: string;
+    };
     path?: never;
     query?: {
         /**
@@ -6868,6 +6879,14 @@ export type ListProductsErrors = {
      * The request carries no authenticated session.
      */
     401: Problem;
+    /**
+     * The session is attached to no workspace, so there is nothing to read.
+     */
+    403: Problem;
+    /**
+     * The opt-in list revision no longer matches the workspace or catalogue data, route, filters or page size (`type: /problems/lists.revision_stale`). Keep previously loaded rows visible and restart from page 1 only after explaining that the list changed. A revision is a consistency guard, not a retained snapshot.
+     */
+    409: Problem;
     /**
      * An unexpected server error occurred.
      */
@@ -8611,6 +8630,12 @@ export type MoveAccountGroupResponse = MoveAccountGroupResponses[keyof MoveAccou
 
 export type ListInstrumentsData = {
     body?: never;
+    headers?: {
+        /**
+         * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+         */
+        'X-List-Revision'?: string;
+    };
     path?: never;
     query?: {
         q?: string;
@@ -8642,6 +8667,10 @@ export type ListInstrumentsErrors = {
      * The session is attached to no workspace, so there is nothing to read.
      */
     403: Problem;
+    /**
+     * The opt-in list revision no longer matches the workspace or catalogue data, route, filters or page size (`type: /problems/lists.revision_stale`). Keep previously loaded rows visible and restart from page 1 only after explaining that the list changed. A revision is a consistency guard, not a retained snapshot.
+     */
+    409: Problem;
     /**
      * An unexpected server error occurred.
      */
@@ -9209,6 +9238,12 @@ export type ReorderPortfolioOperationsResponse = ReorderPortfolioOperationsRespo
 
 export type ListPortfolioOperationsData = {
     body?: never;
+    headers?: {
+        /**
+         * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+         */
+        'X-List-Revision'?: string;
+    };
     path: {
         accountId: string;
     };
@@ -9253,6 +9288,10 @@ export type ListPortfolioOperationsErrors = {
      * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
      */
     404: Problem;
+    /**
+     * The opt-in list revision no longer matches the workspace or catalogue data, route, filters or page size (`type: /problems/lists.revision_stale`). Keep previously loaded rows visible and restart from page 1 only after explaining that the list changed. A revision is a consistency guard, not a retained snapshot.
+     */
+    409: Problem;
     /**
      * The account is not followed in portfolio mode.
      */
@@ -9636,6 +9675,12 @@ export type ReadPortfolioValuationHistoryResponse = ReadPortfolioValuationHistor
 
 export type ListPortfolioValuationsData = {
     body?: never;
+    headers?: {
+        /**
+         * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+         */
+        'X-List-Revision'?: string;
+    };
     path: {
         accountId: string;
     };
@@ -9671,6 +9716,10 @@ export type ListPortfolioValuationsErrors = {
      * No such object in the calling workspace. Identical whether the identifier is unknown or belongs to another workspace.
      */
     404: Problem;
+    /**
+     * The opt-in list revision no longer matches the workspace or catalogue data, route, filters or page size (`type: /problems/lists.revision_stale`). Keep previously loaded rows visible and restart from page 1 only after explaining that the list changed. A revision is a consistency guard, not a retained snapshot.
+     */
+    409: Problem;
     /**
      * The account is not followed in portfolio mode.
      */
@@ -12344,6 +12393,12 @@ export type ReadNetWorthHistoryResponse = ReadNetWorthHistoryResponses[keyof Rea
 
 export type ListProductModelsData = {
     body?: never;
+    headers?: {
+        /**
+         * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+         */
+        'X-List-Revision'?: string;
+    };
     path?: never;
     query?: {
         includeArchived?: boolean;
@@ -12366,6 +12421,10 @@ export type ListProductModelsErrors = {
      * The session is attached to no workspace, so there is nothing to read.
      */
     403: Problem;
+    /**
+     * The opt-in list revision no longer matches the workspace or catalogue data, route, filters or page size (`type: /problems/lists.revision_stale`). Keep previously loaded rows visible and restart from page 1 only after explaining that the list changed. A revision is a consistency guard, not a retained snapshot.
+     */
+    409: Problem;
     /**
      * An unexpected server error occurred.
      */
@@ -13273,6 +13332,12 @@ export type ListRecurrenceOccurrencesResponse = ListRecurrenceOccurrencesRespons
 
 export type ListCategorizationRulesData = {
     body?: never;
+    headers?: {
+        /**
+         * Opt-in consistency guard for incremental numbered lists. Use `start` on page 1, then send the X-List-Revision response header unchanged on later pages. Inserts, updates, deletions and reorders invalidate the revision atomically with their business transaction. An obsolete revision returns 409 before returning rows; malformed headers or `start` on another page return 400. Changing route, account, filters or explicit page size requires a new `start` request. Reads hold a shared revision lock until their page and count have been read, preventing concurrent writes from committing halfway through a page. Omit this header to preserve the existing independent-page behavior.
+         */
+        'X-List-Revision'?: string;
+    };
     path?: never;
     query?: {
         includeArchived?: boolean;
@@ -13295,6 +13360,10 @@ export type ListCategorizationRulesErrors = {
      * The session is attached to no workspace, so there is nothing to read.
      */
     403: Problem;
+    /**
+     * The opt-in list revision no longer matches the workspace or catalogue data, route, filters or page size (`type: /problems/lists.revision_stale`). Keep previously loaded rows visible and restart from page 1 only after explaining that the list changed. A revision is a consistency guard, not a retained snapshot.
+     */
+    409: Problem;
     /**
      * An unexpected server error occurred.
      */

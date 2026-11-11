@@ -47,11 +47,20 @@ function mount(facetsEnabled: boolean, onChange = vi.fn()) {
   return { enable: () => view.rerender(tree(true)), onChange };
 }
 
-function openStates() {
+async function openStates() {
   const summary = [...document.querySelectorAll('summary')].find(
     (candidate) => candidate.textContent === 'État',
   )!;
-  fireEvent.click(summary);
+  const details = summary.closest('details')!;
+  // Native details toggles are deferred; wait until the controlled host has received it.
+  await act(async () => {
+    const toggled = new Promise<void>((resolve) => {
+      details.addEventListener('toggle', () => resolve(), { once: true });
+    });
+    fireEvent.click(summary);
+    await toggled;
+  });
+  expect(details.open).toBe(true);
 }
 
 describe('FacetedFilterPanel', () => {
@@ -68,12 +77,19 @@ describe('FacetedFilterPanel', () => {
   });
 
   it('counts the options under the given filters once the answer arrives', async () => {
-    api.readTransactionFacets.mockResolvedValue({
-      data: facets,
-      response: new Response(JSON.stringify(facets), { status: 200 }),
-    });
+    let deliver: (response: unknown) => void = () => undefined;
+    api.readTransactionFacets.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          deliver = resolve;
+        }),
+    );
     mount(true);
-    openStates();
+    await openStates();
+    expect(screen.getByRole('checkbox', { name: 'Comptabilisée' })).toBeTruthy();
+    await act(async () => {
+      deliver({ data: facets, response: new Response(JSON.stringify(facets), { status: 200 }) });
+    });
 
     expect(
       await screen.findByRole('checkbox', { name: 'Comptabilisée, 5 transactions' }),
@@ -89,7 +105,7 @@ describe('FacetedFilterPanel', () => {
       response: new Response(JSON.stringify(facets), { status: 200 }),
     });
     const { enable } = mount(false);
-    openStates();
+    await openStates();
     await act(async () => {
       await new Promise((done) => setTimeout(done, 300));
     });
@@ -105,10 +121,10 @@ describe('FacetedFilterPanel', () => {
     ).toBeTruthy();
   });
 
-  it('keeps every other behaviour of the plain panel', () => {
+  it('keeps every other behaviour of the plain panel', async () => {
     api.readTransactionFacets.mockImplementation(() => new Promise(() => undefined));
     const { onChange } = mount(true);
-    openStates();
+    await openStates();
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 

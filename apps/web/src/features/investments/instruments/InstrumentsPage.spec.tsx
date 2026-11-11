@@ -38,7 +38,13 @@ const instrument: Instrument = {
   version: 1,
 };
 function success<T>(data: T, status = 200) {
-  return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status }) });
+  return Promise.resolve({
+    data,
+    response: new Response(JSON.stringify(data), {
+      status,
+      headers: { 'X-List-Revision': 'a'.repeat(64) },
+    }),
+  });
 }
 function renderPage() {
   const query = new QueryClient({
@@ -56,7 +62,7 @@ function renderPage() {
 function problem(code: string, status = 409, extra: object = {}) {
   return Promise.resolve({
     error: { code, ...extra },
-    response: new Response('', { status }),
+    response: new Response('', { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
   });
 }
 async function openEdit(name = 'ETF Monde') {
@@ -283,7 +289,7 @@ describe('InstrumentsPage', () => {
     await openStatus();
     const calls = api.listInstruments.mock.calls.length;
     fireEvent.click(await screen.findByRole('button', { name: 'Archiver' }));
-    expect((await screen.findByRole('status')).textContent).toContain('déjà été modifié');
+    expect(await screen.findByText(/Cet instrument a déjà été modifié/)).toBeTruthy();
     await waitFor(() => expect(api.listInstruments.mock.calls.length).toBeGreaterThan(calls));
     expect(screen.queryByRole('button', { name: 'Archiver' })).toBeNull();
   });
@@ -361,29 +367,31 @@ describe('InstrumentsPage', () => {
     expect(screen.getAllByText('La précision doit être comprise entre 0 et 12.')).toHaveLength(2);
     expect(api.createInstrument).not.toHaveBeenCalled();
   });
-  it('clamps to the last page and keeps the table when the page is out of range', async () => {
+  it('keeps loaded rows after a concurrent deletion and restarts explicitly', async () => {
     setup();
-    api.listInstruments.mockImplementation((options: { query: { page: number } }) =>
-      options.query.page === 2
-        ? success({ items: [], page: 2, pageSize: 20, total: 1 })
-        : success({ items: [instrument], page: 1, pageSize: 20, total: 21 }),
-    );
+    api.listInstruments
+      .mockImplementationOnce(() =>
+        success({ items: [instrument], page: 1, pageSize: 20, total: 21 }),
+      )
+      .mockResolvedValueOnce({
+        error: { type: '/problems/lists.revision_stale' },
+        response: new Response(null, { status: 409 }),
+      })
+      .mockImplementation(() => success({ items: [instrument], page: 1, pageSize: 20, total: 1 }));
     renderPage();
     await screen.findByText('ETF Monde');
-    fireEvent.click(screen.getByRole('button', { name: 'Suivant' }));
-    await waitFor(() =>
-      expect(
-        api.listInstruments.mock.calls.filter(([o]) => o.query.page === 2).length,
-      ).toBeGreaterThan(0),
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+    expect(await screen.findByText(/La liste a changé/)).toBeTruthy();
+    expect(screen.getByText('ETF Monde')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Recharger la liste' }));
+    await screen.findByText('ETF Monde');
+    expect(api.listInstruments).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ page: 1 }),
+        headers: { 'X-List-Revision': 'start' },
+      }),
     );
-    await waitFor(() =>
-      expect(api.listInstruments).toHaveBeenLastCalledWith(
-        expect.objectContaining({ query: expect.objectContaining({ page: 1 }) }),
-      ),
-    );
-    expect(await screen.findByText('Page 1 sur 2')).toBeTruthy();
-    expect(screen.queryByText('Aucun instrument')).toBeNull();
-    expect(await screen.findByText('ETF Monde')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
   });
   it('labels the duplicate confirmation as saving when editing', async () => {
     setup();

@@ -1,29 +1,27 @@
-import { listProductModels, type ProductModelPage } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import { listProductModels } from '@cadran/api-client';
+import { useIncrementalList } from '@/hooks/incremental-list/useIncrementalList';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import { productModelRequestError, requestFailed } from './productModelError';
+import { productModelRequestError } from './productModelError';
 
-export const PRODUCT_MODELS_PAGE_SIZE = 50;
+const PRODUCT_MODELS_PAGE_SIZE = 50;
 
 /**
  * One page of the calling workspace's product models. Archived models are left
  * out unless asked for; they stay readable one by one so an account created
  * from a retired model keeps a reference it can resolve.
  */
-export function useProductModels(includeArchived: boolean, page: number) {
-  return useQuery<ProductModelPage>({
-    queryKey: ['product-models', includeArchived, page],
-    queryFn: async ({ signal }) => {
+export function useProductModels(includeArchived: boolean) {
+  return useIncrementalList({
+    queryKey: ['product-models', includeArchived],
+    request: async ({ signal, page, revision }) => {
       const result = await listProductModels({
         ...authApiOptions(),
+        headers: { 'X-List-Revision': revision },
         query: { includeArchived, page, pageSize: PRODUCT_MODELS_PAGE_SIZE },
         signal,
       });
-      if (requestFailed(result)) {
-        throw productModelRequestError(result);
-      }
-      return result.data as ProductModelPage;
+      return result;
     },
-    retry: false,
+    requestError: productModelRequestError,
   });
 }

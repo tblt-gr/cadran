@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CategorizationRuleRequestError } from '@/features/categories/rules/categorizationRuleError';
 import type { useCategorizationRules } from '@/features/categories/rules/useCategorizationRules';
 import { RuleList } from './RuleList';
-import { RulePagination } from './RulePagination';
+import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
 import styles from './RulesSection.module.css';
 
 interface RulesSectionProps {
@@ -35,7 +35,7 @@ export function RulesSection({
     rules.query.error instanceof CategorizationRuleRequestError &&
     rules.query.error.kind === 'unauthorized';
 
-  if (rules.query.isError) {
+  if (rules.query.isError && !rules.query.data) {
     return (
       <section className={`card ${styles.state}`} role="alert">
         <h2>
@@ -65,11 +65,7 @@ export function RulesSection({
     );
   }
 
-  // A concurrent archive can shrink the total below the page the caller is
-  // sitting on before the pagination hook clamps it back. Falling through
-  // to the list below (rendered busy, with zero rows) rather than the empty
-  // state avoids flashing "no rules yet" and losing focus for one render.
-  if (rules.list.length === 0 && rules.page <= rules.totalPages) {
+  if (rules.list.length === 0) {
     return (
       <section className={`card ${styles.state}`}>
         <h2>{t('categorizationRules.empty.title')}</h2>
@@ -82,27 +78,18 @@ export function RulesSection({
   }
 
   return (
-    <>
-      <RuleList
-        busy={rules.query.isFetching}
-        canEdit={canEdit}
-        onArchive={onArchive}
-        onEdit={onEdit}
-        onPreview={onPreview}
-        onToggle={onToggle}
-        rules={rules.list}
-      />
-      {rules.totalPages > 1 ? (
-        <RulePagination
-          onPageChange={(next) => {
-            if (rules.query.isFetching) return;
-            rules.goToPage(next);
-          }}
-          page={rules.page}
-          pending={rules.query.isFetching}
-          totalPages={rules.totalPages}
+    <IncrementalList items={rules.list} query={rules.query}>
+      {(visibleItems) => (
+        <RuleList
+          busy={rules.query.isFetching}
+          canEdit={canEdit}
+          onArchive={onArchive}
+          onEdit={onEdit}
+          onPreview={onPreview}
+          onToggle={onToggle}
+          rules={visibleItems}
         />
-      ) : null}
-    </>
+      )}
+    </IncrementalList>
   );
 }

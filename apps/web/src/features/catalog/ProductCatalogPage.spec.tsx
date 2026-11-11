@@ -90,11 +90,20 @@ function page(items: Product[]): ProductPage {
 }
 
 function success<T>(data: T, status = 200) {
-  return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status }) });
+  return Promise.resolve({
+    data,
+    response: new Response(JSON.stringify(data), {
+      status,
+      headers: { 'X-List-Revision': 'a'.repeat(64) },
+    }),
+  });
 }
 
 function failure(status: number) {
-  return Promise.resolve({ data: undefined, response: new Response(null, { status }) });
+  return Promise.resolve({
+    data: undefined,
+    response: new Response(null, { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
+  });
 }
 
 function renderPage() {
@@ -248,4 +257,22 @@ describe('ProductCatalogPage', () => {
 
     expect(await screen.findByRole('heading', { name: 'Aucun produit' })).toBeTruthy();
   });
+});
+
+it('appends catalogue products and retains previous cards on next-page retry', async () => {
+  api.listProducts
+    .mockImplementationOnce(() => success({ items: [livretA], page: 1, pageSize: 25, total: 26 }))
+    .mockImplementationOnce(() => failure(503))
+    .mockImplementationOnce(() =>
+      success({ items: [securitiesAccount], page: 2, pageSize: 25, total: 26 }),
+    );
+  renderPage();
+  await screen.findByRole('heading', { name: 'Livret A' });
+  fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+  await screen.findByRole('alert');
+  expect(screen.getByRole('heading', { name: 'Livret A' })).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
+  await screen.findByRole('heading', { name: 'Compte-titres ordinaire' });
+  expect(screen.getByRole('heading', { name: 'Livret A' })).toBeTruthy();
+  expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
 });

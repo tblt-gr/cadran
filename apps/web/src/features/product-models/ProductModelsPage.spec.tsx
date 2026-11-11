@@ -75,11 +75,20 @@ const lifeInsurance: Product = {
 };
 
 function success<T>(data: T, status = 200) {
-  return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status }) });
+  return Promise.resolve({
+    data,
+    response: new Response(JSON.stringify(data), {
+      status,
+      headers: { 'X-List-Revision': 'a'.repeat(64) },
+    }),
+  });
 }
 
 function failure(status: number) {
-  return Promise.resolve({ data: undefined, response: new Response('{}', { status }) });
+  return Promise.resolve({
+    data: undefined,
+    response: new Response('{}', { status, headers: { 'X-List-Revision': 'a'.repeat(64) } }),
+  });
 }
 
 /** An RFC 9457 refusal, whose `type` is what the page branches on. */
@@ -89,7 +98,10 @@ function problem(status: number, type: string) {
   return Promise.resolve({
     data: undefined,
     error: body,
-    response: new Response(JSON.stringify(body), { status }),
+    response: new Response(JSON.stringify(body), {
+      status,
+      headers: { 'X-List-Revision': 'a'.repeat(64) },
+    }),
   });
 }
 
@@ -482,4 +494,32 @@ describe('ProductModelsPage', () => {
     );
     expect(screen.getByTestId('product-model-filters-count').textContent).toBe('1');
   });
+});
+
+it('appends models and restarts archived filtering at the first page', async () => {
+  const next = { ...model, id: 'next', name: 'Modèle suivant' };
+  api.listProductModels.mockImplementation(({ query }) =>
+    success({
+      items: query.page === 2 ? [next] : [model],
+      page: query.page,
+      pageSize: 50,
+      total: 51,
+    }),
+  );
+  renderPage();
+  await screen.findByText(model.name);
+  fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
+  await screen.findByText(next.name);
+  expect(screen.getByText(model.name)).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Filtres des modèles' }));
+  fireEvent.click(screen.getByRole('checkbox', { name: /archivés/i }));
+  await waitFor(() =>
+    expect(api.listProductModels).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        query: expect.objectContaining({ includeArchived: true, page: 1 }),
+        headers: { 'X-List-Revision': 'start' },
+      }),
+    ),
+  );
+  expect(screen.queryByText(next.name)).toBeNull();
 });

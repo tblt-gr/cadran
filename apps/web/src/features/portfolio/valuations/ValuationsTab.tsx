@@ -9,10 +9,11 @@ import { lastDayOfMonth, parseMonthEnd } from '@/features/portfolio/month-end/mo
 import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { ValuationDetailModal } from './valuation-detail-modal/ValuationDetailModal';
 import { ValuationModal } from './valuation-modal/ValuationModal';
+import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
 import { ValuationsTable } from './valuations-table/ValuationsTable';
 import { WithdrawValuationModal } from './withdraw-valuation-dialog/WithdrawValuationModal';
 import { ValuationsTableSkeleton } from './ValuationsTableSkeleton';
-import { VALUATIONS_PER_PAGE, useValuations } from './useValuations';
+import { useValuations } from './useValuations';
 import styles from './ValuationsTab.module.css';
 
 type Dialog =
@@ -44,14 +45,13 @@ export function ValuationsTab({
 }) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
-  const [page, setPage] = useState(1);
   const [dialog, setDialog] = useState<Dialog>(null);
   const [detailId, setDetailId] = useState<string | null>(() =>
     new URLSearchParams(window.location.search).get('valuation'),
   );
   const [stale, setStale] = useState(false);
   const [monthEnd, setMonthEnd] = useState(requestedMonthEnd);
-  const valuations = useValuations(account.id, page, asOf);
+  const valuations = useValuations(account.id, asOf);
   const summary = usePortfolioSummary(account.id, asOf ?? today);
   const dueMonths = summary.isSuccess ? summary.data.dueMonths : null;
   const total = valuations.data?.total ?? 0;
@@ -64,7 +64,6 @@ export function ValuationsTab({
     setDialog(null);
     onRecordClose?.();
   };
-  const totalPages = Math.max(1, Math.ceil(total / VALUATIONS_PER_PAGE));
 
   useEffect(() => {
     const update = () => {
@@ -104,10 +103,6 @@ export function ValuationsTab({
     { consumesAsOf: true },
   );
 
-  useEffect(() => {
-    if (total > 0 && page > totalPages) setPage(totalPages);
-  }, [page, total, totalPages]);
-
   return (
     <div className={styles.tab}>
       {stale ? (
@@ -117,7 +112,7 @@ export function ValuationsTab({
       ) : null}
       {valuations.isPending ? (
         <ValuationsTableSkeleton status="Chargement des valorisations…" />
-      ) : valuations.isError ? (
+      ) : valuations.isError && !valuations.data ? (
         <OperationsState error title="Les valorisations sont indisponibles">
           <button
             className="secondary-action"
@@ -132,36 +127,17 @@ export function ValuationsTab({
           <p>Saisissez la valeur du compte à partir d’un relevé avec Nouvelle valorisation.</p>
         </OperationsState>
       ) : (
-        <ValuationsTable
-          items={valuations.data.items}
-          onDetail={(item) => setDetailId(item.id)}
-          onReplace={(valuation) => setDialog({ kind: 'replace', valuation })}
-          onWithdraw={(valuation) => setDialog({ kind: 'withdraw', valuation })}
-        />
+        <IncrementalList items={valuations.data!.items} query={valuations}>
+          {(visibleItems) => (
+            <ValuationsTable
+              items={visibleItems}
+              onDetail={(item) => setDetailId(item.id)}
+              onReplace={(valuation) => setDialog({ kind: 'replace', valuation })}
+              onWithdraw={(valuation) => setDialog({ kind: 'withdraw', valuation })}
+            />
+          )}
+        </IncrementalList>
       )}
-      {valuations.isSuccess && total > VALUATIONS_PER_PAGE ? (
-        <nav aria-label="Pagination des valorisations" className={styles.pagination}>
-          <button
-            className="secondary-action"
-            disabled={page === 1}
-            onClick={() => setPage((value) => value - 1)}
-            type="button"
-          >
-            Précédent
-          </button>
-          <span>
-            Page {page} sur {totalPages}
-          </span>
-          <button
-            className="secondary-action"
-            disabled={page === totalPages}
-            onClick={() => setPage((value) => value + 1)}
-            type="button"
-          >
-            Suivant
-          </button>
-        </nav>
-      ) : null}
       {record || dialog?.kind === 'replace' ? (
         <ValuationModal
           account={account}

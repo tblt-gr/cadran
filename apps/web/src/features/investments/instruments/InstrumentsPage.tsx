@@ -1,5 +1,6 @@
 import { listInstruments, type Instrument } from '@cadran/api-client';
-import { useQuery } from '@tanstack/react-query';
+import { useIncrementalList } from '@/hooks/incremental-list/useIncrementalList';
+import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -39,11 +40,9 @@ export function InstrumentsPage() {
   const [status, setStatus] = useState<InstrumentStatusFilter>(initial.status);
   const [q, setQ] = useState(initial.q);
   const [query, setQuery] = useState(initial.q);
-  const [page, setPage] = useState(1);
   useEffect(() => {
     const timeout = window.setTimeout(() => {
       setQuery(q);
-      setPage(1);
     }, 250);
     return () => window.clearTimeout(timeout);
   }, [q]);
@@ -55,30 +54,25 @@ export function InstrumentsPage() {
       setStatus(next.status);
       setQ(next.q);
       setQuery(next.q);
-      setPage(1);
     }
     window.addEventListener('popstate', applyUrlFilters);
     return () => window.removeEventListener('popstate', applyUrlFilters);
   }, []);
-  const instruments = useQuery({
-    queryKey: ['instruments', status, query, page],
-    queryFn: async ({ signal }) => {
+  const instruments = useIncrementalList({
+    queryKey: ['instruments', status, query],
+    request: async ({ signal, page, revision }) => {
       const result = await listInstruments({
         ...authApiOptions(),
+        headers: { 'X-List-Revision': revision },
         query: { status, q: query || undefined, page, pageSize: PER_PAGE },
         signal,
       });
-      if (!result.response?.ok || !result.data) throw instrumentRequestError(result);
-      return result.data;
+      return result;
     },
-    retry: false,
+    requestError: instrumentRequestError,
   });
   const items = instruments.data?.items ?? [];
   const total = instruments.data?.total ?? 0;
-  const totalPages = Math.max(1, Math.ceil(total / PER_PAGE));
-  useEffect(() => {
-    if (total > 0 && page > totalPages) setPage(totalPages);
-  }, [page, total, totalPages]);
   return (
     <div className={styles.page}>
       <InvestmentsHeader path="/investments/instruments" />
@@ -97,7 +91,6 @@ export function InstrumentsPage() {
         onStatusChange={(next) => {
           setStaleNotice(false);
           setStatus(next);
-          setPage(1);
         }}
         status={status}
       />
@@ -127,7 +120,7 @@ export function InstrumentsPage() {
       </section>
       {instruments.isPending && instruments.data === undefined ? (
         <InstrumentsPageSkeleton status={t('portfolio.instruments.loading')} />
-      ) : instruments.isError ? (
+      ) : instruments.isError && !instruments.data ? (
         <InstrumentState
           error
           onRetry={() => void instruments.refetch()}
@@ -144,38 +137,19 @@ export function InstrumentsPage() {
           </>
         </InstrumentState>
       ) : (
-        <InstrumentTable
-          items={items}
-          onEdit={setEditor}
-          onStatus={(item) => {
-            setStaleNotice(false);
-            setStatusTarget(item);
-          }}
-        />
+        <IncrementalList items={items} query={instruments}>
+          {(visibleItems) => (
+            <InstrumentTable
+              items={visibleItems}
+              onEdit={setEditor}
+              onStatus={(item) => {
+                setStaleNotice(false);
+                setStatusTarget(item);
+              }}
+            />
+          )}
+        </IncrementalList>
       )}
-      {instruments.isSuccess ? (
-        <nav className={styles.pagination} aria-label="Pagination des instruments">
-          <button
-            className="secondary-action"
-            disabled={page === 1}
-            onClick={() => setPage((value) => value - 1)}
-            type="button"
-          >
-            Précédent
-          </button>
-          <span>
-            Page {page} sur {totalPages}
-          </span>
-          <button
-            className="secondary-action"
-            disabled={page === totalPages}
-            onClick={() => setPage((value) => value + 1)}
-            type="button"
-          >
-            Suivant
-          </button>
-        </nav>
-      ) : null}
     </div>
   );
 }
