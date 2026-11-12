@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useWorkspaceBaseCurrency } from '@/features/auth/useWorkspaceBaseCurrency';
@@ -126,7 +127,7 @@ export function InstrumentForm({
     );
   }
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {error ? (
         <div className={styles.alert} role="alert">
           {error}
@@ -235,6 +236,6 @@ export function InstrumentForm({
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

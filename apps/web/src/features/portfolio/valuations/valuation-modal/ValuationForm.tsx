@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -62,7 +63,7 @@ export function ValuationForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {saveMessage ? (
         <p className={styles.alert} role="alert">
           {saveMessage}
@@ -166,6 +167,6 @@ export function ValuationForm({
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

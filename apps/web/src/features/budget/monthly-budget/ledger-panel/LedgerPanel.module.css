@@ -81,7 +81,7 @@
   align-items: center;
   justify-content: center;
   border: var(--border-none);
-  border-radius: var(--radius-none);
+  border-radius: var(--radius-circle);
   background: var(--color-transparent);
   color: var(--text-secondary);
   cursor: pointer;

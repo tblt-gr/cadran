@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -83,7 +84,7 @@ export function FromProductForm({
   }
 
   return (
-    <form
+    <ModalForm
       className={styles.form}
       aria-busy={products.isPending || undefined}
       noValidate
@@ -185,6 +186,6 @@ export function FromProductForm({
           </button>
         </ModalActions>
       </fieldset>
-    </form>
+    </ModalForm>
   );
 }

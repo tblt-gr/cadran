@@ -6,6 +6,10 @@
   gap: var(--spacing-4);
 }
 
+.card > details:last-child {
+  margin-top: var(--spacing-auto);
+}
+
 .header {
   display: flex;
   align-items: flex-start;

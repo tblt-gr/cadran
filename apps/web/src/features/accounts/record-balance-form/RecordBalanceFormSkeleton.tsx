@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
@@ -22,7 +23,7 @@ export function RecordBalanceFormSkeleton() {
   );
   return (
     <div className={styles.wrapper} inert>
-      <form className={styles.form} noValidate onSubmit={(event) => event.preventDefault()}>
+      <ModalForm className={styles.form} noValidate onSubmit={(event) => event.preventDefault()}>
         <p className={styles.hint}>
           {t('accounts.balances.formHint', { asset: '' })}
           <SkeletonBlock className={skeletonStyles.line} />
@@ -43,7 +44,7 @@ export function RecordBalanceFormSkeleton() {
             {t('accounts.balances.record')}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
       <Disclosure title={t('accounts.snapshots.title')} open={false} onToggle={() => undefined}>
         {null}
       </Disclosure>

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { GoalSummary } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +50,7 @@ export function BulkGoalLifecycleForm({
       ((!hasMonthly || /^\d{4}-(0[1-9]|1[0-2])$/.test(monthly)) &&
         (!hasYearly || /^\d{4}$/.test(yearly))));
   return (
-    <form
+    <ModalForm
       className={styles.form}
       noValidate
       onSubmit={(event) => {
@@ -131,6 +132,6 @@ export function BulkGoalLifecycleForm({
           {t(`goals.bulk.${action}`)}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

@@ -69,5 +69,5 @@
 .check {
   margin: var(--spacing-none);
   pointer-events: none;
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }

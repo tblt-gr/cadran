@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { PortfolioOperation, PortfolioOperationRequest } from '@cadran/api-client';
@@ -107,7 +108,7 @@ export function OperationForm({
     ) : null;
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {saveMessage ? (
         <p className={styles.alert} role="alert">
           {saveMessage}
@@ -240,6 +241,6 @@ export function OperationForm({
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

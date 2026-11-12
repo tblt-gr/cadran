@@ -56,7 +56,7 @@ describe('CategoryIdentity', () => {
     expect(container.innerHTML).not.toContain('https://evil');
   });
 
-  it.each([null, '#FFF', '#12345678', '#AABBCC\n', 'red', 'var(--gold-300)', '#000000;stroke:red'])(
+  it.each([null, '#FFF', '#12345678', '#AABBCC\n', 'red', 'var(--accent)', '#000000;stroke:red'])(
     'renders the neutral pill for noncanonical colour input %s',
     (color) => {
       const { container } = render(<CategoryIdentity color={color} label="Restaurants" />);

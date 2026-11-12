@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -121,7 +122,7 @@ export function RefundForm({
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <TransactionSubmitError
           accountId={accountId}
@@ -229,6 +230,6 @@ export function RefundForm({
           {pending ? t('transactions.refund.saving') : t('transactions.refund.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

@@ -191,6 +191,14 @@ export function TransactionsPage() {
         <TransactionFilters
           accounts={accountOptions}
           accountsPending={accountsPending}
+          actions={
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={initialLoading || impossible || items.length === 0 ? null : bulk}
+              inline
+              onToggleActive={() => setBulkMode((active) => !active)}
+            />
+          }
           disabled={initialLoading}
           facetsRequest={{ enabled: !impossible, query: bulkQuery }}
           filters={searchFilters}
@@ -234,11 +242,6 @@ export function TransactionsPage() {
             />
           ) : (
             <>
-              <BulkSelectionToolbar
-                active={bulkMode}
-                bulk={bulk}
-                onToggleActive={() => setBulkMode((active) => !active)}
-              />
               <TransactionDayList
                 accounts={accountOptions}
                 label={t('transactions.list.caption')}

@@ -128,7 +128,7 @@ export async function auditLayout(
         }
       }
 
-      // 4. At most one primary copper call to action visible per screen.
+      // 4. At most one primary call to action visible per screen.
       const primaries = [...root.querySelectorAll('.primary-action')].filter(
         (el) => visible(el) && el.closest('[role="dialog"]') === null,
       );

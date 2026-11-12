@@ -61,8 +61,7 @@
 .panel tbody th small {
   margin-top: var(--spacing-1);
   color: var(--text-muted);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-normal);
 }
 

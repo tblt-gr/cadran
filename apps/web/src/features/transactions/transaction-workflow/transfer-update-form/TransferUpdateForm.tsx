@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { Transfer, UpdateTransferRequest } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +38,7 @@ export function TransferUpdateForm({
     transfer?.source.state === 'PENDING' ? 'PENDING' : 'BOOKED',
   );
   return (
-    <form
+    <ModalForm
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault();
@@ -145,6 +146,6 @@ export function TransferUpdateForm({
           </button>
         </ModalActions>
       </fieldset>
-    </form>
+    </ModalForm>
   );
 }

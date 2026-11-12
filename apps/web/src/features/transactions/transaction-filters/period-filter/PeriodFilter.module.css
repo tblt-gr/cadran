@@ -27,7 +27,7 @@
 }
 
 .radio input {
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }
 
 .control {

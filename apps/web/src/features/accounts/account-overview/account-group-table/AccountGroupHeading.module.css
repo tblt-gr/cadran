@@ -18,6 +18,9 @@
   align-items: center;
   gap: var(--spacing-2);
   margin: var(--spacing-none);
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-context);
 }
 
 .parent {

@@ -23,8 +23,8 @@
   vertical-align: middle;
 }
 .panel thead th {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   color: var(--text-muted);
 }
 .panel tbody th {

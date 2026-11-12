@@ -66,10 +66,10 @@
 }
 
 .list button[aria-selected='true'] {
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .list input {
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
   pointer-events: none;
 }

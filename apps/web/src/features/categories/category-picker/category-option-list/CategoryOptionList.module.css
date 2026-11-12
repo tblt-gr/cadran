@@ -29,7 +29,7 @@
 }
 
 .option[aria-selected='true'] {
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .list .active {
@@ -41,10 +41,8 @@
 .group {
   padding: var(--spacing-2) var(--spacing-3) var(--spacing-1);
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 /* The creation entry is an action, not a category: set apart from the results
@@ -53,6 +51,6 @@
   margin-top: var(--spacing-1);
   border-top: var(--border-line-subtle);
   border-radius: var(--radius-none);
-  color: var(--gold-300);
+  color: var(--accent);
   font-weight: var(--font-weight-medium);
 }

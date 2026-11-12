@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { BulkEditResult, PaymentMethod } from '@cadran/api-client';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -115,7 +116,7 @@ export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: Bul
           preview={flow.preview}
         />
       ) : (
-        <form
+        <ModalForm
           className={styles.form}
           onSubmit={(event) => {
             event.preventDefault();
@@ -220,7 +221,7 @@ export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: Bul
               )}
             </button>
           </ModalActions>
-        </form>
+        </ModalForm>
       )}
     </Modal>
   );

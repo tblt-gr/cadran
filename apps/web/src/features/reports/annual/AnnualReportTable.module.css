@@ -55,10 +55,22 @@
   position: sticky;
   top: 0;
   z-index: 2;
-  background: var(--bg-surface-1);
+  background: var(--bg-surface-2);
+  max-width: var(--report-column-label-width);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-context);
+  vertical-align: bottom;
+  white-space: normal;
 }
 .table thead th:first-child {
   z-index: 3;
+  background: var(--bg-surface-2);
+}
+.table tbody tr:hover th:first-child,
+.table tbody tr:focus-within th:first-child {
+  background: var(--bg-surface-hover);
 }
 .dimmed td,
 .dimmed th {

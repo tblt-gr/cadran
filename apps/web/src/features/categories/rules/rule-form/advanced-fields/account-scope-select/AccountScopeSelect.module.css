@@ -89,7 +89,7 @@
   width: 1rem;
   height: 1rem;
   margin: var(--spacing-none);
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }
 
 .clear {

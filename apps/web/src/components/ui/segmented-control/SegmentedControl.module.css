@@ -69,6 +69,6 @@
 
 .text .segment[aria-pressed='true'] {
   border-color: var(--color-transparent);
-  color: var(--gold-300);
+  color: var(--accent);
   background: var(--color-transparent);
 }

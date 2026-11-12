@@ -52,6 +52,6 @@
   }
 
   .navigation .link[aria-current='page'] {
-    color: var(--gold-300);
+    color: var(--text-primary);
   }
 }

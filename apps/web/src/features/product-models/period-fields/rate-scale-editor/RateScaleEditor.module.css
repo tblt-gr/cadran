@@ -68,11 +68,9 @@
 .brackets th {
   padding: var(--spacing-1) var(--spacing-2);
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   text-align: left;
-  text-transform: uppercase;
 }
 
 .brackets td {

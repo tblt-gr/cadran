@@ -59,7 +59,7 @@
 }
 .autoCreate input {
   min-height: auto;
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }
 .autoCreate small {
   color: var(--text-secondary);

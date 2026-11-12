@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
@@ -242,7 +243,7 @@ export function GoalForm({
   const invalid = showErrors && !formValid;
   const flag = (valid: boolean) => (showErrors && !valid ? true : undefined);
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`goals.errors.${submitError}`)}
@@ -405,6 +406,6 @@ export function GoalForm({
           {t(pending ? 'goals.saving' : 'goals.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

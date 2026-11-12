@@ -19,7 +19,7 @@ function percent(value: string): number {
   return decimalRatioForGeometry(clampToUnit(value), '1') * 100;
 }
 
-/** A thin gold bar filled to a ratio: geometry only, the exact figures stay in the surrounding text. */
+/** A thin accent bar filled to a ratio: geometry only, the exact figures stay in the surrounding text. */
 export function ProgressGauge({ label, ratio, markerRatio = null }: Props) {
   const filled = clampToUnit(ratio);
   return (

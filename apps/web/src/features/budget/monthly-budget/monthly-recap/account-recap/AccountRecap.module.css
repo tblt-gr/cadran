@@ -21,10 +21,8 @@
 
 .panel thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .panel tbody th {
@@ -154,10 +152,8 @@
   .panel tbody td::before {
     content: attr(data-label);
     color: var(--text-muted);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--letter-spacing-card);
-    text-transform: uppercase;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
   }
 }
 

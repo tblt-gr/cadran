@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type { CategoryType } from '@cadran/api-client';
@@ -57,7 +58,7 @@ export function QuickCategoryForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`categories.quick.errors.${submitError}`)}
@@ -113,6 +114,6 @@ export function QuickCategoryForm({
           {t(pending ? 'categories.quick.creating' : 'categories.quick.create')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

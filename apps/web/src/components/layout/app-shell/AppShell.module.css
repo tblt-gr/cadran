@@ -16,7 +16,7 @@
   padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--radius-control);
   color: var(--bg-page);
-  background: var(--gold-300);
+  background: var(--accent);
   font-weight: var(--font-weight-bold);
   transform: translateY(-160%);
   transition: transform var(--duration-fast) var(--ease-out);

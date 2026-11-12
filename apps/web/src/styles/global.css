@@ -50,11 +50,15 @@ textarea {
 input,
 select,
 textarea {
-  caret-color: var(--gold-300);
+  caret-color: var(--accent);
 }
 
 button {
   color: inherit;
+}
+
+:where(h1, h2, h3, h4, strong, b) {
+  font-weight: var(--font-weight-semibold);
 }
 
 /* Links read as text until pointed at: the underline comes on hover and focus. A link set inside
@@ -82,7 +86,7 @@ a:focus-visible {
 
 ::selection {
   color: var(--bg-page);
-  background: var(--gold-300);
+  background: var(--accent);
 }
 
 :focus-visible {

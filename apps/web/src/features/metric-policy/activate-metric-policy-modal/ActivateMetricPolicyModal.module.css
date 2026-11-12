@@ -18,8 +18,7 @@
 
 .compare h3 {
   color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
 }
 
 .note {

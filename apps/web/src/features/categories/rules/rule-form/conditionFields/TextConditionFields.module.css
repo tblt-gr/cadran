@@ -24,8 +24,8 @@
 }
 
 .segmented label:has(input:checked) {
-  color: var(--gold-300);
-  background: var(--gold-soft);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .segmented label:has(input:focus-visible) {

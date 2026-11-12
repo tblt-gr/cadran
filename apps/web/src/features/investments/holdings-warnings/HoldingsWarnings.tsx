@@ -24,10 +24,12 @@ export function HoldingsWarnings({ holdings }: { holdings: Holdings }) {
   if (messages.length === 0) return null;
 
   return (
-    <ul className={styles.list} role="status">
-      {messages.map((message) => (
-        <li key={message.key}>{message.text}</li>
-      ))}
-    </ul>
+    <div role="status">
+      <ul className={styles.list}>
+        {messages.map((message) => (
+          <li key={message.key}>{message.text}</li>
+        ))}
+      </ul>
+    </div>
   );
 }

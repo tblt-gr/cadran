@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AccountKind, CreateMetricPolicyRequest } from '@cadran/api-client';
@@ -60,7 +61,7 @@ export function CreateMetricPolicyForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={handleSubmit}>
+    <ModalForm className={styles.form} noValidate onSubmit={handleSubmit}>
       {submitError ? (
         <p className={styles.error} role="alert">
           {t(`metricPolicy.errors.${submitError}`)}
@@ -103,6 +104,6 @@ export function CreateMetricPolicyForm({
           {t('metricPolicy.create.submit')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

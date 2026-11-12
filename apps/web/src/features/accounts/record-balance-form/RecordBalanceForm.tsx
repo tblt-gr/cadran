@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -155,7 +156,7 @@ export function RecordBalanceForm({
 
   return (
     <div className={styles.wrapper}>
-      <form className={styles.form} noValidate onSubmit={submit}>
+      <ModalForm className={styles.form} noValidate onSubmit={submit}>
         {shownError ? (
           <p className={styles.alert} role="alert">
             {t(`accounts.balances.errors.${shownError}`)}
@@ -262,7 +263,7 @@ export function RecordBalanceForm({
             )}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
       <Disclosure
         onToggle={setSnapshotsOpen}
         open={snapshotsOpen}

@@ -36,8 +36,8 @@
 }
 
 .steps li[aria-current='step'] .rank {
-  border-color: var(--gold-300);
-  color: var(--gold-300);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* The position is spelled out for anyone who cannot see the marker treatment. */

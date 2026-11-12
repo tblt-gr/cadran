@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { stopGoal, type GoalSummary } from '@cadran/api-client';
 import { useMutation } from '@tanstack/react-query';
 import { useId, useState, type FormEvent } from 'react';
@@ -59,7 +60,7 @@ export function StopGoalDialog({ goal, defaultLastPeriod, close, onStopped }: Pr
       intent="confirm"
       title={t('goals.panel.stop.title', { label: goal.label })}
     >
-      <form className={styles.dialogForm} noValidate onSubmit={submit}>
+      <ModalForm className={styles.dialogForm} noValidate onSubmit={submit}>
         <p>{t('goals.panel.stop.description')}</p>
         {error ? <p role="alert">{t(`goals.errors.${error}`)}</p> : null}
         <label htmlFor={fieldId}>
@@ -80,7 +81,7 @@ export function StopGoalDialog({ goal, defaultLastPeriod, close, onStopped }: Pr
             {t('goals.panel.stop.submit')}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

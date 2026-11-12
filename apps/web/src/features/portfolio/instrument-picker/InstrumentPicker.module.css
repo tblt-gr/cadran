@@ -33,7 +33,7 @@
   background: var(--bg-surface-1);
 }
 .options a {
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .skeletonOption {

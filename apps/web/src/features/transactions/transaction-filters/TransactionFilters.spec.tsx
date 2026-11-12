@@ -146,6 +146,21 @@ function stubCompactScreen() {
 }
 
 describe('TransactionFilters', () => {
+  it('keeps list actions in the search toolbar instead of reserving a separate row', () => {
+    renderFilters({
+      accounts: [account],
+      actions: <button type="button">Modifier la sélection</button>,
+      filters: DEFAULT_FILTERS,
+      onChange: vi.fn(),
+      onReset: vi.fn(),
+    });
+
+    const action = screen.getByRole('button', { name: 'Modifier la sélection' });
+    const search = screen.getByRole('searchbox');
+    expect(action.parentElement).toBe(search.closest('label')?.parentElement);
+    expect(action.parentElement?.contains(toggle())).toBe(true);
+  });
+
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();

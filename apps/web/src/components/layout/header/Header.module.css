@@ -23,6 +23,17 @@
   font-size: var(--font-size-page-title);
   font-weight: var(--font-weight-heading);
   letter-spacing: var(--letter-spacing-title);
+  line-height: var(--line-height-context);
+  overflow-wrap: anywhere;
+}
+
+.header > div:first-child {
+  min-width: 0;
+}
+
+/* Route focus announces the page through this non-interactive heading; controls keep their ring. */
+.header h1:focus {
+  outline: var(--border-none);
 }
 
 .date {
@@ -37,6 +48,7 @@
 }
 
 .actions {
+  flex-shrink: 0;
   gap: var(--spacing-3);
 }
 
@@ -90,6 +102,7 @@
   }
 
   .actions {
+    max-width: 100%;
     margin-inline-start: var(--spacing-auto);
     gap: var(--spacing-2);
   }
@@ -99,6 +112,7 @@
   }
 
   .pageActions {
+    flex-wrap: wrap;
     gap: var(--spacing-2);
   }
 }

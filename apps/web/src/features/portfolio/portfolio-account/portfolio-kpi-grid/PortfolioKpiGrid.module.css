@@ -42,12 +42,12 @@
 .sizeLead .value {
   font-size: var(--font-size-card-title);
   font-weight: var(--font-weight-strong);
-  letter-spacing: var(--letter-spacing-kpi);
+  letter-spacing: var(--letter-spacing-card);
 }
 .sizeCompact .value {
   font-size: var(--font-size-card-title);
   font-weight: var(--font-weight-strong);
-  letter-spacing: var(--letter-spacing-kpi);
+  letter-spacing: var(--letter-spacing-card);
 }
 .positive {
   color: var(--positive);

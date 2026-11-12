@@ -15,7 +15,7 @@ export function CategoryTree({ categories, onEdit, onLifecycle }: CategoryTreePr
   const { t } = useTranslation();
 
   return (
-    <ul aria-label={t('categories.list.caption')} className={styles.branch}>
+    <ul aria-label={t('categories.list.caption')} className={`${styles.tree} ${styles.branch}`}>
       {buildTree(categories).map((node) => (
         <CategoryTreeNode
           key={node.item.id}

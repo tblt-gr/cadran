@@ -16,7 +16,7 @@
 
 .chip:hover {
   color: var(--text-primary);
-  border-color: var(--gold-500);
+  border-color: var(--accent-muted);
 }
 
 .chip:focus-visible {

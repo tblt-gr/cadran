@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { Icon } from '@/components/ui/icon/Icon';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
@@ -18,7 +19,7 @@ const FIELDS = [
 export function RefundFormSkeleton() {
   const { t } = useTranslation();
   return (
-    <form aria-busy="true" className={styles.form} data-testid="refund-form-skeleton">
+    <ModalForm aria-busy="true" className={styles.form} data-testid="refund-form-skeleton">
       <SkeletonStatus>{t('transactions.refund.loading')}</SkeletonStatus>
       <p className={styles.remaining}>
         <span>{t('transactions.refund.remaining')}</span>
@@ -91,6 +92,6 @@ export function RefundFormSkeleton() {
           {t('transactions.refund.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

@@ -46,8 +46,8 @@
   gap: var(--spacing-2);
 }
 .segment:has(input:checked) {
-  border-color: var(--gold-300);
-  color: var(--gold-300);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 .segment:has(input:focus-visible) {
   outline: var(--outline-focus);

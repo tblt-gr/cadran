@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import {
   listCategories,
@@ -88,7 +89,7 @@ export function RecapPreferencesModal({
   }
   return (
     <Modal close={close} intent="settings" title={t('budget.monthly.recap.preferences.title')}>
-      <form className={styles.form} onSubmit={submit}>
+      <ModalForm className={styles.form} onSubmit={submit}>
         {stale ? (
           <div className={styles.alert} role="alert">
             <p>{t('budget.monthly.recap.preferences.stale')}</p>
@@ -196,7 +197,7 @@ export function RecapPreferencesModal({
             )}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

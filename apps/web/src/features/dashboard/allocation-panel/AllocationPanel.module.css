@@ -50,6 +50,11 @@
   min-width: 0;
 }
 
+.treeLayout {
+  display: grid;
+  align-items: center;
+}
+
 .pieLayout {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(10rem, 0.8fr);

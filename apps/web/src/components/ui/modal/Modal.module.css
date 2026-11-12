@@ -23,7 +23,7 @@
 
 .heading {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   padding: var(--spacing-6);
   border-bottom: var(--border-line-subtle);
@@ -36,21 +36,24 @@
 }
 
 .heading p {
-  color: var(--gold-300);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .heading h2 {
   margin-top: var(--spacing-1);
   font-size: var(--font-size-kpi);
+  font-weight: var(--font-weight-heading);
+  line-height: var(--line-height-context);
 }
 
 .body {
+  min-height: 0;
   overflow: auto;
   padding: var(--spacing-6);
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
   font-size: var(--font-size-body);
 }
 
@@ -67,8 +70,47 @@
 
 .body :where(thead th) {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Keep the form's final actions reachable while its fields scroll. The form remains the owner. */
+.body [data-modal-actions] {
+  position: sticky;
+  z-index: 1;
+  bottom: calc(var(--spacing-none) - var(--spacing-6));
+  margin: var(--spacing-4) calc(var(--spacing-none) - var(--spacing-6))
+    calc(var(--spacing-none) - var(--spacing-6));
+  padding: var(--spacing-4) var(--spacing-6);
+  border-top: var(--border-line-subtle);
+  background: var(--bg-surface-1);
+}
+
+/* The native form owns both regions; only the fields scroll, so submit remains reachable. */
+.body:has(> form[data-modal-form]) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: var(--spacing-none);
+}
+
+.body > form[data-modal-form] {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: var(--spacing-none);
+}
+
+.body > form[data-modal-form] > [data-form-content] {
+  min-height: 0;
+  overflow: auto;
+  padding: var(--spacing-6);
+}
+
+.body > form[data-modal-form] > [data-modal-actions] {
+  position: static;
+  flex-shrink: 0;
+  margin: var(--spacing-none);
 }
 
 .body :where(tbody th) {
@@ -103,5 +145,17 @@
 
   .body {
     padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
+  }
+
+  .body [data-modal-actions] {
+    bottom: calc(var(--spacing-none) - var(--spacing-4) - env(safe-area-inset-bottom));
+    margin: var(--spacing-4) calc(var(--spacing-none) - var(--spacing-4))
+      calc(var(--spacing-none) - var(--spacing-4) - env(safe-area-inset-bottom));
+    padding: var(--spacing-4);
+    padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
+  }
+
+  .body > form[data-modal-form] > [data-form-content] {
+    padding: var(--spacing-4);
   }
 }

@@ -31,7 +31,7 @@ test('touch audit ignores fully clipped controls but checks them when revealed',
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
  * 360 px must have no horizontal page scroll, no amount cut off or pushed out of its box, touch
- * targets of at least 44 by 44 px on a coarse pointer, and at most one primary copper action.
+ * targets of at least 44 by 44 px on a coarse pointer, and at most one primary action.
  */
 const WIDTHS = [
   { width: 1280, height: 800, touch: false },

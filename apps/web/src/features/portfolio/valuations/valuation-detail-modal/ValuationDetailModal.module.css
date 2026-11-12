@@ -54,7 +54,7 @@
 }
 .positions thead th {
   color: var(--text-muted);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
 }
 .positions .number {
   text-align: left;

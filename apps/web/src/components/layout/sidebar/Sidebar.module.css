@@ -26,7 +26,7 @@
   flex: 0 0 auto;
   width: var(--icon-size-sm);
   height: var(--icon-size-sm);
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .navigation {

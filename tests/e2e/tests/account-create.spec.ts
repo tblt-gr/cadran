@@ -28,7 +28,22 @@ test.describe('account creation', () => {
     await expect(wizard).toBeHidden();
 
     await settled(page);
-    await expect(page.getByRole('link', { name: label })).toBeVisible();
+    const created = page.getByRole('link', { name: label, exact: true });
+    const more = page
+      .getByRole('region', { name: 'Sans groupe', exact: true })
+      .getByRole('button', { name: 'Afficher plus de comptes', exact: true });
+    // Repeated runs can put the new account beyond the first page of its group.
+    await expect
+      .poll(async () => {
+        if (await created.count()) return true;
+        if (await more.isVisible()) {
+          await more.click();
+          await settled(page);
+        }
+        return (await created.count()) > 0;
+      })
+      .toBe(true);
+    await expect(created).toBeVisible();
   });
 
   test('requires a label before leaving the account step', async ({ page }) => {

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
@@ -77,7 +78,7 @@ export function TransferForm({
   }
 
   return (
-    <form className={formStyles.form} noValidate onSubmit={submit}>
+    <ModalForm className={formStyles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <TransactionSubmitError
           accountId={values.sourceAccountId}
@@ -220,7 +221,7 @@ export function TransferForm({
           {t(pending ? 'transactions.transfer.saving' : 'transactions.transfer.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }
 

@@ -19,11 +19,9 @@
   margin: var(--spacing-none);
 }
 .heading p {
-  color: var(--gold-300);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 .heading h3 {
   margin-top: var(--spacing-1);

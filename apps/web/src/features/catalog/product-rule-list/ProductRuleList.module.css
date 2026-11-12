@@ -17,10 +17,8 @@
 
 .tableScroll thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .tableScroll tbody th {
@@ -52,7 +50,7 @@
 }
 
 .tableScroll a {
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .tableScroll a:focus-visible {

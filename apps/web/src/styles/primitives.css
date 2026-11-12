@@ -37,7 +37,7 @@
 }
 
 .icon-button[aria-pressed='true'] {
-  color: var(--gold-300);
+  color: var(--accent);
   border-color: var(--border-strong);
 }
 
@@ -64,7 +64,7 @@
 }
 
 .icon-ghost[aria-pressed='true'] {
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .primary-action,
@@ -76,18 +76,23 @@
   border: var(--border-line-transparent);
   border-radius: var(--radius-button);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   text-decoration: none;
   gap: var(--spacing-2);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .primary-action {
   color: var(--text-on-primary);
-  background: var(--gradient-cta);
+  background: var(--accent);
 }
 
-.primary-action:hover {
-  background: var(--gold-200);
+.primary-action:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--accent-strong);
+  text-decoration: none;
 }
 
 .secondary-action {
@@ -95,6 +100,19 @@
   border-color: var(--border-strong);
   color: var(--text-primary);
   background: var(--bg-surface-2);
+}
+
+.secondary-action:hover:not(:disabled):not([aria-disabled='true']) {
+  background: var(--bg-surface-hover);
+  text-decoration: none;
+}
+
+.primary-action:disabled,
+.secondary-action:disabled,
+.primary-action[aria-disabled='true'],
+.secondary-action[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .card {
@@ -162,6 +180,41 @@
   border-radius: var(--radius-control);
   color: var(--text-primary);
   background: var(--bg-surface-2);
+  font-size: var(--font-size-body);
+}
+
+/* Fields and submit actions share a comfortable rhythm without loosening compact toolbars. */
+:where(form)
+  :where(
+    input:not(
+      [type='checkbox'],
+      [type='radio'],
+      [type='range'],
+      [type='color'],
+      [type='file'],
+      [type='hidden']
+    ),
+    select,
+    textarea,
+    .primary-action,
+    .secondary-action
+  ) {
+  min-height: max(var(--control-height), var(--form-control-height));
+}
+
+:where(input[type='checkbox'], input[type='radio'], input[type='range']) {
+  accent-color: var(--accent);
+}
+
+:where(input[type='checkbox'], input[type='radio']) {
+  flex-shrink: 0;
+  width: var(--choice-control-size);
+  height: var(--choice-control-size);
+}
+
+:where(input, textarea)::placeholder {
+  color: var(--text-muted);
+  opacity: 1;
 }
 
 :where(select) {
@@ -214,4 +267,13 @@ table th,
 table td,
 table caption {
   text-align: left;
+}
+
+:where(thead) {
+  background: var(--bg-surface-2);
+}
+
+/* A neutral row highlight helps follow a figure across wide financial tables. */
+:where(tbody tr:hover, tbody tr:focus-within) > :where(th, td) {
+  background: var(--bg-surface-hover);
 }

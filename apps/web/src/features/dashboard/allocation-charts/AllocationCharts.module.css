@@ -19,8 +19,12 @@
 .plot {
   width: 100%;
   min-width: 0;
-  height: 18rem;
+  height: var(--chart-plot-height);
   overflow: hidden;
+}
+
+.wrap[data-allocation-view='pie'] .plot {
+  height: var(--chart-plot-height-donut);
 }
 
 .plot :global(.recharts-wrapper),

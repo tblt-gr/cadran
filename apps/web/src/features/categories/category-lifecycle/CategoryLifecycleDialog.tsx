@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import {
@@ -114,7 +115,7 @@ export function CategoryLifecycleDialog({
     operandReady && choiceMade && impact.isSuccess && impact.data.allowed && !pending;
 
   return (
-    <form
+    <ModalForm
       className={styles.dialog}
       onSubmit={(event) => {
         event.preventDefault();
@@ -202,6 +203,6 @@ export function CategoryLifecycleDialog({
           )}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

@@ -13,7 +13,7 @@
    viewport, so a filter is always one move away. */
 .aside {
   position: sticky;
-  top: var(--spacing-4);
+  top: calc(var(--header-height) + var(--spacing-4));
   max-height: calc(100dvh - var(--header-height) - var(--spacing-8));
   overflow-y: auto;
   padding: var(--spacing-4);
@@ -30,7 +30,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
 }
 
 .bar {
@@ -41,13 +41,14 @@
 
 .row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-3);
 }
 
 .search {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 8rem;
   align-items: center;
   min-width: 0;
   min-height: var(--control-height);
@@ -88,8 +89,8 @@
 }
 
 .toggle[data-active='true'] {
-  color: var(--gold-200);
-  border-color: var(--gold-500);
+  color: var(--accent-strong);
+  border-color: var(--accent-muted);
 }
 
 .badge {
@@ -102,7 +103,7 @@
   padding-inline: var(--spacing-1);
   border-radius: var(--radius-full);
   color: var(--text-on-primary);
-  background: var(--gold-300);
+  background: var(--accent);
   font-size: var(--font-size-2xs);
   font-weight: var(--font-weight-bold);
   place-items: center;

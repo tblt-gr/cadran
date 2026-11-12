@@ -13,7 +13,7 @@
   border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-primary);
-  background: var(--gold-soft);
+  background: var(--accent-soft);
 }
 .dates {
   display: grid;
