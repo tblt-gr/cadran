@@ -23,7 +23,7 @@ final readonly class AnnualReportPreferences
         public IncompleteMonths $incompleteMonths,
         public int $version,
         public ?\DateTimeImmutable $updatedAt = null,
-        public bool $goalMarks = true,
+        public bool $goalMarks = false,
     ) {
         if ($version < self::UNSAVED_VERSION) {
             throw new \InvalidArgumentException('An annual report preference version is never negative.');
@@ -34,8 +34,8 @@ final readonly class AnnualReportPreferences
     }
 
     /** @param list<string> $columns */
-    public function saved(array $columns, IncompleteMonths $incompleteMonths, \DateTimeImmutable $at, bool $goalMarks = true): self
+    public function saved(array $columns, IncompleteMonths $incompleteMonths, \DateTimeImmutable $at, ?bool $goalMarks = null): self
     {
-        return new self($this->workspace, $columns, $incompleteMonths, $this->version + 1, $at, $goalMarks);
+        return new self($this->workspace, $columns, $incompleteMonths, $this->version + 1, $at, $goalMarks ?? $this->goalMarks);
     }
 }

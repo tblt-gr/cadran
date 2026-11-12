@@ -3670,7 +3670,7 @@ export type AnnualReportPreferences = {
     columns: Array<string>;
     incompleteMonths: AnnualIncompleteMonths;
     /**
-     * Whether the goals colour the figures of the reports and mark them with their target.
+     * Whether goals colour report figures and show their target. False for unsaved preferences; existing saved choices are preserved.
      */
     goalMarks: boolean;
     version: number;
@@ -3680,7 +3680,7 @@ export type AnnualReportPreferencesInput = {
     columns: Array<string>;
     incompleteMonths: AnnualIncompleteMonths;
     /**
-     * Omitted keeps the stored setting.
+     * Omitted keeps the stored setting, or false when no preference has been saved.
      */
     goalMarks?: boolean;
     /**

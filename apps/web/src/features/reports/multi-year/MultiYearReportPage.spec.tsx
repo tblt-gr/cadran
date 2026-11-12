@@ -62,7 +62,12 @@ beforeEach(() => {
   api.readMultiYearReport.mockResolvedValue(ok(multiYearReport));
   api.readAnnualReport.mockResolvedValue(ok(annualReport));
   api.readAnnualReportPreferences.mockResolvedValue(
-    ok({ columns: ['cashIncome', 'endNetWorth'], incompleteMonths: 'exclude', version: 3 }),
+    ok({
+      columns: ['cashIncome', 'endNetWorth'],
+      goalMarks: true,
+      incompleteMonths: 'exclude',
+      version: 3,
+    }),
   );
   api.saveAnnualReportPreferences.mockResolvedValue(
     ok({ columns: ['cashIncome', 'endNetWorth'], incompleteMonths: 'include', version: 4 }),

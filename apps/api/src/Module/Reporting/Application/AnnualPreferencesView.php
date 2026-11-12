@@ -11,7 +11,7 @@ final readonly class AnnualPreferencesView
         public array $columns,
         public string $incompleteMonths,
         public int $version,
-        public bool $goalMarks = true,
+        public bool $goalMarks = false,
     ) {
     }
 }

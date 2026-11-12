@@ -52,7 +52,7 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
   const labelOf = useAnnualColumnLabel();
   const [explained, setExplained] = useState<string | null>(null);
   const preferences = useAnnualReportPreferences();
-  const goalsEnabled = !preferences.isPending && preferences.data?.goalMarks !== false;
+  const goalsEnabled = !preferences.isPending && preferences.data?.goalMarks === true;
   const goals = useGoalEvaluations(
     { kind: 'years', years: report.years.map((year) => year.year) },
     goalsEnabled,

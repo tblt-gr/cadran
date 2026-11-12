@@ -17665,7 +17665,7 @@ components:
         incompleteMonths:
           $ref: '#/components/schemas/AnnualIncompleteMonths'
         goalMarks:
-          description: Whether the goals colour the figures of the reports and mark them with their target.
+          description: Whether goals colour report figures and show their target. False for unsaved preferences; existing saved choices are preserved.
           type: boolean
         version:
           type: integer
@@ -17683,7 +17683,7 @@ components:
         incompleteMonths:
           $ref: '#/components/schemas/AnnualIncompleteMonths'
         goalMarks:
-          description: Omitted keeps the stored setting.
+          description: Omitted keeps the stored setting, or false when no preference has been saved.
           type: boolean
         version:
           description: The version the caller last read. A stale one is refused with 409.
