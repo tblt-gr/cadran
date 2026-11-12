@@ -37,18 +37,18 @@
   text-decoration: none;
 }
 
-/* Hover previews the active look, only where a pointer really hovers. */
+/* A quiet hover rule leaves the platinum rule exclusive to the selected tab. */
 @media (hover: hover) {
   .tab:not([aria-disabled='true']):hover {
-    border-bottom-color: var(--gold-300);
-    color: var(--gold-300);
+    border-bottom-color: var(--border-strong);
+    color: var(--text-primary);
   }
 }
 
 .tab[aria-selected='true'] {
-  border-bottom-color: var(--gold-300);
-  color: var(--gold-300);
-  font-weight: var(--font-weight-semibold);
+  border-bottom-color: var(--accent);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
 }
 
 .tab:focus-visible {

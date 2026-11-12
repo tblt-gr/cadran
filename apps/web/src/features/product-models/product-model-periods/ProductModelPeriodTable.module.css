@@ -17,10 +17,17 @@
 
 .tableScroll thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* This table already sits inside the model's padded disclosure. */
+.tableScroll tr > :first-child {
+  padding-left: var(--spacing-none);
+}
+
+.tableScroll tr > :last-child {
+  padding-right: var(--spacing-none);
 }
 
 .tableScroll tbody th {

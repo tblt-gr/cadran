@@ -15,9 +15,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-height: var(--control-height);
+  /* A form field like the others: the selected category tag fits without growing the box. */
+  min-height: max(var(--control-height), var(--form-control-height));
   padding: var(--spacing-none) var(--spacing-3);
-  border: var(--border-line-strong);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   background: var(--bg-surface-2);
   gap: var(--spacing-2);
@@ -41,19 +42,19 @@
   color: var(--text-primary);
 }
 
-/* The selected category's pill: inline colour and ink come from the category, the
-   input inherits that ink and only the pill is coloured. */
+/* The selected category's tag: the product surface with the category's mark before the label. */
 .selected {
   flex: 0 1 auto;
-  min-height: 1.625rem;
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-full);
-  font-weight: var(--font-weight-medium);
+  min-height: var(--control-height-compact);
+  padding: var(--spacing-0-5) var(--spacing-2);
+  border: var(--border-none);
+  border-radius: var(--radius-small);
+  background: var(--bg-surface-hover);
   gap: var(--spacing-1-5);
 }
 
 /* Host forms may style every descendant input. Keep the editable label inside
-   the pill independent of those rules in every context. */
+   the tag independent of those rules in every context. */
 .picker .control .chip input {
   width: 100%;
   min-width: 0;

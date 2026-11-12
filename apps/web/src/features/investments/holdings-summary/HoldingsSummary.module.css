@@ -4,7 +4,7 @@
   gap: var(--spacing-4);
 }
 
-/* One column at 360 px, a 2x2 grid, then four columns; dividers stay local to the cells. */
+/* Small phones keep a column; standard phones use a 2x2 grid, desktop uses four columns. */
 .strip {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -29,7 +29,7 @@
   height: var(--font-size-label);
 }
 
-@media (min-width: 36rem) {
+@media (min-width: 22.5rem) {
   .strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { AccountDescriptiveFields } from './identity-fields/AccountDescriptiveFields';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
@@ -174,7 +175,7 @@ export function AccountForm({
   );
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`accounts.errors.${submitError}`)}
@@ -287,6 +288,6 @@ export function AccountForm({
           )}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

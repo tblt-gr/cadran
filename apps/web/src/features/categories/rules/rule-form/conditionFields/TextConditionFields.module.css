@@ -2,8 +2,8 @@
   display: inline-flex;
   width: fit-content;
   padding: var(--spacing-0-5);
-  border: var(--border-line-strong);
-  border-radius: var(--radius-full);
+  border: var(--border-line-transparent);
+  border-radius: var(--radius-control);
   background: var(--bg-surface-2);
   gap: var(--spacing-0-5);
 }
@@ -12,7 +12,7 @@
   display: inline-flex;
   align-items: center;
   padding: var(--spacing-1-5) var(--spacing-4);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-button);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
@@ -24,8 +24,8 @@
 }
 
 .segmented label:has(input:checked) {
-  color: var(--gold-300);
-  background: var(--gold-soft);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .segmented label:has(input:focus-visible) {

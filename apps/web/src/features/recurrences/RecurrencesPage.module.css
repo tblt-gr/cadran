@@ -27,11 +27,9 @@
 }
 
 .sectionHeading p {
-  color: var(--gold-300);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .empty p,
@@ -59,7 +57,7 @@
 
 .partial {
   padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   color: var(--warning);
   background: var(--warning-soft);
   font-size: var(--font-size-xs);

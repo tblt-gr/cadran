@@ -14,7 +14,7 @@
   max-height: min(80svh, 34rem);
   overflow: auto;
   padding: var(--spacing-4);
-  border: var(--border-line-strong);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-card);
   background: var(--bg-surface-2);
   box-shadow: var(--shadow-sheet);

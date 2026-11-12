@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useTranslation } from 'react-i18next';
 import {
@@ -53,7 +54,7 @@ export function ReconciliationPanelSkeleton({ status }: { status: string }) {
           <SkeletonTableRows columns={3} rows={3} />
         </table>
       </div>
-      <form className={formStyles.form}>
+      <ModalForm className={formStyles.form}>
         <fieldset className={formStyles.choices} disabled>
           <legend>{t('accounts.reconciliation.resolution.legend')}</legend>
           {CHOICES.map((value) => (
@@ -71,7 +72,7 @@ export function ReconciliationPanelSkeleton({ status }: { status: string }) {
             {t('accounts.reconciliation.reconcile')}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
     </div>
   );
 }

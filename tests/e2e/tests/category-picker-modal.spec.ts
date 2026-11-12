@@ -81,8 +81,14 @@ for (const width of [360, 1280]) {
       await picker.fill('Courses');
       await dialog.getByRole('option', { name: 'Courses', exact: true }).click();
       const axes = dialog.locator('details').filter({ hasText: 'Axes analytiques' });
-      const form = dialog.locator('form > div').first();
-      const formBox = (await form.boundingBox())!;
+      const fields = dialog.locator('[data-form-content]');
+      const formBox = await fields.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const start = parseFloat(style.paddingLeft);
+        const end = parseFloat(style.paddingRight);
+        return { x: box.x + start, width: box.width - start - end };
+      });
       for (const open of [false, true]) {
         if (open) await axes.locator('summary').click();
         const axesBox = (await axes.boundingBox())!;
@@ -126,7 +132,7 @@ for (const width of [360, 1280]) {
     }
   });
 
-  test(`recurrence category picker keeps its selected label inside the pill at ${width}px`, async ({
+  test(`recurrence category picker keeps its selected label inside the tag at ${width}px`, async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -160,19 +166,19 @@ for (const width of [360, 1280]) {
       const input = await picker.evaluate((element) => {
         const style = getComputedStyle(element);
         const box = element.getBoundingClientRect();
-        const pill = element.parentElement!.getBoundingClientRect();
+        const tag = element.parentElement!.getBoundingClientRect();
         return {
           background: style.backgroundColor,
           border: style.borderTopWidth,
           padding: style.paddingLeft,
           height: box.height,
-          pillHeight: pill.height,
+          tagHeight: tag.height,
         };
       });
       expect(input.background).toBe('rgba(0, 0, 0, 0)');
       expect(input.border).toBe('0px');
       expect(input.padding).toBe('0px');
-      expect(input.height).toBeLessThanOrEqual(input.pillHeight);
+      expect(input.height).toBeLessThanOrEqual(input.tagHeight);
       if (width === 360) expect(input.height).toBeGreaterThanOrEqual(44);
       await picker.fill('recherche');
       await expect(picker).toHaveValue('recherche');

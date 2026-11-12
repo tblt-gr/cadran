@@ -14,18 +14,31 @@
 .dayHeader {
   position: sticky;
   z-index: 1;
-  top: var(--header-height-mobile);
+  top: var(--header-height);
   margin: var(--spacing-none);
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
   border-bottom: var(--border-line-subtle);
   color: var(--text-muted);
-  background: var(--bg-surface-2);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-bold);
+  background: var(--bg-surface-1);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-normal);
 }
 
+/* French dates keep the month in lower case; only the weekday opening the line is capitalised. */
 .date {
-  text-transform: capitalize;
+  display: inline-block;
+}
+
+.date::first-letter {
+  text-transform: uppercase;
+}
+
+/* The phone bar is not pinned, so the day headers stick to the top of the viewport there. */
+@media (max-width: 767px) {
+  .dayHeader {
+    top: 0;
+  }
 }
 
 .windowControl {
@@ -58,6 +71,12 @@
   grid-template-columns: minmax(0, 1fr) auto auto;
   column-gap: var(--spacing-3);
   row-gap: var(--spacing-1);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.row:hover,
+.row:focus-within {
+  background: var(--bg-surface-2);
 }
 
 /*
@@ -143,7 +162,20 @@
   min-width: 0;
   gap: var(--spacing-1) var(--spacing-3);
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
+}
+
+@media (min-width: 64rem) {
+  .row {
+    grid-template-areas: 'primary meta amount actions';
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) auto auto;
+    padding-block: var(--spacing-2);
+  }
+
+  .selectable {
+    grid-template-areas: 'select primary meta amount actions';
+    grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.85fr) auto auto;
+  }
 }
 
 .actions {

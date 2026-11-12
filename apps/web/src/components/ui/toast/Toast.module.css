@@ -37,7 +37,7 @@
   flex: 0 0 auto;
   padding: var(--spacing-none);
   border: var(--border-none);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-control);
   color: var(--text-muted);
   background: var(--color-transparent);
   cursor: pointer;

@@ -17,10 +17,17 @@
 
 .tableScroll thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Embedded rules share the product's inset; only inner columns need cell spacing. */
+.tableScroll tr > :first-child {
+  padding-left: var(--spacing-none);
+}
+
+.tableScroll tr > :last-child {
+  padding-right: var(--spacing-none);
 }
 
 .tableScroll tbody th {
@@ -52,7 +59,7 @@
 }
 
 .tableScroll a {
-  color: var(--gold-300);
+  color: var(--accent);
 }
 
 .tableScroll a:focus-visible {

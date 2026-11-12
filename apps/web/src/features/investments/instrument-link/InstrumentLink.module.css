@@ -1,5 +1,6 @@
 .link {
   display: inline-flex;
+  min-width: var(--touch-target-min);
   min-height: var(--touch-target-min);
   align-items: center;
   color: inherit;

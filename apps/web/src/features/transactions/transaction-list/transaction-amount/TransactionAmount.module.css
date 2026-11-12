@@ -1,6 +1,5 @@
 .amount {
-  font-family: var(--font-family-mono);
-  font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums lining-nums;
   white-space: nowrap;
 }
 

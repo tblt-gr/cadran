@@ -421,7 +421,9 @@ describe('AccountOverview', () => {
 
     const heading = await screen.findByRole('heading', { name: /Épargne/ });
     await waitFor(() =>
-      expect(heading.querySelector('rect')?.getAttribute('fill')).toBe('#AABBCC'),
+      expect(heading.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe(
+        '#AABBCC',
+      ),
     );
   });
 

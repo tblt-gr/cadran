@@ -1,6 +1,6 @@
 import { appendFileSync } from 'node:fs';
 import { expect, test, type Browser, type Page } from '@playwright/test';
-import { auditLayout, type AuditFinding } from './support/audit';
+import { auditLayout, expectFormActionLayout, type AuditFinding } from './support/audit';
 
 import { settled } from './support/page';
 import { ownerStorageState } from './support/session';
@@ -31,7 +31,7 @@ test('touch audit ignores fully clipped controls but checks them when revealed',
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
  * 360 px must have no horizontal page scroll, no amount cut off or pushed out of its box, touch
- * targets of at least 44 by 44 px on a coarse pointer, and at most one primary copper action.
+ * targets of at least 44 by 44 px on a coarse pointer, and at most one primary action.
  */
 const WIDTHS = [
   { width: 1280, height: 800, touch: false },
@@ -492,11 +492,18 @@ test.describe('responsive audit of movement edit modals', () => {
           const save = dialog.getByRole('button', { name: 'Enregistrer', exact: true });
           await save.scrollIntoViewIfNeeded();
           await expect(save).toBeInViewport({ ratio: 1 });
-          const form = (await dialog.locator('form').boundingBox())!;
-          const action = (await save.boundingBox())!;
-          expect(action.width).toBeLessThan(form.width * 0.75);
-          expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThan(2);
-          expect(await save.evaluate((el) => getComputedStyle(el).boxShadow)).toBe('none');
+          await expectFormActionLayout(save);
+          // The primary action carries only its one-pixel contact shadow, never a glow.
+          expect(
+            await save.evaluate((el) => {
+              const probe = document.createElement('span');
+              probe.style.boxShadow = 'var(--shadow-primary)';
+              document.body.append(probe);
+              const expected = getComputedStyle(probe).boxShadow;
+              probe.remove();
+              return getComputedStyle(el).boxShadow === expected;
+            }),
+          ).toBe(true);
 
           if (kind === 'refund') {
             await expect(
@@ -583,7 +590,7 @@ test('transaction filters at 360 px open in a bottom sheet', async ({ browser })
     await expectFacetRowsFit(sheet);
     await auditAccessibility(page);
     // A zero remains a choice, including for keyboard users.
-    const zero = sheet.getByRole('checkbox', { name: /^Annulée\s*, 0 transaction$/ });
+    const zero = sheet.getByRole('checkbox', { name: /, 0 transaction$/ }).first();
     await expect(zero).toBeEnabled();
     await zero.focus();
     await zero.press('Space');

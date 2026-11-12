@@ -495,7 +495,7 @@ describe('SplitEditor', () => {
     fireEvent.mouseDown(await screen.findByRole('option', { name: 'Alimentation' }));
 
     const summary = screen.getByText('Axes analytiques').closest('summary') as HTMLElement;
-    expect(summary.textContent).toContain('Essentiel, Variable — ceux de la catégorie');
+    expect(summary.textContent).toContain('Essentiel, Variable : ceux de la catégorie');
     const axes = screen.getByRole('group', { name: 'Axes analytiques de la ligne 1' });
     expect((within(axes).getByLabelText('Essentiel') as HTMLInputElement).checked).toBe(true);
     expect((within(axes).getByLabelText('Fixe') as HTMLInputElement).checked).toBe(false);

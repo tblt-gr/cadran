@@ -237,8 +237,9 @@ describe('CategoryPage', () => {
     await screen.findByText('Restaurants');
     expect(screen.queryByText('Livraison')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /sous-catégories de « Restaurants »/ }));
-    const fill = (screen.getByText('Livraison').closest('[data-icon]') as HTMLElement).style;
-    expect(fill.background).toBe('rgb(170, 187, 204)');
+    expect(screen.getByText('Livraison').closest('[data-icon]')?.getAttribute('data-color')).toBe(
+      '#AABBCC',
+    );
   });
 
   it('renders labels as text and keeps archived categories read-only', async () => {

@@ -15,7 +15,7 @@
     grid-auto-columns: minmax(0, 1fr);
     grid-auto-flow: column;
     padding: var(--spacing-1) var(--spacing-1) calc(var(--spacing-1) + env(safe-area-inset-bottom));
-    border-top: var(--border-line-strong);
+    border-top: var(--border-line-subtle);
     background: var(--bg-mobile-navigation);
   }
 
@@ -51,7 +51,17 @@
     white-space: nowrap;
   }
 
+  /* The current destination gets the same selected plate as the desktop row, behind its icon. */
   .navigation .link[aria-current='page'] {
-    color: var(--gold-300);
+    color: var(--text-primary);
+  }
+
+  .navigation .link[aria-current='page'] svg {
+    padding: var(--spacing-0-5) var(--spacing-3);
+    border: var(--border-line-subtle);
+    border-radius: var(--radius-control);
+    background: var(--bg-selected);
+    box-shadow: none;
+    box-sizing: content-box;
   }
 }

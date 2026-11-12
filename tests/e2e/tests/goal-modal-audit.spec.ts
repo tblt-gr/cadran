@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { auditAccessibility } from './support/a11y';
-import { auditLayout } from './support/audit';
+import { auditLayout, expectFormActionLayout } from './support/audit';
 import { settled, uniqueLabel } from './support/page';
 import { ownerStorageState } from './support/session';
 
@@ -80,12 +80,10 @@ for (const kind of ['create', 'edit', 'policy'] as const) {
         expect(await auditLayout(page, touch, '[data-audit-root]')).toEqual([]);
         await auditAccessibility(page);
         const save = dialog.getByRole('button', { name: 'Enregistrer', exact: true });
+        await expect(save).toBeInViewport({ ratio: 0.99 });
         await save.scrollIntoViewIfNeeded();
         await expect(save).toBeInViewport({ ratio: 0.99 });
-        const form = (await dialog.locator('form').boundingBox())!;
-        const action = (await save.boundingBox())!;
-        expect(action.width).toBeLessThan(form.width * 0.75);
-        expect(Math.abs(action.x + action.width - form.x - form.width)).toBeLessThan(2);
+        await expectFormActionLayout(save);
         const close = dialog.getByRole('button', { name: 'Fermer', exact: true });
         await close.focus();
         await expect(close).toBeFocused();

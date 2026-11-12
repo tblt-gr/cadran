@@ -296,9 +296,10 @@ describe('GoalPanel editor', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Modifier l’objectif « Épargne »' }));
     await waitFor(() => expect(screen.queryByTestId('goal-form-skeleton')).toBeNull());
-    expect(
-      await screen.findByText(/Revenu de référence.*10\/12 mois, septembre 2025 à août 2026/),
-    ).toBeTruthy();
+    const note = await screen.findByText(
+      /Revenu de référence.*10\/12 mois, septembre 2025 à août 2026/,
+    );
+    expect(note.closest('[data-form-content]')).not.toBeNull();
   });
   it('opens the create modal from the keyboard, fills an annual goal and submits it', async () => {
     mockSession();

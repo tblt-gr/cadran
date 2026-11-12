@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
@@ -80,7 +81,7 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
   };
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       <fieldset
         className={styles.frozen}
         disabled={policy === null || pending}
@@ -259,12 +260,12 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
             </label>
           ) : null}
         </FormGrid>
-        <ModalActions>
-          <button className="primary-action" disabled={pending} type="submit">
-            {t('goals.emergencyFund.save')}
-          </button>
-        </ModalActions>
       </fieldset>
-    </form>
+      <ModalActions>
+        <button className="primary-action" disabled={policy === null || pending} type="submit">
+          {t('goals.emergencyFund.save')}
+        </button>
+      </ModalActions>
+    </ModalForm>
   );
 }

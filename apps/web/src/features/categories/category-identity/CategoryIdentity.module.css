@@ -1,21 +1,21 @@
+/* A tag, not a pill: short corners on the raised surface, no outline. */
 .identity {
   display: inline-flex;
   align-items: center;
   min-width: 0;
   max-width: 100%;
-  min-height: 1.625rem;
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-full);
-  font-weight: var(--font-weight-medium);
+  min-height: var(--control-height-compact);
+  padding: var(--spacing-0-5) var(--spacing-2);
+  border-radius: var(--radius-small);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
+  font-weight: var(--font-weight-normal);
   gap: var(--spacing-1-5);
   vertical-align: middle;
 }
 
-/* No stored colour: the pill keeps its shape on a product surface, so a column
-   of categories stays aligned instead of mixing two visual treatments. */
-.neutral {
-  color: var(--text-primary);
-  background: var(--bg-surface-2);
+.identity [data-color-dot] {
+  margin-right: var(--spacing-none);
 }
 
 .glyph {
@@ -23,7 +23,7 @@
   width: var(--category-glyph-size);
   height: var(--category-glyph-size);
   fill: none;
-  stroke: currentColor;
+  stroke: var(--text-secondary);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;

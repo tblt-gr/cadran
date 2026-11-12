@@ -21,7 +21,7 @@
   flex-direction: column;
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-  gap: var(--spacing-1-5);
+  gap: var(--spacing-2);
 }
 
 .grid input[aria-invalid='true'],
@@ -47,6 +47,20 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-4);
+}
+
+.content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.form[data-modal-form] {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
 }
 
 @media (max-width: 42rem) {

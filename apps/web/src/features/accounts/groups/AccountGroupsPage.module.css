@@ -9,8 +9,12 @@
     display: none;
   }
 
+  /* Its label hidden, the action is icon-only and takes the square shape every icon-only control has. */
   .add {
-    padding: var(--spacing-control-block) var(--spacing-3);
+    width: max(var(--icon-size-lg), var(--control-height));
+    height: max(var(--icon-size-lg), var(--control-height));
+    padding: var(--spacing-none);
+    border-radius: var(--radius-control);
   }
 }
 
@@ -33,8 +37,8 @@
 }
 
 .secondary[aria-pressed='true'] {
-  color: var(--gold-300);
-  border-color: var(--gold-300);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 @media (max-width: 63.999rem) {
@@ -46,6 +50,6 @@
     width: max(var(--icon-size-lg), var(--control-height));
     height: max(var(--icon-size-lg), var(--control-height));
     padding: var(--spacing-none);
-    border-radius: var(--radius-circle);
+    border-radius: var(--radius-control);
   }
 }

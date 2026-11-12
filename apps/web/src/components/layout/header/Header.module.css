@@ -1,33 +1,72 @@
-.header {
+/* The bar is pinned and shares its height and hairline with the sidebar brand row, so the two
+   read as one line across the window. */
+.bar {
   position: sticky;
   z-index: var(--z-header);
   top: 0;
   display: flex;
-  background: var(--bg-shell);
   align-items: center;
   justify-content: space-between;
   min-height: var(--header-height);
-  padding: var(--spacing-none) var(--spacing-6);
-  border-bottom: var(--border-none);
+  padding: var(--spacing-none) var(--spacing-8);
+  border-bottom: var(--border-line-subtle);
+  background: var(--bg-shell);
   gap: var(--spacing-6);
 }
 
-.header h1,
-.header p {
+.trail {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  min-width: 0;
+}
+
+/* Title on the left, the page's actions on the right of the same row, as in every dashboard. */
+.titleBlock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-width: 0;
+  padding: var(--spacing-6) var(--spacing-8) var(--spacing-none);
+  gap: var(--spacing-3) var(--spacing-6);
+}
+
+.titleText {
+  min-width: 0;
+}
+
+.titleBlock h1,
+.titleBlock p {
   margin: var(--spacing-none);
 }
 
-.header h1 {
-  margin-top: var(--spacing-0-5);
+.titleBlock h1 {
   color: var(--text-primary);
   font-size: var(--font-size-page-title);
   font-weight: var(--font-weight-heading);
   letter-spacing: var(--letter-spacing-title);
+  line-height: var(--line-height-context);
+  overflow-wrap: anywhere;
+}
+
+/* Route focus announces the page through this non-interactive heading; controls keep their ring. */
+.titleBlock h1:focus {
+  outline: var(--border-none);
 }
 
 .date {
+  margin-bottom: var(--spacing-1);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+.titleBlock .subtitle {
+  margin-top: var(--spacing-1);
   color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-body);
 }
 
 .actions,
@@ -37,61 +76,66 @@
 }
 
 .actions {
-  gap: var(--spacing-3);
+  flex-shrink: 0;
+  gap: var(--spacing-2);
 }
 
 .pageActions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 .pageActions:empty {
   display: none;
 }
 
+/* Freshness is meta, not an action: mono, muted, a single status dot. */
 .freshness {
-  min-height: 2.5rem;
-  padding: var(--spacing-none) var(--spacing-3);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-full);
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
+  min-height: var(--control-height);
+  padding: var(--spacing-none) var(--spacing-2);
+  border: var(--border-line-transparent);
+  border-radius: var(--radius-button);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
   gap: var(--spacing-2);
 }
 
 .freshnessAction {
   background: var(--color-transparent);
   cursor: pointer;
-  font: inherit;
-  font-size: var(--font-size-sm);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .freshnessAction:hover {
-  border-color: var(--border-strong);
   color: var(--text-primary);
+  background: var(--bg-surface-2);
 }
 
 .freshnessDot {
-  width: 0.45rem;
-  height: 0.45rem;
+  width: var(--color-mark-size);
+  height: var(--color-mark-size);
   border-radius: var(--radius-circle);
   background: var(--warning);
 }
 
 @media (max-width: 767px) {
-  /* The title keeps its own row when the page actions no longer fit beside it (four controls of
-     44 px on /transactions), instead of pushing them past the viewport. */
-  .header {
+  /* On a phone the bar is not pinned and wraps: the trail keeps its own row when the page actions
+     (four 44 px controls on /transactions) need the full width. */
+  .bar {
+    position: static;
     flex-wrap: wrap;
-    align-items: flex-start;
     min-height: var(--header-height-mobile);
-    padding: var(--spacing-4) var(--spacing-3);
+    padding: var(--spacing-2) var(--spacing-4);
+    gap: var(--spacing-2);
   }
 
   .actions {
+    max-width: 100%;
     margin-inline-start: var(--spacing-auto);
-    gap: var(--spacing-2);
   }
 
   .freshness {
@@ -99,12 +143,11 @@
   }
 
   .pageActions {
-    gap: var(--spacing-2);
+    flex-wrap: wrap;
   }
-}
 
-.header .subtitle {
-  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
+  .titleBlock {
+    align-items: center;
+    padding: var(--spacing-4) var(--spacing-4) var(--spacing-none);
+  }
 }

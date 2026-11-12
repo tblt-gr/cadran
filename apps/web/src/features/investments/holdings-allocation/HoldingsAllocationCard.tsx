@@ -91,43 +91,46 @@ export function HoldingsAllocationCard({
             {t('investments.allocation.notCalculable')}
           </p>
         )}
-        <div className={styles.tableScroll}>
-          <table>
-            <caption className="sr-only">{t('investments.allocation.caption')}</caption>
-            <thead>
-              <tr>
-                <th scope="col">{t('investments.allocation.label')}</th>
-                <th scope="col">{t('investments.allocation.amount')}</th>
-                <th scope="col">{t('investments.allocation.share')}</th>
-              </tr>
-            </thead>
-            {!holdings ? (
-              <SkeletonTableRows columns={3} rows={3} />
-            ) : (
-              <tbody>
-                {slices.map((slice) => (
-                  <tr key={slice.key}>
-                    <th scope="row">
-                      {criterion === 'byInstrument' && slice.key !== 'UNSPLIT' ? (
-                        <InstrumentLink instrument={{ id: slice.key, name: label(slice) }} />
-                      ) : (
-                        label(slice)
-                      )}
-                    </th>
-                    <td className="money">{money(slice.value)}</td>
-                    <td className="money">
-                      {slice.share === null ? (
-                        <EmptyValue label={t('investments.summary.notCalculable')} />
-                      ) : (
-                        formatRatioPercentage(slice.share, 'fr')
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            )}
-          </table>
-        </div>
+        {/* Nothing to list: the status above says so, an empty table would only repeat its head. */}
+        {holdings && slices.length === 0 ? null : (
+          <div className={styles.tableScroll}>
+            <table>
+              <caption className="sr-only">{t('investments.allocation.caption')}</caption>
+              <thead>
+                <tr>
+                  <th scope="col">{t('investments.allocation.label')}</th>
+                  <th scope="col">{t('investments.allocation.amount')}</th>
+                  <th scope="col">{t('investments.allocation.share')}</th>
+                </tr>
+              </thead>
+              {!holdings ? (
+                <SkeletonTableRows columns={3} rows={3} />
+              ) : (
+                <tbody>
+                  {slices.map((slice) => (
+                    <tr key={slice.key}>
+                      <th scope="row">
+                        {criterion === 'byInstrument' && slice.key !== 'UNSPLIT' ? (
+                          <InstrumentLink instrument={{ id: slice.key, name: label(slice) }} />
+                        ) : (
+                          label(slice)
+                        )}
+                      </th>
+                      <td className="money">{money(slice.value)}</td>
+                      <td className="money">
+                        {slice.share === null ? (
+                          <EmptyValue label={t('investments.summary.notCalculable')} />
+                        ) : (
+                          formatRatioPercentage(slice.share, 'fr')
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              )}
+            </table>
+          </div>
+        )}
       </div>
     </section>
   );

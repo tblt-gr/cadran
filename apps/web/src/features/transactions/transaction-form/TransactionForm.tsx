@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type {
   Account,
   CreateTransactionRequest,
@@ -149,7 +150,7 @@ export function TransactionForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <TransactionSubmitError
           accountId={resolved.accountId}
@@ -411,7 +412,7 @@ export function TransactionForm({
           {t(pending ? 'transactions.form.saving' : 'transactions.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }
 

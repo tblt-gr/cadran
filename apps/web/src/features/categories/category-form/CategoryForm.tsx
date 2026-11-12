@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
@@ -100,7 +101,7 @@ export function CategoryForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`categories.errors.${submitError}`)}
@@ -209,6 +210,6 @@ export function CategoryForm({
           {t(pending ? 'categories.form.saving' : 'categories.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

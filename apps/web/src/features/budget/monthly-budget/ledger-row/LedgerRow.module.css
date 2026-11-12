@@ -1,7 +1,6 @@
 .row {
   min-width: 0;
   border-top: var(--border-line-subtle);
-  border-inline-start: var(--border-width-loading) solid var(--color-transparent);
 }
 
 .summary {
@@ -90,7 +89,7 @@
   gap: var(--spacing-1);
   color: var(--text-primary);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-normal);
   overflow: hidden;
 }
 .labelText {
@@ -101,7 +100,8 @@
 }
 .meta {
   color: var(--text-muted);
-  font-size: var(--font-size-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
   font-weight: var(--font-weight-normal);
   white-space: nowrap;
 }

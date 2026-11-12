@@ -6,8 +6,8 @@ import { useDialogOverlay } from '@/hooks/use-dialog-overlay';
 import { type ModalIntent } from './modalIntent';
 import styles from './Modal.module.css';
 
-// Editing dialog checklist: pass an `intent` (its fixed action label), lay the fields out with
-// `FormGrid`, fold secondary fields in a `FormSection`, and end the form with `ModalActions`.
+// Editing dialogs use ModalForm so fields scroll without losing their native submit actions.
+// Lay fields out with FormGrid, fold secondary fields in FormSection and finish with ModalActions.
 interface ModalProps {
   children: ReactNode;
   close: () => void;

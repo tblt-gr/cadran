@@ -9,7 +9,7 @@
     "apps/web": {
       "entry": ["scripts/*.mjs"],
       "project": ["src/**/*.{ts,tsx}", "scripts/**/*.mjs"],
-      "ignoreDependencies": ["@fontsource-variable/inter"]
+      "ignoreDependencies": ["@fontsource-variable/inter", "@fontsource-variable/geist-mono"]
     },
     "packages/api-client": {
       "entry": ["src/*.test.ts"],

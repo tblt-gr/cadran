@@ -17,7 +17,8 @@
   display: flex;
   visibility: hidden;
   flex-direction: column;
-  font-size: var(--font-size-2xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -25,8 +26,9 @@
 .yTick {
   position: absolute;
   right: 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);
   text-align: right;
@@ -65,8 +67,9 @@
 
 .xTick {
   position: absolute;
-  color: var(--text-secondary);
-  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
   white-space: nowrap;
 }
@@ -108,7 +111,7 @@
   top: 0;
   bottom: 0;
   width: var(--border-width-thin);
-  background: var(--gold-soft);
+  background: var(--accent-soft);
   pointer-events: none;
   transform: translateX(-50%);
 }
@@ -118,7 +121,7 @@
   width: var(--spacing-2);
   height: var(--spacing-2);
   border-radius: var(--radius-circle);
-  background: var(--gold-300);
+  background: var(--accent);
   pointer-events: none;
   transform: translate(-50%, -50%);
 }
@@ -160,6 +163,7 @@
 .tooltipTitle {
   display: block;
   color: var(--text-secondary);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
 }
@@ -194,18 +198,18 @@
 }
 
 .areaTop {
-  stop-color: var(--gold-300);
+  stop-color: var(--accent);
   stop-opacity: 0.18;
 }
 
 .areaBottom {
-  stop-color: var(--gold-300);
+  stop-color: var(--accent);
   stop-opacity: 0;
 }
 
 .point {
-  fill: var(--gold-300);
-  stroke: var(--gold-300);
+  fill: var(--accent);
+  stroke: var(--accent);
   /* The plot is stretched to its container, so a radius in user units would be
      drawn as an ellipse. The stroke keeps its own scale and rounds it out. */
   stroke-width: 3;
@@ -214,7 +218,7 @@
 
 .line {
   fill: none;
-  stroke: var(--gold-300);
+  stroke: var(--accent);
   stroke-linecap: round;
   stroke-width: 1.75;
   /* The plot is stretched to its container, so the stroke keeps its own scale

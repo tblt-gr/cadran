@@ -4,6 +4,21 @@
   list-style: none;
 }
 
+.tree {
+  overflow: hidden;
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface-1);
+}
+
+.tree > .node > .row {
+  padding-inline: var(--spacing-4);
+}
+
+.skeletonContents {
+  display: contents;
+}
+
 .node .branch {
   padding-inline-start: var(--spacing-4);
   min-width: var(--spacing-none);

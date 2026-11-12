@@ -12,7 +12,7 @@
 .fill {
   height: 100%;
   border-radius: var(--radius-full);
-  background: var(--gold-300);
+  background: var(--accent);
 }
 .marker {
   position: absolute;

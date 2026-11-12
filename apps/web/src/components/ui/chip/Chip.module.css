@@ -6,8 +6,8 @@
   max-width: 100%;
   height: var(--control-height-compact);
   padding-inline: var(--spacing-3);
-  border: var(--border-line-strong);
-  border-radius: var(--radius-full);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-button);
   color: var(--text-secondary);
   background: var(--bg-surface-2);
   font-size: var(--font-size-label);
@@ -16,7 +16,7 @@
 
 .chip:hover {
   color: var(--text-primary);
-  border-color: var(--gold-500);
+  border-color: var(--border-strong);
 }
 
 .chip:focus-visible {

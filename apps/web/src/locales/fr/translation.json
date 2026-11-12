@@ -840,7 +840,7 @@
       "unauthorized": "Reconnectez-vous pour consulter les règles de ce compte.",
       "none": "Aucune règle en vigueur au {{date}} pour ce compte.",
       "declared": "Déclaré par l’espace de travail",
-      "noSource": "— Aucune publication : donnée déclarée",
+      "noSource": "Aucune publication : donnée déclarée",
       "yield": {
         "title": "Rendement",
         "guaranteed": "Taux garanti",
@@ -932,7 +932,7 @@
         "noPromisedYield": "Aucun rendement promis : la valeur de ce compte dépend des actifs détenus, pas d’un taux du catalogue.",
         "group": "Groupe patrimonial",
         "counted": "Compté dans le patrimoine net",
-        "notProvided": "— Non renseigné",
+        "notProvided": "Non renseigné",
         "withoutProduct": "Ce compte n’hérite d’aucune règle : aucun produit du catalogue ne lui est rattaché.",
         "confirm": "Créer le compte",
         "ceilingBases": {
@@ -997,7 +997,7 @@
       },
       "identity": {
         "title": "Identité",
-        "noInstitution": "—",
+        "noInstitution": "-",
         "product": "Origine",
         "manual": "Décrit à la main, sans produit ni modèle",
         "productLoading": "Chargement de l’origine…",
@@ -1717,8 +1717,8 @@
       "percentValue": "{{value}} %",
       "openPeriod": "Depuis le {{from}}",
       "closedPeriod": "Du {{from}} au {{to}}",
-      "unavailable": "— Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
-      "unknownValue": "— Valeur non renseignée",
+      "unavailable": "Non disponible au {{date}} : aucune valeur sourcée pour cette date.",
+      "unknownValue": "Valeur non renseignée",
       "none": "Aucune règle sourcée au {{date}} pour ce produit.",
       "disclosure": "Règles et sources"
     },
@@ -1731,7 +1731,7 @@
       "UNVERIFIED": "Non vérifiée"
     },
     "source": {
-      "trace": "{{publisher}} — consultée le {{retrieved}}"
+      "trace": "{{publisher}}, consultée le {{retrieved}}"
     },
     "pagination": {
       "label": "Pagination du catalogue produits",
@@ -1958,8 +1958,8 @@
       "title": "Périodes de « {{name}} »",
       "caption": "Périodes datées enregistrées pour {{name}}",
       "none": "Ce modèle ne porte encore aucune période datée.",
-      "noMode": "—",
-      "noValue": "—",
+      "noMode": "-",
+      "noValue": "-",
       "columns": {
         "rule": "Règle",
         "value": "Valeur",
@@ -2386,7 +2386,7 @@
       "openActions": "Actions de la transaction « {{label}} »",
       "categorised": "Catégorisée",
       "toCategorise": "À catégoriser",
-      "noCounterparty": "—",
+      "noCounterparty": "-",
       "unknownAccount": "Compte indisponible",
       "splitCount_one": "Répartie en {{count}} catégorie",
       "splitCount_other": "Répartie en {{count}} catégories",
@@ -2541,7 +2541,7 @@
       "equalLabel": "Parts égales",
       "axesTitle": "Axes analytiques",
       "axesNone": "aucun",
-      "axesInherited": "{{axes}} — ceux de la catégorie",
+      "axesInherited": "{{axes}} : ceux de la catégorie",
       "axesInheritedUnknown": "ceux de la catégorie",
       "axesReset": "Revenir aux axes de la catégorie",
       "summary": "Répartition",

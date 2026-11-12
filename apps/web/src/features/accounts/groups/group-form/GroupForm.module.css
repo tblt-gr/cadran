@@ -21,7 +21,7 @@
 .fields input {
   min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-3);
-  border: var(--border-line-strong);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-primary);
   background: var(--bg-surface-2);

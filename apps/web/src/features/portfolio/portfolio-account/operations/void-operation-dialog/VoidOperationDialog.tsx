@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState, type FormEvent } from 'react';
@@ -30,7 +31,7 @@ export function VoidOperationDialog({
   }
 
   return (
-    <form className={styles.dialog} noValidate onSubmit={submit}>
+    <ModalForm className={styles.dialog} noValidate onSubmit={submit}>
       {type === 'SWITCH' ? (
         <p>L’arbitrage entier sera annulé : supports vendus et achetés.</p>
       ) : null}
@@ -70,6 +71,6 @@ export function VoidOperationDialog({
           {pending ? 'Annulation…' : 'Annuler l’opération'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

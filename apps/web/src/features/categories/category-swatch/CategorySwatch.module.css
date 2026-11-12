@@ -2,16 +2,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: var(--category-glyph-size);
+  height: var(--category-glyph-size);
   flex: 0 0 auto;
+}
+
+.swatch [data-color-dot] {
+  margin-right: var(--spacing-none);
 }
 
 .glyph {
   width: var(--category-glyph-size);
   height: var(--category-glyph-size);
   fill: none;
-  stroke: currentColor;
+  stroke: var(--text-secondary);
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;

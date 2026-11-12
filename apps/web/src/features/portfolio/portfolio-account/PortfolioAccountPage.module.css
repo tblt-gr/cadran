@@ -34,8 +34,8 @@
    :where() keeps it a default that a table's own module can still refine. */
 .page :where(thead th) {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 .page :where(tbody th) {
   color: var(--text-primary);

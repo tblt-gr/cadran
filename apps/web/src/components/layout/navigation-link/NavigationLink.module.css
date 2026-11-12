@@ -3,19 +3,20 @@
   align-items: center;
   min-width: 0;
   min-height: var(--navigation-link-height);
-  padding: var(--spacing-control-block) var(--spacing-3);
-  border: var(--border-none);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: var(--border-line-transparent);
   border-radius: var(--radius-control);
   color: var(--text-secondary);
   background: var(--color-transparent);
   font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
   text-decoration: none;
   cursor: pointer;
   gap: var(--spacing-3);
   transition:
     color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 .link:hover,
@@ -25,10 +26,14 @@
 
 .link:hover {
   color: var(--text-primary);
-  background: var(--bg-surface-2);
+  background: var(--bg-surface-1);
 }
 
+/* The current page is one surface step up with a hairline; its label turns white. The shape,
+   not a colour, says where you are. */
 .link[aria-current='page'] {
-  color: var(--gold-300);
-  background: var(--color-transparent);
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+  background: var(--bg-selected);
+  box-shadow: none;
 }

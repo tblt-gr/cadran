@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -35,7 +36,7 @@ export function ReopenPeriodForm({
   }
 
   return (
-    <form className={styles.form} onSubmit={submit}>
+    <ModalForm className={styles.form} onSubmit={submit}>
       <p className={styles.note}>{t('closures.reopen.intro')}</p>
       <label className={styles.reason}>
         <span>{t('closures.reopen.reason')}</span>
@@ -59,6 +60,6 @@ export function ReopenPeriodForm({
           {t('closures.reopen.submit')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

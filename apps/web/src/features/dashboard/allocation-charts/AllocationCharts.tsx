@@ -1,4 +1,4 @@
-import { groupColor, groupColorInk } from '@/features/accounts/group-color';
+import { groupColor } from '@/features/accounts/group-color';
 import type {
   NetWorthAllocationEntry,
   NetWorthAmount,
@@ -122,6 +122,8 @@ function TreemapTile(node: {
   return (
     <g>
       {slice !== null ? <title>{slice.path}</title> : null}
+      {/* The group colour tints the tile and draws its top edge; the label stays in the text ramp,
+          so a saturated group never outshouts the wealth curve and every label keeps AA. */}
       <rect
         className={styles.tile}
         fill={groupColor(slice?.fill)}
@@ -130,19 +132,26 @@ function TreemapTile(node: {
         x={node.x}
         y={node.y}
       />
+      <line
+        className={styles.tileEdge}
+        stroke={groupColor(slice?.fill)}
+        x1={node.x}
+        x2={node.x + node.width}
+        y1={node.y + 1}
+        y2={node.y + 1}
+      />
       {node.width > 48 && node.height > 24 ? (
-        <text
-          fill={groupColorInk(slice?.fill)}
-          className={styles.tileLabel}
-          x={node.x + 8}
-          y={node.y + 16}
-        >
-          {node.name}
-          {slice?.parentLabel ? (
-            <tspan className={styles.tileParent}>{` (${slice.parentLabel})`}</tspan>
-          ) : null}
-          {percent ? ` · ${percent}` : ''}
-        </text>
+        // A nested viewport clips the label to its own tile: tiles are translucent, so a long
+        // label would otherwise show through its neighbour.
+        <svg height={node.height} overflow="hidden" width={node.width} x={node.x} y={node.y}>
+          <text fill="var(--text-primary)" className={styles.tileLabel} x={8} y={18}>
+            {node.name}
+            {slice?.parentLabel ? (
+              <tspan className={styles.tileParent}>{` (${slice.parentLabel})`}</tspan>
+            ) : null}
+            {percent ? ` · ${percent}` : ''}
+          </text>
+        </svg>
       ) : null}
     </g>
   );

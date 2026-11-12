@@ -190,12 +190,19 @@ describe('TransactionsPage', () => {
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('button', { name: 'Édition groupée' })).toHaveLength(1);
+    expect(
+      (screen.getByRole('button', { name: 'Édition groupée' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveTransactions?.({
       data: { items: [transaction], nextCursor: null },
       response: new Response('{}', { status: 200 }),
     });
     expect(await screen.findByText(transaction.rawLabel)).toBeTruthy();
+    expect(
+      (screen.getByRole('button', { name: 'Édition groupée' }) as HTMLButtonElement).disabled,
+    ).toBe(false);
     expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
 
     api.listTransactions.mockImplementation(() => new Promise(() => undefined));

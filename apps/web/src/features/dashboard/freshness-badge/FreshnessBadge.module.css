@@ -1,7 +1,7 @@
 .action {
   padding: var(--spacing-none);
   border: var(--border-none);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   background: var(--color-transparent);
   cursor: pointer;
   font: inherit;

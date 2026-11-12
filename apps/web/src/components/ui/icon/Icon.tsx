@@ -16,6 +16,7 @@ type IconName =
   | 'check-circle'
   | 'clock'
   | 'categories'
+  | 'chevron-down'
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
@@ -45,6 +46,7 @@ type IconName =
   | 'rules'
   | 'search'
   | 'settings'
+  | 'sidebar'
   | 'sliders'
   | 'tax'
   | 'transfer'
@@ -106,6 +108,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="m6 6 12 12M18 6 6 18" />;
     case 'copy':
       return <path d="M8 8h11v11H8zM5 16V5h11" />;
+    case 'chevron-down':
+      return <path d="m6 9 6 6 6-6" />;
     case 'chevron-left':
       return <path d="m15 5-7 7 7 7" />;
     case 'chevron-right':
@@ -170,10 +174,14 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M12 4a8 8 0 1 0 8 8h-8Z" />;
     case 'treemap':
       return <path d="M4 4h16v16H4Zm0 7h16M12 11v9" />;
+    case 'sidebar':
+      return (
+        <path d="M6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm3 0v16" />
+      );
   }
 }
 
-export function Icon({ name, size = 20 }: IconProps) {
+export function Icon({ name, size = 18 }: IconProps) {
   if (name === 'more') {
     return (
       <svg
@@ -198,7 +206,7 @@ export function Icon({ name, size = 20 }: IconProps) {
       viewBox="0 0 24 24"
       width={size}
     >
-      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7">
+      <g stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5">
         <IconPath name={name} />
       </g>
     </svg>

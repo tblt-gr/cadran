@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -32,7 +33,7 @@ export function EuroFundRateForm({
   const [sourceNote, setSourceNote] = useState('');
   const [advancedOpen, setAdvancedOpen] = useState(false);
   return (
-    <form
+    <ModalForm
       className={styles.form}
       onSubmit={(e) => {
         e.preventDefault();
@@ -124,6 +125,6 @@ export function EuroFundRateForm({
           {pending ? 'Enregistrement…' : 'Enregistrer le taux'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

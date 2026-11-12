@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -12,7 +13,7 @@ import styles from './ValuationForm.module.css';
  */
 export function ValuationDraftSkeleton({ loading = true }: { loading?: boolean }) {
   return (
-    <form
+    <ModalForm
       aria-busy={loading || undefined}
       className={styles.form}
       onSubmit={(event) => event.preventDefault()}
@@ -48,6 +49,6 @@ export function ValuationDraftSkeleton({ loading = true }: { loading?: boolean }
           Enregistrer
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

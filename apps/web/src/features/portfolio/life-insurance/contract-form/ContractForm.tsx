@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -39,7 +40,7 @@ export function ContractForm({
     ),
   );
   return (
-    <form
+    <ModalForm
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault();
@@ -169,6 +170,6 @@ export function ContractForm({
           {pending ? 'Enregistrement…' : 'Enregistrer'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

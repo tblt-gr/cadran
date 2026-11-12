@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { getTransaction, reconcileTransaction, type Transaction } from '@cadran/api-client';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -83,7 +84,7 @@ export function PendingReconciliation({
           </button>
         </div>
       ) : null}
-      <form
+      <ModalForm
         className={styles.form}
         onSubmit={(event) => {
           event.preventDefault();
@@ -135,7 +136,7 @@ export function PendingReconciliation({
             {t('transactions.workflow.confirmReconcile')}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

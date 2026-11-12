@@ -2,6 +2,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
+  padding: var(--spacing-6);
 }
 .card h3,
 .card p,
@@ -11,7 +12,7 @@
 .explain h3 {
   color: var(--text-primary);
   font-size: var(--font-size-card-title);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
 }
 .heading {
   display: flex;
@@ -27,8 +28,8 @@
 }
 .card h3 {
   color: var(--text-primary);
-  font-size: var(--font-size-brand);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-card);
 }
 .position {
@@ -185,7 +186,7 @@
   font-size: var(--font-size-body);
 }
 .radios input {
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }
 .categories {
   display: flex;

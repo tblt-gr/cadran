@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
@@ -107,7 +108,7 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`categorizationRules.errors.${submitError}`)}
@@ -199,6 +200,6 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
           {t(pending ? 'categorizationRules.form.saving' : 'categorizationRules.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

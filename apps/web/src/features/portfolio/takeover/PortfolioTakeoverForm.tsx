@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { PortfolioTakeoverRequest } from '@cadran/api-client';
 import { useMemo, useState, type FormEvent } from 'react';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -77,7 +78,7 @@ export function PortfolioTakeoverForm({
   const validDate = /^\d{4}-\d{2}-\d{2}$/.test(values.takenOverOn);
   const previewLines = preview.data?.lines;
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {saveMessage ? (
         <p className={styles.alert} role="alert">
           {saveMessage}
@@ -152,6 +153,6 @@ export function PortfolioTakeoverForm({
           {pending ? 'Enregistrement…' : 'Enregistrer la reprise'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { Transfer, UpdateTransferRequest } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +38,7 @@ export function TransferUpdateForm({
     transfer?.source.state === 'PENDING' ? 'PENDING' : 'BOOKED',
   );
   return (
-    <form
+    <ModalForm
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault();
@@ -134,17 +135,26 @@ export function TransferUpdateForm({
             </>
           ) : null}
         </FormGrid>
-        <ModalActions>
-          {voiding ? (
-            <button className="secondary-action" onClick={onCancel} type="button">
-              {t('actions.cancel')}
-            </button>
-          ) : null}
-          <button className="primary-action" type="submit">
-            {t(voiding ? 'transactions.workflow.confirmVoidTransfer' : 'transactions.form.save')}
-          </button>
-        </ModalActions>
       </fieldset>
-    </form>
+      <ModalActions>
+        {voiding ? (
+          <button
+            className="secondary-action"
+            disabled={transfer === null || pending || transfer.voidedAt !== null}
+            onClick={onCancel}
+            type="button"
+          >
+            {t('actions.cancel')}
+          </button>
+        ) : null}
+        <button
+          className="primary-action"
+          disabled={transfer === null || pending || transfer.voidedAt !== null}
+          type="submit"
+        >
+          {t(voiding ? 'transactions.workflow.confirmVoidTransfer' : 'transactions.form.save')}
+        </button>
+      </ModalActions>
+    </ModalForm>
   );
 }

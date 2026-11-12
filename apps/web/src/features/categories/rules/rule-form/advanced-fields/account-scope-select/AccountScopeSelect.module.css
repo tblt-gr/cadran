@@ -62,7 +62,7 @@
   border: var(--border-line-strong);
   border-radius: var(--radius-control);
   background: var(--bg-surface-2);
-  box-shadow: var(--shadow-sheet);
+  box-shadow: var(--shadow-popover);
 }
 
 .panel[hidden] {
@@ -89,7 +89,7 @@
   width: 1rem;
   height: 1rem;
   margin: var(--spacing-none);
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }
 
 .clear {

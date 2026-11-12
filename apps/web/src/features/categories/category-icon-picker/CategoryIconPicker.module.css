@@ -26,7 +26,7 @@
   min-width: 0;
   min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-3);
-  border: var(--border-line-strong);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-primary);
   background: var(--bg-surface-2);
@@ -63,9 +63,9 @@
 /* The selected state is a border and an ink change, never a fill alone, so the
    grid stays readable for anyone who does not perceive the accent. */
 .cell input:checked + .box {
-  border-color: var(--gold-300);
-  color: var(--gold-200);
-  background: var(--gold-soft);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: var(--accent-soft);
 }
 
 /* Focus lands on a visually hidden radio, so the ring is drawn on its cell. */

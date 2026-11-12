@@ -9,5 +9,5 @@
 }
 
 .mode[aria-pressed='true'] {
-  color: var(--gold-300);
+  color: var(--accent);
 }

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -48,7 +49,7 @@ export function ActivateMetricPolicyModal({
       intent="confirm"
       title={t('metricPolicy.activate.title', { version: target.version })}
     >
-      <form className={styles.form} onSubmit={handleSubmit}>
+      <ModalForm className={styles.form} onSubmit={handleSubmit}>
         {error ? (
           <p className={styles.error} role="alert">
             {t(`metricPolicy.errors.${error}`)}
@@ -94,7 +95,7 @@ export function ActivateMetricPolicyModal({
             {t('metricPolicy.activate.submit')}
           </button>
         </ModalActions>
-      </form>
+      </ModalForm>
     </Modal>
   );
 }

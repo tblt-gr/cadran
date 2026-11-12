@@ -1,4 +1,5 @@
 .panel {
+  padding: var(--spacing-none);
   overflow: hidden;
 }
 
@@ -21,10 +22,8 @@
 
 .panel thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .panel tbody th {
@@ -60,6 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--spacing-4);
   gap: var(--spacing-2);
 }
 
@@ -106,6 +106,7 @@
 }
 
 .empty {
+  padding: var(--spacing-none) var(--spacing-4) var(--spacing-4);
   color: var(--text-muted);
 }
 
@@ -154,10 +155,8 @@
   .panel tbody td::before {
     content: attr(data-label);
     color: var(--text-muted);
-    font-size: var(--font-size-xs);
-    font-weight: var(--font-weight-bold);
-    letter-spacing: var(--letter-spacing-card);
-    text-transform: uppercase;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-medium);
   }
 }
 
@@ -176,11 +175,4 @@
 .panel tbody a:focus-visible {
   color: var(--text-primary);
   text-decoration: underline;
-}
-
-.panel tbody tr {
-  border-inline-start: var(--border-width-loading) solid var(--color-transparent);
-}
-.panel tbody tr.groupRow {
-  border-inline-start-color: var(--text-muted);
 }

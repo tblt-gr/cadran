@@ -50,10 +50,18 @@
 }
 
 /* Same place whether the mode is on or off; its pressed colour comes from `.icon-ghost`. */
+/* The icon control size of the toolbar beside it; a coarse pointer gets 44 px from the primitive. */
 button.pen {
-  width: var(--touch-target-min);
-  height: var(--touch-target-min);
-  border-radius: var(--radius-circle);
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  border-radius: var(--radius-control);
+}
+
+@media (pointer: coarse) {
+  button.pen {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+  }
 }
 
 button.penInline {

@@ -34,10 +34,8 @@
 .choices legend {
   padding: var(--spacing-none);
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .group {
@@ -78,7 +76,7 @@
 }
 
 .choice:has(input:checked) {
-  border-color: var(--gold-300);
+  border-color: var(--accent);
 }
 
 .choice > span {
@@ -95,8 +93,8 @@
 
 .choice small {
   color: var(--text-muted);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-body);
 }
 
 .badges {

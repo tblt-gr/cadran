@@ -71,7 +71,7 @@
   height: var(--font-size-body);
 }
 
-/* Icon-only buttons stay circular; icon-ghost supplies the borderless, transparent look. */
+/* icon-ghost supplies the borderless, transparent look of an icon-only button. */
 .pie {
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-control);
 }

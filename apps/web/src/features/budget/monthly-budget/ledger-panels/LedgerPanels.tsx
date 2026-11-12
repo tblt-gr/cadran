@@ -5,6 +5,7 @@ import type {
 } from '@cadran/api-client';
 import { compareDecimalString } from '@/lib/tableSort';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { BudgetCreationDraft } from '@/features/budget/monthly-budget/budget-creation-modals/BudgetCreationModals';
 import { LedgerPanel } from '@/features/budget/monthly-budget/ledger-panel/LedgerPanel';
@@ -87,10 +88,12 @@ export function LedgerPanels({
         {uncategorizedCount !== null && uncategorizedCount > 0 ? (
           <p>
             <a
+              className={styles.queue}
               href={uncategorizedHref(month)}
               onClick={(event) => handleClientNavigation(event, uncategorizedHref(month))}
             >
               {t('budget.monthly.uncategorized', { count: uncategorizedCount })}
+              <Icon name="chevron-right" size={14} />
             </a>
           </p>
         ) : null}

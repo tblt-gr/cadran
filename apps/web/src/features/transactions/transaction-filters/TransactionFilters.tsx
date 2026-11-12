@@ -25,6 +25,8 @@ interface TransactionFiltersProps {
   accounts: Account[];
   /** True while the account list is loading: the account section shows skeleton rows. */
   accountsPending?: boolean;
+  /** List actions share the search row; bulk controls may wrap to a full line below it. */
+  actions?: ReactNode;
   /** The list column: stepper, tabs and the transactions themselves. */
   children?: ReactNode;
   /** Renders every control inert while the list is first loading. */
@@ -51,6 +53,7 @@ export function TransactionFilters({
   accountLocked = false,
   accounts,
   accountsPending = false,
+  actions,
   children,
   disabled = false,
   facetsRequest,
@@ -183,6 +186,7 @@ export function TransactionFilters({
                 </span>
               ) : null}
             </button>
+            {actions}
           </div>
 
           <ActiveFilterChips chips={chips} onReset={onReset} />

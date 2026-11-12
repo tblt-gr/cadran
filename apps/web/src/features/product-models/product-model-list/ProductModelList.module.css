@@ -1,4 +1,5 @@
 .panel {
+  padding: var(--spacing-none);
   overflow: hidden;
 }
 
@@ -21,10 +22,8 @@
 
 .panel thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
-  letter-spacing: var(--letter-spacing-card);
-  text-transform: uppercase;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .panel tbody th {

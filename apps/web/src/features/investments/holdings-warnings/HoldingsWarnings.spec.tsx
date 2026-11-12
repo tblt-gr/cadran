@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
 import { holdingsFixture } from '@/features/investments/holdingsFixture';
@@ -22,6 +22,9 @@ describe('HoldingsWarnings', () => {
     ).toBeTruthy();
     expect(screen.getByText('Certains cours datent de plus de 7 jours.')).toBeTruthy();
     expect(screen.getByText('Seuls les 50 premiers comptes sont agrégés.')).toBeTruthy();
+    const announcements = within(screen.getByRole('status'));
+    expect(announcements.getByRole('list').tagName).toBe('UL');
+    expect(announcements.getAllByRole('listitem')).toHaveLength(3);
     // The mixed dates are told by the date line of the summary, not as a second warning.
     expect(screen.queryByText(/MIXED_VALUATION_DATES/)).toBeNull();
   });

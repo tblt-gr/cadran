@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type {
@@ -111,7 +112,7 @@ export function RecurrenceForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       <p className={styles.forecast}>{t('recurrences.form.forecast')}</p>
       {submitError ? (
         <p className={styles.alert} role="alert">
@@ -283,6 +284,6 @@ export function RecurrenceForm({
           {t(pending ? 'recurrences.form.saving' : 'recurrences.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

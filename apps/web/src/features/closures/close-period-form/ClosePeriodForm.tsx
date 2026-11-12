@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   ClosePeriodRequest,
@@ -74,7 +75,7 @@ export function ClosePeriodForm({
   }
 
   return (
-    <form className={styles.form} onSubmit={submit}>
+    <ModalForm className={styles.form} onSubmit={submit}>
       {blockers.length === 0 ? (
         <p className={styles.note}>{t('closures.close.noBlockers')}</p>
       ) : (
@@ -124,6 +125,6 @@ export function ClosePeriodForm({
           {t('closures.close.submit')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

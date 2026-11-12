@@ -25,7 +25,7 @@
 .remove {
   width: var(--control-height);
   height: var(--control-height);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-control);
   justify-self: end;
 }
 @media (max-width: 42rem) {

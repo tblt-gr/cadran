@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type {
   Account,
   CreateTransactionRequest,
@@ -63,7 +64,7 @@ export function RefundEditForm({
         account.assetCode === transaction.amount.assetCode),
   );
   return (
-    <form
+    <ModalForm
       className={styles.form}
       noValidate
       onSubmit={(event) => {
@@ -146,6 +147,6 @@ export function RefundEditForm({
           {t(pending ? 'transactions.form.saving' : 'transactions.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

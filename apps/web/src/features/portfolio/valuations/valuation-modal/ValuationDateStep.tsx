@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { FormEvent } from 'react';
@@ -22,7 +23,7 @@ export function ValuationDateStep({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       <FormGrid>
         <BusinessDateField
           hint="Les positions et les espèces sont celles détenues à cette date."
@@ -38,6 +39,6 @@ export function ValuationDateStep({
           Continuer
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

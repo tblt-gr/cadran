@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { AccountReconciliation, AccountReconciliationResolution } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
@@ -42,7 +43,7 @@ export function ResolutionForm({ pending, reconciliation, onSubmit }: Resolution
   }
 
   return (
-    <form className={styles.form} onSubmit={submit}>
+    <ModalForm className={styles.form} onSubmit={submit}>
       <fieldset className={styles.choices}>
         <legend>{t('accounts.reconciliation.resolution.legend')}</legend>
         {CHOICES.map((value) => (
@@ -100,6 +101,6 @@ export function ResolutionForm({ pending, reconciliation, onSubmit }: Resolution
           {t(pending ? 'accounts.reconciliation.reconciling' : 'accounts.reconciliation.reconcile')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

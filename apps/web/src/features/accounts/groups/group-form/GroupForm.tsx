@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
@@ -70,7 +71,7 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`accountGroups.errors.${submitError}`)}
@@ -109,6 +110,6 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
           {t(pending ? 'accountGroups.form.saving' : 'accountGroups.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Instrument } from '@cadran/api-client';
 import styles from './InstrumentStatusDialog.module.css';
@@ -16,7 +17,7 @@ export function InstrumentStatusDialog({
 }) {
   const archive = instrument.status === 'ACTIVE';
   return (
-    <form
+    <ModalForm
       className={styles.dialog}
       onSubmit={(event) => {
         event.preventDefault();
@@ -39,6 +40,6 @@ export function InstrumentStatusDialog({
           {pending ? 'Enregistrement…' : error ? 'Réessayer' : archive ? 'Archiver' : 'Réactiver'}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

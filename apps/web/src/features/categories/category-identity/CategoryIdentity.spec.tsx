@@ -2,41 +2,31 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { CategoryIdentity } from './CategoryIdentity';
 
-function pill(container: HTMLElement) {
+function tag(container: HTMLElement) {
   return container.firstElementChild as HTMLElement;
 }
 
 describe('CategoryIdentity', () => {
   afterEach(cleanup);
 
-  it('fills the pill with the canonical colour and derives a readable ink', () => {
+  it('strokes the glyph with the canonical colour and keeps the label in the interface ink', () => {
     const { container } = render(
       <CategoryIdentity color="#aabbcc" icon="utensils" label="Restaurants" />,
     );
 
     expect(screen.getByText('Restaurants')).toBeTruthy();
     expect(container.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
-    expect(pill(container).style.background).toBe('rgb(170, 187, 204)');
-    expect(pill(container).style.color).toBe('rgb(11, 11, 12)');
+    expect(container.querySelector('path')?.getAttribute('stroke')).toBe('#AABBCC');
+    expect(tag(container).getAttribute('data-color')).toBe('#AABBCC');
+    expect(container.querySelector('[style]')).toBeNull();
   });
 
-  it('switches to light ink on a dark fill', () => {
+  it('marks a colour without a glyph with a dot', () => {
     const { container } = render(<CategoryIdentity color="#2E7D32" label="Courses" />);
 
-    expect(pill(container).style.color).toBe('rgb(255, 255, 255)');
-  });
-
-  // The fill is the owner's free choice, so nothing but the computed ink keeps
-  // the label readable on a mid-tone colour.
-  it.each([
-    ['#FFFFFF', 'rgb(11, 11, 12)'],
-    ['#000000', 'rgb(255, 255, 255)'],
-    ['#808080', 'rgb(11, 11, 12)'],
-    ['#595959', 'rgb(255, 255, 255)'],
-  ])('decides the ink of %s by contrast ratio', (color, ink) => {
-    const { container } = render(<CategoryIdentity color={color} label="Courses" />);
-
-    expect(pill(container).style.color).toBe(ink);
+    expect(container.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe(
+      '#2E7D32',
+    );
   });
 
   it.each([
@@ -56,13 +46,14 @@ describe('CategoryIdentity', () => {
     expect(container.innerHTML).not.toContain('https://evil');
   });
 
-  it.each([null, '#FFF', '#12345678', '#AABBCC\n', 'red', 'var(--gold-300)', '#000000;stroke:red'])(
-    'renders the neutral pill for noncanonical colour input %s',
+  it.each([null, '#FFF', '#12345678', '#AABBCC\n', 'red', 'var(--accent)', '#000000;stroke:red'])(
+    'draws no colour mark for noncanonical colour input %s',
     (color) => {
       const { container } = render(<CategoryIdentity color={color} label="Restaurants" />);
 
       expect(container.querySelector('[style]')).toBeNull();
-      expect(pill(container).className).toContain('neutral');
+      expect(tag(container).hasAttribute('data-color')).toBe(false);
+      expect(container.querySelector('[data-color-dot]')).toBeNull();
       expect(screen.getByText('Restaurants')).toBeTruthy();
     },
   );

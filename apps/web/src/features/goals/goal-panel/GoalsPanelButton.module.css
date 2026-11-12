@@ -22,7 +22,7 @@ button.button:hover:not(:disabled) {
   display: block;
   height: 100%;
   border-radius: var(--radius-full);
-  background: var(--gold-300);
+  background: var(--accent);
 }
 
 .count {

@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { ProductModel, ProductModelRuleInput, ProductRuleKind } from '@cadran/api-client';
 import { useState } from 'react';
@@ -53,7 +54,7 @@ export function AddPeriodForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`productModels.errors.${submitError}`)}
@@ -75,6 +76,6 @@ export function AddPeriodForm({
           {t(pending ? 'productModels.period.recording' : 'productModels.period.record')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

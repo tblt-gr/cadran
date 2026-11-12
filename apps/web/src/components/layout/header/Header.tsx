@@ -4,6 +4,8 @@ import styles from './Header.module.css';
 
 interface HeaderProps {
   accountSlot?: ReactNode;
+  /** Where the page sits; rendered on the left of the bar, which stays pinned while the page scrolls. */
+  breadcrumb?: ReactNode;
   freshnessLabel?: string;
   headerDate?: string;
   /** Present when the label names a problem the user can open and fix. */
@@ -14,8 +16,13 @@ interface HeaderProps {
   subtitle?: string;
 }
 
+/**
+ * Two rows: a thin bar pinned to the top (where the page is, how fresh the data is, the account)
+ * and the title row below it, which carries the page's own actions and scrolls with the content.
+ */
 export function Header({
   accountSlot,
+  breadcrumb,
   freshnessLabel,
   headerDate,
   onFreshnessClick,
@@ -26,38 +33,43 @@ export function Header({
   const setActionsSlot = useHeaderActionsSlot();
 
   return (
-    <header className={styles.header}>
-      <div>
-        {headerDate ? (
-          <p className={styles.date} data-visual-mask>
-            {headerDate}
-          </p>
-        ) : null}
-        <h1 ref={titleRef} tabIndex={-1}>
-          {title}
-        </h1>
-        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
-      </div>
-      <div className={styles.actions}>
-        {freshnessLabel && onFreshnessClick ? (
-          <button
-            className={`${styles.freshness} ${styles.freshnessAction}`}
-            data-visual-mask
-            onClick={onFreshnessClick}
-            type="button"
-          >
-            <span className={styles.freshnessDot} />
-            {freshnessLabel}
-          </button>
-        ) : freshnessLabel ? (
-          <span className={styles.freshness} data-visual-mask>
-            <span className={styles.freshnessDot} />
-            {freshnessLabel}
-          </span>
-        ) : null}
+    <>
+      <header className={styles.bar}>
+        <div className={styles.trail}>{breadcrumb}</div>
+        <div className={styles.actions}>
+          {freshnessLabel && onFreshnessClick ? (
+            <button
+              className={`${styles.freshness} ${styles.freshnessAction}`}
+              data-visual-mask
+              onClick={onFreshnessClick}
+              type="button"
+            >
+              <span className={styles.freshnessDot} />
+              {freshnessLabel}
+            </button>
+          ) : freshnessLabel ? (
+            <span className={styles.freshness} data-visual-mask>
+              <span className={styles.freshnessDot} />
+              {freshnessLabel}
+            </span>
+          ) : null}
+          {accountSlot}
+        </div>
+      </header>
+      <div className={styles.titleBlock}>
+        <div className={styles.titleText}>
+          {headerDate ? (
+            <p className={styles.date} data-visual-mask>
+              {headerDate}
+            </p>
+          ) : null}
+          <h1 ref={titleRef} tabIndex={-1}>
+            {title}
+          </h1>
+          {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+        </div>
         <div className={styles.pageActions} ref={setActionsSlot} />
-        {accountSlot}
       </div>
-    </header>
+    </>
   );
 }

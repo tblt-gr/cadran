@@ -31,13 +31,13 @@
   align-items: center;
   justify-content: center;
   border: var(--border-line-subtle);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-small);
   font-size: var(--font-size-xs);
 }
 
 .steps li[aria-current='step'] .rank {
-  border-color: var(--gold-300);
-  color: var(--gold-300);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* The position is spelled out for anyone who cannot see the marker treatment. */

@@ -1,11 +1,11 @@
 .badge {
   display: inline-flex;
   align-items: center;
-  min-height: 1.75rem;
-  padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-full);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  min-height: var(--control-height-compact);
+  padding: var(--spacing-0-5) var(--spacing-2);
+  border-radius: var(--radius-small);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   gap: var(--spacing-1);
 }

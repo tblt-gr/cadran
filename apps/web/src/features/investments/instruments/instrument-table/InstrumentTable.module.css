@@ -1,4 +1,5 @@
 .panel {
+  padding: var(--spacing-none);
   overflow: hidden;
 }
 .scroll {
@@ -18,8 +19,8 @@
 }
 .panel thead th {
   color: var(--text-muted);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 .panel tbody th {
   min-width: 13rem;

@@ -41,7 +41,7 @@
   font-size: var(--font-size-body);
 }
 .radios input {
-  accent-color: var(--gold-300);
+  accent-color: var(--accent);
 }
 .list {
   display: flex;

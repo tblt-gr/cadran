@@ -3,43 +3,55 @@
 
   /* Colors */
   --color-transparent: transparent;
-  --bg-page: #000000;
-  --bg-shell: #000000;
-  --bg-sidebar: #050506;
-  --bg-surface-1: #0e0e0f;
-  --bg-surface-2: #181818;
-  --bg-surface-hover: #1c1c1e;
-  --bg-mobile-navigation: #0a0a0a;
-  --border-subtle: #212122;
-  --border-strong: rgba(255, 255, 255, 0.18);
-  --chart-grid: rgba(255, 255, 255, 0.04);
-  --gold-200: #f7d4a3;
-  --gold-300: #f1c086;
-  --gold-500: #c8a070;
-  --gold-soft: rgba(241, 192, 134, 0.14);
-  --text-on-primary: #17130b;
-  --text-primary: #f7f7f7;
-  --text-secondary: #a1a1a6;
-  --text-muted: #929296;
-  /* Text of a movement not yet booked: dimmer than muted yet AA (4.63:1 on --bg-surface-hover, 5.25:1 on --bg-surface-1). */
-  --text-pending: #85858a;
-  --positive: #28a870;
-  --positive-soft: rgba(40, 168, 112, 0.12);
-  --negative: #f07878;
-  --negative-soft: rgba(240, 120, 120, 0.12);
-  --warning: #e3a56f;
-  --warning-soft: rgba(227, 165, 111, 0.12);
-  --info: #8ea8e8;
-  --info-soft: rgba(142, 168, 232, 0.12);
-  --allocation-real-estate: #a58bce;
-  --chart-allocation-1: #486df0;
-  --chart-allocation-2: #803078;
-  --chart-allocation-3: #58b8c0;
-  --chart-allocation-4: #f0a8d8;
-  --focus: #f7d4a3;
-  --overlay-sheet: rgba(0, 0, 0, 0.72);
+  /* Graphite at night: one near-black field for page, shell and sidebar, plates one step up, and
+     every edge a white hairline. Depth comes from these steps, never from a coloured shadow. */
+  --bg-page: #0a0a0b;
+  --bg-shell: #0a0a0b;
+  --bg-sidebar: #0a0a0b;
+  --bg-surface-1: #111113;
+  --bg-surface-2: #18181b;
+  --bg-surface-hover: #1f1f23;
+  --bg-mobile-navigation: #0d0d0f;
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --chart-grid: rgba(255, 255, 255, 0.05);
+  /* Flat states, no gloss: the selected row is one surface step up, the primary action is a
+     platinum fill. Depth comes from the step and the hairline, never from a gradient. */
+  --bg-selected: #1c1c20;
+  --bg-primary: #e4e6ea;
+  --bg-primary-hover: #f4f5f7;
+  /* Platinum, the one accent: the primary action, the wealth curve, selection and focus. */
+  --accent: #d7dbe1;
+  --accent-strong: #eef0f4;
+  --accent-soft: rgba(215, 219, 225, 0.1);
+  --text-on-primary: #0c0d10;
+  --text-primary: #ededef;
+  --text-secondary: #a1a1aa;
+  --text-muted: #8b8b94;
+  /* Text of a movement not yet booked: dimmer than muted yet AA (4.61:1 on --bg-surface-hover, 5.3:1 on --bg-surface-1). */
+  --text-pending: #87878f;
+  --positive: #4cc38a;
+  --positive-soft: rgba(76, 195, 138, 0.12);
+  --negative: #ef6f6f;
+  --negative-soft: rgba(239, 111, 111, 0.12);
+  --warning: #e5a663;
+  --warning-soft: rgba(229, 166, 99, 0.12);
+  --info: #9db0d3;
+  --info-soft: rgba(157, 176, 211, 0.12);
+  /* Series without a colour of their own: the first one leads in platinum, the rest step down the
+     steel ramp, so a chart has one bright series and reads without a rainbow. */
+  --allocation-real-estate: #727b88;
+  --chart-allocation-1: #d7dbe1;
+  --chart-allocation-2: #8e96a3;
+  --chart-allocation-3: #5a626f;
+  --chart-allocation-4: #363c46;
+  /* A group tile is a tint of its colour over the plate, never a full flood of it. */
+  --chart-tile-fill-opacity: 0.12;
+  --focus: #d7dbe1;
+  --overlay-sheet: rgba(5, 5, 6, 0.72);
   --chart-area-fill: url(#wealth-chart-area);
-  --gradient-cta: linear-gradient(135deg, var(--gold-200) 0%, var(--gold-500) 100%);
+  /* One chevron for every native select, in the muted ink (#8b8b94). */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8b94' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --gradient-chart-fill: url(#wealth-chart-area);
   --gradient-skeleton: linear-gradient(
     90deg,
@@ -50,26 +62,33 @@
 
   /* Effects */
   --shadow-card: none;
+  /* A one-pixel contact shadow under the primary action, the only lifted control. */
+  --shadow-primary: 0 1px 1px rgba(0, 0, 0, 0.45);
+  --shadow-control: none;
+  --shadow-popover: 0 0.75rem 2rem rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --shadow-mobile-navigation: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
   --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
 
   /* Layout dimensions */
-  --sidebar-width: 13.5rem;
-  --sidebar-width-collapsed: 4.75rem;
-  --header-height: 5rem;
-  --header-height-mobile: 6.25rem;
+  --sidebar-width: 15rem;
+  --sidebar-width-collapsed: 3.75rem;
+  --header-height: 3.5rem;
+  --header-height-mobile: 3.5rem;
   --z-header: 20;
   --z-toast: 100;
   --touch-target-min: 2.75rem;
-  --control-height: 2.25rem;
-  --control-height-compact: 2rem;
+  --control-height: 2rem;
+  --control-height-compact: 1.75rem;
+  --form-control-height: 2.25rem;
+  --choice-control-size: 1rem;
+  --report-column-label-width: 11rem;
   --modal-width: 44rem;
   --drawer-width: 32rem;
-  --navigation-link-height: 2.875rem;
+  --navigation-link-height: 2rem;
   --mobile-navigation-height: 3.25rem;
   --mobile-content-bottom-offset: 4.75rem;
   --toast-width: 22rem;
-  --filters-aside-width: 17rem;
+  --filters-aside-width: 15rem;
   --slider-thumb-size: 1rem;
   --color-mark-size: 0.5rem;
   --badge-size: 1.125rem;
@@ -83,35 +102,41 @@
     'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     'Segoe UI', sans-serif;
   --font-family-mono:
-    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+    'Geist Mono Variable', ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas,
+    'Liberation Mono', monospace;
   --font-size-2xs: 0.625rem;
   --font-size-xs: 0.6875rem;
   --font-size-sm: 0.75rem;
   --font-size-label: 0.8125rem;
   --font-size-body: 0.875rem;
   --font-size-card-title: 0.9375rem;
-  --font-size-brand: 1.125rem;
+  --font-size-brand: 0.9375rem;
+  /* The meta layer is set in Geist Mono, which runs wider than Inter: 12 px reads as 13 px. */
+  --font-size-meta: 0.75rem;
   --font-size-kpi: 1.375rem;
-  --font-size-metric: 1.625rem;
-  --font-size-page-title: clamp(1.375rem, 2vw, 1.75rem);
-  --font-size-display: clamp(2rem, 2.65vw, 3.25rem);
-  --font-size-display-mobile: clamp(1.85rem, 10vw, 2.75rem);
+  --font-size-metric: 1.75rem;
+  --font-size-page-title: 1.5rem;
+  --font-size-display: clamp(2rem, 2.6vw, 2.5rem);
+  --font-size-display-mobile: clamp(2rem, 10vw, 2.5rem);
   --font-size-empty-title: clamp(1.5rem, 3vw, 2.25rem);
-  --font-weight-normal: 500;
-  --font-weight-medium: 520;
-  --font-weight-heading: 580;
-  --font-weight-semibold: 620;
-  --font-weight-strong: 650;
-  --font-weight-bold: 700;
+  /* Two working weights and one for emphasis: hierarchy comes from size and colour, not from weight. */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-heading: 500;
+  --font-weight-semibold: 500;
+  --font-weight-strong: 500;
+  --font-weight-bold: 500;
   --line-height-tight: 1;
   --line-height-context: 1.45;
   --line-height-body: 1.5;
   --line-height-relaxed: 1.6;
-  --letter-spacing-card: -0.01em;
-  --letter-spacing-brand: -0.02em;
-  --letter-spacing-kpi: -0.025em;
-  --letter-spacing-title: -0.03em;
-  --letter-spacing-display: -0.035em;
+  /* Tracking only tightens from display sizes up; anything under 16 px stays at zero. */
+  --letter-spacing-card: 0;
+  --letter-spacing-brand: -0.005em;
+  --letter-spacing-kpi: -0.015em;
+  --letter-spacing-title: -0.01em;
+  --letter-spacing-display: -0.02em;
+  --letter-spacing-meta: 0;
 
   /* Spacing */
   --spacing-none: 0;
@@ -123,6 +148,7 @@
   --spacing-control-block: 0.375rem;
   --spacing-3: 0.75rem;
   --spacing-4: 1rem;
+  --spacing-5: 1.25rem;
   --spacing-6: 1.5rem;
   --spacing-8: 2rem;
   --spacing-12: 3rem;
@@ -131,35 +157,39 @@
   --border-none: 0;
   --border-width-thin: 0.0625rem;
   --border-width-focus: 0.125rem;
-  --border-width-loading: 0.25rem;
   --border-line-subtle: var(--border-width-thin) solid var(--border-subtle);
   --border-line-strong: var(--border-width-thin) solid var(--border-strong);
   --border-line-transparent: var(--border-width-thin) solid var(--color-transparent);
   --border-line-negative: var(--border-width-thin) solid var(--negative);
   --border-line-warning: var(--border-width-thin) solid var(--warning);
   --border-line-thumb: var(--border-width-focus) solid var(--text-primary);
-  --outline-focus: var(--border-width-focus) solid var(--focus);
-  --outline-offset-focus: var(--border-width-thin);
-  --outline-offset-inset: calc(var(--border-width-focus) * -1);
+  --outline-focus: var(--border-width-thin) solid var(--focus);
+  --outline-offset-focus: var(--border-width-focus);
+  --outline-offset-inset: calc(var(--border-width-thin) * -1);
   --radius-none: 0;
+  /* Short corners everywhere: 4 px for tags and items, 6 px for controls, 8 px for plates. */
+  --radius-small: 0.25rem;
   --radius-control: 0.375rem;
   --radius-card: 0.5rem;
   --radius-full: 999px;
   --radius-circle: 50%;
-  --radius-button: var(--radius-full);
+  --radius-button: var(--radius-control);
 
   /* Icons */
   --category-glyph-size: 0.9375rem;
   --icon-size-sm: 2rem;
-  --icon-size-md: 2.25rem;
-  --icon-size-lg: 2.25rem;
+  --icon-size-md: 2rem;
+  --icon-size-lg: 2rem;
   /* Width of the `Objectif` column of the flows summary: a value to reach and its `i` button. */
   --goal-column-width: calc(var(--icon-size-sm) * 3.5);
 
   /* Transitions */
   --duration-reduced-motion: 0.01ms;
-  --duration-fast: 140ms;
-  --duration-medium: 200ms;
+  --duration-fast: 120ms;
+  --duration-medium: 180ms;
+  --motion-overlay-offset: 0.5rem;
+  --motion-menu-offset: 0.25rem;
+  --motion-press-offset: 0.0625rem;
   --duration-chart-draw: 560ms;
   --duration-loading-spin: 900ms;
   --duration-skeleton-shimmer: 900ms;
@@ -172,5 +202,6 @@
   :root {
     --control-height: var(--touch-target-min);
     --control-height-compact: var(--touch-target-min);
+    --navigation-link-height: var(--touch-target-min);
   }
 }

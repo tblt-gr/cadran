@@ -4,6 +4,16 @@ import { settled } from './page';
 
 export async function auditAccessibility(page: Page): Promise<void> {
   await settled(page);
+  // A dialog that is still fading in reports a contrast it never has at rest: let every finite
+  // entrance animation end first (an endless one, such as a spinner, is not awaited).
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((animation) => animation.effect?.getComputedTiming().iterations !== Infinity)
+        .map((animation) => animation.finished.catch(() => undefined)),
+    ),
+  );
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

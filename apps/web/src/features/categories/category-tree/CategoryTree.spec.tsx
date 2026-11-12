@@ -106,13 +106,11 @@ describe('CategoryTree', () => {
     fireEvent.click(toggleOf('Vie courante'));
     fireEvent.click(toggleOf('Alimentation'));
 
-    const fill = (label: string) =>
-      (screen.getByText(label).closest('[data-icon]') as HTMLElement).style.background;
-    expect(fill('Alimentation')).toBe('rgb(17, 34, 51)');
-    expect(fill('Restaurants')).toBe('rgb(170, 187, 204)');
-    expect(
-      (screen.getByText('Transports').closest('[data-icon]') as HTMLElement).style.background,
-    ).toBe('');
+    const mark = (label: string) =>
+      screen.getByText(label).closest('[data-icon]')?.getAttribute('data-color') ?? null;
+    expect(mark('Alimentation')).toBe('#112233');
+    expect(mark('Restaurants')).toBe('#AABBCC');
+    expect(mark('Transports')).toBeNull();
   });
 
   it('draws the glyph inherited from an ancestor', () => {

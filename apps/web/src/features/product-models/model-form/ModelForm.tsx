@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import type {
@@ -82,7 +83,7 @@ export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`productModels.errors.${submitError}`)}
@@ -223,6 +224,6 @@ export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
           {t(pending ? 'productModels.form.saving' : 'productModels.form.save')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

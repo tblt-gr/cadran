@@ -9,7 +9,7 @@ vi.mock('@/hooks/use-box-size', () => ({
 }));
 afterEach(cleanup);
 
-it('updates the live Recharts tile and label when only the group color changes', () => {
+it('updates the live Recharts tile and its edge when only the group color changes', () => {
   const entry: NetWorthAllocationEntry = {
     groupId: 'group-1',
     color: '#000000',
@@ -26,8 +26,10 @@ it('updates the live Recharts tile and label when only the group color changes',
   const { container, rerender } = render(<AllocationCharts allocation={[entry]} reason={null} />);
   const tile = () => container.querySelector('rect[fill="#000000"], rect[fill="#FFFFFF"]');
   expect(tile()?.getAttribute('fill')).toBe('#000000');
-  expect(container.querySelector('text')?.getAttribute('fill')).toBe('#FFFFFF');
+  expect(container.querySelector('line')?.getAttribute('stroke')).toBe('#000000');
+  expect(container.querySelector('text')?.getAttribute('fill')).toBe('var(--text-primary)');
   rerender(<AllocationCharts allocation={[{ ...entry, color: '#FFFFFF' }]} reason={null} />);
   expect(tile()?.getAttribute('fill')).toBe('#FFFFFF');
-  expect(container.querySelector('text')?.getAttribute('fill')).toBe('#000000');
+  expect(container.querySelector('line')?.getAttribute('stroke')).toBe('#FFFFFF');
+  expect(container.querySelector('text')?.getAttribute('fill')).toBe('var(--text-primary)');
 });

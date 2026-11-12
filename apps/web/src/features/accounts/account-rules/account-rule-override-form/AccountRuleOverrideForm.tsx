@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { ProductRuleKind, RecordAccountRuleOverrideRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
@@ -73,7 +74,7 @@ export function AccountRuleOverrideForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`accounts.overrides.errors.${submitError}`)}
@@ -115,6 +116,6 @@ export function AccountRuleOverrideForm({
           {t(pending ? 'accounts.overrides.recording' : 'accounts.overrides.record')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }

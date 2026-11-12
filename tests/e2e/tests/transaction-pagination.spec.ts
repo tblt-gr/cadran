@@ -75,11 +75,11 @@ for (const width of [1280, 360]) {
       .getByRole('checkbox', { name: 'Sélectionner TX024 mouvement 40', exact: true })
       .check();
     const anchor = page.getByRole('button', {
-      name: 'Consulter la transaction « TX024 mouvement 40 »',
+      name: 'Consulter la transaction « TX024 mouvement 48 »',
       exact: true,
     });
+    // Read near the end of the loaded page, independently of row height at this viewport.
     await anchor.scrollIntoViewIfNeeded();
-    await page.evaluate(() => window.scrollBy(0, 400));
     await expect.poll(() => pages.requests.length).toBe(2);
     const before = await anchor.boundingBox();
     pages.release();

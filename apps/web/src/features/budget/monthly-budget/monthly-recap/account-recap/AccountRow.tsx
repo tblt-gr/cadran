@@ -1,7 +1,6 @@
 import type { MonthlyAccountValue } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { groupColor } from '@/features/accounts/group-color';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount } from '@/lib/decimal';
@@ -29,13 +28,13 @@ function AccountValueCell({ value }: { value: MonthlyAccountValue | null }) {
   );
 }
 
-export function AccountRow({ member, color }: { member: RecapMember; color?: string | null }) {
+export function AccountRow({ member }: { member: RecapMember }) {
   const { t } = useTranslation();
   const { account, subGroup } = member;
   const href = `/accounts/${account.accountId}`;
 
   return (
-    <tr style={color === undefined ? undefined : { borderInlineStartColor: groupColor(color) }}>
+    <tr>
       <th data-label={t('budget.monthly.recap.accounts.account')} scope="row">
         <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
           {account.label}

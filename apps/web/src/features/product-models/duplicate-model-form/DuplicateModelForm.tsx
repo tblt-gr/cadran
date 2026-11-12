@@ -1,3 +1,4 @@
+import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { ProductModel } from '@cadran/api-client';
@@ -49,7 +50,7 @@ export function DuplicateModelForm({
   }
 
   return (
-    <form className={styles.form} noValidate onSubmit={submit}>
+    <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`productModels.errors.${submitError}`)}
@@ -84,6 +85,6 @@ export function DuplicateModelForm({
           {t(pending ? 'productModels.duplicate.confirming' : 'productModels.duplicate.confirm')}
         </button>
       </ModalActions>
-    </form>
+    </ModalForm>
   );
 }
