@@ -17,7 +17,7 @@
     width: max(var(--icon-size-lg), var(--control-height));
     height: max(var(--icon-size-lg), var(--control-height));
     padding: var(--spacing-none);
-    border-radius: var(--radius-circle);
+    border-radius: var(--radius-control);
   }
 }
 
@@ -30,6 +30,6 @@
     width: max(var(--icon-size-lg), var(--control-height));
     height: max(var(--icon-size-lg), var(--control-height));
     padding: var(--spacing-none);
-    border-radius: var(--radius-circle);
+    border-radius: var(--radius-control);
   }
 }

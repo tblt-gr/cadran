@@ -92,8 +92,8 @@
 .toggle[data-active='true'] {
   border-color: var(--border-strong);
   color: var(--text-primary);
-  background: var(--gradient-metal-row);
-  box-shadow: var(--shadow-metal-row);
+  background: var(--bg-selected);
+  box-shadow: none;
 }
 
 .badge {
@@ -104,7 +104,7 @@
   min-width: var(--badge-size);
   height: var(--badge-size);
   padding-inline: var(--spacing-1);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   color: var(--text-on-primary);
   background: var(--accent);
   font-size: var(--font-size-2xs);

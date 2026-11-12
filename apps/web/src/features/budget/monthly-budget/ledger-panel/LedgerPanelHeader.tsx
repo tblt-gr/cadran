@@ -114,7 +114,7 @@ export function LedgerPanelHeader({
               ))}
             </select>
             <span aria-hidden="true" className={styles.axisArrow}>
-              <Icon name="arrow-down" size={14} />
+              <Icon name="chevron-down" size={14} />
             </span>
           </label>
         ) : null}

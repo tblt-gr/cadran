@@ -3,11 +3,11 @@
     display: none;
   }
 
-  /* Its label hidden, the action is icon-only and takes the circle every icon-only control has. */
+  /* Its label hidden, the action is icon-only and takes the square shape every icon-only control has. */
   .add {
     width: max(var(--icon-size-lg), var(--control-height));
     height: max(var(--icon-size-lg), var(--control-height));
     padding: var(--spacing-none);
-    border-radius: var(--radius-circle);
+    border-radius: var(--radius-control);
   }
 }

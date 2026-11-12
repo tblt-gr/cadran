@@ -31,12 +31,12 @@
   color: var(--text-primary);
 }
 
-/* The pressed segment is machined like the selected navigation row: the set reads as one dial. */
+/* The pressed segment takes the selected surface, like the current navigation row. */
 .segment[aria-pressed='true'] {
   border-color: var(--border-subtle);
   color: var(--text-primary);
-  background: var(--gradient-metal-row);
-  box-shadow: var(--shadow-metal-row);
+  background: var(--bg-selected);
+  box-shadow: none;
 }
 
 .segment:focus-visible {

@@ -389,13 +389,11 @@ describe('CategoryPicker', () => {
 
     const combobox = screen.getByRole('combobox', { name: 'Catégorie' });
     await waitFor(() =>
-      expect((combobox.parentElement as HTMLElement).style.background).toBe('rgb(17, 34, 51)'),
+      expect(combobox.parentElement?.querySelector('path')?.getAttribute('stroke')).toBe('#112233'),
     );
     fireEvent.focus(combobox);
     const option = await screen.findByRole('option', { name: 'Sorties' });
-    expect((option.querySelector('[data-icon]') as HTMLElement).style.background).toBe(
-      'rgb(17, 34, 51)',
-    );
+    expect(option.querySelector('[data-icon]')?.getAttribute('data-color')).toBe('#112233');
     expect(option.querySelector('[data-icon="utensils"]')).toBeTruthy();
     expect(combobox.parentElement?.querySelector('[data-icon="utensils"]')).toBeNull();
     fireEvent.keyDown(combobox, { key: 'Escape' });
@@ -422,14 +420,14 @@ describe('CategoryPicker', () => {
     );
 
     const combobox = screen.getByRole('combobox', { name: 'Catégorie' });
-    // The field stays neutral; only the pill inside it carries the category colour, with
-    // the glyph before the input in the same flex row, so the text cannot run under it.
+    // The field stays neutral; only the glyph inside the tag carries the category colour, before
+    // the input in the same flex row, so the text cannot run under it.
     const chip = combobox.parentElement as HTMLElement;
     const control = chip.parentElement as HTMLElement;
     expect(chip.querySelector('[data-icon="utensils"]')?.getAttribute('aria-hidden')).toBe('true');
-    expect(chip.style.background).not.toBe('');
-    expect(chip.style.color).not.toBe('');
-    expect(control.style.background).toBe('');
+    expect(chip.querySelector('path')?.getAttribute('stroke')).toBe('#486DF0');
+    expect(chip.hasAttribute('style')).toBe(false);
+    expect(control.hasAttribute('style')).toBe(false);
     expect(chip.firstElementChild?.getAttribute('data-icon')).toBe('utensils');
     expect(chip.firstElementChild?.nextElementSibling).toBe(combobox);
     expect((chip.firstElementChild as HTMLElement).style.background).toBe('');

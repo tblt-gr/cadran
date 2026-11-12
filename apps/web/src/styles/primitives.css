@@ -13,13 +13,13 @@
   height: var(--icon-size-lg);
   padding: var(--spacing-none);
   border: var(--border-line-subtle);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
   background: var(--color-transparent);
   place-items: center;
 }
 
-/* Icon-only controls keep their 36 px circle for a mouse; a coarse pointer gets the touch minimum.
+/* Icon-only controls keep their 32 px square for a mouse; a coarse pointer gets the touch minimum.
    The element selector outweighs a component class that sets its own smaller box. */
 @media (pointer: coarse) {
   button.icon-button,
@@ -38,12 +38,12 @@
   background: var(--bg-surface-2);
 }
 
-/* A pressed toggle is a machined part, like the selected navigation row. */
+/* A pressed toggle takes the selected surface, like the current navigation row. */
 .icon-button[aria-pressed='true'] {
   border-color: var(--border-strong);
   color: var(--text-primary);
-  background: var(--gradient-metal-row);
-  box-shadow: var(--shadow-metal-row);
+  background: var(--bg-selected);
+  box-shadow: none;
 }
 
 .icon-button:disabled,
@@ -58,7 +58,7 @@
   height: var(--icon-size-md);
   padding: var(--spacing-none);
   border: var(--border-none);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-control);
   color: var(--text-secondary);
   background: var(--color-transparent);
   place-items: center;
@@ -101,15 +101,15 @@
     transform var(--duration-fast) var(--ease-out);
 }
 
-/* The one primary action per screen is brushed platinum: the only bright metal in the chrome. */
+/* The one primary action per screen is a flat platinum fill: the only bright control in the chrome. */
 .primary-action {
   color: var(--text-on-primary);
-  background: var(--gradient-metal-primary);
-  box-shadow: var(--shadow-metal-primary);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-primary);
 }
 
 .primary-action:hover:not(:disabled):not([aria-disabled='true']) {
-  background: var(--gradient-metal-primary-hover);
+  background: var(--bg-primary-hover);
   text-decoration: none;
 }
 
@@ -265,7 +265,13 @@
 }
 
 :where(select) {
+  padding-right: var(--spacing-8);
   color-scheme: dark;
+  appearance: none;
+  background-image: var(--select-chevron);
+  background-position: right var(--spacing-3) center;
+  background-repeat: no-repeat;
+  background-size: var(--spacing-3);
 }
 
 :where(select option) {

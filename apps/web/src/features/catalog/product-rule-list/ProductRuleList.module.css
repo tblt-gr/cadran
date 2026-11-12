@@ -21,6 +21,15 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* Embedded rules share the product's inset; only inner columns need cell spacing. */
+.tableScroll tr > :first-child {
+  padding-left: var(--spacing-none);
+}
+
+.tableScroll tr > :last-child {
+  padding-right: var(--spacing-none);
+}
+
 .tableScroll tbody th {
   min-width: 11rem;
   color: var(--text-primary);

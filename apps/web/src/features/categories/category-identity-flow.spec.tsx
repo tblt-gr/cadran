@@ -148,9 +148,7 @@ describe('category identity flow', () => {
     await waitFor(() =>
       expect(selected.parentElement?.querySelector('[data-icon="utensils"]')).toBeTruthy(),
     );
-    expect((row.querySelector('[data-icon="utensils"]') as HTMLElement).style.background).toBe(
-      'rgb(72, 109, 240)',
-    );
+    expect(row.querySelector('[data-icon="utensils"]')?.getAttribute('data-color')).toBe('#486DF0');
     fireEvent.focus(selected);
     expect(
       (await screen.findByRole('option', { name: 'Restaurants' })).querySelector(
@@ -179,9 +177,9 @@ describe('category identity flow', () => {
     const categoryRow = screen
       .getByRole('button', { name: 'Actions de la catégorie « Sorties »' })
       .closest('li') as HTMLElement;
-    expect(
-      (categoryRow.querySelector('[data-icon="coffee"]') as HTMLElement).style.background,
-    ).toBe('rgb(88, 184, 192)');
+    expect(categoryRow.querySelector('[data-icon="coffee"]')?.getAttribute('data-color')).toBe(
+      '#58B8C0',
+    );
     fireEvent.focus(selected);
     expect(
       (await screen.findByRole('option', { name: 'Sorties' })).querySelector(

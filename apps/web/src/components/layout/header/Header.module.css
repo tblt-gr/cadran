@@ -21,9 +21,19 @@
   min-width: 0;
 }
 
+/* Title on the left, the page's actions on the right of the same row, as in every dashboard. */
 .titleBlock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
   min-width: 0;
-  padding: var(--spacing-8) var(--spacing-8) var(--spacing-none);
+  padding: var(--spacing-6) var(--spacing-8) var(--spacing-none);
+  gap: var(--spacing-3) var(--spacing-6);
+}
+
+.titleText {
+  min-width: 0;
 }
 
 .titleBlock h1,
@@ -137,6 +147,7 @@
   }
 
   .titleBlock {
-    padding: var(--spacing-5) var(--spacing-4) var(--spacing-none);
+    align-items: center;
+    padding: var(--spacing-4) var(--spacing-4) var(--spacing-none);
   }
 }

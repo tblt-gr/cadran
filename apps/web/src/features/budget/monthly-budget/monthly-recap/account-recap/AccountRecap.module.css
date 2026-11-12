@@ -1,4 +1,5 @@
 .panel {
+  padding: var(--spacing-none);
   overflow: hidden;
 }
 
@@ -58,6 +59,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: var(--spacing-4);
   gap: var(--spacing-2);
 }
 
@@ -104,6 +106,7 @@
 }
 
 .empty {
+  padding: var(--spacing-none) var(--spacing-4) var(--spacing-4);
   color: var(--text-muted);
 }
 

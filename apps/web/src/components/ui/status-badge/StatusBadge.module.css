@@ -3,7 +3,7 @@
   align-items: center;
   min-height: var(--control-height-compact);
   padding: var(--spacing-0-5) var(--spacing-2);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   font-size: var(--font-size-sm);
   font-weight: var(--font-weight-medium);
   white-space: nowrap;

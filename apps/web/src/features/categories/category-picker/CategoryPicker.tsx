@@ -1,7 +1,7 @@
 import type { Category, CategoryType } from '@cadran/api-client';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { canonicalCategoryColor, categoryInk } from '@/features/categories/category-color';
+import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { CategorySwatch } from '@/features/categories/category-swatch/CategorySwatch';
 import { useDebouncedValue } from '@/hooks/use-debounced-value';
 import { CategoryOptionList } from './category-option-list/CategoryOptionList';
@@ -134,7 +134,6 @@ export function CategoryPicker({
     value === NONE
       ? null
       : canonicalCategoryColor(listed ? listed.effectiveColor : identity?.color);
-  const selectedInk = categoryInk(selectedFill);
 
   const typeRank = (candidate: Category): number =>
     candidate.type === preferredType ? -1 : TYPE_ORDER.indexOf(candidate.type);
@@ -257,21 +256,17 @@ export function CategoryPicker({
       <label className={labelHidden ? 'sr-only' : undefined} htmlFor={inputId}>
         {label}
       </label>
-      {/* The field stays a neutral input. A selection puts the category's pill inside
-          it (colour fill, glyph and the editable label in one flex row), so the text
+      {/* The field stays a neutral input. A selection puts the category's tag inside
+          it (coloured mark and the editable label in one flex row), so the text
           can never run under the glyph. The wrapper is always rendered: swapping it
           for another element on selection would remount the input and drop focus. */}
       <div className={styles.control} data-invalid={error ? 'true' : undefined}>
-        <span
-          className={hasSelection ? `${styles.chip} ${styles.selected}` : styles.chip}
-          style={
-            !hasSelection || selectedFill === null || selectedInk === null
-              ? undefined
-              : { background: selectedFill, color: selectedInk }
-          }
-        >
+        <span className={hasSelection ? `${styles.chip} ${styles.selected}` : styles.chip}>
           {hasSelection ? (
-            <CategorySwatch icon={listed ? listed.effectiveIcon : identity?.icon} />
+            <CategorySwatch
+              color={selectedFill}
+              icon={listed ? listed.effectiveIcon : identity?.icon}
+            />
           ) : null}
           <input
             aria-activedescendant={expanded && active ? optionId(listId, active) : undefined}

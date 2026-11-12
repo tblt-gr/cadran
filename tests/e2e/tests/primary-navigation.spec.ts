@@ -24,10 +24,11 @@ for (const width of [1280, 360]) {
       'color',
       await page.locator('body').evaluate((el) => getComputedStyle(el).color),
     );
-    // The current page is a machined plate (desktop) or a plate behind the icon (phone): an even
-    // frame, never a one-sided rail.
+    // The current page is a raised plate (desktop) or a plate behind the icon (phone): a surface
+    // and an even frame, never a one-sided rail or a glow.
     const plate = width === 360 ? active.locator('svg') : active;
-    await expect(plate).not.toHaveCSS('box-shadow', 'none');
+    await expect(plate).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+    await expect(plate).toHaveCSS('box-shadow', 'none');
     const sides = await plate.evaluate((el) => {
       const style = getComputedStyle(el);
       return [style.borderLeftWidth, style.borderTopWidth, style.borderRightWidth];

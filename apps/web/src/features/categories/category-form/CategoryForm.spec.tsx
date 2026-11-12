@@ -91,8 +91,8 @@ describe('CategoryForm identity', () => {
     fireEvent.change(screen.getByLabelText('Code couleur'), { target: { value: '#bada55' } });
     expect(within(preview).getByText('Sorties')).toBeTruthy();
     expect(preview.querySelector('[data-icon="coffee"]')).toBeTruthy();
-    expect((preview.querySelector('[data-icon="coffee"]') as HTMLElement).style.background).toBe(
-      'rgb(186, 218, 85)',
+    expect(preview.querySelector('[data-icon="coffee"] path')?.getAttribute('stroke')).toBe(
+      '#BADA55',
     );
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(onSubmit).toHaveBeenCalledWith({

@@ -29,11 +29,11 @@
   background: var(--bg-surface-1);
 }
 
-/* The current page is the one machined row of the column: brushed graphite, a hairline and a lit
-   top edge. Its label turns white; the shape, not a colour, says where you are. */
+/* The current page is one surface step up with a hairline; its label turns white. The shape,
+   not a colour, says where you are. */
 .link[aria-current='page'] {
   border-color: var(--border-subtle);
   color: var(--text-primary);
-  background: var(--gradient-metal-row);
-  box-shadow: var(--shadow-metal-row);
+  background: var(--bg-selected);
+  box-shadow: none;
 }

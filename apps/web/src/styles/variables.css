@@ -15,11 +15,11 @@
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-strong: rgba(255, 255, 255, 0.12);
   --chart-grid: rgba(255, 255, 255, 0.05);
-  /* Brushed metal: a tone shift inside one neutral, lit from above. The selected row and the
-     primary action are the only machined parts of the interface. */
-  --gradient-metal-row: linear-gradient(180deg, #202024 0%, #18181b 100%);
-  --gradient-metal-primary: linear-gradient(180deg, #f4f5f7 0%, #c9ced6 100%);
-  --gradient-metal-primary-hover: linear-gradient(180deg, #ffffff 0%, #d6dae1 100%);
+  /* Flat states, no gloss: the selected row is one surface step up, the primary action is a
+     platinum fill. Depth comes from the step and the hairline, never from a gradient. */
+  --bg-selected: #1c1c20;
+  --bg-primary: #e4e6ea;
+  --bg-primary-hover: #f4f5f7;
   /* Platinum, the one accent: the primary action, the wealth curve, selection and focus. */
   --accent: #d7dbe1;
   --accent-strong: #eef0f4;
@@ -46,10 +46,12 @@
   --chart-allocation-3: #5a626f;
   --chart-allocation-4: #363c46;
   /* A group tile is a tint of its colour over the plate, never a full flood of it. */
-  --chart-tile-fill-opacity: 0.22;
+  --chart-tile-fill-opacity: 0.12;
   --focus: #d7dbe1;
   --overlay-sheet: rgba(5, 5, 6, 0.72);
   --chart-area-fill: url(#wealth-chart-area);
+  /* One chevron for every native select, in the muted ink (#8b8b94). */
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b8b94' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   --gradient-chart-fill: url(#wealth-chart-area);
   --gradient-skeleton: linear-gradient(
     90deg,
@@ -60,12 +62,9 @@
 
   /* Effects */
   --shadow-card: none;
-  /* The machined parts carry a lit top edge and a short contact shadow; nothing else is lifted. */
-  --shadow-metal-row: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-metal-primary:
-    inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -1px 0 rgba(0, 0, 0, 0.14),
-    0 1px 2px rgba(0, 0, 0, 0.5);
-  --shadow-control: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  /* A one-pixel contact shadow under the primary action, the only lifted control. */
+  --shadow-primary: 0 1px 1px rgba(0, 0, 0, 0.45);
+  --shadow-control: none;
   --shadow-popover: 0 0.75rem 2rem rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
   --shadow-mobile-navigation: 0 1rem 2.5rem rgba(0, 0, 0, 0.46);
   --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
@@ -116,15 +115,14 @@
   --font-size-meta: 0.75rem;
   --font-size-kpi: 1.375rem;
   --font-size-metric: 1.75rem;
-  --font-size-page-title: 1.875rem;
-  --font-size-display: clamp(2.25rem, 3vw, 3rem);
+  --font-size-page-title: 1.5rem;
+  --font-size-display: clamp(2rem, 2.6vw, 2.5rem);
   --font-size-display-mobile: clamp(2rem, 10vw, 2.5rem);
   --font-size-empty-title: clamp(1.5rem, 3vw, 2.25rem);
   /* Two working weights and one for emphasis: hierarchy comes from size and colour, not from weight. */
   --font-weight-normal: 400;
   --font-weight-medium: 500;
-  /* Large titles stay light: at 30 px weight 450 reads as engraved, not as a shout. */
-  --font-weight-heading: 450;
+  --font-weight-heading: 500;
   --font-weight-semibold: 500;
   --font-weight-strong: 500;
   --font-weight-bold: 500;
@@ -136,8 +134,8 @@
   --letter-spacing-card: 0;
   --letter-spacing-brand: -0.005em;
   --letter-spacing-kpi: -0.015em;
-  --letter-spacing-title: -0.02em;
-  --letter-spacing-display: -0.03em;
+  --letter-spacing-title: -0.01em;
+  --letter-spacing-display: -0.02em;
   --letter-spacing-meta: 0;
 
   /* Spacing */
@@ -169,9 +167,10 @@
   --outline-offset-focus: var(--border-width-focus);
   --outline-offset-inset: calc(var(--border-width-thin) * -1);
   --radius-none: 0;
+  /* Short corners everywhere: 4 px for tags and items, 6 px for controls, 8 px for plates. */
   --radius-small: 0.25rem;
-  --radius-control: 0.5rem;
-  --radius-card: 0.875rem;
+  --radius-control: 0.375rem;
+  --radius-card: 0.5rem;
   --radius-full: 999px;
   --radius-circle: 50%;
   --radius-button: var(--radius-control);

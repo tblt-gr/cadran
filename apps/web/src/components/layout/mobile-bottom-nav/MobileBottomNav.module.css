@@ -51,7 +51,7 @@
     white-space: nowrap;
   }
 
-  /* The current destination gets the same machined plate as the desktop row, behind its icon. */
+  /* The current destination gets the same selected plate as the desktop row, behind its icon. */
   .navigation .link[aria-current='page'] {
     color: var(--text-primary);
   }
@@ -59,9 +59,9 @@
   .navigation .link[aria-current='page'] svg {
     padding: var(--spacing-0-5) var(--spacing-3);
     border: var(--border-line-subtle);
-    border-radius: var(--radius-full);
-    background: var(--gradient-metal-row);
-    box-shadow: var(--shadow-metal-row);
+    border-radius: var(--radius-control);
+    background: var(--bg-selected);
+    box-shadow: none;
     box-sizing: content-box;
   }
 }

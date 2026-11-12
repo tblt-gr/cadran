@@ -493,11 +493,11 @@ test.describe('responsive audit of movement edit modals', () => {
           await save.scrollIntoViewIfNeeded();
           await expect(save).toBeInViewport({ ratio: 1 });
           await expectFormActionLayout(save);
-          // The primary action is machined metal: its lit edge and contact shadow, never a glow.
+          // The primary action carries only its one-pixel contact shadow, never a glow.
           expect(
             await save.evaluate((el) => {
               const probe = document.createElement('span');
-              probe.style.boxShadow = 'var(--shadow-metal-primary)';
+              probe.style.boxShadow = 'var(--shadow-primary)';
               document.body.append(probe);
               const expected = getComputedStyle(probe).boxShadow;
               probe.remove();

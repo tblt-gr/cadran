@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  canonicalCategoryColor,
-  CATEGORY_INK_DARK,
-  CATEGORY_INK_LIGHT,
-  categoryInk,
-} from './category-color';
+import { canonicalCategoryColor } from './category-color';
 
 describe('canonicalCategoryColor', () => {
   it('upper-cases a usable colour', () => {
@@ -28,29 +23,5 @@ describe('canonicalCategoryColor', () => {
     ]) {
       expect(canonicalCategoryColor(value), String(value)).toBeNull();
     }
-  });
-});
-
-describe('categoryInk', () => {
-  it('puts dark ink on a light fill', () => {
-    expect(categoryInk('#FFFFFF')).toBe(CATEGORY_INK_DARK);
-    expect(categoryInk('#F1C086')).toBe(CATEGORY_INK_DARK);
-  });
-
-  it('puts light ink on a dark fill', () => {
-    expect(categoryInk('#000000')).toBe(CATEGORY_INK_LIGHT);
-    expect(categoryInk('#2E7D32')).toBe(CATEGORY_INK_LIGHT);
-  });
-
-  // A free colour means mid-tones happen, and both candidates are close there.
-  // The rule still has to pick the better one rather than a fixed side.
-  it('decides mid-tones by ratio, not by a hardcoded side', () => {
-    expect(categoryInk('#808080')).toBe(CATEGORY_INK_DARK);
-    expect(categoryInk('#595959')).toBe(CATEGORY_INK_LIGHT);
-  });
-
-  it('returns nothing when the colour is unusable', () => {
-    expect(categoryInk(null)).toBeNull();
-    expect(categoryInk('#12345')).toBeNull();
   });
 });

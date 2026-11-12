@@ -16,6 +16,7 @@ type IconName =
   | 'check-circle'
   | 'clock'
   | 'categories'
+  | 'chevron-down'
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
@@ -107,6 +108,8 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="m6 6 12 12M18 6 6 18" />;
     case 'copy':
       return <path d="M8 8h11v11H8zM5 16V5h11" />;
+    case 'chevron-down':
+      return <path d="m6 9 6 6 6-6" />;
     case 'chevron-left':
       return <path d="m15 5-7 7 7 7" />;
     case 'chevron-right':

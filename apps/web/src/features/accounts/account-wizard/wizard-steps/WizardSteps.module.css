@@ -31,7 +31,7 @@
   align-items: center;
   justify-content: center;
   border: var(--border-line-subtle);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-small);
   font-size: var(--font-size-xs);
 }
 

@@ -8,7 +8,7 @@
   right: calc(var(--spacing-1) * -1);
   min-width: var(--spacing-4);
   padding: var(--spacing-none) var(--spacing-1);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   color: var(--text-on-primary);
   background: var(--accent);
   font-size: var(--font-size-2xs);

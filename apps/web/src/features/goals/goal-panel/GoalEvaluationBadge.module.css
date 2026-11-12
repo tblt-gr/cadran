@@ -4,7 +4,7 @@
   align-items: center;
   padding: var(--spacing-none) var(--spacing-2);
   border: var(--border-line-subtle);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   color: var(--text-secondary);
   background: var(--bg-surface-2);
   font-size: var(--font-size-xs);

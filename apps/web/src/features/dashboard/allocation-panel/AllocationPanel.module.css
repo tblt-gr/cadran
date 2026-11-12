@@ -5,7 +5,7 @@
   min-width: 0;
   min-height: 24rem;
   padding: var(--spacing-6);
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
 }
 
 .card[data-allocation-view='pie'] {
@@ -27,9 +27,9 @@
 
 .link {
   flex: none;
-  color: var(--text-primary);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-strong);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
   text-decoration: none;
   text-decoration-thickness: var(--border-width-thin);
   text-underline-offset: var(--spacing-1);
@@ -37,6 +37,7 @@
 }
 
 .link:hover {
+  color: var(--text-primary);
   text-decoration: underline;
 }
 
@@ -50,9 +51,10 @@
   min-width: 0;
 }
 
+/* The chart starts under the heading; centring it left its view toggles floating mid-card. */
 .treeLayout {
   display: grid;
-  align-items: center;
+  align-content: start;
 }
 
 .pieLayout {

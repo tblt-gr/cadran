@@ -21,6 +21,15 @@
   font-weight: var(--font-weight-medium);
 }
 
+/* This table already sits inside the model's padded disclosure. */
+.tableScroll tr > :first-child {
+  padding-left: var(--spacing-none);
+}
+
+.tableScroll tr > :last-child {
+  padding-right: var(--spacing-none);
+}
+
 .tableScroll tbody th {
   color: var(--text-primary);
   font-size: var(--font-size-body);

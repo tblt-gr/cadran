@@ -4,8 +4,15 @@
   gap: var(--spacing-4);
 }
 
+/* Each state of the month is a compact notice; the uncategorized queue is a link into it. */
 .statuses p {
+  display: inline-flex;
+  align-items: center;
   margin: var(--spacing-none);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-small);
+  background: var(--bg-surface-1);
 }
 
 .statuses {
@@ -18,6 +25,16 @@
 
 .statuses a {
   color: inherit;
+}
+
+.queue {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.queue:hover {
+  color: var(--text-primary);
 }
 
 .closed {

@@ -90,7 +90,7 @@ describe('AppShell', () => {
     await waitFor(() => expect(document.activeElement).toBe(moreButton));
   });
 
-  it('renders page actions inside the header and no global placeholders', () => {
+  it('renders page actions beside the page title and no global placeholders', () => {
     render(
       <AppShell path="/transactions" setPath={vi.fn()}>
         <HeaderActions>
@@ -99,8 +99,12 @@ describe('AppShell', () => {
       </AppShell>,
     );
 
-    const header = screen.getByRole('banner');
-    expect(within(header).getByRole('button', { name: 'Action de page' })).toBeTruthy();
+    // The page's actions share the title row; the pinned bar keeps only where you are.
+    const titleRow = screen.getByRole('heading', { level: 1 }).parentElement!.parentElement!;
+    expect(within(titleRow).getByRole('button', { name: 'Action de page' })).toBeTruthy();
+    expect(
+      within(screen.getByRole('banner')).queryByRole('button', { name: 'Action de page' }),
+    ).toBeNull();
     expect(screen.queryByRole('button', { name: 'Rechercher' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Ajouter' })).toBeNull();
   });

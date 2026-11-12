@@ -59,7 +59,7 @@
 button.pen {
   inline-size: var(--icon-size-md);
   block-size: var(--icon-size-md);
-  border-radius: var(--radius-circle);
+  border-radius: var(--radius-control);
 }
 
 @media (pointer: coarse) {

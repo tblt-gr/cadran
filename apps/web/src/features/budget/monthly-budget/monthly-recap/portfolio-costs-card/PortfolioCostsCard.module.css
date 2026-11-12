@@ -1,7 +1,13 @@
 .panel {
   display: grid;
-  gap: var(--spacing-4);
+  padding: var(--spacing-none);
   overflow: hidden;
+}
+.panel header {
+  padding: var(--spacing-4);
+}
+.empty {
+  padding: var(--spacing-none) var(--spacing-4) var(--spacing-4);
 }
 .panel h3,
 .panel header p,

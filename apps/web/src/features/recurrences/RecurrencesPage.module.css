@@ -57,7 +57,7 @@
 
 .partial {
   padding: var(--spacing-1) var(--spacing-2);
-  border-radius: var(--radius-full);
+  border-radius: var(--radius-small);
   color: var(--warning);
   background: var(--warning-soft);
   font-size: var(--font-size-xs);

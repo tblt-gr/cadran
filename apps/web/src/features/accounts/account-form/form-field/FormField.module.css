@@ -10,10 +10,11 @@
 .field select {
   min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-3);
-  border: var(--border-line-strong);
+  padding-right: var(--spacing-8);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-primary);
-  background: var(--bg-surface-2);
+  background-color: var(--bg-surface-2);
 }
 
 .field input[aria-invalid='true'],

@@ -17,8 +17,8 @@ interface HeaderProps {
 }
 
 /**
- * Two rows: a thin bar pinned to the top (where the page is, how fresh it is, what it offers) and
- * the page title below it, which scrolls away with the content.
+ * Two rows: a thin bar pinned to the top (where the page is, how fresh the data is, the account)
+ * and the title row below it, which carries the page's own actions and scrolls with the content.
  */
 export function Header({
   accountSlot,
@@ -53,20 +53,22 @@ export function Header({
               {freshnessLabel}
             </span>
           ) : null}
-          <div className={styles.pageActions} ref={setActionsSlot} />
           {accountSlot}
         </div>
       </header>
       <div className={styles.titleBlock}>
-        {headerDate ? (
-          <p className={styles.date} data-visual-mask>
-            {headerDate}
-          </p>
-        ) : null}
-        <h1 ref={titleRef} tabIndex={-1}>
-          {title}
-        </h1>
-        {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+        <div className={styles.titleText}>
+          {headerDate ? (
+            <p className={styles.date} data-visual-mask>
+              {headerDate}
+            </p>
+          ) : null}
+          <h1 ref={titleRef} tabIndex={-1}>
+            {title}
+          </h1>
+          {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
+        </div>
+        <div className={styles.pageActions} ref={setActionsSlot} />
       </div>
     </>
   );
