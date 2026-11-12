@@ -11,7 +11,7 @@
   border: var(--border-line-strong);
   border-radius: var(--radius-control);
   background: var(--bg-surface-2);
-  box-shadow: var(--shadow-sheet);
+  box-shadow: var(--shadow-popover);
 }
 
 .list ul {

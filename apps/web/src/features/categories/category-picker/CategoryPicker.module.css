@@ -15,9 +15,10 @@
   position: relative;
   display: flex;
   align-items: center;
-  min-height: var(--control-height);
+  /* A form field like the others: the selected category pill fits without growing the box. */
+  min-height: max(var(--control-height), var(--form-control-height));
   padding: var(--spacing-none) var(--spacing-3);
-  border: var(--border-line-strong);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   background: var(--bg-surface-2);
   gap: var(--spacing-2);

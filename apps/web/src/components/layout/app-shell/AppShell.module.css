@@ -15,9 +15,9 @@
   left: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-4);
   border-radius: var(--radius-control);
-  color: var(--bg-page);
+  color: var(--text-on-primary);
   background: var(--accent);
-  font-weight: var(--font-weight-bold);
+  font-weight: var(--font-weight-medium);
   transform: translateY(-160%);
   transition: transform var(--duration-fast) var(--ease-out);
 }
@@ -31,7 +31,7 @@
   /* The content row takes the height the header leaves, so a short page fills
      the viewport instead of stopping on a band of empty shell. */
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto auto 1fr;
   min-width: 0;
   /* `clip` keeps the overflow cut without making the workspace a scroll container, which would break the sticky header. */
   overflow: clip;
@@ -41,13 +41,14 @@
 .body {
   display: grid;
   min-width: 0;
-  padding: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-8) var(--spacing-12);
 }
 
 .body main {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  /* The page's first block takes the height left, as it did under the former breadcrumb row. */
+  grid-template-rows: 1fr;
   min-width: 0;
 }
 
@@ -91,6 +92,6 @@
   .body,
   .bodyWithPanel {
     display: block;
-    padding: var(--spacing-none) var(--spacing-3) var(--spacing-6);
+    padding: var(--spacing-5) var(--spacing-4) var(--spacing-8);
   }
 }

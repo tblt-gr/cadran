@@ -20,7 +20,12 @@ export function GoalFormSkeleton({
 }) {
   const { t } = useTranslation();
   return (
-    <div aria-busy="true" className={styles.frozen} data-testid="goal-form-skeleton">
+    <div
+      aria-busy="true"
+      className={styles.frozen}
+      data-modal-form-host
+      data-testid="goal-form-skeleton"
+    >
       <SkeletonStatus>{t('goals.loading')}</SkeletonStatus>
       <fieldset aria-hidden="true" className={styles.frozen} disabled inert>
         <GoalForm

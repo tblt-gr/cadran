@@ -197,6 +197,9 @@ it('keeps an already voided transfer read-only', async () => {
   setup();
   await screen.findByDisplayValue('Épargne');
   expect(screen.getByRole('dialog').querySelector('fieldset')!.disabled).toBe(true);
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Enregistrer' }).disabled).toBe(
+    true,
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
   expect(api.updateTransfer).not.toHaveBeenCalled();
 });
@@ -207,6 +210,9 @@ it('shows the same layout with a disabled fieldset while the transfer loads', ()
   const dialog = screen.getByRole('dialog', { name: 'Modifier le virement' });
   expect(dialog.textContent).toContain('Montant débité');
   expect(dialog.querySelector('fieldset')!.disabled).toBe(true);
+  const save = screen.getByRole<HTMLButtonElement>('button', { name: 'Enregistrer' });
+  expect(save.disabled).toBe(true);
+  expect(save.closest('fieldset')).toBeNull();
   expect(
     dialog.querySelectorAll('dd [aria-hidden="true"], dd [data-skeleton]').length,
   ).toBeGreaterThan(0);
@@ -223,8 +229,25 @@ it('confirms a void with Annuler first and read-only legs', async () => {
   await screen.findByText('Les deux mouvements et les frais du virement seront annulés ensemble.');
   const dialog = screen.getByRole('dialog');
   expect(dialog.textContent).toContain('Confirmation');
-  const buttons = Array.from(dialog.querySelectorAll('fieldset button')).map((b) => b.textContent);
+  const buttons = Array.from(dialog.querySelectorAll('[data-modal-actions] button')).map(
+    (b) => b.textContent,
+  );
   expect(buttons[0]).toBe('Annuler');
+  await waitFor(() =>
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: 'Annuler' }).disabled).toBe(false),
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
   expect(close).toHaveBeenCalledOnce();
+});
+
+it('disables the separate submit action while a transfer update is pending', async () => {
+  api.updateTransfer.mockImplementation(() => new Promise(() => {}));
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  const save = screen.getByRole<HTMLButtonElement>('button', { name: 'Enregistrer' });
+  expect(save.disabled).toBe(false);
+  fireEvent.click(save);
+  await waitFor(() => expect(save.disabled).toBe(true));
+  fireEvent.click(save);
+  expect(api.updateTransfer).toHaveBeenCalledOnce();
 });

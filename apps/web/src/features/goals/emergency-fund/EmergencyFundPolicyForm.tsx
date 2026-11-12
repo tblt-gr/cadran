@@ -260,12 +260,12 @@ export function EmergencyFundPolicyForm({ policy, onSubmit, pending, submitError
             </label>
           ) : null}
         </FormGrid>
-        <ModalActions>
-          <button className="primary-action" disabled={pending} type="submit">
-            {t('goals.emergencyFund.save')}
-          </button>
-        </ModalActions>
       </fieldset>
+      <ModalActions>
+        <button className="primary-action" disabled={policy === null || pending} type="submit">
+          {t('goals.emergencyFund.save')}
+        </button>
+      </ModalActions>
     </ModalForm>
   );
 }

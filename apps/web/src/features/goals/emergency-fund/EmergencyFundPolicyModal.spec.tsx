@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { EmergencyFundPolicyModal } from './EmergencyFundPolicyModal';
@@ -51,12 +51,14 @@ describe('EmergencyFundPolicyModal', () => {
     renderModal();
     expect(screen.getByText('Paramétrage')).toBeTruthy();
     const skeleton = screen.getByTestId('emergency-policy-skeleton');
+    const save = within(skeleton).getByRole('button', {
+      name: 'Enregistrer',
+    }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(save.closest('fieldset')).toBeNull();
     expect(skeleton.querySelector('[data-skeleton]')).toBeTruthy();
     expect(skeleton.querySelector('input:checked')).toBeNull();
-    expect(
-      (screen.getByRole('button', { name: 'Enregistrer' }) as HTMLButtonElement).closest('fieldset')
-        ?.disabled,
-    ).toBe(true);
+    expect((skeleton.querySelector('fieldset') as HTMLFieldSetElement).disabled).toBe(true);
   });
 
   it('saves the default policy at version 0 and closes', async () => {

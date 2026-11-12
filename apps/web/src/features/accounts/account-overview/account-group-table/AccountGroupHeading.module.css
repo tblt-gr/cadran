@@ -37,9 +37,9 @@
 }
 
 .figures dt {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
 }
 
 .figures dd {

@@ -101,7 +101,7 @@ describe('GroupTree', () => {
     fireEvent.click(toggleOf('Épargne'));
 
     const marker = screen.getByText('Livrets').closest('[data-marker]');
-    expect((marker as HTMLElement).style.borderInlineStartColor).toBe('rgb(123, 150, 244)');
+    expect(marker?.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#7B96F4');
     expect(screen.queryByRole('columnheader')).toBeNull();
     expect(screen.queryByText('Actif')).toBeNull();
   });

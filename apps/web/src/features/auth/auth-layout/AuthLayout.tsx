@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BrandMark } from '@/components/ui/brand-mark/BrandMark';
 import styles from './AuthLayout.module.css';
 
 interface AuthLayoutProps {
@@ -18,7 +19,10 @@ export function AuthLayout({ children, title, subtitle, headingId }: AuthLayoutP
 
   return (
     <main className={styles.screen}>
-      <p className={styles.brand}>{t('app.name')}</p>
+      <p className={styles.brand}>
+        <BrandMark className={styles.brandMark} />
+        {t('app.name')}
+      </p>
       <section className={`card ${styles.panel}`} aria-labelledby={title ? headingId : undefined}>
         {title ? (
           <div className={styles.heading}>

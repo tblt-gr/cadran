@@ -55,10 +55,18 @@
   color: var(--text-muted);
   cursor: not-allowed;
 }
+/* The icon control size of the toolbar beside it; a coarse pointer gets 44 px from the primitive. */
 button.pen {
-  inline-size: var(--touch-target-min);
-  block-size: var(--touch-target-min);
+  inline-size: var(--icon-size-md);
+  block-size: var(--icon-size-md);
   border-radius: var(--radius-circle);
+}
+
+@media (pointer: coarse) {
+  button.pen {
+    inline-size: var(--touch-target-min);
+    block-size: var(--touch-target-min);
+  }
 }
 .toolbar p,
 .form p {

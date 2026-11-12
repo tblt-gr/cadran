@@ -11,7 +11,7 @@ import type {
   GoalValueType,
   UpdateGoalRequest,
 } from '@cadran/api-client';
-import { useId, useState } from 'react';
+import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { formatAmount, isCanonicalUnsignedDecimal } from '@/lib/decimal';
@@ -47,6 +47,7 @@ import { GoalValueFields } from './GoalValueFields';
 import styles from './GoalForm.module.css';
 
 interface Props {
+  children?: ReactNode;
   baseCurrency: string;
   goal?: GoalSummary;
   /** Period a new goal starts on, when the caller knows the period it is created for. */
@@ -57,6 +58,7 @@ interface Props {
   onSubmit: (request: CreateGoalRequest | UpdateGoalRequest) => void;
 }
 export function GoalForm({
+  children,
   baseCurrency,
   goal,
   initial,
@@ -244,6 +246,7 @@ export function GoalForm({
   const flag = (valid: boolean) => (showErrors && !valid ? true : undefined);
   return (
     <ModalForm className={styles.form} noValidate onSubmit={submit}>
+      {children}
       {submitError ? (
         <p className={styles.alert} role="alert">
           {t(`goals.errors.${submitError}`)}

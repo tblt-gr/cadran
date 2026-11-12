@@ -24,9 +24,15 @@ for (const width of [1280, 360]) {
       'color',
       await page.locator('body').evaluate((el) => getComputedStyle(el).color),
     );
-    await expect(active).toHaveCSS('box-shadow', 'none');
-    await expect(active).toHaveCSS('border-left-width', '0px');
-    await expect(active).toHaveCSS('border-top-width', '0px');
+    // The current page is a machined plate (desktop) or a plate behind the icon (phone): an even
+    // frame, never a one-sided rail.
+    const plate = width === 360 ? active.locator('svg') : active;
+    await expect(plate).not.toHaveCSS('box-shadow', 'none');
+    const sides = await plate.evaluate((el) => {
+      const style = getComputedStyle(el);
+      return [style.borderLeftWidth, style.borderTopWidth, style.borderRightWidth];
+    });
+    expect(new Set(sides).size).toBe(1);
     await expect(navigation.getByRole('link', { name: 'Budget' })).toHaveCSS('box-shadow', 'none');
     await navigation.getByRole('link', { name: 'Synthèse' }).focus();
     await page.keyboard.press('Tab');

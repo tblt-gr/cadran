@@ -81,8 +81,14 @@ for (const width of [360, 1280]) {
       await picker.fill('Courses');
       await dialog.getByRole('option', { name: 'Courses', exact: true }).click();
       const axes = dialog.locator('details').filter({ hasText: 'Axes analytiques' });
-      const form = dialog.locator('form > div').first();
-      const formBox = (await form.boundingBox())!;
+      const fields = dialog.locator('[data-form-content]');
+      const formBox = await fields.evaluate((element) => {
+        const box = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        const start = parseFloat(style.paddingLeft);
+        const end = parseFloat(style.paddingRight);
+        return { x: box.x + start, width: box.width - start - end };
+      });
       for (const open of [false, true]) {
         if (open) await axes.locator('summary').click();
         const axesBox = (await axes.boundingBox())!;

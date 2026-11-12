@@ -61,7 +61,7 @@ function entry(groupId: string, color: string): NetWorthAllocationEntry {
 
 afterEach(cleanup);
 describe('account group allocation colors', () => {
-  it('keeps the same color after reorder/filter and contrasts labels on black and white', () => {
+  it('keeps the same color after reorder/filter and labels every tint in the text ramp', () => {
     const dark = entry('Noir', '#000000');
     const light = entry('Blanc', '#FFFFFF');
     const { container, rerender } = render(
@@ -72,7 +72,7 @@ describe('account group allocation colors', () => {
     ).toEqual(['#000000', '#FFFFFF']);
     expect(
       [...container.querySelectorAll('text')].map((node) => node.getAttribute('fill')),
-    ).toEqual(['#FFFFFF', '#000000']);
+    ).toEqual(['var(--text-primary)', 'var(--text-primary)']);
     rerender(<AllocationCharts allocation={[light, dark]} reason={null} />);
     expect(
       [...container.querySelectorAll('rect')].map((node) => node.getAttribute('fill')),
@@ -92,8 +92,13 @@ describe('account group allocation colors', () => {
       />,
     );
     expect(
+      [...container.querySelectorAll('[data-color-dot] circle')].map((node) =>
+        node.getAttribute('fill'),
+      ),
+    ).toEqual(['#000000', '#FFFFFF']);
+    expect(
       [...container.querySelectorAll('rect')].map((node) => node.getAttribute('fill')),
-    ).toEqual(['#000000', '#000000', '#FFFFFF', '#FFFFFF']);
+    ).toEqual(['#000000', '#FFFFFF']);
     expect(screen.getByText('Noir').hasAttribute('style')).toBe(false);
     expect(screen.getByText('Blanc').hasAttribute('style')).toBe(false);
   });

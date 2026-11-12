@@ -17,7 +17,8 @@
   display: flex;
   visibility: hidden;
   flex-direction: column;
-  font-size: var(--font-size-2xs);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -25,8 +26,9 @@
 .yTick {
   position: absolute;
   right: 0;
-  color: var(--text-secondary);
-  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   line-height: var(--line-height-tight);
   text-align: right;
@@ -65,8 +67,9 @@
 
 .xTick {
   position: absolute;
-  color: var(--text-secondary);
-  font-size: var(--font-size-2xs);
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
   white-space: nowrap;
 }
@@ -160,6 +163,7 @@
 .tooltipTitle {
   display: block;
   color: var(--text-secondary);
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
   line-height: var(--line-height-tight);
 }

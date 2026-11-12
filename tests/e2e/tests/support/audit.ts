@@ -1,4 +1,23 @@
-import type { Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
+
+/** The footer owns the inset around an intrinsic-width action, inside the same native form. */
+export async function expectFormActionLayout(action: Locator): Promise<void> {
+  const geometry = await action.evaluate((element) => {
+    const button = element as HTMLButtonElement;
+    const form = button.form;
+    const footer = button.closest('[data-modal-actions]');
+    if (!form || !footer) throw new Error('Expected a native form action in ModalActions.');
+    const box = button.getBoundingClientRect();
+    const frame = footer.getBoundingClientRect();
+    return {
+      actionWidth: box.width,
+      formWidth: form.getBoundingClientRect().width,
+      endGap: Math.abs(box.right - frame.right + parseFloat(getComputedStyle(footer).paddingRight)),
+    };
+  });
+  expect(geometry.actionWidth).toBeLessThan(geometry.formWidth * 0.75);
+  expect(geometry.endGap).toBeLessThan(2);
+}
 
 export interface AuditFinding {
   /** The rule that failed: document-scroll, amount-overflow, touch-target or primary-cta. */

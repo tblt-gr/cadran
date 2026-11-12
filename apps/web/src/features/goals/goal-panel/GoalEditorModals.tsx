@@ -34,12 +34,11 @@ function GoalFormModal({ editor }: { editor: GoalEditor }) {
       close={editor.closeEditor}
       title={t(editing ? 'goals.editTitle' : 'goals.createTitle')}
     >
-      {editor.detail.data ? <ReferenceIncomeNote goal={editor.detail.data as GoalDetail} /> : null}
       {editing && !latestDetail && editor.detail.isPending ? (
         <GoalFormSkeleton baseCurrency={baseCurrency} goal={editing} />
       ) : (
         <>
-          <div hidden={correction !== null} ref={formArea}>
+          <div data-modal-form-host hidden={correction !== null} ref={formArea}>
             <GoalForm
               baseCurrency={baseCurrency}
               goal={editing ? (editingGoal ?? editing) : undefined}
@@ -58,7 +57,11 @@ function GoalFormModal({ editor }: { editor: GoalEditor }) {
                 save.isError || preview.isError,
               )}
               submitMismatch={goalErrorMismatch(save.error ?? preview.error)}
-            />
+            >
+              {editor.detail.data ? (
+                <ReferenceIncomeNote goal={editor.detail.data as GoalDetail} />
+              ) : null}
+            </GoalForm>
           </div>
           {correction && editing ? (
             <CorrectionConfirmation

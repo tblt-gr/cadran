@@ -33,14 +33,20 @@
 }
 
 .tile {
+  fill-opacity: var(--chart-tile-fill-opacity);
   stroke: var(--bg-surface-1);
+  stroke-width: var(--border-width-focus);
+}
+
+.tileEdge {
+  stroke-width: var(--border-width-focus);
 }
 
 .tileLabel {
+  font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
 }
 
 .tileParent {
-  font-size: var(--font-size-2xs);
-  opacity: 0.8;
+  fill: var(--text-secondary);
 }

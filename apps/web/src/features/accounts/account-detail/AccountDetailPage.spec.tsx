@@ -410,9 +410,9 @@ describe('AccountDetailPage', () => {
     const dialog = await screen.findByRole('dialog', { name: 'Annuler le virement' });
     await waitFor(() =>
       expect(
-        within(dialog)
-          .getByRole('button', { name: 'Confirmer l’annulation du virement' })
-          .closest('fieldset')?.disabled,
+        within(dialog).getByRole<HTMLButtonElement>('button', {
+          name: 'Confirmer l’annulation du virement',
+        }).disabled,
       ).toBe(false),
     );
     fireEvent.click(
@@ -667,7 +667,7 @@ describe('AccountDetailPage', () => {
     const dialog = await screen.findByRole('dialog');
     await waitFor(() =>
       expect(
-        within(dialog).getByRole('button', { name: 'Enregistrer' }).closest('fieldset')?.disabled,
+        within(dialog).getByRole<HTMLButtonElement>('button', { name: 'Enregistrer' }).disabled,
       ).toBe(false),
     );
     fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));

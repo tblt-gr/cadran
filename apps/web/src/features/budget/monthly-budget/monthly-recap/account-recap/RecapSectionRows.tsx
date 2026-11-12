@@ -2,6 +2,7 @@ import type { NetWorthAmount, NetWorthShare } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { ColorDot } from '@/components/ui/color-dot/ColorDot';
 import { groupColor } from '@/features/accounts/group-color';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { formatAmount } from '@/lib/decimal';
@@ -37,8 +38,9 @@ export function RecapSectionRows({ section }: { section: RecapSection }) {
 
   return (
     <tbody>
-      <tr className={styles.groupRow} style={{ borderInlineStartColor: groupColor(section.color) }}>
+      <tr className={styles.groupRow}>
         <th data-label={t('budget.monthly.recap.accounts.account')} scope="rowgroup">
+          <ColorDot color={groupColor(section.color)} />
           {section.label}
           {section.parentLabel === null ? null : (
             <>
@@ -58,7 +60,7 @@ export function RecapSectionRows({ section }: { section: RecapSection }) {
         </td>
       </tr>
       {section.members.map((member) => (
-        <AccountRow color={section.color} key={member.account.accountId} member={member} />
+        <AccountRow key={member.account.accountId} member={member} />
       ))}
     </tbody>
   );

@@ -99,6 +99,7 @@ function AppShellContent({
       <div className={styles.workspace}>
         <Header
           accountSlot={accountSlot}
+          breadcrumb={<RouteBreadcrumb path={path} onNavigate={handleNavigate} />}
           freshnessLabel={freshnessLabel}
           onFreshnessClick={onFreshnessClick}
           headerDate={headerDate}
@@ -109,7 +110,6 @@ function AppShellContent({
 
         <div className={`${styles.body}${contextPanel ? ` ${styles.bodyWithPanel}` : ''}`}>
           <main aria-busy={isNavigating || undefined} id="main-content" tabIndex={-1}>
-            <RouteBreadcrumb path={path} onNavigate={handleNavigate} />
             {children}
           </main>
           {contextPanel}

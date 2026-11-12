@@ -92,7 +92,7 @@ export function MetricExplanationModal({
           </dd>
           <dt>{t('reports.period')}</dt>
           <dd>
-            {explanation.data.period.start} — {explanation.data.period.end}
+            {explanation.data.period.start} - {explanation.data.period.end}
           </dd>
           <dt>{t('reports.quality')}</dt>
           <dd>{explanation.data.quality}</dd>

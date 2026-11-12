@@ -135,17 +135,26 @@ export function TransferUpdateForm({
             </>
           ) : null}
         </FormGrid>
-        <ModalActions>
-          {voiding ? (
-            <button className="secondary-action" onClick={onCancel} type="button">
-              {t('actions.cancel')}
-            </button>
-          ) : null}
-          <button className="primary-action" type="submit">
-            {t(voiding ? 'transactions.workflow.confirmVoidTransfer' : 'transactions.form.save')}
-          </button>
-        </ModalActions>
       </fieldset>
+      <ModalActions>
+        {voiding ? (
+          <button
+            className="secondary-action"
+            disabled={transfer === null || pending || transfer.voidedAt !== null}
+            onClick={onCancel}
+            type="button"
+          >
+            {t('actions.cancel')}
+          </button>
+        ) : null}
+        <button
+          className="primary-action"
+          disabled={transfer === null || pending || transfer.voidedAt !== null}
+          type="submit"
+        >
+          {t(voiding ? 'transactions.workflow.confirmVoidTransfer' : 'transactions.form.save')}
+        </button>
+      </ModalActions>
     </ModalForm>
   );
 }

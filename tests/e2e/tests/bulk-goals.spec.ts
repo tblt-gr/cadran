@@ -83,7 +83,8 @@ for (const width of [1280, 360]) {
         await pen.focus();
         await page.keyboard.press('Enter');
         await expect(pen).toHaveAttribute('aria-pressed', 'true');
-        await expect(pen).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+        // Pressed is told by a filled surface, not by a colour alone, and stays unframed.
+        await expect(pen).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
         await expect(pen).toHaveCSS('border-top-width', '0px');
         const all = panel.getByRole('checkbox', {
           name: 'Sélectionner tous les objectifs affichés',

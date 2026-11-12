@@ -179,13 +179,16 @@ export function FromProductForm({
             )}
           </FieldRow>
         </FormGrid>
-
-        <ModalActions>
-          <button className="primary-action" disabled={pending} type="submit">
-            {t(pending ? 'productModels.form.saving' : 'productModels.fromProduct.confirm')}
-          </button>
-        </ModalActions>
       </fieldset>
+      <ModalActions>
+        <button
+          className="primary-action"
+          disabled={pending || products.isPending || products.isError}
+          type="submit"
+        >
+          {t(pending ? 'productModels.form.saving' : 'productModels.fromProduct.confirm')}
+        </button>
+      </ModalActions>
     </ModalForm>
   );
 }

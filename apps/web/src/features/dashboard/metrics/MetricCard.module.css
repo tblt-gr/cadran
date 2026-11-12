@@ -3,8 +3,7 @@
   grid-column: span 4;
   grid-template-rows: auto auto 1fr;
   min-height: 7.5rem;
-  padding: var(--spacing-4);
-  gap: var(--spacing-2);
+  gap: var(--spacing-3);
 }
 
 /* Two classes, so the shared `.card h2` rule does not win over the label. */
@@ -13,7 +12,7 @@
   align-items: center;
   color: var(--text-secondary);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-medium);
+  font-weight: var(--font-weight-normal);
   gap: var(--spacing-2);
 }
 
@@ -63,7 +62,8 @@
 .description {
   align-self: end;
   color: var(--text-muted);
-  font-size: var(--font-size-sm);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
   line-height: var(--line-height-context);
 }
 
@@ -74,6 +74,7 @@
     grid-template-rows: auto auto;
     align-items: center;
     min-height: 0;
+    padding: var(--spacing-4);
   }
 
   .value,

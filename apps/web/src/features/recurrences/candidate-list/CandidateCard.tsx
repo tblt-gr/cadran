@@ -58,7 +58,7 @@ export function CandidateCard({ candidate, onConfirm, onDismiss, pending }: Cand
         <div>
           <dt>{t('recurrences.candidates.period')}</dt>
           <dd>
-            {formatCalendarDay(candidate.firstSeenOn, i18n.language)} —{' '}
+            {formatCalendarDay(candidate.firstSeenOn, i18n.language)} -{' '}
             {formatCalendarDay(candidate.lastSeenOn, i18n.language)}
           </dd>
         </div>

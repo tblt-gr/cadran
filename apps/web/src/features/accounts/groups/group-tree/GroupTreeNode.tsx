@@ -2,6 +2,7 @@ import type { AccountGroup } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { ColorDot } from '@/components/ui/color-dot/ColorDot';
 import { canonicalGroupColor } from '@/features/accounts/group-color';
 import type { TreeNode } from '@/lib/tree/buildTree';
 import { GroupTreeActions } from './GroupTreeActions';
@@ -44,12 +45,7 @@ export function GroupTreeNode({
 
   return (
     <li className={styles.node}>
-      <div
-        className={styles.row}
-        data-archived={archived}
-        data-marker
-        style={{ borderInlineStartColor: canonicalGroupColor(group.resolvedColor) ?? undefined }}
-      >
+      <div className={styles.row} data-archived={archived} data-marker>
         {children.length > 0 ? (
           <button
             aria-controls={childrenId}
@@ -70,6 +66,7 @@ export function GroupTreeNode({
         )}
         <div className={styles.summary}>
           <p className={styles.identity}>
+            <ColorDot color={canonicalGroupColor(group.resolvedColor)} />
             <span>{group.label}</span>
           </p>
           <p className={styles.meta}>

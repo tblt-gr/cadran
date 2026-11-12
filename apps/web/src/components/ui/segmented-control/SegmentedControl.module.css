@@ -15,11 +15,11 @@
   min-height: var(--control-height-compact);
   padding: var(--spacing-1) var(--spacing-3);
   border: var(--border-line-transparent);
-  border-radius: var(--radius-button);
+  border-radius: var(--radius-small);
   color: var(--text-secondary);
   background: var(--color-transparent);
   font-size: var(--font-size-label);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -31,10 +31,12 @@
   color: var(--text-primary);
 }
 
+/* The pressed segment is machined like the selected navigation row: the set reads as one dial. */
 .segment[aria-pressed='true'] {
-  border-color: var(--border-strong);
+  border-color: var(--border-subtle);
   color: var(--text-primary);
-  background: var(--bg-surface-2);
+  background: var(--gradient-metal-row);
+  box-shadow: var(--shadow-metal-row);
 }
 
 .segment:focus-visible {
@@ -69,6 +71,10 @@
 
 .text .segment[aria-pressed='true'] {
   border-color: var(--color-transparent);
-  color: var(--accent);
+  color: var(--text-primary);
   background: var(--color-transparent);
+  box-shadow: none;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-underline-offset: var(--spacing-1);
 }

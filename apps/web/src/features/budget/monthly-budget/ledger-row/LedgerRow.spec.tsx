@@ -173,28 +173,28 @@ describe('LedgerRow pending movements', () => {
   });
 });
 
-describe('LedgerRow left border color', () => {
+describe('LedgerRow color dot', () => {
   it('uses the effective group color on an account row', () => {
     const item = renderRow(account({ primaryGroupColor: '#2F9E6E' }), 'account');
 
-    expect(item.style.borderInlineStartColor).toBe('rgb(47, 158, 110)');
+    expect(item.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#2F9E6E');
   });
 
-  it('leaves the border untouched for an account without a group color', () => {
+  it('draws no dot for an account without a group color', () => {
     const item = renderRow(account(), 'account');
 
-    expect(item.getAttribute('style')).toBeNull();
+    expect(item.querySelector('[data-color-dot]')).toBeNull();
   });
 
   it('ignores a malformed account color instead of falling back to a muted token', () => {
     const item = renderRow(account({ primaryGroupColor: 'red' }), 'account');
 
-    expect(item.getAttribute('style')).toBeNull();
+    expect(item.querySelector('[data-color-dot]')).toBeNull();
   });
 
   it('keeps the category color on category rows', () => {
     const item = renderRow(category({ color: '#58B8C0' }));
 
-    expect(item.style.borderInlineStartColor).toBe('rgb(88, 184, 192)');
+    expect(item.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#58B8C0');
   });
 });

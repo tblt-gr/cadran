@@ -6,6 +6,7 @@
   cursor: pointer;
 }
 
+/* An icon-only control is a hairline ring that fills on hover; the ghost variant drops the ring. */
 .icon-button {
   display: inline-grid;
   width: var(--icon-size-lg);
@@ -14,7 +15,7 @@
   border: var(--border-line-subtle);
   border-radius: var(--radius-circle);
   color: var(--text-secondary);
-  background: var(--bg-surface-2);
+  background: var(--color-transparent);
   place-items: center;
 }
 
@@ -32,13 +33,17 @@
 }
 
 .icon-button:hover:not(:disabled) {
-  color: var(--text-primary);
   border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
 }
 
+/* A pressed toggle is a machined part, like the selected navigation row. */
 .icon-button[aria-pressed='true'] {
-  color: var(--accent);
   border-color: var(--border-strong);
+  color: var(--text-primary);
+  background: var(--gradient-metal-row);
+  box-shadow: var(--shadow-metal-row);
 }
 
 .icon-button:disabled,
@@ -61,10 +66,20 @@
 
 .icon-ghost:hover:not(:disabled) {
   color: var(--text-primary);
+  background: var(--bg-surface-2);
+}
+
+.icon-button,
+.icon-ghost {
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
 .icon-ghost[aria-pressed='true'] {
-  color: var(--accent);
+  color: var(--text-primary);
+  background: var(--bg-surface-2);
 }
 
 .primary-action,
@@ -72,39 +87,50 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-control-block) var(--spacing-4);
+  padding: var(--spacing-control-block) var(--spacing-3);
   border: var(--border-line-transparent);
   border-radius: var(--radius-button);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   text-decoration: none;
   gap: var(--spacing-2);
   transition:
     background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 }
 
+/* The one primary action per screen is brushed platinum: the only bright metal in the chrome. */
 .primary-action {
   color: var(--text-on-primary);
-  background: var(--accent);
+  background: var(--gradient-metal-primary);
+  box-shadow: var(--shadow-metal-primary);
 }
 
 .primary-action:hover:not(:disabled):not([aria-disabled='true']) {
-  background: var(--accent-strong);
+  background: var(--gradient-metal-primary-hover);
   text-decoration: none;
 }
 
 .secondary-action {
   width: fit-content;
-  border-color: var(--border-strong);
+  border: var(--border-line-subtle);
   color: var(--text-primary);
   background: var(--bg-surface-2);
+  box-shadow: var(--shadow-control);
 }
 
 .secondary-action:hover:not(:disabled):not([aria-disabled='true']) {
+  border-color: var(--border-strong);
   background: var(--bg-surface-hover);
   text-decoration: none;
+}
+
+:is(.primary-action, .secondary-action, .icon-button, .icon-ghost):active:not(:disabled):not(
+    [aria-disabled='true']
+  ) {
+  transform: translateY(var(--motion-press-offset));
 }
 
 .primary-action:disabled,
@@ -115,9 +141,11 @@
   cursor: not-allowed;
 }
 
+/* One plate for every surface that holds data: graphite one step above the field, a white
+   hairline, the same radius and padding everywhere. Pages do not invent a second card. */
 .card {
   min-width: 0;
-  padding: var(--spacing-4);
+  padding: var(--spacing-5);
   border: var(--border-line-subtle);
   border-radius: var(--radius-card);
   background: var(--bg-surface-1);
@@ -132,12 +160,21 @@
 .card h2 {
   color: var(--text-primary);
   font-size: var(--font-size-card-title);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-card);
 }
 
 .money {
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The meta layer: dates, counts, comparisons and axis labels, set apart from the figures. */
+.meta {
+  color: var(--text-muted);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--letter-spacing-meta);
 }
 
 /* Pinned to its containing block's start: left at its static position, a hidden
@@ -176,11 +213,21 @@
   min-width: 0;
   min-height: var(--control-height);
   padding: var(--spacing-2) var(--spacing-3);
-  border: var(--border-line-strong);
+  border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-primary);
   background: var(--bg-surface-2);
+  box-shadow: var(--shadow-control);
   font-size: var(--font-size-body);
+}
+
+:where(input, select, textarea):hover:not(:disabled) {
+  border-color: var(--border-strong);
+}
+
+/* The focus occupies the field edge instead of adding a second frame around it. */
+:where(input, select, textarea):focus-visible {
+  outline-offset: var(--outline-offset-inset);
 }
 
 /* Fields and submit actions share a comfortable rhythm without loosening compact toolbars. */
@@ -269,8 +316,21 @@ table caption {
   text-align: left;
 }
 
+/* Table heads sit on the plate itself: muted, medium, separated by a hairline, never a band. */
 :where(thead) {
-  background: var(--bg-surface-2);
+  background: var(--color-transparent);
+}
+
+:where(thead th) {
+  border-bottom: var(--border-line-subtle);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A row header names its row; it is not shouted in the browser's default bold. */
+:where(tbody th, tfoot th) {
+  font-weight: var(--font-weight-normal);
 }
 
 /* A neutral row highlight helps follow a figure across wide financial tables. */

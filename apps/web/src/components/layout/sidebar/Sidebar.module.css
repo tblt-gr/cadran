@@ -6,65 +6,58 @@
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  border-right: var(--border-none);
+  border-right: var(--border-line-subtle);
   background: var(--bg-sidebar);
+}
+
+/* Same height and hairline as the page bar, so the window reads as one line across. */
+.brandRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: var(--header-height);
+  padding: var(--spacing-none) var(--spacing-3) var(--spacing-none) var(--spacing-5);
+  border-bottom: var(--border-line-subtle);
+  gap: var(--spacing-2);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  min-height: var(--header-height);
-  padding: var(--spacing-none) var(--spacing-6);
-  gap: var(--spacing-3);
+  min-width: 0;
   color: var(--text-primary);
   font-size: var(--font-size-brand);
-  font-weight: var(--font-weight-strong);
+  font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-brand);
+  gap: var(--spacing-2);
 }
 
 .brandMark {
   flex: 0 0 auto;
-  width: var(--icon-size-sm);
-  height: var(--icon-size-sm);
-  color: var(--accent);
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  color: var(--text-primary);
+}
+
+.collapse {
+  color: var(--text-muted);
 }
 
 .navigation {
   display: flex;
   flex: 1;
   flex-direction: column;
-  padding: var(--spacing-3);
-  gap: var(--spacing-1);
+  padding: var(--spacing-4) var(--spacing-3);
+  gap: var(--spacing-0-5);
 }
 
-.collapse {
-  display: flex;
-  align-items: center;
-  min-width: 0;
-  min-height: var(--navigation-link-height);
-  margin: var(--spacing-3);
-  padding: var(--spacing-control-block) var(--spacing-3);
-  border: var(--border-none);
-  border-top: var(--border-line-subtle);
-  border-radius: var(--radius-control);
-  color: var(--text-secondary);
-  background: var(--color-transparent);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  gap: var(--spacing-3);
-  transition:
-    color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
-}
-
-.collapse:hover {
-  color: var(--text-primary);
-  background: var(--bg-surface-2);
+/* Settings sit at the foot of the column, away from the places money lives. */
+.navigation .link:last-child {
+  margin-top: var(--spacing-auto);
 }
 
 @media (max-width: 1279px) {
-  .brand {
+  .brandRow {
     justify-content: center;
     padding: var(--spacing-none);
   }
@@ -74,8 +67,10 @@
     display: none;
   }
 
+  /* A 60 px rail leaves exactly the 44 px touch target once 8 px sit on each side. */
   .navigation {
     align-items: center;
+    padding-inline: var(--spacing-2);
   }
 
   .collapse {
@@ -84,26 +79,33 @@
 
   .link {
     justify-content: center;
-    width: 2.875rem;
+    width: var(--touch-target-min);
     padding-inline: var(--spacing-none);
   }
 }
 
 @media (min-width: 1280px) {
-  .collapsed .brand {
+  .collapsed .brandRow {
     justify-content: center;
     padding: var(--spacing-none);
   }
 
-  .collapsed .brand span,
-  .collapsed .link span,
-  .collapsed .collapse span {
+  .collapsed .brand {
     display: none;
   }
 
-  .collapsed .link,
-  .collapsed .collapse {
+  .collapsed .link span {
+    display: none;
+  }
+
+  .collapsed .navigation {
+    align-items: center;
+    padding-inline: var(--spacing-2);
+  }
+
+  .collapsed .link {
     justify-content: center;
+    width: var(--touch-target-min);
     padding-inline: var(--spacing-none);
   }
 }

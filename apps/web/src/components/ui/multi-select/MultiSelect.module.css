@@ -45,7 +45,7 @@
   border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   background: var(--bg-surface-2);
-  box-shadow: var(--shadow-sheet);
+  box-shadow: var(--shadow-popover);
   list-style: none;
 }
 

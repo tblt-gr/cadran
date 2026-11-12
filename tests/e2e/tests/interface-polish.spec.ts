@@ -101,3 +101,72 @@ test('investment totals form a readable two-column summary on a phone', async ({
   expect(Math.abs(value!.y - gain!.y)).toBeLessThanOrEqual(1);
   expect(gain!.x).toBeGreaterThan(value!.x + value!.width);
 });
+
+test('keeps desktop movements on one scan line with their account and category', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/transactions');
+  await settled(page);
+  const row = page.locator('li[data-state="BOOKED"]').first();
+  const boxes = await row.evaluate((element) => {
+    const primary = element.querySelector(':scope > div')!.getBoundingClientRect();
+    const amount = element.querySelector(':scope > span')!.getBoundingClientRect();
+    const meta = element.querySelectorAll(':scope > div')[1]!.getBoundingClientRect();
+    return {
+      height: element.getBoundingClientRect().height,
+      primaryCenter: primary.y + primary.height / 2,
+      amountCenter: amount.y + amount.height / 2,
+      metaCenter: meta.y + meta.height / 2,
+    };
+  });
+  expect(boxes.height).toBeLessThan(80);
+  expect(Math.abs(boxes.primaryCenter - boxes.amountCenter)).toBeLessThan(2);
+  expect(Math.abs(boxes.primaryCenter - boxes.metaCenter)).toBeLessThan(2);
+});
+
+test('uses restrained action corners and one plate for every dashboard figure', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await settled(page);
+  // The production build may minify a token to hex; compare computed colours in one format.
+  const plate = await page.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = 'var(--bg-surface-1)';
+    document.body.append(probe);
+    const color = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return color;
+  });
+  for (const name of ['Patrimoine net', 'Revenus', 'Dépenses', 'Taux d’épargne']) {
+    const panel = page.getByRole('region', { name, exact: true });
+    await expect(panel).toHaveCSS('background-color', plate);
+    await expect(panel).toHaveCSS('border-top-width', '1px');
+  }
+  await page.goto('/transactions');
+  await settled(page);
+  const create = page.getByRole('button', { name: 'Nouvelle transaction', exact: true });
+  expect(
+    await create.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius)),
+  ).toBeLessThanOrEqual(8);
+});
+
+test('keeps reduced-motion dialogs immediate and preserves their keyboard return path', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/transactions');
+  await settled(page);
+  const create = page.getByRole('button', { name: 'Nouvelle transaction', exact: true });
+  await create.click();
+  const dialog = page.getByRole('dialog', { name: 'Nouvelle transaction', exact: true });
+  await expect(dialog).toBeVisible();
+  expect(
+    await dialog.evaluate((el) => parseFloat(getComputedStyle(el).animationDuration)),
+  ).toBeLessThanOrEqual(0.001);
+  await expect(dialog.getByRole('button', { name: 'Enregistrer', exact: true })).toBeInViewport();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(create).toBeFocused();
+});

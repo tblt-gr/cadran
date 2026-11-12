@@ -1,0 +1,16 @@
+.dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: var(--color-mark-size);
+  height: var(--color-mark-size);
+  margin-right: var(--spacing-2);
+  vertical-align: middle;
+  /* Centred on the label even inside a baseline-aligned row. */
+  align-self: center;
+}
+
+.fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

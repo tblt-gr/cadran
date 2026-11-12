@@ -1003,7 +1003,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
     const row = screen.getByText('Salaire').closest('li')!;
-    expect(row.style.borderInlineStartColor).toBe('rgb(72, 109, 240)');
+    expect(row.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#486DF0');
     expect(screen.queryByText('(1)')).toBeNull();
     expect(row.textContent).not.toContain('(1)');
     expect(screen.getByText('Salaire').getAttribute('title')).toBe('Salaire');
@@ -1017,7 +1017,7 @@ describe('MonthlyBudgetPage', () => {
     );
     fireEvent.click(toggle);
     const time = await within(row).findByText('14 mars');
-    expect(row.style.borderInlineStartColor).toBe('rgb(72, 109, 240)');
+    expect(row.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#486DF0');
     expect(time.tagName).toBe('TIME');
     expect(time.getAttribute('datetime')).toBe('2026-03-14');
     expect(
@@ -1703,13 +1703,20 @@ describe('MonthlyBudgetPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Valeurs provisoires à la date du jour.' }),
     ).toBeNull();
-    expect(screen.getByText('Liquidités').closest('tr')?.style.borderInlineStartColor).toBe(
-      'rgb(255, 255, 255)',
-    );
     expect(
-      screen.getByRole('link', { name: 'Compte courant' }).closest('tr')?.style
-        .borderInlineStartColor,
-    ).toBe('rgb(255, 255, 255)');
+      screen
+        .getByText('Liquidités')
+        .closest('tr')
+        ?.querySelector('[data-color-dot] circle')
+        ?.getAttribute('fill'),
+    ).toBe('#FFFFFF');
+    // The accounts sit under their group row, which alone carries the group's dot.
+    expect(
+      screen
+        .getByRole('link', { name: 'Compte courant' })
+        .closest('tr')
+        ?.querySelector('[data-color-dot]'),
+    ).toBeNull();
     expect(screen.getByRole('link', { name: 'Compte courant' }).getAttribute('href')).toBe(
       `/accounts/${accountId}`,
     );

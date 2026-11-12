@@ -7,6 +7,7 @@
   justify-content: center;
   padding: var(--spacing-6);
   background: var(--overlay-sheet);
+  animation: backdrop-in var(--duration-fast) var(--ease-out);
 }
 
 .modal {
@@ -19,13 +20,34 @@
   border-radius: var(--radius-card);
   background: var(--bg-surface-1);
   box-shadow: var(--shadow-sheet);
+  animation: modal-in var(--duration-medium) var(--ease-out);
+}
+
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-overlay-offset));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--spacing-6);
+  padding: var(--spacing-5) var(--spacing-6);
   border-bottom: var(--border-line-subtle);
   gap: var(--spacing-4);
 }
@@ -35,15 +57,18 @@
   margin: var(--spacing-none);
 }
 
+/* The eyebrow belongs to the meta layer: what kind of dialog, in mono, before its title. */
 .heading p {
   color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-meta);
+  font-weight: var(--font-weight-normal);
 }
 
 .heading h2 {
   margin-top: var(--spacing-1);
-  font-size: var(--font-size-kpi);
+  font-size: var(--font-size-brand);
+  font-weight: var(--font-weight-medium);
   font-weight: var(--font-weight-heading);
   line-height: var(--line-height-context);
 }
@@ -87,27 +112,34 @@
 }
 
 /* The native form owns both regions; only the fields scroll, so submit remains reachable. */
-.body:has(> form[data-modal-form]) {
+.body:has(> form[data-modal-form], > [data-modal-form-host]:not([hidden])) {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding: var(--spacing-none);
 }
 
-.body > form[data-modal-form] {
+.body [data-modal-form-host]:not([hidden]) {
+  display: contents;
+}
+
+.body > form[data-modal-form],
+.body > [data-modal-form-host] form[data-modal-form] {
   display: flex;
   min-height: 0;
   flex-direction: column;
   gap: var(--spacing-none);
 }
 
-.body > form[data-modal-form] > [data-form-content] {
+.body > form[data-modal-form] > [data-form-content],
+.body > [data-modal-form-host] form[data-modal-form] > [data-form-content] {
   min-height: 0;
   overflow: auto;
   padding: var(--spacing-6);
 }
 
-.body > form[data-modal-form] > [data-modal-actions] {
+.body > form[data-modal-form] > [data-modal-actions],
+.body > [data-modal-form-host] form[data-modal-form] > [data-modal-actions] {
   position: static;
   flex-shrink: 0;
   margin: var(--spacing-none);
@@ -155,7 +187,8 @@
     padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
   }
 
-  .body > form[data-modal-form] > [data-form-content] {
+  .body > form[data-modal-form] > [data-form-content],
+  .body > [data-modal-form-host] form[data-modal-form] > [data-form-content] {
     padding: var(--spacing-4);
   }
 }

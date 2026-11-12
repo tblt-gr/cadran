@@ -47,10 +47,14 @@
   border: var(--border-none);
 }
 
-/* Each section is separated by a hairline rather than boxed, keeping the column calm. */
+/* Closed facets read as one tool list. Only an expanded group needs a separator. */
 .sections > details {
-  padding-block: var(--spacing-3);
-  border-top: var(--border-line-subtle);
+  padding-block: var(--spacing-2);
+}
+
+.sections > details[open] {
+  padding-bottom: var(--spacing-4);
+  border-bottom: var(--border-line-subtle);
 }
 
 .sections > details > summary {

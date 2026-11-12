@@ -173,10 +173,3 @@
   color: var(--text-primary);
   text-decoration: underline;
 }
-
-.panel tbody tr {
-  border-inline-start: var(--border-width-loading) solid var(--color-transparent);
-}
-.panel tbody tr.groupRow {
-  border-inline-start-color: var(--text-muted);
-}

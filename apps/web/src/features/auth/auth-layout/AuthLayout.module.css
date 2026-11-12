@@ -17,12 +17,20 @@
 }
 
 .brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: var(--spacing-none);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: var(--font-size-brand);
-  font-weight: var(--font-weight-semibold);
+  font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-brand);
-  text-align: center;
+  gap: var(--spacing-2);
+}
+
+.brandMark {
+  width: var(--spacing-5);
+  height: var(--spacing-5);
 }
 
 .heading {

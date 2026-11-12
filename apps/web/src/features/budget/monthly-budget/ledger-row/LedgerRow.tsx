@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { ColorDot } from '@/components/ui/color-dot/ColorDot';
 import { canonicalGroupColor } from '@/features/accounts/group-color';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { formatAmount, negateDecimal } from '@/lib/decimal';
@@ -46,7 +47,7 @@ export function LedgerRow({
   const explainable = row.hasMovements || row.pendingCount > 0;
   const pendingOnly = !row.hasMovements && row.pendingCount > 0;
   const amount = renderAmount(row, pendingOnly, kind, language, t);
-  // An account has no color of its own: its border shows the group it is filed under.
+  // An account has no color of its own: its dot shows the group it is filed under.
   const color =
     kind === 'account'
       ? canonicalGroupColor((row as MonthlyLedgerAccountRow).primaryGroupColor)
@@ -68,6 +69,7 @@ export function LedgerRow({
     <>
       <span className={styles.identity}>
         <span className={styles.name}>
+          <ColorDot color={color} />
           <span className={styles.labelText} title={row.label}>
             {row.label}
           </span>
@@ -103,7 +105,6 @@ export function LedgerRow({
             : `${styles.row} ${styles.rowEmpty}`
       }
       data-pending={row.pendingCount > 0 || undefined}
-      style={color === null ? undefined : { borderInlineStartColor: color }}
     >
       <div className={styles.summary}>
         {explainable ? (
