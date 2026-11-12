@@ -45,8 +45,9 @@ export async function openMovementEditModal(
     await refund
       .getByRole('combobox', { name: 'Compte', exact: true })
       .selectOption({ label: 'Compte courant' });
-    const day = await refund.getByLabel('Date comptable').getAttribute('max');
-    await refund.getByLabel('Date comptable').fill(day ?? new Date().toISOString().slice(0, 10));
+    // The ledger runs on Paris time: a UTC date is the day before between 00:00 and 02:00 there.
+    const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
+    await refund.getByLabel('Date comptable').fill(day);
     label = uniqueLabel('Audit refund correction');
     await refund.getByLabel('Libellé', { exact: true }).fill(label);
     const refundAmount = refund.getByLabel('Montant', { exact: true });
