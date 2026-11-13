@@ -55,7 +55,7 @@ final readonly class PortfolioPositionController
             return $this->failure($exception);
         }
 
-        return self::json(['asOf' => $view->asOf, 'items' => $view->items]);
+        return self::json(['asOf' => $view->asOf, 'valuedOn' => $view->valuedOn, 'items' => $view->items]);
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-cash', name: 'api_v1_portfolio_cash', methods: ['GET'])]

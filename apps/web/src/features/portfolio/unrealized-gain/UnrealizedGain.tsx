@@ -29,7 +29,8 @@ export function UnrealizedGain({
   value,
 }: {
   assetCode: string;
-  performance: string | null;
+  /** Omitted where no ratio is offered; `null` still says it cannot be calculated. */
+  performance?: string | null;
   reason?: GainReason;
   value: string | null;
 }) {
@@ -43,7 +44,7 @@ export function UnrealizedGain({
   return (
     <span className={`${styles.figures} ${tone}`}>
       <span>{signed(formatAmount(value, assetCode, 'fr'), value)}</span>
-      {performance === null ? (
+      {performance === undefined ? null : performance === null ? (
         <EmptyValue label="Performance non calculable" />
       ) : (
         <span>({signed(formatRatioPercentage(performance, 'fr'), performance)})</span>

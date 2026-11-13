@@ -17,6 +17,7 @@ final readonly class ReadPortfolioPositions
         private InstrumentRepository $instruments,
         private PresentPortfolioPositions $presenter,
         private WorkspaceCalendar $calendar,
+        private PortfolioOverviewQuery $overview,
     ) {
     }
 
@@ -29,6 +30,7 @@ final readonly class ReadPortfolioPositions
         if ($asOf > $today) {
             throw new InvalidPositionQuery('A future position date is not available.');
         }
+        $retained = ($this->overview)($accountId, $asOf->format('Y-m-d'))[2];
         $result = ($this->reconcile)($context->workspace, $accountId, $asOf);
         $instruments = [];
         foreach ($this->instruments->findMany($context->workspace, array_keys($result->positions)) as $instrument) {
@@ -41,7 +43,7 @@ final readonly class ReadPortfolioPositions
                 continue;
             }
             $instrument = $instruments[$instrumentId] ?? throw new \LogicException('A replayed instrument is missing.');
-            $items[] = $this->presenter->position($position, $instrument, $account->assetCode->toString());
+            $items[] = $this->presenter->position($position, $instrument, $account->assetCode->toString(), $retained);
         }
         usort($items, static function (array $left, array $right): int {
             $leftInstrument = $left['instrument'] ?? null;
@@ -52,7 +54,7 @@ final readonly class ReadPortfolioPositions
             return strcasecmp(is_string($leftName) ? $leftName : '', is_string($rightName) ? $rightName : '');
         });
 
-        return new PortfolioPositionsView($asOf->format('Y-m-d'), $items);
+        return new PortfolioPositionsView($asOf->format('Y-m-d'), $items, $retained?->valuation->valuedOn->format('Y-m-d'));
     }
 
     public static function date(string $literal): \DateTimeImmutable

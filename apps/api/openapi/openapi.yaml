@@ -21095,6 +21095,9 @@ components:
           averageCostBasis,
           averageUnitCost,
           costReason,
+          marketValue,
+          unrealizedGain,
+          valueReason,
           firstAcquiredOn,
           lastOperationOn,
           openLotCount,
@@ -21120,6 +21123,20 @@ components:
         costReason:
           type: [string, 'null']
           enum: [UNKNOWN_LOT_COST, null]
+        marketValue:
+          description: Frozen market value of the line of the valuation retained at asOf; null unless that line was frozen with the quantity held at asOf.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        unrealizedGain:
+          description: Frozen market value minus the frozen acquisition cost of the same line; null when either is missing.
+          oneOf:
+            - $ref: '#/components/schemas/DecimalAmount'
+            - type: 'null'
+        valueReason:
+          description: Why marketValue is null; null when it is known.
+          type: [string, 'null']
+          enum: [NO_VALUATION, PARTIAL_VALUATION, NOT_DETAILED, QUANTITY_CHANGED, null]
         firstAcquiredOn:
           type: [string, 'null']
           format: date
@@ -21335,10 +21352,14 @@ components:
     PortfolioPositions:
       type: object
       additionalProperties: false
-      required: [asOf, items]
+      required: [asOf, valuedOn, items]
       properties:
         asOf:
           type: string
+          format: date
+        valuedOn:
+          description: Date of the valuation the values come from; null without a retained valuation.
+          type: [string, 'null']
           format: date
         items:
           type: array

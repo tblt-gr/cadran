@@ -19,6 +19,9 @@ function position(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition
     averageCostBasis: { value: '320.60', assetCode: 'EUR' },
     averageUnitCost: { value: '106.866666666666666666666667', assetCode: 'EUR' },
     costReason: null,
+    marketValue: { value: '350.00', assetCode: 'EUR' },
+    unrealizedGain: { value: '29.40', assetCode: 'EUR' },
+    valueReason: null,
     firstAcquiredOn: '2026-01-10',
     lastOperationOn: '2026-03-04',
     openLotCount: 1,
@@ -43,6 +46,8 @@ describe('PositionsTable', () => {
     expect(row.getByText('FR0014000MR3')).toBeTruthy();
     expect(row.getByText(/106,87/)).toBeTruthy();
     expect(row.getByText(/320,60/)).toBeTruthy();
+    expect(row.getByText(/350,00/)).toBeTruthy();
+    expect(row.getByText(/\+29,40/)).toBeTruthy();
     fireEvent.click(row.getByRole('button', { name: 'Voir les lots' }));
     expect(onLots).toHaveBeenCalledWith(item);
   });
@@ -56,6 +61,9 @@ describe('PositionsTable', () => {
             averageCostBasis: null,
             averageUnitCost: null,
             costReason: 'UNKNOWN_LOT_COST',
+            marketValue: null,
+            unrealizedGain: null,
+            valueReason: 'NOT_DETAILED',
           }),
         ]}
         onLots={vi.fn()}
@@ -65,6 +73,26 @@ describe('PositionsTable', () => {
 
     expect(screen.getAllByText('Coût inconnu').length).toBeGreaterThanOrEqual(2);
     expect(screen.queryByText(/0,00/)).toBeNull();
+  });
+
+  it('says why a value is missing instead of showing zero', () => {
+    render(
+      <PositionsTable
+        items={[
+          position({
+            marketValue: null,
+            unrealizedGain: null,
+            valueReason: 'QUANTITY_CHANGED',
+          }),
+        ]}
+        onLots={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Quantité modifiée depuis la valorisation')).toBeTruthy();
+    expect(screen.getByText('Plus-value non calculable')).toBeTruthy();
+    expect(screen.queryByText(/350,00/)).toBeNull();
   });
 
   it('opens the flagged day reorder and keeps the table scrollable at 360 px', () => {
