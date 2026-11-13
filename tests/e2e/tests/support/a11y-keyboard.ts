@@ -1,5 +1,4 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { auditAccessibility } from './a11y';
 import { movementRows, settled, uniqueLabel } from './page';
 
 /** Reach the real sequential focus target, with a bound that also detects an unreachable control. */
@@ -175,14 +174,5 @@ export function keyboardJourneys() {
       }
     }
     expect(visited).toEqual(targets.map((_, index) => index));
-    if (mobile) {
-      const more = page.getByRole('button', { name: 'Plus', exact: true });
-      await tabTo(page, more);
-      await visibleFocus(more);
-      await page.keyboard.press('Enter');
-      await auditAccessibility(page);
-      await page.keyboard.press('Escape');
-      await expect(more).toBeFocused();
-    }
   });
 }

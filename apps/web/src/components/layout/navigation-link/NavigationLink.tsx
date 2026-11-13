@@ -8,6 +8,8 @@ export type NavigationHandler = (event: MouseEvent<HTMLAnchorElement>, href: str
 
 interface NavigationLinkProps {
   className?: string;
+  /** Icon only: the label stays as text for assistive technology. */
+  hideLabel?: boolean;
   iconSize?: number;
   item: NavigationItem;
   /** The user shows interest in the target (hover, focus): lets the app warm it up. */
@@ -18,6 +20,7 @@ interface NavigationLinkProps {
 
 export function NavigationLink({
   className,
+  hideLabel = false,
   iconSize,
   item,
   onIntent,
@@ -39,7 +42,7 @@ export function NavigationLink({
       title={label}
     >
       <Icon name={item.icon} size={iconSize} />
-      <span>{label}</span>
+      <span className={hideLabel ? 'sr-only' : undefined}>{label}</span>
     </a>
   );
 }

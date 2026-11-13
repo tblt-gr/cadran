@@ -2,20 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { getRouteTitleKey, navigationItems } from './navigation';
 
 describe('navigationItems', () => {
-  it('orders the primary, direct mobile and overflow destinations consistently', () => {
+  it('orders the five destinations shared by the sidebar and the mobile bar', () => {
     expect(navigationItems.map((item) => item.href)).toEqual([
       '/',
       '/budget',
       '/accounts',
-      '/investments',
-      '/parameters/interface',
-    ]);
-    expect(navigationItems.filter((item) => item.mobile).map((item) => item.href)).toEqual([
-      '/',
-      '/budget',
-      '/accounts',
-    ]);
-    expect(navigationItems.filter((item) => !item.mobile).map((item) => item.href)).toEqual([
       '/investments',
       '/parameters/interface',
     ]);
