@@ -89,7 +89,7 @@ export function AccountIdentityCard({ account, portfolio = false }: AccountIdent
       <div className={styles.top}>
         <div className={styles.identity}>
           <div className={styles.nameRow}>
-            <h3>{account.label}</h3>
+            <h3 className={portfolio ? 'sr-only' : undefined}>{account.label}</h3>
             {account.maskedIdentifier ? (
               <span className={styles.meta}>{`••${account.maskedIdentifier}`}</span>
             ) : null}

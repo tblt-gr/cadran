@@ -24,12 +24,15 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
     );
   const amount = (value: string | null) => money(value, summary!.assetCode);
   return (
-    <section
+    <details
       className={`card ${styles.card}`}
       aria-label="Répartition du contrat"
       aria-busy={!summary}
     >
-      <h3>Répartition</h3>
+      <summary className={styles.summary}>
+        <h3>Répartition</h3>
+        <span className={styles.hint}>Répète les supports ci-dessus, en graphique</span>
+      </summary>
       {allocation && allocation.status !== 'AVAILABLE' ? (
         <p>{allocationEmpty[allocation.status]}</p>
       ) : (
@@ -119,6 +122,6 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
           </table>
         </div>
       ) : null}
-    </section>
+    </details>
   );
 }

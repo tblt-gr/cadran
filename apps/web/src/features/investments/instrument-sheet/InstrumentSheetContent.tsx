@@ -6,7 +6,10 @@ export function InstrumentSheetContent({ data }: { data: InstrumentHolding | nul
     <>
       <InstrumentSheetSummary data={data} />
       {data && !data.holding && data.accounts.length === 0 ? (
-        <p>Cet instrument n'est détenu sur aucun compte.</p>
+        <p>
+          Cet instrument n'est détenu sur aucun compte. Il n'a donc ni quantité, ni valeur, ni
+          résultat à afficher.
+        </p>
       ) : (
         <InstrumentAccountsTable data={data} />
       )}

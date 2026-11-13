@@ -118,6 +118,10 @@ for (const kind of ['portfolio', 'insurance'] as const) {
     }
     await page.goto(`${fixtures[kind]}?tab=positions`);
     await settled(page);
+    if (kind === 'insurance') {
+      // The contract split repeats the supports, so it is a closed section until opened.
+      await page.locator('summary').filter({ hasText: 'Répartition' }).first().click();
+    }
     const disclosure = page.locator('summary').filter({ hasText: 'Toutes les lignes' });
     // Signed or non-calculable allocations expose the same table directly, without a donut.
     if (await disclosure.count()) await disclosure.click();

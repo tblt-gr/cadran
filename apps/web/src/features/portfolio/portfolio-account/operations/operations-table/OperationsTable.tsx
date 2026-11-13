@@ -63,6 +63,9 @@ export function OperationsTable({ items, onDetail, onEdit, onVoid, onReorder }: 
                   <td>
                     <span className={styles.type}>
                       <span>{operationTypeLabel(operation.type)}</span>
+                      {operation.linkedTransactionId ? (
+                        <StatusBadge tone="info">Virement lié</StatusBadge>
+                      ) : null}
                       {active ? null : (
                         <StatusBadge tone="info">
                           {operation.voidKind === 'REPLACED' ? 'Remplacée' : 'Annulée'}

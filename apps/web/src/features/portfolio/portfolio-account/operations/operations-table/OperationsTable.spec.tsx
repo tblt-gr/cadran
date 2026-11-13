@@ -196,4 +196,21 @@ describe('OperationsTable', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Réordonner la journée/ }));
     expect(onReorder).toHaveBeenCalledWith(reorderable);
   });
+
+  it('marks an operation linked to a transfer next to its type', () => {
+    render(
+      <OperationsTable
+        items={[
+          operationFixture({ id: 'op-deposit', type: 'DEPOSIT', linkedTransactionId: 'tx-1' }),
+          operationFixture({ id: 'op-plain', type: 'DEPOSIT', linkedTransactionId: null }),
+        ]}
+        onDetail={vi.fn()}
+        onEdit={vi.fn()}
+        onVoid={vi.fn()}
+        onReorder={vi.fn()}
+      />,
+    );
+
+    expect(screen.getAllByText('Virement lié')).toHaveLength(1);
+  });
 });

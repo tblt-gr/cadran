@@ -4,7 +4,7 @@
   gap: var(--spacing-4);
 }
 
-/* Six indicators: two columns on phones and tablets, three on desktop; spacing only, no rules. */
+/* The quantity and the value lead; the four results follow in a compact second row. */
 .strip {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -26,7 +26,10 @@
 
 @media (min-width: 64rem) {
   .strip {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .strip > article:nth-child(-n + 2) {
+    grid-column: span 2;
   }
 }
 

@@ -13,7 +13,7 @@ export function AccountIdentityCardSkeleton({ portfolio = false }: { portfolio?:
       <div className={styles.top}>
         <div className={styles.identity}>
           <div className={styles.nameRow}>
-            <SkeletonBlock className={skeletonStyles.name} />
+            {portfolio ? null : <SkeletonBlock className={skeletonStyles.name} />}
           </div>
           <span className={styles.meta}>
             <SkeletonBlock className={skeletonStyles.line} />
