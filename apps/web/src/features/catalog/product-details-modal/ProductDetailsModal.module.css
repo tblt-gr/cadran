@@ -24,3 +24,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.rules h3 {
+  margin-block: var(--spacing-4);
+  font-size: var(--font-size-card-title);
+}

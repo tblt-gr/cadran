@@ -1,13 +1,3 @@
-.badge {
-  width: calc(var(--spacing-12) * 1.5);
-  height: var(--spacing-6);
-}
-
-.figures {
-  width: 100%;
-  height: var(--spacing-12);
-}
-
 /* The skeleton's blocks sit directly in the page's flex flow, like the loaded ones. */
 .contents {
   display: contents;

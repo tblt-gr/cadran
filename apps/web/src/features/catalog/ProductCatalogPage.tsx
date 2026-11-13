@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
 import { CatalogFilters } from './catalog-filters/CatalogFilters';
-import { ProductCard } from '@/features/catalog/product-card/ProductCard';
+import { ProductCatalogTable } from './product-catalog-table/ProductCatalogTable';
 import { ProductCatalogPageSkeleton } from './ProductCatalogPageSkeleton';
 import { todayInBrowser } from '@/lib/businessDay';
 import { formatCalendarDay } from '@/lib/decimal';
@@ -96,13 +96,7 @@ export function ProductCatalogPage() {
             {t('catalog.resolvedOn', { date: formatCalendarDay(asOf, i18n.language) })}
           </p>
           <IncrementalList items={items} query={catalogue}>
-            {(visibleItems) => (
-              <div className={styles.products}>
-                {visibleItems.map((product) => (
-                  <ProductCard key={product.code} product={product} />
-                ))}
-              </div>
-            )}
+            {(visibleItems) => <ProductCatalogTable products={visibleItems} />}
           </IncrementalList>
         </>
       )}

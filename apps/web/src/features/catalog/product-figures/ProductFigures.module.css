@@ -1,6 +1,5 @@
 .section {
-  padding-top: var(--spacing-4);
-  border-top: var(--border-line-subtle);
+  min-width: 12rem;
 }
 
 .section h3 {
@@ -9,9 +8,9 @@
 
 .figures {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   margin: var(--spacing-none);
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 
 .figures div {
@@ -34,9 +33,8 @@
 
 .value {
   color: var(--text-primary);
-  font-size: var(--font-size-kpi);
+  font-size: var(--font-size-body);
   font-weight: var(--font-weight-strong);
-  letter-spacing: var(--letter-spacing-kpi);
   line-height: var(--line-height-tight);
 }
 
@@ -51,10 +49,4 @@
   font-size: var(--font-size-body);
   font-style: italic;
   line-height: var(--line-height-body);
-}
-
-@media (max-width: 42rem) {
-  .figures {
-    grid-template-columns: minmax(0, 1fr);
-  }
 }
