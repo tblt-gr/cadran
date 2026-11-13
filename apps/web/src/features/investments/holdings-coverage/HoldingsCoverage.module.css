@@ -1,0 +1,32 @@
+.coverage {
+  display: grid;
+  padding: var(--spacing-4);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-3);
+}
+.coverage p {
+  margin: var(--spacing-none);
+}
+.coverage summary {
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+}
+.list {
+  display: grid;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  gap: var(--spacing-3);
+  list-style: none;
+}
+.list li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-2) var(--spacing-4);
+}
+.list a {
+  display: inline-flex;
+  min-height: var(--touch-target-min);
+  align-items: center;
+}

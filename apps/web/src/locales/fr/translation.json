@@ -183,6 +183,16 @@
       "PARTIAL": "Valorisation partielle : titres non détaillés",
       "NONE": "Aucune valorisation"
     },
+    "coverage": {
+      "summary_one": "{{valued}} compte sur {{total}} valorisé à cette date",
+      "summary_other": "{{valued}} comptes sur {{total}} valorisés à cette date",
+      "unvalued_one": "{{count}} compte sans valorisation",
+      "unvalued_other": "{{count}} comptes sans valorisation"
+    },
+    "alerts": {
+      "summary_one": "{{count}} avis",
+      "summary_other": "{{count}} avis"
+    },
     "unsplit": {
       "message": "{{label}} est valorisé en total : ses titres ne sont pas détaillés par actif.",
       "action": "Saisir une valorisation détaillée"

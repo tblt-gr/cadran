@@ -1,0 +1,11 @@
+.alerts {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.alerts summary {
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+}
+.alerts > :not(summary) {
+  margin-top: var(--spacing-3);
+}
