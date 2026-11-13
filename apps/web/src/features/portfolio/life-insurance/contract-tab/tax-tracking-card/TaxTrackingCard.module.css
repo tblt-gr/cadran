@@ -39,3 +39,8 @@
 .scroll table {
   min-width: 640px;
 }
+.hintSkeleton {
+  display: inline-block;
+  width: 6rem;
+  height: 1em;
+}

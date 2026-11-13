@@ -1,5 +1,4 @@
 import { ContractTabSkeleton } from '@/features/portfolio/life-insurance/contract-tab/ContractTabSkeleton';
-import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { ValueHistoryCardSkeleton } from './value-history-card/ValueHistoryCardSkeleton';
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { OperationFilters } from './operations/operation-filters/OperationFilters';
@@ -22,12 +21,10 @@ export function PortfolioAccountPageSkeleton({
   accountId,
   status,
   asOf,
-  today,
 }: {
   accountId: string;
   status: string;
   asOf: string;
-  today: string;
 }) {
   const active = activeTab();
   return (
@@ -37,20 +34,6 @@ export function PortfolioAccountPageSkeleton({
         active={active}
         asOf={asOf}
         kind={active === 'contract' ? 'INSURANCE_CONTRACT' : undefined}
-        tools={
-          active !== 'operations' && active !== 'performance' ? (
-            <fieldset className={styles.frozenField} disabled>
-              <BusinessDateField
-                compact
-                hint={null}
-                label="Situation au"
-                onChange={() => undefined}
-                today={today}
-                value={asOf}
-              />
-            </fieldset>
-          ) : null
-        }
       />
       <PortfolioAccountHeader
         accountId={accountId}

@@ -4,6 +4,8 @@ import {
   money,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
+import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
+import { formatCalendarNumericDay } from '@/lib/decimal';
 import { CumulativeSources } from '@/features/portfolio/life-insurance/overview/recorded-amounts/cumulative-sources/CumulativeSources';
 import styles from './RecordedAmounts.module.css';
 export function RecordedAmounts({
@@ -34,8 +36,17 @@ export function RecordedAmounts({
     ['Participation aux bénéfices nette', cumulative?.profitSharing.net ?? null],
   ];
   return (
-    <section className={`card ${styles.card}`} aria-busy={!summary}>
-      <h3>Montants cumulés enregistrés</h3>
+    <ContractSection
+      title="Montants cumulés enregistrés"
+      hint={
+        summary ? (
+          `au ${formatCalendarNumericDay(summary.asOf)}`
+        ) : (
+          <SkeletonBlock className={styles.hintSkeleton} />
+        )
+      }
+      busy={!summary}
+    >
       <p>
         Depuis la souscription jusqu’à la date sélectionnée. Montants observés, sans estimation ;
         les arbitrages sont exclus des versements et des rachats.
@@ -70,6 +81,6 @@ export function RecordedAmounts({
         accountId={accountId}
         sourceReturnFocus={sourceReturnFocus}
       />
-    </section>
+    </ContractSection>
   );
 }

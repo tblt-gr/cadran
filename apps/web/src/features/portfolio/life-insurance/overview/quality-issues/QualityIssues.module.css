@@ -1,16 +1,32 @@
-.card {
+.alert {
+  display: flex;
+  align-items: flex-start;
   min-width: 0;
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-warning);
+  border-radius: var(--radius-card);
+  color: var(--warning);
+  background: var(--warning-soft);
+  gap: var(--spacing-3);
 }
-.card h3 {
-  margin-top: var(--spacing-none);
+.alert svg {
+  flex: none;
+  margin-top: var(--spacing-0-5);
 }
-.card ul {
-  padding-left: var(--spacing-4);
+.alert ul {
+  min-width: 0;
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  color: var(--text-primary);
+  list-style: none;
 }
-.card li + li {
-  margin-top: var(--spacing-4);
+.alert li + li {
+  margin-top: var(--spacing-3);
 }
-.card a {
+.alert p {
+  margin: var(--spacing-none);
+}
+.alert a {
   display: inline-block;
   margin-right: var(--spacing-3);
 }

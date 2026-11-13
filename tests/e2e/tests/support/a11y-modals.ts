@@ -153,12 +153,20 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
             : name.startsWith('valuation') || name.startsWith('insurance valuation')
               ? 'Nouvelle valorisation'
               : name === 'insurance contract'
-                ? 'Modifier'
+                ? 'Modifier le contrat'
                 : name === 'insurance fee'
                   ? 'Ajouter un barème'
                   : 'Renseigner un taux';
     const target = button(trigger).first();
     // These cases open the Valorisations tab, where the valuation is the primary header action.
+    if (name === 'insurance fee' || name === 'insurance rate') {
+      // These sections of the Contrat tab are closed disclosures until opened.
+      await page
+        .locator('summary', {
+          hasText: name === 'insurance fee' ? 'Barèmes de frais' : 'Taux des fonds en euros',
+        })
+        .click();
+    }
     await expect(target).toBeVisible();
     await target.click();
   }
