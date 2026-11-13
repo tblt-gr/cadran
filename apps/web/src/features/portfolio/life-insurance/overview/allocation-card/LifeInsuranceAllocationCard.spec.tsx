@@ -57,3 +57,10 @@ it('preserves the chart wrapper, donut height and known legend/table labels whil
   ).toBe(chartClass);
   expect(screen.queryByTestId('allocation-donut-skeleton')).toBeNull();
 });
+it('stays closed by default since it repeats the supports, with its table still in the page', () => {
+  render(<LifeInsuranceAllocationCard summary={summaryFixture()} />);
+  const details = screen.getByRole('heading', { name: 'Répartition' }).closest('details')!;
+
+  expect(details.open).toBe(false);
+  expect(within(details).getByRole('table')).toBeTruthy();
+});

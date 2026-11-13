@@ -12,9 +12,7 @@ export function AccountIdentityCardSkeleton({ portfolio = false }: { portfolio?:
     <div className={`${portfolio ? styles.embedded : 'card'} ${styles.card}`}>
       <div className={styles.top}>
         <div className={styles.identity}>
-          <div className={styles.nameRow}>
-            <SkeletonBlock className={skeletonStyles.name} />
-          </div>
+          <div className={styles.nameRow}></div>
           <span className={styles.meta}>
             <SkeletonBlock className={skeletonStyles.line} />
           </span>

@@ -89,7 +89,8 @@ export function AccountIdentityCard({ account, portfolio = false }: AccountIdent
       <div className={styles.top}>
         <div className={styles.identity}>
           <div className={styles.nameRow}>
-            <h3>{account.label}</h3>
+            {/* The page title already writes the name: the heading stays for assistive technology. */}
+            <h3 className="sr-only">{account.label}</h3>
             {account.maskedIdentifier ? (
               <span className={styles.meta}>{`••${account.maskedIdentifier}`}</span>
             ) : null}
