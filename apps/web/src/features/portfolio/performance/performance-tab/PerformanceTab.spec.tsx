@@ -79,7 +79,7 @@ describe('PerformanceTab', () => {
     expect(screen.getByRole('table', { name: 'Performance par mois' })).toBeTruthy();
   });
 
-  it('qualifies the gain and the Modified Dietz return first and keeps the other two as support', async () => {
+  it('shows the four figures on one line, each with its quality', async () => {
     renderTab();
     await loaded();
 
@@ -95,7 +95,7 @@ describe('PerformanceTab', () => {
     ]);
     const quality = ['Exact', 'Approximation', 'Données à vérifier', 'Non calculable'];
     const badges = year.getAllByText((text) => quality.includes(text));
-    expect(badges).toHaveLength(2);
+    expect(badges).toHaveLength(4);
   });
 
   it('defaults the year to the year of Au and reads ?year= from the URL', async () => {

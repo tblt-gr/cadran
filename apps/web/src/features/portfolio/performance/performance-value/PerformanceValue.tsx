@@ -77,8 +77,7 @@ export function FigureValue({
 
 /**
  * One performance figure: the server value with its sign and the button that explains it.
- * A headline figure also carries its quality next to the value; the others keep it in their
- * explanation. A missing figure is a greyed dash that still says why.
+ * The quality sits next to the value where asked. A missing figure is a greyed dash that still says why.
  */
 export function PerformanceValue({
   figure,
@@ -86,7 +85,7 @@ export function PerformanceValue({
   context,
   emptyLabel = 'Non calculable',
   onExplain,
-  headline = false,
+  withQuality = false,
 }: {
   /** `null` while loading: only the value becomes a block. */
   figure: PerformanceFigure | null;
@@ -94,12 +93,12 @@ export function PerformanceValue({
   context: ReasonContext;
   emptyLabel?: string;
   onExplain: (() => void) | null;
-  /** Large value with its quality; otherwise a smaller supporting figure. */
-  headline?: boolean;
+  /** The quality the API attached to the figure is shown next to the value. */
+  withQuality?: boolean;
 }) {
   const reason = figure?.reasons[0];
   return (
-    <article className={`${styles.figure} ${headline ? '' : styles.supporting}`}>
+    <article className={styles.figure}>
       <div className={styles.heading}>
         <h3>{label}</h3>
         <InfoButton
@@ -120,7 +119,7 @@ export function PerformanceValue({
           <FigureValue assetCode={context.assetCode} figure={figure} />
         )}
       </div>
-      {headline ? (
+      {withQuality ? (
         <div className={styles.quality}>
           {figure ? (
             <QualityBadge quality={figure.quality} />
