@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -44,10 +44,12 @@ describe('AppShell', () => {
     );
 
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
-    expect(labels(mobile)).toEqual(['Synthèse', 'Budget', 'Comptes']);
-    fireEvent.click(within(mobile).getByRole('button', { name: 'Plus' }));
-    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(labels(sheet)).toEqual(['Investissements', 'Paramètres']);
+    expect(labels(mobile)).toEqual(expectedLabels);
+    expect(within(mobile).queryByRole('button')).toBeNull();
+    // Icons only: the name stays available to assistive technology as hidden text.
+    within(mobile)
+      .getAllByRole('link')
+      .forEach((link) => expect(link.querySelector('span')?.className).toContain('sr-only'));
   });
 
   it.each([
@@ -70,24 +72,6 @@ describe('AppShell', () => {
     expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
     const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
     expect(within(mobile).getByRole('link', { current: 'page' }).textContent).toBe('Comptes');
-    expect(
-      within(mobile).getByRole('button', { name: 'Plus' }).getAttribute('aria-current'),
-    ).toBeNull();
-  });
-
-  it('closes the complementary navigation and restores focus to its trigger', async () => {
-    renderShell();
-
-    const moreButton = screen.getByRole('button', { name: 'Plus' });
-    fireEvent.click(moreButton);
-    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    expect(within(sheet).getByRole('link', { name: 'Investissements' })).toBeTruthy();
-    expect(within(sheet).queryByRole('link', { name: 'Objectifs' })).toBeNull();
-
-    fireEvent.click(within(sheet).getByRole('button', { name: 'Fermer' }));
-
-    expect(screen.queryByRole('dialog', { name: 'Navigation complémentaire' })).toBeNull();
-    await waitFor(() => expect(document.activeElement).toBe(moreButton));
   });
 
   it('renders page actions beside the page title and no global placeholders', () => {
@@ -122,7 +106,7 @@ describe('AppShell', () => {
     expect(screen.queryByRole('button', { name: 'Ajouter' })).toBeNull();
   });
 
-  it('forwards navigation intent from the sidebar and the complementary sheet', () => {
+  it('forwards navigation intent from the sidebar and the mobile bar', () => {
     const onNavigationIntent = vi.fn();
     render(
       <AppShell onNavigationIntent={onNavigationIntent} path="/" setPath={vi.fn()}>
@@ -134,9 +118,8 @@ describe('AppShell', () => {
     fireEvent.focus(within(sidebar).getByRole('link', { name: 'Budget' }));
     expect(onNavigationIntent).toHaveBeenLastCalledWith('/budget');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Plus' }));
-    const sheet = screen.getByRole('dialog', { name: 'Navigation complémentaire' });
-    fireEvent.pointerEnter(within(sheet).getByRole('link', { name: 'Paramètres' }));
+    const mobile = screen.getByRole('navigation', { name: 'Navigation mobile' });
+    fireEvent.pointerEnter(within(mobile).getByRole('link', { name: 'Paramètres' }));
     expect(onNavigationIntent).toHaveBeenLastCalledWith('/parameters/interface');
   });
 

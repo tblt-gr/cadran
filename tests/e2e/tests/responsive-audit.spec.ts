@@ -665,3 +665,34 @@ test('transaction filters at 1440 px sit in a column beside the list', async ({ 
     await context.close();
   }
 });
+
+/** The five icon-only destinations share the bottom bar at 360 px: each is named and touchable. */
+test('mobile navigation shows its five named icon destinations at 360 px', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+    ignoreHTTPSErrors: true,
+    storageState: ownerStorageState,
+    viewport: { width: 360, height: 740 },
+    hasTouch: true,
+    isMobile: true,
+    locale: 'fr-FR',
+    timezoneId: 'Europe/Paris',
+  });
+  const page = await context.newPage();
+  try {
+    await page.goto('/');
+    await settled(page);
+    const links = page.getByRole('navigation', { name: 'Navigation mobile' }).getByRole('link');
+    await expect(links).toHaveCount(5);
+    for (const name of ['Synthèse', 'Budget', 'Comptes', 'Investissements', 'Paramètres']) {
+      await expect(links.filter({ has: page.getByText(name, { exact: true }) })).toHaveCount(1);
+    }
+    for (const link of await links.all()) {
+      const box = (await link.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(44);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+  } finally {
+    await context.close();
+  }
+});

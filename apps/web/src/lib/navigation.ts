@@ -6,7 +6,6 @@ export interface NavigationItem {
   icon: IconName;
   labelKey: ParseKeys;
   match: (pathname: string) => boolean;
-  mobile?: boolean;
 }
 
 export const navigationItems: NavigationItem[] = [
@@ -15,7 +14,6 @@ export const navigationItems: NavigationItem[] = [
     icon: 'home',
     labelKey: 'navigation.home',
     match: (path) => path === '/',
-    mobile: true,
   },
   {
     href: '/budget',
@@ -31,7 +29,6 @@ export const navigationItems: NavigationItem[] = [
         '/transactions/categories',
         '/transactions/categories/rules',
       ].includes(path),
-    mobile: true,
   },
   {
     href: '/accounts',
@@ -43,7 +40,6 @@ export const navigationItems: NavigationItem[] = [
       /^\/accounts\/[^/]+$/.test(path) ||
       path.startsWith('/portfolios/') ||
       /^\/life-insurance\/[^/]+$/.test(path),
-    mobile: true,
   },
   {
     href: '/investments',

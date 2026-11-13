@@ -10,7 +10,6 @@ import {
 } from '@/components/layout/header/HeaderTitleContext';
 import { HeaderActionsProvider } from '@/components/layout/header/HeaderActionsContext';
 import { MobileBottomNav } from '@/components/layout/mobile-bottom-nav/MobileBottomNav';
-import { MobileMoreSheet } from '@/components/layout/mobile-more-sheet/MobileMoreSheet';
 import { Sidebar } from '@/components/layout/sidebar/Sidebar';
 import { UpdateBanner } from '@/components/layout/update-banner/UpdateBanner';
 import styles from './AppShell.module.css';
@@ -66,21 +65,14 @@ function AppShellContent({
     titleRef.current?.focus({ preventScroll: true });
   }, [path]);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [isMoreOpen, setIsMoreOpen] = useState(false);
-  const moreButton = useRef<HTMLButtonElement>(null);
   const headerSubtitle = useHeaderSubtitleValue(path);
   const headerOverride = useHeaderTitleValue(path);
   const title = headerOverride ?? t(getRouteTitleKey(path));
-  const { handleNavigate, navigate } = useClientNavigation(setPath);
+  const { handleNavigate } = useClientNavigation(setPath);
 
   useEffect(() => {
     document.title = path === '/' ? t('app.name') : `${title} · ${t('app.name')}`;
   }, [path, title, t]);
-
-  function closeMoreSheet() {
-    setIsMoreOpen(false);
-    window.requestAnimationFrame(() => moreButton.current?.focus());
-  }
 
   return (
     <div className={`${styles.shell}${isCollapsed ? ` ${styles.collapsed}` : ''}`} data-app-shell>
@@ -117,25 +109,12 @@ function AppShellContent({
       </div>
 
       <MobileBottomNav
-        isMoreOpen={isMoreOpen}
-        moreButton={moreButton}
         onNavigate={handleNavigate}
         onNavigationIntent={onNavigationIntent}
-        onOpenMore={() => setIsMoreOpen(true)}
         path={path}
       />
 
       <UpdateBanner />
-
-      {isMoreOpen ? (
-        <MobileMoreSheet
-          accountSlot={accountSlot}
-          close={closeMoreSheet}
-          navigate={navigate}
-          onNavigationIntent={onNavigationIntent}
-          path={path}
-        />
-      ) : null}
     </div>
   );
 }
