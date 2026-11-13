@@ -1641,8 +1641,19 @@
       "COMBINED_CONTRIBUTIONS": "Plafond de versements commun à plusieurs comptes"
     },
     "status": {
+      "active": "Actif",
       "archived": "Retiré du catalogue",
       "archivedOn": "Retiré le {{date}}"
+    },
+    "table": {
+      "caption": "Produits du catalogue système",
+      "name": "Nom",
+      "family": "Famille",
+      "yield": "Rendement",
+      "figures": "Chiffres clés",
+      "rules": "Règles",
+      "status": "Statut",
+      "details": "Détails"
     },
     "figures": {
       "title": "Valeurs au {{date}}",

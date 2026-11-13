@@ -95,20 +95,18 @@ for (const width of [360, 768, 1440]) {
       }
     });
 
-    test('aligns embedded catalogue rules with their product heading', async ({ page }) => {
+    test('opens the dated catalogue rules from the product details', async ({ page }) => {
       await page.goto('/parameters/catalog');
       await settled(page);
-      const product = page.getByRole('article').first();
-      await product.locator('summary').click();
-      const table = product.getByRole('table');
-      await expect(table).toBeVisible();
-      const heading = (await product.getByRole('heading', { level: 2 }).boundingBox())!;
-      const firstCell = table.getByRole('columnheader').first();
-      const left = await firstCell.evaluate(
-        (cell) =>
-          cell.getBoundingClientRect().left + parseFloat(getComputedStyle(cell).paddingLeft),
-      );
-      expect(Math.abs(left - heading.x)).toBeLessThanOrEqual(1);
+      await expect(
+        page.getByRole('table', { name: 'Produits du catalogue système' }),
+      ).toBeVisible();
+      await page
+        .getByRole('button', { name: /^Détails de / })
+        .first()
+        .click();
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByRole('table', { name: /^Règles datées de / })).toBeVisible();
     });
   });
 }

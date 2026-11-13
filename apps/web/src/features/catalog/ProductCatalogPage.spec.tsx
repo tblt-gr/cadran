@@ -1,6 +1,6 @@
 import type { Product, ProductPage } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { ProductCatalogPage } from './ProductCatalogPage';
@@ -121,6 +121,11 @@ function renderPage() {
   };
 }
 
+async function openRules() {
+  fireEvent.click(await screen.findByRole('button', { name: 'Détails de Livret A' }));
+  return within(screen.getByRole('dialog', { name: 'Livret A' }));
+}
+
 function withoutNarrowSpaces(value: string) {
   return value.replace(/\s/g, ' ');
 }
@@ -146,13 +151,13 @@ describe('ProductCatalogPage', () => {
       screen.getByTestId('product-catalog-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
     resolveProducts?.(await success(page([livretA])));
-    expect(await screen.findByRole('rowheader', { name: 'Plafond de dépôt' })).toBeTruthy();
+    expect(await screen.findByRole('rowheader', { name: /Livret A/ })).toBeTruthy();
     expect(screen.queryByTestId('product-catalog-skeleton')).toBeNull();
 
     api.listProducts.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['products'] });
     await waitFor(() => expect(api.listProducts).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('rowheader', { name: 'Plafond de dépôt' })).toBeTruthy();
+    expect(screen.getByRole('rowheader', { name: /Livret A/ })).toBeTruthy();
     expect(screen.queryByTestId('product-catalog-skeleton')).toBeNull();
   });
 
@@ -161,13 +166,13 @@ describe('ProductCatalogPage', () => {
 
     renderPage();
 
-    const ceiling = await screen.findByRole('rowheader', { name: 'Plafond de dépôt' });
-    const ceilingRow = ceiling.closest('tr');
+    const dialog = await openRules();
+    const ceilingRow = dialog.getByRole('rowheader', { name: 'Plafond de dépôt' }).closest('tr');
     expect(withoutNarrowSpaces(ceilingRow?.textContent ?? '')).toContain('22 950,00 €');
     expect(ceilingRow?.textContent).toContain('Depuis le 25 avril 2025');
     expect(ceilingRow?.textContent).toContain('Vérifiée');
 
-    const link = screen.getAllByRole('link', { name: 'Livret A' })[0];
+    const link = dialog.getAllByRole('link', { name: 'Livret A' })[0];
     expect(link?.getAttribute('href')).toBe(
       'https://www.service-public.fr/particuliers/vosdroits/F2365',
     );
@@ -178,8 +183,8 @@ describe('ProductCatalogPage', () => {
 
     renderPage();
 
-    const rate = await screen.findByRole('rowheader', { name: 'Taux annuel' });
-    const rateRow = rate.closest('tr');
+    const dialog = await openRules();
+    const rateRow = dialog.getByRole('rowheader', { name: 'Taux annuel' }).closest('tr');
     expect(withoutNarrowSpaces(rateRow?.textContent ?? '')).toContain('1,70 %');
     expect(rateRow?.textContent).toContain('Du 1 août 2026 au 31 janvier 2027');
   });
@@ -189,7 +194,8 @@ describe('ProductCatalogPage', () => {
 
     renderPage();
 
-    const rateRow = (await screen.findByRole('rowheader', { name: 'Taux annuel' })).closest('tr');
+    const dialog = await openRules();
+    const rateRow = dialog.getByRole('rowheader', { name: 'Taux annuel' }).closest('tr');
     // Not colour alone: the badge carries the words and an icon.
     expect(rateRow?.textContent).toContain('À revérifier');
   });
@@ -201,7 +207,8 @@ describe('ProductCatalogPage', () => {
 
     renderPage();
 
-    const rateRow = (await screen.findByRole('rowheader', { name: 'Taux annuel' })).closest('tr');
+    const dialog = await openRules();
+    const rateRow = dialog.getByRole('rowheader', { name: 'Taux annuel' }).closest('tr');
     expect(rateRow?.textContent).toContain('Non disponible au 2 septembre 2026');
     expect(rateRow?.textContent).not.toContain('0 %');
   });
@@ -219,7 +226,7 @@ describe('ProductCatalogPage', () => {
     api.listProducts.mockReturnValue(success(page([livretA])));
 
     renderPage();
-    await screen.findByRole('heading', { name: 'Livret A' });
+    await screen.findByRole('rowheader', { name: /Livret A/ });
 
     fireEvent.click(screen.getByRole('button', { name: 'Filtres du catalogue' }));
     fireEvent.change(screen.getByLabelText('Date métier'), { target: { value: '2026-03-15' } });
@@ -259,7 +266,7 @@ describe('ProductCatalogPage', () => {
   });
 });
 
-it('appends catalogue products and retains previous cards on next-page retry', async () => {
+it('appends catalogue products and retains previous rows on next-page retry', async () => {
   api.listProducts
     .mockImplementationOnce(() => success({ items: [livretA], page: 1, pageSize: 25, total: 26 }))
     .mockImplementationOnce(() => failure(503))
@@ -267,12 +274,12 @@ it('appends catalogue products and retains previous cards on next-page retry', a
       success({ items: [securitiesAccount], page: 2, pageSize: 25, total: 26 }),
     );
   renderPage();
-  await screen.findByRole('heading', { name: 'Livret A' });
+  await screen.findByRole('rowheader', { name: /Livret A/ });
   fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
   await screen.findByRole('alert');
-  expect(screen.getByRole('heading', { name: 'Livret A' })).toBeTruthy();
+  expect(screen.getByRole('rowheader', { name: /Livret A/ })).toBeTruthy();
   fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
-  await screen.findByRole('heading', { name: 'Compte-titres ordinaire' });
-  expect(screen.getByRole('heading', { name: 'Livret A' })).toBeTruthy();
+  await screen.findByRole('rowheader', { name: /Compte-titres ordinaire/ });
+  expect(screen.getByRole('rowheader', { name: /Livret A/ })).toBeTruthy();
   expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
 });

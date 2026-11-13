@@ -2,7 +2,7 @@ import type { Product, ProductRule } from '@cadran/api-client';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
-import { ProductCard } from './ProductCard';
+import { ProductRow } from './ProductRow';
 
 const source = {
   publisher: 'Direction de l’information légale et administrative',
@@ -58,6 +58,16 @@ const product: Product = {
   unavailableRuleKinds: ['DEPOSIT_CEILING', 'ANNUAL_RATE'],
 };
 
+function renderRow(item: Product) {
+  return render(
+    <table>
+      <tbody>
+        <ProductRow product={item} />
+      </tbody>
+    </table>,
+  );
+}
+
 function withoutNarrowSpaces(value: string) {
   return value.replace(/\s/g, ' ');
 }
@@ -72,21 +82,25 @@ function figure(name: string) {
   return within(region).getByText(name, { selector: 'dt' }).closest('div');
 }
 
-describe('ProductCard', () => {
+describe('ProductRow', () => {
   afterEach(cleanup);
 
   it('uses an informational guaranteed-yield badge while the sourced rate is unavailable', () => {
-    render(<ProductCard product={product} />);
+    renderRow(product);
 
     const badge = screen.getByText('Rendement garanti').parentElement;
     expect(badge?.className).toContain('info');
-    expect(screen.getAllByText(/aucune valeur sourcée pour cette date/)).toHaveLength(2);
+    // The unavailable rules are told in the details, with the date they were looked up on.
+    openDetails('Livret jeune');
+    expect(
+      within(screen.getByRole('dialog', { name: 'Livret jeune' })).getAllByText(
+        /aucune valeur sourcée pour cette date/,
+      ),
+    ).toHaveLength(2);
   });
 
-  it('lifts a sourced rate and ceiling as figures above the provenance table', () => {
-    render(
-      <ProductCard product={{ ...product, rules: [ceiling, rate], unavailableRuleKinds: [] }} />,
-    );
+  it('shows a sourced rate and ceiling as key figures, with their provenance in the details', () => {
+    renderRow({ ...product, rules: [ceiling, rate], unavailableRuleKinds: [] });
 
     const rateFigure = figure('Taux annuel');
     expect(withoutNarrowSpaces(rateFigure?.textContent ?? '')).toContain('4,00 %');
@@ -98,12 +112,14 @@ describe('ProductCard', () => {
     expect(ceilingFigure?.textContent).toContain('Depuis le 1 janvier 2019');
     expect(ceilingFigure?.textContent).toContain('Vérifiée');
 
-    expect(screen.getByRole('rowheader', { name: 'Taux annuel' })).toBeTruthy();
-    expect(screen.getByRole('rowheader', { name: 'Plafond de dépôt' })).toBeTruthy();
+    openDetails('Livret jeune');
+    const dialog = within(screen.getByRole('dialog', { name: 'Livret jeune' }));
+    expect(dialog.getByRole('rowheader', { name: 'Taux annuel' })).toBeTruthy();
+    expect(dialog.getByRole('rowheader', { name: 'Plafond de dépôt' })).toBeTruthy();
   });
 
   it('never substitutes zero for an unavailable figure', () => {
-    render(<ProductCard product={product} />);
+    renderRow(product);
 
     expect(withoutNarrowSpaces(figure('Taux annuel')?.textContent ?? '')).toContain(
       'Non disponible au 2 septembre 2026',
@@ -113,7 +129,7 @@ describe('ProductCard', () => {
   });
 
   it('states jurisdiction, ceiling basis and default group from the catalogue payload', () => {
-    render(<ProductCard product={product} />);
+    renderRow(product);
     openDetails('Livret jeune');
 
     expect(screen.getByText('Juridiction').nextElementSibling?.textContent).toBe('France');
@@ -126,7 +142,7 @@ describe('ProductCard', () => {
   });
 
   it('names a withdrawn product as withdrawn', () => {
-    render(<ProductCard product={{ ...product, archivedAt: '2026-03-15T00:00:00Z' }} />);
+    renderRow({ ...product, archivedAt: '2026-03-15T00:00:00Z' });
 
     expect(screen.getByText('Retiré du catalogue')).toBeTruthy();
     openDetails('Livret jeune');
@@ -134,27 +150,23 @@ describe('ProductCard', () => {
   });
 
   it('never presents a market return as guaranteed', () => {
-    render(
-      <ProductCard
-        product={{
-          ...product,
-          code: 'FR_CTO',
-          displayName: 'Compte-titres ordinaire',
-          accountKind: 'PORTFOLIO',
-          wrapperKind: 'SECURITIES_ACCOUNT',
-          yieldKind: 'MARKET',
-          yieldGuaranteed: false,
-          unavailableRuleKinds: [],
-        }}
-      />,
-    );
+    renderRow({
+      ...product,
+      code: 'FR_CTO',
+      displayName: 'Compte-titres ordinaire',
+      accountKind: 'PORTFOLIO',
+      wrapperKind: 'SECURITIES_ACCOUNT',
+      yieldKind: 'MARKET',
+      yieldGuaranteed: false,
+      unavailableRuleKinds: [],
+    });
 
     expect(screen.getByText('Rendement non garanti')).toBeTruthy();
     expect(screen.queryByText('Rendement garanti')).toBeNull();
   });
 
-  it('keeps classification out of the card until the details are opened', () => {
-    render(<ProductCard product={product} />);
+  it('keeps classification out of the row until the details are opened', () => {
+    renderRow(product);
 
     expect(screen.queryByText('Juridiction')).toBeNull();
     expect(screen.queryByRole('dialog')).toBeNull();
@@ -163,7 +175,7 @@ describe('ProductCard', () => {
   });
 
   it('names every explicit capability in a semantic list', () => {
-    render(<ProductCard product={product} />);
+    renderRow(product);
     openDetails('Livret jeune');
 
     expect(screen.getByRole('heading', { name: 'Fonctions prises en charge' })).toBeTruthy();

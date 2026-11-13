@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { ProductCapabilityList } from '@/features/catalog/product-capability-list/ProductCapabilityList';
+import { ProductRuleList } from '@/features/catalog/product-rule-list/ProductRuleList';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductDetailsModal.module.css';
 
@@ -68,6 +69,10 @@ export function ProductDetailsModal({ close, product, returnFocus }: ProductDeta
         ) : null}
       </dl>
       <ProductCapabilityList capabilities={product.capabilities} productCode={product.code} />
+      <section className={styles.rules}>
+        <h3>{t('catalog.rules.disclosure')}</h3>
+        <ProductRuleList product={product} />
+      </section>
     </Modal>
   );
 }
