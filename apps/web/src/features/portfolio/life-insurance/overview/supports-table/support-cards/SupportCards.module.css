@@ -29,6 +29,13 @@
   overflow-wrap: anywhere;
   text-align: left;
 }
+.details {
+  margin-top: var(--spacing-3);
+}
+.details summary {
+  color: var(--text-secondary);
+  cursor: pointer;
+}
 .name {
   height: 1em;
   width: 60%;

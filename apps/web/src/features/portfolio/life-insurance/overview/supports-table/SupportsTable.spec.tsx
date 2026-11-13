@@ -65,3 +65,19 @@ it('keeps zero unit prices distinguishable from unavailable prices', () => {
   );
   expect(screen.getByText('Non calculable')).toBeTruthy();
 });
+it('leads each mobile card with value, weight, cost and performance and folds the rest in Détails', () => {
+  render(<SupportCards summary={summaryFixture()} />);
+  const card = screen.getByRole('article', { name: 'Fonds UC Démo' });
+  const main = within(card)
+    .getAllByRole('term')
+    .map((term) => term.textContent);
+  expect(main.slice(0, 4)).toEqual(['Valeur', 'Poids', 'Coût de revient', 'Performance ou taux']);
+  const details = card.querySelector('details') as HTMLDetailsElement;
+  expect(details.open).toBe(false);
+  expect(within(details).getByText('Détails')).toBeTruthy();
+  expect(
+    within(details)
+      .getAllByRole('term')
+      .map((term) => term.textContent),
+  ).toEqual(['Type', 'Parts', 'Valeur liquidative', 'Date', 'Intérêts crédités']);
+});
