@@ -1,5 +1,5 @@
 import { figureLabels, type ContractFigure } from './contractFigureLabels';
-import { useState, type RefObject } from 'react';
+import { Fragment, useState, type RefObject } from 'react';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { KpiFigure } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/KpiFigure';
@@ -33,6 +33,19 @@ export function ContractFigures({
         fees: summary.cumulative.fees.total,
       }
     : null;
+  const qualifiers = summary ? (
+    <div className={styles.qualifiers}>
+      {!summary.valuation ? (
+        <StatusBadge tone="warning">Aucune valorisation</StatusBadge>
+      ) : summary.valuation.stale ? (
+        <StatusBadge tone="warning">{`Valorisation ancienne (${summary.valuation.ageDays} jours)`}</StatusBadge>
+      ) : null}
+      <QualityBadge quality={summary.gainSinceOpening.quality} />
+      {summary.valuation?.flags.includes('OBSERVED_TOTAL_DIFFERENCE') ? (
+        <StatusBadge tone="warning">Écart au relevé à vérifier</StatusBadge>
+      ) : null}
+    </div>
+  ) : null;
   return (
     <section
       className={`${embedded ? '' : 'card'} ${styles.figures}`}
@@ -40,48 +53,39 @@ export function ContractFigures({
       aria-busy={!summary}
     >
       {(Object.keys(figureLabels) as ContractFigure[]).map((key) => (
-        <KpiFigure
-          key={key}
-          label={figureLabels[key]}
-          explainLabel={`Expliquer : ${figureLabels[key]}`}
-          size={key === 'value' ? 'display' : 'compact'}
-          value={
-            values
-              ? key === 'value' && !summary?.valuation
-                ? '-'
-                : money(values[key], summary!.assetCode)
-              : null
-          }
-          note={
-            key === 'value' && summary?.valuation
-              ? `Valorisation du ${formatCalendarNumericDay(summary.valuation.valuedOn)}`
-              : undefined
-          }
-          onExplain={
-            summary
-              ? () => {
-                  if (sourceReturnFocus)
-                    sourceReturnFocus.current =
-                      document.activeElement instanceof HTMLElement ? document.activeElement : null;
-                  setExplaining(key);
-                }
-              : null
-          }
-        />
+        <Fragment key={key}>
+          <KpiFigure
+            label={figureLabels[key]}
+            explainLabel={`Expliquer : ${figureLabels[key]}`}
+            size={key === 'value' ? 'display' : key === 'gain' ? 'lead' : 'compact'}
+            value={
+              values
+                ? key === 'value' && !summary?.valuation
+                  ? '-'
+                  : money(values[key], summary!.assetCode)
+                : null
+            }
+            note={
+              key === 'value' && summary?.valuation
+                ? `Valorisation du ${formatCalendarNumericDay(summary.valuation.valuedOn)}`
+                : undefined
+            }
+            onExplain={
+              summary
+                ? () => {
+                    if (sourceReturnFocus)
+                      sourceReturnFocus.current =
+                        document.activeElement instanceof HTMLElement
+                          ? document.activeElement
+                          : null;
+                    setExplaining(key);
+                  }
+                : null
+            }
+          />
+          {key === 'gain' ? qualifiers : null}
+        </Fragment>
       ))}
-      {summary ? (
-        <div className={styles.qualifiers}>
-          {!summary.valuation ? (
-            <StatusBadge tone="warning">Aucune valorisation</StatusBadge>
-          ) : summary.valuation.stale ? (
-            <StatusBadge tone="warning">{`Valorisation ancienne (${summary.valuation.ageDays} jours)`}</StatusBadge>
-          ) : null}
-          <QualityBadge quality={summary.gainSinceOpening.quality} />
-          {summary.valuation?.flags.includes('OBSERVED_TOTAL_DIFFERENCE') ? (
-            <StatusBadge tone="warning">Écart au relevé à vérifier</StatusBadge>
-          ) : null}
-        </div>
-      ) : null}
       {explaining && summary ? (
         explaining === 'gain' ? (
           <PerformanceExplanationModal
