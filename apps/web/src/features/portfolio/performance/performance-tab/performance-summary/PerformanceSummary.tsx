@@ -44,6 +44,7 @@ function Row({
               context={context}
               figure={performance ? performance[key] : null}
               key={key}
+              withQuality
               label={figureLabels[key]}
               onExplain={performance ? () => onExplain(target(key)) : null}
             />

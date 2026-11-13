@@ -6,15 +6,18 @@ namespace App\Module\Portfolio\Application;
 
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\RoundingMode;
 use App\Module\Portfolio\Domain\Instrument;
 use App\Module\Portfolio\Domain\Positions\Position;
 use App\Module\Portfolio\Domain\Positions\PositionLedgerResult;
+use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
+use App\Module\Portfolio\Domain\Valuation\ValuationDetail;
 
 final class PresentPortfolioPositions
 {
     /** @return array<string, mixed> */
-    public function position(Position $position, Instrument $instrument, string $assetCode): array
+    public function position(Position $position, Instrument $instrument, string $assetCode, ?ValuationView $retained = null): array
     {
         $amount = static fn (?CalculatedDecimal $value): ?array => null === $value ? null : ['value' => $value->toString(), 'assetCode' => $assetCode];
 
@@ -24,6 +27,7 @@ final class PresentPortfolioPositions
             'fifoCostBasis' => $amount($position->fifoCostBasis),
             'averageCostBasis' => $amount($position->averageCostBasis),
             'averageUnitCost' => $amount($position->averageUnitCost),
+            ...self::value($position, $instrument, $assetCode, $retained),
             'costReason' => $position->costReason,
             'firstAcquiredOn' => $position->firstAcquiredOn?->format('Y-m-d'),
             'lastOperationOn' => $position->lastOperationOn?->format('Y-m-d'),
@@ -33,6 +37,44 @@ final class PresentPortfolioPositions
                 'dates' => $position->orderDependentDates,
             ]],
         ];
+    }
+
+    /**
+     * Value and gain come from the frozen line of the retained valuation, never from a rescaled price:
+     * they exist only while the replayed quantity still equals the quantity that was frozen.
+     *
+     * @return array{marketValue: ?array{value: string, assetCode: string}, unrealizedGain: ?array{value: string, assetCode: string}, valueReason: ?string}
+     */
+    private static function value(Position $position, Instrument $instrument, string $assetCode, ?ValuationView $retained): array
+    {
+        $none = static fn (string $reason): array => ['marketValue' => null, 'unrealizedGain' => null, 'valueReason' => $reason];
+        $valuation = $retained?->valuation;
+        if (null === $valuation) {
+            return $none('NO_VALUATION');
+        }
+        if (ValuationCompleteness::PARTIAL === $valuation->completeness) {
+            return $none('PARTIAL_VALUATION');
+        }
+        if (ValuationDetail::TOTAL === $valuation->detail) {
+            return $none('NOT_DETAILED');
+        }
+        foreach ($valuation->positions as $line) {
+            if ($line->instrumentId !== $instrument->id) {
+                continue;
+            }
+            if (null === $line->marketValue || 0 !== CalculatedDecimal::fromDecimal($line->quantity)->compareTo($position->quantity)) {
+                return $none('QUANTITY_CHANGED');
+            }
+            $gain = null === $line->averageCostBasis ? null : ExactDecimal::subtractForResponse($line->marketValue->toString(), $line->averageCostBasis->toString());
+
+            return [
+                'marketValue' => ['value' => $line->marketValue->toString(), 'assetCode' => $assetCode],
+                'unrealizedGain' => null === $gain ? null : ['value' => $gain, 'assetCode' => $assetCode],
+                'valueReason' => null,
+            ];
+        }
+
+        return $none('QUANTITY_CHANGED');
     }
 
     public function lots(PositionLedgerResult $result, ?Position $position, Instrument $instrument, string $assetCode, string $asOf): PortfolioLotsView

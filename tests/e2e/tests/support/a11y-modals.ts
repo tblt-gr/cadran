@@ -158,10 +158,7 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
                   ? 'Ajouter un barème'
                   : 'Renseigner un taux';
     const target = button(trigger).first();
-    if (trigger === 'Nouvelle valorisation') {
-      // The valuation action lives in the account menu at the end of the shell header.
-      await button(/^Actions du compte/).click();
-    }
+    // These cases open the Valorisations tab, where the valuation is the primary header action.
     await expect(target).toBeVisible();
     await target.click();
   }

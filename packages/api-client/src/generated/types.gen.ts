@@ -5267,6 +5267,18 @@ export type PortfolioPosition = {
     averageCostBasis: DecimalAmount | null;
     averageUnitCost: DecimalAmount | null;
     costReason: 'UNKNOWN_LOT_COST' | null;
+    /**
+     * Frozen market value of the line of the valuation retained at asOf; null unless that line was frozen with the quantity held at asOf.
+     */
+    marketValue: DecimalAmount | null;
+    /**
+     * Frozen market value minus the frozen acquisition cost of the same line; null when either is missing.
+     */
+    unrealizedGain: DecimalAmount | null;
+    /**
+     * Why marketValue is null; null when it is known.
+     */
+    valueReason: 'NO_VALUATION' | 'PARTIAL_VALUATION' | 'NOT_DETAILED' | 'QUANTITY_CHANGED' | null;
     firstAcquiredOn: string | null;
     lastOperationOn: string | null;
     openLotCount: number;
@@ -5361,6 +5373,10 @@ export type MonthlyPortfolioCosts = {
 
 export type PortfolioPositions = {
     asOf: string;
+    /**
+     * Date of the valuation the values come from; null without a retained valuation.
+     */
+    valuedOn: string | null;
     items: Array<PortfolioPosition>;
 };
 

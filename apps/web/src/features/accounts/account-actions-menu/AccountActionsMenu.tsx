@@ -18,6 +18,7 @@ import { accountMenuItems, INSTRUMENTS_HREF } from './accountMenuItems';
  */
 export function AccountActionsMenu({
   account,
+  onAddOperation,
   onAddTransfer,
   onReconcile,
   onRecordValuation,
@@ -25,6 +26,7 @@ export function AccountActionsMenu({
   onRules,
 }: {
   account?: Account;
+  onAddOperation?: () => void;
   onAddTransfer?: () => void;
   onReconcile?: () => void;
   onRecordValuation?: () => void;
@@ -52,6 +54,7 @@ export function AccountActionsMenu({
     account,
     handlers: {
       onAddTransfer,
+      onAddOperation,
       onArchive: () => setArchiving(account),
       onEdit: () => setEditing(account),
       onInstruments: () => navigateFromPage(INSTRUMENTS_HREF),

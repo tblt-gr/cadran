@@ -56,6 +56,7 @@ export function PortfolioAccountPageSkeleton({
         accountId={accountId}
         onCreate={() => undefined}
         onRecordValuation={() => undefined}
+        valuationPrimary={active === 'valuations'}
       />
       {active === 'account' ? (
         <AccountTabSkeleton>

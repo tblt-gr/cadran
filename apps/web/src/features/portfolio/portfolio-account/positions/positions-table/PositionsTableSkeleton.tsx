@@ -20,13 +20,15 @@ export function PositionsTableSkeleton({
               <th scope="col">Quantité</th>
               <th scope="col">Prix de revient moyen</th>
               <th scope="col">Coût total (moyen)</th>
+              <th scope="col">Valeur</th>
+              <th scope="col">Résultat</th>
               <th scope="col">Lots</th>
               <th scope="col">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
           </thead>
-          <SkeletonTableRows columns={6} rows={6} />
+          <SkeletonTableRows columns={8} rows={6} />
         </table>
       </div>
     </div>

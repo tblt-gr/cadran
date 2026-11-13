@@ -132,6 +132,43 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         self::assertCount(2, $total['slices']);
     }
 
+    public function testPositionsCarryTheRetainedValuationValueAndGainOnlyWhileTheQuantityMatches(): void
+    {
+        $this->seedHoldings();
+        $this->recordPositions('2026-03-31', [
+            ['instrumentId' => self::ETF, 'price' => '231.4521', 'priceDate' => '2026-03-31'],
+            ['instrumentId' => self::STOCK, 'price' => '52.30', 'priceDate' => '2026-03-31'],
+        ]);
+        $positions = $this->positionsByInstrument('2026-03-31');
+        self::assertSame('2026-03-31', $this->positionsPage('2026-03-31')['valuedOn']);
+        self::assertSame(['value' => '2314.521', 'assetCode' => 'EUR'], $positions[self::ETF]['marketValue']);
+        self::assertSame(['value' => '2.521', 'assetCode' => 'EUR'], $positions[self::ETF]['unrealizedGain']);
+        self::assertNull($positions[self::ETF]['valueReason']);
+        self::assertSame('156.90', self::map($positions[self::STOCK]['marketValue'])['value']);
+
+        $this->record(['type' => 'BUY', 'tradeDate' => '2026-04-05', 'instrumentId' => self::ETF, 'quantity' => '1', 'unitPrice' => '230.00', 'grossAmount' => $this->eur('230.00')]);
+        $changed = $this->positionsByInstrument('2026-04-10');
+        self::assertNull($changed[self::ETF]['marketValue'], 'a frozen value is never rescaled to a newer quantity');
+        self::assertNull($changed[self::ETF]['unrealizedGain']);
+        self::assertSame('QUANTITY_CHANGED', $changed[self::ETF]['valueReason']);
+        self::assertSame('156.90', self::map($changed[self::STOCK]['marketValue'])['value']);
+
+        $before = $this->positionsByInstrument('2026-03-04');
+        self::assertNull($before[self::ETF]['marketValue']);
+        self::assertSame('NO_VALUATION', $before[self::ETF]['valueReason']);
+        self::assertNull($this->positionsPage('2026-03-04')['valuedOn']);
+    }
+
+    public function testPositionsOfATotalOnlyValuationHaveNoValue(): void
+    {
+        $this->seedHoldings();
+        $this->recordTotal('2026-03-31', '4000.00');
+        $positions = $this->positionsByInstrument('2026-03-31');
+        self::assertNull($positions[self::ETF]['marketValue']);
+        self::assertNull($positions[self::ETF]['unrealizedGain']);
+        self::assertSame('NOT_DETAILED', $positions[self::ETF]['valueReason']);
+    }
+
     public function testATotalValuationWithAnUnknownCostHasNoSplit(): void
     {
         $this->record(['type' => 'SECURITY_TRANSFER_IN', 'tradeDate' => '2026-03-01', 'instrumentId' => self::ETF, 'quantity' => '1']);
@@ -542,6 +579,24 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         self::assertSame(0, $total['valuedAccounts']);
         self::assertNull($total['totalValue']);
         self::assertStringNotContainsString('9999', (string) $this->client->getResponse()->getContent());
+    }
+
+    /** @return array<string, mixed> */
+    private function positionsPage(string $asOf): array
+    {
+        return $this->overview('positions', $asOf);
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    private function positionsByInstrument(string $asOf): array
+    {
+        $byId = [];
+        foreach (self::items($this->positionsPage($asOf)) as $item) {
+            $position = self::map($item);
+            $byId[self::string(self::map($position['instrument'])['id'])] = $position;
+        }
+
+        return $byId;
     }
 
     /** @return array<string, mixed> */

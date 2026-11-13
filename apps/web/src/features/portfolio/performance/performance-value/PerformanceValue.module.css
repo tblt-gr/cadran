@@ -53,3 +53,11 @@
   max-width: 100%;
   height: 1em;
 }
+.quality {
+  display: flex;
+}
+.qualitySkeleton {
+  display: block;
+  width: 5rem;
+  height: 1.25rem;
+}

@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { HoldingsAllocationCard } from './holdings-allocation/HoldingsAllocationCard';
 import { HoldingsSummary } from './holdings-summary/HoldingsSummary';
 import { HoldingsTable } from './holdings-table/HoldingsTable';
-import { HoldingsWarnings } from './holdings-warnings/HoldingsWarnings';
-import { UnsplitAccountsNotice } from './unsplit-accounts-notice/UnsplitAccountsNotice';
+import { HoldingsAlerts } from './holdings-alerts/HoldingsAlerts';
+import { HoldingsCoverage } from './holdings-coverage/HoldingsCoverage';
 import { isNoInvestmentAccount } from './holdingsFormat';
 import { HoldingsByAccountTable } from './holdings-by-account/HoldingsByAccountTable';
 import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
@@ -32,6 +32,9 @@ export function HoldingsView({
   const { t } = useTranslation();
 
   const byAccount = view === 'account';
+  // An account without a retained valuation has nothing to read: it is listed apart, not as a row of dashes.
+  const valued = holdings?.accounts.filter((account) => account.securitiesValue !== null) ?? [];
+  const unvalued = holdings?.accounts.filter((account) => account.securitiesValue === null) ?? [];
   const viewControl = (
     <div className={styles.viewSwitch}>
       <SegmentedControl
@@ -70,10 +73,9 @@ export function HoldingsView({
         {hasTotals ? (
           <>
             <HoldingsSummary holdings={holdings} />
-            <HoldingsWarnings holdings={holdings} />
           </>
         ) : null}
-        <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} />
+        <HoldingsAlerts holdings={holdings} showUnsplit showWarnings={hasTotals} />
         {hasTotals ? (
           <div className={styles.grid}>
             <HoldingsAllocationCard holdings={holdings} view={view} />
@@ -87,15 +89,17 @@ export function HoldingsView({
     <>
       {viewControl}
       <HoldingsSummary holdings={holdings} />
-      {holdings ? <HoldingsWarnings holdings={holdings} /> : null}
-      {holdings && !byAccount ? (
-        <UnsplitAccountsNotice accounts={holdings.unsplitAccounts} />
+      {holdings ? <HoldingsAlerts holdings={holdings} showUnsplit={!byAccount} /> : null}
+      {holdings && byAccount ? (
+        <HoldingsCoverage total={holdings.accounts.length} unvalued={unvalued} />
       ) : null}
       <div className={styles.grid}>
         <HoldingsAllocationCard holdings={holdings} view={view} />
       </div>
       {byAccount ? (
-        <HoldingsByAccountTable holdings={holdings} />
+        holdings && valued.length === 0 && unvalued.length > 0 ? null : (
+          <HoldingsByAccountTable holdings={holdings && { ...holdings, accounts: valued }} />
+        )
       ) : (
         <HoldingsTable holdings={holdings} onSortChange={onSortChange} sort={sort} />
       )}

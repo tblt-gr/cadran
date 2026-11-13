@@ -3,6 +3,7 @@ import type { DecimalAmount, PortfolioPosition } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount, formatDecimal } from '@/lib/decimal';
+import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
 import styles from './PositionsTable.module.css';
 
 interface Props {
@@ -10,6 +11,13 @@ interface Props {
   onLots: (item: PortfolioPosition) => void;
   onReorder: (item: PortfolioPosition) => void;
 }
+
+const valueReasonLabels = {
+  NO_VALUATION: 'Aucune valorisation',
+  PARTIAL_VALUATION: 'Valorisation partielle',
+  NOT_DETAILED: 'Valeur non détaillée',
+  QUANTITY_CHANGED: 'Quantité modifiée depuis la valorisation',
+} as const;
 
 export function PositionsTable({ items, onLots, onReorder }: Props) {
   return (
@@ -24,6 +32,8 @@ export function PositionsTable({ items, onLots, onReorder }: Props) {
               <th scope="col">Quantité</th>
               <th scope="col">Prix de revient moyen</th>
               <th scope="col">Coût total (moyen)</th>
+              <th scope="col">Valeur</th>
+              <th scope="col">Résultat</th>
               <th scope="col">Lots</th>
               <th scope="col">
                 <span className="sr-only">Actions</span>
@@ -58,6 +68,19 @@ export function PositionsTable({ items, onLots, onReorder }: Props) {
                   </td>
                   <td className={styles.number}>
                     <CostValue amount={item.averageCostBasis} badge unknown={unknownCost} />
+                  </td>
+                  <td className={styles.number}>
+                    {item.marketValue ? (
+                      formatAmount(item.marketValue.value, item.marketValue.assetCode, 'fr-FR')
+                    ) : (
+                      <EmptyValue label={valueReasonLabels[item.valueReason ?? 'NO_VALUATION']} />
+                    )}
+                  </td>
+                  <td className={styles.number}>
+                    <UnrealizedGain
+                      assetCode={item.unrealizedGain?.assetCode ?? ''}
+                      value={item.unrealizedGain?.value ?? null}
+                    />
                   </td>
                   <td className={styles.number}>{item.openLotCount}</td>
                   <td>
