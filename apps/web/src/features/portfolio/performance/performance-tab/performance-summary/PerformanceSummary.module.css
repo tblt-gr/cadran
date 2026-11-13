@@ -13,3 +13,7 @@
   grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
   gap: var(--spacing-4);
 }
+.supporting {
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+}

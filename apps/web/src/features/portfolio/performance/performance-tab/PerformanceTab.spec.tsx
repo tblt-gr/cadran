@@ -79,6 +79,25 @@ describe('PerformanceTab', () => {
     expect(screen.getByRole('table', { name: 'Performance par mois' })).toBeTruthy();
   });
 
+  it('qualifies the gain and the Modified Dietz return first and keeps the other two as support', async () => {
+    renderTab();
+    await loaded();
+
+    const year = within(screen.getByRole('heading', { name: 'Année 2026' }).closest('section')!);
+    const headings = year
+      .getAllByRole('heading', { level: 3 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual([
+      'Gain total',
+      'Rendement (Modified Dietz)',
+      'Rendement des placements (TWR)',
+      'Rendement personnel (MWR)',
+    ]);
+    const quality = ['Exact', 'Approximation', 'Données à vérifier', 'Non calculable'];
+    const badges = year.getAllByText((text) => quality.includes(text));
+    expect(badges).toHaveLength(2);
+  });
+
   it('defaults the year to the year of Au and reads ?year= from the URL', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=performance&year=2025`);
     renderTab();

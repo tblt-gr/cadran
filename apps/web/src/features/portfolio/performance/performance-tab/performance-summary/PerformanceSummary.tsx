@@ -6,6 +6,10 @@ import type { ExplainTarget } from '@/features/portfolio/performance/performance
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import styles from './PerformanceSummary.module.css';
 
+/** The gain and the Modified Dietz return answer the question first; the other two support it. */
+const headlineKeys = figureKeys.filter((key) => key === 'gain' || key === 'modifiedDietz');
+const supportingKeys = figureKeys.filter((key) => key !== 'gain' && key !== 'modifiedDietz');
+
 function Row({
   title,
   performance,
@@ -28,6 +32,16 @@ function Row({
     assetCode: performance?.assetCode ?? '',
     residual: performance?.gain.decomposition.residual ?? null,
   };
+  const figure = (key: (typeof figureKeys)[number], headline: boolean) => (
+    <PerformanceValue
+      context={context}
+      figure={performance ? performance[key] : null}
+      headline={headline}
+      key={key}
+      label={figureLabels[key]}
+      onExplain={performance ? () => onExplain(target(key)) : null}
+    />
+  );
   return (
     <section aria-labelledby={titleId} className={`card ${styles.row}`}>
       <h2 id={titleId}>{title}</h2>
@@ -38,17 +52,12 @@ function Row({
           </button>
         </OperationsState>
       ) : (
-        <div className={styles.figures}>
-          {figureKeys.map((key) => (
-            <PerformanceValue
-              context={context}
-              figure={performance ? performance[key] : null}
-              key={key}
-              label={figureLabels[key]}
-              onExplain={performance ? () => onExplain(target(key)) : null}
-            />
-          ))}
-        </div>
+        <>
+          <div className={styles.figures}>{headlineKeys.map((key) => figure(key, true))}</div>
+          <div className={`${styles.figures} ${styles.supporting}`}>
+            {supportingKeys.map((key) => figure(key, false))}
+          </div>
+        </>
       )}
     </section>
   );

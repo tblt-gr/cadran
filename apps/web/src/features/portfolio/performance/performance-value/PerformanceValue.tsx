@@ -13,6 +13,7 @@ import {
   summarizeReason,
   type ReasonContext,
 } from '@/features/portfolio/performance/performanceReasons';
+import { QualityBadge } from '@/features/portfolio/performance/quality-badge/QualityBadge';
 import styles from './PerformanceValue.module.css';
 
 export type PerformanceFigure =
@@ -76,7 +77,8 @@ export function FigureValue({
 
 /**
  * One performance figure: the server value with its sign and the button that explains it.
- * Quality stays in that explanation. A missing figure is a greyed dash that still says why.
+ * A headline figure also carries its quality next to the value; the others keep it in their
+ * explanation. A missing figure is a greyed dash that still says why.
  */
 export function PerformanceValue({
   figure,
@@ -84,6 +86,7 @@ export function PerformanceValue({
   context,
   emptyLabel = 'Non calculable',
   onExplain,
+  headline = false,
 }: {
   /** `null` while loading: only the value becomes a block. */
   figure: PerformanceFigure | null;
@@ -91,10 +94,12 @@ export function PerformanceValue({
   context: ReasonContext;
   emptyLabel?: string;
   onExplain: (() => void) | null;
+  /** Large value with its quality; otherwise a smaller supporting figure. */
+  headline?: boolean;
 }) {
   const reason = figure?.reasons[0];
   return (
-    <article className={styles.figure}>
+    <article className={`${styles.figure} ${headline ? '' : styles.supporting}`}>
       <div className={styles.heading}>
         <h3>{label}</h3>
         <InfoButton
@@ -115,6 +120,15 @@ export function PerformanceValue({
           <FigureValue assetCode={context.assetCode} figure={figure} />
         )}
       </div>
+      {headline ? (
+        <div className={styles.quality}>
+          {figure ? (
+            <QualityBadge quality={figure.quality} />
+          ) : (
+            <SkeletonBlock className={styles.qualitySkeleton} />
+          )}
+        </div>
+      ) : null}
     </article>
   );
 }
