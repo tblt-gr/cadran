@@ -10,10 +10,8 @@ for (const width of [1280, 360]) {
     const navigation = page.getByRole('navigation', {
       name: width === 360 ? 'Navigation mobile' : 'Navigation principale',
     });
-    const expected =
-      width === 360
-        ? ['/', '/budget', '/accounts']
-        : ['/', '/budget', '/accounts', '/investments', '/parameters/interface'];
+    // The same five destinations in the sidebar and the phone bar.
+    const expected = ['/', '/budget', '/accounts', '/investments', '/parameters/interface'];
     expect(
       await navigation
         .getByRole('link')

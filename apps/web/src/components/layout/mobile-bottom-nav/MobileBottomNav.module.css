@@ -44,13 +44,6 @@
     text-decoration: none;
   }
 
-  .navigation .link span {
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
   /* The current destination gets the same selected plate as the desktop row, behind its icon. */
   .navigation .link[aria-current='page'] {
     color: var(--text-primary);
