@@ -119,8 +119,8 @@ describe('AccountIdentityCard', () => {
     expect(screen.queryByText(/Ouvert le/)).toBeNull();
   });
 
-  it('keeps the name only for assistive technology on a portfolio page that already shows it', () => {
-    renderCard(account, true);
+  it('keeps the name only for assistive technology since the page title already shows it', () => {
+    renderCard(account);
 
     const heading = screen.getByRole('heading', { name: 'Livret A Banque X' });
     expect(heading.className).toContain('sr-only');
