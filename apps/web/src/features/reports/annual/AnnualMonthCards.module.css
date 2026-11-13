@@ -86,3 +86,7 @@ button.explain:hover:not(:disabled) {
   justify-content: flex-end;
   gap: var(--spacing-2);
 }
+/* The closed month is one line: the disclosure carries its own spacing. */
+.collapsible {
+  gap: var(--spacing-none);
+}

@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { goalEvaluation, goalPeriod } from '@/features/goals/goal-mark/goalEvaluationFixtures';
+import type { AnnualReport } from '@cadran/api-client';
 import { annualReport } from './annualFixtures';
 import { AnnualMonthCards } from './AnnualMonthCards';
 
@@ -26,11 +27,11 @@ function ok<T>(data: T) {
   return { data, response: { ok: true, status: 200 } };
 }
 
-function renderCards() {
+function renderCards(report: AnnualReport = annualReport) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
-      <AnnualMonthCards onExplain={() => undefined} report={annualReport} />
+      <AnnualMonthCards onExplain={() => undefined} report={report} />
     </QueryClientProvider>,
   );
 }
@@ -96,5 +97,53 @@ describe('AnnualMonthCards goals', () => {
     expect(api.listGoalEvaluations).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: /^Objectif :/ })).toBeNull();
     expect(document.querySelector('[data-tone]')).toBeNull();
+  });
+});
+
+describe('AnnualMonthCards collapsible months', () => {
+  const detailsOf = (month: RegExp) =>
+    screen.getByRole('heading', { name: month }).closest('details') as HTMLDetailsElement;
+
+  it('renders each month with data closed, the first column as its meta', async () => {
+    renderCards();
+    await screen.findAllByRole('button', { name: /^Objectif :/ });
+    const july = detailsOf(/juillet/i);
+    expect(july.open).toBe(false);
+    expect(within(july.querySelector('summary')!).getByText(/2\s?000,50/)).toBeTruthy();
+  });
+
+  it('keeps the whole detail of a month in the card once opened', async () => {
+    renderCards();
+    const july = detailsOf(/juillet/i);
+    fireEvent.click(july.querySelector('summary')!);
+    expect(july.open).toBe(true);
+    expect(within(july).getByRole('link', { name: /2\s?000,50/ })).toBeTruthy();
+    expect(within(july).getByText(/Taux d’épargne/)).toBeTruthy();
+  });
+
+  it('does not collapse a future month', () => {
+    renderCards();
+    const december = screen.getByRole('heading', { name: /décembre/i }).closest('li')!;
+    expect(december.querySelector('details')).toBeNull();
+  });
+
+  it('shows an empty value, never zero, when the first column is not computable', () => {
+    const report = structuredClone(annualReport);
+    report.rows[0]!.cells.cashIncome = { value: null, reason: 'ZERO_CASH_INCOME' };
+    renderCards(report);
+    const summary = detailsOf(/janvier/i).querySelector('summary')!;
+    expect(summary.textContent).not.toMatch(/0,00/);
+    expect(within(summary).getByRole('img', { name: /calculable/i })).toBeTruthy();
+  });
+
+  it('copes with a report without selected columns', () => {
+    renderCards({ ...annualReport, columns: [] });
+    expect(detailsOf(/juillet/i).querySelector('summary')).toBeTruthy();
+  });
+
+  it('keeps the year summary as a plain card', () => {
+    renderCards();
+    const summary = screen.getByRole('heading', { name: 'Synthèse de l’année' }).closest('li')!;
+    expect(summary.querySelector('details')).toBeNull();
   });
 });

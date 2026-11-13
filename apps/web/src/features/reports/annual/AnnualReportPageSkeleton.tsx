@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import {
   SkeletonBlock,
   SkeletonChartArea,
@@ -76,20 +77,27 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
       </section>
       <ul aria-hidden="true" className={cardStyles.list}>
         {MONTHS.map((month) => (
-          <li className={`card ${cardStyles.card}`} key={month}>
-            <h3>{monthLabel(`${year}-${month}`, i18n.language)}</h3>
-            <dl>
-              {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
-                <div key={column}>
-                  <dt>
-                    <SkeletonBlock className={styles.skeletonCell} />
-                  </dt>
-                  <dd>
-                    <SkeletonBlock className={styles.skeletonCell} />
-                  </dd>
-                </div>
-              ))}
-            </dl>
+          <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={month}>
+            <Disclosure
+              meta={<SkeletonBlock className={styles.skeletonCell} />}
+              onToggle={noop}
+              open={false}
+              spread
+              title={<h3>{monthLabel(`${year}-${month}`, i18n.language)}</h3>}
+            >
+              <dl>
+                {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
+                  <div key={column}>
+                    <dt>
+                      <SkeletonBlock className={styles.skeletonCell} />
+                    </dt>
+                    <dd>
+                      <SkeletonBlock className={styles.skeletonCell} />
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Disclosure>
           </li>
         ))}
         <li className={`card ${cardStyles.card}`}>

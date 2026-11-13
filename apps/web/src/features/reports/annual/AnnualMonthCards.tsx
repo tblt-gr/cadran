@@ -1,21 +1,16 @@
 import type { AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { GoalEvaluationsError } from '@/features/goals/goal-mark/GoalEvaluationsError';
 import { GoalMark, GoalMarkedValue } from '@/features/goals/goal-mark/GoalMark';
 import { marksFor } from '@/features/goals/goal-mark/goalMarks';
 import { useGoalMarks } from '@/features/reports/useGoalMarks';
 import { AnnualCellValue } from './AnnualCellValue';
-import {
-  SUMMARY_ROW_IDS,
-  annualCellHref,
-  summaryFigure,
-  withoutLeadingEmptyMonths,
-} from './annualColumns';
+import { SUMMARY_ROW_IDS, summaryFigure, withoutLeadingEmptyMonths } from './annualColumns';
+import { AnnualMonthCard } from './AnnualMonthCard';
 import { ColumnHeader } from './ColumnHeader';
 import { useAnnualColumnLabel } from './columnLabel';
-import { isEmptyState, monthLabel } from './annualRowLabels';
+import { monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
 interface AnnualMonthCardsProps {
@@ -41,46 +36,12 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
         className={styles.list}
       >
         {withoutLeadingEmptyMonths(report.rows).map((row) => (
-          <li
-            className={`card ${styles.card} ${isEmptyState(row.state) ? styles.dimmed : ''}`}
+          <AnnualMonthCard
+            columns={report.columns}
             key={row.month}
-          >
-            <h3>{monthLabel(row.month, i18n.language)}</h3>
-            {row.state === 'FUTURE' ? (
-              <p>
-                <EmptyValue quiet label={t('reports.annual.future')} />
-              </p>
-            ) : row.state === 'NO_DATA' ? (
-              <p>
-                <EmptyValue quiet label={t('reports.annual.noData')} />
-              </p>
-            ) : (
-              <dl>
-                {report.columns.map((column) => {
-                  const marks = marksFor(goals.evaluations?.months, row.month, column.id);
-                  return (
-                    <div key={column.id}>
-                      <dt>
-                        <ColumnHeader column={column} />
-                      </dt>
-                      <dd>
-                        <GoalMarkedValue items={marks}>
-                          <AnnualCellValue
-                            assetCode={column.assetCode}
-                            href={annualCellHref(column.id, row.month)}
-                            kind={column.kind}
-                            reason={row.cells[column.id]?.reason ?? null}
-                            value={row.cells[column.id]?.value ?? null}
-                          />
-                        </GoalMarkedValue>
-                        <GoalMark items={marks} period={row.month} />
-                      </dd>
-                    </div>
-                  );
-                })}
-              </dl>
-            )}
-          </li>
+            months={goals.evaluations?.months}
+            row={row}
+          />
         ))}
         <li className={`card ${styles.card}`}>
           <h3>{t('reports.annual.summaryTitle')}</h3>
