@@ -110,7 +110,10 @@ describe('InstrumentSheetPage', () => {
   it('shows quiet empty figures without inventing zeros', async () => {
     read.mockResolvedValue(ok({ ...data, holding: null, accounts: [] }));
     mount();
-    await screen.findByText("Cet instrument n'est détenu sur aucun compte.");
+    await screen.findByText(/Cet instrument n'est détenu sur aucun compte\./);
+    // One sentence instead of six empty figures.
+    expect(screen.queryByRole('region', { name: "Synthèse de l'instrument" })).toBeNull();
+    expect(screen.queryByText('Aucune détention')).toBeNull();
     expect(screen.queryByRole('table')).toBeNull();
     expect(screen.queryByText(/0,00/)).toBeNull();
   });
@@ -119,7 +122,7 @@ describe('InstrumentSheetPage', () => {
     mount();
     await screen.findByRole('heading', { name: data.instrument.name });
     expect(screen.getByText(/630,00/)).toBeTruthy();
-    expect(screen.queryByText("Cet instrument n'est détenu sur aucun compte.")).toBeNull();
+    expect(screen.queryByText(/Cet instrument n'est détenu sur aucun compte\./)).toBeNull();
     expect(screen.getByRole('table', { name: 'Par compte' })).toBeTruthy();
   });
 

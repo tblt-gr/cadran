@@ -7,7 +7,7 @@
 }
 .panel table {
   width: 100%;
-  min-width: 62rem;
+  min-width: 44rem;
   border-collapse: collapse;
 }
 .panel th,
@@ -26,6 +26,14 @@
   min-width: 13rem;
   color: var(--text-primary);
   font-size: var(--font-size-body);
+}
+.panel tbody th small,
+.sub {
+  display: block;
+  margin-top: var(--spacing-1);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-normal);
 }
 .panel td {
   color: var(--text-secondary);

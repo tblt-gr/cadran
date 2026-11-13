@@ -59,3 +59,23 @@
 .scroll .valueSkeleton {
   margin-left: var(--spacing-auto);
 }
+
+.summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  min-height: var(--touch-target-min);
+  cursor: pointer;
+  gap: var(--spacing-2) var(--spacing-4);
+}
+.summary h3 {
+  display: inline;
+}
+.hint {
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+.card[open] > .summary {
+  margin-bottom: var(--spacing-4);
+}

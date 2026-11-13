@@ -16,10 +16,12 @@ export function InstrumentSheetSummary({ data }: { data: InstrumentHolding | nul
     return signed && !value.startsWith('-') && /[1-9]/.test(value) ? `+${text}` : text;
   };
   const empty = data !== null && !holding && data.accounts.length === 0;
+  // Without any holding the page says it once, in its content, instead of six empty figures.
+  if (empty) return null;
   const figure = (value: string | null | undefined, signed = false) =>
-    data ? empty ? <EmptyValue label="Aucune détention" /> : money(value, signed) : null;
+    data ? money(value, signed) : null;
   const tone = (value: string | null | undefined) => {
-    const sign = data && !empty ? sheetGainTone(value) : null;
+    const sign = data ? sheetGainTone(value) : null;
     return sign ? styles[sign] : '';
   };
   const dates = holding?.accounts.map((account) => account.valuedOn).sort() ?? [];
@@ -42,20 +44,24 @@ export function InstrumentSheetSummary({ data }: { data: InstrumentHolding | nul
         <KpiFigure label="Valeur" size="lead" value={figure(holding?.value)} />
         <KpiFigure
           label="Plus-value latente"
-          size="lead"
+          size="compact"
           tone={tone(holding?.unrealizedGain)}
           value={figure(holding?.unrealizedGain, true)}
         />
         <KpiFigure
           label="Plus-value réalisée"
-          size="lead"
+          size="compact"
           tone={tone(data?.totals.realizedGain)}
           value={figure(data?.totals.realizedGain, true)}
         />
-        <KpiFigure label="Revenus perçus" size="lead" value={figure(data?.totals.income, true)} />
+        <KpiFigure
+          label="Revenus perçus"
+          size="compact"
+          value={figure(data?.totals.income, true)}
+        />
         <KpiFigure
           label="Gain total"
-          size="lead"
+          size="compact"
           tone={tone(data?.totals.totalGain)}
           value={figure(data?.totals.totalGain, true)}
         />

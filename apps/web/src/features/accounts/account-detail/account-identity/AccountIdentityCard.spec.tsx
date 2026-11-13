@@ -74,14 +74,14 @@ const account: Account = {
   valuation: missingValuation,
 };
 
-function renderCard(target: Account) {
+function renderCard(target: Account, portfolio = false) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <AccountIdentityCard account={target} />
+      <AccountIdentityCard account={target} portfolio={portfolio} />
     </QueryClientProvider>,
   );
 }
@@ -117,6 +117,14 @@ describe('AccountIdentityCard', () => {
     expect(screen.getByText('••4821')).toBeTruthy();
     expect(screen.queryByText('Identité')).toBeNull();
     expect(screen.queryByText(/Ouvert le/)).toBeNull();
+  });
+
+  it('keeps the name only for assistive technology since the page title already shows it', () => {
+    renderCard(account);
+
+    const heading = screen.getByRole('heading', { name: 'Livret A Banque X' });
+    expect(heading.className).toContain('sr-only');
+    expect(screen.getByText('••4821')).toBeTruthy();
   });
 
   it('writes one line with the institution and the product above the group', async () => {
