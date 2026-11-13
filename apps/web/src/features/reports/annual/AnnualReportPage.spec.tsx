@@ -89,6 +89,12 @@ describe('AnnualReportPage', () => {
     expect(
       screen.getByTestId('annual-report-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
+    const placeholders = screen
+      .getByTestId('annual-report-skeleton')
+      .querySelectorAll<HTMLDetailsElement>('li > details');
+    expect(placeholders).toHaveLength(12);
+    expect([...placeholders].every((month) => !month.open)).toBe(true);
+    expect(placeholders[0]!.querySelector('summary h3')?.textContent).toMatch(/janvier/i);
     resolveReport?.(ok(annualReport));
     expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
     expect(screen.queryByTestId('annual-report-skeleton')).toBeNull();
