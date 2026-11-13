@@ -1,6 +1,8 @@
 import type { Recurrence, RecurrenceCandidate } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
+import { readBudgetContext } from '@/features/budget/budget-navigation/budgetNavigation';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -36,6 +38,7 @@ export function RecurrencesPage() {
 
   const {
     archive,
+    confirmed,
     dismiss,
     dismissed,
     notice,
@@ -60,15 +63,17 @@ export function RecurrencesPage() {
     setEditor(candidate);
   }
 
+  const budgetContext = readBudgetContext(window.location.search);
+
   return (
     <div className={styles.page}>
+      <BudgetNavigation current="recurrences" {...budgetContext} />
       <HeaderActions>
         <button className="primary-action" onClick={() => setEditor('create')} type="button">
           <Icon name="add" size={18} />
           {t('recurrences.add')}
         </button>
       </HeaderActions>
-      <p className={styles.notice}>{t('recurrences.forecastNotice')}</p>
       {notice ? <Toast onDismiss={() => setNotice(null)}>{notice}</Toast> : null}
       {dismissed ? (
         <div className={styles.undo} role="status">
@@ -107,7 +112,9 @@ export function RecurrencesPage() {
       ) : (
         <>
           <CandidatesSection
-            candidates={candidates.data?.items ?? []}
+            candidates={(candidates.data?.items ?? []).filter(
+              (candidate) => !confirmed.has(candidate.fingerprint),
+            )}
             dismissPending={dismiss.isPending}
             onConfirm={confirmCandidate}
             onDismiss={(candidate) => dismiss.mutate(candidate)}

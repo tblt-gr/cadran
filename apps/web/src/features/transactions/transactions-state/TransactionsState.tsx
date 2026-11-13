@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import styles from './TransactionsState.module.css';
 
-type TransactionsStateKind = 'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible';
+type TransactionsStateKind =
+  'error' | 'unauthorized' | 'empty' | 'queueEmpty' | 'impossible' | 'filteredEmpty';
 
 interface TransactionsStateProps {
   /** Hides the empty state's create action where creation is not available (a closed or archived account). */
@@ -44,11 +45,23 @@ export function TransactionsState({
     );
   }
 
-  if (kind === 'impossible') {
+  if (kind === 'impossible' || kind === 'filteredEmpty') {
     return (
       <section className={`card ${styles.state}`}>
-        <h2>{t('transactions.impossible.title')}</h2>
-        <p>{t('transactions.impossible.description')}</p>
+        <h2>
+          {t(
+            kind === 'filteredEmpty'
+              ? 'transactions.filteredEmpty.title'
+              : 'transactions.impossible.title',
+          )}
+        </h2>
+        <p>
+          {t(
+            kind === 'filteredEmpty'
+              ? 'transactions.filteredEmpty.description'
+              : 'transactions.impossible.description',
+          )}
+        </p>
         {onResetFilters ? (
           <button className="secondary-action" onClick={onResetFilters} type="button">
             {t('transactions.filters.resetAll')}

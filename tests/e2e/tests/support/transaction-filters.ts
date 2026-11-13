@@ -6,6 +6,7 @@ const LONG_ACCOUNT_LABEL =
 
 /** Stress the label width without changing ids, transactions or the real facet response. */
 export async function withLongAccountLabel(page: Page): Promise<void> {
+  let targetId: string | null = null;
   await page.route(
     (url) => url.pathname === '/api/v1/accounts',
     async (route) => {
@@ -13,7 +14,9 @@ export async function withLongAccountLabel(page: Page): Promise<void> {
       expect(response.ok()).toBe(true);
       const body = await response.json();
       expect(body.items.length).toBeGreaterThan(0);
-      body.items[0].label = LONG_ACCOUNT_LABEL;
+      targetId ??= body.items[0].id;
+      for (const account of body.items)
+        if (account.id === targetId) account.label = LONG_ACCOUNT_LABEL;
       await route.fulfill({ response, json: body });
     },
   );

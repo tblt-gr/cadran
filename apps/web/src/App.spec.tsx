@@ -232,10 +232,10 @@ describe('App', () => {
     expect(screen.queryByText(/^Version/)).toBeNull();
   });
 
-  it('moves focus to the new page title after opening categories from the Budget menu', async () => {
+  it('moves focus to the new page title after opening categories from the budget tabs', async () => {
     mockApi();
     const base = globalThis.fetch;
-    // A failed ledger keeps the menu reachable and spares this test a full ledger payload.
+    // A failed ledger keeps the tabs reachable and spares this test a full ledger payload.
     vi.stubGlobal('fetch', async (input: Request | string, init?: RequestInit) =>
       (typeof input === 'string' ? input : input.url).includes('/reports/monthly/ledger')
         ? new Response('{}', { status: 500 })
@@ -245,15 +245,10 @@ describe('App', () => {
 
     renderApp();
 
-    await screen.findByRole('button', { name: 'Autres actions' });
-    // The header actions remount when the ledger answers: read the button afresh each time.
-    await waitFor(() =>
-      expect(
-        (screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement).disabled,
-      ).toBe(false),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
-    const entry = await screen.findByRole('button', { name: 'Gérer les catégories' });
+    // The session preview already renders the tabs: navigate once the live page has answered.
+    await screen.findByRole('heading', { name: 'Budget mensuel indisponible' });
+    const tabs = await screen.findByRole('navigation', { name: 'Budget et transactions' });
+    const entry = within(tabs).getByRole('link', { name: 'Catégories' });
     entry.focus();
     fireEvent.click(entry);
     await waitFor(() => expect(window.location.pathname).toBe('/transactions/categories'));
@@ -285,18 +280,22 @@ describe('App', () => {
 
     renderApp();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Autres actions' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Gérer les catégories' }));
+    const tabs = await screen.findByRole('navigation', { name: 'Budget et transactions' });
+    fireEvent.click(within(tabs).getByRole('link', { name: 'Catégories' }));
 
     expect(window.location.pathname).toBe('/transactions/categories');
-    // Transactions left the sidebar: only the breadcrumb links to it.
-    expect(await screen.findByRole('link', { name: 'Transactions' })).toBeTruthy();
+    // The categories page replaces Transactions once its chunk has loaded; its tab is then current.
+    const currentTab = () =>
+      within(screen.getByRole('navigation', { name: 'Budget et transactions' })).getByRole('link', {
+        current: 'page',
+      }).textContent;
+    await waitFor(() => expect(currentTab()).toBe('Catégories'));
+    // Transactions left the sidebar: the breadcrumb and the budget tabs link to it.
+    expect(screen.getAllByRole('link', { name: 'Transactions' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('link', { name: 'Budget', current: false })).toBeTruthy();
     const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
     expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Budget');
-    expect(screen.queryByRole('link', { name: 'Catégories' })).toBeNull();
 
-    // The categories page replaces Transactions once its chunk has loaded.
     fireEvent.click(await screen.findByRole('link', { name: 'Gérer les règles' }));
 
     expect(window.location.pathname).toBe('/transactions/categories/rules');

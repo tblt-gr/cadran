@@ -24,7 +24,7 @@
   padding: var(--spacing-2) var(--spacing-3);
   border-radius: var(--radius-control);
   color: var(--text-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   cursor: pointer;
 }
 

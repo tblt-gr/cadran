@@ -228,8 +228,8 @@ describe('TransactionDayList', () => {
     expect(pending.getAttribute('data-state')).toBe('PENDING');
     expect(pending.className).toContain('pending');
     expect(within(pending).getByText('En attente')).toBeTruthy();
-    // Every cell the pending style dims is a descendant of the row; the badge is in none of them.
-    for (const dimmed of ['primary', 'amount', 'category', 'account']) {
+    // The badge sits under the label with its own tone; the amount and context cells never hold it.
+    for (const dimmed of ['amount', 'category', 'account']) {
       const cell = pending.querySelector(`[class*="${dimmed}"]`);
       expect(cell, dimmed).toBeTruthy();
       expect(cell?.contains(within(pending).getByText('En attente'))).toBe(false);

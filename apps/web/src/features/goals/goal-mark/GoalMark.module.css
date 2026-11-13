@@ -39,3 +39,29 @@ button.info:not(:disabled) {
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-normal);
 }
+
+/* Offered on the row's hover or keyboard focus only; touch screens have no hover, so it stays. */
+button.create:not(:disabled) {
+  inline-size: 1.25rem;
+  min-inline-size: 1.25rem;
+  block-size: 1.25rem;
+  min-block-size: 1.25rem;
+  opacity: 0;
+}
+li:hover button.create,
+button.create:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  button.create:not(:disabled) {
+    opacity: 1;
+  }
+}
+@media (pointer: coarse) {
+  button.create:not(:disabled) {
+    inline-size: var(--touch-target-min);
+    min-inline-size: var(--touch-target-min);
+    block-size: var(--touch-target-min);
+    min-block-size: var(--touch-target-min);
+  }
+}

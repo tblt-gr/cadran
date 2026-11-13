@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { AllocationLegend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
 import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
+import { CategoryLabel } from '@/features/categories/category-label/CategoryLabel';
 import type { DonutSlice } from '@/components/ui/charts/donut-chart/DonutChart';
 import { decimalRatioForGeometry, formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
@@ -22,6 +23,8 @@ export interface AnnualDonutItem {
 export interface AnnualLegendRow {
   amount: string | null;
   color?: string;
+  /** A category row's icon (null when it has none); absent on rows that are not categories. */
+  icon?: string | null;
   key: string;
   label: string;
   reason?: string | null;
@@ -82,7 +85,14 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
           color: row.color,
           barPercent: row.share === null ? null : ratioToPercent(row.share),
           key: row.key,
-          label: row.label,
+          label:
+            row.icon === undefined ? (
+              row.label
+            ) : (
+              <CategoryLabel color={row.color} icon={row.icon}>
+                {row.label}
+              </CategoryLabel>
+            ),
           share:
             row.share === null ? (
               <EmptyValue quiet label={notCalculable} />

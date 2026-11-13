@@ -31,10 +31,12 @@
   gap: var(--spacing-4);
 }
 
+/* Compact on a fine pointer; the token grows back to the touch target on a coarse one. */
 .link {
   display: inline-flex;
-  min-width: var(--touch-target-min);
-  min-height: var(--touch-target-min);
+  min-width: var(--control-height-compact);
+  min-height: var(--control-height-compact);
+  max-width: 100%;
   align-items: center;
   color: inherit;
   text-decoration: none;

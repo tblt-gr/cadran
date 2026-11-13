@@ -7,6 +7,7 @@ import {
 } from '@cadran/api-client';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { formatCalendarShortDay } from '@/lib/decimal';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -27,7 +28,7 @@ interface RefundEditorProps {
 
 /** Reads the server-owned proposal before opening the pure refund form. */
 export function RefundEditor({ accounts, close, onSaved, transaction }: RefundEditorProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const refundable = useQuery({
     queryKey: ['transaction-refundable', transaction.id],
     queryFn: async ({ signal }) => {
@@ -57,6 +58,12 @@ export function RefundEditor({ accounts, close, onSaved, transaction }: RefundEd
 
   return (
     <Modal close={close} intent="create" title={t('transactions.refund.title')}>
+      <p>
+        {t('transactions.refund.originalContext', {
+          label: transaction.displayLabel,
+          date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
+        })}
+      </p>
       {refundable.isPending ? <RefundFormSkeleton /> : null}
       {refundable.isError ? <p role="alert">{t('transactions.refund.error')}</p> : null}
       {refundable.data ? (

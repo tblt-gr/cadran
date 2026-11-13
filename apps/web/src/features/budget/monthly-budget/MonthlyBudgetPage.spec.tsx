@@ -1,3 +1,4 @@
+import { goalEvaluation } from '@/features/goals/goal-mark/goalEvaluationFixtures';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -421,17 +422,17 @@ describe('MonthlyBudgetPage', () => {
 
   describe('transactions entry point', () => {
     it.each([
-      ['Toutes les transactions', '/transactions?period=month&month=2026-03'],
-      ['Gérer les catégories', '/transactions/categories'],
-      ['Gérer les récurrences', '/transactions/recurrences'],
-    ])('opens %s through client navigation', async (name, target) => {
+      ['Transactions', '/transactions?period=month&month=2026-03&budgetMonth=2026-03'],
+      ['Catégories', '/transactions/categories?budgetMonth=2026-03'],
+      ['Récurrences', '/transactions/recurrences?budgetMonth=2026-03'],
+    ])('opens the %s tab through client navigation', async (name, target) => {
       renderPage();
       await loaded();
       const popstate = vi.fn();
       window.addEventListener('popstate', popstate);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
-      fireEvent.click(screen.getByRole('button', { name }));
+      const tabs = screen.getByRole('navigation', { name: 'Budget et transactions' });
+      fireEvent.click(within(tabs).getByRole('link', { name }));
 
       expect(window.location.pathname + window.location.search).toBe(target);
       expect(popstate).toHaveBeenCalled();
@@ -450,7 +451,7 @@ describe('MonthlyBudgetPage', () => {
 
         const link = await screen.findByRole('link', { name: label });
         expect(link.getAttribute('href')).toBe(
-          '/transactions?categorization=NONE&period=month&month=2026-02',
+          '/transactions?period=month&month=2026-02&categorization=NONE&budgetMonth=2026-02',
         );
         expect(api.countTransactions).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -504,7 +505,6 @@ describe('MonthlyBudgetPage', () => {
       await loaded();
       const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
       fireEvent.click(screen.getByRole('button', { name: 'Clôturer ce mois' }));
       const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
       fireEvent.click(await within(dialog).findByRole('button', { name: 'Clôturer le mois' }));
@@ -539,12 +539,11 @@ describe('MonthlyBudgetPage', () => {
     });
 
     it('shows the goals met out of the goals of the month on the header button', async () => {
-      const item = (id: string, status: string, periodicity = 'MONTHLY') => ({
-        goalId: id,
-        label: id,
-        periodicity,
-        status,
-      });
+      const item = (
+        id: string,
+        status: 'MET' | 'IN_PROGRESS' | 'NOT_CALCULABLE',
+        periodicity: 'MONTHLY' | 'YEARLY' = 'MONTHLY',
+      ) => goalEvaluation({ goalId: id, label: id, periodicity, status });
       api.listGoalEvaluations.mockResolvedValue({
         data: {
           months: [
@@ -572,28 +571,18 @@ describe('MonthlyBudgetPage', () => {
     });
   });
 
-  describe('monthly closure menu', () => {
-    it('lists the transactions entries then the closure in the overflow menu after the goals button', async () => {
+  describe('monthly closure button', () => {
+    it('offers the closure as an icon button after the goals button, with no overflow menu', async () => {
       renderPage();
       await loaded();
 
       const header = screen.getByRole('button', { name: 'Objectifs' });
-      const trigger = screen.getByRole('button', { name: 'Autres actions' });
+      const trigger = screen.getByRole('button', { name: 'Clôturer ce mois' });
       expect(
         header.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
-      fireEvent.click(trigger);
-      const menu = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
-      expect(
-        within(menu!)
-          .getAllByRole('button')
-          .map((item) => item.getAttribute('aria-label') ?? item.textContent),
-      ).toEqual([
-        'Toutes les transactions',
-        'Gérer les catégories',
-        'Gérer les récurrences',
-        'Clôturer ce mois',
-      ]);
+      expect(trigger.textContent).toBe('');
+      expect(screen.queryByRole('button', { name: 'Autres actions' })).toBeNull();
     });
 
     it('keeps the closure reachable when the ledger fails to load', async () => {
@@ -603,7 +592,7 @@ describe('MonthlyBudgetPage', () => {
       renderPage();
 
       await screen.findByRole('alert');
-      const trigger = screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement;
+      const trigger = screen.getByRole('button', { name: 'Clôturer ce mois' }) as HTMLButtonElement;
       expect(trigger.disabled).toBe(false);
     });
 
@@ -615,7 +604,7 @@ describe('MonthlyBudgetPage', () => {
 
       await screen.findByRole('button', { name: 'Réessayer' });
       expect(api.readMonthlyLedger).not.toHaveBeenCalled();
-      const trigger = screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement;
+      const trigger = screen.getByRole('button', { name: 'Clôturer ce mois' }) as HTMLButtonElement;
       expect(trigger.disabled).toBe(false);
     });
 
@@ -623,7 +612,7 @@ describe('MonthlyBudgetPage', () => {
       api.readMonthlyLedger.mockReturnValue(new Promise(() => undefined));
       renderPage();
 
-      const trigger = screen.getByRole('button', { name: 'Autres actions' }) as HTMLButtonElement;
+      const trigger = screen.getByRole('button', { name: 'Clôturer ce mois' }) as HTMLButtonElement;
       expect(trigger.disabled).toBe(true);
     });
 
@@ -634,9 +623,8 @@ describe('MonthlyBudgetPage', () => {
       renderPage();
       await loaded();
 
-      const trigger = screen.getByRole('button', { name: 'Autres actions' });
+      const trigger = screen.getByRole('button', { name: 'Clôturer ce mois' });
       fireEvent.click(trigger);
-      fireEvent.click(screen.getByRole('button', { name: 'Clôturer ce mois' }));
 
       const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
       expect((within(dialog).getByLabelText('Mois') as HTMLInputElement).value).toBe('2026-03');
@@ -665,7 +653,6 @@ describe('MonthlyBudgetPage', () => {
       await loaded();
       const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Autres actions' }));
       fireEvent.click(screen.getByRole('button', { name: 'Clôturer ce mois' }));
       const dialog = await screen.findByRole('dialog', { name: 'Clôture du mois' });
       fireEvent.click(await within(dialog).findByRole('button', { name: 'Clôturer le mois' }));
@@ -803,7 +790,7 @@ describe('MonthlyBudgetPage', () => {
     const loadingSettings = screen.getByRole('button', { name: 'Configurer l’affichage' });
     expect(loadingSettings.textContent).toBe('');
     expect(loadingSettings.hasAttribute('disabled')).toBe(true);
-    expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
+    expect(screen.queryByRole('img', { name: /peuvent encore modifier/ })).toBeNull();
     const loadingExplanation = screen.getByRole('button', {
       name: 'Expliquer : Revenus',
     });
@@ -833,6 +820,7 @@ describe('MonthlyBudgetPage', () => {
     const { queryClient } = renderPage();
 
     expect(await screen.findByTestId('monthly-recap-skeleton')).toBeTruthy();
+    await loaded();
     const incomePanel = screen.getByRole('region', { name: 'Revenus du mois' });
     const pendingTotal = within(incomePanel).getByText('Total des revenus').parentElement!;
     expect(pendingTotal.querySelector('[data-visual-mask] > span > [data-skeleton]')).toBeTruthy();
@@ -999,16 +987,25 @@ describe('MonthlyBudgetPage', () => {
     ).toBe('true');
   });
 
-  it('renders plain colored category rows without a single-movement count and concise movement dates', async () => {
+  it('renders category rows with their coloured icon, without a single-movement count and concise movement dates', async () => {
     renderPage();
     await loaded();
     const row = screen.getByText('Salaire').closest('li')!;
-    expect(row.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#486DF0');
+    expect(row.querySelector('[data-icon="briefcase"] path')?.getAttribute('stroke')).toBe(
+      '#486DF0',
+    );
     expect(screen.queryByText('(1)')).toBeNull();
     expect(row.textContent).not.toContain('(1)');
     expect(screen.getByText('Salaire').getAttribute('title')).toBe('Salaire');
-    expect(row.querySelector('[data-icon]')).toBeNull();
+    // The category's own icon in its colour, as in the category picker, instead of a dot.
+    expect(row.querySelector('[data-color-dot]')).toBeNull();
     const toggle = within(row).getByRole('button', { name: 'Afficher les mouvements de Salaire' });
+    // An account shows the account icon in its group colour, not a dot.
+    const accountRow = screen.getByText('Compte courant', { selector: 'span' }).closest('li')!;
+    expect(accountRow.querySelector('[data-color-dot]')).toBeNull();
+    expect(
+      (accountRow.querySelector('[data-account-icon]') as HTMLElement | null)?.style.color,
+    ).toMatch(/#2F9E6E|rgb\(47, 158, 110\)/i);
     expect(toggle.textContent).toContain('Salaire');
     expect(toggle.textContent).not.toContain('(1)');
     expect(within(toggle).queryByRole('button')).toBeNull();
@@ -1017,7 +1014,9 @@ describe('MonthlyBudgetPage', () => {
     );
     fireEvent.click(toggle);
     const time = await within(row).findByText('14 mars');
-    expect(row.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#486DF0');
+    expect(row.querySelector('[data-icon="briefcase"] path')?.getAttribute('stroke')).toBe(
+      '#486DF0',
+    );
     expect(time.tagName).toBe('TIME');
     expect(time.getAttribute('datetime')).toBe('2026-03-14');
     expect(
@@ -1030,7 +1029,7 @@ describe('MonthlyBudgetPage', () => {
     renderPage();
     await loaded();
     await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
-    expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
+    expect(screen.queryByRole('img', { name: /peuvent encore modifier/ })).toBeNull();
   });
 
   it('explains empty flow sections and exposes explanations through metric label controls', async () => {
@@ -1667,20 +1666,16 @@ describe('MonthlyBudgetPage', () => {
     expect(screen.queryByRole('heading', { name: 'Coûts de portefeuille' })).toBeNull();
   });
 
-  it('keeps the metric policy and pending notice behind the recap info button', async () => {
+  it('marks a recap that pending operations can change with an orange clock, not an info button', async () => {
     renderPage();
 
     await waitFor(() => expect(screen.queryByTestId('monthly-budget-skeleton')).toBeNull());
     await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
-    const info = await screen.findByRole('button', { name: 'Informations sur la synthèse' });
-    expect(screen.queryByText('Politique v1')).toBeNull();
-    expect(screen.queryByText(/peuvent encore modifier/)).toBeNull();
-    fireEvent.click(info);
-    const dialog = await screen.findByRole('dialog', { name: 'Informations sur la synthèse' });
-    expect(within(dialog).getByText('Politique v1')).toBeTruthy();
-    expect(
-      within(dialog).getByText('Des opérations en attente peuvent encore modifier cette synthèse.'),
-    ).toBeTruthy();
+    const mark = await screen.findByRole('img', {
+      name: 'Des opérations en attente peuvent encore modifier cette synthèse.',
+    });
+    expect(mark.querySelector('svg')).not.toBeNull();
+    expect(screen.queryByRole('button', { name: 'Informations sur la synthèse' })).toBeNull();
   });
 
   it('shows provisional non-calculable recap values, links accounts, and saves owner preferences', async () => {
@@ -1703,14 +1698,18 @@ describe('MonthlyBudgetPage', () => {
     expect(
       screen.queryByRole('button', { name: 'Valeurs provisoires à la date du jour.' }),
     ).toBeNull();
+    // The group's colour moved from a dot to its fold chevron.
+    const liquidity = screen.getByRole('button', { name: /^Liquidités/ });
+    expect(liquidity.getAttribute('aria-expanded')).toBe('true');
     expect(
-      screen
-        .getByText('Liquidités')
-        .closest('tr')
-        ?.querySelector('[data-color-dot] circle')
-        ?.getAttribute('fill'),
-    ).toBe('#FFFFFF');
-    // The accounts sit under their group row, which alone carries the group's dot.
+      (liquidity.querySelector('[data-expanded]') as HTMLElement | null)?.style.color.toUpperCase(),
+    ).toMatch(/#FFFFFF|RGB\(255, 255, 255\)/);
+    fireEvent.click(liquidity);
+    expect(document.querySelector(`a[href="/accounts/${accountId}"]`)?.closest('tr')?.hidden).toBe(
+      true,
+    );
+    fireEvent.click(liquidity);
+    // The accounts sit under their group row, which alone carries the group's colour.
     expect(
       screen
         .getByRole('link', { name: 'Compte courant' })

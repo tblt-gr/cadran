@@ -13,6 +13,7 @@
 
 .controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2) var(--spacing-3);
 }
@@ -49,28 +50,12 @@
   cursor: not-allowed;
 }
 
-/* Same place whether the mode is on or off; its pressed colour comes from `.icon-ghost`. */
-/* The icon control size of the toolbar beside it; a coarse pointer gets 44 px from the primitive. */
-button.pen {
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
-  border-radius: var(--radius-control);
-}
-
-@media (pointer: coarse) {
-  button.pen {
-    width: var(--touch-target-min);
-    height: var(--touch-target-min);
-  }
-}
-
 button.penInline {
   margin-left: var(--spacing-auto);
 }
 
 .below {
   display: flex;
-  flex-basis: 100%;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2) var(--spacing-3);
@@ -84,4 +69,15 @@ button.penInline {
   margin: var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
+}
+
+.scope {
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+@media (pointer: coarse) {
+  button.pen {
+    min-height: var(--touch-target-min);
+  }
 }

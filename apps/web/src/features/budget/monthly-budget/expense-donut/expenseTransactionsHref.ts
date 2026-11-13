@@ -1,3 +1,4 @@
+import { appendBudgetContext } from '@/features/budget/budget-navigation/budgetNavigation';
 import {
   DEFAULT_FILTERS,
   encodeFilters,
@@ -26,6 +27,9 @@ export function expenseTransactionsHref(
     period: 'custom',
     to: period.to,
   });
+
+  if (period.from.slice(0, 7) === period.to.slice(0, 7))
+    appendBudgetContext(params, period.from.slice(0, 7), axis);
 
   return `/transactions?${params.toString()}`;
 }

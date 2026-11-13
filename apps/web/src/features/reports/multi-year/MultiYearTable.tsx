@@ -126,23 +126,6 @@ export function MultiYearTable({ report }: MultiYearTableProps) {
           </table>
         </div>
         {goals.failed ? <GoalEvaluationsError onRetry={goals.retry} /> : null}
-        <footer className={styles.notes}>
-          <p>
-            {t('reports.multiYear.policyNote', {
-              versions: report.years
-                .filter((year) => year.state !== 'NO_DATA')
-                .map(
-                  (year) =>
-                    `${year.year} ${
-                      year.metricPolicy.state === 'MIXED'
-                        ? t('reports.multiYear.mixedPolicy').toLowerCase()
-                        : `v${year.metricPolicy.version}`
-                    }`,
-                )
-                .join(', '),
-            })}
-          </p>
-        </footer>
       </section>
     </>
   );

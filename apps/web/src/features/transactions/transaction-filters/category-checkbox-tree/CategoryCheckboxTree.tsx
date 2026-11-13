@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
+import { categoryIcon } from '@/features/categories/category-icons';
+import { CategorySwatch } from '@/features/categories/category-swatch/CategorySwatch';
 import { useCategoryIdentities } from '@/features/categories/useCategoryIdentities';
 import { FacetCount } from '@/features/transactions/transaction-filters/facet-count/FacetCount';
 import {
@@ -68,7 +70,9 @@ export function CategoryCheckboxTree({
 
   function renderNodes(nodes: TreeNode<Category>[]) {
     return nodes.map(({ item, children }) => {
-      const color = canonicalCategoryColor(item.effectiveColor);
+      const marked = Boolean(
+        categoryIcon(item.effectiveIcon) || canonicalCategoryColor(item.effectiveColor),
+      );
       const count = optionCount(counts, item.id);
       return (
         <li key={item.id}>
@@ -78,11 +82,14 @@ export function CategoryCheckboxTree({
               onChange={() => toggle(item.id)}
               type="checkbox"
             />
-            <span
-              aria-hidden="true"
-              className={color === null ? `${styles.mark} ${styles.neutral}` : styles.mark}
-              style={color === null ? undefined : { background: color }}
-            />
+            {/* The category's mark, as in the picker: its icon in its colour, else a dot. */}
+            <span aria-hidden="true" className={styles.markSlot}>
+              {marked ? (
+                <CategorySwatch color={item.effectiveColor} icon={item.effectiveIcon} />
+              ) : (
+                <span className={`${styles.mark} ${styles.neutral}`} />
+              )}
+            </span>
             <span className={styles.label}>{item.label}</span>
             {count === undefined ? null : <FacetCount count={count} />}
           </label>
@@ -162,7 +169,9 @@ export function CategoryCheckboxTree({
           onChange={(event) => onUncategorizedChange(event.target.checked)}
           type="checkbox"
         />
-        <span aria-hidden="true" className={`${styles.mark} ${styles.neutral}`} />
+        <span aria-hidden="true" className={styles.markSlot}>
+          <span className={`${styles.mark} ${styles.neutral}`} />
+        </span>
         <span className={styles.label}>{t('transactions.filters.uncategorized')}</span>
       </label>
       {content}

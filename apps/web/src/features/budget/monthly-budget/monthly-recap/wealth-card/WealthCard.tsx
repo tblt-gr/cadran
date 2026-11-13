@@ -54,17 +54,19 @@ export function WealthCard({ netWorth, provisional, previousAsOf, currentAsOf }:
   return (
     <section aria-labelledby="monthly-recap-wealth-title" className={`card ${styles.panel}`}>
       <header className={styles.heading}>
-        <h3 id="monthly-recap-wealth-title">{t('budget.monthly.recap.wealth.title')}</h3>
-        {provisional ? (
-          <span
-            aria-label={t('budget.monthly.recap.provisional')}
-            className={styles.provisional}
-            role="img"
-            title={t('budget.monthly.recap.provisional')}
-          >
-            <Icon name="clock" size={14} />
-          </span>
-        ) : null}
+        <div className={styles.titleGroup}>
+          <h3 id="monthly-recap-wealth-title">{t('budget.monthly.recap.wealth.title')}</h3>
+          {provisional ? (
+            <span
+              aria-label={t('budget.monthly.recap.provisional')}
+              className={styles.provisional}
+              role="img"
+              title={t('budget.monthly.recap.provisional')}
+            >
+              <Icon name="clock" size={14} />
+            </span>
+          ) : null}
+        </div>
       </header>
       <dl className={styles.figures}>
         <div>

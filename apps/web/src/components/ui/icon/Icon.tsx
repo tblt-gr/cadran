@@ -17,6 +17,8 @@ type IconName =
   | 'clock'
   | 'categories'
   | 'chevron-down'
+  | 'chevrons-down'
+  | 'chevrons-up'
   | 'chevron-left'
   | 'chevron-right'
   | 'close'
@@ -68,6 +70,10 @@ function IconPath({ name }: { name: IconName }) {
       return <path d="M4 7h13m-3-3 3 3-3 3M20 17H7m3 3-3-3 3-3" />;
     case 'accounts':
       return <path d="M4 7.5h16v12H4zM3 7.5 12 3l9 4.5M8 11v5m4-5v5m4-5v5" />;
+    case 'chevrons-down':
+      return <path d="m7 6 5 5 5-5M7 13l5 5 5-5" />;
+    case 'chevrons-up':
+      return <path d="m7 11 5-5 5 5M7 18l5-5 5 5" />;
     case 'add':
       return <path d="M12 5v14M5 12h14" />;
     case 'budget':

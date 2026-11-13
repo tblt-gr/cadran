@@ -260,4 +260,43 @@ describe('TotalsCard goals', () => {
     expect(screen.getByRole('button', { name: 'Expliquer : Loisirs' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Expliquer : Revenus' })).toBeTruthy();
   });
+
+  it('splits the summary into three open sections that fold on their own', async () => {
+    renderCard();
+    await screen.findAllByRole('button', { name: /^Objectif :/ });
+    const summaries = Array.from(document.querySelectorAll('details > summary'), (summary) =>
+      summary.textContent?.replace('Objectif', '').trim(),
+    );
+    expect(summaries).toEqual(['Flux du mois', 'Dépenses par axe', 'Dépenses par catégorie']);
+    const axes = document.querySelectorAll('details')[1] as HTMLDetailsElement;
+    expect(axes.open).toBe(true);
+    fireEvent.click(axes.querySelector('summary')!);
+    expect(axes.open).toBe(false);
+    expect((document.querySelectorAll('details')[0] as HTMLDetailsElement).open).toBe(true);
+  });
+
+  it('shows the Objectif head only while its section is open', async () => {
+    renderCard();
+    await screen.findAllByRole('button', { name: /^Objectif :/ });
+    const axes = document.querySelectorAll('details')[1] as HTMLDetailsElement;
+    expect(within(axes.querySelector('summary')!).getByText('Objectif')).toBeTruthy();
+    fireEvent.click(axes.querySelector('summary')!);
+    await waitFor(() =>
+      expect(within(axes.querySelector('summary')!).queryByText('Objectif')).toBeNull(),
+    );
+  });
+
+  it('offers a `+` on a row without goal, which opens the goal form prefilled on that row', async () => {
+    renderCard();
+    await screen.findAllByRole('button', { name: /^Objectif :/ });
+    expect(within(rowOf('Loisirs')).queryByRole('button', { name: /^Objectif :/ })).toBeNull();
+    fireEvent.click(
+      within(rowOf('Loisirs')).getByRole('button', { name: 'Créer un objectif : Loisirs' }),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Nouvel objectif' });
+    expect(within(dialog).getByLabelText(/Indicateur/)).toBeTruthy();
+    expect(
+      within(rowOf('Courses')).queryByRole('button', { name: /^Créer un objectif/ }),
+    ).toBeNull();
+  });
 });

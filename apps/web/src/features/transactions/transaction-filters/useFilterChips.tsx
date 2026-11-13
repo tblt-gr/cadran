@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { CategoryLabel } from '@/features/categories/category-label/CategoryLabel';
 import { formatMonthLabel } from '@/lib/monthLabel';
 import type { FilterChip } from './active-filter-chips/ActiveFilterChips';
 import { hasAppliedAmountBounds, type TransactionFilterState } from './filterState';
@@ -12,6 +13,8 @@ export type LabelLookup = (id: string) => string | null | undefined | typeof LAB
 interface UseFilterChipsOptions {
   accountLabel: LabelLookup;
   categoryLabel: LabelLookup;
+  /** A category chip shows the category's icon in its colour, as the category picker does. */
+  categoryMark?: (id: string) => { color: string | null; icon: string | null } | null;
   filters: TransactionFilterState;
   language: string;
   onChange: (next: TransactionFilterState) => void;
@@ -30,6 +33,7 @@ interface UseFilterChipsOptions {
 export function useFilterChips({
   accountLabel,
   categoryLabel,
+  categoryMark,
   filters,
   language,
   onChange,
@@ -130,14 +134,24 @@ export function useFilterChips({
     });
   }
   for (const id of filters.categoryId) {
+    const chip = named(
+      t('transactions.filters.categoryNoun'),
+      categoryLabel(id),
+      t('transactions.filters.categoryUnknown'),
+      t('transactions.filters.categoryUnavailable'),
+    );
+    const mark = categoryMark?.(id);
     chips.push({
       key: `category-${id}`,
-      ...named(
-        t('transactions.filters.categoryNoun'),
-        categoryLabel(id),
-        t('transactions.filters.categoryUnknown'),
-        t('transactions.filters.categoryUnavailable'),
-      ),
+      removeLabel: chip.removeLabel,
+      label:
+        mark && typeof chip.label === 'string' ? (
+          <CategoryLabel color={mark.color} icon={mark.icon}>
+            {chip.label}
+          </CategoryLabel>
+        ) : (
+          chip.label
+        ),
       onClear: () =>
         set(
           'categoryId',

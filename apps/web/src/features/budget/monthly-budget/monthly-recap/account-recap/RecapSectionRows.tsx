@@ -1,8 +1,9 @@
 import type { NetWorthAmount, NetWorthShare } from '@cadran/api-client';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { ColorDot } from '@/components/ui/color-dot/ColorDot';
+import { Icon } from '@/components/ui/icon/Icon';
 import { groupColor } from '@/features/accounts/group-color';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { formatAmount } from '@/lib/decimal';
@@ -32,22 +33,58 @@ function SectionValueCell({
   return <MoneyValue value={formatAmount(shown.value, shown.assetCode, i18n.language)} />;
 }
 
-/** One group subtotal row followed by the accounts it totals. */
-export function RecapSectionRows({ section }: { section: RecapSection }) {
+/**
+ * One group subtotal row followed by the accounts it totals. The subtotal row folds its accounts;
+ * its chevron carries the group colour, so the folded state never relies on colour alone.
+ */
+export function RecapSectionRows({
+  expanded,
+  onToggle,
+  section,
+}: {
+  expanded: boolean;
+  onToggle: () => void;
+  section: RecapSection;
+}) {
   const { t } = useTranslation();
+  const membersId = useId();
+  const color = groupColor(section.color);
+  const toggle = onToggle;
 
   return (
     <tbody>
-      <tr className={styles.groupRow}>
+      <tr className={`${styles.groupRow} ${styles.foldable}`} onClick={toggle}>
         <th data-label={t('budget.monthly.recap.accounts.account')} scope="rowgroup">
-          <ColorDot color={groupColor(section.color)} />
-          {section.label}
-          {section.parentLabel === null ? null : (
-            <>
-              {' '}
-              <span className={styles.parentLabel}>({section.parentLabel})</span>
-            </>
-          )}
+          <button
+            aria-controls={
+              section.members.length > 0
+                ? section.members.map((_, index) => `${membersId}-${index}`).join(' ')
+                : undefined
+            }
+            aria-expanded={expanded}
+            className={styles.fold}
+            onClick={(event) => {
+              event.stopPropagation();
+              toggle();
+            }}
+            type="button"
+          >
+            <span
+              aria-hidden="true"
+              className={styles.chevron}
+              data-expanded={expanded}
+              style={color ? { color } : undefined}
+            >
+              <Icon name="chevron-down" size={14} />
+            </span>
+            {section.label}
+            {section.parentLabel === null ? null : (
+              <>
+                {' '}
+                <span className={styles.parentLabel}>({section.parentLabel})</span>
+              </>
+            )}
+          </button>
         </th>
         <td data-label={t('budget.monthly.recap.accounts.previousShort')}>
           <SectionValueCell amount={section.previous} share={section.share} />
@@ -59,8 +96,13 @@ export function RecapSectionRows({ section }: { section: RecapSection }) {
           <ShareCell share={section.share} />
         </td>
       </tr>
-      {section.members.map((member) => (
-        <AccountRow key={member.account.accountId} member={member} />
+      {section.members.map((member, index) => (
+        <AccountRow
+          hidden={!expanded}
+          id={`${membersId}-${index}`}
+          key={member.account.accountId}
+          member={member}
+        />
       ))}
     </tbody>
   );

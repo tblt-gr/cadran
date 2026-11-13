@@ -18,7 +18,7 @@
   min-width: 0;
   flex: 1;
   align-items: center;
-  gap: var(--spacing-1);
+  gap: var(--spacing-4);
   overflow-x: auto;
 }
 
@@ -28,28 +28,32 @@
   align-items: center;
   min-width: max-content;
   min-height: var(--control-height-compact);
-  border-radius: var(--radius-control);
-  padding: var(--spacing-1) var(--spacing-3);
+  border-bottom: var(--border-width-focus) solid var(--color-transparent);
+  border-radius: var(--radius-none);
+  padding: var(--spacing-1) var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
   text-decoration: none;
 }
 
 .tabs button {
-  border: var(--border-none);
+  border-top: var(--border-none);
+  border-inline: var(--border-none);
   background: var(--color-transparent);
   font-family: inherit;
 }
 
+/* Same marking as the shared tabs and the annual report: a quiet rule on hover, the platinum
+   rule for the selected month only. */
 .tabs a:hover,
 .tabs a:focus-visible {
-  background: var(--bg-surface-2);
+  border-bottom-color: var(--border-strong);
   color: var(--text-primary);
 }
 
 .tabs a.active {
-  background: var(--color-transparent);
-  color: var(--accent);
+  border-bottom-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .tabs .disabled {
@@ -80,11 +84,14 @@
 
 .tabs .annual {
   margin-inline-start: var(--spacing-2);
-  border: var(--border-none);
   background: var(--color-transparent);
 }
 
-.tabs a.annual:hover,
-.tabs a.annual:focus-visible {
-  background: var(--color-transparent);
+/* The underline hugs the text with a mouse; a touch target keeps its minimum width (WCAG 2.5.8). */
+@media (pointer: coarse) {
+  .tabs a,
+  .tabs button {
+    min-inline-size: var(--touch-target-min);
+    justify-content: center;
+  }
 }

@@ -4,7 +4,7 @@ import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { sortAxes } from '@/features/categories/category-axes';
-import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
+import { CategoryLabel } from '@/features/categories/category-label/CategoryLabel';
 import { CategoryRedirection } from './category-redirection/CategoryRedirection';
 import type { TreeNode } from '@/lib/tree/buildTree';
 import { CategoryTreeActions } from './CategoryTreeActions';
@@ -55,11 +55,9 @@ export function CategoryTreeNode({
           <span aria-hidden="true" className={styles.toggleSpacer} />
         )}
         <div className={styles.summary}>
-          <CategoryIdentity
-            color={category.effectiveColor}
-            icon={category.effectiveIcon}
-            label={category.label}
-          />
+          <CategoryLabel color={category.effectiveColor} icon={category.effectiveIcon}>
+            {category.label}
+          </CategoryLabel>
           <p className={styles.meta}>
             <span className="sr-only">{t('categories.tree.level', { depth: category.depth })}</span>
             {children.length > 0 ? (

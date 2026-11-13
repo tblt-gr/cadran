@@ -9,7 +9,6 @@ export async function openTransactionSplits(page: Page) {
   const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });
   await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
   await editor.getByLabel('Montant', { exact: true }).fill('10.00');
-  await editor.locator('summary').filter({ hasText: 'Champs avancés' }).click();
   await editor.getByLabel('Répartir entre plusieurs catégories').check();
   const add = editor.getByRole('button', { name: 'Ajouter une catégorie à la répartition' });
   await add.click();

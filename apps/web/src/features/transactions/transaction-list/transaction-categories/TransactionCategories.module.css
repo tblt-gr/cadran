@@ -1,37 +1,47 @@
+/* One line per share: each amount sits right after the labels, in a column shared by the shares. */
 .split {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
   min-width: 0;
   gap: var(--spacing-1);
 }
 
-.count,
-.more {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
-}
-
 .rows {
-  display: flex;
-  flex-direction: column;
-  padding: var(--spacing-none);
+  display: grid;
+  min-width: 0;
   margin: var(--spacing-none);
+  padding: var(--spacing-none);
   list-style: none;
-  gap: var(--spacing-1);
+  grid-template-columns: minmax(0, max-content) auto;
+  justify-content: start;
+  column-gap: var(--spacing-3);
+  row-gap: var(--spacing-1);
 }
 
 .rows li {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
   align-items: center;
-  gap: var(--spacing-2);
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+}
+
+.label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .amount {
+  justify-self: end;
   color: var(--text-secondary);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.more {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
 }

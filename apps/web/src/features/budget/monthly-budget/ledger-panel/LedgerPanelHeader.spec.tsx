@@ -27,7 +27,7 @@ describe('LedgerPanelHeader title', () => {
 
     const link = screen.getByRole('link', { name: 'Revenus du mois' });
     expect(link.getAttribute('href')).toBe(
-      '/transactions?nature=INCOME&categoryType=INCOME&period=month&month=2026-10',
+      '/transactions?nature=INCOME&categoryType=INCOME&period=month&month=2026-10&budgetMonth=2026-10',
     );
     expect(link.closest('h3')?.id).toBe('title');
     expect(link.hasAttribute('aria-label')).toBe(false);
@@ -38,7 +38,7 @@ describe('LedgerPanelHeader title', () => {
     renderHeader({ axis: 'ESSENTIAL', kind: 'expense', month: '2026-10' });
 
     expect(screen.getByRole('link', { name: 'Dépenses du mois' }).getAttribute('href')).toContain(
-      'categoryType=EXPENSE&axis=ESSENTIAL&period=month&month=2026-10',
+      'categoryType=EXPENSE&axis=ESSENTIAL&period=month&month=2026-10&budgetMonth=2026-10',
     );
   });
 
@@ -46,7 +46,7 @@ describe('LedgerPanelHeader title', () => {
     renderHeader({ kind: 'account', month: '2026-10' });
 
     expect(screen.getByRole('link', { name: 'Virements du mois' }).getAttribute('href')).toBe(
-      '/transactions?nature=TRANSFER&period=month&month=2026-10',
+      '/transactions?nature=TRANSFER&period=month&month=2026-10&budgetMonth=2026-10',
     );
   });
 
@@ -56,7 +56,7 @@ describe('LedgerPanelHeader title', () => {
     fireEvent.click(screen.getByRole('link', { name: 'Revenus du mois' }));
 
     expect(window.location.pathname + window.location.search).toBe(
-      '/transactions?nature=INCOME&categoryType=INCOME&period=month&month=2026-10',
+      '/transactions?nature=INCOME&categoryType=INCOME&period=month&month=2026-10&budgetMonth=2026-10',
     );
   });
 

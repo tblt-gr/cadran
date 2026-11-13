@@ -92,6 +92,12 @@
   font-weight: var(--font-weight-normal);
   overflow: hidden;
 }
+/* The category mark sits centred on the label, spaced like the account dot. */
+.name > [data-icon],
+.name > .accountIcon {
+  align-self: center;
+  margin-right: var(--spacing-1);
+}
 .labelText {
   min-width: 0;
   overflow: hidden;
@@ -134,4 +140,11 @@
   .amount {
     overflow-wrap: anywhere;
   }
+}
+
+.accountIcon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--text-secondary);
 }

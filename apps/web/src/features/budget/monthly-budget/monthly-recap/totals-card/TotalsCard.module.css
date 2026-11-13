@@ -1,6 +1,6 @@
 .panel {
   display: grid;
-  gap: var(--spacing-4);
+  gap: var(--spacing-3);
 }
 .heading {
   display: grid;
@@ -31,13 +31,8 @@
   color: var(--text-primary);
 }
 .heading h3,
-.panel h4,
 .empty {
   margin: var(--spacing-none);
-}
-.panel h4 {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
 }
 .rows {
   display: grid;
@@ -48,8 +43,8 @@
 }
 .row {
   display: grid;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-none);
+  gap: var(--spacing-1);
+  padding: var(--spacing-1-5) var(--spacing-none);
   border-bottom: var(--border-line-subtle);
 }
 .row > div {
@@ -66,7 +61,7 @@
   background: var(--color-transparent);
   color: var(--text-primary);
   font: inherit;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   text-align: left;
   overflow-wrap: anywhere;
   cursor: pointer;
@@ -84,12 +79,9 @@
 .label:disabled {
   cursor: default;
 }
-.section {
-  border-top: var(--border-line-strong);
-  padding-top: var(--spacing-3);
-}
-.section h4 {
-  margin-bottom: var(--spacing-1);
+.section + .section {
+  border-top: var(--border-line-subtle);
+  padding-top: var(--spacing-2);
 }
 .row:last-child {
   border-bottom: var(--border-none);
@@ -104,16 +96,6 @@
   align-items: center;
   justify-content: flex-end;
   gap: var(--spacing-1);
-}
-/* Header of the `Objectif` column: over the column, at the end of the row. */
-.section h4,
-.goalHead {
-  display: flex;
-  justify-content: space-between;
-}
-.goalHead {
-  margin: var(--spacing-none);
-  justify-content: flex-end;
 }
 .row > div > [data-tone] > [data-visual-mask] {
   color: inherit;
@@ -145,6 +127,14 @@
 .labelText {
   min-width: 0;
   color: var(--text-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   overflow-wrap: anywhere;
+}
+
+/* Section titles read as titles: body size and primary ink, above their compact rows. */
+.section details > summary {
+  min-height: var(--control-height-compact);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  gap: var(--spacing-2);
 }

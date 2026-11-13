@@ -1,3 +1,4 @@
+import { TransactionRegisterHeading } from './TransactionRegisterHeading';
 import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
@@ -57,6 +58,10 @@ export function TransactionDayList({
       data-testid={loading ? 'transaction-day-list-skeleton' : undefined}
     >
       {loading && announce ? <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus> : null}
+      <TransactionRegisterHeading
+        accounts={accounts !== undefined}
+        selection={selection !== undefined}
+      />
       <ol aria-label={label ?? t('transactions.list.caption')} className={styles.days}>
         {groups.map((group, index) => {
           const day = Array.isArray(group) ? null : group;

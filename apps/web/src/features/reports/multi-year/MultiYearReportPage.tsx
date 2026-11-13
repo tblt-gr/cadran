@@ -5,7 +5,7 @@ import { lazyComponent } from '@/lib/lazyComponent';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { MultiYearCards } from './MultiYearCards';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
-import { DetailedYearCharts } from './DetailedYearCharts';
+import { MultiYearOverview } from './MultiYearOverview';
 import { MultiYearChartsSkeleton, MultiYearSkeleton } from './MultiYearSkeleton';
 import type { MultiYearDisplay } from '@/features/budget/year/yearViewSearch';
 import { MultiYearTable } from './MultiYearTable';
@@ -119,9 +119,10 @@ export function MultiYearReportPage({ display, range, year }: MultiYearReportPag
                 ) : (
                   <MultiYearChartsSkeleton />
                 )}
-                <DetailedYearCharts
-                  years={report.data.years.map((item) => item.year)}
+                <MultiYearOverview
+                  from={report.data.from}
                   reports={detailedReports}
+                  to={report.data.to}
                 />
               </>
             ) : null}

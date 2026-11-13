@@ -8,6 +8,8 @@ import {
   type GoalCorrectionPreview,
   type GoalDetail,
   type GoalPeriodicity,
+  type GoalMetric,
+  type GoalDirection,
   type GoalSummary,
   type UpdateGoalRequest,
 } from '@cadran/api-client';
@@ -24,6 +26,10 @@ import { currentMonthIn } from '@/features/goals/goalFormFields';
 export interface GoalCreateDefaults {
   periodicity: GoalPeriodicity;
   start: string;
+  metric?: GoalMetric;
+  scopeRef?: string;
+  direction?: GoalDirection;
+  label?: string;
 }
 
 /** Report data that shows a goal's evaluation or the figures it is compared with. */

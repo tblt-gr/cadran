@@ -52,7 +52,6 @@ export function ReportToolbar({
           },
         ]}
         value={view}
-        variant="text"
       />
       {multi?.range ? (
         <YearRangeSelector

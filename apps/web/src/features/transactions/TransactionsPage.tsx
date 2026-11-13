@@ -1,12 +1,14 @@
+import { TransactionAccountNotice } from './transaction-account-notice/TransactionAccountNotice';
+import { TransactionsHeaderActions } from './transactions-header-actions/TransactionsHeaderActions';
+import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
+import { budgetReturnHref } from '@/features/budget/budget-navigation/budgetNavigation';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { workspaceToday } from '@/lib/workspaceTime';
+import { encodeFilters } from './transaction-filters/filterState';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
-import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
-import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
-import { shiftMonth } from './transaction-filters/filterState';
-import { MonthStepper } from './month-stepper/MonthStepper';
-import { BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
+import { BulkSelectionPen, BulkSelectionToolbar } from './bulk-selection/BulkSelectionToolbar';
 import { useBulkSelection } from './bulk-selection/useBulkSelection';
 import { TransactionWorkflow } from './transaction-workflow/TransactionWorkflow';
 import { TransactionDayList } from './transaction-list/transaction-day-list/TransactionDayList';
@@ -20,13 +22,9 @@ import { useTransactionMutations } from './useTransactionMutations';
 import { useTransactionsListing } from './useTransactionsListing';
 import styles from './TransactionsPage.module.css';
 
-function navigateTo(href: string) {
-  window.history.pushState({}, '', href);
-  window.dispatchEvent(new PopStateEvent('popstate'));
-}
-
 export function TransactionsPage() {
   const { t } = useTranslation();
+  const today = workspaceToday(new Date(), useWorkspaceTimeZone());
   const [editor, setEditor] = useState<Editor>(null);
   const [transferEditorOpen, setTransferEditorOpen] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
@@ -37,7 +35,6 @@ export function TransactionsPage() {
     accountsPending,
     activeAccountOptions,
     bulkQuery,
-    categorization,
     displayedPage,
     filtersRevision,
     impossible,
@@ -95,7 +92,9 @@ export function TransactionsPage() {
     transferSave.reset();
   }
 
-  const initialLoading = !impossible && transactions.isPending && transactions.data === undefined;
+  const initialLoading =
+    !impossible &&
+    ((transactions.isPending && transactions.data === undefined) || listing.accountContextPending);
 
   return (
     <TransactionWorkflow
@@ -107,48 +106,10 @@ export function TransactionsPage() {
         <h2 className="sr-only" tabIndex={-1} data-transaction-focus-fallback>
           {t('transactions.list.caption')}
         </h2>
-        <HeaderActions>
-          <button
-            aria-label={t('transactions.add')}
-            className={`primary-action ${styles.add}`}
-            onClick={() => openEditor('create')}
-            type="button"
-          >
-            <Icon name="add" size={18} />
-            <span className={styles.addLabel}>{t('transactions.add')}</span>
-          </button>
-          <button
-            aria-label={t('transactions.addTransfer')}
-            className="icon-button"
-            onClick={openTransferEditor}
-            title={t('transactions.addTransfer')}
-            type="button"
-          >
-            <Icon name="transactions" size={18} />
-          </button>
-        </HeaderActions>
-
-        <HeaderActions>
-          <ActionMenu
-            items={[
-              {
-                icon: 'categories',
-                id: 'categories',
-                label: t('transactions.manageCategories'),
-                onSelect: () => navigateTo('/transactions/categories'),
-                text: t('transactions.manageCategories'),
-              },
-              {
-                icon: 'repeat',
-                id: 'recurrences',
-                label: t('transactions.manageRecurrences'),
-                onSelect: () => navigateTo('/transactions/recurrences'),
-                text: t('transactions.manageRecurrences'),
-              },
-            ]}
-            label={t('transactions.moreActions')}
-          />
-        </HeaderActions>
+        <TransactionsHeaderActions
+          onCreate={() => openEditor('create')}
+          onTransfer={openTransferEditor}
+        />
 
         {saved ? (
           <Toast onDismiss={() => setSaved(null)}>{t(`transactions.toasts.${saved}`)}</Toast>
@@ -177,9 +138,7 @@ export function TransactionsPage() {
           voiding={null}
         />
 
-        {!impossible &&
-        !(transactions.isPending && transactions.data === undefined) &&
-        !(transactions.isError && !staleCursorError) ? (
+        {!impossible && !initialLoading && !(transactions.isError && !staleCursorError) ? (
           <p aria-live="polite" className="sr-only" role="status">
             {t('transactions.pagination.loadedCount', {
               count: items.length,
@@ -188,10 +147,33 @@ export function TransactionsPage() {
           </p>
         ) : null}
 
+        <BudgetNavigation
+          current="transactions"
+          month={searchFilters.period === 'month' ? searchFilters.month : today.slice(0, 7)}
+          budgetHref={budgetReturnHref(
+            window.location.search,
+            searchFilters.period === 'month' ? searchFilters.month : null,
+            today.slice(0, 7),
+          )}
+        />
+        {!unauthorized && items.length > 0 ? (
+          <TransactionAccountNotice
+            failed={listing.accountContextFailed}
+            onRetry={listing.retryAccountContext}
+          />
+        ) : null}
         <TransactionFilters
           accounts={accountOptions}
           accountsPending={accountsPending}
           actions={
+            <BulkSelectionPen
+              active={bulkMode}
+              bulk={initialLoading || impossible || items.length === 0 ? null : bulk}
+              inline
+              onToggleActive={() => setBulkMode((active) => !active)}
+            />
+          }
+          afterChips={
             <BulkSelectionToolbar
               active={bulkMode}
               bulk={initialLoading || impossible || items.length === 0 ? null : bulk}
@@ -206,19 +188,6 @@ export function TransactionsPage() {
           onReset={resetAllFilters}
           revision={filtersRevision}
         >
-          {searchFilters.period === 'month' ? (
-            <MonthStepper
-              disabled={initialLoading}
-              month={searchFilters.month}
-              onStep={(offset) =>
-                updateFilters(
-                  { ...searchFilters, month: shiftMonth(searchFilters.month, offset) },
-                  'push',
-                )
-              }
-            />
-          ) : null}
-
           {impossible ? (
             <TransactionsState
               kind="impossible"
@@ -236,7 +205,14 @@ export function TransactionsPage() {
             />
           ) : items.length === 0 ? (
             <TransactionsState
-              kind={categorization === 'NONE' ? 'queueEmpty' : 'empty'}
+              kind={
+                searchFilters.categorization === 'NONE' && !searchFilters.q
+                  ? 'queueEmpty'
+                  : encodeFilters(searchFilters).size > 0
+                    ? 'filteredEmpty'
+                    : 'empty'
+              }
+              onResetFilters={resetAllFilters}
               onCreate={() => openEditor('create')}
               onRetry={() => void transactions.refetch()}
             />

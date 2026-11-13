@@ -1,7 +1,8 @@
-import type { GoalEvaluation, GoalPeriodEvaluation } from '@cadran/api-client';
+import type { GoalEvaluation, GoalMetric, GoalPeriodEvaluation } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import { formatEvaluationFigure } from '@/features/goals/goalFormat';
 import { goalTone, type GoalTone } from '@/features/goals/goal-panel/goalPanelModel';
+import type { GoalCreateDefaults } from '@/features/goals/goal-panel/useGoalEditor';
 
 // The worst reading leads: a missed goal must not hide behind a met one on the same figure.
 const TONE_ORDER: Record<GoalTone, number> = { negative: 0, positive: 1, neutral: 2, done: 3 };
@@ -58,4 +59,27 @@ export function targetValue(evaluation: GoalEvaluation, locale: string): string 
     return null;
   }
   return formatEvaluationFigure(evaluation.target, locale);
+}
+
+const KPI_GOAL_METRICS: Readonly<Record<string, GoalMetric>> = {
+  cashIncome: 'TOTAL_INCOME',
+  budgetExpenses: 'TOTAL_SPENDING',
+  budgetSurplus: 'BUDGET_SURPLUS',
+  netSavingsTransfers: 'NET_SAVINGS_TRANSFERS',
+  cashSavingsRate: 'SAVINGS_RATE',
+  netSavingsRate: 'NET_SAVINGS_RATE',
+};
+
+/**
+ * What the goal form opens with for the figure of a flows-summary row (`columnKey` as carried by
+ * the goal evaluations); null when no goal can target that figure.
+ */
+export function goalDefaultsFor(columnKey: string, month: string): GoalCreateDefaults | null {
+  const base = { periodicity: 'MONTHLY', start: month } as const;
+  const metric = KPI_GOAL_METRICS[columnKey];
+  if (metric) return { ...base, metric };
+  const [kind, ref] = columnKey.split(':');
+  if (kind === 'axis' && ref) return { ...base, metric: 'AXIS_SPENDING', scopeRef: ref };
+  if (kind === 'category' && ref) return { ...base, metric: 'CATEGORY_SPENDING', scopeRef: ref };
+  return null;
 }

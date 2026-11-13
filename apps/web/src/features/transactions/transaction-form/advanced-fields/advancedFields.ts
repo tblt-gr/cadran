@@ -11,8 +11,5 @@ export const LABELLED_FIELDS = [
 
 export type LabelledField = (typeof LABELLED_FIELDS)[number];
 
-/** Every field of the section, the split included: an error on any of them opens it. */
-export const ADVANCED_FIELDS: ReadonlyArray<keyof TransactionFormValues> = [
-  ...LABELLED_FIELDS,
-  'splits',
-];
+/** An error on folded metadata opens its disclosure. */
+export const ADVANCED_FIELDS: ReadonlyArray<keyof TransactionFormValues> = [...LABELLED_FIELDS];

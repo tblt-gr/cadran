@@ -6,6 +6,7 @@ import type {
 } from '@cadran/api-client';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { AmountRangeFilter } from '@/features/transactions/transaction-filters/amount-range-filter/AmountRangeFilter';
 import { CategoryCheckboxTree } from '@/features/transactions/transaction-filters/category-checkbox-tree/CategoryCheckboxTree';
@@ -117,8 +118,15 @@ export function FilterPanel({
       <div className={styles.heading}>
         <h2 id={titleId}>{t('transactions.filters.panelTitle')}</h2>
         {onReset && activeCount > 0 ? (
-          <button className={styles.reset} disabled={disabled} onClick={onReset} type="button">
-            {t('transactions.filters.reset')}
+          <button
+            aria-label={t('transactions.filters.reset')}
+            className="icon-button"
+            disabled={disabled}
+            onClick={onReset}
+            title={t('transactions.filters.reset')}
+            type="button"
+          >
+            <Icon name="delete" size={16} />
           </button>
         ) : null}
         {actions}

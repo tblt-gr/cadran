@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { TransactionDayList } from '@/features/transactions/transaction-list/transaction-day-list/TransactionDayList';
 import { BulkEditResultView } from './bulk-edit-modal/BulkEditResult';
-import { BulkSelectionToolbar } from './BulkSelectionToolbar';
+import { BulkSelectionPen, BulkSelectionToolbar } from './BulkSelectionToolbar';
 import { useBulkSelection } from './useBulkSelection';
 
 const api = vi.hoisted(() => ({
@@ -90,6 +90,14 @@ function Harness({
 
   return (
     <>
+      {inline ? (
+        <BulkSelectionPen
+          active={active}
+          bulk={bulk}
+          inline
+          onToggleActive={() => setActive(!active)}
+        />
+      ) : null}
       <BulkSelectionToolbar
         active={active}
         bulk={bulk}
@@ -173,7 +181,7 @@ describe('bulk selection', () => {
 
   it('leaves the mode with the pen, dropping checkboxes and the selection', () => {
     renderHarness();
-    const pen = screen.getByRole('button', { name: 'Édition groupée' });
+    const pen = screen.getByRole('button', { name: 'Quitter la sélection' });
     expect(pen.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
 
@@ -195,9 +203,9 @@ describe('bulk selection', () => {
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 
-  it('puts selection and the edit action on the line under the pen', () => {
+  it('keeps selection and the edit action apart from the pen the host places', () => {
     renderHarness({ inline: true });
-    const pen = screen.getByRole('button', { name: 'Édition groupée' });
+    const pen = screen.getByRole('button', { name: 'Quitter la sélection' });
     const action = screen.getByRole('button', { name: 'Modifier' });
     const controls = action.closest('[data-bulk-controls]');
     expect(controls).toBeTruthy();
@@ -207,6 +215,15 @@ describe('bulk selection', () => {
         screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }),
       ),
     ).toBe(true);
+  });
+
+  it('keeps the exit available when a changed filter empties the loaded selection', () => {
+    const onToggle = vi.fn();
+    render(<BulkSelectionToolbar active bulk={null} onToggleActive={onToggle} />);
+    const exit = screen.getByRole('button', { name: 'Quitter la sélection' });
+    expect(exit.hasAttribute('disabled')).toBe(false);
+    fireEvent.click(exit);
+    expect(onToggle).toHaveBeenCalledOnce();
   });
 
   it('keeps the edit action disabled until something is selected', () => {

@@ -92,13 +92,13 @@ export function TransactionForm({
   });
   const [showErrors, setShowErrors] = useState(false);
   const [accountChosen, setAccountChosen] = useState(false);
-  // A split transaction is edited in the advanced section, so it opens there.
+  // Category allocation stays beside the amount; metadata keeps its own disclosure.
   const categoryDefaultAxes = useCategoryDefaultAxes(
     values.categoryId,
     (savedCategory(transaction) ?? defaults?.category ?? null)?.label ?? null,
     values.categoryDefaultAxes,
   );
-  const [advancedOpen, setAdvancedOpen] = useState(() => values.splitMode);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const withAccount =
     !transaction && !accountChosen
       ? {
@@ -255,6 +255,59 @@ export function TransactionForm({
           />
         </label>
 
+        {values.splitMode ? (
+          <div className={styles.splitNotice}>
+            <span>{t('transactions.fields.category')}</span>
+          </div>
+        ) : (
+          <TransactionCategoryField
+            error={
+              errors.categoryId && values.categoryType !== null
+                ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
+                : null
+            }
+            onChange={(categoryId, categoryType, categoryDefaultAxes) =>
+              setValues((current) => ({
+                ...current,
+                // An override made for the previous category no longer describes this one.
+                analyticAxes: categoryId === current.categoryId ? current.analyticAxes : null,
+                categoryDefaultAxes,
+                categoryId,
+                categoryType,
+              }))
+            }
+            preferredType={preferredType}
+            savedCategory={savedCategory(transaction) ?? defaults?.category ?? null}
+            value={values.categoryId}
+          />
+        )}
+
+        <div data-span="full">
+          <SplitField
+            assetCode={amountAssetCode}
+            direction={direction}
+            onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
+            onChangeSplits={(splits) => set('splits', splits)}
+            preferredType={preferredType}
+            showErrors={showErrors}
+            splitMode={values.splitMode}
+            splits={values.splits}
+            total={signedAmount}
+          />
+        </div>
+
+        {!values.splitMode && values.categoryId !== '' && values.categoryType === 'EXPENSE' ? (
+          <div data-span="full">
+            <SplitAxes
+              axes={values.analyticAxes}
+              compact={false}
+              defaultAxes={categoryDefaultAxes}
+              legend={t('transactions.form.axesLegend')}
+              onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
+            />
+          </div>
+        ) : null}
+
         <label>
           <span>{t('transactions.fields.nature')}</span>
           <select
@@ -341,46 +394,6 @@ export function TransactionForm({
           </select>
         </label>
 
-        {values.splitMode ? (
-          <div className={styles.splitNotice}>
-            <span>{t('transactions.fields.category')}</span>
-            <p>{t('transactions.split.inAdvanced')}</p>
-          </div>
-        ) : (
-          <TransactionCategoryField
-            error={
-              errors.categoryId && values.categoryType !== null
-                ? t(`transactions.validation.categoryMismatch.${values.categoryType}`)
-                : null
-            }
-            onChange={(categoryId, categoryType, categoryDefaultAxes) =>
-              setValues((current) => ({
-                ...current,
-                // An override made for the previous category no longer describes this one.
-                analyticAxes: categoryId === current.categoryId ? current.analyticAxes : null,
-                categoryDefaultAxes,
-                categoryId,
-                categoryType,
-              }))
-            }
-            preferredType={preferredType}
-            savedCategory={savedCategory(transaction) ?? defaults?.category ?? null}
-            value={values.categoryId}
-          />
-        )}
-
-        {!values.splitMode && values.categoryId !== '' && values.categoryType === 'EXPENSE' ? (
-          <div data-span="full">
-            <SplitAxes
-              axes={values.analyticAxes}
-              compact={false}
-              defaultAxes={categoryDefaultAxes}
-              legend={t('transactions.form.axesLegend')}
-              onChange={(analyticAxes) => set('analyticAxes', analyticAxes)}
-            />
-          </div>
-        ) : null}
-
         <AdvancedTransactionFields
           errors={errors}
           onChange={set}
@@ -388,19 +401,7 @@ export function TransactionForm({
           open={advancedOpen}
           rejectable={editing && transaction.state === 'PENDING'}
           showErrors={showErrors}
-          split={
-            <SplitField
-              assetCode={amountAssetCode}
-              direction={direction}
-              onChangeSplitMode={(splitMode) => set('splitMode', splitMode)}
-              onChangeSplits={(splits) => set('splits', splits)}
-              preferredType={preferredType}
-              showErrors={showErrors}
-              splitMode={values.splitMode}
-              splits={values.splits}
-              total={signedAmount}
-            />
-          }
+
           stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}
           statePlanned={upcoming}
           values={resolved}

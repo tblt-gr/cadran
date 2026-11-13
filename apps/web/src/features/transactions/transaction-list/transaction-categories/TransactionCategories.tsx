@@ -38,17 +38,19 @@ export function TransactionCategories({ splits }: TransactionCategoriesProps) {
 
   return (
     <div className={styles.split}>
-      <span className={styles.count}>
-        {t('transactions.list.splitCount', { count: splits.length })}
-      </span>
-      <ul className={styles.rows}>
+      <ul
+        aria-label={t('transactions.list.splitCount', { count: splits.length })}
+        className={styles.rows}
+      >
         {visible.map((split) => (
           <li key={split.id}>
-            <CategoryIdentity
-              color={split.categoryColor}
-              icon={split.categoryIcon}
-              label={split.categoryLabel}
-            />
+            <span className={styles.label}>
+              <CategoryIdentity
+                color={split.categoryColor}
+                icon={split.categoryIcon}
+                label={split.categoryLabel}
+              />
+            </span>
             {/* The transaction amount beside it already carries the sign. */}
             <span className={styles.amount}>
               {formatAmount(

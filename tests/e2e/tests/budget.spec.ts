@@ -12,7 +12,7 @@ test.describe('monthly budget', () => {
     await expect(page.getByRole('region', { name: 'Dépenses du mois', exact: true })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Revenus du mois', exact: true })).toHaveAttribute(
       'href',
-      /^\/transactions\?nature=INCOME&categoryType=INCOME&period=month&month=\d{4}-\d{2}$/,
+      /^\/transactions\?nature=INCOME&categoryType=INCOME&period=month&month=\d{4}-\d{2}&budgetMonth=\d{4}-\d{2}$/,
     );
 
     // The previous month of the demo ledger is closed: the page says so instead of hiding it.
@@ -54,11 +54,14 @@ test.describe('monthly budget', () => {
     const expenses = page.getByRole('link', { name: 'Dépenses du mois', exact: true });
     await expect(expenses).toHaveAttribute(
       'href',
-      /^\/transactions\?nature=EXPENSE&nature=FEE&nature=REFUND&categoryType=EXPENSE&period=month&month=\d{4}-\d{2}$/,
+      /^\/transactions\?nature=EXPENSE&nature=FEE&nature=REFUND&categoryType=EXPENSE&period=month&month=\d{4}-\d{2}&budgetMonth=\d{4}-\d{2}$/,
     );
     await expect(
       page.getByRole('link', { name: 'Virements du mois', exact: true }),
-    ).toHaveAttribute('href', /^\/transactions\?nature=TRANSFER&period=month&month=\d{4}-\d{2}$/);
+    ).toHaveAttribute(
+      'href',
+      /^\/transactions\?nature=TRANSFER&period=month&month=\d{4}-\d{2}&budgetMonth=\d{4}-\d{2}$/,
+    );
 
     await expenses.click();
     await settled(page);

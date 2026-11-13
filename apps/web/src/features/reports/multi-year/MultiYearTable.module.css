@@ -79,14 +79,6 @@
 .table tfoot td {
   color: var(--text-secondary);
 }
-/* The summary label spans the year and policy columns (`colSpan={2}`), so its box is
-   wider than the body's single sticky first column: left as sticky, that wider box
-   misaligns with the body's sticky region while scrolling. It reverts to a normal,
-   non-sticky cell instead. */
-.table tfoot th:first-child {
-  position: static;
-  left: auto;
-}
 .table tfoot tr:first-child th,
 .table tfoot tr:first-child td {
   border-top: var(--border-line-strong);
@@ -118,15 +110,4 @@
 .card a:hover,
 .card a:focus-visible {
   text-decoration: underline;
-}
-
-/* Policy information sits under the table, not in a column of it. */
-.notes {
-  padding: var(--spacing-3) var(--spacing-4);
-  border-top: var(--border-line-subtle);
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.notes p {
-  margin: var(--spacing-none);
 }

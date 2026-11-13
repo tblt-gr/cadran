@@ -1,57 +1,62 @@
-.page,
-.section,
-.candidates,
-.schedules {
+.page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
 }
 
 .sectionHeading,
 .undo {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-4);
 }
 
-.sectionHeading,
-.undo {
-  justify-content: space-between;
-}
-
-.sectionHeading p,
 .sectionHeading h3,
 .empty h4,
 .empty p {
   margin: var(--spacing-none);
 }
 
-.sectionHeading p {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
+.sectionHeading h3 {
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* One plate per section, its rows separated by hairlines. */
+.list {
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  overflow: hidden;
+  list-style: none;
 }
 
 .empty p,
 .state p {
   color: var(--text-secondary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   line-height: var(--line-height-body);
 }
 
-.sectionHeading h3 {
-  margin-top: var(--spacing-1);
-  font-size: var(--font-size-card-title);
+.empty h4 {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
 }
 
-.notice,
 .undo {
   margin: var(--spacing-none);
-  padding: var(--spacing-3) var(--spacing-4);
+  padding: var(--spacing-2) var(--spacing-4);
   border: var(--border-line-subtle);
   border-radius: var(--radius-control);
   color: var(--text-secondary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   line-height: var(--line-height-body);
 }
 
@@ -64,10 +69,6 @@
   font-weight: var(--font-weight-bold);
 }
 
-.candidates {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
 .skeletonLine {
   width: 100%;
   height: var(--spacing-4);
@@ -76,23 +77,17 @@
 .empty,
 .state {
   display: flex;
-  min-height: var(--spacing-12);
   align-items: flex-start;
   justify-content: center;
   flex-direction: column;
-  padding: var(--spacing-6);
-  gap: var(--spacing-3);
+  padding: var(--spacing-4);
+  gap: var(--spacing-2);
 }
 
 @media (max-width: 42rem) {
-  .sectionHeading,
   .undo,
   .undo > button {
     width: 100%;
-  }
-
-  .candidates {
-    grid-template-columns: 1fr;
   }
 }
 

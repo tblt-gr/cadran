@@ -23,7 +23,7 @@
 
 .remaining strong {
   color: var(--text-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
 }
 

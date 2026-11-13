@@ -1,4 +1,4 @@
-import type { AnnualCategoryShare, AnnualReport } from '@cadran/api-client';
+import type { AnnualCategoryShare, AnnualReport, Category } from '@cadran/api-client';
 import { Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
@@ -6,6 +6,7 @@ import { allocationEntries } from '@/features/accounts/grouping-mode/allocationE
 import { useGroupingMode } from '@/features/accounts/grouping-mode/useGroupingMode';
 import { canonicalGroupColor } from '@/features/accounts/group-color';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
+import { useCategoryIdentities } from '@/features/categories/useCategoryIdentities';
 import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { firstDataMonth, fromFirstDataMonth } from './annualColumns';
@@ -20,10 +21,15 @@ const FlowsChart = lazyComponent(() => import('./FlowsChart'), 'FlowsChart');
 
 const TOP_VISIBLE_ROWS = 6;
 
-function toRow(item: AnnualCategoryShare): AnnualDonutItem & AnnualLegendRow {
+/** The report carries each category's colour; its icon comes from the workspace's categories. */
+function toRow(
+  item: AnnualCategoryShare,
+  identities: ReadonlyMap<string, Category> | undefined,
+): AnnualDonutItem & AnnualLegendRow {
   return {
     amount: item.total,
     color: canonicalCategoryColor(item.color) ?? undefined,
+    icon: item.categoryId ? (identities?.get(item.categoryId)?.effectiveIcon ?? null) : null,
     key: item.categoryId ?? item.label ?? '',
     label: item.label ?? '',
     share: item.share,
@@ -40,6 +46,7 @@ export function AnnualCharts({
 }) {
   const { t } = useTranslation();
   const [mode, setMode] = useGroupingMode('cadran.reports.allocation.grouping', 'PRIMARY');
+  const identities = useCategoryIdentities();
   const { topExpenseCategories: top, allocation } = report.charts;
   // The series start at the first month with data, not in January of a year that began later.
   const first = firstDataMonth(report.rows);
@@ -60,7 +67,9 @@ export function AnnualCharts({
   /** Every category is its own slice: the top items followed by the "other"
    * bucket's individual items, exact amount and share each, no summed
    * "Autres" slice. */
-  const topCategoryRows = [...top.items, ...(top.other?.items ?? [])].map(toRow);
+  const topCategoryRows = [...top.items, ...(top.other?.items ?? [])].map((item) =>
+    toRow(item, identities.data),
+  );
 
   const itemsById = new Map(allocation.items.map((item) => [item.groupId, item]));
   const allocationRows = allocationEntries(allocation.items, mode, (amount) => amount).map(

@@ -1,15 +1,12 @@
-import { type BudgetAxis } from './budgetPeriod';
+import { type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { Icon } from '@/components/ui/icon/Icon';
-import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import styles from './MonthlyBudgetPage.module.css';
-import skeletonStyles from './MonthlyBudgetPageSkeleton.module.css';
-import ledgerStyles from './ledger-panels/LedgerPanels.module.css';
-import panelStyles from './ledger-panel/LedgerPanel.module.css';
-import rowStyles from './ledger-row/LedgerRow.module.css';
-import { LedgerPanelHeader } from './ledger-panel/LedgerPanelHeader';
-import { ExpenseDonut } from './expense-donut/ExpenseDonut';
-import { MonthlyRecapPlaceholder } from './monthly-recap/MonthlyRecapSkeleton';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import skeletonStyles from './LedgerPanelsPlaceholder.module.css';
+import ledgerStyles from '@/features/budget/monthly-budget/ledger-panels/LedgerPanels.module.css';
+import panelStyles from './LedgerPanel.module.css';
+import rowStyles from '@/features/budget/monthly-budget/ledger-row/LedgerRow.module.css';
+import { LedgerPanelHeader } from './LedgerPanelHeader';
 
 type PanelKind = 'income' | 'expense' | 'account';
 
@@ -63,27 +60,16 @@ function LedgerPanelSkeleton({ kind, axis }: { kind: PanelKind; axis: BudgetAxis
   );
 }
 
-export function MonthlyBudgetPageSkeleton({
-  status,
-  axis,
-}: {
-  status: string;
-  axis: BudgetAxis | null;
-}) {
+/** Mirrors the detailed ledger's three panels. */
+export function LedgerPanelsPlaceholder({ axis }: { axis: BudgetAxis | null }) {
   return (
-    <div aria-busy="true" className={styles.workbook} data-testid="monthly-budget-skeleton">
-      <SkeletonStatus>{status}</SkeletonStatus>
-      <div className={ledgerStyles.ledger}>
-        <div className={ledgerStyles.statuses} />
-        <div className={ledgerStyles.panels}>
-          <LedgerPanelSkeleton axis={axis} kind="income" />
-          <LedgerPanelSkeleton axis={axis} kind="expense" />
-          <LedgerPanelSkeleton axis={axis} kind="account" />
-        </div>
+    <div className={ledgerStyles.ledger}>
+      <div className={ledgerStyles.statuses} />
+      <div className={ledgerStyles.panels}>
+        <LedgerPanelSkeleton axis={axis} kind="income" />
+        <LedgerPanelSkeleton axis={axis} kind="expense" />
+        <LedgerPanelSkeleton axis={axis} kind="account" />
       </div>
-      <MonthlyRecapPlaceholder
-        leading={<ExpenseDonut axis={axis} period={{ from: '', to: '' }} rows={null} />}
-      />
     </div>
   );
 }

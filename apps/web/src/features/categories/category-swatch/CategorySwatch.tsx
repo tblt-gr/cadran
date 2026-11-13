@@ -18,7 +18,12 @@ export function CategorySwatch({ color, icon }: CategorySwatchProps) {
   const mark = canonicalCategoryColor(color);
 
   return (
-    <span aria-hidden="true" className={styles.swatch} data-icon={artwork?.key ?? 'none'}>
+    <span
+      aria-hidden="true"
+      className={styles.swatch}
+      data-color={mark ?? undefined}
+      data-icon={artwork?.key ?? 'none'}
+    >
       {artwork ? (
         <svg className={styles.glyph} focusable="false" viewBox="0 0 24 24">
           <path d={artwork.path} stroke={mark ?? undefined} />

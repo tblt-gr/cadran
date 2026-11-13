@@ -21,7 +21,10 @@ interface AllocationLegendProps {
   collapse?: { count: number; moreLabel: string; lessLabel: string };
 }
 
-/** Groups as a list: label, share, amount and a decorative bar, coloured like the donut slices. */
+/**
+ * Groups as a compact list: label, share and amount on one line, a decorative bar under it,
+ * coloured like the donut slices.
+ */
 export function AllocationLegend({ collapse, items, label }: AllocationLegendProps) {
   const [expanded, setExpanded] = useState(false);
   const listId = useId();

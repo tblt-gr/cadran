@@ -37,7 +37,7 @@ describe('initialTransferValues', () => {
     const initial = initialTransferValues([source, primary], '2026-09-08');
 
     expect(initial.sourceAccountId).toBe('account-target');
-    expect(initial.targetAccountId).toBe('account-source');
+    expect(initial.targetAccountId).toBe('');
   });
 });
 

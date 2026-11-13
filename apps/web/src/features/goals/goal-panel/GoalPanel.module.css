@@ -31,12 +31,53 @@
 }
 
 .row {
+  position: relative;
   display: flex;
   padding: var(--spacing-3);
   border: var(--border-line-subtle);
   border-radius: var(--radius-card);
   flex-direction: column;
   gap: var(--spacing-2);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+/* The whole card opens the goal: the label's button stretches over it, one control for assistive
+   technology. Selection, explanation and row actions stay above it and keep their own targets. */
+.goalLink::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  content: '';
+}
+
+.row:has(.goalLink) {
+  cursor: pointer;
+}
+
+.row:has(.goalLink:hover) {
+  background: var(--bg-surface-2);
+}
+
+/* The focus ring follows the stretched target: the card, not just its label. */
+.row:has(.goalLink:focus-visible) {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}
+
+.goalLink:focus-visible {
+  outline: none;
+}
+
+.selectionControl,
+.rowEnd {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row {
+    transition: none;
+  }
 }
 
 .rowHead {
@@ -74,11 +115,6 @@
   min-height: var(--touch-target-min);
   text-align: left;
   cursor: pointer;
-}
-
-.goalLink:is(:hover, :focus-visible) {
-  text-decoration: underline;
-  text-underline-offset: var(--spacing-1);
 }
 
 .selectionControl input {

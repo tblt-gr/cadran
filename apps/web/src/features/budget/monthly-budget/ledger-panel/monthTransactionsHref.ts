@@ -1,3 +1,4 @@
+import { appendBudgetContext } from '@/features/budget/budget-navigation/budgetNavigation';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
 
@@ -24,6 +25,7 @@ export function monthTransactionsHref(
   }
   params.append('period', 'month');
   params.append('month', month);
+  appendBudgetContext(params, month, axis);
 
   return `/transactions?${params.toString()}`;
 }

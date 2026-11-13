@@ -41,5 +41,11 @@ export function useFilterChipLabels({ accounts, filters }: UseFilterChipLabelsOp
     return categoryLookup.isError ? LABEL_UNAVAILABLE : undefined;
   };
 
-  return { accountLabel, categoryLabel };
+  /** The category's own mark (icon and colour), once the categories have been read. */
+  const categoryMark = (id: string) => {
+    const category = categoryLookup.data?.get(id);
+    return category ? { color: category.effectiveColor, icon: category.effectiveIcon } : null;
+  };
+
+  return { accountLabel, categoryLabel, categoryMark };
 }

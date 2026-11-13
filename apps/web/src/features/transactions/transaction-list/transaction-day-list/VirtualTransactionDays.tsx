@@ -1,3 +1,4 @@
+import { TransactionRegisterHeading } from './TransactionRegisterHeading';
 import type { Account, Transaction } from '@cadran/api-client';
 import { defaultRangeExtractor, useWindowVirtualizer, windowScroll } from '@tanstack/react-virtual';
 import { Fragment, useLayoutEffect, useRef, useState } from 'react';
@@ -45,6 +46,16 @@ export function VirtualTransactionDays({
   const [margin, setMargin] = useState(0);
   const [headingHeight, setHeadingHeight] = useState(34);
   const blocks = transactionBlocks(transactions);
+  const transferAccounts = new Map<string, Array<{ id: string; account: string | undefined }>>();
+  for (const transaction of transactions) {
+    if (!transaction.transferId || transaction.nature !== 'TRANSFER') continue;
+    const legs = transferAccounts.get(transaction.transferId) ?? [];
+    legs.push({
+      id: transaction.id,
+      account: accounts?.find((account) => account.id === transaction.accountId)?.label,
+    });
+    transferAccounts.set(transaction.transferId, legs);
+  }
   const estimateSize = (index: number) =>
     blocks[index]!.transactions.length * 76 + (blocks[index]!.heading ? headingHeight : 0);
   const virtualizer = useWindowVirtualizer<HTMLUListElement>({
@@ -143,6 +154,10 @@ export function VirtualTransactionDays({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(null);
       }}
     >
+      <TransactionRegisterHeading
+        accounts={accounts !== undefined}
+        selection={selection !== undefined}
+      />
       {first > 0 ? (
         <button
           className={`secondary-action ${styles.windowControl}`}
@@ -192,6 +207,13 @@ export function VirtualTransactionDays({
                       {blocks[item.index]!.transactions.map((transaction) => (
                         <TransactionDayRow
                           accounts={accounts}
+                          counterpartAccount={
+                            transaction.nature === 'TRANSFER' && transaction.transferId
+                              ? transferAccounts
+                                  .get(transaction.transferId)
+                                  ?.find((leg) => leg.id !== transaction.id)?.account
+                              : undefined
+                          }
                           key={transaction.id}
                           selection={selection}
                           transaction={transaction}

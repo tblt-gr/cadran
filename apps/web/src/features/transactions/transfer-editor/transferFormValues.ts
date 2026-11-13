@@ -25,7 +25,7 @@ export function initialTransferValues(accounts: Account[], today: string): Trans
 
   return {
     sourceAccountId: source?.id ?? '',
-    targetAccountId: active.find((account) => account.id !== source?.id)?.id ?? '',
+    targetAccountId: '',
     sourceAmountValue: '',
     targetAmountValue: '',
     bookedOn: today,

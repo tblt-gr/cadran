@@ -9,6 +9,8 @@ import {
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
+import { readBudgetContext } from '@/features/budget/budget-navigation/budgetNavigation';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
@@ -124,8 +126,11 @@ export function CategoryPage() {
   // A merged source only exists to redirect its history to the target: nothing can be done with it.
   const items = (categories.data ?? []).filter((item) => item.replacement?.kind !== 'MERGE');
 
+  const budgetContext = readBudgetContext(window.location.search);
+
   return (
     <div className={styles.page}>
+      <BudgetNavigation current="categories" {...budgetContext} />
       <HeaderActions>
         <button className="primary-action" onClick={() => openEditor('create')} type="button">
           <Icon name="add" size={18} />
@@ -193,16 +198,14 @@ export function CategoryPage() {
       ) : null}
 
       <div className={styles.toolbar}>
-        <label>
-          <input
-            checked={includeArchived}
-            onChange={(event) => {
-              setIncludeArchived(event.target.checked);
-            }}
-            type="checkbox"
-          />
-          <span>{t('categories.includeArchived')}</span>
-        </label>
+        <button
+          aria-pressed={includeArchived}
+          className="secondary-action"
+          onClick={() => setIncludeArchived((current) => !current)}
+          type="button"
+        >
+          {t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
+        </button>
       </div>
 
       {categories.isPending ? (

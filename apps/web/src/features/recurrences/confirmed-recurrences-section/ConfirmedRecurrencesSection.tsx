@@ -1,5 +1,6 @@
 import type { Recurrence } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { RecurrenceCard } from '@/features/recurrences/recurrence-card/RecurrenceCard';
 import styles from '@/features/recurrences/RecurrencesPage.module.css';
 
@@ -28,10 +29,7 @@ export function ConfirmedRecurrencesSection({
   return (
     <section aria-labelledby="confirmed-recurrences-title" className={styles.section}>
       <div className={styles.sectionHeading}>
-        <div>
-          <p>{t('recurrences.confirmed.headingLabel')}</p>
-          <h3 id="confirmed-recurrences-title">{t('recurrences.confirmed.title')}</h3>
-        </div>
+        <h3 id="confirmed-recurrences-title">{t('recurrences.confirmed.title')}</h3>
         <button
           aria-controls="archived-recurrences"
           aria-expanded={showArchived}
@@ -52,40 +50,43 @@ export function ConfirmedRecurrencesSection({
           <p>{t('recurrences.confirmed.emptyDescription')}</p>
         </div>
       ) : (
-        <div className={styles.schedules}>
+        <ul className={`card ${styles.list}`}>
           {recurrences.map((recurrence) => (
             <RecurrenceCard
               actions={
-                <>
-                  <button
-                    className="secondary-action"
-                    onClick={() => onSelect(recurrence)}
-                    type="button"
-                  >
-                    {t('recurrences.confirmed.occurrences')}
-                  </button>
-                  <button
-                    className="secondary-action"
-                    onClick={() => onEdit(recurrence)}
-                    type="button"
-                  >
-                    {t('recurrences.confirmed.edit')}
-                  </button>
-                  <button
-                    className="secondary-action"
-                    disabled={archivePending}
-                    onClick={() => onArchive(recurrence)}
-                    type="button"
-                  >
-                    {t('recurrences.confirmed.archive')}
-                  </button>
-                </>
+                <ActionMenu
+                  items={[
+                    {
+                      id: 'occurrences',
+                      icon: 'calendar',
+                      label: t('recurrences.confirmed.occurrencesFor', { label: recurrence.label }),
+                      text: t('recurrences.confirmed.occurrences'),
+                      onSelect: () => onSelect(recurrence),
+                    },
+                    {
+                      id: 'edit',
+                      icon: 'edit',
+                      label: t('recurrences.confirmed.editFor', { label: recurrence.label }),
+                      text: t('recurrences.confirmed.edit'),
+                      onSelect: () => onEdit(recurrence),
+                    },
+                    {
+                      id: 'archive',
+                      icon: 'archive',
+                      disabled: archivePending,
+                      label: t('recurrences.confirmed.archiveFor', { label: recurrence.label }),
+                      text: t('recurrences.confirmed.archive'),
+                      onSelect: () => onArchive(recurrence),
+                    },
+                  ]}
+                  label={t('recurrences.actionsFor', { label: recurrence.label })}
+                />
               }
               key={recurrence.id}
               recurrence={recurrence}
             />
           ))}
-        </div>
+        </ul>
       )}
     </section>
   );

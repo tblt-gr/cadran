@@ -47,6 +47,9 @@ export function useRecurrenceMutations({
   const queryClient = useQueryClient();
   const [notice, setNotice] = useState<string | null>(null);
   const [dismissed, setDismissed] = useState<RecurrenceCandidate | null>(null);
+  // A candidate that became a recurrence leaves the suggestions at once, whatever the detection
+  // answers on its next refresh.
+  const [confirmed, setConfirmed] = useState<ReadonlySet<string>>(new Set());
 
   const submission = useSubmissionKey();
   const save = useMutation({
@@ -75,9 +78,16 @@ export function useRecurrenceMutations({
     },
     onSuccess: async (saved) => {
       submission.release();
+      if (editor && editor !== 'create' && !('id' in editor)) {
+        const { fingerprint } = editor;
+        setConfirmed((current) => new Set(current).add(fingerprint));
+      }
       onSaved();
       setNotice(t('recurrences.toasts.saved'));
-      await queryClient.invalidateQueries({ queryKey: ['recurrences'] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['recurrences'] }),
+        queryClient.invalidateQueries({ queryKey: ['recurrence-candidates'] }),
+      ]);
       // Saving an automatic recurrence materialises its month on the server: the ledger moved.
       if (saved.autoCreate || !editor || editor === 'create' || !('id' in editor)) {
         await invalidateAccountBalances(queryClient);
@@ -161,6 +171,7 @@ export function useRecurrenceMutations({
 
   return {
     archive,
+    confirmed,
     dismiss,
     dismissed,
     notice,

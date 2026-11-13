@@ -23,7 +23,11 @@ const account = {
   status: 'ACTIVE',
 } as Account;
 
-const transaction = { id: '00000000-0000-7000-8000-0000000000f1' } as Transaction;
+const transaction = {
+  id: '00000000-0000-7000-8000-0000000000f1',
+  displayLabel: 'Courses',
+  bookedOn: '2026-09-03',
+} as Transaction;
 
 const proposal: RefundableTransaction = {
   originalId: transaction.id,
@@ -60,6 +64,7 @@ describe('RefundEditor', () => {
     renderEditor();
 
     expect(screen.getByRole('status')).toBeDefined();
+    expect(screen.getByText(/Transaction d’origine : Courses/)).toBeTruthy();
   });
 
   it('shows an error when the refundable balance cannot be read', async () => {

@@ -1,6 +1,7 @@
 import type { GoalEvaluation } from '@cadran/api-client';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { pushGoalPanel } from '@/features/goals/goal-panel/goalPanelSearch';
 import { marksTone, statusText, targetValue } from './goalMarks';
@@ -47,11 +48,33 @@ export function GoalMark({ items, period }: GoalMarkProps) {
   );
 }
 
-/** The cell of the `Objectif` column of the flows summary: the value to reach, then the `i` button. */
-export function GoalTarget({ items, period }: GoalMarkProps) {
-  const { i18n } = useTranslation();
+/**
+ * The cell of the `Objectif` column of the flows summary: the value to reach, then the `i` button.
+ * A figure without goal offers a `+` that appears on hover or focus, when `onCreate` is given.
+ */
+export function GoalTarget({
+  items,
+  label,
+  onCreate,
+  period,
+}: GoalMarkProps & { label?: string; onCreate?: () => void }) {
+  const { i18n, t } = useTranslation();
   const first = items[0];
-  if (first === undefined) return null;
+  if (first === undefined) {
+    if (!onCreate) return null;
+    const name = t('goals.mark.create', { label });
+    return (
+      <button
+        aria-label={name}
+        className={`icon-button ${styles.create}`}
+        onClick={onCreate}
+        title={name}
+        type="button"
+      >
+        <Icon name="add" size={14} />
+      </button>
+    );
+  }
   const value = targetValue(first, i18n.language);
   return (
     <>

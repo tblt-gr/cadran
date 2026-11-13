@@ -12,16 +12,17 @@ import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpco
 
 const RECAP_PREFERENCES_QUERY_KEY = ['monthly-recap-preferences'];
 
-export function useMonthlyRecap(month: string) {
+export function useMonthlyRecap(month: string, includeUpcomingOverride?: boolean, enabled = true) {
   const upcoming = useIncludeUpcoming();
+  const includeUpcoming = includeUpcomingOverride ?? upcoming.includeUpcoming;
 
   return useQuery({
-    enabled: upcoming.ready,
-    queryKey: ['monthly-recap', month, upcoming.includeUpcoming],
+    enabled: enabled && upcoming.ready,
+    queryKey: ['monthly-recap', month, includeUpcoming],
     queryFn: async ({ signal }) => {
       const result = await readMonthlyRecap({
         ...authApiOptions(),
-        query: { month, includeUpcoming: upcoming.includeUpcoming },
+        query: { month, includeUpcoming },
         signal,
       });
       if (!result.response?.ok || !result.data) throw budgetRequestError(result);

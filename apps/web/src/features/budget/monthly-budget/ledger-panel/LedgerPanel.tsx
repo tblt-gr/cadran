@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { usePersistedToggle } from '@/hooks/use-persisted-toggle';
 import { type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { LedgerRow, type LedgerKind } from '@/features/budget/monthly-budget/ledger-row/LedgerRow';
-import { LedgerRowsPlaceholder } from '@/features/budget/monthly-budget/MonthlyBudgetPageSkeleton';
+import { LedgerRowsPlaceholder } from '@/features/budget/monthly-budget/ledger-panel/LedgerPanelsPlaceholder';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import styles from './LedgerPanel.module.css';
 import { LedgerPanelHeader } from './LedgerPanelHeader';

@@ -51,8 +51,6 @@
 }
 
 .form input[type='checkbox'] {
-  width: 1rem;
-  height: 1rem;
   margin: var(--spacing-none);
   accent-color: var(--accent);
 }

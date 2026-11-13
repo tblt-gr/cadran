@@ -18,7 +18,7 @@ export function initialTransferFormValues(
     return {
       ...initial,
       sourceAccountId: defaults.lockedSourceAccountId,
-      targetAccountId: primary && primary.id !== defaults.lockedSourceAccountId ? primary.id : '',
+      targetAccountId: '',
     };
   }
   if (defaults?.targetAccountId !== undefined) {

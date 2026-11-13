@@ -183,7 +183,10 @@ test('goal details recover from errors and explain empty history and non-calcula
   });
   await page.goto('/budget/2026/04?panel=goals');
   await settled(page);
-  await page.getByRole('button', { name: goal.label, exact: true }).click();
+  // The whole card opens the details: click its lower edge, far from the label.
+  const card = page.locator(`li[data-goal-id="${goalId}"]`);
+  const box = (await card.boundingBox())!;
+  await card.click({ position: { x: box.width / 2, y: box.height - 6 } });
   const modal = page.getByRole('dialog', {
     name: `Détails de l’objectif « ${goal.label} »`,
     exact: true,

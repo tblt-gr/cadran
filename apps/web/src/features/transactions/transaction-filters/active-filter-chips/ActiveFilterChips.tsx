@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { Chip } from '@/components/ui/chip/Chip';
 import styles from './ActiveFilterChips.module.css';
 
@@ -18,7 +19,7 @@ interface ActiveFilterChipsProps {
 
 /**
  * The row of chips summarising every applied filter, each clearable on its own, with one
- * text button clearing all of them. Renders nothing when no filter is active.
+ * trash icon button clearing all of them. Renders nothing when no filter is active.
  */
 export function ActiveFilterChips({ chips, onReset }: ActiveFilterChipsProps) {
   const { t } = useTranslation();
@@ -37,8 +38,14 @@ export function ActiveFilterChips({ chips, onReset }: ActiveFilterChipsProps) {
           removeLabel={chip.removeLabel}
         />
       ))}
-      <button className={styles.reset} onClick={onReset} type="button">
-        {t('transactions.filters.reset')}
+      <button
+        aria-label={t('transactions.filters.reset')}
+        className="icon-button"
+        onClick={onReset}
+        title={t('transactions.filters.reset')}
+        type="button"
+      >
+        <Icon name="delete" size={16} />
       </button>
     </div>
   );
