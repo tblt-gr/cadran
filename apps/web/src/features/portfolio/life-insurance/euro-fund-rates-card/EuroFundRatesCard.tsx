@@ -2,7 +2,8 @@ import { InstrumentLink } from '@/features/investments/instrument-link/Instrumen
 import type { LifeInsuranceEuroFundRate, LifeInsuranceEuroFund } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
+import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
+import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
 import { formatDecimal } from '@/lib/decimal';
 import { basisLabels } from '@/features/portfolio/life-insurance/lifeInsuranceLabels';
 import styles from './EuroFundRatesCard.module.css';
@@ -23,10 +24,27 @@ export function EuroFundRatesCard({
   onAdd: () => void;
   onRemove: (id: string) => void;
 }) {
+  const missing = euroFunds.some((fund) => fund.missingLastYear);
+  const latestYear = items.reduce<number | null>(
+    (year, item) => (year === null || item.year > year ? item.year : year),
+    null,
+  );
   return (
-    <section className={`card ${styles.card}`} aria-label="Taux des fonds en euros">
-      <header className={styles.heading}>
-        <h3>Taux des fonds en euros</h3>
+    <ContractSection
+      title="Taux des fonds en euros"
+      label="Taux des fonds en euros"
+      hint={
+        loading ? (
+          <SkeletonBlock className={styles.hintSkeleton} />
+        ) : missing ? (
+          <StatusBadge tone="warning">{`Taux ${lastClosedYear} manquant`}</StatusBadge>
+        ) : latestYear !== null ? (
+          `dernier taux : ${latestYear}`
+        ) : (
+          'Aucun taux'
+        )
+      }
+      action={
         <button
           className="secondary-action"
           type="button"
@@ -35,7 +53,8 @@ export function EuroFundRatesCard({
         >
           Renseigner un taux
         </button>
-      </header>
+      }
+    >
       <div className={styles.warnings}>
         {euroFunds
           .filter((f) => f.missingLastYear)
@@ -109,6 +128,6 @@ export function EuroFundRatesCard({
         </table>
       </div>
       {!loading && items.length === 0 ? <p>Aucun taux renseigné.</p> : null}
-    </section>
+    </ContractSection>
   );
 }

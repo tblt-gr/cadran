@@ -24,7 +24,7 @@ export function ContractCard({
     ['Mode de gestion', contract ? managementLabels[contract.managementMode] : null],
   ];
   return (
-    <section className={`card ${styles.card}`} aria-label="Informations du contrat">
+    <section className={styles.card} aria-label="Informations du contrat">
       <header className={styles.heading}>
         <h3>Contrat</h3>
         <button

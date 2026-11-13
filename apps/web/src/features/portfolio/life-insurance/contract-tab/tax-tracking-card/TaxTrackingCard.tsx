@@ -4,6 +4,7 @@ import {
   money,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
+import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
 import styles from './TaxTrackingCard.module.css';
 const columns = {
   year: 'Année',
@@ -16,12 +17,18 @@ const columns = {
 export function TaxTrackingCard({ summary }: { summary: Summary | null }) {
   const age = summary?.contractAge;
   return (
-    <section
-      className={`card ${styles.card}`}
-      aria-busy={!summary}
-      data-testid={!summary ? 'tax-tracking-skeleton' : undefined}
+    <ContractSection
+      title="Suivi fiscal (informatif)"
+      hint={
+        summary ? (
+          `au ${formatCalendarNumericDay(summary.asOf)}`
+        ) : (
+          <SkeletonBlock className={styles.hintSkeleton} />
+        )
+      }
+      busy={!summary}
+      testId={!summary ? 'tax-tracking-skeleton' : undefined}
     >
-      <h3>Suivi fiscal (informatif)</h3>
       {!summary ? (
         <SkeletonBlock className={styles.age} />
       ) : age ? (
@@ -68,6 +75,6 @@ export function TaxTrackingCard({ summary }: { summary: Summary | null }) {
         </table>
       </div>
       {summary?.taxYears.length === 0 ? <p>Aucune année enregistrée à cette date.</p> : null}
-    </section>
+    </ContractSection>
   );
 }

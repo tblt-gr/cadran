@@ -1196,8 +1196,11 @@ it.each(['quality', 'cumulative'] as const)(
       .getByRole('heading', {
         name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
       })
-      .closest('section')!;
+      .closest<HTMLElement>('section, details')!;
     if (kind === 'cumulative') {
+      // The amounts sit in a closed section of the Contrat tab, the sources in a second disclosure.
+      fireEvent.click(section.querySelector('summary')!);
+      await waitFor(() => expect((section as HTMLDetailsElement).open).toBe(true));
       const disclosure = within(section)
         .getByText('Sources des montants cumulés')
         .closest('details')!;
@@ -1226,7 +1229,7 @@ it.each(['quality', 'cumulative'] as const)(
       expect(document.activeElement).not.toBe(link);
       const returnedSection = screen
         .getByRole('heading', { name: 'Montants cumulés enregistrés' })
-        .closest('section')!;
+        .closest<HTMLElement>('section, details')!;
       expect(document.activeElement).toBe(
         within(returnedSection).getByRole('link', { name: /Opération du/ }),
       );

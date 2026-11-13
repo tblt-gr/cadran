@@ -61,3 +61,8 @@
     min-width: 680px;
   }
 }
+.hintSkeleton {
+  display: inline-block;
+  width: 8rem;
+  height: 1em;
+}
