@@ -94,13 +94,10 @@ describe('InstrumentSheetPage', () => {
     async (code) => {
       read.mockResolvedValue({ error: { code }, response: new Response('', { status: 404 }) });
       mount();
-      await screen.findByRole('heading', { name: 'Instrument introuvable' });
+      await screen.findByRole('heading', { name: 'Page introuvable' });
       expect(screen.queryByRole('table')).toBeNull();
       expect(screen.queryByRole('link', { name: 'Voir tous les instruments' })).toBeNull();
-      expect(
-        (screen.getByRole('button', { name: 'Actions de l’instrument' }) as HTMLButtonElement)
-          .disabled,
-      ).toBe(true);
+      expect(screen.queryByRole('button', { name: 'Actions de l’instrument' })).toBeNull();
     },
   );
   it('keeps the header and retries an error', async () => {

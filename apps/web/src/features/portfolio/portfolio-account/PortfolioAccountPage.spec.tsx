@@ -197,7 +197,8 @@ describe('portfolio shell breadcrumb', () => {
       void queryClient.invalidateQueries({ queryKey: ['account', accountId] });
       await within(nav).findByText('Compte');
       expect(within(nav).queryByText(account.label)).toBeNull();
-      expect(screen.getByRole('alert')).toBeTruthy();
+      if (status === 500) expect(screen.getByRole('alert')).toBeTruthy();
+      else expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
     },
   );
 
@@ -296,50 +297,6 @@ describe('PortfolioAccountPage', () => {
       expect(screen.queryByRole('dialog')).toBeNull();
     },
   );
-  it.each(['valuation'] as const)(
-    'clears stale %s selectors when changing Au and keeps browser back coherent',
-    async (kind) => {
-      const tab = 'valuations';
-      window.history.replaceState(
-        {},
-        '',
-        `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10&operation=${deposit.id}&valuation=valuation-1&filter=kept#sources`,
-      );
-      api.listPortfolioValuations.mockImplementation(() =>
-        ok({ items: [], page: 1, pageSize: 24, total: 0 }),
-      );
-      api.readPortfolioOperation.mockImplementation(() => ok(deposit));
-      api.readPortfolioValuation.mockImplementation(() =>
-        ok(positionsValuationFixture({ id: 'valuation-1' })),
-      );
-      const view = renderPage();
-      await screen.findByRole('dialog', {
-        name: 'Valorisation du 10/03/2026',
-      });
-      fireEvent.change(screen.getAllByLabelText('Situation au')[0]!, {
-        target: { value: '2026-03-09' },
-      });
-      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-      const params = new URLSearchParams(window.location.search);
-      expect(params.has('operation')).toBe(false);
-      expect(params.has('valuation')).toBe(false);
-      expect(params.get('asOf')).toBe('2026-03-09');
-      expect(params.get('tab')).toBe(tab);
-      expect(params.get('filter')).toBe('kept');
-      expect(window.location.hash).toBe('#sources');
-      window.history.back();
-      await waitFor(() =>
-        expect(new URLSearchParams(window.location.search).get('asOf')).toBe('2026-03-10'),
-      );
-      expect(new URLSearchParams(window.location.search).has(kind)).toBe(false);
-      expect(screen.queryByRole('dialog')).toBeNull();
-      view.unmount();
-      renderPage();
-      await waitFor(() => expect(screen.queryByTestId('value-history-skeleton')).toBeNull());
-      expect(screen.queryByRole('dialog')).toBeNull();
-    },
-  );
-
   it('keeps dated complete values while explicitly warning about a newer partial valuation', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     window.history.replaceState({}, '', `/portfolios/${accountId}?asOf=2026-10-03&tab=account`);
@@ -453,7 +410,8 @@ describe('PortfolioAccountPage', () => {
     );
     renderPage();
     await screen.findByText('Aucune position à cette date');
-    fireEvent.change(screen.getByLabelText('Situation au'), { target: { value: '2026-02-28' } });
+    window.history.pushState({}, '', `/portfolios/${accountId}?asOf=2026-02-28&tab=positions`);
+    fireEvent(window, new PopStateEvent('popstate'));
 
     expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-02-28');
     await waitFor(() =>
@@ -793,9 +751,6 @@ describe('PortfolioAccountPage', () => {
 
     try {
       renderPage('Pacific/Auckland');
-      const loadingDate = screen.getAllByLabelText('Situation au').at(-1) as HTMLInputElement;
-      expect(loadingDate.value).toBe('2026-04-01');
-
       resolveAccount?.(await ok(account));
       expect(await screen.findByText('Aucune position à cette date')).toBeTruthy();
       expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.asOf).toBe('2026-04-01');
@@ -832,7 +787,7 @@ describe('PortfolioAccountPage', () => {
   it('answers a missing account with the not found state', async () => {
     api.readAccount.mockImplementation(() => problem(404, { type: '/problems/not-found' }));
     renderPage();
-    expect(await screen.findByText('Compte introuvable')).toBeTruthy();
+    expect(await screen.findByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
   });
 
   it('explains that a non portfolio account is not tracked here', async () => {
@@ -1134,9 +1089,8 @@ it('restores focus to the exact quality source when two issues link to the same 
   );
   renderPage();
   await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
-  const qualitySection = () =>
-    screen.getByRole('heading', { name: 'Qualité des données' }).closest('section')!;
-  await screen.findByRole('heading', { name: 'Qualité des données' });
+  const qualitySection = () => screen.getByRole('status', { name: 'Qualité des données' });
+  await screen.findByRole('status', { name: 'Qualité des données' });
   const links = await within(qualitySection()).findAllByRole('link', { name: 'Opération 1' });
   expect(links).toHaveLength(2);
   expect(links[1].getAttribute('href')).toBe(links[0].getAttribute('href'));
@@ -1176,27 +1130,21 @@ it.each(['quality', 'cumulative'] as const)(
       `/portfolios/${accountId}?tab=${kind === 'quality' ? 'valuations' : 'contract'}&asOf=${summary.asOf}`,
     );
     renderPage();
-    await screen.findByRole('heading', {
-      name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
-    });
+    // The quality alert is a status region; the cumulative amounts keep their section heading.
+    const get = () =>
+      kind === 'quality'
+        ? screen.getByRole('status', { name: 'Qualité des données' })
+        : screen.getByRole('heading', { name: 'Montants cumulés enregistrés' });
+    await waitFor(() => get());
     await waitFor(() =>
       expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull(),
     );
     await waitFor(() =>
       expect(
-        screen
-          .getByRole('heading', {
-            name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
-          })
-          .closest('section')
-          ?.getAttribute('aria-busy'),
+        (kind === 'quality' ? get() : get().closest('section'))?.getAttribute('aria-busy'),
       ).not.toBe('true'),
     );
-    const section = screen
-      .getByRole('heading', {
-        name: kind === 'quality' ? 'Qualité des données' : 'Montants cumulés enregistrés',
-      })
-      .closest<HTMLElement>('section, details')!;
+    const section = kind === 'quality' ? get() : get().closest<HTMLElement>('section, details')!;
     if (kind === 'cumulative') {
       // The amounts sit in a closed section of the Contrat tab, the sources in a second disclosure.
       fireEvent.click(section.querySelector('summary')!);
@@ -1259,7 +1207,6 @@ it.each(['performance', 'operations', 'positions', 'valuations', 'contract'] as 
     );
     const expected = {
       positions: 'Supports du contrat',
-      valuations: 'Qualité des données',
       contract: 'Montants cumulés enregistrés',
     };
     const nav = screen.getByRole('navigation', { name: 'Sections du portefeuille' });

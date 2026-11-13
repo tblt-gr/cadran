@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Icon } from '@/components/ui/icon/Icon';
 import styles from './ContractSection.module.css';
 
 /**
@@ -27,6 +28,9 @@ export function ContractSection({
   return (
     <details aria-busy={busy} aria-label={label} className={styles.section} data-testid={testId}>
       <summary className={styles.summary}>
+        <span aria-hidden="true" className={styles.chevron}>
+          <Icon name="chevron-right" size={16} />
+        </span>
         <h3>{title}</h3>
         <span className={styles.hint}>{hint}</span>
       </summary>

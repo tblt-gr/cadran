@@ -53,9 +53,9 @@ describe('ContractTab', () => {
     expect(screen.getByRole('heading', { name: 'Contrat' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Gestion UC' })).toBeTruthy();
     expect(screen.getByRole('columnheader', { name: 'Taux servi' })).toBeTruthy();
-    expect((screen.getByRole('button', { name: 'Modifier' }) as HTMLButtonElement).disabled).toBe(
-      true,
-    );
+    expect(
+      (screen.getByRole('button', { name: 'Modifier le contrat' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
   it('offers the account link after a full surrender closes the contract', async () => {
     api.readLifeInsuranceContract.mockResolvedValue(
@@ -88,7 +88,7 @@ describe('ContractTab', () => {
     api.saveLifeInsuranceContract.mockResolvedValue(ok(contractFixture()));
     mount();
     await screen.findByText('•••• 2345');
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le contrat' }));
     const number = screen.getByLabelText('Numéro de contrat') as HTMLInputElement;
     expect(number.closest('details')?.open).toBe(true);
     expect(screen.getByText('Modification')).toBeTruthy();
@@ -103,7 +103,7 @@ describe('ContractTab', () => {
     api.saveLifeInsuranceContract.mockResolvedValue(ok(contractFixture()));
     mount();
     await screen.findByText('•••• 2345');
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le contrat' }));
     fireEvent.click(screen.getByLabelText('Effacer le numéro'));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() => expect(api.saveLifeInsuranceContract).toHaveBeenCalled());
@@ -126,7 +126,7 @@ describe('ContractTab', () => {
     });
     mount();
     await screen.findByText('•••• 2345');
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le contrat' }));
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(await screen.findByRole('alert')).toHaveProperty(
       'textContent',
@@ -155,7 +155,7 @@ describe('ContractTab', () => {
     });
     mount();
     await screen.findByText('•••• 2345');
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le contrat' }));
     const modal = screen.getByRole('dialog', { name: 'Modifier le contrat' });
     fireEvent.change(within(modal).getByLabelText('Assureur'), {
       target: { value: 'Mon assureur saisi' },
@@ -181,7 +181,7 @@ describe('ContractTab', () => {
     });
     fireEvent.keyDown(modal, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le contrat' }));
     const reopened = screen.getByRole('dialog', { name: 'Modifier le contrat' });
     expect((within(reopened).getByLabelText('Assureur') as HTMLInputElement).value).toBe(
       'Assureur concurrent',

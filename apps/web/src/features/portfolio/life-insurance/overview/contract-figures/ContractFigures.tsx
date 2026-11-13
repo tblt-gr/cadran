@@ -3,6 +3,7 @@ import { Fragment, useState, type RefObject } from 'react';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { KpiFigure } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/KpiFigure';
+import { signed } from '@/features/portfolio/performance/performance-value/PerformanceValue';
 import { QualityBadge } from '@/features/portfolio/performance/quality-badge/QualityBadge';
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
 import { ContractFigureExplanation } from './ContractFigureExplanation';
@@ -33,6 +34,8 @@ export function ContractFigures({
         fees: summary.cumulative.fees.total,
       }
     : null;
+  // A gain that cannot be calculated stays plain text; a calculated one carries its sign and colour.
+  const gain = values?.gain ? signed(money(values.gain, summary!.assetCode)) : null;
   const qualifiers = summary ? (
     <div className={styles.qualifiers}>
       {!summary.valuation ? (
@@ -56,13 +59,16 @@ export function ContractFigures({
         <Fragment key={key}>
           <KpiFigure
             label={figureLabels[key]}
+            tone={key === 'gain' ? gain?.tone : undefined}
             explainLabel={`Expliquer : ${figureLabels[key]}`}
             size={key === 'value' ? 'display' : key === 'gain' ? 'lead' : 'compact'}
             value={
               values
                 ? key === 'value' && !summary?.valuation
                   ? '-'
-                  : money(values[key], summary!.assetCode)
+                  : key === 'gain' && gain
+                    ? gain.text
+                    : money(values[key], summary!.assetCode)
                 : null
             }
             note={

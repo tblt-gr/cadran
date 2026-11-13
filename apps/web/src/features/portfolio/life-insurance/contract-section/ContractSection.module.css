@@ -5,14 +5,27 @@
 .summary {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   min-height: var(--touch-target-min);
   cursor: pointer;
-  gap: var(--spacing-2) var(--spacing-4);
+  gap: var(--spacing-2);
+  list-style: none;
+}
+.summary::-webkit-details-marker {
+  display: none;
+}
+.chevron {
+  display: inline-flex;
+  color: var(--text-secondary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.section[open] > .summary .chevron {
+  transform: rotate(90deg);
+}
+.summary:hover .chevron {
+  color: var(--text-primary);
 }
 .summary h3 {
-  display: inline;
+  flex: 1;
   margin: var(--spacing-none);
   font-size: var(--font-size-card-title);
 }
@@ -34,5 +47,10 @@
 @media (max-width: 42rem) {
   .action > button {
     width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition-duration: var(--duration-reduced-motion);
   }
 }

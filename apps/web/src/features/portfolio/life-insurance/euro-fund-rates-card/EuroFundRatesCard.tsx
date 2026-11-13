@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon/Icon';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { LifeInsuranceEuroFundRate, LifeInsuranceEuroFund } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -112,13 +113,13 @@ export function EuroFundRatesCard({
                   <td>{item.sourceNote ?? <EmptyValue label="Non renseigné" />}</td>
                   <td>
                     <button
-                      className="secondary-action"
+                      className="icon-ghost"
                       type="button"
                       disabled={!writable}
                       aria-label={`Supprimer le taux ${item.year} de ${euroFunds.find((f) => f.instrument.id === item.instrumentId)?.instrument.name ?? 'ce support'}`}
                       onClick={() => onRemove(item.id)}
                     >
-                      Supprimer
+                      <Icon name="delete" size={16} />
                     </button>
                   </td>
                 </tr>

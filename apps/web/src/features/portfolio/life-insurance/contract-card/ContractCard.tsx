@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon/Icon';
 import type { LifeInsuranceContract } from '@cadran/api-client';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -28,12 +29,13 @@ export function ContractCard({
       <header className={styles.heading}>
         <h3>Contrat</h3>
         <button
-          className="secondary-action"
+          className="icon-ghost"
           type="button"
+          aria-label="Modifier le contrat"
           disabled={!contract || !writable}
           onClick={onEdit}
         >
-          Modifier
+          <Icon name="edit" size={16} />
         </button>
       </header>
       <dl className={styles.details}>

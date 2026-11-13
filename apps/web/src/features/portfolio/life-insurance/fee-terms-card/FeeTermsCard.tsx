@@ -1,3 +1,4 @@
+import { Icon } from '@/components/ui/icon/Icon';
 import type { LifeInsuranceFeeTerms } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount, formatDecimal, formatCalendarNumericDay } from '@/lib/decimal';
@@ -92,13 +93,13 @@ export function FeeTermsCard({
                   <td>{item.sourceNote ?? <EmptyValue label="Non renseigné" />}</td>
                   <td>
                     <button
-                      className="secondary-action"
+                      className="icon-ghost"
                       type="button"
                       disabled={!writable}
                       aria-label={`Supprimer le barème du ${formatCalendarNumericDay(item.validFrom)}`}
                       onClick={() => onRemove(item.id)}
                     >
-                      Supprimer
+                      <Icon name="delete" size={16} />
                     </button>
                   </td>
                 </tr>

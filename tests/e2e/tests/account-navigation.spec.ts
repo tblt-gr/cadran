@@ -77,7 +77,7 @@ for (const width of [1440, 360]) {
     await expect(nav.getByRole('link').nth(1)).toHaveText('Opérations');
     await expect(nav.getByRole('link', { name: 'Espèces', exact: true })).toHaveCount(0);
     await expect(page.getByRole('heading', { name: 'Évolution de la valeur' })).toBeVisible();
-    await expect(page.getByLabel('Situation au', { exact: true })).toHaveCount(1);
+    await expect(page.getByLabel('Situation au', { exact: true })).toHaveCount(0);
     await expect(page.getByRole('button', { name: /Aujourd/ })).toHaveCount(0);
     await page.screenshot({
       path: `${process.env.E2E_OUTPUT_DIR ?? 'test-results'}/account-${width}.png`,
