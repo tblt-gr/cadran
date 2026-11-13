@@ -14,24 +14,27 @@ import styles from './HoldingsAlerts.module.css';
 export function HoldingsAlerts({
   holdings,
   showUnsplit,
+  showWarnings = true,
 }: {
   holdings: Holdings;
   showUnsplit: boolean;
+  /** Off where the read has no totals: its warnings qualify nothing then. */
+  showWarnings?: boolean;
 }) {
   const { t } = useTranslation();
   const unsplit = showUnsplit ? holdings.unsplitAccounts : [];
-  const others = holdingsWarningMessages(holdings, t).filter(
-    ({ code }) => code !== 'TRUNCATED_ACCOUNTS',
-  );
+  const others = showWarnings
+    ? holdingsWarningMessages(holdings, t).filter(({ code }) => code !== 'TRUNCATED_ACCOUNTS')
+    : [];
   const count = others.length + unsplit.length;
 
   return (
     <>
-      <HoldingsWarnings holdings={holdings} part="truncation" />
+      {showWarnings ? <HoldingsWarnings holdings={holdings} part="truncation" /> : null}
       {count === 0 ? null : (
         <details className={styles.alerts}>
           <summary>{t('investments.alerts.summary', { count })}</summary>
-          <HoldingsWarnings holdings={holdings} part="others" />
+          {showWarnings ? <HoldingsWarnings holdings={holdings} part="others" /> : null}
           <UnsplitAccountsNotice accounts={unsplit} />
         </details>
       )}

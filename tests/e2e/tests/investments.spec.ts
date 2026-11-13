@@ -34,6 +34,9 @@ for (const width of [1280, 360]) {
     });
     await page.goto('/investments?view=asset');
     await settled(page);
+    // The notices are grouped in one closed disclosure with their count.
+    await expect(page.getByText(/Compte global A est valorisé en total/)).toBeHidden();
+    await page.getByText(/^\d+ avis$/).click();
     await expect(page.getByText(/Compte global A est valorisé en total/)).toBeVisible();
     await expect(page.getByText(/Compte global B est valorisé en total/)).toBeVisible();
     await expect(page.getByText('Aucune position détenue')).toHaveCount(0);

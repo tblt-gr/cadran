@@ -73,9 +73,9 @@ export function HoldingsView({
         {hasTotals ? (
           <>
             <HoldingsSummary holdings={holdings} />
-            <HoldingsAlerts holdings={holdings} showUnsplit />
           </>
         ) : null}
+        <HoldingsAlerts holdings={holdings} showUnsplit showWarnings={hasTotals} />
         {hasTotals ? (
           <div className={styles.grid}>
             <HoldingsAllocationCard holdings={holdings} view={view} />
