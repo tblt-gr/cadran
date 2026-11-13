@@ -101,11 +101,17 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
             : /^Actions pour la valorisation/;
     await expect(button(actions).first()).toBeVisible();
     await button(actions).first().click();
-    await button(name === 'valuation replace' ? /^Remplacer/ : /^Modifier/)
+    await button(
+      name === 'valuation replace'
+        ? /^Remplacer/
+        : name === 'goal edit'
+          ? /^Modifier l’objectif «/
+          : /^Modifier/,
+    )
       .first()
       .click();
   } else if (name === 'bulk edit') {
-    await button('Édition groupée').click();
+    await button('Sélectionner').click();
     await page.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }).check();
     await page
       .getByRole('group', { name: 'Sélection de mouvements' })

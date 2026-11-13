@@ -211,7 +211,7 @@ describe('CategoryPage', () => {
 
     await screen.findByText('Restaurants');
     fireEvent.click(screen.getByRole('button', { name: /sous-catégories de « Restaurants »/ }));
-    fireEvent.click(screen.getByLabelText('Afficher les catégories archivées'));
+    fireEvent.click(screen.getByRole('button', { name: 'Voir les catégories archivées' }));
 
     await waitFor(() => expect(api.listCategories).toHaveBeenCalledTimes(2));
     expect(screen.getByText('Livraison')).toBeTruthy();
@@ -237,9 +237,12 @@ describe('CategoryPage', () => {
     await screen.findByText('Restaurants');
     expect(screen.queryByText('Livraison')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: /sous-catégories de « Restaurants »/ }));
-    expect(screen.getByText('Livraison').closest('[data-icon]')?.getAttribute('data-color')).toBe(
-      '#AABBCC',
-    );
+    expect(
+      screen
+        .getByText('Livraison')
+        .parentElement?.querySelector('[data-icon]')
+        ?.getAttribute('data-color'),
+    ).toBe('#AABBCC');
   });
 
   it('renders labels as text and keeps archived categories read-only', async () => {
@@ -259,7 +262,7 @@ describe('CategoryPage', () => {
     renderPage();
 
     await screen.findByRole('heading', { name: 'Aucune catégorie' });
-    fireEvent.click(screen.getByLabelText('Afficher les catégories archivées'));
+    fireEvent.click(screen.getByRole('button', { name: 'Voir les catégories archivées' }));
 
     expect(await screen.findByText('<img src=x onerror=alert(1)>')).toBeTruthy();
     expect(document.querySelector('img')).toBeNull();

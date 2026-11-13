@@ -130,6 +130,45 @@ describe('TransactionsPage', () => {
     window.localStorage.clear();
   });
 
+  it('keeps the register skeleton until account names have resolved', async () => {
+    let resolve!: (value: unknown) => void;
+    const accountRead = new Promise((done) => {
+      resolve = done;
+    });
+    api.listAccounts.mockReturnValue(accountRead);
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+    await waitFor(() => expect(api.listAccounts).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+    expect(screen.queryByText(transaction.displayLabel)).toBeNull();
+    resolve(await success({ items: [account], page: 1, pageSize: 100, total: 1 }));
+    expect(await screen.findByText(transaction.displayLabel)).toBeTruthy();
+    expect(screen.queryByText('Compte indisponible')).toBeNull();
+  });
+
+  it('offers recovery when account names fail without hiding the server movements', async () => {
+    api.listCategories.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 100, total: 0 }),
+    );
+    api.listAccounts.mockRejectedValue(new Error('offline'));
+    api.listTransactions.mockImplementation(() =>
+      success({ items: [transaction], nextCursor: null }),
+    );
+    renderPage();
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toContain('Les noms de compte');
+    expect(await screen.findByText(transaction.displayLabel)).toBeTruthy();
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    fireEvent.click(within(alert).getByRole('button', { name: 'Réessayer' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
+    expect(screen.queryByText('Compte indisponible')).toBeNull();
+  });
+
   it('closes the shared transfer modal once a transfer into a portfolio is saved, with no client-side deposit', async () => {
     const destination = {
       ...account,
@@ -168,6 +207,9 @@ describe('TransactionsPage', () => {
     fireEvent.change(within(dialog).getByLabelText('Libellé'), {
       target: { value: 'Investissement mensuel' },
     });
+    fireEvent.change(within(dialog).getByLabelText('Compte de destination'), {
+      target: { value: destination.id },
+    });
     fireEvent.click(within(dialog).getByRole('button', { name: 'Créer le virement' }));
     await waitFor(() =>
       expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
@@ -190,9 +232,9 @@ describe('TransactionsPage', () => {
     const { queryClient } = renderPage();
 
     expect(screen.getByTestId('transaction-day-list-skeleton')).toBeTruthy();
-    expect(screen.getAllByRole('button', { name: 'Édition groupée' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Sélectionner' })).toHaveLength(1);
     expect(
-      (screen.getByRole('button', { name: 'Édition groupée' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Sélectionner' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(screen.getAllByRole('status')).toHaveLength(1);
     resolveTransactions?.({
@@ -201,7 +243,7 @@ describe('TransactionsPage', () => {
     });
     expect(await screen.findByText(transaction.rawLabel)).toBeTruthy();
     expect(
-      (screen.getByRole('button', { name: 'Édition groupée' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Sélectionner' }) as HTMLButtonElement).disabled,
     ).toBe(false);
     expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull();
 
@@ -264,7 +306,7 @@ describe('TransactionsPage', () => {
     expect(screen.queryByRole('complementary', { name: 'Filtres' })).toBeNull();
   });
 
-  it('steps through months, one history entry per step, and requests the month bounds', async () => {
+  it('leaves the month and the views to the filters: no month stepper, quick views or overflow menu', async () => {
     window.history.replaceState({}, '', '/transactions?period=month&month=2026-11');
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
@@ -274,43 +316,11 @@ describe('TransactionsPage', () => {
     );
     renderPage();
     await screen.findByText(transaction.rawLabel);
-    const before = window.history.length;
 
-    expect(screen.getAllByText('Novembre 2026').length).toBeGreaterThan(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
-
-    await waitFor(() =>
-      expect(api.listTransactions).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({ from: '2026-10-01', to: '2026-10-31' }),
-        }),
-      ),
-    );
-    expect(window.location.search).toBe('?period=month&month=2026-10');
-    expect(window.history.length).toBe(before + 1);
-
-    await screen.findByText(transaction.rawLabel);
-    fireEvent.click(screen.getByRole('button', { name: 'Mois suivant' }));
-    await waitFor(() => expect(window.location.search).toBe('?period=month&month=2026-11'));
-    expect(window.history.length).toBe(before + 2);
+    expect(screen.queryByRole('button', { name: 'Mois précédent' })).toBeNull();
+    expect(screen.queryByRole('group', { name: 'Vues courantes' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Autres actions' })).toBeNull();
     window.history.replaceState({}, '', '/transactions');
-  });
-
-  it('lists only the category and recurrence entries in the header overflow menu', async () => {
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
-    );
-    api.listTransactions.mockImplementation(() => success({ items: [], nextCursor: null }));
-    renderPage();
-
-    const trigger = screen.getByRole('button', { name: 'Autres actions' });
-    fireEvent.click(trigger);
-    const menu = document.getElementById(trigger.getAttribute('aria-controls') ?? '');
-    expect(
-      within(menu!)
-        .getAllByRole('button')
-        .map((item) => item.getAttribute('aria-label') ?? item.textContent),
-    ).toEqual(['Gérer les catégories', 'Gérer les récurrences']);
   });
 
   it('offers every category, expenses first, whatever the nature or the sign', async () => {
@@ -918,7 +928,7 @@ describe('TransactionsPage', () => {
     expect(api.createTransaction).not.toHaveBeenCalled();
   });
 
-  it('closes the advanced fields with the split, which takes over the category slot', async () => {
+  it('keeps allocation beside the category when advanced metadata is closed', async () => {
     api.listAccounts.mockImplementation(() =>
       success({ items: [account], page: 1, pageSize: 100, total: 1 }),
     );
@@ -936,25 +946,13 @@ describe('TransactionsPage', () => {
       .getByText('Champs avancés')
       .closest('details') as HTMLDetailsElement;
     const toggle = within(dialog).getByLabelText('Répartir entre plusieurs catégories');
-    const fields = within(advanced).getAllByRole('checkbox');
-    expect(fields.at(-1)).toBe(toggle);
-    expect(
-      within(advanced).getByLabelText('Note').compareDocumentPosition(toggle) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(advanced.contains(toggle)).toBe(false);
 
     fireEvent.click(toggle);
 
     expect(within(dialog).queryByRole('combobox', { name: 'Catégorie' })).toBeNull();
-    expect(
-      within(dialog).getByText(
-        'Répartie entre plusieurs catégories : voir la répartition en bas des champs avancés.',
-      ),
-    ).toBeTruthy();
-    expect(advanced.querySelector('summary')?.textContent).toContain('Répartition');
-    expect(
-      within(advanced).getByRole('combobox', { name: 'Catégorie de la ligne 1' }),
-    ).toBeTruthy();
+    expect(advanced.open).toBe(false);
+    expect(within(dialog).getByRole('combobox', { name: 'Catégorie de la ligne 1' })).toBeTruthy();
   });
 
   it('filters on uncategorized transactions, requests the queue and shows its own empty state', async () => {
@@ -1024,6 +1022,7 @@ describe('TransactionsPage', () => {
     await waitFor(() => expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull());
     const table = screen.getByRole('list', { name: /^Transactions de l/ });
     expect(within(table).getByText('En attente')).toBeTruthy();
+    // Booked is the normal case: the register states it nowhere.
     expect(within(table).queryByText('Comptabilisée')).toBeNull();
   });
 
@@ -1853,9 +1852,7 @@ describe('primary account creation defaults', () => {
       success({ items: [], page: 1, pageSize: 50, total: 0 }),
     );
     renderPage();
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Enregistrer la première transaction' }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouvelle transaction' }));
     expect(
       (
         within(screen.getByRole('dialog')).getByRole('combobox', {
@@ -1878,7 +1875,7 @@ describe('primary account creation defaults', () => {
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Modifier' })).toBeNull();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }));
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
@@ -1887,9 +1884,9 @@ describe('primary account creation defaults', () => {
       false,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Quitter la sélection' }));
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }));
     expect(screen.getByText('Aucune sélection')).toBeTruthy();
   });
 
@@ -1902,7 +1899,7 @@ describe('primary account creation defaults', () => {
     );
     renderPage();
     await screen.findByText('CB CARREFOUR 1234');
-    fireEvent.click(screen.getByRole('button', { name: 'Édition groupée' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }));
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
@@ -2071,13 +2068,7 @@ describe('TransactionsPage option counts', () => {
     renderPage();
     await screen.findByText(transaction.rawLabel);
 
-    // A page load and a month step used to cost a count nobody could see.
-    fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
-    await waitFor(() =>
-      expect(api.listTransactions).toHaveBeenLastCalledWith(
-        expect.objectContaining({ query: expect.objectContaining({ from: '2026-10-01' }) }),
-      ),
-    );
+    // A page load used to cost a count nobody could see.
     await waitPastDebounce();
     expect(api.readTransactionFacets).not.toHaveBeenCalled();
 
@@ -2088,8 +2079,8 @@ describe('TransactionsPage option counts', () => {
     ).toBeTruthy();
     expect(api.readTransactionFacets).toHaveBeenCalledOnce();
     expect(api.readTransactionFacets.mock.calls[0]?.[0].query).toEqual({
-      from: '2026-10-01',
-      to: '2026-10-31',
+      from: '2026-11-01',
+      to: '2026-11-30',
     });
   });
 

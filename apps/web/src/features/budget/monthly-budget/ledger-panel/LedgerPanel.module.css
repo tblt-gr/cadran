@@ -15,8 +15,17 @@
     'total total';
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: var(--spacing-4) var(--spacing-4) var(--spacing-3);
+  padding: var(--spacing-4) var(--spacing-none) var(--spacing-3) var(--spacing-4);
   gap: var(--spacing-1) var(--spacing-2);
+}
+/* The total keeps the header's inner margin on the right now that the actions touch the edge. */
+.heading .total {
+  padding-inline-end: var(--spacing-4);
+}
+/* The header's last control fills the same edge column as each row's add button, so their
+   icons share one vertical axis. */
+.headingActions > .add:last-child {
+  width: var(--touch-target-min);
 }
 .headingMain {
   display: contents;
@@ -30,9 +39,9 @@
   grid-area: title;
   min-width: 0;
   overflow-wrap: anywhere;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-normal);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-medium);
 }
 .heading h3 a {
   color: inherit;
@@ -47,7 +56,7 @@
   flex-direction: column;
   align-items: flex-start;
   color: var(--text-primary);
-  font-size: var(--font-size-kpi);
+  font-size: var(--font-size-panel-total);
   font-weight: var(--font-weight-medium);
   font-variant-numeric: tabular-nums;
   letter-spacing: var(--letter-spacing-kpi);
@@ -140,7 +149,7 @@
 
 .totalSkeleton {
   width: calc(var(--spacing-12) * 1.5);
-  height: var(--font-size-kpi);
+  height: var(--font-size-panel-total);
 }
 
 .income {

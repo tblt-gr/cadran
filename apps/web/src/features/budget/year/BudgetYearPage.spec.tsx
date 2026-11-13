@@ -230,12 +230,11 @@ describe('BudgetYearPage', () => {
     expect(row.contains(screen.getByRole('button', { name: 'Colonnes' }))).toBe(true);
   });
 
-  it('switches compact and detailed with icon-only buttons named by aria-label', async () => {
+  it('switches compact and detailed on a segmented control', async () => {
     renderPage('?view=multi');
     await screen.findByRole('table', { name: /pluriannuel/i });
     const compact = screen.getByRole('button', { name: /vue compacte/i });
     const detailed = screen.getByRole('button', { name: /vue détaillée/i });
-    expect(compact.textContent).toBe('');
     expect(compact.getAttribute('aria-pressed')).toBe('true');
     expect(detailed.getAttribute('aria-pressed')).toBe('false');
     fireEvent.click(detailed);

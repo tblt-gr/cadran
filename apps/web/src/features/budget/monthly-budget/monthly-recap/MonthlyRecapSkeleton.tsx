@@ -1,7 +1,8 @@
 import { MetricLabelButton } from './totals-card/MetricLabelButton';
 import { RECAP_KPIS } from './totals-card/recapKpis';
 import { RecapSettingsButton } from './totals-card/RecapSettingsButton';
-import { GoalColumnHead } from '@/features/goals/goal-mark/GoalMark';
+import { TotalsSection } from './totals-card/TotalsSection';
+import { Icon } from '@/components/ui/icon/Icon';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
 import { AccountBalanceHeading } from './account-recap/AccountBalanceHeading';
@@ -41,35 +42,20 @@ export function TotalsCardPlaceholder() {
           <RecapSettingsButton disabled />
         </div>
       </header>
-      <p className={totalsStyles.goalHead}>
-        <GoalColumnHead />
-      </p>
-      <ul className={totalsStyles.rows}>
+      <TotalsSection goalHead title={t('budget.monthly.recap.totals.flows')}>
         {TOTAL_LABELS.map((label) => (
           <PendingMetricRow key={label} label={t(label)} />
         ))}
-      </ul>
-      <section className={totalsStyles.section}>
-        <h4>
-          {t('budget.monthly.recap.totals.axes')}
-          <GoalColumnHead />
-        </h4>
-        <ul className={totalsStyles.rows}>
-          <PendingMetricRow />
-          <PendingMetricRow />
-        </ul>
-      </section>
-      <section className={totalsStyles.section}>
-        <h4>
-          {t('budget.monthly.recap.totals.categories')}
-          <GoalColumnHead />
-        </h4>
-        <ul className={totalsStyles.rows}>
-          <PendingMetricRow />
-          <PendingMetricRow />
-          <PendingMetricRow />
-        </ul>
-      </section>
+      </TotalsSection>
+      <TotalsSection goalHead title={t('budget.monthly.recap.totals.axes')}>
+        <PendingMetricRow />
+        <PendingMetricRow />
+      </TotalsSection>
+      <TotalsSection goalHead title={t('budget.monthly.recap.totals.categories')}>
+        <PendingMetricRow />
+        <PendingMetricRow />
+        <PendingMetricRow />
+      </TotalsSection>
     </section>
   );
 }
@@ -78,11 +64,13 @@ export function TotalsCardPlaceholder() {
  * Mirrors MonthlyRecap element for element. Without `status` it makes no
  * announcement, so a page skeleton can embed it silently.
  */
-export function MonthlyRecapPlaceholder({
+function MonthlyRecapPlaceholder({
+  announce = true,
   status,
   leading,
 }: {
   status?: string;
+  announce?: boolean;
   leading?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -100,7 +88,7 @@ export function MonthlyRecapPlaceholder({
       className={styles.recap}
       data-testid={status === undefined ? undefined : 'monthly-recap-skeleton'}
     >
-      {status === undefined ? null : <SkeletonStatus>{status}</SkeletonStatus>}
+      {status === undefined || !announce ? null : <SkeletonStatus>{status}</SkeletonStatus>}
       <div className={styles.column}>
         <div className={styles.wealth}>
           <WealthCard netWorth={null} provisional={false} />
@@ -118,7 +106,17 @@ export function MonthlyRecapPlaceholder({
                   {t('budget.monthly.recap.accounts.title')}
                 </h3>
               </div>
-              <GroupingModeToggle disabled mode="PRIMARY" onChange={() => undefined} />
+              <div className={accountStyles.headingActions}>
+                <button
+                  aria-label={t('budget.monthly.recap.accounts.collapseAll')}
+                  className="icon-ghost"
+                  disabled
+                  type="button"
+                >
+                  <Icon name="chevrons-up" size={16} />
+                </button>
+                <GroupingModeToggle disabled mode="PRIMARY" onChange={() => undefined} />
+              </div>
             </div>
             <div className={accountStyles.tableScroll}>
               <table>
@@ -188,6 +186,14 @@ export function MonthlyRecapPlaceholder({
   );
 }
 
-export function MonthlyRecapSkeleton({ status, leading }: { status: string; leading?: ReactNode }) {
-  return <MonthlyRecapPlaceholder leading={leading} status={status} />;
+export function MonthlyRecapSkeleton({
+  status,
+  leading,
+  announce = true,
+}: {
+  status: string;
+  leading?: ReactNode;
+  announce?: boolean;
+}) {
+  return <MonthlyRecapPlaceholder leading={leading} status={status} announce={announce} />;
 }

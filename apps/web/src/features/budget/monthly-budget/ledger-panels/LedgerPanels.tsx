@@ -6,6 +6,7 @@ import type {
 import { compareDecimalString } from '@/lib/tableSort';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
+import { budgetRegisterHref } from '@/features/budget/budget-navigation/budgetNavigation';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import type { BudgetCreationDraft } from '@/features/budget/monthly-budget/budget-creation-modals/BudgetCreationModals';
 import { LedgerPanel } from '@/features/budget/monthly-budget/ledger-panel/LedgerPanel';
@@ -32,8 +33,8 @@ function listed(row: { hasMovements: boolean; pendingCount: number }): boolean {
 }
 
 /** The queue of the month's uncategorized transactions, same filters as the reminder count. */
-function uncategorizedHref(month: string) {
-  return `/transactions?categorization=NONE&period=month&month=${month}`;
+function uncategorizedHref(month: string, axis: BudgetAxis | null) {
+  return budgetRegisterHref(month, axis, { categorization: 'NONE' });
 }
 
 export function LedgerPanels({
@@ -89,8 +90,8 @@ export function LedgerPanels({
           <p>
             <a
               className={styles.queue}
-              href={uncategorizedHref(month)}
-              onClick={(event) => handleClientNavigation(event, uncategorizedHref(month))}
+              href={uncategorizedHref(month, axis)}
+              onClick={(event) => handleClientNavigation(event, uncategorizedHref(month, axis))}
             >
               {t('budget.monthly.uncategorized', { count: uncategorizedCount })}
               <Icon name="chevron-right" size={14} />

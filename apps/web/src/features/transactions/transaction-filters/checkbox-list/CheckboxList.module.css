@@ -25,7 +25,7 @@
   min-width: 0;
   min-height: var(--control-height-compact);
   color: var(--text-secondary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   cursor: pointer;
   gap: var(--spacing-2);
 }

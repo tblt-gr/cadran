@@ -70,7 +70,7 @@ for (const width of [1280, 360]) {
     pages.hold();
     await page.goto('/transactions');
     await settled(page);
-    await page.getByRole('button', { name: 'Édition groupée' }).click();
+    await page.getByRole('button', { name: 'Sélectionner' }).click();
     await page
       .getByRole('checkbox', { name: 'Sélectionner TX024 mouvement 40', exact: true })
       .check();

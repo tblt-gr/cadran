@@ -395,6 +395,7 @@
       "from": "Depuis",
       "to": "jusqu’à",
       "displayMode": "Mode d’affichage",
+      "overview": "Vue d’ensemble {{from}}-{{to}}",
       "compact": "Vue compacte",
       "detailed": "Vue détaillée",
       "detailedCaption": "Rapport détaillé {{from}}-{{to}}",
@@ -429,8 +430,7 @@
         "noFlows": "Aucune donnée de flux disponible pour cette période.",
         "netWorth": "Patrimoine net",
         "unavailable": "Ajoutez les colonnes correspondantes pour afficher ce graphique."
-      },
-      "policyNote": "Politique d’indicateurs par année : {{versions}}."
+      }
     },
     "formulas": {
       "cashIncome": "Revenus = somme des entrées comptabilisées de type revenu sur les comptes du périmètre de trésorerie",
@@ -1271,7 +1271,8 @@
     "add": "Nouvelle catégorie",
     "manageRules": "Gérer les règles",
     "addFirst": "Créer la première catégorie",
-    "includeArchived": "Afficher les catégories archivées",
+    "showArchived": "Voir les catégories archivées",
+    "hideArchived": "Masquer les catégories archivées",
     "loading": "Chargement des catégories…",
     "saved": "La catégorie a été enregistrée.",
     "fields": {
@@ -2273,9 +2274,6 @@
     "add": "Nouvelle transaction",
     "addFirst": "Enregistrer la première transaction",
     "addTransfer": "Nouveau virement",
-    "moreActions": "Autres actions",
-    "manageRecurrences": "Gérer les récurrences",
-    "manageCategories": "Gérer les catégories",
     "includeVoided": "Afficher les transactions annulées",
     "loading": "Chargement des transactions…",
     "toasts": {
@@ -2435,7 +2433,8 @@
       "allocationInvalid": "Pour créer le remboursement, la somme des lignes doit être égale au montant et chaque ligne doit avoir une catégorie valide.",
       "requiredFields": "Pour créer le remboursement, renseignez le compte, un montant valide, la date comptable et le libellé.",
       "save": "Créer le remboursement",
-      "saving": "Création…"
+      "saving": "Création…",
+      "originalContext": "Transaction d’origine : {{label}}, le {{date}}."
     },
     "filters": {
       "allAccounts": "Tous les comptes",
@@ -2736,12 +2735,22 @@
         "forRow": "Libellé de {{label}}"
       },
       "noPaymentMethod": "Aucun",
-      "apply": "Appliquer"
-    }
+      "apply": "Appliquer",
+      "selectMode": "Sélectionner",
+      "exit": "Quitter la sélection",
+      "loadedScope": "Sélection sur les {{count}} mouvements chargés.",
+      "selectShort": "Sélection",
+      "exitShort": "Terminer"
+    },
+    "filteredEmpty": {
+      "title": "Aucun mouvement ne correspond aux filtres",
+      "description": "Modifiez vos critères ou effacez les filtres pour retrouver vos transactions."
+    },
+    "accountContextError": "Les noms de compte n’ont pas pu être chargés. Les montants des mouvements restent disponibles."
   },
   "recurrences": {
     "add": "Nouvelle récurrence",
-    "forecastNotice": "Une échéance attendue est une prévision : elle n’est comptée dans aucun total enregistré.",
+    "actionsFor": "Actions pour {{label}}",
     "loading": "Chargement des récurrences…",
     "undo": "Annuler le masquage",
     "dismissalNotice": "Cette proposition est masquée. Vous pouvez annuler ce choix explicitement.",
@@ -2818,10 +2827,9 @@
       "observations_other": "{{count}} observations",
       "period": "Période observée",
       "confirm": "Confirmer",
+      "confirmFor": "Confirmer {{label}}",
       "dismiss": "Masquer",
-      "emptyTitle": "Aucune proposition à confirmer",
-      "emptyDescription": "L’analyse n’a trouvé aucun mouvement suffisamment régulier. Elle n’a créé ni transaction ni échéance.",
-      "headingLabel": "À confirmer"
+      "dismissFor": "Masquer {{label}}"
     },
     "confidence": {
       "HIGH": "Confiance élevée",
@@ -2836,16 +2844,19 @@
       "emptyDescription": "Confirmez une proposition ou créez un échéancier manuel pour suivre ses échéances.",
       "next": "Prochaine échéance : {{date}}",
       "occurrences": "Voir les échéances",
+      "occurrencesFor": "Voir les échéances de {{label}}",
       "edit": "Modifier",
+      "editFor": "Modifier {{label}}",
       "archive": "Archiver",
+      "archiveFor": "Archiver {{label}}",
       "archived": "Récurrences archivées",
       "showArchived": "Voir les récurrences archivées",
       "hideArchived": "Masquer les récurrences archivées",
       "emptyArchivedTitle": "Aucune récurrence archivée",
       "emptyArchivedDescription": "Les récurrences archivées restent ici et peuvent être restaurées.",
       "restore": "Restaurer",
-      "automatic": "Automatique",
-      "headingLabel": "Échéanciers confirmés"
+      "restoreFor": "Restaurer {{label}}",
+      "automatic": "Automatique"
     },
     "occurrences": {
       "title": "Échéances de {{label}}",
@@ -3476,6 +3487,7 @@
     "mark": {
       "explain": "Objectif : {{label}}, {{status}}",
       "error": "Les objectifs n’ont pas pu être vérifiés.",
+      "create": "Créer un objectif : {{label}}",
       "column": "Objectif"
     },
     "evaluation": {
@@ -3545,11 +3557,7 @@
     "monthly": {
       "title": "Budget de {{month}}",
       "goals": "Objectifs",
-      "moreActions": "Autres actions",
       "closeMonth": "Clôturer ce mois",
-      "allTransactions": "Toutes les transactions",
-      "manageCategories": "Gérer les catégories",
-      "manageRecurrences": "Gérer les récurrences",
       "uncategorized_one": "{{count}} transaction à catégoriser",
       "uncategorized_other": "{{count}} transactions à catégoriser",
       "year": "Année",
@@ -3591,9 +3599,9 @@
         "legend": "Dépenses du mois par catégorie",
         "empty": "Aucune dépense dans le budget ce mois-ci.",
         "mixedAssets": "Des dépenses utilisent des actifs différents : aucune répartition n’est calculée.",
-        "other_one": "Autres ({{count}} catégorie)",
-        "other_other": "Autres ({{count}} catégories)",
-        "showTransactions": "Afficher les transactions de {{label}}"
+        "showTransactions": "Afficher les transactions de {{label}}",
+        "showMore": "Voir plus",
+        "showLess": "Voir moins"
       },
       "loading": "Chargement du budget mensuel…",
       "empty": "Aucune ligne active pour ce mois.",
@@ -3654,10 +3662,6 @@
         "label": "Synthèse mensuelle",
         "loading": "Chargement de la synthèse mensuelle…",
         "pending": "Des opérations en attente peuvent encore modifier cette synthèse.",
-        "info": {
-          "open": "Informations sur la synthèse",
-          "title": "Informations sur la synthèse"
-        },
         "empty": "Aucune donnée comptabilisée pour cette synthèse.",
         "provisional": "Valeurs provisoires à la date du jour.",
         "reasons": {
@@ -3686,6 +3690,8 @@
           "currentShort": "N",
           "share": "Part",
           "empty": "Aucun compte n’est inclus dans le patrimoine.",
+          "expandAll": "Déplier tous les groupes",
+          "collapseAll": "Replier tous les groupes",
           "ungrouped": "Sans groupe principal",
           "notOpen": "Compte non ouvert à cette date",
           "missingValuation": "Valorisation non disponible",
@@ -3730,6 +3736,7 @@
         },
         "totals": {
           "title": "Synthèse des flux",
+          "flows": "Flux du mois",
           "axes": "Dépenses par axe",
           "axesEmpty": "Aucun axe n’est affiché.",
           "categories": "Dépenses par catégorie",
@@ -3758,6 +3765,13 @@
       "invalid": "La demande est invalide ou une référence n’est plus utilisable.",
       "network": "L’opération a échoué. Réessayez.",
       "unauthorized": "Votre session n’autorise pas cette opération."
+    },
+    "followUp": {
+      "navigation": "Suivi du budget",
+      "navigationLabel": "Budget et transactions",
+      "actions": "Actions",
+      "details": "Livre des mouvements et virements",
+      "analysis": "Analyse du mois et récapitulatifs"
     }
   },
   "metricPolicy": {

@@ -1114,7 +1114,7 @@ describe('AccountDetailPage', () => {
     expect(select.value).toBe(account.id);
   });
 
-  it('locks this account as source and presets the primary destination', async () => {
+  it('locks this account as source and leaves the destination to choose', async () => {
     const primary = { ...otherAccount, isPrimary: true };
     api.listAccounts.mockImplementation(() =>
       success({ items: [primary, account], page: 1, pageSize: 100, total: 2 }),
@@ -1132,7 +1132,7 @@ describe('AccountDetailPage', () => {
       const destination = within(dialog).getByLabelText(
         'Compte de destination',
       ) as HTMLSelectElement;
-      expect(destination.value).toBe(primary.id);
+      expect(destination.value).toBe('');
       expect(destination.disabled).toBe(false);
       expect(within(destination).queryByRole('option', { name: account.label })).toBeNull();
       expect(document.activeElement).toBe(destination);
@@ -1140,7 +1140,7 @@ describe('AccountDetailPage', () => {
   });
 
   it.each(['', '?action=transfer'])(
-    'presets the primary once accounts load from the default tab %s',
+    'keeps the destination empty after accounts load from the default tab %s',
     async (search) => {
       const primary = { ...otherAccount, isPrimary: true };
       let resolve!: (value: unknown) => void;
@@ -1162,7 +1162,7 @@ describe('AccountDetailPage', () => {
         target: { value: 'Keep my label' },
       });
       resolve(await success({ items: [primary, account], page: 1, pageSize: 100, total: 2 }));
-      await waitFor(() => expect(destination.value).toBe(primary.id));
+      await waitFor(() => expect(destination.value).toBe(''));
       expect((within(dialog).getByLabelText('Compte source') as HTMLSelectElement).value).toBe(
         account.id,
       );

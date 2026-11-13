@@ -11,7 +11,7 @@ for (const width of [360, 768, 1440]) {
       await page.goto('/transactions');
       await settled(page);
       const search = page.getByRole('searchbox').locator('..');
-      const edit = page.getByRole('button', { name: 'Édition groupée', exact: true });
+      const edit = page.getByRole('button', { name: 'Sélectionner', exact: true });
       const filters = page.getByRole('button', { name: /^Filtres/ });
       const boxes = await Promise.all(
         [search, filters, edit].map((control) => control.boundingBox()),
@@ -24,7 +24,7 @@ for (const width of [360, 768, 1440]) {
       await expect(
         page.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }),
       ).toBeVisible();
-      await edit.click();
+      await page.getByRole('button', { name: 'Quitter la sélection', exact: true }).click();
       await expect(
         page.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }),
       ).toHaveCount(0);
@@ -112,7 +112,10 @@ test('keeps desktop movements on one scan line with their account and category',
   const boxes = await row.evaluate((element) => {
     const primary = element.querySelector(':scope > div')!.getBoundingClientRect();
     const amount = element.querySelector(':scope > span')!.getBoundingClientRect();
-    const meta = element.querySelectorAll(':scope > div')[1]!.getBoundingClientRect();
+    const meta = element
+      .querySelectorAll(':scope > div')[1]!
+      .querySelector('span')!
+      .getBoundingClientRect();
     return {
       height: element.getBoundingClientRect().height,
       primaryCenter: primary.y + primary.height / 2,

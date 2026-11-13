@@ -1,3 +1,4 @@
+import type { GoalCreateDefaults } from '@/features/goals/goal-panel/useGoalEditor';
 import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
@@ -51,7 +52,7 @@ interface Props {
   baseCurrency: string;
   goal?: GoalSummary;
   /** Period a new goal starts on, when the caller knows the period it is created for. */
-  initial?: { periodicity: GoalPeriodicity; start: string };
+  initial?: GoalCreateDefaults;
   pending: boolean;
   submitError: GoalErrorKind | null;
   submitMismatch: GoalScheduleMismatch | null;
@@ -76,13 +77,17 @@ export function GoalForm({
   const currentYear = Number(workspaceMonth.slice(0, 4));
   const defaultStart = (next: GoalPeriodicity) =>
     next === 'MONTHLY' ? workspaceMonth : workspaceMonth.slice(0, 4);
-  const [label, setLabel] = useState(goal?.label ?? '');
+  const [label, setLabel] = useState(goal?.label ?? initial?.label ?? '');
   const [periodicity, setPeriodicity] = useState<GoalPeriodicity>(
     goal?.periodicity ?? initial?.periodicity ?? 'MONTHLY',
   );
-  const [metric, setMetric] = useState<GoalMetric>(goal?.metric ?? 'NET_SAVINGS_TRANSFERS');
-  const [direction, setDirection] = useState<GoalDirection>(goal?.direction ?? 'MINIMUM');
-  const [scope, setScope] = useState(goal?.scope.id ?? goal?.scope.axis ?? '');
+  const [metric, setMetric] = useState<GoalMetric>(
+    goal?.metric ?? initial?.metric ?? 'NET_SAVINGS_TRANSFERS',
+  );
+  const [direction, setDirection] = useState<GoalDirection>(
+    goal?.direction ?? initial?.direction ?? 'MINIMUM',
+  );
+  const [scope, setScope] = useState(goal?.scope.id ?? goal?.scope.axis ?? initial?.scopeRef ?? '');
   const [start, setStart] = useState(
     goal?.startPeriod ?? initial?.start ?? defaultStart(periodicity),
   );

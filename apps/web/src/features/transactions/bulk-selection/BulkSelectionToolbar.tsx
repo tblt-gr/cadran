@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import { BulkEditModal } from './bulk-edit-modal/BulkEditModal';
 import type { BulkSelection } from './useBulkSelection';
 import styles from './BulkSelectionToolbar.module.css';
@@ -13,15 +12,42 @@ interface BulkSelectionToolbarProps {
   /** Turns the mode on or off; the host drops the selection when it goes off. */
   onToggleActive: () => void;
   /**
-   * Pen stays on the filter row. Selection and the edit action take the next full line.
-   * The host must leave this toolbar as a direct child of that row (`display: contents`).
+   * The host places the pen itself (`BulkSelectionPen`, on its filter row) and this toolbar
+   * only renders the selection controls, wherever the host puts them.
    */
   inline?: boolean;
 }
 
+/** The mode switch: "Sélectionner" to enter, "Quitter" to leave. */
+export function BulkSelectionPen({
+  active,
+  bulk,
+  onToggleActive,
+  inline = false,
+}: Omit<BulkSelectionToolbarProps, 'inline'> & { inline?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      aria-label={t(active ? 'transactions.bulk.exit' : 'transactions.bulk.selectMode')}
+      aria-pressed={active}
+      className={
+        inline
+          ? `secondary-action ${styles.pen} ${styles.penInline}`
+          : `secondary-action ${styles.pen}`
+      }
+      disabled={!active && bulk === null}
+      onClick={onToggleActive}
+      title={t(active ? 'transactions.bulk.exit' : 'transactions.bulk.selectMode')}
+      type="button"
+    >
+      <span>{t(active ? 'transactions.bulk.exitShort' : 'transactions.bulk.selectShort')}</span>
+    </button>
+  );
+}
+
 /**
  * Bulk edit mode. On its own row the pen stays at the right and the selection controls sit
- * beside it. Inline, the pen stays on the filter row and those controls take the next line.
+ * beside it. Inline, the host renders the pen and this toolbar is only the controls' line.
  */
 export function BulkSelectionToolbar({
   active,
@@ -48,6 +74,11 @@ export function BulkSelectionToolbar({
         />
         <span className="sr-only">{t('transactions.bulk.selectPage')}</span>
       </label>
+      {!bulk.filterScopeSelected ? (
+        <span className={styles.scope}>
+          {t('transactions.bulk.loadedScope', { count: bulk.pageCount })}
+        </span>
+      ) : null}
       <p aria-live="polite" className={styles.counter}>
         {bulk.selectedCount === 0
           ? t('transactions.bulk.none')
@@ -88,26 +119,11 @@ export function BulkSelectionToolbar({
         scope={bulk.scope}
       />
     ) : null;
-  const pen = (
-    <button
-      aria-label={t('transactions.bulk.enter')}
-      aria-pressed={active}
-      className={
-        inline ? `icon-ghost ${styles.pen} ${styles.penInline}` : `icon-ghost ${styles.pen}`
-      }
-      disabled={bulk === null}
-      onClick={onToggleActive}
-      title={t('transactions.bulk.enter')}
-      type="button"
-    >
-      <Icon name="edit" size={18} />
-    </button>
-  );
+  const pen = <BulkSelectionPen active={active} bulk={bulk} onToggleActive={onToggleActive} />;
 
   if (inline) {
     return (
       <>
-        {pen}
         {editing ? (
           <div
             aria-label={t('transactions.bulk.toolbar')}

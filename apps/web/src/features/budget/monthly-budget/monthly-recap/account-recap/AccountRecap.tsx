@@ -1,4 +1,5 @@
 import type { MonthlyRecapAccount, MonthlyRecapGroup } from '@cadran/api-client';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
@@ -38,6 +39,22 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
     staleAge === null ? undefined : t('budget.monthly.recap.accounts.stale', { days: staleAge });
   const [mode, setMode] = useGroupingMode('cadran.budget.recap.grouping', 'PRIMARY');
   const { sections, ungrouped } = recapSections(groups, accounts, mode);
+  // Folded groups by id: every group starts open, one control opens or folds them all.
+  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+  const allOpen = sections.every((section) => !folded.has(section.groupId));
+  const toggleSection = (groupId: string) =>
+    setFolded((current) => {
+      const next = new Set(current);
+      if (!next.delete(groupId)) next.add(groupId);
+      return next;
+    });
+  const toggleAll = () =>
+    setFolded(allOpen ? new Set(sections.map((section) => section.groupId)) : new Set());
+  const toggleAllLabel = t(
+    allOpen
+      ? 'budget.monthly.recap.accounts.collapseAll'
+      : 'budget.monthly.recap.accounts.expandAll',
+  );
 
   return (
     <section aria-labelledby="monthly-recap-accounts-title" className={`card ${styles.panel}`}>
@@ -46,11 +63,24 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
           <h3 id="monthly-recap-accounts-title">{t('budget.monthly.recap.accounts.title')}</h3>
           {staleAge === null ? null : (
             <span aria-label={staleLabel} className={styles.stale} role="img" title={staleLabel}>
-              <Icon name="alert" size={14} />
+              <Icon name="clock" size={14} />
             </span>
           )}
         </div>
-        <GroupingModeToggle mode={mode} onChange={setMode} />
+        <div className={styles.headingActions}>
+          {sections.length > 0 ? (
+            <button
+              aria-label={toggleAllLabel}
+              className="icon-ghost"
+              onClick={toggleAll}
+              title={toggleAllLabel}
+              type="button"
+            >
+              <Icon name={allOpen ? 'chevrons-up' : 'chevrons-down'} size={16} />
+            </button>
+          ) : null}
+          <GroupingModeToggle mode={mode} onChange={setMode} />
+        </div>
       </div>
       {accounts.length === 0 ? (
         <p className={styles.empty}>{t('budget.monthly.recap.accounts.empty')}</p>
@@ -73,7 +103,12 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
               </tr>
             </thead>
             {sections.map((section) => (
-              <RecapSectionRows key={section.groupId} section={section} />
+              <RecapSectionRows
+                expanded={!folded.has(section.groupId)}
+                key={section.groupId}
+                onToggle={() => toggleSection(section.groupId)}
+                section={section}
+              />
             ))}
             {ungrouped.length > 0 ? (
               <tbody>

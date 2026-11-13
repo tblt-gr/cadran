@@ -1,8 +1,22 @@
 import type { AnnualReport } from '@cadran/api-client';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { cleanup, fireEvent, render as baseRender, screen, within } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AnnualCharts } from './AnnualCharts';
+
+const api = vi.hoisted(() => ({ listCategories: vi.fn() }));
+vi.mock('@cadran/api-client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@cadran/api-client')>()),
+  listCategories: api.listCategories,
+}));
+
+/** The top categories read their icons from the workspace's categories. */
+function render(ui: ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return baseRender(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 import { annualReport } from './annualFixtures';
 
 const STORAGE_KEY = 'cadran.reports.allocation.grouping';
@@ -68,6 +82,20 @@ function barFill(row: HTMLElement) {
 }
 
 describe('AnnualCharts category donut', () => {
+  it('marks each top category with its own icon in its colour', async () => {
+    api.listCategories.mockResolvedValue({
+      data: { items: [{ id: 'c1', effectiveIcon: 'home' }], total: 1 },
+      response: new Response('{}', { status: 200 }),
+    });
+    renderCharts();
+    const region = screen.getByRole('region', { name: 'Principales catégories de dépenses' });
+    await vi.waitFor(() =>
+      expect(region.querySelector('[data-icon="home"] path')?.getAttribute('stroke')).toBe(
+        '#2E7D32',
+      ),
+    );
+  });
+
   it('colors legend bars with the category color, defaulting uncolored ones', () => {
     renderCharts();
     const region = screen.getByRole('region', { name: 'Principales catégories de dépenses' });

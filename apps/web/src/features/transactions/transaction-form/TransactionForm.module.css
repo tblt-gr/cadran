@@ -73,7 +73,7 @@
 .splitNotice p {
   margin: var(--spacing-none);
   color: var(--text-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   line-height: var(--line-height-body);
 }
 

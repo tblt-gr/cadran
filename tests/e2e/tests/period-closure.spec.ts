@@ -135,10 +135,9 @@ test.describe('period closure blockers', () => {
   });
 });
 
-/** The closure panel lives in the monthly Budget page's header overflow menu. */
+/** The closure panel opens from the monthly Budget page's header icon button. */
 async function openClosurePanel(page: Page): Promise<void> {
   await navigateTo(page, 'Budget');
-  await page.getByRole('button', { name: 'Autres actions' }).click();
   await page.getByRole('button', { name: 'Clôturer ce mois' }).click();
 }
 

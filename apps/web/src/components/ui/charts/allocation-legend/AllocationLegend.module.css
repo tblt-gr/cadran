@@ -1,20 +1,20 @@
 .list {
   display: grid;
-  align-content: space-between;
+  align-content: start;
   margin: var(--spacing-none);
   padding: var(--spacing-none);
   list-style: none;
-  gap: var(--spacing-4);
+  gap: var(--spacing-2);
 }
 
 .list li {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: baseline;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
   color: var(--text-secondary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   column-gap: var(--spacing-3);
-  row-gap: var(--spacing-1-5);
+  row-gap: var(--spacing-1);
 }
 
 .name {
@@ -31,11 +31,11 @@
 }
 
 .amount {
-  grid-column: 1 / -1;
   color: var(--text-primary);
-  font-size: var(--font-size-card-title);
-  font-weight: var(--font-weight-strong);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-card);
+  text-align: end;
 }
 
 /* The share of each class, read on its own row rather than as a slice everyone
@@ -67,20 +67,6 @@
   background: var(--chart-allocation-4);
 }
 
-@media (max-width: 767px) {
-  .list {
-    gap: var(--spacing-3);
-  }
-
-  .list li {
-    font-size: var(--font-size-label);
-  }
-
-  .amount {
-    font-size: var(--font-size-body);
-  }
-}
-
 .legend {
   display: grid;
   align-content: start;
@@ -94,6 +80,7 @@
   color: var(--text-secondary);
   background: var(--color-transparent);
   font: inherit;
+  font-size: var(--font-size-label);
   cursor: pointer;
 }
 

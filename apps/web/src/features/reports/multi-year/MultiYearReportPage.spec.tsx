@@ -220,29 +220,12 @@ describe('MultiYearReportPage', () => {
     expect(within(year2026).queryByText(/l.année précédente/i)).toBeNull();
   });
 
-  it('hides the policy column and notes the policy of each year under the table', async () => {
+  it('hides the policy column and shows no policy note under the table', async () => {
     renderPage();
     const table = await screen.findByRole('table', { name: /pluriannuel/i });
     expect(within(table).queryByRole('columnheader', { name: 'Politique' })).toBeNull();
     expect(within(table).queryByText('v1')).toBeNull();
-    const note = screen.getByText(/Politique d’indicateurs par année/);
-    expect(note.textContent).toMatch(/2024 v1, 2025 v1, 2026 v1/);
-    expect(table.compareDocumentPosition(note) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it('notes a mixed metric policy under the table', async () => {
-    api.readMultiYearReport.mockResolvedValue(
-      ok({
-        ...multiYearReport,
-        years: [
-          { ...multiYearReport.years[0]!, metricPolicy: { state: 'MIXED', version: null } },
-          ...multiYearReport.years.slice(1),
-        ],
-      }),
-    );
-    renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(screen.getByText(/Politique d’indicateurs par année/).textContent).toMatch(/2024 mixte/);
+    expect(screen.queryByText(/Politique d’indicateurs par année/)).toBeNull();
   });
 
   it('shows no month next to a stock value', async () => {
@@ -382,10 +365,10 @@ describe('MultiYearReportPage', () => {
     expect(rows[12]?.textContent).toMatch(/janvier 2025/i);
     expect(rows[35]?.textContent).toMatch(/décembre 2026/i);
     expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1);
-    for (const year of [2024, 2025, 2026]) {
-      const yearCharts = screen.getByRole('region', { name: `Rapport ${year}` });
-      expect(within(yearCharts).getByText(/principales catégories de dépenses/i)).toBeTruthy();
-    }
+    // One overview for the whole range, not a pair of charts per year.
+    const overview = screen.getByRole('region', { name: 'Vue d’ensemble 2024-2026' });
+    expect(within(overview).getAllByText(/principales catégories de dépenses/i)).toHaveLength(1);
+    expect(screen.queryByRole('region', { name: /^Rapport 20/ })).toBeNull();
     const alternatives = [...document.querySelectorAll('details table')];
     expect(alternatives).toHaveLength(2);
     expect(alternatives.map((table) => table.querySelectorAll('tbody tr').length)).toEqual([
@@ -452,12 +435,9 @@ describe('MultiYearReportPage', () => {
     await screen.findByRole('table', { name: /rapport détaillé/i });
     api.readAnnualReport.mockResolvedValue(failure(500));
     await queryClient.invalidateQueries({ queryKey: ['annual-report'] });
-    expect(screen.getByRole('region', { name: 'Rapport 2024' })).toBeTruthy();
-    expect(
-      within(screen.getByRole('region', { name: 'Rapport 2024' })).getByText(
-        'Principales catégories de dépenses',
-      ),
-    ).toBeTruthy();
+    const overview = screen.getByRole('region', { name: 'Vue d’ensemble 2024-2026' });
+    expect(within(overview).getAllByText('Principales catégories de dépenses')).toHaveLength(1);
+    expect(screen.queryByRole('region', { name: 'Rapport 2024' })).toBeNull();
   });
 
   it('replaces chart skeletons when a detailed annual request fails', async () => {

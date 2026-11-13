@@ -11,7 +11,7 @@ interface CandidatesSectionProps {
   partial: boolean;
 }
 
-/** The detected-candidates section: one card per proposal, or its own empty state. */
+/** The detected-candidates section: one line per proposal, nothing when there is none. */
 export function CandidatesSection({
   candidates,
   dismissPending,
@@ -20,36 +20,28 @@ export function CandidatesSection({
   partial,
 }: CandidatesSectionProps) {
   const { t } = useTranslation();
+  // Nothing detected: the section has nothing to say, so it is not drawn at all.
+  if (candidates.length === 0) return null;
 
   return (
     <section aria-labelledby="recurrence-candidates-title" className={styles.section}>
       <div className={styles.sectionHeading}>
-        <div>
-          <p>{t('recurrences.candidates.headingLabel')}</p>
-          <h3 id="recurrence-candidates-title">{t('recurrences.candidates.title')}</h3>
-        </div>
+        <h3 id="recurrence-candidates-title">{t('recurrences.candidates.title')}</h3>
         {partial ? (
           <span className={styles.partial}>{t('recurrences.candidates.partial')}</span>
         ) : null}
       </div>
-      {candidates.length > 0 ? (
-        <div className={styles.candidates}>
-          {candidates.map((candidate) => (
-            <CandidateCard
-              candidate={candidate}
-              key={candidate.fingerprint}
-              onConfirm={onConfirm}
-              onDismiss={onDismiss}
-              pending={dismissPending}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className={`card ${styles.empty}`}>
-          <h4>{t('recurrences.candidates.emptyTitle')}</h4>
-          <p>{t('recurrences.candidates.emptyDescription')}</p>
-        </div>
-      )}
+      <ul className={`card ${styles.list}`}>
+        {candidates.map((candidate) => (
+          <CandidateCard
+            candidate={candidate}
+            key={candidate.fingerprint}
+            onConfirm={onConfirm}
+            onDismiss={onDismiss}
+            pending={dismissPending}
+          />
+        ))}
+      </ul>
     </section>
   );
 }

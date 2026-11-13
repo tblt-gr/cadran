@@ -29,7 +29,7 @@
   min-width: 0;
   min-height: var(--control-height-compact);
   color: var(--text-secondary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   cursor: pointer;
   gap: var(--spacing-2);
 }
@@ -47,6 +47,16 @@
   flex: 0 0 auto;
   margin: var(--spacing-none);
   accent-color: var(--accent);
+}
+
+/* Every option keeps the same mark column, whether it holds an icon, a dot or nothing. */
+.markSlot {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--category-glyph-size);
+  height: var(--category-glyph-size);
 }
 
 .mark {

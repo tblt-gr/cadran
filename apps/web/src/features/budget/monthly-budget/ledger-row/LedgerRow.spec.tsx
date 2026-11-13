@@ -174,27 +174,46 @@ describe('LedgerRow pending movements', () => {
 });
 
 describe('LedgerRow color dot', () => {
-  it('uses the effective group color on an account row', () => {
+  it('draws the account icon in the effective group color on an account row', () => {
     const item = renderRow(account({ primaryGroupColor: '#2F9E6E' }), 'account');
+    const icon = item.querySelector<HTMLElement>('[data-account-icon]');
 
-    expect(item.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#2F9E6E');
+    expect(icon?.style.color).toMatch(/#2F9E6E|rgb\(47, 158, 110\)/i);
+    expect(item.querySelector('[data-color-dot]')).toBeNull();
   });
 
-  it('draws no dot for an account without a group color', () => {
+  it('keeps the neutral account icon for an account without a group color', () => {
     const item = renderRow(account(), 'account');
 
-    expect(item.querySelector('[data-color-dot]')).toBeNull();
+    expect(item.querySelector('[data-account-icon]')).not.toBeNull();
+    expect(item.querySelector<HTMLElement>('[data-account-icon]')?.style.color).toBe('');
   });
 
   it('ignores a malformed account color instead of falling back to a muted token', () => {
     const item = renderRow(account({ primaryGroupColor: 'red' }), 'account');
 
-    expect(item.querySelector('[data-color-dot]')).toBeNull();
+    expect(item.querySelector<HTMLElement>('[data-account-icon]')?.style.color).toBe('');
   });
 
   it('keeps the category color on category rows', () => {
     const item = renderRow(category({ color: '#58B8C0' }));
 
     expect(item.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe('#58B8C0');
+  });
+
+  it('shows the category icon stroked in its colour, as in the category picker', () => {
+    const item = renderRow(category({ color: '#58B8C0', icon: 'utensils' }));
+
+    expect(item.querySelector('[data-icon="utensils"] path')?.getAttribute('stroke')).toBe(
+      '#58B8C0',
+    );
+    expect(item.querySelector('[data-color-dot]')).toBeNull();
+  });
+
+  it('draws no mark for a category without icon nor colour', () => {
+    const item = renderRow(category());
+
+    expect(item.querySelector('[data-icon]')).toBeNull();
+    expect(item.querySelector('[data-color-dot]')).toBeNull();
   });
 });

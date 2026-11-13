@@ -152,9 +152,9 @@ function useGoalSummaries(enabled = true) {
 }
 
 /** Everything the open panel shows: the evaluations and the goals they refer to. */
-export function useGoalPanelData(scope: GoalPanelScope) {
-  const evaluations = useGoalEvaluations(scope);
-  const summaries = useGoalSummaries();
+export function useGoalPanelData(scope: GoalPanelScope, enabled = true) {
+  const evaluations = useGoalEvaluations(scope, enabled);
+  const summaries = useGoalSummaries(enabled);
   return {
     evaluations: evaluations.evaluations,
     goals: summaries.goals,

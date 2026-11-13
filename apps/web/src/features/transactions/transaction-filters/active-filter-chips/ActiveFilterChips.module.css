@@ -4,23 +4,3 @@
   align-items: center;
   gap: var(--spacing-2);
 }
-
-.reset {
-  height: var(--control-height-compact);
-  padding-inline: var(--spacing-2);
-  border: var(--border-none);
-  border-radius: var(--radius-button);
-  color: var(--text-secondary);
-  background: var(--color-transparent);
-  font-size: var(--font-size-label);
-  text-decoration: underline;
-}
-
-.reset:hover {
-  color: var(--text-primary);
-}
-
-.reset:focus-visible {
-  outline: var(--outline-focus);
-  outline-offset: var(--outline-offset-focus);
-}

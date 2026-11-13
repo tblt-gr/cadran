@@ -12,6 +12,7 @@ import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearRe
 import { useMonthlyBounds } from '@/features/budget/monthly-budget/useMonthlyBounds';
 import { annualHref } from '@/features/budget/monthly-budget/budgetPeriod';
 import { MonthNavigator } from '@/features/budget/monthly-budget/month-navigator/MonthNavigator';
+import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
 import styles from './BudgetYearPage.module.css';
 import { ReportToolbar } from './ReportToolbar';
 import { readYearView, writeYearView, type YearViewState } from './yearViewSearch';
@@ -92,6 +93,7 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
           scope={goalScope}
         />
       </HeaderActions>
+      <BudgetNavigation current="budget" month={null} />
       <MonthNavigator
         axis={null}
         currentMonth={today.slice(0, 7)}

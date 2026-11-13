@@ -1,7 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { navigateFromPage } from '@/hooks/use-client-navigation';
-import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
+import { Icon } from '@/components/ui/icon/Icon';
 import { PeriodClosurePanel } from '@/features/closures/period-closure-panel/PeriodClosurePanel';
 
 interface MonthlyBudgetActionsProps {
@@ -12,7 +11,7 @@ interface MonthlyBudgetActionsProps {
   onClosureChanged: () => void;
 }
 
-/** Overflow menu of the monthly budget header. */
+/** The month's closure, the one budget action the tabs do not already reach. */
 export function MonthlyBudgetActions({
   disabled,
   month,
@@ -20,48 +19,27 @@ export function MonthlyBudgetActions({
 }: MonthlyBudgetActionsProps) {
   const { t } = useTranslation();
   const [closureOpen, setClosureOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
 
   return (
     <>
-      <ActionMenu
+      <button
+        ref={button}
+        aria-label={t('budget.monthly.closeMonth')}
+        className="icon-button"
         disabled={disabled}
-        items={[
-          {
-            icon: 'transactions',
-            id: 'transactions',
-            label: t('budget.monthly.allTransactions'),
-            onSelect: () => navigateFromPage(`/transactions?period=month&month=${month}`),
-            text: t('budget.monthly.allTransactions'),
-          },
-          {
-            icon: 'categories',
-            id: 'categories',
-            label: t('budget.monthly.manageCategories'),
-            onSelect: () => navigateFromPage('/transactions/categories'),
-            text: t('budget.monthly.manageCategories'),
-          },
-          {
-            icon: 'repeat',
-            id: 'recurrences',
-            label: t('budget.monthly.manageRecurrences'),
-            onSelect: () => navigateFromPage('/transactions/recurrences'),
-            text: t('budget.monthly.manageRecurrences'),
-          },
-          {
-            icon: 'lock',
-            id: 'closure',
-            label: t('budget.monthly.closeMonth'),
-            onSelect: () => setClosureOpen(true),
-            text: t('budget.monthly.closeMonth'),
-          },
-        ]}
-        label={t('budget.monthly.moreActions')}
-      />
+        onClick={() => setClosureOpen(true)}
+        title={t('budget.monthly.closeMonth')}
+        type="button"
+      >
+        <Icon name="lock" size={18} />
+      </button>
       {closureOpen ? (
         <PeriodClosurePanel
           close={() => setClosureOpen(false)}
           initialPeriod={month}
           onChanged={onClosureChanged}
+          returnFocus={button}
         />
       ) : null}
     </>

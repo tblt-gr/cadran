@@ -119,6 +119,7 @@ export function keyboardJourneys() {
   test('keyboard navigation, breadcrumb and month selector have visible focus in visual order', async ({
     page,
   }, testInfo) => {
+    test.setTimeout(90_000);
     await page.goto('/budget');
     await settled(page);
     const mobile = testInfo.project.name === 'Mobile 360';
@@ -154,9 +155,16 @@ export function keyboardJourneys() {
       }),
     ).toBe(true);
     const visited: number[] = [];
+    // A month can contain many goal actions; bound traversal by its actual controls.
+    const stopBudget =
+      (await page
+        .locator(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex="0"]',
+        )
+        .count()) + targets.length;
     // Record one forward traversal. Reaching any target twice
     // before all targets are visited is a wrap, which must not hide an incorrect DOM order.
-    for (let step = 0; step < 160 && visited.length < targets.length; step++) {
+    for (let step = 0; step < stopBudget && visited.length < targets.length; step++) {
       await page.keyboard.press('Tab');
       for (const [index, target] of targets.entries()) {
         if (await target.evaluate((element) => element === document.activeElement)) {

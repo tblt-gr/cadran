@@ -180,4 +180,21 @@ describe('AccountRecap', () => {
       expect((toggle as HTMLButtonElement).disabled).toBe(true);
     });
   });
+
+  describe('fold all', () => {
+    it('folds then reopens every group from one icon button next to the sub-group toggle', () => {
+      renderRecap([account('a1', 'Compte courant', null)]);
+
+      const fold = screen.getByRole('button', { name: 'Replier tous les groupes' });
+      fireEvent.click(fold);
+      expect(screen.getByRole('button', { name: 'Déplier tous les groupes' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: /Liquidités/ }).getAttribute('aria-expanded')).toBe(
+        'false',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Déplier tous les groupes' }));
+      expect(screen.getByRole('button', { name: /Liquidités/ }).getAttribute('aria-expanded')).toBe(
+        'true',
+      );
+    });
+  });
 });

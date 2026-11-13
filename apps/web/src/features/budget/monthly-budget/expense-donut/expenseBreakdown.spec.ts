@@ -40,7 +40,7 @@ describe('buildExpenseBreakdown', () => {
     ]);
   });
 
-  it('groups categories beyond the sixth into one "Other" slice with the exact sum', () => {
+  it('keeps every category as its own slice, never grouped into "Other"', () => {
     const rows = [100, 90, 80, 70, 60, 50, 40, 30, 20].map((amount) =>
       row(`c${amount}`, `${amount}.00`),
     );
@@ -48,20 +48,8 @@ describe('buildExpenseBreakdown', () => {
 
     expect(result.kind).toBe('ready');
     if (result.kind !== 'ready') return;
-    expect(result.slices).toHaveLength(7);
-    const other = result.slices[6]!;
-    expect(other.grouped).toBe(true);
-    expect(other.amount).toBe('90.00');
-    expect(other.share).toBe('0.16666666');
-    expect(other.categoryIds).toEqual(['c40', 'c30', 'c20']);
-  });
-
-  it('keeps a lone seventh category as itself instead of an "Other" of one', () => {
-    const rows = [70, 60, 50, 40, 30, 20, 10].map((amount) => row(`c${amount}`, `${amount}.00`));
-    const result = buildExpenseBreakdown(rows, 'fr');
-
-    expect(result.kind === 'ready' && result.slices.some((slice) => slice.grouped)).toBe(false);
-    expect(result.kind === 'ready' && result.slices).toHaveLength(7);
+    expect(result.slices.map((slice) => slice.key)).toEqual(rows.map((item) => item.id));
+    expect(result.slices[8]).toMatchObject({ amount: '20.00', share: '0.03703703' });
   });
 
   it('is empty without any expense, and ignores categories outside the budget or without movement', () => {

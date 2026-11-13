@@ -16,13 +16,17 @@
   z-index: 1;
   top: var(--header-height);
   margin: var(--spacing-none);
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
   border-bottom: var(--border-line-subtle);
-  color: var(--text-muted);
-  background: var(--bg-surface-1);
+  color: var(--text-secondary);
+  background: var(--bg-surface-2);
   font-family: var(--font-family-mono);
-  font-size: var(--font-size-meta);
+  font-size: var(--font-size-sm);
   font-weight: var(--font-weight-normal);
+}
+
+.day + .day .dayHeader {
+  border-top: var(--border-line-subtle);
 }
 
 /* French dates keep the month in lower case; only the weekday opening the line is capitalised. */
@@ -62,16 +66,22 @@
 .row {
   display: grid;
   align-items: center;
-  min-height: var(--touch-target-min);
-  padding: var(--spacing-1) var(--spacing-1) var(--spacing-2) var(--spacing-3);
+  min-height: var(--control-height);
+  padding: var(--spacing-1) var(--spacing-1) var(--spacing-1) var(--spacing-3);
   border-bottom: var(--border-line-subtle);
   grid-template-areas:
     'primary amount actions'
     'meta meta actions';
   grid-template-columns: minmax(0, 1fr) auto auto;
   column-gap: var(--spacing-3);
-  row-gap: var(--spacing-1);
+  row-gap: var(--spacing-none);
   transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+@media (pointer: coarse) {
+  .row {
+    min-height: var(--touch-target-min);
+  }
 }
 
 .row:hover,
@@ -140,6 +150,11 @@
   min-height: var(--touch-target-min);
 }
 
+.state {
+  display: block;
+  margin-top: var(--spacing-1);
+}
+
 .primary small {
   display: block;
   margin-top: var(--spacing-1);
@@ -165,16 +180,72 @@
   font-size: var(--font-size-sm);
 }
 
+/* The headings and every day use one column grid; the metadata wrapper stays in the DOM. */
+.registerHeading {
+  display: none;
+}
 @media (min-width: 64rem) {
-  .row {
-    grid-template-areas: 'primary meta amount actions';
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) auto auto;
+  .row,
+  .registerHeading {
+    grid-template-areas: 'primary category account amount actions';
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 0.75fr) minmax(0, 1fr) auto;
     padding-block: var(--spacing-2);
   }
-
-  .selectable {
-    grid-template-areas: 'select primary meta amount actions';
-    grid-template-columns: auto minmax(0, 1fr) minmax(0, 0.85fr) auto auto;
+  .row[data-accounts='false'],
+  .registerHeading[data-accounts='false'] {
+    grid-template-areas: 'primary category amount actions';
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr) auto;
+  }
+  .row.selectable,
+  .registerHeading.selectable {
+    grid-template-areas: 'select primary category account amount actions';
+    grid-template-columns:
+      var(--touch-target-min) minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 0.75fr)
+      minmax(0, 1fr) auto;
+  }
+  .row.selectable[data-accounts='false'],
+  .registerHeading.selectable[data-accounts='false'] {
+    grid-template-areas: 'select primary category amount actions';
+    grid-template-columns:
+      var(--touch-target-min) minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr)
+      auto;
+  }
+  .registerHeading {
+    display: grid;
+    align-items: center;
+    gap: var(--spacing-3);
+    padding-inline: var(--spacing-4) var(--spacing-2);
+    border-bottom: var(--border-line-subtle);
+    background: var(--bg-surface-2);
+    color: var(--text-muted);
+    font-size: var(--font-size-meta);
+  }
+  .registerHeading .primary,
+  .registerHeading .amount {
+    color: inherit;
+    font-size: inherit;
+  }
+  .meta {
+    display: contents;
+  }
+  .category {
+    grid-area: category;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .account {
+    grid-area: account;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .amount {
+    justify-self: end;
+    min-width: 0;
+    text-align: end;
   }
 }
 

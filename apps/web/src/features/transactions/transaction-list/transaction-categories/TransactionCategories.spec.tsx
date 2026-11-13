@@ -46,8 +46,9 @@ describe('TransactionCategories', () => {
       />,
     );
 
-    expect(screen.getByText('Répartie en 3 catégories')).toBeTruthy();
-    const rows = within(screen.getByRole('list')).getAllByRole('listitem');
+    const rows = within(
+      screen.getByRole('list', { name: 'Répartie en 3 catégories' }),
+    ).getAllByRole('listitem');
     expect(
       rows.map((row) => Array.from(row.children, (part) => part.textContent?.replace(/\s/g, ' '))),
     ).toEqual([
@@ -69,8 +70,11 @@ describe('TransactionCategories', () => {
       />,
     );
 
-    expect(screen.getByText('Répartie en 4 catégories')).toBeTruthy();
-    expect(within(screen.getByRole('list')).getAllByRole('listitem')).toHaveLength(2);
+    expect(
+      within(screen.getByRole('list', { name: 'Répartie en 4 catégories' })).getAllByRole(
+        'listitem',
+      ),
+    ).toHaveLength(2);
     expect(screen.getByText('+ 2 autres catégories')).toBeTruthy();
   });
 });

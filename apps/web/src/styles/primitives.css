@@ -253,6 +253,11 @@
   accent-color: var(--accent);
 }
 
+/* A choice and its label sit on the same centre line, whatever the label's own layout. */
+:where(label:has(> input[type='checkbox'], > input[type='radio'])) {
+  align-items: center;
+}
+
 :where(input[type='checkbox'], input[type='radio']) {
   flex-shrink: 0;
   width: var(--choice-control-size);

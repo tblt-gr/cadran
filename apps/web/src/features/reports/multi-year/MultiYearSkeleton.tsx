@@ -95,11 +95,6 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             </tfoot>
           </table>
         </div>
-        <footer className={tableStyles.notes}>
-          <p>
-            <Cell />
-          </p>
-        </footer>
       </section>
       <ul aria-hidden="true" className={cardStyles.list}>
         {rows.map((year, index) => (

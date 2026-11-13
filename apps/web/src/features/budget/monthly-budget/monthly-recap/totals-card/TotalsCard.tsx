@@ -16,8 +16,11 @@ import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { MetricExplanationModal } from './MetricExplanationModal';
 import type { GoalEvaluation } from '@cadran/api-client';
 import { GoalEvaluationsError } from '@/features/goals/goal-mark/GoalEvaluationsError';
-import { GoalColumnHead, GoalMarkedValue, GoalTarget } from '@/features/goals/goal-mark/GoalMark';
-import { marksFor } from '@/features/goals/goal-mark/goalMarks';
+import { GoalMarkedValue, GoalTarget } from '@/features/goals/goal-mark/GoalMark';
+import { GoalEditorModals } from '@/features/goals/goal-panel/GoalEditorModals';
+import { useGoalEditor, type GoalCreateDefaults } from '@/features/goals/goal-panel/useGoalEditor';
+import { TotalsSection } from './TotalsSection';
+import { goalDefaultsFor, marksFor } from '@/features/goals/goal-mark/goalMarks';
 import { useGoalMarks } from '@/features/reports/useGoalMarks';
 import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useMonthlyReport } from '@/features/reports/useMonthlyReport';
@@ -91,7 +94,10 @@ function MetricRow({
   goalColumn = false,
   rate = false,
   benefit = null,
+  onCreateGoal,
 }: {
+  /** Opens the goal form on this row's figure; absent when no goal can target it. */
+  onCreateGoal?: () => void;
   /** The goals of the displayed month that carry this row's figure. */
   marks?: readonly GoalEvaluation[];
   goalPeriod?: string;
@@ -132,7 +138,9 @@ function MetricRow({
         )}
         {goalColumn ? (
           <span className={styles.goal}>
-            {goalPeriod ? <GoalTarget items={marks} period={goalPeriod} /> : null}
+            {goalPeriod ? (
+              <GoalTarget items={marks} label={label} onCreate={onCreateGoal} period={goalPeriod} />
+            ) : null}
           </span>
         ) : null}
       </div>
@@ -161,7 +169,9 @@ function CategoryRow({
   goalColumn,
   month,
   goalPeriod,
+  onCreateGoal,
 }: {
+  onCreateGoal?: () => void;
   category: MonthlyRecapCategory;
   goalColumn: boolean;
   marks: readonly GoalEvaluation[];
@@ -173,6 +183,7 @@ function CategoryRow({
       goalColumn={goalColumn}
       marks={marks}
       goalPeriod={goalPeriod}
+      onCreateGoal={onCreateGoal}
       benefit={
         category.benefitSpending != null && category.benefitAssetCode != null
           ? { assetCode: category.benefitAssetCode, value: category.benefitSpending }
@@ -201,6 +212,12 @@ export function TotalsCard({
   // evaluations load or fail.
   const goals = useGoalMarks({ from: month, to: month, granularity: 'MONTH' });
   const marksOf = (columnKey: string) => marksFor(goals.evaluations?.months, month, columnKey);
+  const editor = useGoalEditor();
+  // Only the owner writes goals; a row no goal can target offers nothing.
+  const creatorFor = (columnKey: string) => {
+    const defaults: GoalCreateDefaults | null = owner ? goalDefaultsFor(columnKey, month) : null;
+    return defaults ? () => editor.openCreate(defaults) : undefined;
+  };
   const axes = totals.expensesByAxis.filter((axis) => visibleAxes.includes(axis.axis));
   const categories = totals.categories.filter((category) =>
     visibleCategoryIds.includes(category.id),
@@ -220,12 +237,7 @@ export function TotalsCard({
         includesUpcoming={projection.data?.includesUpcoming ?? false}
         upcomingCount={projection.data?.upcomingCount ?? 0}
       />
-      {goals.shown ? (
-        <p className={styles.goalHead}>
-          <GoalColumnHead />
-        </p>
-      ) : null}
-      <ul className={styles.rows}>
+      <TotalsSection goalHead={goals.shown} title={t('budget.monthly.recap.totals.flows')}>
         {RECAP_KPIS.map((kpi) => {
           const own =
             kpi in totals ? (totals[kpi as keyof MonthlyRecapTotals] as RecapMetric) : null;
@@ -244,55 +256,47 @@ export function TotalsCard({
               goalColumn={goals.shown}
               marks={marksOf(kpi)}
               metric={metric}
+              onCreateGoal={creatorFor(kpi)}
               goalPeriod={month}
               month={month}
               rate={RATE_KPIS.includes(kpi)}
             />
           );
         })}
-      </ul>
+      </TotalsSection>
       {axes.length ? (
-        <section className={styles.section}>
-          <h4>
-            {t('budget.monthly.recap.totals.axes')}
-            {goals.shown ? <GoalColumnHead /> : null}
-          </h4>
-          <ul className={styles.rows}>
-            {axes.map((axis) => (
-              <MetricRow
-                axis={axis.axis}
-                key={axis.axis}
-                goalColumn={goals.shown}
-                marks={marksOf(`axis:${axis.axis}`)}
-                month={month}
-                metric={axis}
-                goalPeriod={month}
-              />
-            ))}
-          </ul>
-        </section>
+        <TotalsSection goalHead={goals.shown} title={t('budget.monthly.recap.totals.axes')}>
+          {axes.map((axis) => (
+            <MetricRow
+              axis={axis.axis}
+              key={axis.axis}
+              goalColumn={goals.shown}
+              marks={marksOf(`axis:${axis.axis}`)}
+              onCreateGoal={creatorFor(`axis:${axis.axis}`)}
+              month={month}
+              metric={axis}
+              goalPeriod={month}
+            />
+          ))}
+        </TotalsSection>
       ) : null}
       {categories.length ? (
-        <section className={styles.section}>
-          <h4>
-            {t('budget.monthly.recap.totals.categories')}
-            {goals.shown ? <GoalColumnHead /> : null}
-          </h4>
-          <ul className={styles.rows}>
-            {categories.map((category) => (
-              <CategoryRow
-                category={category}
-                key={category.id}
-                goalColumn={goals.shown}
-                marks={marksOf(`category:${category.id}`)}
-                month={month}
-                goalPeriod={month}
-              />
-            ))}
-          </ul>
-        </section>
+        <TotalsSection goalHead={goals.shown} title={t('budget.monthly.recap.totals.categories')}>
+          {categories.map((category) => (
+            <CategoryRow
+              category={category}
+              key={category.id}
+              goalColumn={goals.shown}
+              marks={marksOf(`category:${category.id}`)}
+              onCreateGoal={creatorFor(`category:${category.id}`)}
+              month={month}
+              goalPeriod={month}
+            />
+          ))}
+        </TotalsSection>
       ) : null}
       {goals.failed ? <GoalEvaluationsError onRetry={goals.retry} /> : null}
+      <GoalEditorModals editor={editor} />
     </section>
   );
 }

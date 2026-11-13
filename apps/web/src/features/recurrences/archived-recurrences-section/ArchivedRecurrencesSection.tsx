@@ -1,5 +1,6 @@
 import type { Recurrence } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { RecurrenceCard } from '@/features/recurrences/recurrence-card/RecurrenceCard';
 import styles from '@/features/recurrences/RecurrencesPage.module.css';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
@@ -37,20 +38,15 @@ export function ArchivedRecurrencesSection({
       id="archived-recurrences"
     >
       <div className={styles.sectionHeading}>
-        <div>
-          <p>{t('recurrences.confirmed.headingLabel')}</p>
-          <h3 id="archived-recurrences-title">{t('recurrences.confirmed.archived')}</h3>
-        </div>
+        <h3 id="archived-recurrences-title">{t('recurrences.confirmed.archived')}</h3>
       </div>
       {isPending ? (
-        <div aria-busy="true" className={styles.schedules}>
+        <div aria-busy="true" className={styles.skeletonContents}>
           <SkeletonStatus>{t('recurrences.loading')}</SkeletonStatus>
-          <ScheduleCardSkeleton
-            actions={[t('recurrences.confirmed.occurrences'), t('recurrences.confirmed.restore')]}
-          />
-          <ScheduleCardSkeleton
-            actions={[t('recurrences.confirmed.occurrences'), t('recurrences.confirmed.restore')]}
-          />
+          <ul className={`card ${styles.list}`}>
+            <ScheduleCardSkeleton />
+            <ScheduleCardSkeleton />
+          </ul>
         </div>
       ) : isError ? (
         <div className={`card ${styles.state}`} role="alert">
@@ -65,33 +61,36 @@ export function ArchivedRecurrencesSection({
           <p>{t('recurrences.confirmed.emptyArchivedDescription')}</p>
         </div>
       ) : (
-        <div className={styles.schedules}>
+        <ul className={`card ${styles.list}`}>
           {recurrences.map((recurrence) => (
             <RecurrenceCard
               actions={
-                <>
-                  <button
-                    className="secondary-action"
-                    onClick={() => onSelect(recurrence)}
-                    type="button"
-                  >
-                    {t('recurrences.confirmed.occurrences')}
-                  </button>
-                  <button
-                    className="secondary-action"
-                    disabled={restorePending}
-                    onClick={() => onRestore(recurrence)}
-                    type="button"
-                  >
-                    {t('recurrences.confirmed.restore')}
-                  </button>
-                </>
+                <ActionMenu
+                  items={[
+                    {
+                      id: 'occurrences',
+                      icon: 'calendar',
+                      label: t('recurrences.confirmed.occurrencesFor', { label: recurrence.label }),
+                      text: t('recurrences.confirmed.occurrences'),
+                      onSelect: () => onSelect(recurrence),
+                    },
+                    {
+                      id: 'restore',
+                      icon: 'repeat',
+                      disabled: restorePending,
+                      label: t('recurrences.confirmed.restoreFor', { label: recurrence.label }),
+                      text: t('recurrences.confirmed.restore'),
+                      onSelect: () => onRestore(recurrence),
+                    },
+                  ]}
+                  label={t('recurrences.actionsFor', { label: recurrence.label })}
+                />
               }
               key={recurrence.id}
               recurrence={recurrence}
             />
           ))}
-        </div>
+        </ul>
       )}
     </section>
   );

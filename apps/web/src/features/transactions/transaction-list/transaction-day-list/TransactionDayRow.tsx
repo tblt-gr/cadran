@@ -15,7 +15,6 @@ import styles from './TransactionDayList.module.css';
 
 const STATE_TONE = {
   PENDING: 'info',
-  BOOKED: 'positive',
   VOIDED: 'warning',
   REJECTED: 'negative',
 } as const;
@@ -26,10 +25,16 @@ interface TransactionDayRowProps {
   selection?: RowSelection;
   /** Null while loading: the row keeps its final structure and shows blocks for the values. */
   transaction: Transaction | null;
+  counterpartAccount?: string;
 }
 
-/** One compact movement. The columns of the former table live in the detail modal. */
-export function TransactionDayRow({ accounts, selection, transaction }: TransactionDayRowProps) {
+/** Stable register columns on desktop, compact identity and amount on a phone. */
+export function TransactionDayRow({
+  accounts,
+  selection,
+  transaction,
+  counterpartAccount,
+}: TransactionDayRowProps) {
   const { i18n, t } = useTranslation();
   // Muted, never hidden: the state badge keeps the cue that colour alone would not carry.
   const pending = transaction?.state === 'PENDING';
@@ -47,7 +52,9 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
       ]
         .filter(Boolean)
         .join(' ')}
+      data-transfer-id={transaction?.transferId ?? undefined}
       data-state={transaction?.state}
+      data-accounts={accounts !== undefined}
     >
       {selection ? (
         <label className={styles.select}>
@@ -73,9 +80,22 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
                 ? 'transactions.list.transferFeeMarker'
                 : 'transactions.list.transferMarker',
             )}
+            {counterpartAccount ? ` · ${counterpartAccount}` : null}
           </small>
         ) : null}
         {transaction ? <RefundBadge transaction={transaction} /> : null}
+        {/* Booked is the normal case: only a state that departs from it is shown. */}
+        {transaction && transaction.state !== 'BOOKED' ? (
+          <span className={styles.state}>
+            <StatusBadge tone={STATE_TONE[transaction.state]}>
+              {planned
+                ? t('transactions.states.planned', {
+                    date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
+                  })
+                : t(`transactions.states.${transaction.state}`)}
+            </StatusBadge>
+          </span>
+        ) : null}
       </div>
       <span className={styles.amount}>
         {transaction ? <TransactionAmount amount={transaction.amount} /> : <SkeletonBlock />}
@@ -92,7 +112,7 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
           </span>
         )}
         {accounts ? (
-          <span className={styles.account}>
+          <span className={styles.account} title={account?.label}>
             {transaction ? (
               (account?.label ?? t('transactions.list.unknownAccount'))
             ) : (
@@ -100,18 +120,6 @@ export function TransactionDayRow({ accounts, selection, transaction }: Transact
             )}
           </span>
         ) : null}
-        <span className={styles.state}>
-          {/* Booked is the normal case: only a state that departs from it is worth a badge. */}
-          {transaction && transaction.state !== 'BOOKED' ? (
-            <StatusBadge tone={STATE_TONE[transaction.state]}>
-              {planned
-                ? t('transactions.states.planned', {
-                    date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
-                  })
-                : t(`transactions.states.${transaction.state}`)}
-            </StatusBadge>
-          ) : null}
-        </span>
       </div>
       <div className={styles.actions}>
         <TransactionRowActions transaction={transaction} />

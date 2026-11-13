@@ -28,13 +28,22 @@ function AccountValueCell({ value }: { value: MonthlyAccountValue | null }) {
   );
 }
 
-export function AccountRow({ member }: { member: RecapMember }) {
+export function AccountRow({
+  member,
+  hidden = false,
+  id,
+}: {
+  member: RecapMember;
+  /** Folded under its group subtotal row. */
+  hidden?: boolean;
+  id?: string;
+}) {
   const { t } = useTranslation();
   const { account, subGroup } = member;
   const href = `/accounts/${account.accountId}`;
 
   return (
-    <tr>
+    <tr hidden={hidden} id={id}>
       <th data-label={t('budget.monthly.recap.accounts.account')} scope="row">
         <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
           {account.label}

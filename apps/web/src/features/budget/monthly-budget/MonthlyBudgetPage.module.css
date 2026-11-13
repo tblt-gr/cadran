@@ -24,12 +24,6 @@
   padding: var(--spacing-8);
 }
 
-.workbook {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--spacing-4);
-}
-
 @media (max-width: 42rem) {
   .routeError {
     padding: var(--spacing-6);

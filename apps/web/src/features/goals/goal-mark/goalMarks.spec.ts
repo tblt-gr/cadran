@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { goalEvaluation, goalPeriod } from './goalEvaluationFixtures';
-import { marksFor, marksTone } from './goalMarks';
+import { goalDefaultsFor, marksFor, marksTone } from './goalMarks';
 
 describe('marksFor', () => {
   const missed = goalEvaluation({ goalId: 'a', label: 'Zeta', status: 'MISSED' });
@@ -31,5 +31,27 @@ describe('marksFor', () => {
     expect(items.map((item) => item.goalId)).toEqual(['a', 'b']);
     expect(marksTone(items)).toBe('negative');
     expect(marksTone([])).toBeNull();
+  });
+});
+
+describe('goalDefaultsFor', () => {
+  it('maps a summary row to the metric and scope of a monthly goal starting that month', () => {
+    expect(goalDefaultsFor('budgetExpenses', '2026-08')).toEqual({
+      periodicity: 'MONTHLY',
+      start: '2026-08',
+      metric: 'TOTAL_SPENDING',
+    });
+    expect(goalDefaultsFor('axis:ESSENTIAL', '2026-08')).toMatchObject({
+      metric: 'AXIS_SPENDING',
+      scopeRef: 'ESSENTIAL',
+    });
+    expect(goalDefaultsFor('category:c1', '2026-08')).toMatchObject({
+      metric: 'CATEGORY_SPENDING',
+      scopeRef: 'c1',
+    });
+  });
+
+  it('offers nothing for a figure no goal can target', () => {
+    expect(goalDefaultsFor('uncategorizedExpenses', '2026-08')).toBeNull();
   });
 });

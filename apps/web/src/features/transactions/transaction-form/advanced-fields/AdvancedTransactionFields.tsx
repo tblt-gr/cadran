@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import type {
@@ -16,8 +15,6 @@ interface AdvancedTransactionFieldsProps {
   /** Offers the rejection of a pending transaction, which only an edit can do. */
   rejectable: boolean;
   showErrors: boolean;
-  /** The split across several categories, closing the section. */
-  split: ReactNode;
   /** Why the state cannot change any more, or `null` while it can. */
   stateLockedHint: string | null;
   /** The date is later this month: the row can only be pending, the hint sits under the date. */
@@ -31,7 +28,7 @@ function filled(field: LabelledField, values: Pick<TransactionFormValues, Labell
 }
 
 /**
- * Counterparty, state, secondary dates, note and the split of a transaction. They stay
+ * Counterparty, state, secondary dates and note of a transaction. They stay
  * folded by default; the summary names those holding a value so nothing is hidden
  * without a trace, and the form opens the section when one of them is invalid.
  */
@@ -42,7 +39,6 @@ export function AdvancedTransactionFields({
   open,
   rejectable,
   showErrors,
-  split,
   stateLockedHint,
   statePlanned = false,
   values,
@@ -52,7 +48,6 @@ export function AdvancedTransactionFields({
     ...LABELLED_FIELDS.filter((field) => filled(field, values)).map((field) =>
       t(`transactions.fields.${field}`),
     ),
-    ...(values.splitMode ? [t('transactions.split.summary')] : []),
   ];
 
   return (
@@ -141,8 +136,6 @@ export function AdvancedTransactionFields({
         />
         {showErrors && errors.note ? <small>{t('transactions.validation.note')}</small> : null}
       </label>
-
-      {split}
     </FormSection>
   );
 }

@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { ColorDot } from '@/components/ui/color-dot/ColorDot';
 import { canonicalGroupColor } from '@/features/accounts/group-color';
+import { CategorySwatch } from '@/features/categories/category-swatch/CategorySwatch';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
+import { categoryIcon } from '@/features/categories/category-icons';
 import { formatAmount, negateDecimal } from '@/lib/decimal';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { MovementDetails } from '@/features/budget/monthly-budget/movement-details/MovementDetails';
@@ -47,11 +48,12 @@ export function LedgerRow({
   const explainable = row.hasMovements || row.pendingCount > 0;
   const pendingOnly = !row.hasMovements && row.pendingCount > 0;
   const amount = renderAmount(row, pendingOnly, kind, language, t);
-  // An account has no color of its own: its dot shows the group it is filed under.
-  const color =
+  // An account has no color of its own: its icon takes the color of the group it is filed under.
+  // A category shows its own mark, as in the category picker: its icon in its colour, else a dot.
+  const groupColor =
     kind === 'account'
       ? canonicalGroupColor((row as MonthlyLedgerAccountRow).primaryGroupColor)
-      : canonicalCategoryColor(category?.color);
+      : null;
   const addDisabled = !actionsAllowed || addUnavailable;
   const disabledReason = !actionsAllowed
     ? t('budget.monthly.closedReason')
@@ -69,7 +71,19 @@ export function LedgerRow({
     <>
       <span className={styles.identity}>
         <span className={styles.name}>
-          <ColorDot color={color} />
+          {/* A category with neither icon nor colour draws nothing, like a missing dot did. */}
+          {category && (categoryIcon(category.icon) || canonicalCategoryColor(category.color)) ? (
+            <CategorySwatch color={category.color} icon={category.icon} />
+          ) : kind === 'account' ? (
+            <span
+              aria-hidden="true"
+              className={styles.accountIcon}
+              data-account-icon
+              style={groupColor ? { color: groupColor } : undefined}
+            >
+              <Icon name="accounts" size={15} />
+            </span>
+          ) : null}
           <span className={styles.labelText} title={row.label}>
             {row.label}
           </span>

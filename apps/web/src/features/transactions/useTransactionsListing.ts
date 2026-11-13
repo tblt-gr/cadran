@@ -1,3 +1,4 @@
+import { BUDGET_CONTEXT_PARAMS } from '@/features/budget/budget-navigation/budgetNavigation';
 import { useQuery } from '@tanstack/react-query';
 import { useTransactionPages } from './transaction-list/useTransactionPages';
 import {
@@ -23,7 +24,7 @@ export function useTransactionsListing() {
     reset: resetFilters,
     revision: filtersRevision,
     setFilters,
-  } = useTransactionFilters();
+  } = useTransactionFilters(BUDGET_CONTEXT_PARAMS);
   const categorization = searchFilters.categorization === 'NONE' ? 'NONE' : 'ALL';
 
   function updateFilters(next: typeof searchFilters, mode?: 'push') {
@@ -56,6 +57,12 @@ export function useTransactionsListing() {
   return {
     ...listing,
     accountOptions,
+    accountContextPending: accounts.isPending || (items.length > 0 && referencedAccounts.isPending),
+    accountContextFailed: accounts.isError || referencedAccounts.isError,
+    retryAccountContext: () => {
+      void accounts.refetch();
+      if (items.length) void referencedAccounts.refetch();
+    },
     accountsPending: accounts.isPending,
     bulkQuery,
     activeAccountOptions,

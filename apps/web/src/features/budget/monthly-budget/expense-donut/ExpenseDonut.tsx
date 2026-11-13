@@ -6,6 +6,7 @@ import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock, SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
+import { CategoryLabel } from '@/features/categories/category-label/CategoryLabel';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { decimalRatioForGeometry, formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
@@ -23,10 +24,27 @@ interface ExpenseDonutProps {
 }
 
 const SKELETON_ROWS = 4;
+/** Rows shown before "Voir plus", like the report's top categories. */
+const VISIBLE_ROWS = 6;
 
-function SliceLabel({ href, text }: { href: string | null; text: string }) {
+function SliceLabel({
+  href,
+  text,
+  color = null,
+  icon = null,
+}: {
+  href: string | null;
+  text: string;
+  color?: string | null;
+  icon?: string | null;
+}) {
   const { t } = useTranslation();
-  if (href === null) return text;
+  const label = (
+    <CategoryLabel color={color} icon={icon}>
+      {text}
+    </CategoryLabel>
+  );
+  if (href === null) return label;
   return (
     <a
       aria-label={t('budget.monthly.expenseDonut.showTransactions', { label: text })}
@@ -34,7 +52,7 @@ function SliceLabel({ href, text }: { href: string | null; text: string }) {
       href={href}
       onClick={(event) => handleClientNavigation(event, href)}
     >
-      {text}
+      {label}
     </a>
   );
 }
@@ -93,14 +111,10 @@ export function ExpenseDonut({ axis, period, rows }: ExpenseDonutProps) {
     );
   }
 
-  const text = (slice: ExpenseSlice) =>
-    slice.grouped
-      ? t('budget.monthly.expenseDonut.other', { count: slice.categoryIds.length })
-      : slice.label;
   const fill = (slice: ExpenseSlice) => canonicalCategoryColor(slice.color) ?? undefined;
   const donutSlices: DonutSlice[] = breakdown.slices.map((slice) => ({
     amountText: formatAmount(slice.amount, breakdown.assetCode, i18n.language),
-    caption: `${text(slice)} · ${formatRatioPercentage(slice.share, i18n.language)}`,
+    caption: `${slice.label} · ${formatRatioPercentage(slice.share, i18n.language)}`,
     fill: fill(slice),
     key: slice.key,
     size: decimalRatioForGeometry(slice.share, '1'),
@@ -117,6 +131,11 @@ export function ExpenseDonut({ axis, period, rows }: ExpenseDonutProps) {
           totalText={formatAmount(breakdown.total, breakdown.assetCode, i18n.language)}
         />
         <AllocationLegend
+          collapse={{
+            count: VISIBLE_ROWS,
+            lessLabel: t('budget.monthly.expenseDonut.showLess'),
+            moreLabel: t('budget.monthly.expenseDonut.showMore'),
+          }}
           items={[
             ...breakdown.slices.map((slice) => ({
               amount: formatAmount(slice.amount, breakdown.assetCode, i18n.language),
@@ -125,8 +144,10 @@ export function ExpenseDonut({ axis, period, rows }: ExpenseDonutProps) {
               key: slice.key,
               label: (
                 <SliceLabel
-                  href={expenseTransactionsHref(slice.categoryIds, period, axis)}
-                  text={text(slice)}
+                  color={slice.color}
+                  href={expenseTransactionsHref([slice.key], period, axis)}
+                  icon={slice.icon}
+                  text={slice.label}
                 />
               ),
               share: formatRatioPercentage(slice.share, i18n.language),

@@ -107,7 +107,10 @@ describe('CategoryTree', () => {
     fireEvent.click(toggleOf('Alimentation'));
 
     const mark = (label: string) =>
-      screen.getByText(label).closest('[data-icon]')?.getAttribute('data-color') ?? null;
+      screen
+        .getByText(label)
+        .parentElement?.querySelector('[data-icon]')
+        ?.getAttribute('data-color') ?? null;
     expect(mark('Alimentation')).toBe('#112233');
     expect(mark('Restaurants')).toBe('#AABBCC');
     expect(mark('Transports')).toBeNull();
@@ -120,7 +123,9 @@ describe('CategoryTree', () => {
     ]);
     fireEvent.click(toggleOf('Parent'));
 
-    const pill = screen.getByText('Enfant').closest('[data-icon]') as HTMLElement;
+    const pill = screen
+      .getByText('Enfant')
+      .parentElement?.querySelector('[data-icon]') as HTMLElement;
     expect(pill.getAttribute('data-icon')).toBe('utensils');
   });
 

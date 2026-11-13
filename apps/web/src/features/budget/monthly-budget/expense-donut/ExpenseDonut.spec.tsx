@@ -1,5 +1,5 @@
 import type { MonthlyLedgerCategoryRow } from '@cadran/api-client';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
 import { ExpenseDonut } from './ExpenseDonut';
@@ -75,16 +75,20 @@ describe('ExpenseDonut', () => {
     ).toBe('FIXED');
   });
 
-  it('groups the smaller categories into "Autres" with the count', () => {
+  it('lists every category, six first, the rest behind "Voir plus" as in the report', () => {
     const rows = [100, 90, 80, 70, 60, 50, 40, 30].map((amount) =>
       row(`00000000-0000-4000-8000-0000000000${amount}`, `Cat ${amount}`, `${amount}.00`),
     );
     render(<ExpenseDonut axis={null} period={period} rows={rows} />);
 
     const list = screen.getByRole('list', { name: 'Dépenses du mois par catégorie' });
+    expect(within(list).getAllByRole('listitem')).toHaveLength(6);
+    expect(screen.queryByText(/Autres/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Voir plus' }));
     const items = within(list).getAllByRole('listitem');
-    expect(items).toHaveLength(7);
-    expect(items[6]!.textContent).toContain('Autres (2 catégories)');
+    expect(items).toHaveLength(8);
+    expect(items[7]!.textContent).toContain('Cat 30');
+    expect(screen.getByRole('button', { name: 'Voir moins' })).toBeTruthy();
   });
 
   it('says so when the month has no budget expense', () => {

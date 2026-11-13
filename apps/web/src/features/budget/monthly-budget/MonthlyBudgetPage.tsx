@@ -1,18 +1,18 @@
+import { MonthlyBudgetRouteError } from './monthly-budget-route-error/MonthlyBudgetRouteError';
+import { MonthlyBudgetHeader } from './monthly-budget-header/MonthlyBudgetHeader';
+import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
+import { MonthlyWorkspace } from './monthly-workspace/MonthlyWorkspace';
 import { readMonthlyLedger } from '@cadran/api-client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
-import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { GoalPanel } from '@/features/goals/goal-panel/GoalPanel';
-import { GoalsPanelButton } from '@/features/goals/goal-panel/GoalsPanelButton';
 import { useGoalPanelOpen } from '@/features/goals/goal-panel/goalPanelSearch';
-import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useIncludeUpcoming } from '@/features/settings/interface/useIncludeUpcoming';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { uncategorizedCountKey } from './useUncategorizedCount';
 import { monthHref, parseBudgetMonth, readAxis, type BudgetAxis } from './budgetPeriod';
@@ -21,15 +21,10 @@ import {
   BudgetCreationModals,
   type BudgetCreationDraft,
 } from './budget-creation-modals/BudgetCreationModals';
-import { ExpenseDonut } from './expense-donut/ExpenseDonut';
-import { LedgerPanels } from './ledger-panels/LedgerPanels';
 import { useBoundedMonth } from './useBoundedMonth';
 import { formatMonthLabel } from '@/lib/monthLabel';
-import { MonthlyBudgetActions } from './monthly-budget-actions/MonthlyBudgetActions';
 import { MonthNavigator } from './month-navigator/MonthNavigator';
-import { MonthlyBudgetPageSkeleton } from './MonthlyBudgetPageSkeleton';
 import { MovementEditModal } from './movement-edit-modal/MovementEditModal';
-import { MonthlyRecap } from './monthly-recap/MonthlyRecap';
 import styles from './MonthlyBudgetPage.module.css';
 
 interface MonthlyBudgetPageProps {
@@ -120,31 +115,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
   );
 
   if (parsed.kind !== 'valid') {
-    return (
-      <section className={`card ${styles.routeError}`} role="alert">
-        <h2>
-          {t(
-            parsed.kind === 'future'
-              ? 'budget.monthly.route.futureTitle'
-              : 'budget.monthly.route.invalidTitle',
-          )}
-        </h2>
-        <p>
-          {t(
-            parsed.kind === 'future'
-              ? 'budget.monthly.route.futureDescription'
-              : 'budget.monthly.route.invalidDescription',
-          )}
-        </p>
-        <a
-          className="secondary-action"
-          href={monthHref(today.slice(0, 7), axis)}
-          onClick={(event) => handleClientNavigation(event, monthHref(today.slice(0, 7), axis))}
-        >
-          {t('budget.monthly.route.recover')}
-        </a>
-      </section>
-    );
+    return <MonthlyBudgetRouteError kind={parsed.kind} href={monthHref(today.slice(0, 7), axis)} />;
   }
 
   const month = parsed.month;
@@ -164,6 +135,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
       queryClient.invalidateQueries({ queryKey: ['monthly-ledger-movements', month] }),
       queryClient.invalidateQueries({ queryKey: ['monthly-recap', month] }),
       queryClient.invalidateQueries({ queryKey: uncategorizedCountKey(month!) }),
+      queryClient.invalidateQueries({ queryKey: ['goal-evaluations'] }),
     ]);
   }
 
@@ -176,20 +148,18 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
     <div className={styles.page}>
       {saved ? <Toast onDismiss={() => setSaved(false)}>{t('budget.monthly.saved')}</Toast> : null}
 
-      <HeaderActions>
-        <GoalsPanelButton
-          buttonRef={goalsButton}
-          onOpen={goalPanel.openPanel}
-          ready={!ledger.isPending}
-          scope={{ kind: 'month', month }}
-        />
-        <MonthlyBudgetActions
-          // Failed bounds keep the ledger disabled, hence pending forever; the closure does not need it.
-          disabled={history.status !== 'error' && ledger.isPending && ledger.data === undefined}
-          month={month}
-          onClosureChanged={() => void refreshMonth()}
-        />
-      </HeaderActions>
+      <MonthlyBudgetHeader
+        ready={!ledger.isPending}
+        actionsDisabled={
+          history.status !== 'error' && ledger.isPending && ledger.data === undefined
+        }
+        month={month}
+        goalsButton={goalsButton}
+        onManage={goalPanel.openPanel}
+        onClosureChanged={() => void refreshMonth()}
+      />
+
+      <BudgetNavigation current="budget" month={month} axis={axis} />
 
       <MonthNavigator
         axis={axis}
@@ -209,9 +179,7 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
         </p>
       ) : null}
 
-      {history.status === 'error' ? null : ledger.isPending && ledger.data === undefined ? (
-        <MonthlyBudgetPageSkeleton axis={axis} status={t('budget.monthly.loading')} />
-      ) : ledger.isError ? (
+      {history.status === 'error' ? null : ledger.isError ? (
         <section className={`card ${styles.routeError}`} role="alert">
           <h2>{t('budget.monthly.error.title')}</h2>
           <p>{monthLabel}</p>
@@ -221,33 +189,16 @@ export function MonthlyBudgetPage({ periodKey, today: injectedToday }: MonthlyBu
           </button>
         </section>
       ) : (
-        <div className={styles.workbook}>
-          <UpcomingNotice
-            includesUpcoming={ledger.data.includesUpcoming}
-            upcomingCount={ledger.data.upcomingCount}
-          />
-          <LedgerPanels
-            activeAccountIds={activeAccountIds}
-            axis={axis}
-            data={ledger.data}
-            language={i18n.language}
-            month={month}
-            expenseRowsPending={ledger.isPlaceholderData}
-            onAxisChange={changeAxis}
-            onDraft={setDraft}
-            onEditTransaction={setEditingTransactionId}
-          />
-          <MonthlyRecap
-            leading={
-              <ExpenseDonut
-                axis={axis}
-                period={{ from: ledger.data.periodStart, to: ledger.data.periodEnd }}
-                rows={ledger.isPlaceholderData ? null : ledger.data.expenseCategories}
-              />
-            }
-            month={month}
-          />
-        </div>
+        <MonthlyWorkspace
+          ledger={ledger.data ?? null}
+          month={month}
+          axis={axis}
+          activeAccountIds={activeAccountIds}
+          expenseRowsPending={ledger.isPlaceholderData}
+          onAxisChange={changeAxis}
+          onDraft={setDraft}
+          onEditTransaction={setEditingTransactionId}
+        />
       )}
 
       <BudgetCreationModals

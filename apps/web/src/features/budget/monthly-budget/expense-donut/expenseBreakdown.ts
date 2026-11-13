@@ -1,24 +1,20 @@
 import type { MonthlyLedgerCategoryRow } from '@cadran/api-client';
 import { compareDecimals, decimalRatio, sumDecimals } from '@/lib/decimal';
 
-/** Categories drawn on their own; the smaller ones are grouped into "Other". */
-const MAX_NAMED_SLICES = 6;
-
 /** Share precision carried to the formatter; the screen rounds it to two digits. */
 const SHARE_SCALE = 8;
 
 export interface ExpenseSlice {
   amount: string;
-  /** Effective category colour, null for the grouped slice or a category without one. */
+  /** Effective category colour, null for a category without one. */
   color: string | null;
-  /** Categories the slice stands for: one, or every grouped one. */
-  categoryIds: string[];
+  /** Effective category icon, null for a category without one. */
+  icon: string | null;
+  /** The category id: every category is its own slice, never grouped. */
   key: string;
   label: string;
   /** Exact ratio of the slice in the month's drawn expenses, in [0, 1]. */
   share: string;
-  /** True for the slice that groups the smaller categories. */
-  grouped: boolean;
 }
 
 /** A budget category the donut cannot draw: its assets are mixed, so it has no amount. */
@@ -77,31 +73,15 @@ export function buildExpenseBreakdown(
       left.row.label.localeCompare(right.row.label, language),
   );
   const total = sumDecimals(drawn.map((item) => item.amount));
-  // A lone remaining category is shown as itself: "Other" always groups at least two.
-  const named = drawn.length > MAX_NAMED_SLICES + 1 ? drawn.slice(0, MAX_NAMED_SLICES) : drawn;
-  const rest = drawn.slice(named.length);
-
-  const slices: ExpenseSlice[] = named.map((item) => ({
+  // Every category keeps its own slice; the legend folds the long tail behind "Voir plus".
+  const slices: ExpenseSlice[] = drawn.map((item) => ({
     amount: item.amount,
-    categoryIds: [item.row.id],
     color: item.row.color,
-    grouped: false,
+    icon: item.row.icon,
     key: item.row.id,
     label: item.row.label,
     share: decimalRatio(item.amount, total, SHARE_SCALE),
   }));
-  if (rest.length > 0) {
-    const amount = sumDecimals(rest.map((item) => item.amount));
-    slices.push({
-      amount,
-      categoryIds: rest.map((item) => item.row.id),
-      color: null,
-      grouped: true,
-      key: 'other',
-      label: '',
-      share: decimalRatio(amount, total, SHARE_SCALE),
-    });
-  }
 
   return { kind: 'ready', assetCode, slices, total, undrawn };
 }

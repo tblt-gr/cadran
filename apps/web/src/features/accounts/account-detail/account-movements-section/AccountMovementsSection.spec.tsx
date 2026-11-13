@@ -36,7 +36,7 @@ describe('AccountMovementsSection loading', () => {
 
     expect(screen.queryByRole('checkbox')).toBeNull();
     expect(
-      (screen.getByRole('button', { name: 'Édition groupée' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Sélectionner' }) as HTMLButtonElement).disabled,
     ).toBe(true);
   });
 });

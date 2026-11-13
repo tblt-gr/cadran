@@ -145,7 +145,7 @@ describe('TransferEditor into a portfolio', () => {
 });
 
 describe('TransferEditor with an account source lock', () => {
-  it('locks the current account, selects the primary destination and focuses it', async () => {
+  it('locks the current account and focuses the explicit destination choice', async () => {
     const primary = { ...portfolio, isPrimary: true };
     const { onSubmit } = setup(primary, [source, primary], {
       bookedOn: '2026-03-10',
@@ -156,7 +156,8 @@ describe('TransferEditor with an account source lock', () => {
     expect(from.value).toBe(source.id);
     expect(from.disabled).toBe(true);
     expect(from.selectedOptions[0]?.textContent).toBe(source.label);
-    expect(to.value).toBe(primary.id);
+    expect(to.value).toBe('');
+    fireEvent.change(to, { target: { value: primary.id } });
     expect(to.disabled).toBe(false);
     expect(Array.from(to.options, (option) => option.value)).not.toContain(source.id);
     await waitFor(() => expect(document.activeElement).toBe(to));

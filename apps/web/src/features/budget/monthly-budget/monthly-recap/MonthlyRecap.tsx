@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useSession } from '@/features/auth/useSession';
 import { AccountRecap } from './account-recap/AccountRecap';
-import { RecapInfo } from './recap-info/RecapInfo';
+import { PendingMark } from './pending-mark/PendingMark';
 import { RecapPreferencesModal } from './recap-preferences/RecapPreferencesModal';
 import { TotalsCard } from './totals-card/TotalsCard';
 import { useMonthlyRecap, useRecapPreferences } from './useMonthlyRecap';
@@ -12,15 +12,31 @@ import { WealthCard } from './wealth-card/WealthCard';
 import { MonthlyRecapSkeleton, TotalsCardPlaceholder } from './MonthlyRecapSkeleton';
 import styles from './MonthlyRecap.module.css';
 
-export function MonthlyRecap({ month, leading }: { month: string; leading?: ReactNode }) {
+export function MonthlyRecap({
+  month,
+  leading,
+  announce = true,
+  enabled = true,
+}: {
+  month: string;
+  leading?: ReactNode;
+  announce?: boolean;
+  enabled?: boolean;
+}) {
   const { i18n, t } = useTranslation();
-  const recap = useMonthlyRecap(month);
+  const recap = useMonthlyRecap(month, undefined, enabled);
   const preferences = useRecapPreferences();
   const session = useSession();
   const [editingPreferences, setEditingPreferences] = useState(false);
   const owner = session.data?.workspace?.role === 'OWNER';
   if (recap.isPending && recap.data === undefined)
-    return <MonthlyRecapSkeleton leading={leading} status={t('budget.monthly.recap.loading')} />;
+    return (
+      <MonthlyRecapSkeleton
+        leading={leading}
+        status={t('budget.monthly.recap.loading')}
+        announce={announce}
+      />
+    );
   if (recap.isError || !recap.data)
     return (
       <div className={styles.recap}>
@@ -71,7 +87,7 @@ export function MonthlyRecap({ month, leading }: { month: string; leading?: Reac
             </section>
           ) : (
             <TotalsCard
-              info={<RecapInfo pending={data.state === 'PENDING'} policy={data.metricPolicy} />}
+              info={<PendingMark pending={data.state === 'PENDING'} />}
               month={month}
               onConfigure={() => setEditingPreferences(true)}
               owner={owner}

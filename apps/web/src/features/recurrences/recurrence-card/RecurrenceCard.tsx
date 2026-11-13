@@ -3,41 +3,29 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
+import { RecurrenceAmount } from '@/features/recurrences/recurrence-row/RecurrenceAmount';
+import styles from '@/features/recurrences/recurrence-row/RecurrenceRow.module.css';
+import { RecurrenceRow } from '@/features/recurrences/recurrence-row/RecurrenceRow';
 import { useRecurrenceCategory } from '@/features/recurrences/useRecurrenceCategory';
-import { formatAmount, formatCalendarDay } from '@/lib/decimal';
-import styles from './RecurrenceCard.module.css';
+import { formatCalendarDay } from '@/lib/decimal';
 
 interface RecurrenceCardProps {
+  /** The row menu of the recurrence. */
   actions: ReactNode;
   recurrence: Recurrence;
 }
 
+/** One confirmed schedule as a line: label, rhythm, amount and next date, then its menu. */
 export function RecurrenceCard({ actions, recurrence }: RecurrenceCardProps) {
   const { i18n, t } = useTranslation();
   const category = useRecurrenceCategory(recurrence.autoCreate ? recurrence.categoryId : null);
 
   return (
-    <article className={`card ${styles.schedule}`}>
-      <div>
-        <h4>{recurrence.label}</h4>
-        <p>
-          {t(`recurrences.intervals.${recurrence.intervalKind}`)} ·{' '}
-          {formatAmount(
-            recurrence.expectedAmount.value,
-            recurrence.expectedAmount.assetCode,
-            i18n.language,
-          )}
-        </p>
-        <small>
-          {t('recurrences.confirmed.next', {
-            date: formatCalendarDay(recurrence.nextExpectedOn, i18n.language),
-          })}
-        </small>
-        {recurrence.autoCreate ? (
-          <div className={styles.badges}>
-            <StatusBadge icon="repeat" tone="info">
-              {t('recurrences.confirmed.automatic')}
-            </StatusBadge>
+    <RecurrenceRow
+      actions={actions}
+      aside={
+        recurrence.autoCreate ? (
+          <>
             {category ? (
               <CategoryIdentity
                 color={category.effectiveColor}
@@ -45,10 +33,28 @@ export function RecurrenceCard({ actions, recurrence }: RecurrenceCardProps) {
                 label={category.label}
               />
             ) : null}
-          </div>
-        ) : null}
-      </div>
-      <div className={styles.scheduleActions}>{actions}</div>
-    </article>
+            <StatusBadge icon="repeat" tone="info">
+              {t('recurrences.confirmed.automatic')}
+            </StatusBadge>
+          </>
+        ) : null
+      }
+      meta={
+        <>
+          {t(`recurrences.intervals.${recurrence.intervalKind}`)} ·{' '}
+          <RecurrenceAmount
+            assetCode={recurrence.expectedAmount.assetCode}
+            value={recurrence.expectedAmount.value}
+          />{' '}
+          ·{' '}
+          <span className={styles.next}>
+            {t('recurrences.confirmed.next', {
+              date: formatCalendarDay(recurrence.nextExpectedOn, i18n.language),
+            })}
+          </span>
+        </>
+      }
+      title={recurrence.label}
+    />
   );
 }

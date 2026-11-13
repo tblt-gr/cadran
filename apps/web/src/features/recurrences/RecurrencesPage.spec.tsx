@@ -140,6 +140,13 @@ function renderPage() {
   };
 }
 
+/** Opens the first row menu, then picks one of its actions. */
+async function chooseAction(name: RegExp) {
+  const triggers = await screen.findAllByRole('button', { name: /^Actions pour/ });
+  fireEvent.click(triggers[0]!);
+  fireEvent.click(await screen.findByRole('button', { name }));
+}
+
 describe('RecurrencesPage', () => {
   beforeEach(() => {
     api.listCategories.mockImplementation(() =>
@@ -196,7 +203,7 @@ describe('RecurrencesPage', () => {
     expect(screen.queryByTestId('recurrences-skeleton')).toBeNull();
   });
 
-  it('explains that a no-candidate scan leaves the books untouched', async () => {
+  it('draws no suggestion section when the scan finds nothing', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
     api.listRecurrences.mockImplementation(() =>
       success({ items: [], page: 1, pageSize: 100, total: 0 }),
@@ -207,9 +214,10 @@ describe('RecurrencesPage', () => {
     renderPage();
 
     expect(
-      await screen.findByRole('heading', { name: 'Aucune proposition à confirmer' }),
+      await screen.findByRole('heading', { name: 'Aucune récurrence confirmée' }),
     ).toBeTruthy();
-    expect(screen.getByText(/n’est comptée dans aucun total enregistré/)).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Mouvements réguliers détectés' })).toBeNull();
+    expect(screen.queryByText(/Aucune proposition à confirmer/)).toBeNull();
     expect(screen.getByRole('heading', { name: 'Aucune récurrence confirmée' })).toBeTruthy();
   });
 
@@ -228,7 +236,7 @@ describe('RecurrencesPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    await chooseAction(/^Confirmer/);
     expect(screen.getByRole('dialog', { name: 'Nouvelle récurrence' })).toBeTruthy();
     expect(screen.getByText('Création')).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
@@ -241,6 +249,44 @@ describe('RecurrencesPage', () => {
       expectedAmount: '-14.99',
       intervalKind: 'MONTHLY',
     });
+    // The detection still answers with the candidate, yet it is no longer a suggestion.
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Nouvelle récurrence' })).toBeNull(),
+    );
+    expect(screen.queryByRole('button', { name: /^Actions pour Netflix/ })).toBeNull();
+    expect(
+      await screen.findByRole('heading', { name: 'Aucune récurrence confirmée' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Mouvements réguliers détectés' })).toBeNull();
+  });
+
+  it('colours the amount red for an expense and green for an income', async () => {
+    api.detectRecurrenceCandidates.mockImplementation(() =>
+      success({ items: [candidate], partial: false }),
+    );
+    api.listRecurrences.mockImplementation(() =>
+      success({
+        items: [
+          {
+            ...archivedRecurrence,
+            archivedAt: null,
+            label: 'Salaire',
+            expectedAmount: { value: '2450.00', assetCode: 'EUR' },
+          },
+        ],
+        page: 1,
+        pageSize: 100,
+        total: 1,
+      }),
+    );
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 100, total: 1 }),
+    );
+    renderPage();
+
+    await screen.findByText('Salaire');
+    expect(document.querySelector('[data-sign="outflow"]')?.textContent).toMatch(/14,99/);
+    expect(document.querySelector('[data-sign="inflow"]')?.textContent).toMatch(/2\s?450,00/);
   });
 
   it('types a recurring expense without its minus and submits it negative', async () => {
@@ -258,7 +304,7 @@ describe('RecurrencesPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    await chooseAction(/^Confirmer/);
     const amount = screen.getByLabelText('Montant attendu') as HTMLInputElement;
     expect(amount.value).toBe('14.99');
     expect((screen.getByLabelText('Sens') as HTMLSelectElement).value).toBe('OUTFLOW');
@@ -292,7 +338,7 @@ describe('RecurrencesPage', () => {
         success({ items: [account], page: 1, pageSize: 100, total: 1 }),
       );
       renderPage();
-      fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+      await chooseAction(/^Confirmer/);
       fireEvent.change(screen.getByLabelText('Sens'), { target: { value: '' } });
       fireEvent.change(screen.getByLabelText('Montant attendu'), {
         target: { value: unknownAmount },
@@ -323,7 +369,7 @@ describe('RecurrencesPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    await chooseAction(/^Confirmer/);
     fireEvent.change(screen.getByLabelText('Sens'), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText('Montant attendu'), { target: { value: '0' } });
     fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
@@ -352,7 +398,7 @@ describe('RecurrencesPage', () => {
       .mockImplementation(({ body }) => success({ id: 'recurrence', ...body }, 201));
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    await chooseAction(/^Confirmer/);
     fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     await waitFor(() => expect(api.confirmRecurrence).toHaveBeenCalledTimes(1));
@@ -385,7 +431,7 @@ describe('RecurrencesPage', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les récurrences archivées' }));
     expect(await screen.findByRole('heading', { name: 'Récurrences archivées' })).toBeTruthy();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Voir les échéances' }));
+    await chooseAction(/^Voir les échéances/);
     expect(await screen.findByRole('dialog', { name: 'Échéances de Netflix' })).toBeTruthy();
     expect(screen.queryByRole('dialog', { name: 'Nouvelle récurrence' })).toBeNull();
   });
@@ -415,7 +461,7 @@ describe('RecurrencesPage', () => {
     await waitFor(() => expect(screen.queryByTestId('recurrences-skeleton')).toBeNull());
 
     fireEvent.click(await screen.findByRole('button', { name: 'Voir les récurrences archivées' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Restaurer' }));
+    await chooseAction(/^Restaurer/);
 
     await waitFor(() =>
       expect(api.restoreRecurrence).toHaveBeenCalledWith(
@@ -444,7 +490,7 @@ describe('RecurrencesPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    await chooseAction(/^Confirmer/);
     const auto = screen.getByRole('checkbox', {
       name: 'Créer automatiquement les transactions',
     }) as HTMLInputElement;
@@ -488,7 +534,7 @@ describe('RecurrencesPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Confirmer' }));
+    await chooseAction(/^Confirmer/);
     fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
@@ -514,7 +560,7 @@ describe('RecurrencesPage', () => {
     api.updateRecurrence.mockImplementation(({ body }) => success({ ...autoRecurrence, ...body }));
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+    await chooseAction(/^Modifier/);
     expect(
       (
         screen.getByRole('checkbox', {
@@ -560,7 +606,7 @@ describe('RecurrencesPage', () => {
     api.updateRecurrence.mockImplementation(({ body }) => success({ ...autoRecurrence, ...body }));
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+    await chooseAction(/^Modifier/);
     expect(((await screen.findByLabelText('Catégorie')) as HTMLInputElement).value).toBe(
       'Logement',
     );
@@ -609,7 +655,7 @@ describe('RecurrencesPage', () => {
     const { queryClient } = renderPage();
     const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Modifier' }));
+    await chooseAction(/^Modifier/);
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
 
     await waitFor(() => expect(api.updateRecurrence).toHaveBeenCalledOnce());

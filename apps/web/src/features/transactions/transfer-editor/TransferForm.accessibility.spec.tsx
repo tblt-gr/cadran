@@ -81,6 +81,9 @@ function validTransfer() {
       <TransferForm accounts={accounts} onSubmit={onSubmit} pending={false} submitError={null} />
     </QueryClientProvider>,
   );
+  fireEvent.change(screen.getByLabelText('Compte de destination'), {
+    target: { value: accounts[1]!.id },
+  });
   fireEvent.change(screen.getByLabelText('Montant (EUR)'), { target: { value: '25.00' } });
   fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
   return onSubmit;
