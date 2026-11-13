@@ -706,6 +706,21 @@ describe('PortfolioAccountPage', () => {
     );
   });
 
+  it('makes the valuation the primary action on the Valorisations tab and moves the operation into the menu', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=valuations`);
+    api.listPortfolioValuations.mockImplementation(() =>
+      ok({ items: [], page: 1, pageSize: 24, total: 0 }),
+    );
+    renderPage();
+    await screen.findByText('Aucune valorisation');
+
+    expect(screen.getAllByRole('button', { name: /^Nouvelle valorisation/ })).toHaveLength(1);
+    expect(screen.getByRole('button', { name: 'Nouvelle valorisation' })).toBeTruthy();
+    expect(menuItem(/^Nouvelle opération/).disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
+    expect(await screen.findByRole('dialog', { name: 'Nouvelle valorisation' })).toBeTruthy();
+  });
+
   it('opens a new valuation from the header on the Valorisations tab', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
     api.readPortfolioSummary.mockImplementation(() =>

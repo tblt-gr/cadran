@@ -157,6 +157,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         onTakeover={takeoverState ? () => setCreating('takeover') : undefined}
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
+        valuationPrimary={shown === 'valuations'}
       />
       {current.status !== 'ACTIVE' ? (
         <p className={styles.notice} role="status">
