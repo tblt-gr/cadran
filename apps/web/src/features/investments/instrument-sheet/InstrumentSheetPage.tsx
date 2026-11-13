@@ -1,3 +1,4 @@
+import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useState } from 'react';
 import { useBreadcrumbAccount } from '@/components/layout/breadcrumb/BreadcrumbContext';
 import { InstrumentEditorModal } from '@/features/investments/instruments/instrument-editor-modal/InstrumentEditorModal';
@@ -23,6 +24,7 @@ export function InstrumentSheetPage({ instrumentId }: { instrumentId: string }) 
     data?.instrument.name ?? null,
     pending,
   );
+  if (notFound) return <PlaceholderPage />;
   return (
     <div className={styles.page} aria-busy={pending}>
       <InstrumentSheetHeader
@@ -36,10 +38,6 @@ export function InstrumentSheetPage({ instrumentId }: { instrumentId: string }) 
       ) : null}
       {pending ? (
         <InstrumentSheetPageSkeleton />
-      ) : notFound ? (
-        <section className="card">
-          <h2>Instrument introuvable</h2>
-        </section>
       ) : query.isError ? (
         <section className="card">
           <p role="alert">La fiche est indisponible.</p>

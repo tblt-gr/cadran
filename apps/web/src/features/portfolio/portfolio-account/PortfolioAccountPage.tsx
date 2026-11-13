@@ -1,3 +1,4 @@
+import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
 import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { AccountTab } from './account-tab/AccountTab';
@@ -5,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { usePortfolioSourceReturnFocus } from './usePortfolioSourceReturnFocus';
 import { PortfolioAccountTabContent, type PortfolioCreation } from './PortfolioAccountTabContent';
-import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { clearPortfolioDetailSelection } from './portfolioDetailLocation';
@@ -102,7 +102,6 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       <PortfolioAccountPageSkeleton
         accountId={accountId}
         asOf={asOf}
-        today={today}
         status="Chargement du portefeuille…"
       />
     );
@@ -110,17 +109,13 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
 
   if (account.isError) {
     const status = account.error instanceof AccountRequestError ? account.error.status : 0;
-    const notFound = status === 404 || status === 403;
+    if (status === 404 || status === 403) return <PlaceholderPage />;
     return (
       <section className={`card ${styles.routeState}`} role="alert">
-        <h2>{notFound ? 'Compte introuvable' : 'Le portefeuille est indisponible'}</h2>
-        {notFound ? (
-          <p>Ce compte n’existe pas ou n’est pas accessible dans cet espace.</p>
-        ) : (
-          <button className="secondary-action" onClick={() => void account.refetch()} type="button">
-            Réessayer
-          </button>
-        )}
+        <h2>Le portefeuille est indisponible</h2>
+        <button className="secondary-action" onClick={() => void account.refetch()} type="button">
+          Réessayer
+        </button>
       </section>
     );
   }
@@ -131,24 +126,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
 
   return (
     <div className={styles.page}>
-      <PortfolioTabs
-        accountId={accountId}
-        active={shown}
-        asOf={asOf}
-        kind={current.kind}
-        tools={
-          shown !== 'operations' && shown !== 'performance' ? (
-            <BusinessDateField
-              compact
-              hint={null}
-              label="Situation au"
-              onChange={changeDate}
-              today={today}
-              value={asOf}
-            />
-          ) : null
-        }
-      />
+      <PortfolioTabs accountId={accountId} active={shown} asOf={asOf} kind={current.kind} />
       <PortfolioAccountHeader
         account={current}
         accountId={accountId}

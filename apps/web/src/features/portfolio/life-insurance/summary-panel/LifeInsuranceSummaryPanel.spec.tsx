@@ -44,12 +44,7 @@ function mount(frozen = false) {
 }
 it('preserves destination headings and known labels while frozen without requesting data', () => {
   mount(true);
-  for (const title of [
-    'Répartition',
-    'Supports du contrat',
-    'Qualité des données',
-    'Montants cumulés enregistrés',
-  ])
+  for (const title of ['Répartition', 'Supports du contrat', 'Montants cumulés enregistrés'])
     expect(screen.getByRole('heading', { name: title })).toBeTruthy();
   expect(screen.getAllByText('Fonds en euros').length).toBeGreaterThan(0);
   expect(screen.getByRole('rowheader', { name: 'Versements bruts' })).toBeTruthy();

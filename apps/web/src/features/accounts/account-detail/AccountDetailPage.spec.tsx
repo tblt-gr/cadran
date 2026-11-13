@@ -856,7 +856,8 @@ describe('AccountDetailPage', () => {
     await waitFor(() =>
       expect(screen.queryAllByRole('heading', { name: account.label })).toHaveLength(0),
     );
-    expect(screen.getByRole('alert')).toBeTruthy();
+    if (status === 401) expect(screen.getByRole('alert')).toBeTruthy();
+    else expect(screen.getByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
   });
 
@@ -976,7 +977,7 @@ describe('AccountDetailPage', () => {
     api.readAccount.mockImplementation(() => failure(404));
     renderPage('00000000-0000-7000-8000-000000000fff');
 
-    expect((await screen.findByRole('alert')).textContent).toMatch('Compte introuvable');
+    expect(await screen.findByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
     expect(screen.queryByText('Livret A Banque X')).toBeNull();
   });
 
@@ -984,7 +985,7 @@ describe('AccountDetailPage', () => {
     api.readAccount.mockImplementation(() => failure(403));
     renderPage();
 
-    expect((await screen.findByRole('alert')).textContent).toMatch('Compte introuvable');
+    expect(await screen.findByRole('heading', { name: 'Page introuvable' })).toBeTruthy();
   });
 
   it('keeps an archived account linkable and readable, with creation explained as unavailable', async () => {

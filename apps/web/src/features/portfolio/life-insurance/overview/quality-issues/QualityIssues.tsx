@@ -1,6 +1,6 @@
 import { capturePortfolioSource } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { RefObject } from 'react';
-import { SkeletonText } from '@/components/ui/skeleton/Skeleton';
+import { Icon } from '@/components/ui/icon/Icon';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import {
   sourceHref,
@@ -24,43 +24,38 @@ export function QualityIssues({
   accountId: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  if (!summary || summary.qualityIssues.length === 0) return null;
   return (
-    <section className={`card ${styles.card}`} aria-busy={!summary}>
-      <h3>Qualité des données</h3>
-      {!summary ? (
-        <SkeletonText />
-      ) : summary.qualityIssues.length === 0 ? (
-        <p>Aucun point de qualité signalé.</p>
-      ) : (
-        <ul>
-          {summary.qualityIssues.map((issue) => (
-            <li key={issue.code}>
-              <p>
-                {sentences[issue.code]} ({issue.count})
-              </p>
-              {issue.operationIds.map((id, index) => {
-                const href = sourceHref(accountId, summary.asOf, 'OPERATION', id);
-                return (
-                  <a
-                    key={id}
-                    href={href}
-                    data-quality-source-key={`${issue.code}:${id}`}
-                    onClick={(event) => {
-                      capturePortfolioSource(event.currentTarget, sourceReturnFocus);
-                      handleClientNavigation(event, href);
-                    }}
-                  >
-                    Opération {index + 1}
-                  </a>
-                );
-              })}
-              {issue.count > issue.operationIds.length && issue.operationIds.length > 0 ? (
-                <p>{issue.count - issue.operationIds.length} autres opérations concernées</p>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-      )}
+    <section className={styles.alert} role="status" aria-label="Qualité des données">
+      <Icon name="alert" size={18} />
+      <ul>
+        {summary.qualityIssues.map((issue) => (
+          <li key={issue.code}>
+            <p>
+              {sentences[issue.code]} ({issue.count})
+            </p>
+            {issue.operationIds.map((id, index) => {
+              const href = sourceHref(accountId, summary.asOf, 'OPERATION', id);
+              return (
+                <a
+                  key={id}
+                  href={href}
+                  data-quality-source-key={`${issue.code}:${id}`}
+                  onClick={(event) => {
+                    capturePortfolioSource(event.currentTarget, sourceReturnFocus);
+                    handleClientNavigation(event, href);
+                  }}
+                >
+                  Opération {index + 1}
+                </a>
+              );
+            })}
+            {issue.count > issue.operationIds.length && issue.operationIds.length > 0 ? (
+              <p>{issue.count - issue.operationIds.length} autres opérations concernées</p>
+            ) : null}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -476,8 +476,8 @@
       "title": "Valeur non disponible"
     },
     "placeholder": {
-      "description": "Cette route est prête à accueillir son prochain module métier.",
-      "title": "Fonctionnalité à venir"
+      "description": "Cette adresse ne correspond à aucune page de Cadran.",
+      "title": "Page introuvable"
     },
     "stale": {
       "description": "Le dernier solde connu date du {{date}}.",
@@ -2097,7 +2097,7 @@
   "settings": {
     "loading": "Chargement du profil…",
     "interface": {
-      "title": "Chiffres du mois",
+      "title": "Affichage des chiffres",
       "loading": "Chargement des préférences d’interface…",
       "includeUpcoming": {
         "label": "Inclure les transactions à venir dans les chiffres du mois en cours",

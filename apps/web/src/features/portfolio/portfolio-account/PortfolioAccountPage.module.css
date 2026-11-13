@@ -4,12 +4,6 @@
   font-size: var(--font-size-body);
   gap: var(--spacing-6);
 }
-.frozenField {
-  min-width: 0;
-  margin: var(--spacing-none);
-  padding: var(--spacing-none);
-  border: var(--border-none);
-}
 .routeState {
   display: flex;
   align-items: flex-start;

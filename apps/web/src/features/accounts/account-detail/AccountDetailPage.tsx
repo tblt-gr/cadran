@@ -1,3 +1,4 @@
+import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
 import { useAccountHeader } from '@/features/accounts/account-header/useAccountHeader';
 import { AccountNavigation, activeAccountTab } from './AccountNavigation';
 import type { Account } from '@cadran/api-client';
@@ -105,8 +106,8 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   const accessDenied = failure !== null && [401, 403, 404].includes(failure.status);
 
   if (!account.data || (account.isError && accessDenied)) {
-    const notFound = failure?.status === 404 || failure?.status === 403;
-    const key = notFound ? 'notFound' : failure?.status === 401 ? 'unauthorized' : 'error';
+    if (failure?.status === 404 || failure?.status === 403) return <PlaceholderPage />;
+    const key = failure?.status === 401 ? 'unauthorized' : 'error';
 
     return (
       <section className={`card ${styles.routeState}`} role="alert">

@@ -37,3 +37,8 @@
   width: 8rem;
   margin-left: var(--spacing-auto);
 }
+.hintSkeleton {
+  display: inline-block;
+  width: 6rem;
+  height: 1em;
+}

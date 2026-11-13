@@ -1,7 +1,9 @@
+import { Icon } from '@/components/ui/icon/Icon';
 import type { LifeInsuranceFeeTerms } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { formatAmount, formatDecimal, formatCalendarNumericDay } from '@/lib/decimal';
+import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
+import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
 import styles from './FeeTermsCard.module.css';
 export function FeeTermsCard({
   items = [],
@@ -18,10 +20,24 @@ export function FeeTermsCard({
 }) {
   const percent = (value: string | null) =>
     value === null ? <EmptyValue label="Non renseigné" /> : `${formatDecimal(value, 'fr-FR')} %`;
+  const latest = items.reduce<string | null>(
+    (date, item) => (date === null || item.validFrom > date ? item.validFrom : date),
+    null,
+  );
   return (
-    <section className={`card ${styles.card}`} aria-label="Barèmes de frais">
-      <header className={styles.heading}>
-        <h3>Barèmes de frais</h3>
+    <ContractSection
+      title="Barèmes de frais"
+      label="Barèmes de frais"
+      hint={
+        loading ? (
+          <SkeletonBlock className={styles.hintSkeleton} />
+        ) : latest ? (
+          `dernier barème du ${formatCalendarNumericDay(latest)}`
+        ) : (
+          'Aucun barème'
+        )
+      }
+      action={
         <button
           className="secondary-action"
           type="button"
@@ -30,7 +46,8 @@ export function FeeTermsCard({
         >
           Ajouter un barème
         </button>
-      </header>
+      }
+    >
       <div className={styles.scroll} role="region" aria-label="Barèmes de frais" tabIndex={0}>
         <table className={styles.table}>
           <thead>
@@ -76,13 +93,13 @@ export function FeeTermsCard({
                   <td>{item.sourceNote ?? <EmptyValue label="Non renseigné" />}</td>
                   <td>
                     <button
-                      className="secondary-action"
+                      className="icon-ghost"
                       type="button"
                       disabled={!writable}
                       aria-label={`Supprimer le barème du ${formatCalendarNumericDay(item.validFrom)}`}
                       onClick={() => onRemove(item.id)}
                     >
-                      Supprimer
+                      <Icon name="delete" size={16} />
                     </button>
                   </td>
                 </tr>
@@ -92,6 +109,6 @@ export function FeeTermsCard({
         </table>
       </div>
       {!loading && items.length === 0 ? <p>Aucun barème de frais renseigné.</p> : null}
-    </section>
+    </ContractSection>
   );
 }
