@@ -17,11 +17,12 @@
   display: flex;
   align-items: center;
   color: var(--text-primary);
-  font-size: var(--font-size-body);
-  gap: var(--spacing-2);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-3);
 }
 
 .hint {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
   line-height: var(--line-height-body);
 }

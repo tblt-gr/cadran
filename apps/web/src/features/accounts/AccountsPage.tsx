@@ -2,12 +2,13 @@ import type { Account } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGroupingMode } from './grouping-mode/useGroupingMode';
+import { useAccountsView } from './accounts-view/accountsView';
+import { AccountsViewSwitch } from './accounts-view/AccountsViewSwitch';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
 import { AccountsPageActions } from './accounts-page-actions/AccountsPageActions';
 import { AccountOverview } from './account-overview/AccountOverview';
-import { PortfolioPerformanceNotice } from './portfolio-performance-notice/PortfolioPerformanceNotice';
 import { useLiveAccount } from './useLiveAccount';
 import { useAccountsPageMutations } from './useAccountsPageMutations';
 import styles from './AccountsPage.module.css';
@@ -20,6 +21,7 @@ export function AccountsPage() {
   const [includeArchived, setIncludeArchived] = useState(false);
   const [reordering, setReordering] = useState(false);
   const [grouping, setGrouping] = useGroupingMode('cadran.accounts.grouping', 'PARENT');
+  const [view, setView] = useAccountsView();
   const [editor, setEditor] = useState<Editor>(null);
   const [archiving, setArchiving] = useState<Account | null>(null);
   const [inspecting, setInspecting] = useState<Account | null>(null);
@@ -92,13 +94,12 @@ export function AccountsPage() {
         onIncludeClosedChange={setIncludeClosed}
         onToggleReordering={() => setReordering((current) => !current)}
         reordering={reordering}
+        view={view}
       />
 
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.toasts.${saved}`)}</Toast>
       ) : null}
-
-      <PortfolioPerformanceNotice />
 
       <AccountsPageModals
         archive={archive}
@@ -134,6 +135,10 @@ export function AccountsPage() {
         </p>
       ) : null}
 
+      <div className={styles.view}>
+        <AccountsViewSwitch onChange={setView} value={view} />
+      </div>
+
       <AccountOverview
         grouping={grouping}
         includeArchived={includeArchived}
@@ -149,6 +154,7 @@ export function AccountsPage() {
         }}
         onRules={setInspecting}
         reordering={reordering}
+        view={view}
       />
     </div>
   );

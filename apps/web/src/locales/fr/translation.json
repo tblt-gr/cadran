@@ -549,6 +549,12 @@
         "NEGATIVE_COMPONENT": "Le graphique n'est pas affiché : une composante négative fausserait la lecture des parts."
       }
     },
+    "view": {
+      "label": "Affichage des comptes",
+      "grouped": "Par groupe",
+      "all": "Tous les comptes",
+      "allCaption": "Tous les comptes"
+    },
     "grouping": {
       "toggle": "Détailler par sous-groupe",
       "parent": "Groupe parent",
@@ -2592,6 +2598,7 @@
       "loadedCount_other": "{{count}} mouvements chargés (chargement n°{{sequence}})."
     },
     "transfer": {
+      "balanceAfter": "Solde après opération : {{amount}}",
       "title": "Nouveau virement",
       "notice": "Un virement déplace de l’argent entre deux comptes : il ne compte ni comme dépense, ni comme revenu.",
       "fields": {

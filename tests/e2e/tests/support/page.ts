@@ -36,3 +36,12 @@ export function movementRows(page: Page, label: string | RegExp): Locator {
     .filter({ hasText: label })
     .filter({ hasNot: page.getByRole('heading') });
 }
+
+/** Picks an account in a select whose options read `Name - balance`. */
+export async function selectAccount(select: Locator, name: string): Promise<void> {
+  const option = select.locator('option', { hasText: new RegExp(`^${name}( · |$)`) }).first();
+  await select.selectOption((await option.getAttribute('value'))!);
+}
+
+/** The text of an account option, which carries its balance after the name. */
+export const accountOptionText = (name: string): RegExp => new RegExp(`^${name}( · .*)?$`);

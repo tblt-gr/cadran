@@ -1,3 +1,4 @@
+import { shadeSeries } from '@/lib/shadeSeries';
 import type { AccountGroupComposition, NetWorthAmount, NetWorthShare } from '@cadran/api-client';
 
 /** One slice and table row, whichever view it comes from. */
@@ -26,9 +27,11 @@ export function subgroupEntries(
   }));
 }
 
+/** Each account takes its own shade of the group colour, so the slices read as several accounts. */
 export function accountEntries(composition: AccountGroupComposition): CompositionEntry[] {
-  return composition.byAccount.map((entry) => ({
-    color: entry.color,
+  const shades = shadeSeries(composition.byAccount[0]?.color, composition.byAccount.length);
+  return composition.byAccount.map((entry, index) => ({
+    color: shades[index] ?? entry.color,
     institution: entry.institution,
     key: entry.id,
     label: entry.label,

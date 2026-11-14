@@ -97,6 +97,7 @@ function renderOverview(
         includeArchived={props.includeArchived ?? false}
         includeClosed={props.includeClosed ?? false}
         reordering={props.reordering ?? true}
+        view="grouped"
         {...handlers}
       />
     </QueryClientProvider>,
@@ -421,8 +422,8 @@ describe('AccountOverview', () => {
 
     const heading = await screen.findByRole('heading', { name: /Épargne/ });
     await waitFor(() =>
-      expect(heading.querySelector('[data-color-dot] circle')?.getAttribute('fill')).toBe(
-        '#AABBCC',
+      expect((heading.querySelector('[data-group-marker]') as HTMLElement).style.color).toBe(
+        'rgb(170, 187, 204)',
       ),
     );
   });
@@ -468,29 +469,6 @@ describe('AccountOverview', () => {
     renderOverview({ grouping: 'PRIMARY' });
 
     expect(await screen.findByRole('heading', { name: /Bourse \(Investissement\)/ })).toBeTruthy();
-  });
-
-  it('shows the sub-group of a row with its parent under the account name', async () => {
-    api.readAccountOverview.mockImplementation(() =>
-      success(buildOverview([buildHeading({ label: 'Investissement' })])),
-    );
-    api.readAccountOverviewRows.mockImplementation(() =>
-      rows([
-        inGroup(A, 'PEA', {
-          primaryGroupLabel: 'Bourse',
-          primaryGroupParentLabel: 'Investissement',
-        }),
-        inGroup(B, 'Livret'),
-      ]),
-    );
-    renderOverview();
-
-    const cell = (await screen.findByText('PEA')).closest('th')!;
-    expect(within(cell).getByText('Bourse')).toBeTruthy();
-    expect(cell.textContent).toContain('(Investissement)');
-    expect(cell.querySelector('[data-group-marker]')).not.toBeNull();
-    const plain = screen.getByText('Livret').closest('th')!;
-    expect(plain.querySelector('[data-group-marker]')).toBeNull();
   });
 
   it('stops the move controls at the boundary between two primary groups', async () => {

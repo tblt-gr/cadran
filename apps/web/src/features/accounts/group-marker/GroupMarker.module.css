@@ -12,3 +12,21 @@
   margin-right: var(--spacing-2);
   border-radius: var(--radius-circle);
 }
+
+/* The group colour as a soft tint behind its icon rather than a bare dot: the colour and its tint
+   are set inline from the group's canonical colour. */
+.tile,
+.tileSkeleton {
+  display: inline-grid;
+  flex-shrink: 0;
+  width: var(--spacing-6);
+  height: var(--spacing-6);
+  place-items: center;
+  border-radius: var(--radius-control);
+}
+
+.tileFill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}

@@ -42,7 +42,7 @@ export function AccountGroupHeading({
     <header className={styles.heading}>
       <div className={styles.identity}>
         <h2 className={styles.title} id={headingId}>
-          <GroupMarker color={group?.resolvedColor} pending={group === null} />
+          <GroupMarker color={group?.resolvedColor} pending={group === null} tile />
           <span>{name ?? <SkeletonBlock className={styles.nameSkeleton} />}</span>
           {group?.parentLabel ? (
             <>

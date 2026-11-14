@@ -17,10 +17,11 @@ export function AccountsPageSkeleton({ status }: { status: string }) {
   return (
     <div aria-busy="true" className={overviewStyles.overview} data-testid="accounts-page-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <section aria-labelledby={headingId} className={groupStyles.group}>
+      <section aria-labelledby={headingId} className={`card ${groupStyles.group}`}>
         <AccountGroupHeading group={null} headingId={headingId} />
         <AccountList
           accounts={null}
+          bare
           label={t('accounts.list.caption')}
           onArchive={noop}
           onEdit={noop}

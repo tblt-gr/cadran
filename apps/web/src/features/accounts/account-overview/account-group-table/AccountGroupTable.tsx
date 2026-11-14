@@ -80,7 +80,7 @@ export function AccountGroupTable({
   }
 
   return (
-    <section aria-labelledby={headingId} className={styles.group}>
+    <section aria-labelledby={headingId} className={`card ${styles.group}`}>
       <AccountGroupHeading asOf={asOf} group={group} headingId={headingId} sole={sole} />
       <p aria-live="polite" className="sr-only" role="status">
         {movedIndex >= 0 && accounts !== null
@@ -128,6 +128,7 @@ export function AccountGroupTable({
           groupAssetCode={group.total?.assetCode ?? null}
           hasMore={rows.hasNextPage}
           label={t('accounts.overview.caption', { label: name })}
+          bare
           moveDisabled={move.isPending}
           onMove={requestMove}
           reordering={reordering}

@@ -17,10 +17,6 @@
   width: 28%;
 }
 
-.performanceColumn {
-  width: 24%;
-}
-
 .actionsColumn {
   width: calc(max(var(--icon-size-md), var(--control-height)) + var(--spacing-4) * 2);
 }
@@ -171,4 +167,30 @@
     font-size: var(--font-size-label);
     font-weight: var(--font-weight-medium);
   }
+
+  /* Inside a group card the heading names the group: row cells drop their column labels. */
+  .bare tbody th,
+  .bare tbody td {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .bare tbody th::before,
+  .bare tbody td::before {
+    display: none;
+  }
+
+  .bare tbody td > small {
+    grid-column: 1;
+  }
+}
+
+/* Inside a group card the heading already names the group: the column titles stay for assistive
+   technology and take no room. */
+.panel .hiddenHead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

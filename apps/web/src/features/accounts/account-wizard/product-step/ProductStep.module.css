@@ -32,6 +32,8 @@
 }
 
 .choices legend {
+  /* A legend is not a flex item: the gap of the fieldset does not reach it. */
+  margin-bottom: var(--spacing-3);
   padding: var(--spacing-none);
   color: var(--text-muted);
   font-size: var(--font-size-sm);
@@ -48,6 +50,7 @@
 }
 
 .group legend {
+  margin-bottom: var(--spacing-2);
   padding: var(--spacing-none);
   color: var(--text-muted);
   font-size: var(--font-size-label);
@@ -61,13 +64,25 @@
   font-size: var(--font-size-label);
 }
 
+.family {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.family h4 {
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
 .choice {
   display: flex;
-  align-items: flex-start;
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-radius: var(--radius-card);
-  gap: var(--spacing-3);
+  align-items: center;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-radius: var(--radius-control);
+  gap: var(--spacing-4);
   cursor: pointer;
 }
 
@@ -76,13 +91,16 @@
 }
 
 .choice:has(input:checked) {
-  border-color: var(--accent);
+  background: var(--bg-selected);
 }
 
 .choice > span {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-1) var(--spacing-3);
 }
 
 .choice strong {
@@ -95,11 +113,4 @@
   color: var(--text-muted);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-body);
-}
-
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: var(--spacing-1);
-  gap: var(--spacing-2);
 }

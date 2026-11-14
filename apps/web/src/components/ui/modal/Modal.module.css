@@ -103,11 +103,9 @@
 .body [data-modal-actions] {
   position: sticky;
   z-index: 1;
-  bottom: calc(var(--spacing-none) - var(--spacing-6));
-  margin: var(--spacing-4) calc(var(--spacing-none) - var(--spacing-6))
-    calc(var(--spacing-none) - var(--spacing-6));
-  padding: var(--spacing-4) var(--spacing-6);
-  border-top: var(--border-line-subtle);
+  bottom: var(--modal-bleed);
+  margin: var(--spacing-4) var(--modal-bleed) var(--modal-bleed);
+  padding: var(--spacing-none) var(--spacing-6) var(--spacing-4);
   background: var(--bg-surface-1);
 }
 
@@ -135,7 +133,7 @@
 .body > [data-modal-form-host] form[data-modal-form] > [data-form-content] {
   min-height: 0;
   overflow: auto;
-  padding: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-4);
 }
 
 .body > form[data-modal-form] > [data-modal-actions],
