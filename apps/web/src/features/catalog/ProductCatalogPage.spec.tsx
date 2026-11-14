@@ -218,7 +218,7 @@ describe('ProductCatalogPage', () => {
 
     renderPage();
 
-    expect(await screen.findByText('Rendement non garanti')).toBeTruthy();
+    expect(await screen.findByText('Marché')).toBeTruthy();
     expect(screen.queryByText('Rendement garanti')).toBeNull();
   });
 
