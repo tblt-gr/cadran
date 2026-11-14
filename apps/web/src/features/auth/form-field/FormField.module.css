@@ -17,7 +17,7 @@
 
 .control > .reveal {
   position: absolute;
-  inset-block: 0;
+  inset-block: var(--spacing-1);
   inset-inline-end: var(--spacing-1);
   height: auto;
 }

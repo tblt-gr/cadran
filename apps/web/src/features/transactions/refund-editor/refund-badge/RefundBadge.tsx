@@ -6,16 +6,6 @@ interface RefundBadgeProps {
   transaction: Transaction;
 }
 
-/** Brings the original row into view when the list holds it; the loaded rows are the only ones that can be reached. */
-function showOriginal(id: string | null) {
-  if (id === null) return;
-  const row = Array.from(document.querySelectorAll<HTMLElement>('[data-transaction-id]')).find(
-    (element) => element.dataset.transactionId === id,
-  );
-  row?.scrollIntoView({ block: 'center' });
-  row?.querySelector<HTMLElement>('button')?.focus({ preventScroll: true });
-}
-
 /** The refund link shown on both rows: the refund names its original, the original shows how much of it has been refunded. */
 export function RefundBadge({ transaction }: RefundBadgeProps) {
   const { i18n, t } = useTranslation();
@@ -27,15 +17,7 @@ export function RefundBadge({ transaction }: RefundBadgeProps) {
   return (
     <>
       {transaction.refundOriginalLabel !== null ? (
-        <small>
-          <button
-            className="text-action"
-            onClick={() => showOriginal(transaction.refundOriginalId)}
-            type="button"
-          >
-            {t('transactions.list.refundOf', { label: transaction.refundOriginalLabel })}
-          </button>
-        </small>
+        <small>{t('transactions.list.refundOf', { label: transaction.refundOriginalLabel })}</small>
       ) : null}
       {transaction.refundedAmount !== null ? (
         <small>

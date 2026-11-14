@@ -52,7 +52,6 @@ export function TransactionDayRow({
       ]
         .filter(Boolean)
         .join(' ')}
-      data-transaction-id={transaction?.id}
       data-transfer-id={transaction?.transferId ?? undefined}
       data-state={transaction?.state}
       data-accounts={accounts !== undefined}

@@ -220,27 +220,6 @@ describe('TransactionDayList', () => {
     expect(screen.getAllByText('Compte courant → Livret A', { selector: 'small' })).toHaveLength(2);
   });
 
-  it('scrolls to the original of a refund when its row is in the list', () => {
-    const scroll = vi.fn();
-    window.HTMLElement.prototype.scrollIntoView = scroll;
-    render(
-      <TransactionDayList
-        accounts={accounts}
-        transactions={[
-          tx('origin', '2026-09-10', '-30.00'),
-          tx('refund', '2026-09-11', '20.00', {
-            refundOriginalId: 'origin',
-            refundOriginalLabel: 'Consultation',
-          }),
-        ]}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole('button', { name: /Remboursement de « Consultation »/ }));
-
-    expect(scroll).toHaveBeenCalledTimes(1);
-  });
-
   it('keeps a voided movement visible and flagged', () => {
     render(
       <TransactionDayList
