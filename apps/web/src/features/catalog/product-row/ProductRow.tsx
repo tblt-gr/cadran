@@ -8,20 +8,18 @@ import { ProductDetailsModal } from '@/features/catalog/product-details-modal/Pr
 import { ProductFigures } from '@/features/catalog/product-figures/ProductFigures';
 
 /**
- * One catalogue product as a row of the shared product table: what it is, whether its return is
- * owed to the holder, and the key figures the catalogue can vouch for on the business date. The
- * dated rules with their sources open in the details.
+ * One catalogue product as a row of the shared product table: what it is, the kind of return the
+ * server states for it, and the key figures reduced to a label and a value. The dates, verification
+ * states and sources open in the details.
  *
- * The yield badge is stated by the server, never inferred from the product name: a PEA, a
- * securities account or a life-insurance contract earns what its assets earn, and this row must
- * not let that read as a promise.
+ * The yield is the server's kind of return in words, never inferred from the product name and
+ * never a badge: a PEA, a securities account or a life-insurance contract earns what its assets
+ * earn, and this row must not let that read as a promise.
  */
 export function ProductRow({ product }: { product: Product }) {
   const { t } = useTranslation();
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsButton = useRef<HTMLButtonElement>(null);
-  const guaranteedYieldUnavailable =
-    product.yieldGuaranteed && product.unavailableRuleKinds.includes('ANNUAL_RATE');
   const ruleCount = product.rules.length + product.unavailableRuleKinds.length;
   const archived = product.archivedAt !== null;
 
@@ -32,19 +30,7 @@ export function ProductRow({ product }: { product: Product }) {
         value={t(`catalog.accountKinds.${product.accountKind}`)}
         note={t(`catalog.wrapperKinds.${product.wrapperKind}`)}
       />
-      <ProductPairCell
-        value={t(`catalog.yieldKinds.${product.yieldKind}`)}
-        note={
-          <StatusBadge
-            icon={product.yieldGuaranteed ? 'goals' : 'investments'}
-            tone={
-              guaranteedYieldUnavailable ? 'info' : product.yieldGuaranteed ? 'positive' : 'warning'
-            }
-          >
-            {t(product.yieldGuaranteed ? 'catalog.yield.guaranteed' : 'catalog.yield.market')}
-          </StatusBadge>
-        }
-      />
+      <td>{t(`catalog.yieldKinds.${product.yieldKind}`)}</td>
       <td>
         <ProductFigures product={product} />
       </td>

@@ -16,9 +16,9 @@
 .figures div {
   display: flex;
   min-width: 0;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-1);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-1) var(--spacing-2);
 }
 
 .figures dt {
@@ -36,12 +36,6 @@
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-strong);
   line-height: var(--line-height-tight);
-}
-
-.period {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: var(--line-height-context);
 }
 
 .unavailable {

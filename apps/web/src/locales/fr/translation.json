@@ -1657,7 +1657,7 @@
     },
     "figures": {
       "title": "Valeurs au {{date}}",
-      "unavailable": "Non disponible au {{date}}"
+      "unavailable": "Non disponible"
     },
     "list": {
       "caption": "Règles datées de {{product}}",
