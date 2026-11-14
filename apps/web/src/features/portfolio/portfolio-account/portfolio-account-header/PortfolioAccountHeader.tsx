@@ -89,6 +89,7 @@ export function PortfolioAccountHeader({
         ) : null}
         {showsInstruments ? (
           <a
+            aria-label={t('accounts.detail.actionsMenu.instruments')}
             className={`secondary-action ${styles.add}`}
             href={INSTRUMENTS_HREF}
             onClick={(event) => {

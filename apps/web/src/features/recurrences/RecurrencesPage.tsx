@@ -74,7 +74,7 @@ export function RecurrencesPage() {
           {t('recurrences.add')}
         </button>
         <button
-          aria-controls="archived-recurrences"
+          aria-controls={showArchived ? 'archived-recurrences' : undefined}
           aria-label={t(
             showArchived
               ? 'recurrences.confirmed.hideArchived'
