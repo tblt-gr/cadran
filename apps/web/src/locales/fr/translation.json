@@ -2413,6 +2413,7 @@
       "moreSplits_one": "+ {{count}} autre catégorie",
       "moreSplits_other": "+ {{count}} autres catégories",
       "transferMarker": "Virement",
+      "transferRoute": "{{from}} → {{to}}",
       "transferFeeMarker": "Frais de virement",
       "refundOf": "Remboursement de « {{label}} »",
       "refundedAmount": "Remboursé : {{amount}}"

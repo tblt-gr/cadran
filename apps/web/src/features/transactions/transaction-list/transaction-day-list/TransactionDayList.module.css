@@ -144,10 +144,12 @@
   overflow-wrap: anywhere;
 }
 
-/* The label is the row's main tap target: it fills the touch height instead of padding the row. */
-.primary > button {
-  min-width: var(--touch-target-min);
-  min-height: var(--touch-target-min);
+/* The label is the row's main tap target on a touch screen: it fills the touch height instead of padding the row. */
+@media (pointer: coarse) {
+  .primary > button {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
 }
 
 .state {
@@ -157,7 +159,7 @@
 
 .primary small {
   display: block;
-  margin-top: var(--spacing-1);
+  margin-top: var(--spacing-none);
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
