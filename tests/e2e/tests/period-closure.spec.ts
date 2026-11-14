@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { navigateTo, settled } from './support/page';
+import { navigateTo, selectAccount, settled } from './support/page';
 
 /**
  * Closing a past month must make an ordinary write against it refused in the
@@ -77,7 +77,7 @@ test.describe('period closure', () => {
       await settled(page);
       await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
       const editor = page.getByRole('dialog');
-      await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
+      await selectAccount(editor.getByLabel('Compte', { exact: true }), 'Compte courant');
       await editor.getByLabel('Date comptable').fill(`${target}-10`);
       await editor.getByLabel('Montant').fill('-12.34');
       await editor.getByLabel('Libellé').fill('e2e: write against a closed month');

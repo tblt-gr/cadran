@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { settled } from './page';
+import { selectAccount, settled } from './page';
 
 /** Opens a draft allocation with three categories and entered amounts; never saves it. */
 export async function openTransactionSplits(page: Page) {
@@ -7,7 +7,7 @@ export async function openTransactionSplits(page: Page) {
   await settled(page);
   await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
   const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });
-  await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
+  await selectAccount(editor.getByLabel('Compte', { exact: true }), 'Compte courant');
   await editor.getByLabel('Montant', { exact: true }).fill('10.00');
   await editor.getByLabel('Répartir entre plusieurs catégories').check();
   const add = editor.getByRole('button', { name: 'Ajouter une catégorie à la répartition' });

@@ -23,7 +23,7 @@ export async function openMovementEditModal(
     await selectAccount(creation.getByLabel('Compte de destination'), 'Livret A');
     await creation.getByLabel('Montant (EUR)').fill('1.00');
   } else {
-    await creation.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
+    await selectAccount(creation.getByLabel('Compte', { exact: true }), 'Compte courant');
     await creation.getByLabel('Montant', { exact: true }).fill('-1.00');
   }
   await creation.getByLabel('Libellé', { exact: true }).fill(label);
@@ -42,9 +42,10 @@ export async function openMovementEditModal(
     await page.getByRole('button', { name: /^Créer un remboursement/ }).click();
     await settled(page);
     const refund = page.getByRole('dialog');
-    await refund
-      .getByRole('combobox', { name: 'Compte', exact: true })
-      .selectOption({ label: 'Compte courant' });
+    await selectAccount(
+      refund.getByRole('combobox', { name: 'Compte', exact: true }),
+      'Compte courant',
+    );
     // The ledger runs on Paris time: a UTC date is the day before between 00:00 and 02:00 there.
     const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
     await refund.getByLabel('Date comptable').fill(day);
