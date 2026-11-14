@@ -14,8 +14,8 @@ test.describe('installable application', () => {
       short_name: 'Cadran',
       display: 'standalone',
       start_url: '/',
-      theme_color: '#08090d',
-      background_color: '#08090d',
+      theme_color: '#0a0a0b',
+      background_color: '#0a0a0b',
     });
     for (const icon of manifest.icons) {
       expect((await request.get(icon.src)).status()).toBe(200);
