@@ -1,6 +1,7 @@
 import type { AnnualColumn, AnnualReport, MultiYearReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import { Icon } from '@/components/ui/icon/Icon';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { DetailedAggregateModal } from './DetailedAggregateModal';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -51,6 +52,7 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
   const { t, i18n } = useTranslation();
   const labelOf = useAnnualColumnLabel();
   const [explained, setExplained] = useState<string | null>(null);
+  const [folded, setFolded] = useState<ReadonlySet<number>>(new Set());
   const preferences = useAnnualReportPreferences();
   const goalsEnabled = !preferences.isPending && preferences.data?.goalMarks === true;
   const goals = useGoalEvaluations(
@@ -104,52 +106,80 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ annualReport, row }) => {
+              {rows.map(({ annualReport, row }, index) => {
                 const isYearBoundary = row.month.endsWith('-12');
-                return (
-                  <tr
-                    className={[
-                      isEmptyState(row.state) ? tableStyles.dimmed : '',
-                      isYearBoundary ? localStyles.yearBoundary : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    key={`${annualReport.year}-${row.month}`}
-                  >
-                    <th scope="row">
-                      {monthLabel(row.month, i18n.language)} {annualReport.year}
+                const firstOfYear =
+                  index === 0 || rows[index - 1]!.annualReport.year !== annualReport.year;
+                const yearRow = firstOfYear ? (
+                  <tr className={localStyles.yearRow} key={`year-${annualReport.year}`}>
+                    <th colSpan={columns.length + 1} scope="colgroup">
+                      <button
+                        aria-expanded={!folded.has(annualReport.year)}
+                        className={localStyles.yearToggle}
+                        onClick={() =>
+                          setFolded((current) => {
+                            const next = new Set(current);
+                            if (!next.delete(annualReport.year)) next.add(annualReport.year);
+                            return next;
+                          })
+                        }
+                        type="button"
+                      >
+                        <span aria-hidden="true" className={localStyles.chevron}>
+                          <Icon name="chevron-right" size={14} />
+                        </span>
+                        {annualReport.year}
+                      </button>
                     </th>
-                    {columns.map((column) => {
-                      const cell = row.cells[column.id];
-                      const marks = marksFor(
-                        goalsEnabled ? goals.evaluations?.months : undefined,
-                        row.month,
-                        column.id,
-                      );
-                      return (
-                        <td className={edge(column.id)} key={column.id}>
-                          {row.state === 'FUTURE' ? (
-                            <EmptyValue quiet label={t('reports.annual.future')} />
-                          ) : row.state === 'NO_DATA' ? (
-                            <EmptyValue quiet label={t('reports.annual.noData')} />
-                          ) : (
-                            <>
-                              <GoalMarkedValue items={marks}>
-                                <AnnualCellValue
-                                  assetCode={column.assetCode}
-                                  href={annualCellHref(column.id, row.month)}
-                                  kind={column.kind}
-                                  reason={cell?.reason ?? null}
-                                  value={cell?.value ?? null}
-                                />
-                              </GoalMarkedValue>
-                              <GoalMark items={marks} period={row.month} />
-                            </>
-                          )}
-                        </td>
-                      );
-                    })}
                   </tr>
+                ) : null;
+                if (folded.has(annualReport.year)) return yearRow;
+                return (
+                  <Fragment key={`${annualReport.year}-${row.month}`}>
+                    {yearRow}
+                    <tr
+                      className={[
+                        isEmptyState(row.state) ? tableStyles.dimmed : '',
+                        isYearBoundary ? localStyles.yearBoundary : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <th scope="row">
+                        {monthLabel(row.month, i18n.language)} {annualReport.year}
+                      </th>
+                      {columns.map((column) => {
+                        const cell = row.cells[column.id];
+                        const marks = marksFor(
+                          goalsEnabled ? goals.evaluations?.months : undefined,
+                          row.month,
+                          column.id,
+                        );
+                        return (
+                          <td className={edge(column.id)} key={column.id}>
+                            {row.state === 'FUTURE' ? (
+                              <EmptyValue quiet label={t('reports.annual.future')} />
+                            ) : row.state === 'NO_DATA' ? (
+                              <EmptyValue quiet label={t('reports.annual.noData')} />
+                            ) : (
+                              <>
+                                <GoalMarkedValue items={marks}>
+                                  <AnnualCellValue
+                                    assetCode={column.assetCode}
+                                    href={annualCellHref(column.id, row.month)}
+                                    kind={column.kind}
+                                    reason={cell?.reason ?? null}
+                                    value={cell?.value ?? null}
+                                  />
+                                </GoalMarkedValue>
+                                <GoalMark items={marks} period={row.month} />
+                              </>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  </Fragment>
                 );
               })}
             </tbody>

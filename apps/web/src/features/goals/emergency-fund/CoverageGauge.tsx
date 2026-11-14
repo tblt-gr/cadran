@@ -5,6 +5,13 @@ import { compareDecimals, decimalRatio } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import { formatMonths } from './formatMonths';
 
+/** One segment per month of the target, when it is a whole number of months that stays readable. */
+function monthSegments(implied: string | null): number | undefined {
+  if (implied === null) return undefined;
+  const months = Number(implied);
+  return Number.isInteger(months) && months >= 2 && months <= 24 ? months : undefined;
+}
+
 /** Liquid assets against the required amount, whichever way the target is set; hidden when not calculable. */
 export function CoverageGauge({ coverage }: { coverage: EmergencyFundCoverage }) {
   const { t, i18n } = useTranslation();
@@ -25,6 +32,7 @@ export function CoverageGauge({ coverage }: { coverage: EmergencyFundCoverage })
           : t('goals.progressLabel', { value: formatRatioPercentage(ratio, i18n.language) })
       }
       ratio={ratio}
+      segments={monthSegments(implied)}
     />
   );
 }

@@ -45,6 +45,11 @@ export function DetailedReportSkeleton({ report }: { report: MultiYearReport }) 
                 </tr>
               </thead>
               <tbody>
+                <tr className={localStyles.yearRow}>
+                  <th colSpan={report.columns.length + 1} scope="colgroup">
+                    <SkeletonBlock className={skeletonStyles.cell} />
+                  </th>
+                </tr>
                 {ROWS.map((row) => (
                   <tr key={row}>
                     <th scope="row">
