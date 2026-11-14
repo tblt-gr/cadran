@@ -32,6 +32,8 @@ interface RecurrenceTransactionFieldsProps {
     (field: 'paymentMethod', value: PaymentMethod | ''): void;
   };
   paymentMethod: PaymentMethod | '';
+  /** Interval and day, between the category and the advanced section. */
+  schedule: ReactNode;
   /** What the picker draws for a category known only by its identifier. */
   selected: { color?: string | null; icon?: string | null; label?: string | null };
 }
@@ -52,16 +54,29 @@ export function RecurrenceTransactionFields({
   onCategoryChange,
   onChange,
   paymentMethod,
+  schedule,
   selected,
 }: RecurrenceTransactionFieldsProps) {
   const { t } = useTranslation();
   const hintId = useId();
-  const [open, setOpen] = useState(
-    advancedFilled || note !== '' || paymentMethod !== '' || autoCreate,
-  );
+  const [open, setOpen] = useState(advancedFilled || note !== '' || autoCreate);
 
   return (
     <>
+      <label>
+        <span>{t('recurrences.fields.paymentMethod')}</span>
+        <select
+          onChange={(event) => onChange('paymentMethod', event.target.value as PaymentMethod | '')}
+          value={paymentMethod}
+        >
+          <option value="">{t('recurrences.form.noPaymentMethod')}</option>
+          {PAYMENT_METHODS.map((method) => (
+            <option key={method} value={method}>
+              {t(`transactions.paymentMethods.${method}`)}
+            </option>
+          ))}
+        </select>
+      </label>
       <div data-span="full">
         <CategoryPicker
           emptyOptionLabel={t('recurrences.form.noCategory')}
@@ -77,28 +92,13 @@ export function RecurrenceTransactionFields({
           value={categoryId}
         />
       </div>
+      {schedule}
       <FormSection
         title={t('transactions.form.advanced')}
         open={open || advancedInvalid}
         onToggle={setOpen}
       >
         {children}
-        <label>
-          <span>{t('recurrences.fields.paymentMethod')}</span>
-          <select
-            onChange={(event) =>
-              onChange('paymentMethod', event.target.value as PaymentMethod | '')
-            }
-            value={paymentMethod}
-          >
-            <option value="">{t('recurrences.form.noPaymentMethod')}</option>
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {t(`transactions.paymentMethods.${method}`)}
-              </option>
-            ))}
-          </select>
-        </label>
         <label data-span="full">
           <span>{t('recurrences.fields.note')}</span>
           <input

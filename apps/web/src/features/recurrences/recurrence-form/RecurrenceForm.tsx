@@ -12,7 +12,10 @@ import type {
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRecurrenceCategory } from '@/features/recurrences/useRecurrenceCategory';
-import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
+import {
+  hasRecordedAmount,
+  SignedAmountHint,
+} from '@/components/ui/signed-amount-hint/SignedAmountHint';
 import { isCanonicalDecimal, isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
 import { toSignedAmount } from '@/lib/signedAmount';
 import {
@@ -121,16 +124,6 @@ export function RecurrenceForm({
       ) : null}
       <FormGrid>
         <label>
-          <span>{t('recurrences.fields.label')}</span>
-          <input
-            aria-invalid={showErrors && errors.label ? true : undefined}
-            autoFocus
-            onChange={(event) => set('label', event.target.value)}
-            value={values.label}
-          />
-          {showErrors && errors.label ? <small>{t('recurrences.validation.label')}</small> : null}
-        </label>
-        <label>
           <span>{t('recurrences.fields.account')}</span>
           <select
             aria-invalid={showErrors && errors.accountId ? true : undefined}
@@ -150,68 +143,6 @@ export function RecurrenceForm({
           ) : null}
         </label>
 
-        <label>
-          <span>{t('recurrences.fields.direction')}</span>
-          <select
-            onChange={(event) => changeDirection(event.target.value as FormValues['direction'])}
-            value={values.direction}
-          >
-            <option value="">{t('recurrences.directions.unset')}</option>
-            <option value="OUTFLOW">{t('recurrences.directions.OUTFLOW')}</option>
-            <option value="INFLOW">{t('recurrences.directions.INFLOW')}</option>
-          </select>
-        </label>
-        <label>
-          <span>{t('recurrences.fields.amount')}</span>
-          <input
-            aria-describedby={amountHintId}
-            aria-invalid={showErrors && errors.expectedAmount ? true : undefined}
-            aria-label={t('recurrences.fields.amount')}
-            autoComplete="off"
-            inputMode="decimal"
-            onChange={(event) => set('expectedAmount', event.target.value)}
-            spellCheck={false}
-            value={values.expectedAmount}
-          />
-          {showErrors && errors.expectedAmount ? (
-            <small>{t('recurrences.validation.amount')}</small>
-          ) : null}
-          <SignedAmountHint
-            assetCode={accounts.find((account) => account.id === values.accountId)?.assetCode ?? ''}
-            direction={direction}
-            id={amountHintId}
-            typed={values.expectedAmount}
-          />
-        </label>
-
-        <label>
-          <span>{t('recurrences.fields.interval')}</span>
-          <select
-            onChange={(event) => set('intervalKind', event.target.value as RecurrenceIntervalKind)}
-            value={values.intervalKind}
-          >
-            {INTERVALS.map((interval) => (
-              <option key={interval} value={interval}>
-                {t(`recurrences.intervals.${interval}`)}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>{t('recurrences.fields.day')}</span>
-          <input
-            aria-invalid={showErrors && errors.dayOfPeriod ? true : undefined}
-            inputMode="numeric"
-            max={values.intervalKind === 'WEEKLY' ? 7 : 31}
-            min={1}
-            onChange={(event) => set('dayOfPeriod', event.target.value)}
-            type="number"
-            value={values.dayOfPeriod}
-          />
-          {showErrors && errors.dayOfPeriod ? (
-            <small>{t('recurrences.validation.day')}</small>
-          ) : null}
-        </label>
         <div className={styles.field}>
           <label>
             <span>{t('recurrences.fields.firstExpectedOn')}</span>
@@ -232,6 +163,50 @@ export function RecurrenceForm({
             </small>
           ) : null}
         </div>
+        <label>
+          <span>{t('recurrences.fields.label')}</span>
+          <input
+            aria-invalid={showErrors && errors.label ? true : undefined}
+            data-autofocus
+            onChange={(event) => set('label', event.target.value)}
+            value={values.label}
+          />
+          {showErrors && errors.label ? <small>{t('recurrences.validation.label')}</small> : null}
+        </label>
+        <label>
+          <span>{t('recurrences.fields.amount')}</span>
+          <input
+            aria-describedby={hasRecordedAmount(values.expectedAmount) ? amountHintId : undefined}
+            aria-invalid={showErrors && errors.expectedAmount ? true : undefined}
+            aria-label={t('recurrences.fields.amount')}
+            autoComplete="off"
+            inputMode="decimal"
+            onChange={(event) => set('expectedAmount', event.target.value)}
+            spellCheck={false}
+            value={values.expectedAmount}
+          />
+          {showErrors && errors.expectedAmount ? (
+            <small>{t('recurrences.validation.amount')}</small>
+          ) : null}
+          <SignedAmountHint
+            assetCode={accounts.find((account) => account.id === values.accountId)?.assetCode ?? ''}
+            direction={direction}
+            id={amountHintId}
+            recordedOnly
+            typed={values.expectedAmount}
+          />
+        </label>
+
+        <label>
+          <span>{t('recurrences.fields.direction')}</span>
+          <select
+            onChange={(event) => changeDirection(event.target.value as FormValues['direction'])}
+            value={values.direction}
+          >
+            <option value="OUTFLOW">{t('recurrences.directions.OUTFLOW')}</option>
+            <option value="INFLOW">{t('recurrences.directions.INFLOW')}</option>
+          </select>
+        </label>
         <RecurrenceTransactionFields
           advancedFilled={values.counterparty !== '' || values.amountTolerance !== '0'}
           advancedInvalid={showErrors && errors.amountTolerance}
@@ -250,6 +225,40 @@ export function RecurrenceForm({
           }
           onChange={set}
           paymentMethod={values.paymentMethod}
+          schedule={
+            <>
+              <label>
+                <span>{t('recurrences.fields.interval')}</span>
+                <select
+                  onChange={(event) =>
+                    set('intervalKind', event.target.value as RecurrenceIntervalKind)
+                  }
+                  value={values.intervalKind}
+                >
+                  {INTERVALS.map((interval) => (
+                    <option key={interval} value={interval}>
+                      {t(`recurrences.intervals.${interval}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>{t('recurrences.fields.day')}</span>
+                <input
+                  aria-invalid={showErrors && errors.dayOfPeriod ? true : undefined}
+                  inputMode="numeric"
+                  max={values.intervalKind === 'WEEKLY' ? 7 : 31}
+                  min={1}
+                  onChange={(event) => set('dayOfPeriod', event.target.value)}
+                  type="number"
+                  value={values.dayOfPeriod}
+                />
+                {showErrors && errors.dayOfPeriod ? (
+                  <small>{t('recurrences.validation.day')}</small>
+                ) : null}
+              </label>
+            </>
+          }
           selected={{
             color: saved?.effectiveColor,
             icon: saved?.effectiveIcon,

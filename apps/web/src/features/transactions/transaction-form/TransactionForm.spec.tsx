@@ -142,4 +142,28 @@ describe('TransactionForm planned dates', () => {
     ).toBeTruthy();
     expect(screen.queryByText(HINT)).toBeNull();
   });
+
+  it('defaults the payment method to card, and to transfer for an income from the budget', () => {
+    renderForm();
+    expect((screen.getByLabelText('Moyen de paiement') as HTMLSelectElement).value).toBe('CARD');
+    cleanup();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TransactionForm
+          accounts={[account]}
+          defaults={{
+            bookedOn: '2026-11-10',
+            category: { color: null, icon: null, id: 'cat-1', label: 'Salaire', type: 'INCOME' },
+            nature: 'INCOME',
+          }}
+          onSubmit={vi.fn()}
+          pending={false}
+          submitError={null}
+        />
+      </QueryClientProvider>,
+    );
+    expect((screen.getByLabelText('Moyen de paiement') as HTMLSelectElement).value).toBe(
+      'TRANSFER',
+    );
+  });
 });

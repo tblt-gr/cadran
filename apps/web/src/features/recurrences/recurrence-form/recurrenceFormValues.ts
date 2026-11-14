@@ -78,7 +78,8 @@ export function initialValues(
     };
   }
 
-  const candidateDirection = directionOf(candidate?.medianAmount.value ?? '');
+  // A new recurrence is an expense unless the candidate's median amount says otherwise.
+  const candidateDirection = directionOf(candidate?.medianAmount.value ?? '') || 'OUTFLOW';
 
   return {
     accountId: candidate?.accountId ?? defaultAccount(accounts)?.id ?? '',
@@ -90,12 +91,12 @@ export function initialValues(
     counterparty: candidate?.counterparty ?? '',
     dayOfPeriod: '',
     direction: candidateDirection,
-    expectedAmount: toTypedAmount(candidate?.medianAmount.value ?? '', candidateDirection || null),
+    expectedAmount: toTypedAmount(candidate?.medianAmount.value ?? '', candidateDirection),
     firstExpectedOn: candidate?.lastSeenOn ?? '',
     intervalKind: candidate?.intervalKind ?? 'MONTHLY',
     label: candidate?.counterparty ?? '',
     note: '',
-    paymentMethod: '',
+    paymentMethod: 'DIRECT_DEBIT',
   };
 }
 

@@ -1237,7 +1237,7 @@ describe('TransactionsPage', () => {
     expect((screen.getByRole('combobox', { name: 'Catégorie' }) as HTMLInputElement).value).toBe(
       'Courses',
     );
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Montant')));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByLabelText('Libellé')));
 
     // Flipping the direction keeps the category and says what now contradicts it.
     fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INCOME' } });
@@ -1591,7 +1591,7 @@ describe('TransactionsPage', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: /^Créer un remboursement/ }));
     await screen.findByLabelText('Montant');
-    fireEvent.change(screen.getByLabelText('Date comptable'), { target: { value: '2026-03-14' } });
+    fireEvent.change(screen.getByLabelText(/^Date comptable/), { target: { value: '2026-03-14' } });
     fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Remboursement' } });
     fireEvent.click(screen.getByRole('button', { name: 'Créer le remboursement' }));
     await waitFor(() => expect(api.createTransactionRefund).toHaveBeenCalledOnce());

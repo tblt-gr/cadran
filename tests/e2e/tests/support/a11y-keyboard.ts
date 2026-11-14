@@ -49,7 +49,7 @@ export function keyboardJourneys() {
       const dialog = page.getByRole('dialog');
       const firstField = transfer
         ? dialog.getByLabel('Compte source')
-        : dialog.getByLabel('Montant', { exact: true });
+        : dialog.getByLabel('Libellé', { exact: true });
       await expect(firstField).toBeFocused();
       const close = dialog.getByRole('button', { name: 'Fermer', exact: true });
       const submit = dialog.getByRole('button', {
@@ -87,7 +87,9 @@ export function keyboardJourneys() {
         await page.keyboard.press('Home');
         await page.keyboard.press('c');
         await page.keyboard.press('Enter');
-        await expect(account.locator('option:checked')).toHaveText('Compte courant');
+        await expect(account.locator('option:checked')).toHaveText(
+          accountOptionText('Compte courant'),
+        );
       }
       const amount = dialog.getByLabel(transfer ? 'Montant (EUR)' : 'Montant', { exact: true });
       await tabTo(page, amount);

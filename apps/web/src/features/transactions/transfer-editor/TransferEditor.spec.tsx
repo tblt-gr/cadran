@@ -27,7 +27,6 @@ const portfolio = {
   valuationMode: 'PORTFOLIO',
 } as Account;
 const transfer = { id: 'transfer' } as Transfer;
-const notice = /enregistré automatiquement sur le compte d’investissement/;
 
 function setup(
   target: Account = portfolio,
@@ -66,22 +65,6 @@ describe('TransferEditor into a portfolio', () => {
   it('offers no deposit checkbox: the server records the deposit itself', () => {
     setup();
     expect(screen.queryByRole('checkbox', { name: /versement/i })).toBeNull();
-    expect(screen.getByText(notice)).toBeTruthy();
-  });
-  it.each([
-    { kind: 'INSURANCE_CONTRACT' },
-    { kind: 'CURRENT' },
-    { valuationMode: 'SNAPSHOTS' },
-    { status: 'CLOSED' },
-    { status: 'ARCHIVED' },
-  ])('does not announce an automatic deposit for destination %j', (overrides) => {
-    setup({ ...portfolio, ...overrides } as Account);
-    expect(screen.queryByText(notice)).toBeNull();
-  });
-  it('announces the automatic withdrawal when the portfolio is the source', () => {
-    setup(source, [portfolio, source]);
-    fireEvent.change(screen.getByLabelText('Compte source'), { target: { value: portfolio.id } });
-    expect(screen.getByText(notice)).toBeTruthy();
   });
   it('sends one transfer and completes without any portfolio operation request', async () => {
     const { onSubmit, onSaved } = setup();

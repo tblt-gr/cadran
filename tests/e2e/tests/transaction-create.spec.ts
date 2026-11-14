@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { openTransactionSplits } from './support/transaction-splits';
-import { movementRows, settled, uniqueLabel } from './support/page';
+import { movementRows, selectAccount, settled, uniqueLabel } from './support/page';
 
 test.describe('transaction entry', () => {
   test('creates a transaction with a category created on the fly', async ({ page }) => {
@@ -13,7 +13,7 @@ test.describe('transaction entry', () => {
 
     await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
     const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });
-    await editor.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });
+    await selectAccount(editor.getByLabel('Compte', { exact: true }), 'Compte courant');
     await editor.getByLabel('Montant').fill('-12.34');
     await editor.getByLabel('Libellé').fill(label);
 

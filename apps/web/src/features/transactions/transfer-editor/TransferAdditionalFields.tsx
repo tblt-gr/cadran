@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { TransferFormErrors, TransferFormValues } from './transferFormValues';
 import formStyles from '@/features/transactions/transaction-form/TransactionForm.module.css';
 
-/** Optional dates, narrative and the fee attached to the outgoing account. */
+/** Optional value date, narrative and the fee attached to the outgoing account. */
 export function TransferAdditionalFields({
   values,
   errors,
@@ -40,20 +40,6 @@ export function TransferAdditionalFields({
         />
         {showErrors && errors.valueOn ? (
           <small id={`${errorId}-valueOn`}>{t('transactions.transfer.validation.valueOn')}</small>
-        ) : null}
-      </label>
-
-      <label>
-        <span>{t('transactions.transfer.fields.label')}</span>
-        <input
-          disabled={disabled}
-          aria-describedby={showErrors && errors.label ? `${errorId}-label` : undefined}
-          aria-invalid={showErrors && errors.label ? true : undefined}
-          onChange={(event) => set('label', event.target.value)}
-          value={values.label}
-        />
-        {showErrors && errors.label ? (
-          <small id={`${errorId}-label`}>{t('transactions.transfer.validation.label')}</small>
         ) : null}
       </label>
 

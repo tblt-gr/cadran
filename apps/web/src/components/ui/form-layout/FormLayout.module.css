@@ -68,3 +68,12 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* A checkbox row reads like the other labels: same size and colour, box centred on the text. */
+.grid label:has(> input[type='checkbox'], > input[type='radio']) {
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  gap: var(--spacing-2);
+}
