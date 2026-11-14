@@ -85,11 +85,11 @@ function figure(name: string) {
 describe('ProductRow', () => {
   afterEach(cleanup);
 
-  it('uses an informational guaranteed-yield badge while the sourced rate is unavailable', () => {
+  it('states the kind of return as plain text, with no yield badge', () => {
     renderRow(product);
 
-    const badge = screen.getByText('Rendement garanti').parentElement;
-    expect(badge?.className).toContain('info');
+    expect(screen.getByText('Taux réglementé')).toBeTruthy();
+    expect(screen.queryByText('Rendement garanti')).toBeNull();
     // The unavailable rules are told in the details, with the date they were looked up on.
     openDetails('Livret jeune');
     expect(
@@ -104,13 +104,14 @@ describe('ProductRow', () => {
 
     const rateFigure = figure('Taux annuel');
     expect(withoutNarrowSpaces(rateFigure?.textContent ?? '')).toContain('4,00 %');
-    expect(rateFigure?.textContent).toContain('Depuis le 1 février 2023');
-    expect(rateFigure?.textContent).toContain('À revérifier');
+    // Only a label and a value: the period and the verification are in the details.
+    expect(rateFigure?.textContent).not.toContain('Depuis le');
+    expect(rateFigure?.textContent).not.toContain('À revérifier');
 
     const ceilingFigure = figure('Plafond de dépôt');
     expect(withoutNarrowSpaces(ceilingFigure?.textContent ?? '')).toContain('1 600,00 €');
-    expect(ceilingFigure?.textContent).toContain('Depuis le 1 janvier 2019');
-    expect(ceilingFigure?.textContent).toContain('Vérifiée');
+    expect(ceilingFigure?.textContent).not.toContain('Depuis le');
+    expect(ceilingFigure?.textContent).not.toContain('Vérifiée');
 
     openDetails('Livret jeune');
     const dialog = within(screen.getByRole('dialog', { name: 'Livret jeune' }));
@@ -121,9 +122,7 @@ describe('ProductRow', () => {
   it('never substitutes zero for an unavailable figure', () => {
     renderRow(product);
 
-    expect(withoutNarrowSpaces(figure('Taux annuel')?.textContent ?? '')).toContain(
-      'Non disponible au 2 septembre 2026',
-    );
+    expect(figure('Taux annuel')?.textContent).toContain('Non disponible');
     expect(figure('Taux annuel')?.textContent).not.toContain('0 %');
     expect(figure('Plafond de dépôt')?.textContent).not.toContain('0 €');
   });
@@ -161,8 +160,9 @@ describe('ProductRow', () => {
       unavailableRuleKinds: [],
     });
 
-    expect(screen.getByText('Rendement non garanti')).toBeTruthy();
+    expect(screen.getByText('Marché')).toBeTruthy();
     expect(screen.queryByText('Rendement garanti')).toBeNull();
+    expect(screen.queryByText('Taux garanti')).toBeNull();
   });
 
   it('keeps classification out of the row until the details are opened', () => {

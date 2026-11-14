@@ -1,7 +1,5 @@
 import type { Product, ProductRule, ProductRuleKind } from '@cadran/api-client';
-import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatProductRuleValue } from '@/features/catalog/formatProductRuleValue';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductFigures.module.css';
@@ -15,12 +13,6 @@ const FIGURE_KINDS = [
   'COMBINED_CONTRIBUTION_CEILING',
 ] as const satisfies readonly ProductRuleKind[];
 
-const verificationTone = {
-  VERIFIED: 'positive',
-  STALE: 'warning',
-  UNVERIFIED: 'info',
-} as const;
-
 interface ProductFiguresProps {
   product: Product;
 }
@@ -33,9 +25,8 @@ interface FigureItem {
 /**
  * The rates and ceilings the catalogue can vouch for on the business date.
  *
- * Text rules stay in the provenance table: a figure strip that mixed
- * eligibility wording with a deposit ceiling would bury the amount. An
- * unavailable kind is stated as unavailable, never as zero.
+ * Only a label and a value: the period, the verification and the source are in the details. Text
+ * rules stay in the provenance table. An unavailable kind is stated as unavailable, never as zero.
  */
 export function ProductFigures({ product }: ProductFiguresProps) {
   const { i18n, t } = useTranslation();
@@ -57,27 +48,11 @@ export function ProductFigures({ product }: ProductFiguresProps) {
           <div key={figure.kind}>
             <dt>{t(`catalog.rules.kinds.${figure.kind}`)}</dt>
             {figure.rule === null ? (
-              <dd className={styles.unavailable}>
-                {t('catalog.figures.unavailable', {
-                  date: formatCalendarDay(product.asOf, i18n.language),
-                })}
-              </dd>
+              <dd className={styles.unavailable}>{t('catalog.figures.unavailable')}</dd>
             ) : (
-              <>
-                <dd className={`money ${styles.value}`}>
-                  {formatProductRuleValue(figure.rule, i18n.language, t)}
-                </dd>
-                <dd className={styles.period}>
-                  {formatFigurePeriod(figure.rule, i18n.language, t)}
-                </dd>
-                {figure.rule.verification === null ? null : (
-                  <dd>
-                    <StatusBadge tone={verificationTone[figure.rule.verification]}>
-                      {t(`catalog.verification.${figure.rule.verification}`)}
-                    </StatusBadge>
-                  </dd>
-                )}
-              </>
+              <dd className={`money ${styles.value}`}>
+                {formatProductRuleValue(figure.rule, i18n.language, t)}
+              </dd>
             )}
           </div>
         ))}
@@ -97,15 +72,4 @@ function collectFigures(product: Product): FigureItem[] {
     kind,
     rule: sourced.get(kind) ?? null,
   }));
-}
-
-function formatFigurePeriod(rule: ProductRule, locale: string, t: TFunction): string {
-  const from = formatCalendarDay(rule.validFrom, locale);
-
-  return rule.validTo === null
-    ? t('catalog.rules.openPeriod', { from })
-    : t('catalog.rules.closedPeriod', {
-        from,
-        to: formatCalendarDay(rule.validTo, locale),
-      });
 }
