@@ -29,6 +29,10 @@
       "description": "Aucun compte propriétaire n’existe encore. Exécutez la commande d’installation sur le serveur, puis rechargez la page.",
       "command": "make setup"
     },
+    "passwordToggle": {
+      "show": "Afficher le mot de passe",
+      "hide": "Masquer le mot de passe"
+    },
     "fields": {
       "email": "Adresse e-mail",
       "password": "Mot de passe",
