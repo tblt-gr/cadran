@@ -14,6 +14,7 @@
 <p align="center">
 <a href="#status">Status</a> &bull;
 <a href="#features">Features</a> &bull;
+<a href="#security">Security</a> &bull;
 <a href="#stack">Stack</a> &bull;
 <a href="#quick-start-with-docker">Quick Start</a> &bull;
 <a href="#configuration">Configuration</a> &bull;
@@ -33,10 +34,14 @@ quality; unavailable results stay explicitly unavailable.
 
 ## Status
 
-The upcoming 1.0.0 MVP adds the one-time migration of supported annual workbooks, encrypted
-backups, safe upgrades and an installable responsive PWA. Check the [changelog](./CHANGELOG.md)
-and select a published release before using personal data. `main` contains unreleased work;
-the package version remains the last release until release preparation is complete.
+Latest published release: **0.7.0**. Releases 0.1.0 to 0.7.0 delivered the application foundation,
+accounts, transactions, budgets and closing, reports, goals, manual portfolios and multi-support
+life insurance. The 1.0.0 MVP is not published yet: it completes the operational side with
+encrypted backups, guarded restoration, safe upgrades and an installable PWA, plus the one-time
+migration of supported annual workbooks. The migration command is not on `main` yet. Check the
+[changelog](./CHANGELOG.md) and select a published release before using personal data. `main`
+contains unreleased work; the package version remains the last release until release preparation
+is complete.
 
 This is a single-owner application. Generic imports, exports, tax tracking, bank synchronization,
 shared workspaces, live market prices, payment initiation and financial advice are outside the MVP.
@@ -44,12 +49,29 @@ It does not produce official tax returns. There is no native mobile application.
 
 ## Features
 
-- **Accounts and wealth**: balances, valuations and explained net wealth.
-- **Transactions**: exact amounts, splits, transfers, refunds, categorization and recurrences.
-- **Budget and closing**: reconciliation, monthly and annual plans, targets and period closing.
-- **Reports and goals**: monthly, annual and multi-year reports, savings goals and emergency funds.
-- **Manual investments**: portfolios, qualified performance and multi-support life insurance.
-- **MVP delivery**: supported annual-workbook migration, encrypted backups, safe upgrades and PWA.
+- **Accounts and wealth**: accounts and account rules, balances, valuations and explained net
+  wealth.
+- **Transactions**: exact decimal amounts, splits, atomic internal transfers, capped refunds,
+  search and filters, safe automatic categorization rules, recurrences and category colors.
+- **Budget and closing**: reconciliation of pending transactions and balances, monthly and annual
+  plans and targets, and period closing and reopening.
+- **Reports**: monthly, annual and multi-year reports where each indicator exposes its formula,
+  scope, period, source and quality; unavailable values stay `null` rather than zero.
+- **Goals**: savings and budget goals with an exact monthly schedule, progress, status and
+  emergency-fund coverage.
+- **Manual investments**: portfolios with qualified performance and multi-support life insurance.
+- **Operations**: encrypted PostgreSQL backups, retention, isolated restore verification, guarded
+  restoration, and upgrades with a verified pre-upgrade backup and rollback (see below).
+- **PWA**: installable responsive application that caches only its own assets, never financial
+  data.
+
+## Security
+
+The application is private by design: same-origin session authentication, CSRF protection on
+mutations, login throttling, an audit trail and per-workspace authorization. HTTPS is served by a
+local Caddy authority and the database port is never published. Financial data, backups and
+secrets are treated as sensitive and are never logged. Report vulnerabilities privately as
+described in the [Security Policy](./SECURITY.md).
 
 ## Stack
 
@@ -290,12 +312,15 @@ financial data or secrets. See [support](./SUPPORT.md) and [private security rep
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for architecture, branches, PRs and verification.
 
 ```bash
-make quality
-make test
-make build
-make audit
-make e2e
+make quality   # format, static analysis, boundaries, types, OpenAPI, infrastructure
+make test      # module boundaries, infrastructure, PHPUnit, Vitest
+make build     # SPA and API client
+make audit     # Composer and pnpm dependency audits
+make perf      # performance suite on synthetic transactions
+make e2e       # optional Playwright suite on its own disposable stack
 ```
+
+PHP 8.5 runs only in the tooling container: use `make`, not a host PHP.
 
 Use only a disposable development installation for browser tests. The [release checklist](./.github/RELEASE_CHECKLIST.md)
 records a fresh Linux/WSL installation, operational command exercises and PWA checks before a
