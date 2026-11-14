@@ -1,3 +1,4 @@
+import type { Product } from '@cadran/api-client';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -8,6 +9,14 @@ import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductStep.module.css';
 
 const NO_PRODUCT = 'NONE';
+
+/** Products grouped by account family, in the order the catalogue lists them. */
+function families(items: Product[]): [Product['accountKind'], Product[]][] {
+  const grouped = new Map<Product['accountKind'], Product[]>();
+  for (const item of items)
+    grouped.set(item.accountKind, [...(grouped.get(item.accountKind) ?? []), item]);
+  return [...grouped];
+}
 
 interface ProductStepProps {
   asOf: string;
@@ -95,37 +104,43 @@ export function ProductStep({
                 </p>
               ) : null}
 
-              {products.items.map((product) => (
-                <label className={styles.choice} key={product.code}>
-                  <input
-                    checked={selected?.type === 'product' && selected.product.code === product.code}
-                    name="account-origin"
-                    onChange={() => onSelect({ type: 'product', product })}
-                    type="radio"
-                    value={product.code}
-                  />
-                  <span>
-                    <strong>{product.displayName}</strong>
-                    <small>{product.code}</small>
-                    <span className={styles.badges}>
-                      <StatusBadge icon="accounts" tone="info">
-                        {t(`catalog.accountKinds.${product.accountKind}`)}
-                      </StatusBadge>
-                      {/* Stated by the server so this list never turns a product
-                          name into a promise of return. */}
-                      <StatusBadge
-                        icon={product.yieldGuaranteed ? 'goals' : 'investments'}
-                        tone={product.yieldGuaranteed ? 'positive' : 'warning'}
-                      >
-                        {t(
-                          product.yieldGuaranteed
-                            ? 'catalog.yield.guaranteed'
-                            : 'catalog.yield.market',
-                        )}
-                      </StatusBadge>
-                    </span>
-                  </span>
-                </label>
+              {families(products.items).map(([family, items]) => (
+                <div
+                  className={styles.family}
+                  key={family}
+                  role="group"
+                  aria-label={t(`catalog.accountKinds.${family}`)}
+                >
+                  <h4>{t(`catalog.accountKinds.${family}`)}</h4>
+                  {items.map((product) => (
+                    <label className={styles.choice} key={product.code}>
+                      <input
+                        checked={
+                          selected?.type === 'product' && selected.product.code === product.code
+                        }
+                        name="account-origin"
+                        onChange={() => onSelect({ type: 'product', product })}
+                        type="radio"
+                        value={product.code}
+                      />
+                      <span>
+                        <strong>{product.displayName}</strong>
+                        {/* Stated by the server so this list never turns a product
+                            name into a promise of return. */}
+                        <StatusBadge
+                          icon={product.yieldGuaranteed ? 'goals' : 'investments'}
+                          tone={product.yieldGuaranteed ? 'positive' : 'warning'}
+                        >
+                          {t(
+                            product.yieldGuaranteed
+                              ? 'catalog.yield.guaranteed'
+                              : 'catalog.yield.market',
+                          )}
+                        </StatusBadge>
+                      </span>
+                    </label>
+                  ))}
+                </div>
               ))}
             </>
           )}
