@@ -217,14 +217,8 @@ export function ProductModelsPage() {
           )}
         >
           {editor === 'create' ? (
-            <>
-              <ModelForm
-                onCancel={() => setEditor(null)}
-                onSubmit={(body) => create.mutate(body)}
-                pending={create.isPending}
-                submitError={productModelErrorKind(create.error, create.isError)}
-              />
-              <p>
+            <ModelForm
+              alternative={
                 <button
                   className="text-action"
                   onClick={() => openEditor('from-product')}
@@ -232,22 +226,24 @@ export function ProductModelsPage() {
                 >
                   {t('productModels.fromProduct.switchBack')}
                 </button>
-              </p>
-            </>
+              }
+              onCancel={() => setEditor(null)}
+              onSubmit={(body) => create.mutate(body)}
+              pending={create.isPending}
+              submitError={productModelErrorKind(create.error, create.isError)}
+            />
           ) : (
-            <>
-              <FromProductForm
-                onCancel={() => setEditor(null)}
-                onSubmit={(body) => fromProduct.mutate(body)}
-                pending={fromProduct.isPending}
-                submitError={productModelErrorKind(fromProduct.error, fromProduct.isError)}
-              />
-              <p>
+            <FromProductForm
+              alternative={
                 <button className="text-action" onClick={() => openEditor('create')} type="button">
                   {t('productModels.fromProduct.switchToManual')}
                 </button>
-              </p>
-            </>
+              }
+              onCancel={() => setEditor(null)}
+              onSubmit={(body) => fromProduct.mutate(body)}
+              pending={fromProduct.isPending}
+              submitError={productModelErrorKind(fromProduct.error, fromProduct.isError)}
+            />
           )}
         </Modal>
       ) : null}

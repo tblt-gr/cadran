@@ -21,3 +21,10 @@
   color: var(--negative);
   background: var(--negative-soft);
 }
+
+.alternative {
+  padding-top: var(--spacing-3);
+  border-top: var(--border-line-subtle);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}

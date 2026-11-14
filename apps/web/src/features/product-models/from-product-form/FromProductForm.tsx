@@ -6,7 +6,7 @@ import type {
   AccountValuationMode,
   CreateProductModelFromProductRequest,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FieldRow } from '@/features/product-models/field-row/FieldRow';
 import type { ProductModelErrorKind } from '@/features/product-models/productModelError';
@@ -19,6 +19,8 @@ import { todayInBrowser } from '@/lib/businessDay';
 import styles from './FromProductForm.module.css';
 
 interface FromProductFormProps {
+  /** A way to start the model differently, shown after the fields and before the buttons. */
+  alternative?: ReactNode;
   pending: boolean;
   submitError: ProductModelErrorKind | null;
   onCancel: () => void;
@@ -32,6 +34,7 @@ interface FromProductFormProps {
  * A is, then stops tracking it.
  */
 export function FromProductForm({
+  alternative,
   pending,
   submitError,
   onCancel: _onCancel,
@@ -180,6 +183,7 @@ export function FromProductForm({
           </FieldRow>
         </FormGrid>
       </fieldset>
+      {alternative ? <div className={styles.alternative}>{alternative}</div> : null}
       <ModalActions>
         <button
           className="primary-action"
