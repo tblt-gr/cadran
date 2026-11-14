@@ -183,7 +183,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
   }
 
   return (
-    <Modal close={close} intent="settings" title={t('reports.annual.picker.title')}>
+    <Modal close={close} intent="settings" title={t('reports.annual.picker.title')} wide>
       <ModalForm className={styles.form} onSubmit={submit}>
         <p aria-live="polite">{`${selected.length} / ${MAX_ANNUAL_COLUMNS}`}</p>
         {failed ? <p role="alert">{t('reports.annual.picker.error')}</p> : null}
