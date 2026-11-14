@@ -8,12 +8,17 @@
   display: flex;
   align-items: flex-start;
   margin: var(--spacing-none);
-  color: var(--text-secondary);
+  padding: var(--spacing-3) var(--spacing-4);
+  border: var(--border-line-subtle);
+  border-radius: var(--radius-card);
+  color: var(--text-primary);
+  background: var(--bg-selected);
   font-size: var(--font-size-body);
   line-height: var(--line-height-body);
   gap: var(--spacing-2);
 }
 
 .reorderHint > svg {
+  color: var(--accent);
   flex-shrink: 0;
 }

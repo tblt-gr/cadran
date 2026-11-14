@@ -206,7 +206,7 @@ export function AccountGroupsPage() {
       </HeaderActions>
 
       {reordering ? (
-        <p className={styles.reorderHint}>
+        <p className={styles.reorderHint} role="status">
           <Icon name="reorder" />
           {t('accountGroups.reorder.hint')}
         </p>
