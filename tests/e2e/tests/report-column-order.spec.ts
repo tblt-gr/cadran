@@ -103,7 +103,7 @@ test('reorders report columns by mouse, cancels, recovers save failure and persi
     await page.getByRole('button', { name: 'Pluriannuel', exact: true }).click();
     await settled(page);
     await expect(page.getByRole('table').first().getByRole('columnheader')).toHaveText([
-      'Année',
+      'Mois',
       'Dépenses',
       'Taux d’épargne',
       'Patrimoine net',

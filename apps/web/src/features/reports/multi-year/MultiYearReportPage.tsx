@@ -3,12 +3,9 @@ import { Suspense, useCallback, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
-import { MultiYearCards } from './MultiYearCards';
 import { DetailedAnnualReports } from './DetailedAnnualReports';
 import { MultiYearOverview } from './MultiYearOverview';
 import { MultiYearChartsSkeleton, MultiYearSkeleton } from './MultiYearSkeleton';
-import type { MultiYearDisplay } from '@/features/budget/year/yearViewSearch';
-import { MultiYearTable } from './MultiYearTable';
 import { MultiYearRequestError, useMultiYearReport } from './useMultiYearReport';
 
 import styles from './MultiYearReportPage.module.css';
@@ -17,15 +14,22 @@ import styles from './MultiYearReportPage.module.css';
 const MultiYearCharts = lazyComponent(() => import('./MultiYearCharts'), 'MultiYearCharts');
 
 interface MultiYearReportPageProps {
+  /** Opens every year into its months (the toolbar button). */
+  expanded: boolean;
+  showChanges: boolean;
   /** Workspace-local year, the upper bound of the range. */
-  display: MultiYearDisplay;
   /** Requested range from the URL; null lets the backend apply its own default bounds. */
   range: { from: number; to: number } | null;
   /** Year of the route, which keys the header title. */
   year: number;
 }
 
-export function MultiYearReportPage({ display, range, year }: MultiYearReportPageProps) {
+export function MultiYearReportPage({
+  expanded,
+  range,
+  showChanges,
+  year,
+}: MultiYearReportPageProps) {
   const { t } = useTranslation();
   const [detailedReports, setDetailedReports] = useState<AnnualReport[] | null>(null);
   const [detailedFailed, setDetailedFailed] = useState(false);
@@ -95,39 +99,30 @@ export function MultiYearReportPage({ display, range, year }: MultiYearReportPag
   } else {
     content = (
       <>
-        {display === 'compact' ? (
+        <DetailedAnnualReports
+          expanded={expanded}
+          onReportsReady={setReportsReady}
+          report={report.data}
+          showChanges={showChanges}
+        />
+        {!detailedFailed ? (
           <>
-            <MultiYearTable report={report.data} />
-            <MultiYearCards report={report.data} />
-            <Suspense fallback={<MultiYearChartsSkeleton />}>
-              <MultiYearCharts report={report.data} />
-            </Suspense>
+            {detailedReports &&
+            detailedReports.length === report.data.years.length &&
+            detailedReports.every((item, index) => item.year === report.data.years[index]?.year) ? (
+              <Suspense fallback={<MultiYearChartsSkeleton />}>
+                <MultiYearCharts annualReports={detailedReports} report={report.data} />
+              </Suspense>
+            ) : (
+              <MultiYearChartsSkeleton />
+            )}
+            <MultiYearOverview
+              from={report.data.from}
+              reports={detailedReports}
+              to={report.data.to}
+            />
           </>
-        ) : (
-          <>
-            <DetailedAnnualReports onReportsReady={setReportsReady} report={report.data} />
-            {!detailedFailed ? (
-              <>
-                {detailedReports &&
-                detailedReports.length === report.data.years.length &&
-                detailedReports.every(
-                  (item, index) => item.year === report.data.years[index]?.year,
-                ) ? (
-                  <Suspense fallback={<MultiYearChartsSkeleton />}>
-                    <MultiYearCharts annualReports={detailedReports} report={report.data} />
-                  </Suspense>
-                ) : (
-                  <MultiYearChartsSkeleton />
-                )}
-                <MultiYearOverview
-                  from={report.data.from}
-                  reports={detailedReports}
-                  to={report.data.to}
-                />
-              </>
-            ) : null}
-          </>
-        )}
+        ) : null}
       </>
     );
   }

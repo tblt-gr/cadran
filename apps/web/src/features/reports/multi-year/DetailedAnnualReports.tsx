@@ -9,12 +9,19 @@ import { DetailedReportSkeleton } from './DetailedReportSkeleton';
 import styles from './DetailedAnnualReports.module.css';
 
 interface DetailedAnnualReportsProps {
+  expanded: boolean;
+  showChanges: boolean;
   onReportsReady: (reports: AnnualReport[] | null, failed: boolean) => void;
   report: MultiYearReport;
 }
 
 /** Reuses annual endpoints, then flattens their server-supplied monthly rows into one chronology. */
-export function DetailedAnnualReports({ onReportsReady, report }: DetailedAnnualReportsProps) {
+export function DetailedAnnualReports({
+  expanded,
+  onReportsReady,
+  report,
+  showChanges,
+}: DetailedAnnualReportsProps) {
   const { t } = useTranslation();
   const results = useQueries({
     queries: report.years.map((year) => annualReportQueryOptions(year.year)),
@@ -61,7 +68,13 @@ export function DetailedAnnualReports({ onReportsReady, report }: DetailedAnnual
 
   return (
     <div className={styles.reports}>
-      <ContinuousDetailedReport annualReports={annualReports} report={report} />
+      <ContinuousDetailedReport
+        annualReports={annualReports}
+        initiallyExpanded={expanded}
+        key={String(expanded)}
+        report={report}
+        showChanges={showChanges}
+      />
     </div>
   );
 }

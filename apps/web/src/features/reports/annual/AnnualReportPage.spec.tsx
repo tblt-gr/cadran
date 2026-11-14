@@ -143,7 +143,7 @@ describe('AnnualReportPage', () => {
     await screen.findByRole('table', { name: /rapport 2026/i });
     fireEvent.click(screen.getByRole('button', { name: 'Pluriannuel' }));
     expect(window.location.pathname + window.location.search).toBe('/budget/2026?view=multi');
-    expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: /rapport détaillé/i })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Annuel' }));
     expect(window.location.search).toBe('');
     expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();

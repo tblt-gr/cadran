@@ -2,22 +2,17 @@ import { describe, expect, it } from 'vitest';
 import { readYearView, writeYearView } from './yearViewSearch';
 
 describe('yearViewSearch', () => {
-  it('defaults to the compact annual report', () => {
-    expect(readYearView('')).toEqual({ view: 'annual', display: 'compact', range: null });
-    expect(readYearView('?display=detailed&from=2020&to=2024')).toEqual({
-      view: 'annual',
-      display: 'compact',
-      range: null,
-    });
+  it('defaults to the annual report', () => {
+    expect(readYearView('')).toEqual({ view: 'annual', range: null });
+    expect(readYearView('?from=2020&to=2024')).toEqual({ view: 'annual', range: null });
   });
 
-  it('reads the multi-year mode with its display and range', () => {
+  it('reads the multi-year mode with its range, and ignores the retired display parameter', () => {
     expect(readYearView('?view=multi&display=detailed&from=2020&to=2024')).toEqual({
       view: 'multi',
-      display: 'detailed',
       range: { from: 2020, to: 2024 },
     });
-    expect(readYearView('?view=multi')).toEqual({ view: 'multi', display: 'compact', range: null });
+    expect(readYearView('?view=multi')).toEqual({ view: 'multi', range: null });
   });
 
   it('ignores a malformed or half-given range', () => {
@@ -27,9 +22,9 @@ describe('yearViewSearch', () => {
   });
 
   it('round-trips and writes nothing for the annual view', () => {
-    const state = { view: 'multi', display: 'detailed', range: { from: 2019, to: 2023 } } as const;
+    const state = { view: 'multi', range: { from: 2019, to: 2023 } } as const;
     expect(readYearView(writeYearView(state))).toEqual(state);
-    expect(writeYearView({ view: 'annual', display: 'detailed', range: null })).toBe('');
-    expect(writeYearView({ view: 'multi', display: 'compact', range: null })).toBe('?view=multi');
+    expect(writeYearView({ view: 'annual', range: null })).toBe('');
+    expect(writeYearView({ view: 'multi', range: null })).toBe('?view=multi');
   });
 });

@@ -10,6 +10,8 @@ interface MultiYearCellValueProps {
   assetCode: string | null;
   cell: MultiYearCell;
   kind: 'FLOW' | 'STOCK' | 'RATE';
+  /** The change against the previous year, in amount and ratio, under the value. */
+  showChange?: boolean;
 }
 
 function performanceTone(value: string): string {
@@ -23,7 +25,12 @@ function performanceTone(value: string): string {
  * column's `change` is shown in ratio points (0.05 = "+5,00 points"), never a
  * percentage, so it is never mistaken for `changeRatio`'s relative growth.
  */
-export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValueProps) {
+export function MultiYearCellValue({
+  assetCode,
+  cell,
+  kind,
+  showChange = true,
+}: MultiYearCellValueProps) {
   const { t, i18n } = useTranslation();
 
   function reasonText(reason: string): string {
@@ -80,7 +87,7 @@ export function MultiYearCellValue({ assetCode, cell, kind }: MultiYearCellValue
   return (
     <>
       <span>{text}</span>
-      {change === null ? null : (
+      {change === null || !showChange ? null : (
         <>
           <br />
           <small className={changeTone}>{change}</small>

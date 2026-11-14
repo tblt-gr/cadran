@@ -92,6 +92,10 @@ describe('time axis of the monthly charts', () => {
       '2026-01',
     ]);
     expect(yearStartTicks([])).toEqual([]);
+    // A series started mid-year labels its years only.
+    expect(yearStartTicks(['2023-10', '2023-11', '2024-01', '2024-02'], false)).toEqual([
+      '2024-01',
+    ]);
   });
 
   it('writes a January as its year and any other month with its name', () => {

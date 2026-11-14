@@ -35,6 +35,7 @@ function HeaderTitleProbe({ path }: { path: string }) {
 }
 
 function renderPage(search = '?view=multi') {
+  window.localStorage.clear();
   window.history.replaceState({}, '', `/budget/2026${search}`);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
@@ -60,7 +61,10 @@ beforeEach(() => {
     ok({ firstDataMonth: '2022-01', currentMonth: '2026-09', timezone: 'Europe/Paris' }),
   );
   api.readMultiYearReport.mockResolvedValue(ok(multiYearReport));
-  api.readAnnualReport.mockResolvedValue(ok(annualReport));
+  // The annual reports carry the same column set as the multi-year report, as they do for real.
+  api.readAnnualReport.mockResolvedValue(
+    ok({ ...annualReport, columns: multiYearReport.columns as typeof annualReport.columns }),
+  );
   api.readAnnualReportPreferences.mockResolvedValue(
     ok({
       columns: ['cashIncome', 'endNetWorth'],
@@ -89,25 +93,25 @@ describe('MultiYearReportPage', () => {
     ).toHaveLength(1);
     expect(document.querySelectorAll('tbody tr')).toHaveLength(3);
     resolve(ok(multiYearReport));
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(screen.queryByTestId('multi-year-report-skeleton')).toBeNull();
 
     api.readMultiYearReport.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['multi-year-report'] });
     await waitFor(() => expect(api.readMultiYearReport).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('table', { name: /pluriannuel/i })).toBeTruthy();
+    expect(screen.getByRole('table', { name: /rapport détaillé/i })).toBeTruthy();
     expect(screen.queryByTestId('multi-year-report-skeleton')).toBeNull();
   });
 
   it('publishes the selected year range as the shell header title', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport pluriannuel 2024-2026');
   });
 
   it('shows exactly one skeleton row per requested year while a narrowed range is fetching', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     let resolveNext!: (value: ReturnType<typeof ok<typeof multiYearReport>>) => void;
     api.readMultiYearReport.mockReturnValue(new Promise((r) => (resolveNext = r)));
     const fromSelect = screen.getByLabelText('Depuis') as HTMLSelectElement;
@@ -118,19 +122,19 @@ describe('MultiYearReportPage', () => {
     resolveNext(
       ok({ ...multiYearReport, from: 2025, to: 2026, years: multiYearReport.years.slice(1) }),
     );
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
   });
 
   it('offers a retry after a non-range error', async () => {
     api.readMultiYearReport.mockResolvedValueOnce(failure(500));
     renderPage();
     fireEvent.click(await screen.findByRole('button', { name: /réessayer/i }));
-    expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
+    expect(await screen.findByRole('table', { name: /rapport détaillé/i })).toBeTruthy();
   });
 
   it('surfaces a 422 range error as a message, keeping the toolbar selector usable', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     api.readMultiYearReport.mockImplementation(async ({ query }: { query: { from?: number } }) =>
       query.from === 2025 ? failure(422) : ok(multiYearReport),
     );
@@ -150,32 +154,38 @@ describe('MultiYearReportPage', () => {
     expect(screen.queryByRole('table')).toBeNull();
   });
 
-  it('renders one row per year, oldest first, each linking to its annual report', async () => {
+  it('renders one folded row per year, oldest first, carrying the figures of the year', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
-    const links = within(table).getAllByRole('link');
-    expect(links.map((link) => link.textContent)).toEqual(['2024', '2025', '2026']);
-    expect(links.map((link) => link.getAttribute('href'))).toEqual([
-      '/budget/2024',
-      '/budget/2025',
-      '/budget/2026',
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
+    const toggles = within(table).getAllByRole('button', { name: /^20\d\d$/ });
+    expect(toggles.map((toggle) => toggle.textContent)).toEqual(['2024', '2025', '2026']);
+    expect(toggles.map((toggle) => toggle.getAttribute('aria-expanded'))).toEqual([
+      'false',
+      'false',
+      'false',
     ]);
-    for (const link of links) {
-      link.focus();
-      expect(document.activeElement).toBe(link);
+    // Folded, the table holds the year rows and no month.
+    expect(within(table.querySelector('tbody')!).getAllByRole('row')).toHaveLength(3);
+    for (const toggle of toggles) {
+      toggle.focus();
+      expect(document.activeElement).toBe(toggle);
     }
   });
 
   it('shows the exact amount and its signed change against the previous year', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(within(table).getAllByText(/24\s?000,00\s?€/).length).toBeGreaterThan(0);
+    // The change is hidden until the toolbar toggle asks for it.
+    expect(within(table).queryByText(/\+2\s?000,00\s?€/)).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /afficher l’évolution/i }));
     expect(within(table).getAllByText(/\+2\s?000,00\s?€/).length).toBeGreaterThan(0);
   });
 
   it('shows a RATE column change in points, never as a percentage', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
+    fireEvent.click(screen.getByRole('button', { name: /afficher l’évolution/i }));
     expect(within(table).getAllByText(/\+5,00\s?points/).length).toBeGreaterThan(0);
   });
 
@@ -204,7 +214,8 @@ describe('MultiYearReportPage', () => {
       }),
     );
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
+    fireEvent.click(screen.getByRole('button', { name: /afficher l’évolution/i }));
     expect(within(table).getAllByText(/\+2\s?000,00\s?€/).length).toBeGreaterThan(0);
     // The ratio failed on its own: a bare dash in its place, no explanatory text.
     expect(within(table).queryByText(/valeur nulle l.année précédente/i)).toBeNull();
@@ -213,7 +224,7 @@ describe('MultiYearReportPage', () => {
 
   it('shows no second line under a value that has nothing to compare with', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
     const rows = within(table).getAllByRole('row');
     const year2026 = rows.find((row) => row.textContent?.includes('2026'))!;
     expect(within(year2026).queryByTitle(/évolution/i)).toBeNull();
@@ -222,7 +233,7 @@ describe('MultiYearReportPage', () => {
 
   it('hides the policy column and shows no policy note under the table', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(within(table).queryByRole('columnheader', { name: 'Politique' })).toBeNull();
     expect(within(table).queryByText('v1')).toBeNull();
     expect(screen.queryByText(/Politique d’indicateurs par année/)).toBeNull();
@@ -230,7 +241,7 @@ describe('MultiYearReportPage', () => {
 
   it('shows no month next to a stock value', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(table.textContent).not.toMatch(
       /\((janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\)/i,
     );
@@ -238,7 +249,7 @@ describe('MultiYearReportPage', () => {
 
   it('exposes snapshotMonths and liveMonths for a year that mixes both', async () => {
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
     const rows = within(table).getAllByRole('row');
     const year2026 = rows.find((row) => row.textContent?.includes('2026'))!;
     expect(year2026.textContent).toMatch(/8/);
@@ -254,45 +265,11 @@ describe('MultiYearReportPage', () => {
       ok({ ...multiYearReport, from: 2012, to: 2026, years }),
     );
     renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(within(table).getAllByRole('link').length).toBe(15);
+    const table = await screen.findByRole('table', { name: /rapport détaillé/i });
+    expect(within(table).getAllByRole('button', { name: /^20\d\d$/ })).toHaveLength(15);
   });
 
-  it('shows annual flow data even when the flow columns are not selected', async () => {
-    renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-    await waitFor(() =>
-      expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1),
-    );
-    const tables = [...document.querySelectorAll('details table')];
-    const flowTable = tables.find((table) => table.textContent?.includes('Dépenses'));
-    expect(flowTable).toBeTruthy();
-    expect(flowTable?.textContent).toMatch(/15\s?000,00\s?€/);
-    expect(screen.queryByText(/ajoutez les colonnes correspondantes/i)).toBeNull();
-  });
-
-  it('explains incompatible flow assets instead of claiming there is no data', async () => {
-    const unavailable = { value: null, reason: 'MIXED_ASSETS' };
-    api.readMultiYearReport.mockResolvedValue(
-      ok({
-        ...multiYearReport,
-        years: multiYearReport.years.map((year) => ({
-          ...year,
-          flows: {
-            assetCode: null,
-            cashIncome: unavailable,
-            budgetExpenses: unavailable,
-            budgetSurplus: unavailable,
-          },
-        })),
-      }),
-    );
-    renderPage();
-    await screen.findByText(/Non calculable : Actifs mélangés/i);
-    expect(screen.queryByText(/Aucune donnée de flux disponible/i)).toBeNull();
-  });
-
-  it('switches to detailed mode and renders every month of the selected years in one chronology', async () => {
+  it('opens every year into one chronology of months', async () => {
     api.readAnnualReport.mockImplementation(({ path }: { path: { year: number } }) =>
       Promise.resolve(
         ok({
@@ -323,12 +300,16 @@ describe('MultiYearReportPage', () => {
       ),
     );
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
 
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
-
-    const table = await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
-    const rows = within(table.querySelector('tbody')!).getAllByRole('row');
+    let table = await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
+    // Every year starts folded; one button opens them all.
+    expect(within(table.querySelector('tbody')!).getAllByRole('row')).toHaveLength(3);
+    fireEvent.click(screen.getByRole('button', { name: 'Déplier toutes les années' }));
+    table = await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
+    const rows = within(table.querySelector('tbody')!)
+      .getAllByRole('row')
+      .filter((row) => row.querySelector('button[aria-expanded]') === null);
     expect(rows).toHaveLength(36);
     expect(rows[0]?.textContent).toMatch(/janvier 2024/i);
     expect(
@@ -337,6 +318,18 @@ describe('MultiYearReportPage', () => {
         .getAttribute('href'),
     ).toBe('/budget/2024/08');
     await within(rows[7]!).findByRole('button', { name: /^Objectif :/ });
+    // A year folds into its own row: its months leave the table, the other years stay.
+    expect(within(table).getByRole('button', { name: '2024' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
+    fireEvent.click(within(table).getByRole('button', { name: '2024' }));
+    expect(within(table).getByRole('button', { name: '2024' }).getAttribute('aria-expanded')).toBe(
+      'false',
+    );
+    expect(within(table).queryByText(/janvier 2024/i)).toBeNull();
+    expect(within(table).getByText(/janvier 2025/i)).toBeTruthy();
+    fireEvent.click(within(table).getByRole('button', { name: '2024' }));
+    expect(within(table).getByText(/janvier 2024/i)).toBeTruthy();
     const cards = screen.getByRole('list', { name: /mois de 2024 à 2026/i });
     expect(
       within(cards)
@@ -364,21 +357,21 @@ describe('MultiYearReportPage', () => {
     expect(rows[11]?.textContent).toMatch(/décembre 2024/i);
     expect(rows[12]?.textContent).toMatch(/janvier 2025/i);
     expect(rows[35]?.textContent).toMatch(/décembre 2026/i);
-    expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1);
+    await waitFor(() =>
+      expect(screen.getAllByText(/voir les données/i).length).toBeGreaterThanOrEqual(1),
+    );
     // One overview for the whole range, not a pair of charts per year.
     const overview = screen.getByRole('region', { name: 'Vue d’ensemble 2024-2026' });
     expect(within(overview).getAllByText(/principales catégories de dépenses/i)).toHaveLength(1);
     expect(screen.queryByRole('region', { name: /^Rapport 20/ })).toBeNull();
+    await waitFor(() => expect(document.querySelectorAll('details table')).toHaveLength(2));
     const alternatives = [...document.querySelectorAll('details table')];
-    expect(alternatives).toHaveLength(2);
     expect(alternatives.map((table) => table.querySelectorAll('tbody tr').length)).toEqual([
       36, 36,
     ]);
     expect(api.readAnnualReport).toHaveBeenCalledWith(
       expect.objectContaining({ path: { year: 2024 } }),
     );
-    fireEvent.click(screen.getByRole('button', { name: /vue compacte/i }));
-    expect(await screen.findByRole('table', { name: /pluriannuel/i })).toBeTruthy();
   });
 
   it('prefixes the first year opening only, never drawing a December twice', async () => {
@@ -413,10 +406,10 @@ describe('MultiYearReportPage', () => {
       ),
     );
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
 
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
     await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
+    await waitFor(() => expect(document.querySelectorAll('details table')).toHaveLength(2));
 
     const netWorth = [...document.querySelectorAll('details table')][1]!;
     const labels = [...netWorth.querySelectorAll('tbody th')].map((cell) => cell.textContent);
@@ -430,8 +423,7 @@ describe('MultiYearReportPage', () => {
       Promise.resolve(ok({ ...annualReport, year: path.year })),
     );
     const { queryClient } = renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     await screen.findByRole('table', { name: /rapport détaillé/i });
     api.readAnnualReport.mockResolvedValue(failure(500));
     await queryClient.invalidateQueries({ queryKey: ['annual-report'] });
@@ -443,8 +435,6 @@ describe('MultiYearReportPage', () => {
   it('replaces chart skeletons when a detailed annual request fails', async () => {
     api.readAnnualReport.mockResolvedValue(failure(500));
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
     await screen.findAllByRole('alert');
     await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
   });
@@ -452,9 +442,7 @@ describe('MultiYearReportPage', () => {
   it('keeps the view switch present while the detailed annual reports are loading', async () => {
     api.readAnnualReport.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findByTestId('detailed-reports-skeleton');
 
     expect(screen.getByRole('group', { name: /type de rapport/i })).toBeTruthy();
     expect((await screen.findAllByRole('status')).length).toBe(1);
@@ -505,9 +493,7 @@ describe('MultiYearReportPage', () => {
       }),
     );
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
-
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
+    await screen.findByRole('table', { name: /rapport détaillé/i });
 
     expect(
       await screen.findByText(/plusieurs versions de la politique d’indicateurs/i),
@@ -551,10 +537,9 @@ describe('MultiYearReportPage', () => {
       ),
     );
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
+    api.readAnnualReport.mockClear();
     fireEvent.change(screen.getByLabelText('Depuis'), { target: { value: '2025' } });
-    await screen.findByRole('table', { name: /pluriannuel/i });
-    fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
     await screen.findByRole('table', { name: /rapport détaillé 2025-2026/i });
     expect(api.readAnnualReport).toHaveBeenCalledWith(
       expect.objectContaining({ path: { year: 2025 } }),
@@ -567,25 +552,13 @@ describe('MultiYearReportPage', () => {
     );
   });
 
-  it('shows the average of complete years in a summary row', async () => {
-    renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(within(table).getAllByText(/23\s?000,00\s?€/).length).toBeGreaterThan(0);
-  });
-
-  it('shows the cash savings rate summary supplied by the report', async () => {
-    renderPage();
-    const table = await screen.findByRole('table', { name: /pluriannuel/i });
-    expect(within(table).getAllByText(/22,50\s?%/).length).toBeGreaterThan(0);
-  });
-
   it('lets the caller narrow the year range and refetches', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     const fromSelect = screen.getByLabelText('Depuis') as HTMLSelectElement;
     const toSelect = screen.getByLabelText(/jusqu/i) as HTMLSelectElement;
     fireEvent.change(fromSelect, { target: { value: '2025' } });
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(api.readMultiYearReport).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ from: 2025 }) }),
     );
@@ -594,12 +567,12 @@ describe('MultiYearReportPage', () => {
 
   it('uses availableFrom to select an older 15-year window than the default response', async () => {
     renderPage();
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     const fromSelect = screen.getByLabelText('Depuis') as HTMLSelectElement;
     expect(within(fromSelect).getByRole('option', { name: '2010' })).toBeTruthy();
 
     fireEvent.change(fromSelect, { target: { value: '2010' } });
-    await screen.findByRole('table', { name: /pluriannuel/i });
+    await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(api.readMultiYearReport).toHaveBeenLastCalledWith(
       expect.objectContaining({ query: expect.objectContaining({ from: 2010, to: 2024 }) }),
     );
@@ -608,24 +581,13 @@ describe('MultiYearReportPage', () => {
   describe('mobile cards (below 640 px)', () => {
     it('shows the same partial-year and snapshot/live notes as the table', async () => {
       renderPage();
-      const cards = await screen.findByRole('list', { name: /pluriannuel/i });
+      const cards = await screen.findByRole('list', { name: /mois de 2024 à 2026/i });
       const items = within(cards).getAllByRole('listitem');
       const year2026Card = items.find((item) => item.textContent?.includes('2026'))!;
       const year2025Card = items.find((item) => item.textContent?.includes('2025'))!;
-      expect(year2026Card.textContent).toMatch(/partielle/i);
+      expect(year2026Card.textContent).not.toMatch(/partielle/i);
       expect(year2026Card.textContent).toMatch(/8 mois clôturés, 1 en direct/i);
       expect(year2025Card.textContent).not.toMatch(/v1/);
-    });
-
-    it('ends with a summary card carrying the average, minimum and maximum', async () => {
-      renderPage();
-      const cards = await screen.findByRole('list', { name: /pluriannuel/i });
-      const items = within(cards).getAllByRole('listitem');
-      const summaryCard = items[items.length - 1]!;
-      expect(summaryCard.textContent).toMatch(/moyenne des années complètes/i);
-      expect(within(summaryCard).getAllByText(/23\s?000,00\s?€/).length).toBeGreaterThan(0);
-      expect(within(summaryCard).getAllByText(/22\s?000,00\s?€/).length).toBeGreaterThan(0);
-      expect(within(summaryCard).getAllByText(/24\s?000,00\s?€/).length).toBeGreaterThan(0);
     });
   });
 });

@@ -1,6 +1,8 @@
 import type { AnnualReport, MultiYearReport } from '@cadran/api-client';
 import { Bar, ComposedChart, Line, Tooltip, XAxis } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
+import { usePersistedToggle } from '@/hooks/use-persisted-toggle';
 import { useBoxSize } from '@/hooks/use-box-size';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -30,6 +32,11 @@ interface MultiYearChartsProps {
   report: MultiYearReport;
 }
 
+/** The flows are read per month, or one bar per year. */
+interface FlowsProps extends MultiYearChartsProps {
+  byYear: boolean;
+}
+
 function columnLookup(report: MultiYearReport, id: string) {
   return report.columns.find((column) => column.id === id) ?? null;
 }
@@ -55,10 +62,11 @@ export function netWorthAssetCode(
   );
 }
 
-function FlowsDataTable({ annualReports, report }: MultiYearChartsProps) {
+function FlowsDataTable({ annualReports, byYear, report }: FlowsProps) {
   const { t, i18n } = useTranslation();
   const assetCode = flowAssetCode(annualReports, report);
-  const months = flowEntries(annualReports) ?? null;
+  const months = byYear ? null : (flowEntries(annualReports) ?? null);
+  const years = report.years;
 
   return (
     <table className={styles.data}>
@@ -73,7 +81,7 @@ function FlowsDataTable({ annualReports, report }: MultiYearChartsProps) {
         </tr>
       </thead>
       <tbody>
-        {(months ?? report.years).map((entry) => (
+        {(months ?? years).map((entry) => (
           <tr key={'month' in entry ? entry.month : entry.year}>
             <th scope="row">
               {'month' in entry ? monthLabel(entry.month, i18n.language) : entry.year}
@@ -163,10 +171,10 @@ function netWorthRows(
     }));
 }
 
-function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
+function MultiYearFlowsChart({ annualReports, byYear, report }: FlowsProps) {
   const { t, i18n } = useTranslation();
   const { ref, size } = useBoxSize();
-  const entries = flowEntries(annualReports) ?? report.years;
+  const entries = (byYear ? undefined : flowEntries(annualReports)) ?? report.years;
   const values = entries.flatMap((entry) =>
     FLOW_SERIES_IDS.map((id) => {
       const value = ('month' in entry ? entry[id].value : entry.flows[id].value) ?? null;
@@ -224,7 +232,14 @@ function MultiYearFlowsChart({ annualReports, report }: MultiYearChartsProps) {
             tickFormatter={(key: string) =>
               /^\d{4}-\d{2}$/.test(key) ? axisTickLabel(key, i18n.language) : key
             }
-            ticks={annualReports ? yearStartTicks(data.map((point) => point.year)) : undefined}
+            ticks={
+              entries.length > 0 && 'month' in entries[0]!
+                ? yearStartTicks(
+                    data.map((point) => point.year),
+                    false,
+                  )
+                : undefined
+            }
           />
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
           {FLOW_BAR_SERIES.map((series) => (
@@ -323,7 +338,8 @@ function MultiYearNetWorthChart({ annualReports, report }: MultiYearChartsProps)
  */
 export function MultiYearCharts({ annualReports, report }: MultiYearChartsProps) {
   const { t } = useTranslation();
-  const entries = flowEntries(annualReports) ?? report.years;
+  const [byYear, setByYear] = usePersistedToggle('cadran.report.multiYear.flowsByYear');
+  const entries = (byYear ? undefined : flowEntries(annualReports)) ?? report.years;
   const flowCells = entries.flatMap((entry) =>
     FLOW_SERIES_IDS.map((id) => ('month' in entry ? entry[id] : entry.flows[id])),
   );
@@ -342,11 +358,23 @@ export function MultiYearCharts({ annualReports, report }: MultiYearChartsProps)
   return (
     <div className={styles.grid}>
       <ChartFrame
-        data={<FlowsDataTable annualReports={annualReports} report={report} />}
+        actions={
+          <button
+            aria-label={t('reports.multiYear.charts.flowsByYear')}
+            aria-pressed={byYear}
+            className="icon-ghost"
+            onClick={() => setByYear(!byYear)}
+            title={t('reports.multiYear.charts.flowsByYear')}
+            type="button"
+          >
+            <Icon name="calendar" size={16} />
+          </button>
+        }
+        data={<FlowsDataTable annualReports={annualReports} byYear={byYear} report={report} />}
         title={t('reports.multiYear.charts.flows')}
       >
         {hasFlows ? (
-          <MultiYearFlowsChart annualReports={annualReports} report={report} />
+          <MultiYearFlowsChart annualReports={annualReports} byYear={byYear} report={report} />
         ) : (
           <p>
             {flowReason

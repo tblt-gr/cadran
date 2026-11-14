@@ -1,20 +1,23 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { YearRangeSelector } from '@/features/reports/multi-year/YearRangeSelector';
 import { ReportPreferencesControls } from '@/features/budget/year/report-preferences-controls/ReportPreferencesControls';
-import { DisplayModeSwitch } from './DisplayModeSwitch';
-import type { MultiYearDisplay, YearView } from './yearViewSearch';
+import type { YearView } from './yearViewSearch';
 import styles from './ReportToolbar.module.css';
 
-/** What only the multi-year view adds to the row: its year range and its display mode. */
+/** What only the multi-year view adds to the row: its year range. */
 interface MultiYearControls {
-  display: MultiYearDisplay;
+  expanded: boolean;
   maxYear: number;
   minYear: number;
-  onDisplayChange: (display: MultiYearDisplay) => void;
+  onExpandedChange: (expanded: boolean) => void;
   onRangeChange: (range: { from: number; to: number }) => void;
   /** Null while the default bounds are still loading: the selector waits for them. */
   range: { from: number; to: number } | null;
+  /** Whether the change against the previous year shows under each yearly figure. */
+  showChanges: boolean;
+  onShowChangesChange: (shown: boolean) => void;
 }
 
 interface ReportToolbarProps {
@@ -26,7 +29,7 @@ interface ReportToolbarProps {
 }
 
 /**
- * One quiet row: the annual or multi-year switch, the year range and display mode of the
+ * One quiet row: the annual or multi-year switch, the year range of the
  * multi-year view, then the column picker (stored as a workspace preference).
  */
 export function ReportToolbar({
@@ -64,7 +67,31 @@ export function ReportToolbar({
       ) : null}
       <div className={styles.actions}>
         {multi ? (
-          <DisplayModeSwitch onChange={multi.onDisplayChange} value={multi.display} />
+          <>
+            <button
+              aria-label={t(
+                multi.expanded ? 'reports.multiYear.collapseAll' : 'reports.multiYear.expandAll',
+              )}
+              className="icon-ghost"
+              onClick={() => multi.onExpandedChange(!multi.expanded)}
+              title={t(
+                multi.expanded ? 'reports.multiYear.collapseAll' : 'reports.multiYear.expandAll',
+              )}
+              type="button"
+            >
+              <Icon name={multi.expanded ? 'chevrons-up' : 'chevrons-down'} size={16} />
+            </button>
+            <button
+              aria-label={t('reports.multiYear.changesToggle')}
+              aria-pressed={multi.showChanges}
+              className="icon-ghost"
+              onClick={() => multi.onShowChangesChange(!multi.showChanges)}
+              title={t('reports.multiYear.changesToggle')}
+              type="button"
+            >
+              <Icon name="chart-line" size={16} />
+            </button>
+          </>
         ) : null}
         <ReportPreferencesControls />
       </div>

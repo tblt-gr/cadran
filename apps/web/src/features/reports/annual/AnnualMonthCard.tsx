@@ -1,3 +1,4 @@
+import { MonthLink } from '@/features/reports/annual/month-link/MonthLink';
 import type { AnnualReport, GoalPeriodEvaluation } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,14 @@ interface AnnualMonthCardProps {
 export function AnnualMonthCard({ columns, months, row }: AnnualMonthCardProps) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
-  const title = <h3>{monthLabel(row.month, i18n.language)}</h3>;
+  const name = monthLabel(row.month, i18n.language);
+  // A month with no figures links to its budget. With figures the title is the disclosure toggle,
+  // which cannot hold a link: the figures below link to the month themselves.
+  const title = (
+    <h3>
+      <MonthLink month={row.month}>{name}</MonthLink>
+    </h3>
+  );
   const className = `card ${styles.card} ${isEmptyState(row.state) ? styles.dimmed : ''}`;
 
   if (row.state === 'FUTURE' || row.state === 'NO_DATA') {
@@ -59,7 +67,7 @@ export function AnnualMonthCard({ columns, months, row }: AnnualMonthCardProps) 
         onToggle={setOpen}
         open={open}
         spread
-        title={title}
+        title={<h3>{name}</h3>}
       >
         <dl>
           {columns.map((column) => {

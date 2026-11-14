@@ -9,6 +9,21 @@
   border-radius: var(--radius-full);
   background: var(--bg-surface-hover);
 }
+.segments {
+  display: flex;
+  width: 100%;
+  gap: var(--spacing-1);
+}
+.segment {
+  overflow: hidden;
+  flex: 1;
+  height: var(--spacing-2);
+  border-radius: var(--radius-none);
+  background: var(--bg-surface-hover);
+}
+.segment .fill {
+  border-radius: var(--radius-none);
+}
 .fill {
   height: 100%;
   border-radius: var(--radius-full);

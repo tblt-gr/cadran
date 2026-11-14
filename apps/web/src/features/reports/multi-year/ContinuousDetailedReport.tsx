@@ -1,8 +1,12 @@
+import { MonthLink } from '@/features/reports/annual/month-link/MonthLink';
 import type { AnnualColumn, AnnualReport, MultiYearReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { useState } from 'react';
+import { Fragment, useState } from 'react';
+import { Icon } from '@/components/ui/icon/Icon';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { DetailedAggregateModal } from './DetailedAggregateModal';
+import { MultiYearCellValue } from './MultiYearCellValue';
+import { multiYearYearNotes } from './multiYearYearNotes';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { GoalEvaluationsError } from '@/features/goals/goal-mark/GoalEvaluationsError';
 import { GoalMark, GoalMarkedValue } from '@/features/goals/goal-mark/GoalMark';
@@ -29,6 +33,9 @@ import {
 } from './multiYearDetailedAggregate';
 
 interface ContinuousDetailedReportProps {
+  /** Every year starts open when set; the parent re-keys the report when its toolbar button changes. */
+  initiallyExpanded?: boolean;
+  showChanges?: boolean;
   annualReports: AnnualReport[];
   report: MultiYearReport;
 }
@@ -47,10 +54,19 @@ function selectedColumns(reports: AnnualReport[]): AnnualColumn[] {
  * One continuous presentation of monthly, server-supplied annual report rows. It deliberately
  * flattens display lists only: exact financial values remain owned by the annual responses.
  */
-export function ContinuousDetailedReport({ annualReports, report }: ContinuousDetailedReportProps) {
+export function ContinuousDetailedReport({
+  annualReports,
+  initiallyExpanded = false,
+  report,
+  showChanges = true,
+}: ContinuousDetailedReportProps) {
   const { t, i18n } = useTranslation();
   const labelOf = useAnnualColumnLabel();
   const [explained, setExplained] = useState<string | null>(null);
+  // Every year starts folded: its row already carries the figures of the year.
+  const [opened, setOpened] = useState<ReadonlySet<number>>(
+    () => new Set(initiallyExpanded ? report.years.map((item) => item.year) : []),
+  );
   const preferences = useAnnualReportPreferences();
   const goalsEnabled = !preferences.isPending && preferences.data?.goalMarks === true;
   const goals = useGoalEvaluations(
@@ -65,6 +81,12 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
       row,
     })),
   );
+  const toggleYear = (year: number) =>
+    setOpened((current) => {
+      const next = new Set(current);
+      if (!next.delete(year)) next.add(year);
+      return next;
+    });
   const starts = groupStartIds(columns);
   const edge = (id: string) => (starts.has(id) ? tableStyles.groupStart : undefined);
   const versions = new Set(
@@ -104,52 +126,116 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ annualReport, row }) => {
-                const isYearBoundary = row.month.endsWith('-12');
+              {annualReports.map((annualReport, groupIndex) => {
+                const year = report.years[groupIndex];
+                const label = year?.year ?? annualReport.year;
+                const open = opened.has(label);
+                const months =
+                  groupIndex === 0
+                    ? withoutLeadingEmptyMonths(annualReport.rows)
+                    : annualReport.rows;
                 return (
-                  <tr
-                    className={[
-                      isEmptyState(row.state) ? tableStyles.dimmed : '',
-                      isYearBoundary ? localStyles.yearBoundary : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')}
-                    key={`${annualReport.year}-${row.month}`}
-                  >
-                    <th scope="row">
-                      {monthLabel(row.month, i18n.language)} {annualReport.year}
-                    </th>
-                    {columns.map((column) => {
-                      const cell = row.cells[column.id];
-                      const marks = marksFor(
-                        goalsEnabled ? goals.evaluations?.months : undefined,
-                        row.month,
-                        column.id,
-                      );
-                      return (
-                        <td className={edge(column.id)} key={column.id}>
-                          {row.state === 'FUTURE' ? (
-                            <EmptyValue quiet label={t('reports.annual.future')} />
-                          ) : row.state === 'NO_DATA' ? (
-                            <EmptyValue quiet label={t('reports.annual.noData')} />
-                          ) : (
-                            <>
-                              <GoalMarkedValue items={marks}>
-                                <AnnualCellValue
-                                  assetCode={column.assetCode}
-                                  href={annualCellHref(column.id, row.month)}
-                                  kind={column.kind}
-                                  reason={cell?.reason ?? null}
-                                  value={cell?.value ?? null}
-                                />
-                              </GoalMarkedValue>
-                              <GoalMark items={marks} period={row.month} />
-                            </>
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
+                  <Fragment key={label}>
+                    <tr className={localStyles.yearRow}>
+                      <th scope="row">
+                        <button
+                          aria-expanded={open}
+                          className={localStyles.yearToggle}
+                          onClick={() => toggleYear(label)}
+                          type="button"
+                        >
+                          <span aria-hidden="true" className={localStyles.chevron}>
+                            <Icon name="chevron-right" size={14} />
+                          </span>
+                          {label}
+                        </button>
+                        {year
+                          ? multiYearYearNotes(year).map((note) => (
+                              <small className={localStyles.note} key={note.key}>
+                                {t(note.key, note.params)}
+                              </small>
+                            ))
+                          : null}
+                      </th>
+                      {columns.map((column) => {
+                        const cell = year?.cells[column.id];
+                        const marks = marksFor(
+                          goalsEnabled ? goals.evaluations?.years : undefined,
+                          String(label),
+                          column.id,
+                        );
+                        return (
+                          <td className={edge(column.id)} key={column.id}>
+                            {cell ? (
+                              <>
+                                <GoalMarkedValue items={marks}>
+                                  <MultiYearCellValue
+                                    assetCode={column.assetCode}
+                                    cell={cell}
+                                    kind={column.kind}
+                                    showChange={showChanges}
+                                  />
+                                </GoalMarkedValue>
+                                <GoalMark items={marks} period={String(label)} />
+                              </>
+                            ) : null}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                    {open
+                      ? months.map((row) => {
+                          const isYearBoundary = row.month.endsWith('-12');
+                          return (
+                            <tr
+                              className={[
+                                isEmptyState(row.state) ? tableStyles.dimmed : '',
+                                isYearBoundary ? localStyles.yearBoundary : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' ')}
+                              key={`${annualReport.year}-${row.month}`}
+                            >
+                              <th scope="row">
+                                <MonthLink month={row.month}>
+                                  {monthLabel(row.month, i18n.language)} {annualReport.year}
+                                </MonthLink>
+                              </th>
+                              {columns.map((column) => {
+                                const cell = row.cells[column.id];
+                                const marks = marksFor(
+                                  goalsEnabled ? goals.evaluations?.months : undefined,
+                                  row.month,
+                                  column.id,
+                                );
+                                return (
+                                  <td className={edge(column.id)} key={column.id}>
+                                    {row.state === 'FUTURE' ? (
+                                      <EmptyValue quiet label={t('reports.annual.future')} />
+                                    ) : row.state === 'NO_DATA' ? (
+                                      <EmptyValue quiet label={t('reports.annual.noData')} />
+                                    ) : (
+                                      <>
+                                        <GoalMarkedValue items={marks}>
+                                          <AnnualCellValue
+                                            assetCode={column.assetCode}
+                                            href={annualCellHref(column.id, row.month)}
+                                            kind={column.kind}
+                                            reason={cell?.reason ?? null}
+                                            value={cell?.value ?? null}
+                                          />
+                                        </GoalMarkedValue>
+                                        <GoalMark items={marks} period={row.month} />
+                                      </>
+                                    )}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })
+                      : null}
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -209,54 +295,114 @@ export function ContinuousDetailedReport({ annualReports, report }: ContinuousDe
         aria-label={t('reports.multiYear.detailedCardsLabel', { from: report.from, to: report.to })}
         className={cardStyles.list}
       >
-        {rows.map(({ annualReport, row }) => (
-          <li
-            className={`card ${cardStyles.card} ${isEmptyState(row.state) ? cardStyles.dimmed : ''}`}
-            key={`${annualReport.year}-${row.month}`}
-          >
-            <h3>
-              {monthLabel(row.month, i18n.language)} {annualReport.year}
-            </h3>
-            {row.state === 'FUTURE' ? (
-              <p>
-                <EmptyValue quiet label={t('reports.annual.future')} />
-              </p>
-            ) : row.state === 'NO_DATA' ? (
-              <p>
-                <EmptyValue quiet label={t('reports.annual.noData')} />
-              </p>
-            ) : (
-              <dl>
-                {columns.map((column) => {
-                  const marks = marksFor(
-                    goalsEnabled ? goals.evaluations?.months : undefined,
-                    row.month,
-                    column.id,
-                  );
-                  return (
-                    <div key={column.id}>
-                      <dt>
-                        <ColumnHeader column={column} />
-                      </dt>
-                      <dd>
-                        <GoalMarkedValue items={marks}>
-                          <AnnualCellValue
-                            assetCode={column.assetCode}
-                            href={annualCellHref(column.id, row.month)}
-                            kind={column.kind}
-                            reason={row.cells[column.id]?.reason ?? null}
-                            value={row.cells[column.id]?.value ?? null}
-                          />
-                        </GoalMarkedValue>
-                        <GoalMark items={marks} period={row.month} />
-                      </dd>
-                    </div>
-                  );
-                })}
-              </dl>
-            )}
-          </li>
-        ))}
+        {annualReports.map((annualReport, groupIndex) => {
+          const year = report.years[groupIndex];
+          const label = year?.year ?? annualReport.year;
+          const open = opened.has(label);
+          const monthRows = rows.filter((item) => item.annualReport === annualReport);
+          return (
+            <Fragment key={label}>
+              <li className={`card ${cardStyles.card}`}>
+                <h3>
+                  <button
+                    aria-expanded={open}
+                    className={localStyles.yearToggle}
+                    onClick={() => toggleYear(label)}
+                    type="button"
+                  >
+                    <span aria-hidden="true" className={localStyles.chevron}>
+                      <Icon name="chevron-right" size={14} />
+                    </span>
+                    {label}
+                  </button>
+                </h3>
+                {year && multiYearYearNotes(year).length > 0 ? (
+                  <p>
+                    {multiYearYearNotes(year).map((note) => (
+                      <small className={localStyles.note} key={note.key}>
+                        {t(note.key, note.params)}
+                      </small>
+                    ))}
+                  </p>
+                ) : null}
+                {year ? (
+                  <dl>
+                    {columns.map((column) => {
+                      const cell = year.cells[column.id];
+                      return cell ? (
+                        <div key={column.id}>
+                          <dt>
+                            <ColumnHeader column={column} />
+                          </dt>
+                          <dd>
+                            <MultiYearCellValue
+                              assetCode={column.assetCode}
+                              cell={cell}
+                              kind={column.kind}
+                              showChange={showChanges}
+                            />
+                          </dd>
+                        </div>
+                      ) : null;
+                    })}
+                  </dl>
+                ) : null}
+              </li>
+              {open
+                ? monthRows.map(({ row }) => (
+                    <li
+                      className={`card ${cardStyles.card} ${isEmptyState(row.state) ? cardStyles.dimmed : ''}`}
+                      key={`${annualReport.year}-${row.month}`}
+                    >
+                      <h3>
+                        <MonthLink month={row.month}>
+                          {monthLabel(row.month, i18n.language)} {annualReport.year}
+                        </MonthLink>
+                      </h3>
+                      {row.state === 'FUTURE' ? (
+                        <p>
+                          <EmptyValue quiet label={t('reports.annual.future')} />
+                        </p>
+                      ) : row.state === 'NO_DATA' ? (
+                        <p>
+                          <EmptyValue quiet label={t('reports.annual.noData')} />
+                        </p>
+                      ) : (
+                        <dl>
+                          {columns.map((column) => {
+                            const marks = marksFor(
+                              goalsEnabled ? goals.evaluations?.months : undefined,
+                              row.month,
+                              column.id,
+                            );
+                            return (
+                              <div key={column.id}>
+                                <dt>
+                                  <ColumnHeader column={column} />
+                                </dt>
+                                <dd>
+                                  <GoalMarkedValue items={marks}>
+                                    <AnnualCellValue
+                                      assetCode={column.assetCode}
+                                      href={annualCellHref(column.id, row.month)}
+                                      kind={column.kind}
+                                      reason={row.cells[column.id]?.reason ?? null}
+                                      value={row.cells[column.id]?.value ?? null}
+                                    />
+                                  </GoalMarkedValue>
+                                  <GoalMark items={marks} period={row.month} />
+                                </dd>
+                              </div>
+                            );
+                          })}
+                        </dl>
+                      )}
+                    </li>
+                  ))
+                : null}
+            </Fragment>
+          );
+        })}
         <li className={`card ${cardStyles.card}`}>
           <h3>{t('reports.multiYear.detailedSummaryCard')}</h3>
           {MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS.map((rowId) => (
