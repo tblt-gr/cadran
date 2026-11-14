@@ -1,0 +1,8 @@
+.sentence {
+  margin: var(--spacing-none);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-body);
+  overflow-wrap: anywhere;
+}

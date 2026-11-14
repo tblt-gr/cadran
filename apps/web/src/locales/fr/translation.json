@@ -2904,6 +2904,24 @@
     }
   },
   "categorizationRules": {
+    "sentence": {
+      "if": "Si {{clauses}},",
+      "noCondition": "Aucune condition,",
+      "and": " et ",
+      "then": "alors classer en « {{category}} ».",
+      "thenNone": "alors classer dans la catégorie choisie.",
+      "text": "{{source}} {{operator}} « {{value}} »",
+      "not": "non ({{clause}})",
+      "amount": "le montant est {{bounds}}",
+      "combinator": {
+        "AND": " et ",
+        "OR": " ou "
+      },
+      "direction": {
+        "IN": "c’est une entrée",
+        "OUT": "c’est une sortie"
+      }
+    },
     "add": "Nouvelle règle",
     "addFirst": "Créer la première règle",
     "loading": "Chargement des règles…",
