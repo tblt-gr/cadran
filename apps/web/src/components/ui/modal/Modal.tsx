@@ -15,9 +15,19 @@ interface ModalProps {
   eyebrow?: string;
   returnFocus?: RefObject<HTMLElement | null>;
   title: string;
+  /** A wider dialog, for content laid out in two columns. */
+  wide?: boolean;
 }
 
-export function Modal({ children, close, intent, returnFocus, title, eyebrow }: ModalProps) {
+export function Modal({
+  children,
+  close,
+  intent,
+  returnFocus,
+  title,
+  eyebrow,
+  wide = false,
+}: ModalProps) {
   const { t } = useTranslation();
   const container = useDialogOverlay(close, returnFocus);
   const titleId = useId();
@@ -28,7 +38,7 @@ export function Modal({ children, close, intent, returnFocus, title, eyebrow }: 
       <section
         aria-labelledby={titleId}
         aria-modal="true"
-        className={styles.modal}
+        className={wide ? `${styles.modal} ${styles.wide}` : styles.modal}
         onMouseDown={(event) => event.stopPropagation()}
         ref={container}
         role="dialog"

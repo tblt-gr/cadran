@@ -52,7 +52,10 @@ export function flowChartData(months: AnnualFlowMonth[]) {
   }));
 }
 
-/** X-axis ticks of a monthly series: the first point, then every January. */
-export function yearStartTicks(keys: readonly string[]): string[] {
-  return keys.filter((key, index) => index === 0 || /(^|-)01$/.test(key));
+/**
+ * X-axis ticks of a monthly series: the first point, then every January. Without the first point
+ * only the years are labelled, so a series started mid-year does not label its first months.
+ */
+export function yearStartTicks(keys: readonly string[], includeFirst = true): string[] {
+  return keys.filter((key, index) => (includeFirst && index === 0) || /(^|-)01$/.test(key));
 }

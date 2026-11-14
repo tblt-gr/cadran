@@ -192,3 +192,7 @@
     padding: var(--spacing-4);
   }
 }
+
+.modal.wide {
+  max-width: var(--modal-width-wide);
+}

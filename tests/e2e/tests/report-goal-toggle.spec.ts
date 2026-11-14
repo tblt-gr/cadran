@@ -85,8 +85,7 @@ async function mockEvaluations(page: Page) {
 
 for (const [mode, search] of [
   ['annual', ''],
-  ['compact multi-year', '?view=multi&from=2025&to=2026'],
-  ['detailed multi-year', '?view=multi&from=2025&to=2026&display=detailed'],
+  ['multi-year', '?view=multi&from=2025&to=2026'],
 ] as const) {
   test(`${mode}: toggle persists, synchronizes columns and hides marks and keeps the goals progress`, async ({
     page,
@@ -106,6 +105,10 @@ for (const [mode, search] of [
       await expect(toggle(page)).toHaveAttribute('aria-pressed', 'false');
       await expect(marks(page)).toHaveCount(0);
       await expect(progress(page)).toBeVisible();
+      // The multi-year years start folded: open them to reach the monthly sources.
+      if (search.includes('multi')) {
+        await page.getByRole('button', { name: 'Déplier toutes les années' }).click();
+      }
       const sources = await page.getByRole('table').first().getByRole('link').count();
       expect(sources).toBeGreaterThan(0);
 
@@ -206,7 +209,7 @@ test('report mark toggle is named and keyboard reachable at 360 px', async ({ br
   });
   const phone = await context.newPage();
   try {
-    await phone.goto('/budget/2026?view=multi&from=2025&to=2026&display=detailed');
+    await phone.goto('/budget/2026?view=multi&from=2025&to=2026');
     await settled(phone);
     await expect(toggle(phone)).toBeVisible();
     await toggle(phone).focus();

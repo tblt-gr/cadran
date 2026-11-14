@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import {
   SkeletonBlock,
@@ -6,13 +7,14 @@ import {
   SkeletonStatus,
   SkeletonText,
 } from '@/components/ui/skeleton/Skeleton';
+import { MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS } from './multiYearDetailedAggregate';
+import localStyles from './ContinuousDetailedReport.module.css';
 import { ChartFrame } from '@/features/reports/annual/ChartFrame';
 import chartStyles from './MultiYearCharts.module.css';
-import { MULTI_YEAR_SUMMARY_ROW_IDS } from './multiYearSummary';
 import pageStyles from './MultiYearReportPage.module.css';
 import styles from './MultiYearSkeleton.module.css';
-import tableStyles from './MultiYearTable.module.css';
-import cardStyles from './MultiYearCards.module.css';
+import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
+import cardStyles from '@/features/reports/annual/AnnualMonthCards.module.css';
 
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
@@ -33,8 +35,8 @@ function Cell() {
 }
 
 /**
- * Mirrors the compact multi-year report element for element: selector, caption,
- * year and summary labels are real; columns and figures are pending.
+ * Mirrors the multi-year report while it loads: caption and year labels are real, columns and
+ * figures are pending.
  */
 export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
   const { t } = useTranslation();
@@ -57,11 +59,11 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             )}
           </h2>
         </header>
-        <div className={tableStyles.scroll}>
+        <div className={`${tableStyles.scroll} ${localStyles.verticalScroll}`}>
           <table className={tableStyles.table}>
             <thead>
               <tr>
-                <th scope="col">{t('reports.multiYear.year')}</th>
+                <th scope="col">{t('reports.annual.month')}</th>
                 {PLACEHOLDER_COLUMNS.map((column) => (
                   <th key={column} scope="col">
                     <Cell />
@@ -71,8 +73,19 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             </thead>
             <tbody>
               {rows.map((year, index) => (
-                <tr key={year ?? index}>
-                  <th scope="row">{year ?? <Cell />}</th>
+                <tr className={localStyles.yearRow} key={year ?? index}>
+                  <th scope="row">
+                    {year === null ? (
+                      <Cell />
+                    ) : (
+                      <span className={localStyles.yearToggle}>
+                        <span aria-hidden="true" className={localStyles.chevron}>
+                          <Icon name="chevron-right" size={14} />
+                        </span>
+                        {year}
+                      </span>
+                    )}
+                  </th>
                   {PLACEHOLDER_COLUMNS.map((column) => (
                     <td key={column}>
                       <Cell />
@@ -82,9 +95,9 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
               ))}
             </tbody>
             <tfoot>
-              {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
+              {MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS.map((rowId) => (
                 <tr key={rowId}>
-                  <th scope="row">{t(`reports.multiYear.summary.${rowId}`)}</th>
+                  <th scope="row">{t(`reports.annual.summary.${rowId}`)}</th>
                   {PLACEHOLDER_COLUMNS.map((column) => (
                     <td key={column}>
                       <Cell />
@@ -99,7 +112,18 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
       <ul aria-hidden="true" className={cardStyles.list}>
         {rows.map((year, index) => (
           <li className={`card ${cardStyles.card}`} key={year ?? index}>
-            <h3>{year ?? <Cell />}</h3>
+            <h3>
+              {year === null ? (
+                <Cell />
+              ) : (
+                <span className={localStyles.yearToggle}>
+                  <span aria-hidden="true" className={localStyles.chevron}>
+                    <Icon name="chevron-right" size={14} />
+                  </span>
+                  {year}
+                </span>
+              )}
+            </h3>
             <dl>
               {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
                 <div key={column}>
@@ -114,19 +138,6 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
             </dl>
           </li>
         ))}
-        <li className={`card ${cardStyles.card}`}>
-          <h3>{t('reports.multiYear.summary.average')}</h3>
-          <dl>
-            {MULTI_YEAR_SUMMARY_ROW_IDS.map((rowId) => (
-              <div key={rowId}>
-                <dt>{t(`reports.multiYear.summary.${rowId}`)}</dt>
-                <dd>
-                  <Cell />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </li>
       </ul>
       <MultiYearChartsSkeleton />
     </div>
@@ -138,7 +149,20 @@ export function MultiYearChartsSkeleton() {
   const { t } = useTranslation();
   return (
     <div className={chartStyles.grid}>
-      <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.multiYear.charts.flows')}>
+      <ChartFrame
+        actions={
+          <button
+            aria-label={t('reports.multiYear.charts.flowsByYear')}
+            className="icon-ghost"
+            disabled
+            type="button"
+          >
+            <Icon name="calendar" size={16} />
+          </button>
+        }
+        data={<SkeletonText lines={2} />}
+        title={t('reports.multiYear.charts.flows')}
+      >
         <SkeletonChartArea />
       </ChartFrame>
       <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.multiYear.charts.netWorth')}>

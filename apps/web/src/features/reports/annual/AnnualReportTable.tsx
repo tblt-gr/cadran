@@ -1,3 +1,4 @@
+import { MonthLink } from '@/features/reports/annual/month-link/MonthLink';
 import type { AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -66,7 +67,9 @@ export function AnnualReportTable({
             <tbody>
               {rows.map((row) => (
                 <tr className={isEmptyState(row.state) ? styles.dimmed : undefined} key={row.month}>
-                  <th scope="row">{monthLabel(row.month, i18n.language)}</th>
+                  <th scope="row">
+                    <MonthLink month={row.month}>{monthLabel(row.month, i18n.language)}</MonthLink>
+                  </th>
                   {report.columns.map((column) => {
                     const cell = row.cells[column.id];
                     const marks = marksFor(goals.evaluations?.months, row.month, column.id);

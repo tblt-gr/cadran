@@ -1,7 +1,7 @@
 import type { AnnualReport } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
-import { cleanup, render as baseRender, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render as baseRender, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { goalEvaluation, goalPeriod } from '@/features/goals/goal-mark/goalEvaluationFixtures';
 import '@/i18n';
@@ -74,6 +74,7 @@ describe('ContinuousDetailedReport', () => {
     render(
       <ContinuousDetailedReport
         annualReports={[annualReportForYear(2024), annualReportForYear(2025)]}
+        initiallyExpanded
         report={multiYearReport}
       />,
     );
@@ -101,7 +102,13 @@ describe('ContinuousDetailedReport', () => {
           : row,
       ) as AnnualReport['rows'],
     };
-    render(<ContinuousDetailedReport annualReports={[futureDecember]} report={multiYearReport} />);
+    render(
+      <ContinuousDetailedReport
+        annualReports={[futureDecember]}
+        initiallyExpanded
+        report={multiYearReport}
+      />,
+    );
     const table = screen.getByRole('table', { name: /rapport détaillé/i });
     const bodyRows = within(table.querySelector('tbody')!).getAllByRole('row');
     const boundaryRows = bodyRows.filter((row) =>
@@ -175,5 +182,38 @@ describe('ContinuousDetailedReport', () => {
     const items = within(cards).getAllByRole('listitem');
     const summaryCard = items[items.length - 1]!;
     expect(summaryCard.textContent).toMatch(/190\s?000,00\s?€/);
+  });
+});
+
+describe('ContinuousDetailedReport year rows', () => {
+  const props = {
+    annualReports: [annualReportForYear(2024), annualReportForYear(2025)],
+    report: { ...multiYearReport, years: multiYearReport.years.slice(0, 2) },
+  };
+
+  it('starts folded, each year row already holding the figures of the year', () => {
+    render(<ContinuousDetailedReport {...props} />);
+    const table = screen.getByRole('table', { name: /rapport détaillé/i });
+    expect(within(table.querySelector('tbody')!).getAllByRole('row')).toHaveLength(2);
+    expect(within(table).getAllByText(/\+2\s?000,00\s?€/).length).toBeGreaterThan(0);
+    fireEvent.click(within(table).getByRole('button', { name: '2024' }));
+    expect(within(table.querySelector('tbody')!).getAllByRole('row').length).toBeGreaterThan(2);
+  });
+
+  it('opens every year when it starts expanded', () => {
+    render(<ContinuousDetailedReport {...props} initiallyExpanded />);
+    const table = screen.getByRole('table', { name: /rapport détaillé/i });
+    expect(within(table.querySelector('tbody')!).getAllByRole('row').length).toBeGreaterThan(2);
+  });
+
+  it('hides the change against the previous year unless asked', () => {
+    const { rerender } = render(<ContinuousDetailedReport {...props} showChanges={false} />);
+    expect(screen.queryByText(/\+2\s?000,00\s?€/)).toBeNull();
+    rerender(
+      <QueryClientProvider client={new QueryClient()}>
+        <ContinuousDetailedReport {...props} showChanges />
+      </QueryClientProvider>,
+    );
+    expect(screen.getAllByText(/\+2\s?000,00\s?€/).length).toBeGreaterThan(0);
   });
 });

@@ -8,6 +8,8 @@ interface Props {
   ratio: string;
   /** Where progress should stand by now, as a decimal between 0 and 1: drawn as a vertical tick. */
   markerRatio?: string | null;
+  /** Cuts the bar into that many equal parts, each filled in turn (one part per month of a target). */
+  segments?: number;
 }
 
 function clampToUnit(value: string): string {
@@ -20,8 +22,11 @@ function percent(value: string): number {
 }
 
 /** A thin accent bar filled to a ratio: geometry only, the exact figures stay in the surrounding text. */
-export function ProgressGauge({ label, ratio, markerRatio = null }: Props) {
+export function ProgressGauge({ label, ratio, markerRatio = null, segments }: Props) {
   const filled = clampToUnit(ratio);
+  const parts =
+    segments !== undefined && Number.isInteger(segments) && segments >= 2 ? segments : null;
+  const share = percent(filled) / 100;
   return (
     <div
       aria-label={label}
@@ -32,9 +37,22 @@ export function ProgressGauge({ label, ratio, markerRatio = null }: Props) {
       className={styles.gauge}
       role="meter"
     >
-      <div className={styles.track}>
-        <div className={styles.fill} style={{ width: `${percent(filled)}%` }} />
-      </div>
+      {parts === null ? (
+        <div className={styles.track}>
+          <div className={styles.fill} style={{ width: `${percent(filled)}%` }} />
+        </div>
+      ) : (
+        <div className={styles.segments} data-testid="gauge-segments">
+          {Array.from({ length: parts }, (_, index) => (
+            <div className={styles.segment} key={index}>
+              <div
+                className={styles.fill}
+                style={{ width: `${Math.min(1, Math.max(0, share * parts - index)) * 100}%` }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
       {markerRatio === null ? null : (
         <div
           aria-hidden="true"

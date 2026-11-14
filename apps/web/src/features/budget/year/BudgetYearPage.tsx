@@ -11,6 +11,7 @@ import { annualReportQueryOptions } from '@/features/reports/annual/useAnnualRep
 import { useMultiYearReport } from '@/features/reports/multi-year/useMultiYearReport';
 import { useMonthlyBounds } from '@/features/budget/monthly-budget/useMonthlyBounds';
 import { annualHref } from '@/features/budget/monthly-budget/budgetPeriod';
+import { usePersistedToggle } from '@/hooks/use-persisted-toggle';
 import { MonthNavigator } from '@/features/budget/monthly-budget/month-navigator/MonthNavigator';
 import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
 import styles from './BudgetYearPage.module.css';
@@ -26,6 +27,9 @@ interface BudgetYearPageProps {
 /** `/budget/YYYY`: the annual report, or its multi-year mode selected through the query string. */
 export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
   const [state, setState] = useState<YearViewState>(() => readYearView(window.location.search));
+  // Every year starts folded; the change against the previous year is shown on request.
+  const [expanded, setExpanded] = useState(false);
+  const [showChanges, setShowChanges] = usePersistedToggle('cadran.report.multiYear.changes');
   const goalPanel = useGoalPanelOpen();
   const goalsButton = useRef<HTMLButtonElement>(null);
   const bounds = useMonthlyBounds();
@@ -107,11 +111,13 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
         multi={
           state.view === 'multi'
             ? {
-                display: state.display,
+                expanded,
                 maxYear: currentYear,
                 minYear: years.data?.availableFrom ?? years.data?.from ?? currentYear,
-                onDisplayChange: (display) => navigate({ ...state, display }),
+                onExpandedChange: setExpanded,
+                onShowChangesChange: setShowChanges,
                 onRangeChange: (range) => navigate({ ...state, range }),
+                showChanges,
                 range:
                   state.range ?? (years.data ? { from: years.data.from, to: years.data.to } : null),
               }
@@ -123,8 +129,9 @@ export function BudgetYearPage({ today, year }: BudgetYearPageProps) {
       />
       {state.view === 'multi' ? (
         <MultiYearReportPage
-          key={`${state.display}-${state.range?.from}-${state.range?.to}`}
-          display={state.display}
+          expanded={expanded}
+          key={`${state.range?.from}-${state.range?.to}`}
+          showChanges={showChanges}
           range={state.range}
           year={year}
         />
