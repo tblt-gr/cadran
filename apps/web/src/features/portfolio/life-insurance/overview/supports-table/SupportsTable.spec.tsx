@@ -81,3 +81,29 @@ it('leads each mobile card with value, weight, cost and performance and folds th
       .map((term) => term.textContent),
   ).toEqual(['Type', 'Parts', 'Valeur liquidative', 'Date', 'Intérêts crédités']);
 });
+
+it('writes the sign of the unrealized gain and colours a gain green and a loss red', () => {
+  const summary = summaryFixture();
+  const uc = summary.supports[1];
+  summary.supports = [
+    { ...uc, unrealizedGain: '-12.5', unrealizedPerformance: '-0.05' },
+    {
+      ...uc,
+      instrumentId: 'other',
+      name: 'Autre UC',
+      unrealizedGain: '8',
+      unrealizedPerformance: '0.04',
+    },
+  ];
+  render(<SupportsTable summary={summary} />);
+  const table = screen.getByRole('table', { name: 'Supports du contrat' });
+  const loss = within(
+    within(table)
+      .getByRole('row', { name: /Fonds UC Démo/ })
+      .querySelectorAll('td')[7] as HTMLElement,
+  );
+  expect(loss.getByText(/-12,50/).className).toMatch(/loss/);
+  const gain = within(table).getByRole('row', { name: /Autre UC/ });
+  expect(gain.textContent).toContain('+8,00');
+  expect(gain.querySelector('td[class*="gain"]')).toBeTruthy();
+});

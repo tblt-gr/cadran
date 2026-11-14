@@ -4,6 +4,7 @@ import type { Summary } from '@/features/portfolio/life-insurance/overview/summa
 import {
   supportCells,
   supportHeaders,
+  supportResultTone,
 } from '@/features/portfolio/life-insurance/overview/supports-table/supportPresentation';
 import styles from './SupportCards.module.css';
 
@@ -41,7 +42,15 @@ export function SupportCards({ summary }: { summary: Summary | null }) {
               positions.map((position) => (
                 <div key={supportHeaders[position]}>
                   <dt>{supportHeaders[position]}</dt>
-                  <dd className="money">{cells[position]}</dd>
+                  <dd
+                    className={
+                      position === 8
+                        ? `money ${styles[supportResultTone(row) ?? ''] ?? ''}`
+                        : 'money'
+                    }
+                  >
+                    {cells[position]}
+                  </dd>
                 </div>
               ));
             return (
