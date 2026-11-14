@@ -75,7 +75,6 @@ describe('AccountActionsMenu', () => {
     expect(itemTexts()).toEqual([
       'Nouvelle valorisation',
       'Voir les règles',
-      'Gérer les instruments',
       'Modifier',
       'Archiver',
     ]);

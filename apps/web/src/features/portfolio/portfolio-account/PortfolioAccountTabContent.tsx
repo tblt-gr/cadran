@@ -21,6 +21,8 @@ export function PortfolioAccountTabContent({
   today,
   sourceReturnFocus,
   contractRequired,
+  includeClosed,
+  includeVoided,
   onAsOfChange,
   creating,
   onCloseCreate,
@@ -33,6 +35,8 @@ export function PortfolioAccountTabContent({
   today: string;
   sourceReturnFocus: RefObject<HTMLElement | null>;
   contractRequired: boolean;
+  includeClosed: boolean;
+  includeVoided: boolean;
   onAsOfChange: (date: string) => void;
   creating: PortfolioCreation;
   onCloseCreate: () => void;
@@ -57,7 +61,12 @@ export function PortfolioAccountTabContent({
     return insurance ? (
       <LifeInsuranceSupportsTab {...reporting} />
     ) : (
-      <HoldingsTab accountId={account.id} asOf={asOf} onTakeover={onTakeover} />
+      <HoldingsTab
+        accountId={account.id}
+        asOf={asOf}
+        includeClosed={includeClosed}
+        onTakeover={onTakeover}
+      />
     );
   if (active === 'valuations') {
     const recording = {
@@ -83,6 +92,7 @@ export function PortfolioAccountTabContent({
     <OperationsTab
       account={account}
       contractRequired={contractRequired}
+      includeVoided={includeVoided}
       asOf={asOf}
       sourceReturnFocus={sourceReturnFocus}
       creating={creating === 'operation'}

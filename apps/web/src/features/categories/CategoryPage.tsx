@@ -137,14 +137,23 @@ export function CategoryPage() {
           {t('categories.add')}
         </button>
         <a
-          aria-label={t('categories.manageRules')}
-          className="icon-button"
+          className="secondary-action"
           href="/transactions/categories/rules"
           onClick={(event) => handleClientNavigation(event, '/transactions/categories/rules')}
-          title={t('categories.manageRules')}
         >
           <Icon name="sliders" size={18} />
+          {t('categories.manageRules')}
         </a>
+        <button
+          aria-label={t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
+          aria-pressed={includeArchived}
+          className="icon-button"
+          onClick={() => setIncludeArchived((current) => !current)}
+          title={t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
+          type="button"
+        >
+          <Icon name="archive" size={18} />
+        </button>
       </HeaderActions>
 
       {saved ? (
@@ -196,17 +205,6 @@ export function CategoryPage() {
           />
         </Modal>
       ) : null}
-
-      <div className={styles.toolbar}>
-        <button
-          aria-pressed={includeArchived}
-          className="secondary-action"
-          onClick={() => setIncludeArchived((current) => !current)}
-          type="button"
-        >
-          {t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
-        </button>
-      </div>
 
       {categories.isPending ? (
         <CategoryTreeSkeleton status={t('categories.loading')} />

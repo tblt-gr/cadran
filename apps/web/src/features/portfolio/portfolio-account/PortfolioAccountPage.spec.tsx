@@ -1,7 +1,7 @@
 import { summaryFixture as insuranceSummaryFixture } from '@/features/portfolio/life-insurance/overview/summaryFixture';
 import type { Account, PortfolioOperation } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { positionsValuationFixture } from '@/features/portfolio/valuations/valuationFixtures';
@@ -16,6 +16,13 @@ import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries'
 import { formatCalendarNumericDay } from '@/lib/decimal';
 
 /** The shared account menu item, opening the three-dot menu first when it is closed. */
+/** Waits until the account has been read and the page has swapped its loading preview for the real tab. */
+async function accountLoaded() {
+  await waitFor(() => expect(api.readAccount).toHaveBeenCalled());
+  await api.readAccount.mock.results[0]!.value;
+  await act(async () => undefined);
+}
+
 function menuItem(name: string | RegExp) {
   const trigger = screen.getByRole('button', { name: /^Actions du compte/ });
   if (trigger.getAttribute('aria-expanded') !== 'true') fireEvent.click(trigger);
@@ -181,7 +188,7 @@ describe('portfolio shell breadcrumb', () => {
     expect(api.readAccount).toHaveBeenCalledTimes(1);
     expect(window.location.search).toBe('?tab=operations&asOf=2026-03-10&operationId=op-1');
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
-    expect(menuItem('Gérer les instruments').disabled).toBe(false);
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
       'page',
     );
@@ -519,8 +526,9 @@ describe('PortfolioAccountPage', () => {
       'page',
     );
     expect(
-      (screen.getByRole('button', { name: 'Actions du compte' }) as HTMLButtonElement).disabled,
+      (screen.getByRole('button', { name: 'Nouvelle valorisation' }) as HTMLButtonElement).disabled,
     ).toBe(true);
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Complétude' })).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
@@ -674,13 +682,16 @@ describe('PortfolioAccountPage', () => {
 
     expect(screen.getAllByRole('button', { name: /^Nouvelle valorisation/ })).toHaveLength(1);
     expect(screen.getByRole('button', { name: 'Nouvelle valorisation' })).toBeTruthy();
-    expect(menuItem(/^Nouvelle opération/).disabled).toBe(false);
+    // Valorisations: the valuation and the instruments only, no operation and no menu.
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Nouvelle opération' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle valorisation' }));
     expect(await screen.findByRole('dialog', { name: 'Nouvelle valorisation' })).toBeTruthy();
   });
 
-  it('opens a new valuation from the header on the Valorisations tab', async () => {
-    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
+  it('opens a new valuation from the account menu, on the Valorisations tab', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
     api.readPortfolioSummary.mockImplementation(() =>
       ok({ ...summaryFixture(), dueMonths: ['2026-02'] }),
     );
@@ -688,7 +699,7 @@ describe('PortfolioAccountPage', () => {
       ok({ items: [], page: 1, pageSize: 24, total: 0 }),
     );
     renderPage();
-    await screen.findByText('Aucune position à cette date');
+    await screen.findByText(/Gain/);
     await waitFor(() =>
       expect(menuItem(/^Nouvelle valorisation/).matches(':disabled')).toBe(false),
     );
@@ -727,11 +738,49 @@ describe('PortfolioAccountPage', () => {
     );
   });
 
-  it('switches from the positions tab before opening the global create action', async () => {
+  it('offers the instruments and a closed-positions toggle on the Positions tab, with no menu', async () => {
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=positions`);
     renderPage();
-
     await screen.findByText('Aucune position à cette date');
+
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Nouvelle opération' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
+    const toggle = screen.getByRole('button', { name: 'Afficher les positions soldées' });
+    expect(toggle.getAttribute('aria-pressed')).toBe('false');
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-pressed')).toBe('true');
+    await waitFor(() =>
+      expect(api.listPortfolioPositions.mock.calls.at(-1)![0].query.includeClosed).toBe(true),
+    );
+  });
+
+  it('shows no header action on the Performance tab', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=performance`);
+    renderPage();
+    await accountLoaded();
+
+    expect(screen.queryByRole('button', { name: 'Nouvelle opération' })).toBeNull();
+    expect(screen.queryByRole('link', { name: 'Gérer les instruments' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
+  });
+
+  it('keeps the operation, the instruments and the voided toggle on the Opérations tab', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=operations`);
+    renderPage();
+    await loadedOperationsTable();
+
+    expect(screen.getByRole('button', { name: 'Nouvelle opération' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Afficher les opérations annulées' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
+  });
+
+  it('switches from the Compte tab before opening the global create action', async () => {
+    window.history.replaceState({}, '', `/portfolios/${accountId}?tab=account`);
+    renderPage();
+
+    await screen.findByText(/Gain/);
     fireEvent.click(screen.getByRole('button', { name: 'Nouvelle opération' }));
 
     expect(new URLSearchParams(window.location.search).get('tab')).toBe('operations');
@@ -768,9 +817,8 @@ describe('PortfolioAccountPage', () => {
       (screen.getByRole('button', { name: 'Nouvelle opération' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(screen.getByRole('link', { name: 'Opérations' })).toBeTruthy();
-    expect(
-      (screen.getByRole('button', { name: 'Actions du compte' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
+    // Only the Compte tab carries the three-dot menu.
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
     expect(
       within(screen.getByTestId('operations-skeleton')).getAllByRole('columnheader', {
         name: 'Date',
@@ -781,7 +829,7 @@ describe('PortfolioAccountPage', () => {
     expect(await loadedOperationsTable()).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
-    expect(menuItem('Gérer les instruments').disabled).toBe(false);
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
   });
 
   it('answers a missing account with the not found state', async () => {
@@ -1202,9 +1250,7 @@ it.each(['performance', 'operations', 'positions', 'valuations', 'contract'] as 
     );
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
-    await waitFor(() =>
-      expect(menuItem(/^Nouvelle valorisation/).matches(':disabled')).toBe(false),
-    );
+    await accountLoaded();
     const expected = {
       positions: 'Supports du contrat',
       contract: 'Montants cumulés enregistrés',
@@ -1219,7 +1265,6 @@ it.each(['performance', 'operations', 'positions', 'valuations', 'contract'] as 
     if (tab === 'positions') {
       expect(screen.getByRole('heading', { name: 'Répartition' })).toBeTruthy();
       expect(screen.getByText('Quantités et lots issus des opérations')).toBeTruthy();
-      expect(screen.getByLabelText('Afficher les positions soldées')).toBeTruthy();
     }
     if (tab === 'contract')
       expect(screen.getByRole('heading', { name: 'Suivi fiscal (informatif)' })).toBeTruthy();
@@ -1234,9 +1279,7 @@ it.each(['positions', 'valuations'] as const)(
     );
     window.history.replaceState({}, '', `/portfolios/${accountId}?tab=${tab}&asOf=2026-03-10`);
     renderPage();
-    await waitFor(() =>
-      expect(menuItem(/^Nouvelle valorisation/).matches(':disabled')).toBe(false),
-    );
+    await accountLoaded();
     if (tab === 'positions') {
       expect(await screen.findByLabelText('Afficher les positions soldées')).toBeTruthy();
       expect(await screen.findByRole('button', { name: 'Classe d’actifs' })).toBeTruthy();
@@ -1319,7 +1362,6 @@ describe('PortfolioAccountPage takeover', () => {
     const view = renderPage();
     await screen.findByText('Aucune position à cette date');
     const button = await screen.findByRole('button', { name: 'Saisir mes positions' });
-    expect(menuItem('Saisir mes positions').disabled).toBe(false);
     expect(button).toBeTruthy();
     view.unmount();
 

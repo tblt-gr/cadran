@@ -14,6 +14,7 @@ export function OperationsToolbar({
   types,
   instrument,
   actions,
+  voidedInHeader = false,
 }: {
   value: OperationPeriodFilters;
   onChange: (value: OperationPeriodFilters) => void;
@@ -21,6 +22,8 @@ export function OperationsToolbar({
   types?: ReactNode;
   instrument?: ReactNode;
   actions?: ReactNode;
+  /** The page header owns the voided-operations toggle. */
+  voidedInHeader?: boolean;
 }) {
   return (
     <fieldset className={styles.toolbar} disabled={disabled}>
@@ -47,14 +50,16 @@ export function OperationsToolbar({
         </label>
       </div>
       {instrument ? <div className={styles.instrument}>{instrument}</div> : null}
-      <label className={styles.toggle}>
-        <input
-          type="checkbox"
-          checked={value.includeVoided}
-          onChange={(event) => onChange({ ...value, includeVoided: event.target.checked })}
-        />
-        <span>Afficher les opérations annulées</span>
-      </label>
+      {voidedInHeader ? null : (
+        <label className={styles.toggle}>
+          <input
+            type="checkbox"
+            checked={value.includeVoided}
+            onChange={(event) => onChange({ ...value, includeVoided: event.target.checked })}
+          />
+          <span>Afficher les opérations annulées</span>
+        </label>
+      )}
       {actions ? <div className={styles.actions}>{actions}</div> : null}
     </fieldset>
   );

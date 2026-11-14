@@ -8,12 +8,14 @@ export function HoldingsTab({
   accountId,
   asOf,
   frozen = false,
+  includeClosed = false,
   status,
   onTakeover,
 }: {
   accountId: string;
   asOf: string;
   frozen?: boolean;
+  includeClosed?: boolean;
   status?: string;
   onTakeover?: () => void;
 }) {
@@ -22,7 +24,12 @@ export function HoldingsTab({
       {frozen ? (
         <PositionsTabSkeleton status={status} />
       ) : (
-        <PositionsTab accountId={accountId} asOf={asOf} onTakeover={onTakeover} />
+        <PositionsTab
+          accountId={accountId}
+          asOf={asOf}
+          includeClosed={includeClosed}
+          onTakeover={onTakeover}
+        />
       )}
       <AllocationTab accountId={accountId} asOf={asOf} frozen={frozen} />
     </div>

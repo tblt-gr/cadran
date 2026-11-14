@@ -108,7 +108,8 @@ describe('BalanceTab', () => {
   it('shows the real chrome while loading, then every balance with text statuses', async () => {
     api.listAccountBalances.mockImplementation(() => new Promise(() => undefined));
     renderTab();
-    expect(screen.getByRole('heading', { name: 'Solde' })).toBeTruthy();
+    // The tab has no title of its own and no record button: the page header records the balance.
+    expect(screen.queryByRole('heading', { name: 'Solde' })).toBeNull();
     expect(screen.getByRole('columnheader', { name: 'Rapprochement' })).toBeTruthy();
     expect(screen.getByRole('table').closest('[aria-busy="true"]')).not.toBeNull();
     expect(screen.queryByText('100,00 €')).toBeNull();
@@ -132,7 +133,7 @@ describe('BalanceTab', () => {
     api.listAccountBalances.mockImplementation(() => page([]));
     renderTab();
     expect(await screen.findByText('Aucun solde enregistré')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Enregistrer un solde' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Enregistrer un solde' })).toBeNull();
   });
 
   it('shows a retry alert and recovers', async () => {
@@ -233,35 +234,5 @@ describe('BalanceTab', () => {
     );
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['net-worth'] });
-  });
-
-  it('records a balance from the toolbar and refreshes the figures', async () => {
-    api.recordAccountBalance.mockImplementation(() => ok({ ...manual, id: 'new' }, 201));
-    const { invalidate } = renderTab();
-    await loaded();
-    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer un solde' }));
-    const dialog = await screen.findByRole('dialog');
-    fireEvent.change(within(dialog).getByLabelText(/Date/), { target: { value: '2026-09-01' } });
-    fireEvent.change(within(dialog).getByLabelText(/Montant/), { target: { value: '250.00' } });
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer le solde' }));
-    await waitFor(() =>
-      expect(api.recordAccountBalance).toHaveBeenCalledWith(
-        expect.objectContaining({
-          path: { id: 'courant' },
-          body: expect.objectContaining({ asOf: '2026-09-01', amount: '250.00', version: null }),
-        }),
-      ),
-    );
-    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['net-worth'] });
-    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['accounts'] });
-  });
-
-  it.each(['ARCHIVED', 'CLOSED'])('disables recording on a %s account', async (status) => {
-    renderTab({ ...account, status } as Account);
-    await loaded();
-    expect(
-      (screen.getByRole('button', { name: 'Enregistrer un solde' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
   });
 });

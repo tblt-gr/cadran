@@ -1,46 +1,33 @@
 import type { PortfolioPosition } from '@cadran/api-client';
 import { useState } from 'react';
-import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { ReorderDayModal } from '@/features/portfolio/portfolio-account/operations/reorder-day-modal/ReorderDayModal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { workspaceToday } from '@/lib/workspaceTime';
 import { PositionLotsModal } from './position-lots-modal/PositionLotsModal';
 import { PositionsTable } from './positions-table/PositionsTable';
 import { PositionsTableSkeleton } from './positions-table/PositionsTableSkeleton';
-import { PositionsToolbar } from './PositionsToolbar';
 import { usePositions } from './usePositions';
 import styles from './PositionsTab.module.css';
 
 export function PositionsTab({
   accountId,
-  asOf: selectedDate,
+  asOf,
+  includeClosed = false,
   onTakeover,
 }: {
   accountId: string;
-  asOf?: string;
+  asOf: string;
+  /** Owned by the page header, which carries the toggle. */
+  includeClosed?: boolean;
   /** Supplied only while the account can still take over the positions it already holds. */
   onTakeover?: () => void;
 }) {
-  const timeZone = useWorkspaceTimeZone();
-  const today = workspaceToday(new Date(), timeZone);
-  const [localDate, setAsOf] = useState(today);
-  const asOf = selectedDate ?? localDate;
-  const [includeClosed, setIncludeClosed] = useState(false);
   const [lots, setLots] = useState<PortfolioPosition | null>(null);
   const [reorderingDate, setReorderingDate] = useState<string | null>(null);
   const positions = usePositions(accountId, asOf, includeClosed);
 
   return (
     <div className={styles.tab}>
-      <PositionsToolbar
-        hideDate={selectedDate !== undefined}
-        asOf={asOf}
-        includeClosed={includeClosed}
-        onAsOfChange={setAsOf}
-        onIncludeClosedChange={setIncludeClosed}
-        today={today}
-      />
       {positions.isPending ? (
         <PositionsTableSkeleton />
       ) : positions.isError ? (

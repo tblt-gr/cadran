@@ -1,12 +1,11 @@
 import type { Account } from '@cadran/api-client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Toast } from '@/components/ui/toast/Toast';
 import { AccountActionsModals } from './AccountActionsModals';
 import { useAccountsPageMutations } from '@/features/accounts/useAccountsPageMutations';
-import { navigateFromPage } from '@/hooks/use-client-navigation';
-import { accountMenuItems, INSTRUMENTS_HREF } from './accountMenuItems';
+import { accountMenuItems } from './accountMenuItems';
 
 /**
  * The single three-dot menu at the end of the shell header of an account or portfolio page.
@@ -24,6 +23,8 @@ export function AccountActionsMenu({
   onRecordValuation,
   onTakeover,
   onRules,
+  leading,
+  showMenu = true,
 }: {
   account?: Account;
   onAddOperation?: () => void;
@@ -32,6 +33,13 @@ export function AccountActionsMenu({
   onRecordValuation?: () => void;
   onTakeover?: () => void;
   onRules: () => void;
+  /**
+   * Buttons shown before the menu. When given, the page owns the balance record: they receive its
+   * trigger and the menu no longer lists it.
+   */
+  leading?: (actions: { recordBalance: () => void }) => ReactNode;
+  /** False keeps the dialogs and the leading buttons but draws no three-dot trigger. */
+  showMenu?: boolean;
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState<Account | null>(null);
@@ -57,9 +65,8 @@ export function AccountActionsMenu({
       onAddOperation,
       onArchive: () => setArchiving(account),
       onEdit: () => setEditing(account),
-      onInstruments: () => navigateFromPage(INSTRUMENTS_HREF),
       onReconcile,
-      onRecordBalance: () => setRecording(account),
+      onRecordBalance: leading ? undefined : () => setRecording(account),
       onRecordValuation,
       onTakeover,
       onRules,
@@ -69,11 +76,14 @@ export function AccountActionsMenu({
 
   return (
     <>
-      <ActionMenu
-        items={items}
-        label={t('accounts.detail.actionsMenu.open', { label: account.label })}
-        triggerVariant="framed"
-      />
+      {leading?.({ recordBalance: () => setRecording(account) })}
+      {showMenu ? (
+        <ActionMenu
+          items={items}
+          label={t('accounts.detail.actionsMenu.open', { label: account.label })}
+          triggerVariant="framed"
+        />
+      ) : null}
       <AccountActionsModals
         archive={archive}
         archiving={archiving}

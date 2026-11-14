@@ -29,6 +29,7 @@ export function OperationsTab({
   onCloseCreate,
   onCreate,
   contractRequired = false,
+  includeVoided = false,
 }: {
   account: Account;
   asOf?: string;
@@ -37,11 +38,14 @@ export function OperationsTab({
   onCloseCreate: () => void;
   onCreate: () => void;
   contractRequired?: boolean;
+  /** Owned by the page header, which carries the toggle. */
+  includeVoided?: boolean;
 }) {
-  const [filters, setFilters] = useState<OperationFilterValues>(() => ({
+  const [chosen, setFilters] = useState<OperationFilterValues>(() => ({
     ...noFilters,
     instrumentId: instrumentFromLocation(),
   }));
+  const filters = { ...chosen, includeVoided };
   const [editing, setEditing] = useState<PortfolioOperation | null>(null);
   const [voiding, setVoiding] = useState<PortfolioOperation | null>(null);
   const [detailId, setDetailId] = useState<string | null>(() => operationFromLocation());
