@@ -5,15 +5,15 @@ import {
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import { SupportCards } from './support-cards/SupportCards';
-import { supportCells, supportHeaders } from './supportPresentation';
+import { supportCells, supportHeaders, supportResultTone } from './supportPresentation';
 import styles from './SupportsTable.module.css';
 export function SupportsTable({ summary }: { summary: Summary | null }) {
   const empty = summary && summary.supports.length === 0;
   return (
     <section className={`card ${styles.card}`} aria-busy={!summary}>
-      <h3>Supports du contrat</h3>
+      <h3 className={styles.title}>Supports du contrat</h3>
       {empty ? (
-        <p>
+        <p className={styles.empty}>
           {summary.allocation.status === 'AVAILABLE'
             ? 'Aucun support détenu à cette date.'
             : allocationEmpty[summary.allocation.status]}
@@ -52,7 +52,15 @@ export function SupportsTable({ summary }: { summary: Summary | null }) {
                               />
                             </th>
                           ) : (
-                            <td className={index >= 2 ? 'money' : undefined} key={index}>
+                            <td
+                              className={[
+                                index >= 2 ? 'money' : '',
+                                index === 8 ? (styles[supportResultTone(row) ?? ''] ?? '') : '',
+                              ]
+                                .filter(Boolean)
+                                .join(' ')}
+                              key={index}
+                            >
                               {cell}
                             </td>
                           ),

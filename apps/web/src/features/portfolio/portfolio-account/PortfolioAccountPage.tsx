@@ -63,6 +63,8 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
   const [creating, setCreating] = useState<PortfolioCreation>(null);
+  const [includeVoided, setIncludeVoided] = useState(false);
+  const [includeClosed, setIncludeClosed] = useState(false);
   const [active, setActive] = useState<PortfolioTab>(() => activeTab());
   const sourceReturnFocus = usePortfolioSourceReturnFocus(active, asOf);
 
@@ -135,7 +137,9 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         onTakeover={takeoverState ? () => setCreating('takeover') : undefined}
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
-        valuationPrimary={shown === 'valuations'}
+        tab={shown}
+        closed={{ active: includeClosed, onToggle: () => setIncludeClosed((value) => !value) }}
+        voided={{ active: includeVoided, onToggle: () => setIncludeVoided((value) => !value) }}
       />
       {current.status !== 'ACTIVE' ? (
         <p className={styles.notice} role="status">
@@ -187,6 +191,8 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           today={today}
           sourceReturnFocus={sourceReturnFocus}
           contractRequired={operationBlocked}
+          includeClosed={includeClosed}
+          includeVoided={includeVoided}
           onAsOfChange={changeDate}
           creating={creating}
           onCloseCreate={() => setCreating(null)}

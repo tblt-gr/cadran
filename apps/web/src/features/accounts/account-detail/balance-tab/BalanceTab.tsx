@@ -23,7 +23,6 @@ export function BalanceTab({ account }: { account: Account }) {
   const total = snapshots.data?.total ?? 0;
   const withdrawal = useBalanceWithdrawal(account.id, items);
   const recordable = account.status === 'ACTIVE';
-  const empty = items !== null && items.length === 0;
   // The closure modal links here to record the statement balance of a month end.
   useArrivalAction(
     'record-balance',
@@ -33,23 +32,8 @@ export function BalanceTab({ account }: { account: Account }) {
     },
     { consumesAsOf: true },
   );
-  const record = (
-    <button
-      className="secondary-action"
-      disabled={!recordable}
-      onClick={() => setDialog({})}
-      type="button"
-    >
-      {t('accounts.balanceTab.record')}
-    </button>
-  );
-
   return (
     <div className={styles.tab}>
-      <div className={styles.toolbar}>
-        <h2>{t('accounts.balanceTab.navLabel')}</h2>
-        {empty ? null : record}
-      </div>
       {!recordable ? (
         <p className={styles.notice}>{t('accounts.balanceTab.recordUnavailable')}</p>
       ) : null}
@@ -79,7 +63,6 @@ export function BalanceTab({ account }: { account: Account }) {
       ) : items!.length === 0 ? (
         <OperationsState title={t('accounts.balanceTab.emptyTitle')}>
           <p>{t('accounts.balanceTab.emptyDescription')}</p>
-          {record}
         </OperationsState>
       ) : (
         <>

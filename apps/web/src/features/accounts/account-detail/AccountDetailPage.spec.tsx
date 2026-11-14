@@ -763,7 +763,7 @@ describe('AccountDetailPage', () => {
     );
     renderPage();
     await loaded();
-    fireEvent.click(await menuItem('Nouveau virement'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
     const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
     await within(within(dialog).getByLabelText('Compte de destination')).findByRole('option', {
       name: destination.label,
@@ -819,7 +819,7 @@ describe('AccountDetailPage', () => {
       );
       renderPage();
       await loaded();
-      fireEvent.click(await menuItem('Nouveau virement'));
+      fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
       const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
       await within(within(dialog).getByLabelText('Compte de destination')).findByRole('option', {
         name: destination.label,
@@ -931,6 +931,26 @@ describe('AccountDetailPage', () => {
     expect(api.listTransactions).not.toHaveBeenCalled();
   });
 
+  it('offers only the operation and the transfer on the Opérations tab, with no menu', async () => {
+    renderPage(account.id, '?tab=operations');
+    await loaded();
+    expect(screen.getByRole('button', { name: 'Nouvelle opération' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Nouveau virement' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
+  });
+
+  it('records the balance from the header on the Solde tab, with no transfer button nor tab title', async () => {
+    renderPage(account.id, '?tab=balance');
+    await screen.findByText('Aucun solde enregistré');
+    expect(screen.getByRole('button', { name: 'Enregistrer un solde' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Nouveau virement' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Solde' })).toBeNull();
+    // The three-dot menu belongs to the Compte tab only.
+    expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer un solde' }));
+    expect(await screen.findByRole('dialog')).toBeTruthy();
+  });
+
   it('opens the balance modal on action=record-balance with the date prefilled, once', async () => {
     renderPage(account.id, '?tab=balance&action=record-balance&asOf=2026-10-31');
 
@@ -1006,7 +1026,10 @@ describe('AccountDetailPage', () => {
     expect(
       (screen.getByRole('button', { name: 'Nouvelle opération' }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    for (const name of [/^Nouveau virement/, /^Enregistrer un solde/, /^Modifier/, /^Archiver/]) {
+    expect(
+      (screen.getByRole('button', { name: 'Nouveau virement' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    for (const name of [/^Modifier/, /^Archiver/]) {
       const item = await menuItem(name);
       expect(item.disabled).toBe(true);
       expect(item.getAttribute('aria-label')).toMatch(/compte archivé/);
@@ -1042,7 +1065,10 @@ describe('AccountDetailPage', () => {
     renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
 
-    for (const name of [/^Nouveau virement/, /^Modifier/, /^Archiver/]) {
+    expect(
+      (screen.getByRole('button', { name: 'Nouveau virement' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    for (const name of [/^Modifier/, /^Archiver/]) {
       const item = await menuItem(name);
       expect(item.disabled).toBe(true);
       expect(item.getAttribute('aria-label')).toMatch(/compte clôturé/);
@@ -1056,7 +1082,10 @@ describe('AccountDetailPage', () => {
     renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
 
-    for (const name of [/^Nouveau virement/, /^Enregistrer un solde/, /^Modifier/, /^Archiver/]) {
+    expect(
+      (screen.getByRole('button', { name: 'Nouveau virement' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    for (const name of [/^Modifier/, /^Archiver/]) {
       const item = await menuItem(name);
       expect(item.disabled).toBe(true);
       expect(item.getAttribute('aria-label')).toMatch(/lecture seule/);
@@ -1123,7 +1152,7 @@ describe('AccountDetailPage', () => {
     renderPage();
     await loaded();
 
-    fireEvent.click(await menuItem('Nouveau virement'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
 
     const dialog = await screen.findByRole('dialog');
     await waitFor(() => {
@@ -1153,7 +1182,7 @@ describe('AccountDetailPage', () => {
       );
       renderPage(account.id, search);
       await loaded();
-      if (!search) fireEvent.click(await menuItem('Nouveau virement'));
+      if (!search) fireEvent.click(await screen.findByRole('button', { name: 'Nouveau virement' }));
       const dialog = await screen.findByRole('dialog', { name: 'Nouveau virement' });
       const destination = within(dialog).getByLabelText(
         'Compte de destination',
@@ -1190,7 +1219,7 @@ describe('AccountDetailPage', () => {
   });
 
   it('shows the applicable rules from the shared rules panel', async () => {
-    renderPage();
+    renderPage(account.id, '?tab=account');
     await loaded();
 
     fireEvent.click(await menuItem('Voir les règles'));

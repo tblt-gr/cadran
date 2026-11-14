@@ -9,20 +9,16 @@ interface ConfirmedRecurrencesSectionProps {
   onArchive: (recurrence: Recurrence) => void;
   onEdit: (recurrence: Recurrence) => void;
   onSelect: (recurrence: Recurrence) => void;
-  onToggleArchived: () => void;
   recurrences: Recurrence[];
-  showArchived: boolean;
 }
 
-/** The confirmed, non-archived recurrences, with the toggle that reveals the archived ones. */
+/** The confirmed, non-archived recurrences. The page header holds the archived toggle. */
 export function ConfirmedRecurrencesSection({
   archivePending,
   onArchive,
   onEdit,
   onSelect,
-  onToggleArchived,
   recurrences,
-  showArchived,
 }: ConfirmedRecurrencesSectionProps) {
   const { t } = useTranslation();
 
@@ -30,19 +26,6 @@ export function ConfirmedRecurrencesSection({
     <section aria-labelledby="confirmed-recurrences-title" className={styles.section}>
       <div className={styles.sectionHeading}>
         <h3 id="confirmed-recurrences-title">{t('recurrences.confirmed.title')}</h3>
-        <button
-          aria-controls="archived-recurrences"
-          aria-expanded={showArchived}
-          className="secondary-action"
-          onClick={onToggleArchived}
-          type="button"
-        >
-          {t(
-            showArchived
-              ? 'recurrences.confirmed.hideArchived'
-              : 'recurrences.confirmed.showArchived',
-          )}
-        </button>
       </div>
       {recurrences.length === 0 ? (
         <div className={`card ${styles.empty}`}>

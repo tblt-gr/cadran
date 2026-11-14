@@ -29,7 +29,7 @@ export function AccountDetailPageSkeleton({
     <div aria-busy="true" className={styles.page} data-testid="account-detail-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
       <AccountNavigation accountId={accountId} tab={tab} />
-      <AccountDetailActionsSkeleton />
+      <AccountDetailActionsSkeleton tab={tab} />
       {tab === 'operations' ? (
         <TransactionFilters
           accountLocked

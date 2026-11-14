@@ -1,8 +1,21 @@
 .card {
   min-width: 0;
+  overflow: hidden;
+  padding: var(--spacing-none);
 }
-.card h3 {
-  margin-top: var(--spacing-none);
+.title {
+  margin: var(--spacing-none);
+  padding: var(--spacing-4) var(--spacing-4) var(--spacing-3);
+}
+.empty {
+  margin: var(--spacing-none);
+  padding: var(--spacing-none) var(--spacing-4) var(--spacing-4);
+}
+.gain {
+  color: var(--positive);
+}
+.loss {
+  color: var(--negative);
 }
 .scroll {
   overflow-x: auto;
@@ -22,7 +35,7 @@
 }
 .scroll th,
 .scroll td {
-  padding: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
   border-bottom: var(--border-line-subtle);
   vertical-align: top;
   text-align: left;
@@ -44,4 +57,7 @@
 }
 .scroll th {
   white-space: nowrap;
+}
+.scroll tbody tr:last-child > * {
+  border-bottom: var(--border-none);
 }
