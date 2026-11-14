@@ -46,9 +46,6 @@ export function RecurrencesPageSkeleton({ status }: { status: string }) {
       <section className={styles.section}>
         <div className={styles.sectionHeading}>
           <h3>{t('recurrences.confirmed.title')}</h3>
-          <button className="secondary-action" disabled type="button">
-            {t('recurrences.confirmed.showArchived')}
-          </button>
         </div>
         <ul className={`card ${styles.list}`}>
           <ScheduleCardSkeleton />

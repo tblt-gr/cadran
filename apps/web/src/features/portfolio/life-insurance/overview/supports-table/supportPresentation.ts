@@ -1,6 +1,7 @@
 import type { LifeInsuranceSummarySupport } from '@cadran/api-client';
 import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
+import { signed } from '@/features/portfolio/performance/performance-value/PerformanceValue';
 import { basisLabels } from '@/features/portfolio/life-insurance/lifeInsuranceLabels';
 import { money } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 export const supportHeaders = [
@@ -25,7 +26,7 @@ export function supportCells(row: LifeInsuranceSummarySupport, assetCode: string
   const rate = row.latestServedRate;
   const performance =
     row.type === 'UNIT_LINKED'
-      ? `Plus-value latente : ${money(row.unrealizedGain, assetCode)} (${row.unrealizedPerformance === null ? 'Non calculable' : `${formatRatioPercentage(row.unrealizedPerformance, 'fr')} latente`})`
+      ? `Plus-value latente : ${row.unrealizedGain === null ? money(null, assetCode) : signed(money(row.unrealizedGain, assetCode)).text} (${row.unrealizedPerformance === null ? 'Non calculable' : `${signed(formatRatioPercentage(row.unrealizedPerformance, 'fr')).text} latente`})`
       : rate
         ? `Taux servi ${rate.year} : ${formatDecimal(rate.rate, 'fr')} % (${basisLabels[rate.basis]})${rate.bonusRate === null ? '' : `, bonus enregistré : ${formatDecimal(rate.bonusRate, 'fr')} %`}`
         : 'Taux servi non renseigné';
@@ -45,4 +46,15 @@ export function supportCells(row: LifeInsuranceSummarySupport, assetCode: string
       ? `Intérêts crédités ${row.lastClosedYear} : ${money(row.creditedLastClosedYear, assetCode)}`
       : 'Sans objet',
   ];
+}
+
+/** Colour of the result cell: only a calculated unrealized gain is green or red. */
+export function supportResultTone(row: LifeInsuranceSummarySupport): 'gain' | 'loss' | undefined {
+  if (
+    row.type !== 'UNIT_LINKED' ||
+    row.unrealizedGain === null ||
+    !/[1-9]/.test(row.unrealizedGain)
+  )
+    return undefined;
+  return row.unrealizedGain.startsWith('-') ? 'loss' : 'gain';
 }

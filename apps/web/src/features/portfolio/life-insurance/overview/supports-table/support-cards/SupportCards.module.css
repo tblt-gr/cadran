@@ -1,6 +1,13 @@
 .cards {
   display: grid;
+  padding-inline: var(--spacing-4);
   gap: var(--spacing-4);
+}
+.gain {
+  color: var(--positive);
+}
+.loss {
+  color: var(--negative);
 }
 .support {
   min-width: 0;

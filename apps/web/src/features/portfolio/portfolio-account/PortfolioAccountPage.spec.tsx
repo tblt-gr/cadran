@@ -181,7 +181,7 @@ describe('portfolio shell breadcrumb', () => {
     expect(api.readAccount).toHaveBeenCalledTimes(1);
     expect(window.location.search).toBe('?tab=operations&asOf=2026-03-10&operationId=op-1');
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
-    expect(menuItem('Gérer les instruments').disabled).toBe(false);
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
     expect(screen.getByRole('link', { name: 'Opérations' }).getAttribute('aria-current')).toBe(
       'page',
     );
@@ -781,7 +781,7 @@ describe('PortfolioAccountPage', () => {
     expect(await loadedOperationsTable()).toBeTruthy();
     expect(screen.queryByTestId('operations-skeleton')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Voir le compte' })).toBeNull();
-    expect(menuItem('Gérer les instruments').disabled).toBe(false);
+    expect(screen.getByRole('link', { name: 'Gérer les instruments' })).toBeTruthy();
   });
 
   it('answers a missing account with the not found state', async () => {

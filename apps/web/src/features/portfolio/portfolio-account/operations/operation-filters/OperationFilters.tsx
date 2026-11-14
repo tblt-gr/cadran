@@ -20,6 +20,7 @@ export function OperationFilters({
     <OperationsToolbar
       value={value}
       disabled={disabled}
+      voidedInHeader
       onChange={(next) => onChange({ ...value, ...next })}
       types={
         <OperationTypeSelect

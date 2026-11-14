@@ -310,7 +310,6 @@ const MODALS: ModalCase[] = [
     open: async (page, ids) => {
       await page.goto(`/accounts/${ids.accountId}?tab=operations`);
       await settled(page);
-      await page.getByRole('button', { name: /^Actions du compte/ }).click();
       await page.getByRole('button', { name: 'Nouveau virement', exact: true }).click();
       await expect(page.getByLabel('Compte source')).toBeDisabled();
       await expect(page.getByLabel('Compte de destination')).toBeFocused();

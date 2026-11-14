@@ -12,6 +12,7 @@ import styles from './AccountDetailActions.module.css';
  */
 export function AccountDetailActions({
   account,
+  balanceTab = false,
   creatable,
   onAddTransaction,
   onAddTransfer,
@@ -19,6 +20,8 @@ export function AccountDetailActions({
   onReconcile,
 }: {
   account: Account;
+  /** The Solde tab is shown: recording a balance is the primary action. */
+  balanceTab?: boolean;
   creatable: boolean;
   onAddTransaction: () => void;
   onAddTransfer: () => void;
@@ -26,24 +29,48 @@ export function AccountDetailActions({
   onReconcile: () => void;
 }) {
   const { t } = useTranslation();
+  const writable = creatable && account.editable;
 
   return (
     <HeaderActions>
-      <button
-        aria-label={t('accounts.detail.actions.addTransaction')}
-        className={`primary-action ${styles.add}`}
-        disabled={!creatable}
-        onClick={onAddTransaction}
-        type="button"
-      >
-        <Icon name="add" size={18} />
-        <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
-      </button>
       <AccountActionsMenu
         account={account}
-        onAddTransfer={onAddTransfer}
         onReconcile={onReconcile}
         onRules={onOpenRules}
+        leading={({ recordBalance }) => (
+          <>
+            <button
+              aria-label={t(
+                balanceTab
+                  ? 'accounts.detail.actionsMenu.recordBalance'
+                  : 'accounts.detail.actions.addTransaction',
+              )}
+              className={`primary-action ${styles.add}`}
+              disabled={balanceTab ? !writable : !creatable}
+              onClick={balanceTab ? recordBalance : onAddTransaction}
+              type="button"
+            >
+              <Icon name={balanceTab ? 'balance' : 'add'} size={18} />
+              <span className={styles.addLabel}>
+                {t(
+                  balanceTab
+                    ? 'accounts.detail.actionsMenu.recordBalance'
+                    : 'accounts.detail.actions.addTransaction',
+                )}
+              </span>
+            </button>
+            <button
+              aria-label={t('accounts.detail.actionsMenu.transfer')}
+              className={`secondary-action ${styles.add}`}
+              disabled={!writable}
+              onClick={onAddTransfer}
+              type="button"
+            >
+              <Icon name="transfer" size={18} />
+              <span className={styles.addLabel}>{t('accounts.detail.actionsMenu.transfer')}</span>
+            </button>
+          </>
+        )}
       />
     </HeaderActions>
   );
@@ -63,6 +90,15 @@ export function AccountDetailActionsSkeleton() {
       >
         <Icon name="add" size={18} />
         <span className={styles.addLabel}>{t('accounts.detail.actions.addTransaction')}</span>
+      </button>
+      <button
+        aria-label={t('accounts.detail.actionsMenu.transfer')}
+        className={`secondary-action ${styles.add}`}
+        disabled
+        type="button"
+      >
+        <Icon name="transfer" size={18} />
+        <span className={styles.addLabel}>{t('accounts.detail.actionsMenu.transfer')}</span>
       </button>
       <AccountActionsMenu onRules={() => undefined} />
     </HeaderActions>
