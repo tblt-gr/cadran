@@ -141,6 +141,9 @@ describe('ProductModelsPage', () => {
     const { container } = renderPage();
 
     fireEvent.click(await screen.findByRole('button', { name: 'Créer le premier modèle' }));
+    // One dialog: it starts from a catalogue product, and offers to describe the model by hand.
+    expect(screen.getByRole('dialog', { name: 'Partir d’un produit du catalogue' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Créer son modèle' }));
     expect(screen.getByRole('dialog', { name: 'Nouveau modèle de produit' })).toBeTruthy();
     expect(screen.getByText('Création')).toBeTruthy();
 
@@ -241,7 +244,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Partir d’un produit' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau modèle' }));
     expect(
       await screen.findByRole('dialog', { name: 'Partir d’un produit du catalogue' }),
     ).toBeTruthy();
@@ -271,7 +274,7 @@ describe('ProductModelsPage', () => {
     );
     renderPage();
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Partir d’un produit' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Nouveau modèle' }));
     fireEvent.change(await screen.findByLabelText('Produit du catalogue'), {
       target: { value: 'FR_ASSURANCE_VIE' },
     });

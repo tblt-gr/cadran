@@ -110,7 +110,6 @@ export function AccountMovementsSection({
             transactions={items}
           />
           <TransactionListFooter
-            hideEndOfList
             failed={transactions.isError && !staleCursorError}
             hasMore={!staleCursorError && displayedPageHasMore}
             loadingMore={loadingMore}

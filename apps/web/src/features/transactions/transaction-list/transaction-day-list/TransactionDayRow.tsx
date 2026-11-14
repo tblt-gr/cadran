@@ -75,12 +75,27 @@ export function TransactionDayRow({
         <TransactionInspectButton transaction={transaction} />
         {transaction?.transferId != null ? (
           <small>
-            {t(
-              transaction.nature === 'FEE'
-                ? 'transactions.list.transferFeeMarker'
-                : 'transactions.list.transferMarker',
+            {transaction.nature === 'FEE' ? (
+              <>
+                {t('transactions.list.transferFeeMarker')}
+                {counterpartAccount ? ` · ${counterpartAccount}` : null}
+              </>
+            ) : counterpartAccount && account ? (
+              // The leg that leaves the account is the source; the one that enters is the destination.
+              transaction.amount.value.startsWith('-') ? (
+                t('transactions.list.transferRoute', {
+                  from: account.label,
+                  to: counterpartAccount,
+                })
+              ) : (
+                t('transactions.list.transferRoute', {
+                  from: counterpartAccount,
+                  to: account.label,
+                })
+              )
+            ) : (
+              t('transactions.list.transferMarker')
             )}
-            {counterpartAccount ? ` · ${counterpartAccount}` : null}
           </small>
         ) : null}
         {transaction ? <RefundBadge transaction={transaction} /> : null}

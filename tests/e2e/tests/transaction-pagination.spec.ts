@@ -128,9 +128,7 @@ test('retries a failed next page by keyboard and keeps stale recovery explicit',
   await page.keyboard.press('Enter');
   await expect(page.getByText('TX024 mouvement 99', { exact: true })).toBeAttached();
   expect(pages.requests).toEqual(['', '50', '50']);
-  await expect(
-    page.getByText('La liste n’a pas d’autre mouvement à charger pour ces filtres.'),
-  ).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Afficher plus', exact: true })).toHaveCount(0);
 
   await page.unrouteAll({ behavior: 'wait' });
   const stale = await mockPages(page, 100, 409);
