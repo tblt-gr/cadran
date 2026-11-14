@@ -139,6 +139,7 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
       ) : null}
       <AccountDetailActions
         account={current}
+        balanceTab={tab === 'balance'}
         creatable={creatable}
         onAddTransaction={() => openEditor('transaction')}
         onAddTransfer={() => openEditor('transfer')}

@@ -63,6 +63,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
   const [creating, setCreating] = useState<PortfolioCreation>(null);
+  const [includeVoided, setIncludeVoided] = useState(false);
   const [active, setActive] = useState<PortfolioTab>(() => activeTab());
   const sourceReturnFocus = usePortfolioSourceReturnFocus(active, asOf);
 
@@ -136,6 +137,11 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
         contractRequired={contractRequired}
         operationBlocked={operationBlocked}
         valuationPrimary={shown === 'valuations'}
+        voided={
+          shown === 'operations'
+            ? { active: includeVoided, onToggle: () => setIncludeVoided((value) => !value) }
+            : undefined
+        }
       />
       {current.status !== 'ACTIVE' ? (
         <p className={styles.notice} role="status">
@@ -187,6 +193,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           today={today}
           sourceReturnFocus={sourceReturnFocus}
           contractRequired={operationBlocked}
+          includeVoided={includeVoided}
           onAsOfChange={changeDate}
           creating={creating}
           onCloseCreate={() => setCreating(null)}

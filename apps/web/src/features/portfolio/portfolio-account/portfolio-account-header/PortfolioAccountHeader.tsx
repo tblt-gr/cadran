@@ -5,8 +5,9 @@ import type { Account } from '@cadran/api-client';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { AccountActionsMenu } from '@/features/accounts/account-actions-menu/AccountActionsMenu';
+import { INSTRUMENTS_HREF } from '@/features/accounts/account-actions-menu/accountMenuItems';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
+import { handleClientNavigation, navigateFromPage } from '@/hooks/use-client-navigation';
 import styles from './PortfolioAccountHeader.module.css';
 
 /**
@@ -23,6 +24,7 @@ export function PortfolioAccountHeader({
   contractRequired = false,
   operationBlocked = false,
   valuationPrimary = false,
+  voided,
 }: {
   account?: Account;
   accountId: string;
@@ -34,6 +36,8 @@ export function PortfolioAccountHeader({
   operationBlocked?: boolean;
   /** The Valorisations tab is shown: recording a valuation is the primary action. */
   valuationPrimary?: boolean;
+  /** The Opérations tab is shown: the toggle that adds the voided operations to the list. */
+  voided?: { active: boolean; onToggle: () => void };
 }) {
   const { t } = useTranslation();
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -69,6 +73,29 @@ export function PortfolioAccountHeader({
           <Icon name={valuationPrimary ? 'balance' : 'add'} size={18} />
           <span className={styles.addLabel}>{primaryLabel}</span>
         </button>
+        <a
+          className={`secondary-action ${styles.add}`}
+          href={INSTRUMENTS_HREF}
+          onClick={(event) => {
+            event.preventDefault();
+            navigateFromPage(INSTRUMENTS_HREF);
+          }}
+        >
+          <Icon name="chart-line" size={18} />
+          <span className={styles.addLabel}>{t('accounts.detail.actionsMenu.instruments')}</span>
+        </a>
+        {voided ? (
+          <button
+            aria-label="Afficher les opérations annulées"
+            aria-pressed={voided.active}
+            className="icon-button"
+            onClick={voided.onToggle}
+            title="Afficher les opérations annulées"
+            type="button"
+          >
+            <Icon name={voided.active ? 'eye' : 'eye-off'} size={18} />
+          </button>
+        ) : null}
         <AccountActionsMenu
           account={account}
           onAddOperation={

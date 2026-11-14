@@ -21,6 +21,7 @@ export function PortfolioAccountTabContent({
   today,
   sourceReturnFocus,
   contractRequired,
+  includeVoided,
   onAsOfChange,
   creating,
   onCloseCreate,
@@ -33,6 +34,7 @@ export function PortfolioAccountTabContent({
   today: string;
   sourceReturnFocus: RefObject<HTMLElement | null>;
   contractRequired: boolean;
+  includeVoided: boolean;
   onAsOfChange: (date: string) => void;
   creating: PortfolioCreation;
   onCloseCreate: () => void;
@@ -83,6 +85,7 @@ export function PortfolioAccountTabContent({
     <OperationsTab
       account={account}
       contractRequired={contractRequired}
+      includeVoided={includeVoided}
       asOf={asOf}
       sourceReturnFocus={sourceReturnFocus}
       creating={creating === 'operation'}

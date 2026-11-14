@@ -58,7 +58,6 @@ test('a transfer from an account locks its source and focuses the destination', 
   expect(href).toBeTruthy();
   await page.goto(href!);
   await settled(page);
-  await page.getByRole('button', { name: /^Actions du compte/ }).click();
   const trigger = page.getByRole('button', { name: 'Nouveau virement', exact: true });
   await trigger.focus();
   await page.keyboard.press('Enter');

@@ -1006,7 +1006,10 @@ describe('AccountDetailPage', () => {
     expect(
       (screen.getByRole('button', { name: 'Nouvelle opération' }) as HTMLButtonElement).disabled,
     ).toBe(true);
-    for (const name of [/^Nouveau virement/, /^Enregistrer un solde/, /^Modifier/, /^Archiver/]) {
+    expect(
+      (screen.getByRole('button', { name: 'Nouveau virement' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    for (const name of [/^Modifier/, /^Archiver/]) {
       const item = await menuItem(name);
       expect(item.disabled).toBe(true);
       expect(item.getAttribute('aria-label')).toMatch(/compte archivé/);
@@ -1042,7 +1045,10 @@ describe('AccountDetailPage', () => {
     renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
 
-    for (const name of [/^Nouveau virement/, /^Modifier/, /^Archiver/]) {
+    expect(
+      (screen.getByRole('button', { name: 'Nouveau virement' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    for (const name of [/^Modifier/, /^Archiver/]) {
       const item = await menuItem(name);
       expect(item.disabled).toBe(true);
       expect(item.getAttribute('aria-label')).toMatch(/compte clôturé/);
@@ -1056,7 +1062,10 @@ describe('AccountDetailPage', () => {
     renderPage(account.id, '?tab=account');
     await screen.findByRole('heading', { level: 3, name: 'Livret A Banque X' });
 
-    for (const name of [/^Nouveau virement/, /^Enregistrer un solde/, /^Modifier/, /^Archiver/]) {
+    expect(
+      (screen.getByRole('button', { name: 'Nouveau virement' }) as HTMLButtonElement).disabled,
+    ).toBe(true);
+    for (const name of [/^Modifier/, /^Archiver/]) {
       const item = await menuItem(name);
       expect(item.disabled).toBe(true);
       expect(item.getAttribute('aria-label')).toMatch(/lecture seule/);
