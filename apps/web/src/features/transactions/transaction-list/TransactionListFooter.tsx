@@ -5,7 +5,6 @@ import styles from './TransactionListFooter.module.css';
 interface TransactionListFooterProps {
   hasMore: boolean;
   failed?: boolean;
-  hideEndOfList?: boolean;
   loadingMore: boolean;
   onLoadMore: () => void;
   onReloadFromFirstPage: () => void;
@@ -22,7 +21,6 @@ interface TransactionListFooterProps {
 export function TransactionListFooter({
   hasMore,
   failed = false,
-  hideEndOfList = false,
   loadingMore,
   onLoadMore,
   onReloadFromFirstPage,
@@ -70,15 +68,8 @@ export function TransactionListFooter({
     );
   }
 
-  if (!hasMore && hideEndOfList) return null;
-
-  if (!hasMore) {
-    return (
-      <div className={styles.footer}>
-        <p className={styles.endOfList}>{t('transactions.pagination.endOfList')}</p>
-      </div>
-    );
-  }
+  // Nothing is said when the list ends: the last row is the end.
+  if (!hasMore) return null;
 
   return (
     <div className={styles.footer} ref={footer}>

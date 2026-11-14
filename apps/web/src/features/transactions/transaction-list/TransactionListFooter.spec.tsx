@@ -82,7 +82,7 @@ describe('TransactionListFooter', () => {
     );
 
     expect(screen.queryByRole('button')).toBeNull();
-    expect(screen.getByText(/n’a pas d’autre mouvement/i)).not.toBeNull();
+    expect(screen.queryByText(/n’a pas d’autre mouvement/i)).toBeNull();
   });
 
   it('shows a stale indicator, taking priority over hasMore, and reloads from the first page', () => {

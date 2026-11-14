@@ -2,6 +2,7 @@ import type { CategorizationRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { RuleSentence } from '@/features/categories/rules/rule-sentence/RuleSentence';
 
 interface RuleRowProps {
   canEdit: boolean;
@@ -23,7 +24,13 @@ export function RuleRow({ canEdit, onArchive, onEdit, onPreview, onToggle, rule 
   return (
     <tr>
       <td>{rule.priority}</td>
-      <th scope="row">{rule.label}</th>
+      <th scope="row">
+        {rule.label}
+        <RuleSentence
+          conditions={rule.conditions}
+          targetCategoryLabel={rule.targetCategoryLabel ?? null}
+        />
+      </th>
       <td>{period}</td>
       <td>
         {rule.accountScope.length === 0

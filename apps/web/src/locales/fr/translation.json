@@ -29,6 +29,10 @@
       "description": "Aucun compte propriétaire n’existe encore. Exécutez la commande d’installation sur le serveur, puis rechargez la page.",
       "command": "make setup"
     },
+    "passwordToggle": {
+      "show": "Afficher le mot de passe",
+      "hide": "Masquer le mot de passe"
+    },
     "fields": {
       "email": "Adresse e-mail",
       "password": "Mot de passe",
@@ -1804,7 +1808,6 @@
   },
   "productModels": {
     "add": "Nouveau modèle",
-    "addFromProduct": "Partir d’un produit",
     "filters": {
       "open": "Filtres des modèles",
       "title": "Filtres"
@@ -1897,6 +1900,8 @@
       }
     },
     "fromProduct": {
+      "switchToManual": "Créer son modèle",
+      "switchBack": "Partir d’un produit",
       "title": "Partir d’un produit du catalogue",
       "loading": "Chargement du catalogue produits…",
       "error": "Le catalogue produits n’a pas pu être chargé. Réessayez.",
@@ -2409,6 +2414,7 @@
       "moreSplits_one": "+ {{count}} autre catégorie",
       "moreSplits_other": "+ {{count}} autres catégories",
       "transferMarker": "Virement",
+      "transferRoute": "{{from}} → {{to}}",
       "transferFeeMarker": "Frais de virement",
       "refundOf": "Remboursement de « {{label}} »",
       "refundedAmount": "Remboursé : {{amount}}"
@@ -2586,7 +2592,6 @@
       "nextLoaded": "Mouvements suivants déjà chargés",
       "failed": "Les mouvements suivants n’ont pas pu être chargés. Les mouvements déjà affichés sont conservés.",
       "loadingMore": "Chargement des mouvements suivants…",
-      "endOfList": "La liste n’a pas d’autre mouvement à charger pour ces filtres.",
       "stale": "La liste a changé pendant le chargement de cette page. Rechargez depuis le début pour continuer sans risquer un doublon ou un mouvement manquant.",
       "reload": "Recharger depuis le début",
       "loadedCount_one": "{{count}} mouvement chargé (chargement n°{{sequence}}).",
@@ -2899,6 +2904,24 @@
     }
   },
   "categorizationRules": {
+    "sentence": {
+      "if": "Si {{clauses}},",
+      "noCondition": "Aucune condition,",
+      "and": " et ",
+      "then": "alors classer en « {{category}} ».",
+      "thenNone": "alors classer dans la catégorie choisie.",
+      "text": "{{source}} {{operator}} « {{value}} »",
+      "not": "non ({{clause}})",
+      "amount": "le montant est {{bounds}}",
+      "combinator": {
+        "AND": " et ",
+        "OR": " ou "
+      },
+      "direction": {
+        "IN": "c’est une entrée",
+        "OUT": "c’est une sortie"
+      }
+    },
     "add": "Nouvelle règle",
     "addFirst": "Créer la première règle",
     "loading": "Chargement des règles…",

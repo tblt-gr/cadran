@@ -15,6 +15,7 @@ import { CategoryPicker } from '@/features/categories/category-picker/CategoryPi
 import type { CategorizationRuleErrorKind } from '@/features/categories/rules/categorizationRuleError';
 import { RuleAdvancedFields } from './advanced-fields/RuleAdvancedFields';
 import { RuleConditions } from './conditionFields/RuleConditions';
+import { RuleSentence } from '@/features/categories/rules/rule-sentence/RuleSentence';
 import { validateRuleForm } from './ruleFormValidation';
 import styles from './RuleForm.module.css';
 
@@ -161,6 +162,8 @@ export function RuleForm({ accounts, onSubmit, pending, rule, submitError }: Rul
         showErrors={showErrors}
         textInvalid={textInvalid}
       />
+
+      <RuleSentence conditions={conditions} targetCategoryLabel={targetCategoryLabel} />
 
       <RuleAdvancedFields
         periodFilled={effectiveTo !== ''}

@@ -10,6 +10,22 @@
   font-weight: var(--font-weight-medium);
 }
 
+.control {
+  position: relative;
+  display: flex;
+}
+
+.control > .reveal {
+  position: absolute;
+  inset-block: var(--spacing-1);
+  inset-inline-end: var(--spacing-1);
+  height: auto;
+}
+
+.control:has(.reveal) input {
+  padding-inline-end: var(--spacing-12);
+}
+
 .field input {
   width: 100%;
   min-height: var(--control-height);

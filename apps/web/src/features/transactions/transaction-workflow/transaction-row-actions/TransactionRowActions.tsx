@@ -93,6 +93,7 @@ export function TransactionInspectButton({ transaction }: { transaction: Transac
     <button
       className={styles.inspect}
       type="button"
+      title={transaction?.displayLabel}
       disabled={!context || transaction === null}
       aria-label={
         transaction

@@ -9,7 +9,7 @@ import type {
   ProductWrapperKind,
   ProductYieldKind,
 } from '@cadran/api-client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FieldRow } from '@/features/product-models/field-row/FieldRow';
 import type { ProductModelErrorKind } from '@/features/product-models/productModelError';
@@ -33,6 +33,8 @@ import {
 import styles from './ModelForm.module.css';
 
 interface ModelFormProps {
+  /** A way to start the model differently: a secondary button at the left of the footer. */
+  alternative?: ReactNode;
   pending: boolean;
   submitError: ProductModelErrorKind | null;
   onCancel: () => void;
@@ -45,7 +47,7 @@ interface ModelFormProps {
  * afterwards through their own endpoint, so this form never duplicates the
  * period editor and a model with no period yet is a valid starting point.
  */
-export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
+export function ModelForm({ alternative, pending, submitError, onSubmit }: ModelFormProps) {
   const { t } = useTranslation();
   const [asOf] = useState(todayInBrowser);
   const products = useCatalogProducts(asOf);
@@ -220,6 +222,7 @@ export function ModelForm({ pending, submitError, onSubmit }: ModelFormProps) {
       />
 
       <ModalActions>
+        {alternative ? <span className={styles.alternative}>{alternative}</span> : null}
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.form.saving' : 'productModels.form.save')}
         </button>

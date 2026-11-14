@@ -7,7 +7,7 @@ setup('sign in as the e2e owner', async ({ page }) => {
 
   await page.goto('/');
   await page.getByLabel('Adresse e-mail').fill(email);
-  await page.getByLabel('Mot de passe').fill(password);
+  await page.getByLabel('Mot de passe', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Se connecter' }).click();
   await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible();
 
