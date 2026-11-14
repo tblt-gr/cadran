@@ -15,11 +15,11 @@
   display: flex;
 }
 
-.reveal {
+.control > .reveal {
   position: absolute;
-  inset-block-start: 50%;
+  inset-block: 0;
   inset-inline-end: var(--spacing-1);
-  transform: translateY(-50%);
+  height: auto;
 }
 
 .control:has(.reveal) input {
