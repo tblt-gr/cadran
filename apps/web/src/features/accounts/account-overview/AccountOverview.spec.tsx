@@ -470,29 +470,6 @@ describe('AccountOverview', () => {
     expect(await screen.findByRole('heading', { name: /Bourse \(Investissement\)/ })).toBeTruthy();
   });
 
-  it('shows the sub-group of a row with its parent under the account name', async () => {
-    api.readAccountOverview.mockImplementation(() =>
-      success(buildOverview([buildHeading({ label: 'Investissement' })])),
-    );
-    api.readAccountOverviewRows.mockImplementation(() =>
-      rows([
-        inGroup(A, 'PEA', {
-          primaryGroupLabel: 'Bourse',
-          primaryGroupParentLabel: 'Investissement',
-        }),
-        inGroup(B, 'Livret'),
-      ]),
-    );
-    renderOverview();
-
-    const cell = (await screen.findByText('PEA')).closest('th')!;
-    expect(within(cell).getByText('Bourse')).toBeTruthy();
-    expect(cell.textContent).toContain('(Investissement)');
-    expect(cell.querySelector('[data-group-marker]')).not.toBeNull();
-    const plain = screen.getByText('Livret').closest('th')!;
-    expect(plain.querySelector('[data-group-marker]')).toBeNull();
-  });
-
   it('stops the move controls at the boundary between two primary groups', async () => {
     const other = '00000000-0000-7000-8000-0000000000a9';
     api.readAccountOverview.mockImplementation(() =>

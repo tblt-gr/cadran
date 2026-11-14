@@ -17,10 +17,6 @@
   width: 28%;
 }
 
-.performanceColumn {
-  width: 24%;
-}
-
 .actionsColumn {
   width: calc(max(var(--icon-size-md), var(--control-height)) + var(--spacing-4) * 2);
 }

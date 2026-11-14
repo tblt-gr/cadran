@@ -7,7 +7,6 @@ import { Toast } from '@/components/ui/toast/Toast';
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
 import { AccountsPageActions } from './accounts-page-actions/AccountsPageActions';
 import { AccountOverview } from './account-overview/AccountOverview';
-import { PortfolioPerformanceNotice } from './portfolio-performance-notice/PortfolioPerformanceNotice';
 import { useLiveAccount } from './useLiveAccount';
 import { useAccountsPageMutations } from './useAccountsPageMutations';
 import styles from './AccountsPage.module.css';
@@ -97,8 +96,6 @@ export function AccountsPage() {
       {saved ? (
         <Toast onDismiss={() => setSaved(null)}>{t(`accounts.toasts.${saved}`)}</Toast>
       ) : null}
-
-      <PortfolioPerformanceNotice />
 
       <AccountsPageModals
         archive={archive}
