@@ -7,31 +7,22 @@
      role="img"
      aria-labelledby="logo-title logo-description">
   <title id="logo-title">Cadran Budget</title>
-  <desc id="logo-description">Un cadran en forme de C contenant une courbe financière ascendante.</desc>
+  <desc id="logo-description">Un cadran circulaire avec graduations et aiguille, suivi du nom Cadran Budget.</desc>
 
-  <g id="symbol" transform="translate(16 16)" stroke="#D7A85B">
-    <path d="M100 24C88 14 73 10 58 13C30 18 12 42 13 68C14 96 37 118 65 118C79 118 92 113 101 104"
-          stroke-width="14"
-          stroke-linecap="round"
-          stroke-linejoin="round"/>
+  <rect width="720" height="160" rx="16" fill="#0a0a0b"/>
 
-    <path d="M32 70H24M39 45L33 39M63 34V25"
-          stroke-width="6"
-          stroke-linecap="round"/>
-
-    <path d="M32 91L52 70L66 82L93 52"
-          stroke-width="8"
-          stroke-linecap="round"
-          stroke-linejoin="round"/>
-    <circle cx="93" cy="52" r="6" fill="#D7A85B" stroke="none"/>
+  <g id="symbol" transform="translate(28 20) scale(3)" stroke="#d7dbe1" stroke-width="2">
+    <circle cx="20" cy="20" r="15"/>
+    <path d="M20 8v5M20 27v5M8 20h5M27 20h5M20 20l7-7" stroke-linecap="round"/>
+    <circle cx="20" cy="20" r="2.5" fill="#d7dbe1" stroke="none"/>
   </g>
 
   <g id="wordmark"
-     fill="#F4F1EA"
-     font-family="Manrope, Inter, Segoe UI, Arial, sans-serif"
-     font-size="54"
+     fill="#d7dbe1"
+     font-family="Geist, Inter, 'Segoe UI', Helvetica, Arial, sans-serif"
+     font-size="58"
      letter-spacing="-1.6">
-    <text x="168" y="99" font-weight="650">Cadran</text>
-    <text x="398" y="99" font-weight="450">Budget</text>
+    <text x="176" y="99" font-weight="600">Cadran</text>
+    <text x="408" y="99" font-weight="400">Budget</text>
   </g>
 </svg>
