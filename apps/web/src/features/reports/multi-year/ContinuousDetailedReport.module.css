@@ -33,3 +33,35 @@
 .yearBoundary td {
   border-bottom: var(--border-line-strong);
 }
+
+/* One row per year, above its months: folding it hides the months and keeps the year readable. */
+.yearRow th {
+  position: sticky;
+  left: 0;
+  background: var(--bg-surface-2);
+  text-align: left;
+}
+.yearToggle {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  gap: var(--spacing-2);
+}
+.chevron {
+  display: inline-flex;
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.yearToggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .chevron {
+    transition-duration: var(--duration-reduced-motion);
+  }
+}

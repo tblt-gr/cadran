@@ -187,54 +187,63 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       <ModalForm className={styles.form} onSubmit={submit}>
         <p aria-live="polite">{`${selected.length} / ${MAX_ANNUAL_COLUMNS}`}</p>
         {failed ? <p role="alert">{t('reports.annual.picker.error')}</p> : null}
-        <Tabs
-          label={t('reports.annual.picker.title')}
-          tabs={[
-            {
-              id: 'indicators',
-              label: t('reports.annual.picker.indicators'),
-              content: options(
-                '',
-                INDICATOR_COLUMN_IDS.map((id) => ({
-                  id,
-                  label: t(`reports.annual.indicators.${id}`),
-                })),
-              ),
-            },
-            {
-              id: 'axes',
-              label: t('reports.annual.picker.axes'),
-              content: options(
-                'axis:',
-                AXIS_IDS.map((id) => ({ id, label: t(`categories.axes.${id}`) })),
-              ),
-            },
-            {
-              id: 'categories',
-              label: t('reports.annual.picker.categories'),
-              content: catalogueOptions('category:', (data) => data.categories, true),
-            },
-            {
-              id: 'accounts',
-              label: t('reports.annual.picker.accounts'),
-              content: catalogueOptions('account:', (data) => data.accounts),
-            },
-            {
-              id: 'groups',
-              label: t('reports.annual.picker.groups'),
-              content: catalogueOptions('group:', (data) => data.groups),
-            },
-          ]}
-        />
-        <label className={styles.goalMarks}>
-          <input
-            checked={goalMarks}
-            onChange={(event) => setGoalMarks(event.target.checked)}
-            type="checkbox"
+        <div className={styles.layout}>
+          <div className={styles.choices}>
+            <Tabs
+              label={t('reports.annual.picker.title')}
+              tabs={[
+                {
+                  id: 'indicators',
+                  label: t('reports.annual.picker.indicators'),
+                  content: options(
+                    '',
+                    INDICATOR_COLUMN_IDS.map((id) => ({
+                      id,
+                      label: t(`reports.annual.indicators.${id}`),
+                    })),
+                  ),
+                },
+                {
+                  id: 'axes',
+                  label: t('reports.annual.picker.axes'),
+                  content: options(
+                    'axis:',
+                    AXIS_IDS.map((id) => ({ id, label: t(`categories.axes.${id}`) })),
+                  ),
+                },
+                {
+                  id: 'categories',
+                  label: t('reports.annual.picker.categories'),
+                  content: catalogueOptions('category:', (data) => data.categories, true),
+                },
+                {
+                  id: 'accounts',
+                  label: t('reports.annual.picker.accounts'),
+                  content: catalogueOptions('account:', (data) => data.accounts),
+                },
+                {
+                  id: 'groups',
+                  label: t('reports.annual.picker.groups'),
+                  content: catalogueOptions('group:', (data) => data.groups),
+                },
+              ]}
+            />
+            <label className={styles.goalMarks}>
+              <input
+                checked={goalMarks}
+                onChange={(event) => setGoalMarks(event.target.checked)}
+                type="checkbox"
+              />
+              <span>{t('reports.annual.picker.goalMarks')}</span>
+            </label>
+          </div>
+          <SelectedColumns
+            columnOf={columnOf}
+            onMove={move}
+            onRemove={toggle}
+            selected={selected}
           />
-          <span>{t('reports.annual.picker.goalMarks')}</span>
-        </label>
-        <SelectedColumns columnOf={columnOf} onMove={move} onRemove={toggle} selected={selected} />
+        </div>
         <ModalActions>
           <button className="secondary-action" onClick={close} type="button">
             {t('actions.cancel')}

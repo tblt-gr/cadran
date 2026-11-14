@@ -328,7 +328,9 @@ describe('MultiYearReportPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /vue détaillée/i }));
 
     const table = await screen.findByRole('table', { name: /rapport détaillé 2024-2026/i });
-    const rows = within(table.querySelector('tbody')!).getAllByRole('row');
+    const rows = within(table.querySelector('tbody')!)
+      .getAllByRole('row')
+      .filter((row) => row.querySelector('th[scope="row"]') !== null);
     expect(rows).toHaveLength(36);
     expect(rows[0]?.textContent).toMatch(/janvier 2024/i);
     expect(
@@ -337,6 +339,18 @@ describe('MultiYearReportPage', () => {
         .getAttribute('href'),
     ).toBe('/budget/2024/08');
     await within(rows[7]!).findByRole('button', { name: /^Objectif :/ });
+    // A year folds into its own row: its months leave the table, the other years stay.
+    expect(within(table).getByRole('button', { name: '2024' }).getAttribute('aria-expanded')).toBe(
+      'true',
+    );
+    fireEvent.click(within(table).getByRole('button', { name: '2024' }));
+    expect(within(table).getByRole('button', { name: '2024' }).getAttribute('aria-expanded')).toBe(
+      'false',
+    );
+    expect(within(table).queryByText(/janvier 2024/i)).toBeNull();
+    expect(within(table).getByText(/janvier 2025/i)).toBeTruthy();
+    fireEvent.click(within(table).getByRole('button', { name: '2024' }));
+    expect(within(table).getByText(/janvier 2024/i)).toBeTruthy();
     const cards = screen.getByRole('list', { name: /mois de 2024 à 2026/i });
     expect(
       within(cards)

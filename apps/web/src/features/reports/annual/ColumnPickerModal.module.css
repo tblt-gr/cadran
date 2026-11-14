@@ -34,3 +34,23 @@
   align-items: center;
   gap: var(--spacing-2);
 }
+
+/* On a wide screen the chosen columns sit beside the list they are picked from: no scrolling down to reorder. */
+.layout {
+  display: grid;
+  gap: var(--spacing-4);
+}
+.choices {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: var(--spacing-4);
+}
+@media (min-width: 48rem) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .layout .options {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
