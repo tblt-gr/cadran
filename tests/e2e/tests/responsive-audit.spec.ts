@@ -367,6 +367,7 @@ const MODALS: ModalCase[] = [
       await page.goto('/parameters/product-models');
       await settled(page);
       await page.getByRole('button', { name: 'Nouveau modèle', exact: true }).click();
+      await page.getByRole('button', { name: 'Ou créer le modèle soi-même' }).click();
       return 'Créer le modèle';
     },
   },

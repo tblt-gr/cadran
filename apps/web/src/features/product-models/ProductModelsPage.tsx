@@ -188,7 +188,7 @@ export function ProductModelsPage() {
     <div className={styles.page}>
       <SettingsTabs path="/parameters/product-models" />
       <HeaderActions>
-        <button className="primary-action" onClick={() => openEditor('create')} type="button">
+        <button className="primary-action" onClick={() => openEditor('from-product')} type="button">
           <Icon name="add" size={18} />
           {t('productModels.add')}
         </button>
@@ -198,15 +198,6 @@ export function ProductModelsPage() {
             setIncludeArchived(checked);
           }}
         />
-        <button
-          aria-label={t('productModels.addFromProduct')}
-          className="icon-button"
-          onClick={() => openEditor('from-product')}
-          title={t('productModels.addFromProduct')}
-          type="button"
-        >
-          <Icon name="catalog" />
-        </button>
       </HeaderActions>
 
       {saved ? (
@@ -215,33 +206,49 @@ export function ProductModelsPage() {
         </Toast>
       ) : null}
 
-      {editor === 'create' ? (
+      {editor !== null ? (
         <Modal
           close={() => setEditor(null)}
           intent="create"
-          title={t('productModels.form.createTitle')}
+          title={t(
+            editor === 'create'
+              ? 'productModels.form.createTitle'
+              : 'productModels.fromProduct.title',
+          )}
         >
-          <ModelForm
-            onCancel={() => setEditor(null)}
-            onSubmit={(body) => create.mutate(body)}
-            pending={create.isPending}
-            submitError={productModelErrorKind(create.error, create.isError)}
-          />
-        </Modal>
-      ) : null}
-
-      {editor === 'from-product' ? (
-        <Modal
-          close={() => setEditor(null)}
-          intent="create"
-          title={t('productModels.fromProduct.title')}
-        >
-          <FromProductForm
-            onCancel={() => setEditor(null)}
-            onSubmit={(body) => fromProduct.mutate(body)}
-            pending={fromProduct.isPending}
-            submitError={productModelErrorKind(fromProduct.error, fromProduct.isError)}
-          />
+          {editor === 'create' ? (
+            <>
+              <ModelForm
+                onCancel={() => setEditor(null)}
+                onSubmit={(body) => create.mutate(body)}
+                pending={create.isPending}
+                submitError={productModelErrorKind(create.error, create.isError)}
+              />
+              <p>
+                <button
+                  className="text-action"
+                  onClick={() => openEditor('from-product')}
+                  type="button"
+                >
+                  {t('productModels.fromProduct.switchBack')}
+                </button>
+              </p>
+            </>
+          ) : (
+            <>
+              <FromProductForm
+                onCancel={() => setEditor(null)}
+                onSubmit={(body) => fromProduct.mutate(body)}
+                pending={fromProduct.isPending}
+                submitError={productModelErrorKind(fromProduct.error, fromProduct.isError)}
+              />
+              <p>
+                <button className="text-action" onClick={() => openEditor('create')} type="button">
+                  {t('productModels.fromProduct.switchToManual')}
+                </button>
+              </p>
+            </>
+          )}
         </Modal>
       ) : null}
 
@@ -311,7 +318,7 @@ export function ProductModelsPage() {
       ) : (models.isError && !models.data) || items.length === 0 ? (
         <ProductModelsState
           kind={unauthorized ? 'unauthorized' : models.isError ? 'error' : 'empty'}
-          onCreate={() => openEditor('create')}
+          onCreate={() => openEditor('from-product')}
           onRetry={() => void models.refetch()}
         />
       ) : (

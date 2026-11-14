@@ -1808,7 +1808,6 @@
   },
   "productModels": {
     "add": "Nouveau modèle",
-    "addFromProduct": "Partir d’un produit",
     "filters": {
       "open": "Filtres des modèles",
       "title": "Filtres"
@@ -1901,6 +1900,8 @@
       }
     },
     "fromProduct": {
+      "switchToManual": "Ou créer le modèle soi-même",
+      "switchBack": "Revenir au choix d’un produit du catalogue",
       "title": "Partir d’un produit du catalogue",
       "loading": "Chargement du catalogue produits…",
       "error": "Le catalogue produits n’a pas pu être chargé. Réessayez.",
