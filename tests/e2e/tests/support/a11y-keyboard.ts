@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { movementRows, settled, uniqueLabel } from './page';
+import { movementRows, settled, uniqueLabel, accountOptionText } from './page';
 
 /** Reach the real sequential focus target, with a bound that also detects an unreachable control. */
 async function tabTo(page: Page, target: Locator, reverse = false) {
@@ -72,7 +72,7 @@ export function keyboardJourneys() {
         await page.keyboard.press('c');
         await page.keyboard.press('Enter');
         await expect(dialog.getByLabel('Compte source').locator('option:checked')).toHaveText(
-          'Compte courant',
+          accountOptionText('Compte courant'),
         );
         await tabTo(page, dialog.getByLabel('Compte de destination'));
         await page.keyboard.press('Home');
@@ -80,7 +80,7 @@ export function keyboardJourneys() {
         await page.keyboard.press('Enter');
         await expect(
           dialog.getByLabel('Compte de destination').locator('option:checked'),
-        ).toHaveText('Livret A');
+        ).toHaveText(accountOptionText('Livret A'));
       } else {
         const account = dialog.getByLabel('Compte', { exact: true });
         await tabTo(page, account, true);

@@ -1,0 +1,4 @@
+.after {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}

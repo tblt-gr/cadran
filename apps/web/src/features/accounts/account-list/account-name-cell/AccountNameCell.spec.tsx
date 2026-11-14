@@ -18,41 +18,39 @@ function structure(element: Element): unknown {
   };
 }
 
-it.each([360, 1280])(
-  'keeps the primary row header and status structure while loading at %s px',
-  (width) => {
-    const previousWidth = window.innerWidth;
-    window.innerWidth = width;
-    const account = buildAccount('00000000-0000-7000-8000-0000000000d1', 'Compte courant', {
-      isPrimary: true,
-    });
-    const header = (value: typeof account | null) => (
-      <table>
-        <tbody>
-          <tr>
-            <th data-label="Libellé" scope="row">
-              <AccountNameCell account={value} identity={value ? 'Banque X · Épargne' : null} />
-            </th>
-          </tr>
-        </tbody>
-      </table>
-    );
-    const { container, rerender } = render(header(null));
-    const skeleton = structure(container.firstElementChild!);
+it.each([360, 1280])('keeps the row header structure while loading at %s px', (width) => {
+  const previousWidth = window.innerWidth;
+  window.innerWidth = width;
+  const account = buildAccount('00000000-0000-7000-8000-0000000000d1', 'Compte courant', {
+    isPrimary: true,
+  });
+  const header = (value: typeof account | null) => (
+    <table>
+      <tbody>
+        <tr>
+          <th data-label="Libellé" scope="row">
+            <AccountNameCell account={value} identity={value ? 'Banque X · Épargne' : null} />
+          </th>
+        </tr>
+      </tbody>
+    </table>
+  );
+  const { container, rerender } = render(header(null));
+  const skeleton = structure(container.firstElementChild!);
 
-    rerender(header(account));
+  rerender(header(account));
 
-    expect(structure(container.firstElementChild!)).toEqual(skeleton);
-    expect(screen.getByRole('link', { name: account.label }).getAttribute('href')).toBe(
-      `/accounts/${account.id}`,
-    );
-    expect(screen.getByText('Principal')).toBeTruthy();
-    rerender(header({ ...account, isPrimary: false }));
-    expect(structure(container.firstElementChild!)).toEqual(skeleton);
-    expect(screen.queryByText('Principal')).toBeNull();
-    window.innerWidth = previousWidth;
-  },
-);
+  expect(structure(container.firstElementChild!)).toEqual(skeleton);
+  expect(screen.getByRole('link', { name: account.label }).getAttribute('href')).toBe(
+    `/accounts/${account.id}`,
+  );
+  // No badge: the primary state is only read by screen readers.
+  expect(screen.getByText('Principal').className).toBe('sr-only');
+  rerender(header({ ...account, isPrimary: false }));
+  expect(structure(container.firstElementChild!)).toEqual(skeleton);
+  expect(screen.queryByText('Principal')).toBeNull();
+  window.innerWidth = previousWidth;
+});
 
 it('opens an account valued by its portfolio straight on the portfolio page', () => {
   const account = buildAccount('00000000-0000-7000-8000-0000000000d2', 'PEA', {

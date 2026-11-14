@@ -5,6 +5,8 @@ import { AccountsPageSkeleton } from '@/features/accounts/AccountsPageSkeleton';
 import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { AccountsState } from '@/features/accounts/accounts-state/AccountsState';
 import { NetWorthCompositionCard } from '@/features/accounts/net-worth-composition/NetWorthCompositionCard';
+import type { AccountsView } from '@/features/accounts/accounts-view/accountsView';
+import { AllAccountsTable } from './AllAccountsTable';
 import { AccountGroupTable } from './account-group-table/AccountGroupTable';
 import { useAccountOverview } from './useAccountOverview';
 import styles from './AccountOverview.module.css';
@@ -13,6 +15,7 @@ interface AccountOverviewProps {
   grouping: GroupingMode;
   includeArchived: boolean;
   includeClosed: boolean;
+  view: AccountsView;
   onArchive: (account: Account) => void;
   onCreate: () => void;
   onEdit: (account: Account) => void;
@@ -25,7 +28,7 @@ interface AccountOverviewProps {
 
 /**
  * The single financial overview: one ordered table per primary group, then the
- * ungrouped section. Totals and shares come from the server at one valuation
+ * ungrouped section, or every account in one table. Totals and shares come from the server at one valuation
  * date; nothing here sums an amount.
  */
 export function AccountOverview({
@@ -35,6 +38,7 @@ export function AccountOverview({
   onCreate,
   onResetFilters,
   reordering,
+  view,
   ...rowActions
 }: AccountOverviewProps) {
   const { t } = useTranslation();
@@ -78,19 +82,30 @@ export function AccountOverview({
 
   return (
     <div className={styles.overview}>
-      {shown.map((group) => (
-        <AccountGroupTable
+      {view === 'all' ? (
+        <AllAccountsTable
           asOf={asOf}
-          group={group}
+          groups={shown}
           grouping={grouping}
           includeArchived={includeArchived}
           includeClosed={includeClosed}
-          key={group.groupId ?? 'ungrouped'}
-          reordering={reordering}
-          sole={shown.length === 1}
           {...rowActions}
         />
-      ))}
+      ) : (
+        shown.map((group) => (
+          <AccountGroupTable
+            asOf={asOf}
+            group={group}
+            grouping={grouping}
+            includeArchived={includeArchived}
+            includeClosed={includeClosed}
+            key={group.groupId ?? 'ungrouped'}
+            reordering={reordering}
+            sole={shown.length === 1}
+            {...rowActions}
+          />
+        ))
+      )}
       <NetWorthCompositionCard asOf={asOf} />
     </div>
   );

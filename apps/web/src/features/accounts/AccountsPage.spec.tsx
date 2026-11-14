@@ -1,6 +1,6 @@
 import type { Account, Product, ProductModel } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { AccountsPage } from './AccountsPage';
@@ -429,6 +429,33 @@ describe('AccountsPage', () => {
         .getByRole('button', { name: 'Détailler par sous-groupe' })
         .getAttribute('aria-pressed'),
     ).toBe('true');
+  });
+
+  it('switches to every account in one table, with no group heading and no sub-group button', async () => {
+    window.localStorage.clear();
+    api.listAccounts.mockImplementation(() =>
+      success({ items: [account], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderPage();
+    await screen.findByText(account.label);
+    // Grouped by default: a group heading with its total, and the sub-group button.
+    expect(screen.getByRole('button', { name: 'Détailler par sous-groupe' })).toBeTruthy();
+    expect(
+      screen.getByRole('heading', {
+        level: 2,
+        name: /Répartition par compte|Épargne|Sans groupe|Comptes/,
+      }),
+    ).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tous les comptes' }));
+    expect(await screen.findByRole('table', { name: 'Tous les comptes' })).toBeTruthy();
+    expect(await screen.findByText(account.label)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Détailler par sous-groupe' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Réorganiser/ })).toBeNull();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Par groupe' }));
+    expect(await screen.findByRole('button', { name: 'Détailler par sous-groupe' })).toBeTruthy();
+    window.localStorage.clear();
   });
 
   it('replaces its one named cold-load skeleton and keeps accounts during a refetch', async () => {
@@ -1474,33 +1501,6 @@ describe('AccountsPage', () => {
     await screen.findByText(account.label);
     expect(api.listPortfolios).not.toHaveBeenCalled();
     expect(screen.queryByText('Performance')).toBeNull();
-  });
-
-  it('keeps the page usable and offers one retry when the portfolios cannot be read', async () => {
-    const investment = {
-      ...account,
-      id: 'p-1',
-      label: 'Mon PEA',
-      kind: 'PORTFOLIO',
-      valuationMode: 'PORTFOLIO',
-    };
-    api.listAccounts.mockImplementation(() =>
-      success({ items: [account, investment], page: 1, pageSize: 50, total: 2 }),
-    );
-    api.listPortfolios.mockImplementation(() => problem(500, '/problems/unavailable'));
-    renderPage();
-
-    expect(await screen.findByText('Performance indisponible')).toBeTruthy();
-    expect(screen.getByText('Mon PEA')).toBeTruthy();
-    expect(api.listPortfolios).toHaveBeenCalledTimes(1);
-    const notice = screen.getByRole('alert');
-    api.listPortfolios.mockImplementation(() =>
-      success({ items: [], truncated: false, total: {} }),
-    );
-    fireEvent.click(within(notice).getByRole('button', { name: 'Réessayer' }));
-
-    await waitFor(() => expect(api.listPortfolios).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
 
   it('shows a carried-forward balance as stale and records a manual replacement', async () => {

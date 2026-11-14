@@ -84,6 +84,8 @@
   --report-column-label-width: 11rem;
   --modal-width: 44rem;
   --modal-width-wide: 64rem;
+  /* The modal body padding, negated: a sticky footer bleeds over it to the edges of the dialog. */
+  --modal-bleed: calc(var(--spacing-6) * -1);
   --drawer-width: 32rem;
   --navigation-link-height: 2rem;
   --mobile-navigation-height: 3.25rem;

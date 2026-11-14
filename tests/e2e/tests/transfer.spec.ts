@@ -1,6 +1,12 @@
 import { expect, test } from '@playwright/test';
 import { auditAccessibility } from './support/a11y';
-import { movementRows, settled, uniqueLabel } from './support/page';
+import {
+  movementRows,
+  settled,
+  uniqueLabel,
+  selectAccount,
+  accountOptionText,
+} from './support/page';
 
 test.describe('internal transfer', () => {
   test('records both legs of a transfer between two accounts', async ({ page }) => {
@@ -11,8 +17,8 @@ test.describe('internal transfer', () => {
 
     await page.getByRole('button', { name: 'Nouveau virement' }).click();
     const editor = page.getByRole('dialog', { name: 'Nouveau virement' });
-    await editor.getByLabel('Compte source').selectOption({ label: 'Compte courant' });
-    await editor.getByLabel('Compte de destination').selectOption({ label: 'Livret A' });
+    await selectAccount(editor.getByLabel('Compte source'), 'Compte courant');
+    await selectAccount(editor.getByLabel('Compte de destination'), 'Livret A');
     await editor.getByLabel('Montant (EUR)').fill('25.00');
     await editor.getByLabel('Libellé').fill(label);
     await editor.getByRole('button', { name: 'Créer le virement' }).click();
@@ -32,8 +38,8 @@ test.describe('internal transfer', () => {
 
     await page.getByRole('button', { name: 'Nouveau virement' }).click();
     const editor = page.getByRole('dialog', { name: 'Nouveau virement' });
-    await editor.getByLabel('Compte source').selectOption({ label: 'Compte courant' });
-    await editor.getByLabel('Compte de destination').selectOption({ label: 'Compte courant' });
+    await selectAccount(editor.getByLabel('Compte source'), 'Compte courant');
+    await selectAccount(editor.getByLabel('Compte de destination'), 'Compte courant');
     await editor.getByLabel('Montant (EUR)').fill('5.00');
     await editor.getByRole('button', { name: 'Créer le virement' }).click();
 
@@ -65,12 +71,12 @@ test('a transfer from an account locks its source and focuses the destination', 
   const source = editor.getByLabel('Compte source');
   const destination = editor.getByLabel('Compte de destination');
   await expect(source).toBeDisabled();
-  await expect(source.locator('option:checked')).toHaveText('Livret A');
+  await expect(source.locator('option:checked')).toHaveText(accountOptionText('Livret A'));
   await expect(destination).toBeEnabled();
   await expect(destination).toBeFocused();
   // Seeded accounts have no primary; wait for the loaded choices before checking the default.
   await expect(
-    destination.getByRole('option', { name: 'Compte courant', exact: true }),
+    destination.getByRole('option', { name: accountOptionText('Compte courant') }),
   ).toHaveCount(1);
   await expect(destination).toHaveValue('');
   await expect(destination.getByRole('option', { name: 'Livret A', exact: true })).toHaveCount(0);
@@ -78,7 +84,7 @@ test('a transfer from an account locks its source and focuses the destination', 
   await destination.selectOption('');
   await editor.getByRole('button', { name: 'Créer le virement' }).click();
   await expect(destination).toHaveAttribute('aria-invalid', 'true');
-  await destination.selectOption({ label: 'Compte courant' });
+  await selectAccount(destination, 'Compte courant');
   await editor.getByLabel('Montant (EUR)').fill('5.00');
   await editor.getByLabel('Libellé').fill(label);
   await editor.getByRole('button', { name: 'Créer le virement' }).click();

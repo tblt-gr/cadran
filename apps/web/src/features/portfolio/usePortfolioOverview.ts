@@ -1,5 +1,4 @@
 import {
-  listPortfolios,
   readPortfolioSummary,
   readPortfolioAllocation,
   type PortfolioOverviewAllocation,
@@ -8,22 +7,6 @@ import { useQuery } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { operationRequestError } from './portfolio-account/operations/operationError';
 export type AllocationBy = PortfolioOverviewAllocation['by'];
-/**
- * One read of every portfolio card. The key stays under `portfolios`, so each portfolio write
- * that invalidates that prefix refreshes it. Disabled observers still follow its state.
- */
-export function usePortfolios(enabled = true) {
-  return useQuery({
-    queryKey: ['portfolios', 'overview'],
-    enabled,
-    retry: false,
-    queryFn: async ({ signal }) => {
-      const result = await listPortfolios({ ...authApiOptions(), signal });
-      if (!result.response?.ok || !result.data) throw operationRequestError(result);
-      return result.data;
-    },
-  });
-}
 export function usePortfolioSummary(accountId: string, asOf: string, enabled = true) {
   return useQuery({
     queryKey: ['portfolio-summary', accountId, asOf],

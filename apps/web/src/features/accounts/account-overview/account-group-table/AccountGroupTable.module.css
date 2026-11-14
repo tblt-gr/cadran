@@ -2,7 +2,14 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--spacing-3);
+  gap: var(--spacing-none);
+  padding: var(--spacing-none);
+  overflow: hidden;
+}
+
+.group > .alert,
+.group > button {
+  margin: var(--spacing-3) var(--spacing-4);
 }
 
 .alert {

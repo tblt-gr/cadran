@@ -15,31 +15,14 @@
   overflow-wrap: anywhere;
 }
 
+.inactive {
+  color: var(--text-muted);
+}
+
 .nameSkeleton {
   width: calc(var(--spacing-12) * 2);
   max-width: 100%;
   height: var(--font-size-body);
-}
-
-.statusSkeleton {
-  width: var(--spacing-12);
-  height: var(--font-size-xs);
-}
-
-.subGroup {
-  display: flex;
-  flex-basis: 100%;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-normal);
-}
-
-.subGroup .parentLabel {
-  margin: var(--spacing-none) var(--spacing-none) var(--spacing-none) var(--spacing-1);
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: inherit;
 }
 
 .labelCell .identity {

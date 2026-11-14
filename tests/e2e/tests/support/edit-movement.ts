@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { movementRows, settled, uniqueLabel } from './page';
+import { movementRows, settled, uniqueLabel, selectAccount } from './page';
 
 /** Own fixtures keep editing audits independent of the shared ledger's current row order. */
 export async function openMovementEditModal(
@@ -19,8 +19,8 @@ export async function openMovementEditModal(
   await settled(page);
   const creation = page.getByRole('dialog');
   if (isTransfer) {
-    await creation.getByLabel('Compte source').selectOption({ label: 'Compte courant' });
-    await creation.getByLabel('Compte de destination').selectOption({ label: 'Livret A' });
+    await selectAccount(creation.getByLabel('Compte source'), 'Compte courant');
+    await selectAccount(creation.getByLabel('Compte de destination'), 'Livret A');
     await creation.getByLabel('Montant (EUR)').fill('1.00');
   } else {
     await creation.getByLabel('Compte', { exact: true }).selectOption({ label: 'Compte courant' });

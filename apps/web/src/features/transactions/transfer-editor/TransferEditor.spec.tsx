@@ -205,3 +205,49 @@ describe('TransferEditor with an account source lock', () => {
     expect(Array.from(destination.options, (option) => option.value)).toContain(source.id);
   });
 });
+
+describe('TransferEditor balances', () => {
+  const balance = (value: string) =>
+    ({ amount: { value, assetCode: 'EUR' }, display: null }) as unknown as Account['valuation'];
+  const withBalances = [
+    { ...source, valuation: balance('1200.00') } as Account,
+    { ...portfolio, kind: 'CURRENT', valuation: balance('300.00') } as Account,
+  ];
+
+  it('names each account with its balance in both selects', () => {
+    setup(withBalances[1]!, withBalances);
+    const sourceOptions = screen.getByLabelText('Compte source').querySelectorAll('option');
+    expect(
+      Array.from(sourceOptions).map((option) => option.textContent?.replace(/\s/g, ' ')),
+    ).toContain('Banque · 1 200,00 €');
+    const targetOptions = screen.getByLabelText('Compte de destination').querySelectorAll('option');
+    expect(
+      Array.from(targetOptions).map((option) => option.textContent?.replace(/\s/g, ' ')),
+    ).toContain('Titres · 300,00 €');
+  });
+
+  it('shows the balance after the operation on both accounts once the amount is valid', () => {
+    setup(withBalances[1]!, withBalances);
+    expect(screen.queryByText(/Solde après opération/)).toBeNull();
+    fireEvent.change(screen.getByLabelText('Compte source'), { target: { value: source.id } });
+    fireEvent.change(screen.getByLabelText('Montant (EUR)'), { target: { value: '200.50' } });
+    const texts = screen
+      .getAllByText(/Solde après opération/)
+      .map((node) => node.textContent?.replace(/\s/g, ' '));
+    expect(texts).toEqual(['Solde après opération : 999,50 €', 'Solde après opération : 500,50 €']);
+    fireEvent.change(screen.getByLabelText('Montant (EUR)'), { target: { value: 'abc' } });
+    expect(screen.queryByText(/Solde après opération/)).toBeNull();
+  });
+
+  it('names an account with no calculable balance by its label alone', () => {
+    setup(withBalances[1]!, [
+      {
+        ...withBalances[0]!,
+        valuation: { amount: null, display: null } as unknown as Account['valuation'],
+      } as Account,
+      withBalances[1]!,
+    ]);
+    const options = Array.from(screen.getByLabelText('Compte source').querySelectorAll('option'));
+    expect(options.map((option) => option.textContent)).toContain('Banque');
+  });
+});

@@ -5,7 +5,6 @@ import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
-import { useAccountGroupIdentities } from '@/features/accounts/useAccountGroupIdentities';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
 import {
@@ -15,13 +14,8 @@ import {
 } from '@/features/accounts/account-actions-menu/accountMenuItems';
 import { navigateFromPage } from '@/hooks/use-client-navigation';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
-import { usePortfolios } from '@/features/portfolio/usePortfolioOverview';
 import { depositCeilingOf } from '@/lib/depositCeiling';
 import { AccountNameCell } from '@/features/accounts/account-list/account-name-cell/AccountNameCell';
-import {
-  AccountPerformanceCell,
-  type PortfolioJoin,
-} from './account-performance-cell/AccountPerformanceCell';
 import styles from './AccountList.module.css';
 
 interface AccountListProps {
@@ -33,6 +27,8 @@ interface AccountListProps {
   hasMore?: boolean;
   label: string;
   moveDisabled?: boolean;
+  /** Drawn inside a card that already frames it: no plate of its own. */
+  bare?: boolean;
   /** Shows the move controls; they stay out of the way until the owner asks to reorder. */
   reordering?: boolean;
   onArchive: (account: Account) => void;
@@ -50,6 +46,7 @@ export function AccountList({
   accounts,
   groupAssetCode = null,
   hasMore = false,
+  bare = false,
   label,
   moveDisabled = false,
   reordering = false,
@@ -64,11 +61,6 @@ export function AccountList({
   const asOf = accounts?.find((account) => account.valuation.requestedOn)?.valuation.requestedOn;
   const products = useProductOptions(asOf ?? '');
   const models = useTemplateOptions();
-  const nestsSubGroups = accounts?.some((account) => account.primaryGroupParentLabel !== null);
-  const groupIdentities = useAccountGroupIdentities(nestsSubGroups === true);
-  const showsPerformance = accounts?.some(valuedByPortfolio) === true;
-  // One shared read per page: observers of the same key join a single request.
-  const portfolios = usePortfolios(showsPerformance);
   const pendingFocus = useRef<{ id: string; direction: 'up' | 'down' } | null>(null);
   const order = accounts?.map((account) => account.id).join('|');
 
@@ -97,17 +89,6 @@ export function AccountList({
     );
   }
 
-  function portfolioFor(account: AccountOverviewRow): PortfolioJoin {
-    if (!showsPerformance) return { status: 'none' };
-    if (portfolios.isError) return { status: 'error' };
-    if (portfolios.data === undefined) return { status: 'pending' };
-    return {
-      status: 'ready',
-      item: portfolios.data.items.find((item) => item.accountId === account.id),
-      truncated: portfolios.data.truncated,
-    };
-  }
-
   function move(
     account: AccountOverviewRow,
     direction: 'up' | 'down',
@@ -118,20 +99,18 @@ export function AccountList({
   }
 
   return (
-    <div className={`card ${styles.panel}`}>
+    <div className={bare ? `${styles.panel} ${styles.bare}` : `card ${styles.panel}`}>
       <div className={styles.tableScroll}>
         <table className={reordering ? styles.reordering : undefined}>
           <caption className="sr-only">{label}</caption>
           <colgroup>
             <col />
-            {showsPerformance ? <col className={styles.performanceColumn} /> : null}
             <col className={styles.balanceColumn} />
             <col className={styles.actionsColumn} />
           </colgroup>
-          <thead>
+          <thead className={bare ? styles.hiddenHead : undefined}>
             <tr>
               <th scope="col">{t('accounts.fields.label')}</th>
-              {showsPerformance ? <th scope="col">{t('accounts.performance.column')}</th> : null}
               <th scope="col">{t('accounts.fields.balance')}</th>
               <th scope="col">
                 <span className="sr-only">{t('accounts.list.actions')}</span>
@@ -184,21 +163,9 @@ export function AccountList({
                               ? t('accounts.overview.assetWarning', { asset: account.assetCode })
                               : null
                           }
-                          groupColor={
-                            groupIdentities.data?.get(account.primaryGroupId ?? '')
-                              ?.resolvedColor ?? null
-                          }
                           identity={identity}
                         />
                       </th>
-                      {showsPerformance ? (
-                        <td data-label={t('accounts.performance.column')}>
-                          <AccountPerformanceCell
-                            account={account}
-                            portfolio={portfolioFor(account)}
-                          />
-                        </td>
-                      ) : null}
                       <td data-label={t('accounts.fields.balance')}>
                         <AccountValuationCell
                           ceiling={
