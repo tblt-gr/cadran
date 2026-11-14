@@ -19,7 +19,7 @@ import { todayInBrowser } from '@/lib/businessDay';
 import styles from './FromProductForm.module.css';
 
 interface FromProductFormProps {
-  /** A way to start the model differently, shown after the fields and before the buttons. */
+  /** A way to start the model differently: a secondary button at the left of the footer. */
   alternative?: ReactNode;
   pending: boolean;
   submitError: ProductModelErrorKind | null;
@@ -183,8 +183,8 @@ export function FromProductForm({
           </FieldRow>
         </FormGrid>
       </fieldset>
-      {alternative ? <div className={styles.alternative}>{alternative}</div> : null}
       <ModalActions>
+        {alternative ? <span className={styles.alternative}>{alternative}</span> : null}
         <button
           className="primary-action"
           disabled={pending || products.isPending || products.isError}

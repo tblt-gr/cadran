@@ -220,7 +220,7 @@ export function ProductModelsPage() {
             <ModelForm
               alternative={
                 <button
-                  className="text-action"
+                  className="secondary-action"
                   onClick={() => openEditor('from-product')}
                   type="button"
                 >
@@ -235,7 +235,11 @@ export function ProductModelsPage() {
           ) : (
             <FromProductForm
               alternative={
-                <button className="text-action" onClick={() => openEditor('create')} type="button">
+                <button
+                  className="secondary-action"
+                  onClick={() => openEditor('create')}
+                  type="button"
+                >
                   {t('productModels.fromProduct.switchToManual')}
                 </button>
               }

@@ -33,7 +33,7 @@ import {
 import styles from './ModelForm.module.css';
 
 interface ModelFormProps {
-  /** A way to start the model differently, shown after the fields and before the buttons. */
+  /** A way to start the model differently: a secondary button at the left of the footer. */
   alternative?: ReactNode;
   pending: boolean;
   submitError: ProductModelErrorKind | null;
@@ -221,8 +221,8 @@ export function ModelForm({ alternative, pending, submitError, onSubmit }: Model
         valuationMode={values.valuationMode}
       />
 
-      {alternative ? <div className={styles.alternative}>{alternative}</div> : null}
       <ModalActions>
+        {alternative ? <span className={styles.alternative}>{alternative}</span> : null}
         <button className="primary-action" disabled={pending} type="submit">
           {t(pending ? 'productModels.form.saving' : 'productModels.form.save')}
         </button>
