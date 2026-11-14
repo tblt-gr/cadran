@@ -9,6 +9,13 @@ interface SignedAmountHintProps {
   id: string;
   /** The amount as typed, before the direction is applied. */
   typed: string;
+  /** Shows nothing until the amount is exact, for forms where a direction is always chosen. */
+  recordedOnly?: boolean;
+}
+
+/** Whether the hint shows the recorded figure; callers wire `aria-describedby` only then. */
+export function hasRecordedAmount(typed: string): boolean {
+  return isCanonicalDecimal(typed) && !isZeroDecimal(typed);
 }
 
 /**
@@ -17,12 +24,18 @@ interface SignedAmountHintProps {
  * named in words, so the outcome never relies on a colour or a minus alone.
  * Wire it to the field with `aria-describedby`.
  */
-export function SignedAmountHint({ assetCode, direction, id, typed }: SignedAmountHintProps) {
+export function SignedAmountHint({
+  assetCode,
+  direction,
+  id,
+  recordedOnly,
+  typed,
+}: SignedAmountHintProps) {
   const { i18n, t } = useTranslation();
-  const calculable = isCanonicalDecimal(typed) && !isZeroDecimal(typed);
+  const calculable = hasRecordedAmount(typed);
 
   if (!calculable) {
-    return (
+    return recordedOnly ? null : (
       <span className={styles.hint} id={id}>
         {t(`amountEntry.convention.${direction ?? 'UNKNOWN'}`)}
       </span>

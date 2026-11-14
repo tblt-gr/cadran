@@ -10,7 +10,11 @@ import { useCategoryDefaultAxes } from '@/features/categories/useCategoryDefault
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
-import { SignedAmountHint } from '@/components/ui/signed-amount-hint/SignedAmountHint';
+import {
+  hasRecordedAmount,
+  SignedAmountHint,
+} from '@/components/ui/signed-amount-hint/SignedAmountHint';
+import { addDecimals, formatAmount } from '@/lib/decimal';
 import { isUpcomingDay, workspaceToday } from '@/lib/workspaceTime';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
@@ -73,7 +77,7 @@ export function TransactionForm({
   submitErrorDetail,
   transaction,
 }: TransactionFormProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const errorId = useId();
   const workspaceTimeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), workspaceTimeZone);
@@ -87,6 +91,9 @@ export function TransactionForm({
           categoryId: defaults.category.id,
           categoryType: defaults.category.type,
           nature: defaults.nature,
+          // An income added from the budget is nearly always received by transfer.
+          paymentMethod:
+            defaults.nature === 'INCOME' ? ('TRANSFER' as const) : initial.paymentMethod,
         }
       : initial;
   });
@@ -130,6 +137,29 @@ export function TransactionForm({
     transaction?.amount.assetCode ??
     accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
     '';
+
+  // The exact balance the server reports for an account, when it can be calculated.
+  const accountOptionLabel = (account: Account) => {
+    const balance = account.valuation?.amount ?? null;
+
+    return balance === null
+      ? account.label
+      : `${account.label} · ${formatAmount(balance.value, balance.assetCode, i18n.language)}`;
+  };
+
+  // On creation only: an existing row is already counted in the reported balance.
+  const accountBalance = accounts.find((account) => account.id === resolved.accountId)?.valuation
+    ?.amount;
+  const balanceAfter =
+    !editing &&
+    !errors.amountValue &&
+    accountBalance &&
+    accountBalance.assetCode === amountAssetCode
+      ? {
+          value: addDecimals(accountBalance.value, signedAmount),
+          assetCode: accountBalance.assetCode,
+        }
+      : null;
 
   function set<K extends keyof TransactionFormValues>(field: K, value: TransactionFormValues[K]) {
     setValues((current) => ({ ...current, [field]: value }));
@@ -186,12 +216,19 @@ export function TransactionForm({
             ) : null}
             {accounts.map((account) => (
               <option key={account.id} value={account.id}>
-                {account.label}
+                {accountOptionLabel(account)}
               </option>
             ))}
           </select>
           {showErrors && errors.accountId ? (
             <small id={`${errorId}-accountId`}>{t('transactions.validation.account')}</small>
+          ) : null}
+          {balanceAfter ? (
+            <small className={styles.hint}>
+              {t('transactions.transfer.balanceAfter', {
+                amount: formatAmount(balanceAfter.value, balanceAfter.assetCode, i18n.language),
+              })}
+            </small>
           ) : null}
           {editing ? (
             <small className={styles.hint} id="transaction-account-hint">
@@ -226,11 +263,61 @@ export function TransactionForm({
           ) : null}
         </label>
 
+        {rawLabelLocked ? (
+          <>
+            <label>
+              <span>{t('transactions.fields.displayLabel')}</span>
+              <input
+                aria-describedby={
+                  showErrors && errors.userLabel ? `${errorId}-userLabel` : undefined
+                }
+                aria-invalid={showErrors && errors.userLabel ? true : undefined}
+                aria-label={t('transactions.fields.displayLabel')}
+                data-autofocus
+                onChange={(event) => set('userLabel', event.target.value)}
+                value={values.userLabel}
+              />
+              {showErrors && errors.userLabel ? (
+                <small id={`${errorId}-userLabel`}>{t('transactions.validation.userLabel')}</small>
+              ) : null}
+            </label>
+            {rawLabelLocked ? (
+              <label>
+                <span>{t('transactions.fields.rawLabel')}</span>
+                <input
+                  aria-describedby="transaction-raw-label-hint"
+                  aria-label={t('transactions.fields.rawLabel')}
+                  readOnly
+                  value={values.rawLabel}
+                />
+                <small className={styles.hint} id="transaction-raw-label-hint">
+                  {t('transactions.form.rawLabelLocked')}
+                </small>
+              </label>
+            ) : null}
+          </>
+        ) : (
+          <label>
+            <span>{t('transactions.fields.label')}</span>
+            <input
+              aria-describedby={showErrors && errors.rawLabel ? `${errorId}-rawLabel` : undefined}
+              aria-invalid={showErrors && errors.rawLabel ? true : undefined}
+              aria-label={t('transactions.fields.label')}
+              data-autofocus
+              onChange={(event) => set('rawLabel', event.target.value)}
+              value={values.rawLabel}
+            />
+            {showErrors && errors.rawLabel ? (
+              <small id={`${errorId}-rawLabel`}>{t('transactions.validation.rawLabel')}</small>
+            ) : null}
+          </label>
+        )}
+
         <label>
           <span>{t('transactions.fields.amount')}</span>
           <input
             aria-describedby={[
-              `${errorId}-amountHint`,
+              hasRecordedAmount(values.amountValue) ? `${errorId}-amountHint` : null,
               showErrors && errors.amountValue ? `${errorId}-amountValue` : null,
             ]
               .filter(Boolean)
@@ -238,7 +325,6 @@ export function TransactionForm({
             aria-invalid={showErrors && errors.amountValue ? true : undefined}
             aria-label={t('transactions.fields.amount')}
             autoComplete="off"
-            data-autofocus
             inputMode="decimal"
             onChange={(event) => set('amountValue', event.target.value)}
             spellCheck={false}
@@ -251,8 +337,47 @@ export function TransactionForm({
             assetCode={amountAssetCode}
             direction={direction}
             id={`${errorId}-amountHint`}
+            recordedOnly
             typed={values.amountValue}
           />
+        </label>
+
+        <label>
+          <span>{t('transactions.fields.nature')}</span>
+          <select
+            aria-describedby={showErrors && errors.nature ? `${errorId}-nature` : undefined}
+            aria-invalid={showErrors && errors.nature ? true : undefined}
+            onChange={(event) =>
+              set('nature', event.target.value as TransactionFormValues['nature'])
+            }
+            value={values.nature}
+          >
+            {NATURES.map((nature) => (
+              <option key={nature} value={nature}>
+                {t(`transactions.natures.${nature}`)}
+              </option>
+            ))}
+          </select>
+          {showErrors && errors.nature ? (
+            <small id={`${errorId}-nature`}>{t('transactions.validation.nature')}</small>
+          ) : null}
+        </label>
+
+        <label>
+          <span>{t('transactions.fields.paymentMethod')}</span>
+          <select
+            onChange={(event) =>
+              set('paymentMethod', event.target.value as TransactionFormValues['paymentMethod'])
+            }
+            value={values.paymentMethod}
+          >
+            <option value="">{t('transactions.form.noPaymentMethod')}</option>
+            {PAYMENT_METHODS.map((method) => (
+              <option key={method} value={method}>
+                {t(`transactions.paymentMethods.${method}`)}
+              </option>
+            ))}
+          </select>
         </label>
 
         {values.splitMode ? (
@@ -307,92 +432,6 @@ export function TransactionForm({
             />
           </div>
         ) : null}
-
-        <label>
-          <span>{t('transactions.fields.nature')}</span>
-          <select
-            aria-describedby={showErrors && errors.nature ? `${errorId}-nature` : undefined}
-            aria-invalid={showErrors && errors.nature ? true : undefined}
-            onChange={(event) =>
-              set('nature', event.target.value as TransactionFormValues['nature'])
-            }
-            value={values.nature}
-          >
-            {NATURES.map((nature) => (
-              <option key={nature} value={nature}>
-                {t(`transactions.natures.${nature}`)}
-              </option>
-            ))}
-          </select>
-          {showErrors && errors.nature ? (
-            <small id={`${errorId}-nature`}>{t('transactions.validation.nature')}</small>
-          ) : null}
-        </label>
-
-        {rawLabelLocked ? (
-          <>
-            <label>
-              <span>{t('transactions.fields.displayLabel')}</span>
-              <input
-                aria-describedby={
-                  showErrors && errors.userLabel ? `${errorId}-userLabel` : undefined
-                }
-                aria-invalid={showErrors && errors.userLabel ? true : undefined}
-                aria-label={t('transactions.fields.displayLabel')}
-                onChange={(event) => set('userLabel', event.target.value)}
-                value={values.userLabel}
-              />
-              {showErrors && errors.userLabel ? (
-                <small id={`${errorId}-userLabel`}>{t('transactions.validation.userLabel')}</small>
-              ) : null}
-            </label>
-            {rawLabelLocked ? (
-              <label>
-                <span>{t('transactions.fields.rawLabel')}</span>
-                <input
-                  aria-describedby="transaction-raw-label-hint"
-                  aria-label={t('transactions.fields.rawLabel')}
-                  readOnly
-                  value={values.rawLabel}
-                />
-                <small className={styles.hint} id="transaction-raw-label-hint">
-                  {t('transactions.form.rawLabelLocked')}
-                </small>
-              </label>
-            ) : null}
-          </>
-        ) : (
-          <label>
-            <span>{t('transactions.fields.label')}</span>
-            <input
-              aria-describedby={showErrors && errors.rawLabel ? `${errorId}-rawLabel` : undefined}
-              aria-invalid={showErrors && errors.rawLabel ? true : undefined}
-              aria-label={t('transactions.fields.label')}
-              onChange={(event) => set('rawLabel', event.target.value)}
-              value={values.rawLabel}
-            />
-            {showErrors && errors.rawLabel ? (
-              <small id={`${errorId}-rawLabel`}>{t('transactions.validation.rawLabel')}</small>
-            ) : null}
-          </label>
-        )}
-
-        <label>
-          <span>{t('transactions.fields.paymentMethod')}</span>
-          <select
-            onChange={(event) =>
-              set('paymentMethod', event.target.value as TransactionFormValues['paymentMethod'])
-            }
-            value={values.paymentMethod}
-          >
-            <option value="">{t('transactions.form.noPaymentMethod')}</option>
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {t(`transactions.paymentMethods.${method}`)}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <AdvancedTransactionFields
           errors={errors}

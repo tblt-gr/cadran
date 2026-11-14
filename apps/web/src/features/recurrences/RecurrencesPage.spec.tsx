@@ -307,7 +307,7 @@ describe('RecurrencesPage', () => {
     await chooseAction(/^Confirmer/);
     const amount = screen.getByLabelText('Montant attendu') as HTMLInputElement;
     expect(amount.value).toBe('14.99');
-    expect((screen.getByLabelText('Sens') as HTMLSelectElement).value).toBe('OUTFLOW');
+    expect((screen.getByLabelText('Nature') as HTMLSelectElement).value).toBe('OUTFLOW');
     expect(screen.getByText(/Sortie enregistrée/).textContent).toMatch(/-14,99/);
 
     fireEvent.change(amount, { target: { value: '-20.50' } });
@@ -339,7 +339,7 @@ describe('RecurrencesPage', () => {
       );
       renderPage();
       await chooseAction(/^Confirmer/);
-      fireEvent.change(screen.getByLabelText('Sens'), { target: { value: '' } });
+      fireEvent.change(screen.getByLabelText('Nature'), { target: { value: '' } });
       fireEvent.change(screen.getByLabelText('Montant attendu'), {
         target: { value: unknownAmount },
       });
@@ -357,7 +357,7 @@ describe('RecurrencesPage', () => {
     },
   );
 
-  it('keeps the typed sign when no direction is chosen and refuses zero', async () => {
+  it('refuses a zero amount', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() =>
       success({ items: [candidate], partial: false }),
     );
@@ -370,7 +370,7 @@ describe('RecurrencesPage', () => {
     renderPage();
 
     await chooseAction(/^Confirmer/);
-    fireEvent.change(screen.getByLabelText('Sens'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('Nature'), { target: { value: '' } });
     fireEvent.change(screen.getByLabelText('Montant attendu'), { target: { value: '0' } });
     fireEvent.change(screen.getByLabelText('Jour de période'), { target: { value: '4' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
@@ -519,7 +519,7 @@ describe('RecurrencesPage', () => {
     });
   });
 
-  it('sends autoCreate off with no descriptive data when nothing is touched', async () => {
+  it('sends autoCreate off and the default direct debit when nothing is touched', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() =>
       success({ items: [candidate], partial: false }),
     );
@@ -543,7 +543,7 @@ describe('RecurrencesPage', () => {
       autoCreate: false,
       categoryId: null,
       note: null,
-      paymentMethod: null,
+      paymentMethod: 'DIRECT_DEBIT',
     });
   });
 
@@ -610,7 +610,7 @@ describe('RecurrencesPage', () => {
     expect(((await screen.findByLabelText('Catégorie')) as HTMLInputElement).value).toBe(
       'Logement',
     );
-    fireEvent.change(screen.getByLabelText('Sens'), { target: { value: 'INFLOW' } });
+    fireEvent.change(screen.getByLabelText('Nature'), { target: { value: 'INFLOW' } });
     await waitFor(() =>
       expect((screen.getByLabelText('Catégorie') as HTMLInputElement).value).toBe(''),
     );

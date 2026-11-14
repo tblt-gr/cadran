@@ -55,13 +55,6 @@ export function TransferForm({
     : accounts;
   const destination = accounts.find((account) => account.id === values.targetAccountId);
   const source = accounts.find((account) => account.id === values.sourceAccountId);
-  // The server records the matching deposit or withdrawal on a securities portfolio and refreshes its valuation.
-  const followsPortfolio = [source, destination].some(
-    (account) =>
-      account?.kind === 'PORTFOLIO' &&
-      account.valuationMode === 'PORTFOLIO' &&
-      account.status === 'ACTIVE',
-  );
   const [showErrors, setShowErrors] = useState(false);
   const errors = validateTransferValues(values, accounts, today);
   const crossAsset = isCrossAssetTransfer(values, accounts);
@@ -121,9 +114,6 @@ export function TransferForm({
           kind={submitError}
         />
       ) : null}
-
-      <p>{t('transactions.transfer.notice')}</p>
-      {followsPortfolio ? <p>{t('transactions.transfer.portfolioNotice')}</p> : null}
 
       <FormGrid>
         <label>
@@ -185,6 +175,20 @@ export function TransferForm({
             <small id={`${errorId}-targetAccountId`}>
               {t('transactions.transfer.validation.targetAccount')}
             </small>
+          ) : null}
+        </label>
+
+        <label>
+          <span>{t('transactions.transfer.fields.label')}</span>
+          <input
+            disabled={pending}
+            aria-describedby={showErrors && errors.label ? `${errorId}-label` : undefined}
+            aria-invalid={showErrors && errors.label ? true : undefined}
+            onChange={(event) => set('label', event.target.value)}
+            value={values.label}
+          />
+          {showErrors && errors.label ? (
+            <small id={`${errorId}-label`}>{t('transactions.transfer.validation.label')}</small>
           ) : null}
         </label>
 

@@ -2600,7 +2600,6 @@
     "transfer": {
       "balanceAfter": "Solde après opération : {{amount}}",
       "title": "Nouveau virement",
-      "notice": "Un virement déplace de l’argent entre deux comptes : il ne compte ni comme dépense, ni comme revenu.",
       "fields": {
         "sourceAccount": "Compte source",
         "targetAccount": "Compte de destination",
@@ -2626,8 +2625,7 @@
         "fee": "Indiquez un montant de frais strictement positif."
       },
       "save": "Créer le virement",
-      "saving": "Enregistrement…",
-      "portfolioNotice": "Le versement ou le retrait correspondant est enregistré automatiquement sur le compte d’investissement, et sa valorisation suit lorsqu’elle peut être recalculée."
+      "saving": "Enregistrement…"
     },
     "workflow": {
       "inspect": "Consulter",
@@ -2786,16 +2784,15 @@
       "unarchived": "La récurrence a été restaurée."
     },
     "directions": {
-      "unset": "Selon le signe saisi",
-      "OUTFLOW": "Dépense (sortie)",
-      "INFLOW": "Revenu (entrée)"
+      "OUTFLOW": "Dépense",
+      "INFLOW": "Revenu"
     },
     "fields": {
       "label": "Libellé",
       "account": "Compte",
       "counterparty": "Tiers",
       "amount": "Montant attendu",
-      "direction": "Sens",
+      "direction": "Nature",
       "tolerance": "Tolérance",
       "interval": "Rythme",
       "day": "Jour de période",

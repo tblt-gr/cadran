@@ -253,8 +253,10 @@
   accent-color: var(--accent);
 }
 
-/* A choice and its label sit on the same centre line, whatever the label's own layout. */
+/* A choice and its label sit on the same centre line, whatever the label's own layout: a
+   checkbox label is always a flex row, so `align-items` applies even outside a form grid. */
 :where(label:has(> input[type='checkbox'], > input[type='radio'])) {
+  display: flex;
   align-items: center;
 }
 

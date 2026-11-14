@@ -116,7 +116,7 @@ export function initialTransactionValues(
     mcc: transaction?.mcc ?? '',
     nature,
     note: transaction?.note ?? '',
-    paymentMethod: transaction?.paymentMethod ?? '',
+    paymentMethod: transaction ? (transaction.paymentMethod ?? '') : 'CARD',
     rawLabel: transaction?.rawLabel ?? '',
     userLabel: initialUserLabel(transaction),
     splitMode: (transaction?.splits.length ?? 0) > 1,
