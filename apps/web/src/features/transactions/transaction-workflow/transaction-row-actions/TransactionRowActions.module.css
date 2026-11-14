@@ -5,7 +5,12 @@
   color: var(--text-primary);
   background: var(--color-transparent);
   text-align: left;
-  overflow-wrap: anywhere;
+  /* One line, cut with an ellipsis: a long label never runs into the category column. */
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   cursor: pointer;
 }
 
