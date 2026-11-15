@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup recurrences-materialize idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -68,6 +68,14 @@ recurrences-materialize: tools
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) up --detach --wait db
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug cadran:transactions:materialize-recurrences $(EMAIL)
+
+# Captures the missing or outdated snapshots of the closed months so the first
+# multi-year report read is fast (idempotent; run it after a historical import).
+# Pass EMAIL=... to target another owner than the provisioned one.
+snapshots-capture: tools
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug cadran:reporting:capture-snapshots $(EMAIL)
 
 # Removes the expired transaction idempotency keys and prints how many (weekly cron).
 idempotency-purge: tools

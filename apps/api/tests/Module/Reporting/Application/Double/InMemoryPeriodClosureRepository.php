@@ -34,7 +34,16 @@ final class InMemoryPeriodClosureRepository implements PeriodClosureRepository
 
     public function activeBetween(WorkspaceScope $workspace, CalendarMonth $from, ?CalendarMonth $to): array
     {
-        return [];
+        $months = [];
+        foreach ($this->closures as $closure) {
+            $key = $closure->month->key();
+            if ($closure->workspace->id === $workspace->id && $closure->isActive() && $key >= $from->key() && (null === $to || $key <= $to->key())) {
+                $months[$key] = $closure->month;
+            }
+        }
+        ksort($months);
+
+        return array_values($months);
     }
 
     public function findActive(WorkspaceScope $workspace, CalendarMonth $month): ?PeriodClosure
@@ -51,6 +60,13 @@ final class InMemoryPeriodClosureRepository implements PeriodClosureRepository
     public function listForYear(WorkspaceScope $workspace, int $year): array
     {
         return [];
+    }
+
+    public function reopenAll(): void
+    {
+        foreach ($this->closures as $index => $closure) {
+            $this->closures[$index] = $closure->reopen('Corrections', new \DateTimeImmutable('2026-09-02T10:00:00+00:00'));
+        }
     }
 
     public function add(PeriodClosure $closure): void
