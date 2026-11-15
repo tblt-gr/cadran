@@ -161,7 +161,8 @@ export function AccountGroupsPage() {
 
   const submitError = groupErrorKind(save.error, save.isError);
   const archiveError = groupErrorKind(archive.error, archive.isError);
-  const unauthorized = groups.error instanceof GroupRequestError && groups.error.status === 401;
+  const unauthorized =
+    groups.error instanceof GroupRequestError && groups.error.kind === 'unauthorized';
   const reorderLabel = t(reordering ? 'accountGroups.reorder.stop' : 'accountGroups.reorder.start');
   const items = groups.data ?? [];
   const pagePending = groups.isPending && groups.data === undefined;

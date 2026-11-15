@@ -103,11 +103,12 @@ export function AccountDetailPage({ accountId }: AccountDetailPageProps) {
   }
 
   const failure = account.error instanceof AccountRequestError ? account.error : null;
-  const accessDenied = failure !== null && [401, 403, 404].includes(failure.status);
+  const accessDenied =
+    failure !== null && (failure.kind === 'unauthorized' || failure.status === 404);
 
   if (!account.data || (account.isError && accessDenied)) {
     if (failure?.status === 404 || failure?.status === 403) return <PlaceholderPage />;
-    const key = failure?.status === 401 ? 'unauthorized' : 'error';
+    const key = failure?.kind === 'unauthorized' ? 'unauthorized' : 'error';
 
     return (
       <section className={`card ${styles.routeState}`} role="alert">

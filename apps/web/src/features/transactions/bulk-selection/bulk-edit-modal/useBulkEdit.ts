@@ -9,6 +9,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { useSubmissionKey } from '@/hooks/use-submission-key';
+import { classifyProblem } from '@/lib/apiProblem';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import type { BulkScope } from '@/features/transactions/bulk-selection/useBulkSelection';
 
@@ -35,15 +36,19 @@ export class BulkRequestError extends Error {
   }
 }
 
+const BULK_PROBLEM_KINDS: Record<string, BulkErrorKind> = {
+  '/problems/transactions.bulk-scope-too-large': 'scopeTooLarge',
+  '/problems/transactions.bulk-scope-changed': 'scopeChanged',
+  '/problems/period-closed': 'periodClosed',
+  '/problems/transactions.bulk-preview-stale': 'previewStale',
+  '/problems/transactions.bulk-preview-required': 'previewRequired',
+};
+
 function classify(status: number, type: string | undefined): BulkErrorKind {
-  if (type === '/problems/transactions.bulk-scope-too-large') return 'scopeTooLarge';
-  if (type === '/problems/transactions.bulk-scope-changed') return 'scopeChanged';
-  if (type === '/problems/period-closed') return 'periodClosed';
-  if (type === '/problems/transactions.bulk-preview-stale') return 'previewStale';
-  if (type === '/problems/transactions.bulk-preview-required') return 'previewRequired';
-  if (status === 401 || status === 403) return 'unauthorized';
-  if (status === 409) return 'conflict';
-  return status === 400 || status === 404 || status === 422 ? 'invalid' : 'network';
+  const kind = classifyProblem(status, type, BULK_PROBLEM_KINDS);
+  if (kind === 'stale') return 'conflict';
+
+  return kind === 'network' && status === 404 ? 'invalid' : kind;
 }
 
 interface UseBulkEditOptions {

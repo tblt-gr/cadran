@@ -1,6 +1,9 @@
 import type { Problem } from '@cadran/api-client';
 
-export type ProductModelErrorKind = 'archived' | 'conflict' | 'invalid' | 'network' | 'stale';
+import { classifyProblem } from '@/lib/apiProblem';
+
+export type ProductModelErrorKind =
+  'archived' | 'conflict' | 'invalid' | 'network' | 'stale' | 'unauthorized';
 
 /**
  * A refused product-model request, classified by its RFC 9457 problem type
@@ -15,24 +18,14 @@ export class ProductModelRequestError extends Error {
   constructor(status: number, problemType: string | undefined) {
     super(`Product model request failed with status ${status}.`);
     this.status = status;
-    this.kind = classify(status, problemType);
+    this.kind = classifyProblem(status, problemType, PROBLEM_KINDS);
   }
 }
 
-function classify(status: number, problemType: string | undefined): ProductModelErrorKind {
-  switch (problemType) {
-    case '/problems/stale-version':
-      return 'stale';
-    case '/problems/product-model-name-taken':
-      return 'conflict';
-    case '/problems/product-model-archived':
-      return 'archived';
-    default:
-      // A refused query and a refused body are both the caller's to correct,
-      // and neither is retried by repeating the same request.
-      return status === 409 ? 'conflict' : 400 === status || 422 === status ? 'invalid' : 'network';
-  }
-}
+const PROBLEM_KINDS: Record<string, ProductModelErrorKind> = {
+  '/problems/product-model-name-taken': 'conflict',
+  '/problems/product-model-archived': 'archived',
+};
 
 export function requestFailed(result: { data?: unknown; response?: Response }): boolean {
   return !result.response?.ok || !result.data;

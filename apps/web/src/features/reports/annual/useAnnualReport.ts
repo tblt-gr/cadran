@@ -9,6 +9,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
+import { classifyProblem, type CommonProblemKind } from '@/lib/apiProblem';
 
 /**
  * The current, still incomplete month always counts in the figures; a future month never does,
@@ -21,10 +22,12 @@ const ANNUAL_PREFERENCES_QUERY_KEY = ['annual-report-preferences'];
 
 export class AnnualRequestError extends Error {
   readonly status: number;
+  readonly kind: CommonProblemKind;
 
   constructor(status: number) {
     super(String(status));
     this.status = status;
+    this.kind = classifyProblem<never>(status, undefined, {});
   }
 }
 

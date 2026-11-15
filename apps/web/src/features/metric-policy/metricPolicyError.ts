@@ -1,5 +1,7 @@
 import type { MetricPolicyProblem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type MetricPolicyErrorKind =
   | 'activation_limit'
   | 'already_active'
@@ -26,11 +28,9 @@ export class MetricPolicyRequestError extends Error {
 
   constructor(status: number, problem: MetricPolicyProblem | undefined) {
     super(`Metric policy request failed with status ${status}.`);
-    const byCode = problem?.code === undefined ? undefined : CODE_KINDS[problem.code];
-    if (byCode !== undefined) this.kind = byCode;
-    else if (status === 401 || status === 403) this.kind = 'unauthorized';
-    else if (status === 422) this.kind = 'invalid';
-    else this.kind = 'network';
+    const kind = classifyProblem(status, problem?.code, CODE_KINDS);
+    // A concurrent write has no message of its own here: retry.
+    this.kind = kind === 'conflict' ? 'network' : kind;
   }
 }
 

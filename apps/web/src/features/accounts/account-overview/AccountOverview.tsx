@@ -50,7 +50,7 @@ export function AccountOverview({
 
   if (overview.isError) {
     const unauthorized =
-      overview.error instanceof AccountRequestError && overview.error.status === 401;
+      overview.error instanceof AccountRequestError && overview.error.kind === 'unauthorized';
 
     return (
       <AccountsState

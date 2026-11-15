@@ -182,7 +182,7 @@ export function ProductModelsPage() {
   }
 
   const unauthorized =
-    models.error instanceof ProductModelRequestError && models.error.status === 401;
+    models.error instanceof ProductModelRequestError && models.error.kind === 'unauthorized';
   const items = models.data?.items ?? [];
   return (
     <div className={styles.page}>

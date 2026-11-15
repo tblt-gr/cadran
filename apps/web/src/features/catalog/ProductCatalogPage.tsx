@@ -8,6 +8,7 @@ import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
 import { CatalogFilters } from './catalog-filters/CatalogFilters';
 import { ProductCatalogTable } from './product-catalog-table/ProductCatalogTable';
 import { ProductCatalogPageSkeleton } from './ProductCatalogPageSkeleton';
+import { classifyProblem, type CommonProblemKind } from '@/lib/apiProblem';
 import { todayInBrowser } from '@/lib/businessDay';
 import { formatCalendarDay } from '@/lib/decimal';
 import styles from './ProductCatalogPage.module.css';
@@ -15,11 +16,11 @@ import styles from './ProductCatalogPage.module.css';
 const PAGE_SIZE = 25;
 
 class ProductRequestError extends Error {
-  readonly status: number;
+  readonly kind: CommonProblemKind;
 
   constructor(status: number) {
     super(`Product catalogue request failed with status ${status}.`);
-    this.status = status;
+    this.kind = classifyProblem<never>(status, undefined, {});
   }
 }
 
@@ -51,7 +52,7 @@ export function ProductCatalogPage() {
   });
 
   const unauthorized =
-    catalogue.error instanceof ProductRequestError && catalogue.error.status === 401;
+    catalogue.error instanceof ProductRequestError && catalogue.error.kind === 'unauthorized';
   const items = catalogue.data?.items ?? [];
   function chooseBusinessDate(value: string) {
     setAsOf(value);

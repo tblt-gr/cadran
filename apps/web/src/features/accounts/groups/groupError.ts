@@ -1,6 +1,9 @@
 import type { AccountGroupInputProblem } from '@cadran/api-client';
 
-export type GroupErrorKind = 'color' | 'conflict' | 'invalid' | 'network' | 'stale' | 'staleOrder';
+import { classifyProblem } from '@/lib/apiProblem';
+
+export type GroupErrorKind =
+  'color' | 'conflict' | 'invalid' | 'network' | 'stale' | 'staleOrder' | 'unauthorized';
 
 /**
  * A refused group request, classified by its RFC 9457 problem type rather
@@ -14,22 +17,14 @@ export class GroupRequestError extends Error {
   constructor(status: number, problemType: string | undefined, invalidColor = false) {
     super(`Account group request failed with status ${status}.`);
     this.status = status;
-    this.kind = invalidColor ? 'color' : classify(status, problemType);
+    this.kind = invalidColor ? 'color' : classifyProblem(status, problemType, PROBLEM_KINDS);
   }
 }
 
-function classify(status: number, problemType: string | undefined): GroupErrorKind {
-  switch (problemType) {
-    case '/problems/stale-version':
-      return 'stale';
-    case '/problems/stale-account-group-order':
-      return 'staleOrder';
-    case '/problems/account-group-label-taken':
-      return 'conflict';
-    default:
-      return status === 409 ? 'conflict' : 400 === status || 422 === status ? 'invalid' : 'network';
-  }
-}
+const PROBLEM_KINDS: Record<string, GroupErrorKind> = {
+  '/problems/stale-account-group-order': 'staleOrder',
+  '/problems/account-group-label-taken': 'conflict',
+};
 
 export function groupErrorKind(error: unknown, isError: boolean): GroupErrorKind | null {
   if (error instanceof GroupRequestError) {

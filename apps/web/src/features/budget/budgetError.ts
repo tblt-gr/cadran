@@ -1,5 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type BudgetErrorKind = 'conflict' | 'invalid' | 'network' | 'unauthorized';
 
 export class BudgetRequestError extends Error {
@@ -7,14 +9,9 @@ export class BudgetRequestError extends Error {
 
   constructor(status: number) {
     super(`Budget request failed with status ${status}.`);
-    this.kind =
-      status === 401 || status === 403
-        ? 'unauthorized'
-        : status === 409
-          ? 'conflict'
-          : status === 400 || status === 422
-            ? 'invalid'
-            : 'network';
+    const kind = classifyProblem<never>(status, undefined, {});
+    // No problem type is read here, so a stale version is a plain conflict.
+    this.kind = kind === 'stale' ? 'conflict' : kind;
   }
 }
 
