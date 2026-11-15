@@ -1,0 +1,98 @@
+name: Performance (weekly)
+
+# Runs the backend performance suite (apps/api/performance, `make perf`) on main
+# once a week: it seeds 100 000 synthetic transactions and asserts the p95 budgets.
+# A failed scheduled run opens (or updates) the issue "Scheduled run failing:
+# Performance (weekly)" through the `report` job, and the next passing run closes it.
+# GitHub runs `schedule` only from the default branch and disables it after 60 days
+# without repository activity; a `workflow_dispatch` run re-arms it.
+
+on:
+  schedule:
+    - cron: '43 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-weekly
+  cancel-in-progress: false
+
+jobs:
+  budgets:
+    name: Backend performance budgets
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cadran
+          POSTGRES_PASSWORD: cadran
+          POSTGRES_DB: cadran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cadran -d cadran"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # apps/api/.env is gitignored and absent in CI; mirror the app container's
+      # entrypoint so the Symfony runtime does not try to read it.
+      APP_RUNTIME_OPTIONS: '{"disable_dotenv":true}'
+      APP_SECRET: ci-backend-only
+      DATABASE_URL: postgresql://cadran:cadran@127.0.0.1:5432/cadran?serverVersion=18&charset=utf8
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, pdo_pgsql
+          coverage: none
+          tools: composer:2.9.8
+      - name: Install Composer dependencies
+        run: composer install --working-dir=apps/api --no-interaction --no-progress --prefer-dist --no-scripts
+      - name: Prepare the PHPUnit database
+        run: |
+          php apps/api/bin/console doctrine:database:create --env=test --if-not-exists --no-interaction
+          php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+      - name: Performance budgets
+        working-directory: apps/api
+        env:
+          PERF_ASSERT: '1'
+        run: |
+          set -o pipefail
+          php bin/phpunit --configuration phpunit.dist.xml performance | tee "$RUNNER_TEMP/performance.log"
+      - name: Summarize the measured latencies
+        if: always()
+        run: |
+          {
+            echo '### Backend performance (p50 and p95, ms)'
+            echo
+            echo '```text'
+            grep -E '(p50|p95|[0-9]+\.[0-9]+ +[0-9]+\.[0-9]+ +[0-9]+\.[0-9]+$)' "$RUNNER_TEMP/performance.log" || echo 'No latency line was printed.'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  report:
+    name: Report the scheduled result
+    needs: [budgets]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Open, update or close the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+          FAILED_JOBS: ${{ needs.budgets.result != 'success' && 'budgets' || '' }}
+        run: sh scripts/ci/report-scheduled-run.sh "Performance (weekly)" "$([ "$RESULT" = true ] && echo failure || echo success)"
