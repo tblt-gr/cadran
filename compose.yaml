@@ -12,6 +12,7 @@ services:
     user: '33:33'
     environment:
       APP_ENV: prod
+      LOG_LEVEL: ${LOG_LEVEL:-notice}
       CADRAN_SERVER_NAME: ${CADRAN_SERVER_NAME:-localhost}
       DEFAULT_URI: https://${CADRAN_SERVER_NAME:-localhost}:${CADRAN_HTTPS_PORT:-8443}
     ports:

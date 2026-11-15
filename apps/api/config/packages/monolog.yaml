@@ -1,0 +1,17 @@
+# One JSON object per line on stderr: Docker owns collection and rotation (`docker compose logs app`).
+# LOG_LEVEL is validated by LogLevelEnvProcessor; the image entrypoint refuses an invalid value at boot.
+monolog:
+  channels: [app, security]
+  handlers:
+    stderr:
+      type: stream
+      path: 'php://stderr'
+      level: '%env(log_level:LOG_LEVEL)%'
+      formatter: monolog.formatter.json
+
+# The handler is a TestHandler so LogCapture can read every record back; its level is lowered to debug there.
+when@test:
+  monolog:
+    handlers:
+      stderr:
+        type: test

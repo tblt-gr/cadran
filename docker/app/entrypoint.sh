@@ -17,6 +17,14 @@ read_secret() {
     tr -d '\r\n' < "$secret_path"
 }
 
+case ${LOG_LEVEL:-notice} in
+    debug | info | notice | warning | error) ;;
+    *)
+        printf 'LOG_LEVEL must be one of: debug, info, notice, warning, error.\n' >&2
+        exit 1
+        ;;
+esac
+
 app_secret=$(read_secret /run/secrets/app_secret)
 db_password=$(read_secret /run/secrets/db_password)
 
