@@ -4,22 +4,18 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Portfolio\Application\LifeInsurance\AddFeeTerms;
-use App\Module\Portfolio\Application\LifeInsurance\LifeInsuranceConflict;
-use App\Module\Portfolio\Application\LifeInsurance\LifeInsuranceNotFound;
 use App\Module\Portfolio\Application\LifeInsurance\ReadLifeInsuranceContract;
 use App\Module\Portfolio\Application\LifeInsurance\RecordEuroFundRate;
 use App\Module\Portfolio\Application\LifeInsurance\RemoveEuroFundRate;
 use App\Module\Portfolio\Application\LifeInsurance\RemoveFeeTerms;
 use App\Module\Portfolio\Application\LifeInsurance\SaveLifeInsuranceContract;
-use App\Module\Portfolio\Application\PortfolioAccountNotFound;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
-use App\Module\Portfolio\Domain\LifeInsurance\InvalidLifeInsurance;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,7 +26,7 @@ final readonly class LifeInsuranceContractController
 {
     private const string ACCOUNT_NOT_FOUND = 'portfolio_account_not_found';
 
-    public function __construct(private TranslatorInterface $translator, private JsonRequestEnvelope $requestEnvelope)
+    public function __construct(private TranslatorInterface $translator, private JsonRequestEnvelope $requestEnvelope, private ProblemMapper $problems)
     {
     }
 
@@ -48,7 +44,7 @@ final readonly class LifeInsuranceContractController
 
             return self::json($read($accountId, $year));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
     }
 
@@ -61,7 +57,7 @@ final readonly class LifeInsuranceContractController
         try {
             $overview = $read($accountId);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
 
         return self::json(LifeInsuranceRepresentation::overview($overview));
@@ -80,7 +76,7 @@ final readonly class LifeInsuranceContractController
         try {
             $saved = $save($accountId, LifeInsurancePayload::contract($body));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
 
         return self::json(LifeInsuranceRepresentation::contract($saved->contract), $saved->created ? Response::HTTP_CREATED : Response::HTTP_OK);
@@ -99,7 +95,7 @@ final readonly class LifeInsuranceContractController
         try {
             $recorded = $add($accountId, LifeInsurancePayload::feeTerms($body));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
 
         return self::json(LifeInsuranceRepresentation::feeTerms($recorded->terms, $recorded->assetCode), Response::HTTP_CREATED);
@@ -114,7 +110,7 @@ final readonly class LifeInsuranceContractController
         try {
             $remove($id);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
 
         return new Response(null, Response::HTTP_NO_CONTENT, ['Cache-Control' => 'no-store']);
@@ -133,7 +129,7 @@ final readonly class LifeInsuranceContractController
         try {
             $rate = $record($accountId, LifeInsurancePayload::euroFundRate($body));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
 
         return self::json(LifeInsuranceRepresentation::rate($rate), Response::HTTP_CREATED);
@@ -148,24 +144,10 @@ final readonly class LifeInsuranceContractController
         try {
             $remove($id);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::lifeInsurance());
         }
 
         return new Response(null, Response::HTTP_NO_CONTENT, ['Cache-Control' => 'no-store']);
-    }
-
-    private function failure(\Throwable $exception): Response
-    {
-        return match (true) {
-            $exception instanceof InvalidLifeInsurance => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode),
-            $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode),
-            $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_life_insurance_payload'),
-            $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
-            $exception instanceof LifeInsuranceNotFound => $this->problem(Response::HTTP_NOT_FOUND, $exception->problemCode),
-            $exception instanceof LifeInsuranceConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),
-            $exception instanceof WorkspaceAccessDenied => $this->problem(Response::HTTP_FORBIDDEN, 'portfolio_forbidden'),
-            default => throw $exception,
-        };
     }
 
     /** @return array<mixed>|Response */

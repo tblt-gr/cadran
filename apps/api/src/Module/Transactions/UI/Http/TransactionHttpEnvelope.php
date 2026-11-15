@@ -12,7 +12,6 @@ use App\Module\Transactions\Application\IdempotencyRequest;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\InvalidRefundRule;
 use App\Module\Transactions\Application\InvalidSplitsInput;
-use App\Module\Transactions\Application\InvalidTransferRule;
 use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\RefundConflict;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -96,23 +95,6 @@ final readonly class TransactionHttpEnvelope
             $this->translator->trans($translationKey.'.detail'),
             $type,
             extensions: $extensions,
-        );
-    }
-
-    /**
-     * The rule code both selects the translated title and detail — one entry
-     * per rule, `api.problem.invalid_transfer_<rule>` — and names the RFC 9457
-     * problem type, mirroring {@see invalidSplitsProblem()}.
-     */
-    public function invalidTransferRuleProblem(InvalidTransferRule $exception): JsonResponse
-    {
-        $key = 'api.problem.invalid_transfer_'.str_replace('.', '_', $exception->ruleCode);
-
-        return ApiProblem::response(
-            Response::HTTP_UNPROCESSABLE_ENTITY,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail'),
-            '/problems/'.$exception->ruleCode,
         );
     }
 

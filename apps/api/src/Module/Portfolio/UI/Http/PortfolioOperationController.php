@@ -4,28 +4,21 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Portfolio\Application\CorrectPortfolioOperation;
 use App\Module\Portfolio\Application\InvalidOperationQuery;
-use App\Module\Portfolio\Application\LinkedTransferTaken;
 use App\Module\Portfolio\Application\ListPortfolioOperations;
 use App\Module\Portfolio\Application\ListPortfolioOperationsQuery;
 use App\Module\Portfolio\Application\ListTransferCandidates;
-use App\Module\Portfolio\Application\PortfolioAccountNotFound;
-use App\Module\Portfolio\Application\PortfolioOperationConflict;
 use App\Module\Portfolio\Application\PortfolioOperationNotFound;
 use App\Module\Portfolio\Application\PreviewPortfolioOperation;
 use App\Module\Portfolio\Application\ReadPortfolioOperation;
 use App\Module\Portfolio\Application\RecordPortfolioOperation;
-use App\Module\Portfolio\Application\StalePortfolioOperationVersion;
-use App\Module\Portfolio\Application\ValuationConflict;
 use App\Module\Portfolio\Application\VoidPortfolioOperation;
-use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
-use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -45,6 +38,7 @@ final readonly class PortfolioOperationController
     public function __construct(
         private TranslatorInterface $translator,
         private JsonRequestEnvelope $requestEnvelope,
+        private ProblemMapper $problems,
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -68,7 +62,7 @@ final readonly class PortfolioOperationController
                 pageSize: self::scalar($query->all(), 'pageSize'),
             ));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return self::json(PortfolioOperationRepresentation::page($page));
@@ -91,7 +85,7 @@ final readonly class PortfolioOperationController
             }
             $result = $preview($accountId, OperationPayload::operation($body), $correctingOperationId);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return self::json(PortfolioOperationRepresentation::preview($result));
@@ -121,7 +115,7 @@ final readonly class PortfolioOperationController
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->envelope->idempotencyProblem($exception);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -136,7 +130,7 @@ final readonly class PortfolioOperationController
         try {
             $view = $read($id);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return self::json(PortfolioOperationRepresentation::one($view));
@@ -160,7 +154,7 @@ final readonly class PortfolioOperationController
             }
             $view = $void($id, $fields['version'], $reason);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return self::json(PortfolioOperationRepresentation::one($view));
@@ -197,7 +191,7 @@ final readonly class PortfolioOperationController
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->envelope->idempotencyProblem($exception);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -212,39 +206,13 @@ final readonly class PortfolioOperationController
         try {
             $candidates = $list($accountId, $request->query->getString('direction'));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::operation());
         }
 
         return self::json(PortfolioOperationRepresentation::candidates($candidates));
     }
 
     /** Maps what a use case refuses to its problem; anything unexpected keeps propagating to the kernel. */
-    private function failure(\Throwable $exception): Response
-    {
-        return match (true) {
-            $exception instanceof PositionReplayFailed => $this->problem(
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-                $exception->problemCode,
-                $exception->extensions,
-            ),
-            $exception instanceof InvalidPortfolioOperation => $this->problem(
-                'operation_voided' === $exception->problemCode ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY,
-                $exception->problemCode,
-                $exception->extensions,
-            ),
-            $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_operation_payload'),
-            $exception instanceof InvalidOperationQuery => $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_operation_query'),
-            $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
-            $exception instanceof PortfolioOperationNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::OPERATION_NOT_FOUND),
-            $exception instanceof StalePortfolioOperationVersion => $this->problem(Response::HTTP_CONFLICT, 'stale_operation_version'),
-            $exception instanceof LinkedTransferTaken => $this->problem(Response::HTTP_CONFLICT, 'linked_transfer_taken'),
-            $exception instanceof ValuationConflict => $this->problem(Response::HTTP_CONFLICT, 'valuation_conflict'),
-            $exception instanceof PortfolioOperationConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),
-            $exception instanceof WorkspaceAccessDenied => $this->problem(Response::HTTP_FORBIDDEN, 'portfolio_forbidden'),
-            default => throw $exception,
-        };
-    }
-
     /** @return array<mixed>|Response */
     private function readBody(Request $request): array|Response
     {
