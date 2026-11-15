@@ -1,0 +1,17 @@
+name: X-List-Revision
+in: header
+required: false
+description: >-
+  Opt-in consistency guard for incremental numbered lists. Use `start` on page
+  1, then send the X-List-Revision response header unchanged on later pages.
+  Inserts, updates, deletions and reorders invalidate the revision atomically
+  with their business transaction. An obsolete revision returns 409 before
+  returning rows; malformed headers or `start` on another page return 400.
+  Changing route, account, filters or explicit page size requires a new `start`
+  request. Reads hold a shared revision lock until their page and count have
+  been read, preventing concurrent writes from committing halfway through a
+  page. Omit this header to preserve the existing independent-page behavior.
+schema:
+  type: string
+  maxLength: 64
+  pattern: ^(start|[a-f0-9]{64})$

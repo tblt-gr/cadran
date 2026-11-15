@@ -1,0 +1,60 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - categoryId
+  - categoryLabel
+  - categoryIcon
+  - categoryColor
+  - amount
+  - analyticAxes
+  - note
+  - categorizationOrigin
+  - categorizationRuleId
+properties:
+  id:
+    type: string
+    format: uuid
+  categoryId:
+    type: string
+    format: uuid
+  categoryLabel:
+    type: string
+    minLength: 1
+    maxLength: 80
+  categoryIcon:
+    description: >-
+      Read-only display icon of the split category: its effective icon (own
+      explicit icon, else the nearest ancestor's). Never accepted on write.
+    oneOf:
+      - type: string
+        pattern: ^[a-z][a-z0-9-]{0,31}$
+      - type: 'null'
+  categoryColor:
+    description: >-
+      Read-only display colour of the split category: its effective colour (own
+      explicit colour, else the nearest ancestor's). Never accepted on write.
+    oneOf:
+      - type: string
+        pattern: ^#[0-9A-F]{6}$
+      - type: 'null'
+  amount:
+    $ref: ./DecimalAmount.yaml
+  analyticAxes:
+    $ref: ./AnalyticAxes.yaml
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 140
+      - type: 'null'
+  categorizationOrigin:
+    type: string
+    enum:
+      - MANUAL
+      - RULE
+  categorizationRuleId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'

@@ -1,0 +1,90 @@
+get:
+  operationId: getSession
+  summary: Describe the current session
+  description: >-
+    Public. Reports whether the request carries an authenticated, active session
+    and whether first-run password setup is still pending. Also plants the
+    `csrf_token` cookie when the request lacks a valid one.
+  tags:
+    - Session
+  security: []
+  responses:
+    '200':
+      description: The session state for the calling browser.
+      headers:
+        Set-Cookie:
+          description: >-
+            `csrf_token=<signed token>; Path=/; SameSite=Strict` (plus `Secure`
+            over HTTPS). Echo it in `X-CSRF-TOKEN` on every mutation.
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/SessionState.yaml
+    '400':
+      description: >-
+        The request is rejected before reaching the controller, for example
+        because the Host header is malformed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: openSession
+  x-cadran-idempotency: >-
+    Opening a session again only issues another session cookie for the same
+    owner; failed attempts are throttled.
+  summary: Open a session with email and password
+  description: >-
+    A same-origin browser mutation: it must send the X-CSRF-TOKEN header
+    matching the csrf_token cookie from a prior safe response, and its Origin
+    must be this server. Failed attempts are rate-limited per email and source
+    address.
+  tags:
+    - Session
+  security: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/LoginRequest.yaml
+  responses:
+    '204':
+      description: The session cookie is set. Fetch GET /api/v1/session for details.
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/InvalidCredentials.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '429':
+      $ref: ../components/responses/TooManyRequests.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+delete:
+  operationId: closeSession
+  x-cadran-idempotency: Closing a session that is already closed is a no-op answered 204.
+  summary: Close the current session
+  description: >-
+    A same-origin browser mutation: it must send the X-CSRF-TOKEN header
+    matching the csrf_token cookie, with an Origin of this server.
+  tags:
+    - Session
+  security: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  responses:
+    '204':
+      description: The session is invalidated. A no-op when already anonymous.
+    '403':
+      $ref: ../components/responses/CsrfFailure.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

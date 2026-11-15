@@ -1,0 +1,20 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        enum:
+          - account_not_life_insurance
+          - account_not_portfolio
+          - invalid_summary_date
+          - cash_range_too_dense
+          - cash_amount_too_large
+          - position_amount_too_large
+          - position_would_go_negative
+          - corporate_action_without_position
+          - split_fraction_unsupported
+          - portfolio_forbidden
+          - portfolio_account_not_found

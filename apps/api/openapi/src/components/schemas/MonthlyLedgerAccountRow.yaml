@@ -1,0 +1,55 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - assetCode
+  - kind
+  - total
+  - movementCount
+  - hasMovements
+  - pendingAmount
+  - pendingCount
+  - primaryGroupColor
+properties:
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 100
+  assetCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  kind:
+    $ref: ./AccountKind.yaml
+  primaryGroupColor:
+    description: >-
+      Effective color of the account's primary group (archived groups included),
+      as the accounts overview shows it. Null without a primary group. A display
+      accent only: never an input of any amount.
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  total:
+    $ref: ./MonthlyLedgerMetric.yaml
+  movementCount:
+    type: integer
+    minimum: 0
+    maximum: 500
+  hasMovements:
+    type: boolean
+  pendingAmount:
+    description: >-
+      Exact sum of the scheduled (pending) movements, in the same sign
+      convention as total. Null when none, or when they mix assets.
+      Informational: never part of total, a gap, net worth or a KPI.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  pendingCount:
+    type: integer
+    minimum: 0
+    maximum: 500

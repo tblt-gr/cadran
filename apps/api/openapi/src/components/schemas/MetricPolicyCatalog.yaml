@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - active
+  - activeVersion
+  - activeSince
+  - versions
+properties:
+  active:
+    description: >-
+      The active definition, or null when the active version cannot be loaded.
+      `activeVersion` then names the unresolvable version.
+    oneOf:
+      - $ref: ./MetricPolicy.yaml
+      - type: 'null'
+  activeVersion:
+    type: integer
+    minimum: 1
+  activeSince:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  versions:
+    type: array
+    maxItems: 101
+    items:
+      $ref: ./MetricPolicy.yaml

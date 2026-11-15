@@ -1,0 +1,23 @@
+type: object
+additionalProperties: false
+required:
+  - color
+  - total
+  - share
+properties:
+  categoryId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  color:
+    type:
+      - string
+      - 'null'
+    description: >-
+      Effective color of the category (its own, else its nearest ancestor's);
+      null when it has none.
+  total:
+    type: string
+  share:
+    type: string

@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - months
+  - years
+properties:
+  months:
+    type: array
+    maxItems: 120
+    items:
+      $ref: ./GoalPeriodEvaluation.yaml
+  years:
+    type: array
+    maxItems: 11
+    items:
+      $ref: ./GoalPeriodEvaluation.yaml

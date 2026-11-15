@@ -1,0 +1,49 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - asOf
+  - amount
+  - source
+  - reconciliationStatus
+  - comment
+  - active
+  - version
+  - recordedAt
+  - supersededAt
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  asOf:
+    type: string
+    format: date
+  amount:
+    $ref: ./DecimalAmount.yaml
+  source:
+    $ref: ./BalanceSnapshotSource.yaml
+  reconciliationStatus:
+    $ref: ./ReconciliationStatus.yaml
+  comment:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 200
+      - type: 'null'
+  active:
+    type: boolean
+  version:
+    type: integer
+    minimum: 1
+  recordedAt:
+    type: string
+    format: date-time
+  supersededAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'

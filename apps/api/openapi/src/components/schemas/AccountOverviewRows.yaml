@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - nextCursor
+  - orderVersion
+properties:
+  items:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./AccountOverviewRow.yaml
+  nextCursor:
+    oneOf:
+      - type: string
+        maxLength: 200
+      - type: 'null'
+  orderVersion:
+    type: integer
+    minimum: 0

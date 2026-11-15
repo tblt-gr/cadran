@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - groupId
+  - orderVersion
+  - rank
+properties:
+  groupId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  orderVersion:
+    type: integer
+    minimum: 0
+  rank:
+    description: 1-based position of the moved account among every member of its group.
+    type: integer
+    minimum: 1

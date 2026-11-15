@@ -1,0 +1,42 @@
+description: >-
+  The three readings a rate screen must keep apart: the contractual or regulated
+  rate, an optional projection assumption, and observed performance. An
+  assumption is never stored as a rate on a market product. Observed performance
+  is not computed from a pair of valuations: inventing a return from two stocks
+  would present a movement as a yield.
+type: object
+additionalProperties: false
+required:
+  - contractual
+  - assumption
+  - assumptionReason
+  - observed
+  - observedReason
+properties:
+  contractual:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - kind
+          - guaranteed
+        properties:
+          kind:
+            $ref: ./ProductRuleKind.yaml
+          guaranteed:
+            type: boolean
+      - type: 'null'
+  assumption:
+    description: A projection rate is not recorded as a product rule.
+    type: 'null'
+  assumptionReason:
+    type: string
+    enum:
+      - NOT_RECORDED
+  observed:
+    description: No return series is computed from account valuations.
+    type: 'null'
+  observedReason:
+    type: string
+    enum:
+      - NO_RETURN_SERIES

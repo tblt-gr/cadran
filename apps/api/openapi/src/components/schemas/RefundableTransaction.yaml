@@ -1,0 +1,33 @@
+type: object
+additionalProperties: false
+required:
+  - originalId
+  - originalAmount
+  - refunded
+  - refundable
+  - proposedSplits
+properties:
+  originalId:
+    type: string
+    format: uuid
+  originalAmount:
+    $ref: ./DecimalAmount.yaml
+  refunded:
+    $ref: ./DecimalAmount.yaml
+  refundable:
+    $ref: ./DecimalAmount.yaml
+  proposedSplits:
+    type: array
+    maxItems: 20
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - categoryId
+        - amount
+      properties:
+        categoryId:
+          type: string
+          format: uuid
+        amount:
+          $ref: ./DecimalAmount.yaml

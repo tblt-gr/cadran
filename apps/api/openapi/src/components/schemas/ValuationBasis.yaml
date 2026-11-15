@@ -1,0 +1,5 @@
+type: string
+enum:
+  - SNAPSHOT
+  - SNAPSHOT_PLUS_MOVEMENTS
+  - PORTFOLIO_VALUATION

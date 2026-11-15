@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - accountCount
+  - groups
+properties:
+  asOf:
+    type: string
+    format: date
+  accountCount:
+    description: >-
+      Every account of the workspace whatever the lifecycle filters, to tell an
+      empty filter from no account.
+    type: integer
+    minimum: 0
+  groups:
+    type: array
+    maxItems: 501
+    items:
+      $ref: ./AccountOverviewGroup.yaml

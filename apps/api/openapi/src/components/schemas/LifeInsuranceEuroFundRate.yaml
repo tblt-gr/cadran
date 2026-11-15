@@ -1,0 +1,38 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - instrumentId
+  - year
+  - servedRate
+  - bonusRate
+  - basis
+  - sourceNote
+properties:
+  id:
+    type: string
+    format: uuid
+  instrumentId:
+    type: string
+    format: uuid
+  year:
+    type: integer
+    minimum: 1900
+    maximum: 9999
+  servedRate:
+    description: A percentage in [-100, 100], announced by the insurer.
+    type: string
+    maxLength: 64
+  bonusRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  basis:
+    $ref: ./LifeInsuranceEuroFundRateBasis.yaml
+  sourceNote:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 200

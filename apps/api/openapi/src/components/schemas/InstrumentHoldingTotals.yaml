@@ -1,0 +1,24 @@
+x-cadran-asset-scope: >-
+  Amounts are in the common asset of the contributing accounts, which operation
+  entry requires to equal the enclosing instrument.currencyCode. Mixed account
+  assets yield null totals with MIXED_ASSETS; no currency conversion is
+  performed.
+type: object
+additionalProperties: false
+required:
+  - realizedGain
+  - income
+  - feesAndTaxes
+  - totalGain
+  - reason
+properties:
+  realizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  income:
+    $ref: ./HoldingsNullableDecimal.yaml
+  feesAndTaxes:
+    $ref: ./HoldingsNullableDecimal.yaml
+  totalGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  reason:
+    $ref: ./InstrumentHoldingReason.yaml

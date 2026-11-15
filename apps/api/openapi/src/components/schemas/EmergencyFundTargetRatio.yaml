@@ -1,0 +1,5 @@
+description: >-
+  Share of twelve times the average monthly income, above 0 and at most 1, with
+  at most six decimals (0.5 is 50 %).
+type: string
+pattern: ^(0|1)(\.\d{1,6})?$

@@ -1,0 +1,10 @@
+type:
+  - string
+  - 'null'
+enum:
+  - UNKNOWN_LOT_COST
+  - HISTORY_TOO_LARGE
+  - NO_VALUATION
+  - MISSING_PRICE
+  - MIXED_ASSETS
+  - null

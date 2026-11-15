@@ -1,0 +1,35 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        enum:
+          - account_not_portfolio
+          - invalid_year
+          - life_insurance_contract_required
+          - cash_range_too_dense
+          - cash_amount_too_large
+          - account_not_life_insurance
+          - portfolio_account_inactive
+          - portfolio_account_not_found
+          - life_insurance_contract_not_found
+          - life_insurance_fee_terms_not_found
+          - euro_fund_rate_not_found
+          - invalid_life_insurance_payload
+          - invalid_contract_field
+          - invalid_contract_date
+          - invalid_fee_rate
+          - invalid_fee_terms_date
+          - invalid_euro_fund_rate
+          - instrument_not_euro_fund
+          - life_insurance_contract_exists
+          - stale_contract_version
+          - fee_terms_exist
+          - fee_terms_limit_reached
+          - euro_fund_rate_exists
+          - euro_fund_rate_limit_reached
+          - portfolio_forbidden
+          - portfolio_payload_too_large

@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - accountLabel
+  - month
+  - valuationDate
+properties:
+  accountId:
+    type: string
+    format: uuid
+  accountLabel:
+    type: string
+  month:
+    $ref: ./PortfolioDueMonth.yaml
+  valuationDate:
+    description: Last day of the month, the date the valuation form opens on.
+    type: string
+    format: date

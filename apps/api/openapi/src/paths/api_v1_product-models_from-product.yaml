@@ -1,0 +1,59 @@
+post:
+  operationId: createProductModelFromProduct
+  x-cadran-idempotency: 'Active model names are unique: a replay answers 409 and creates nothing.'
+  summary: Start a product model from a system catalogue product
+  description: >-
+    Copies a catalogue product into a workspace model. The copy is made by the
+    server from the catalogue row, so a model claiming to come from a Livret A
+    carries what the catalogue says a Livret A is. It takes the description and
+    the dated periods with their effective dates, and drops every figure's
+    publication and verification trace; from that moment the model no longer
+    tracks the catalogue. The mutation requires the same-origin CSRF token.
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateProductModelFromProductRequest.yaml
+  responses:
+    '201':
+      description: The model was started from the catalogue product.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ProductModel.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/ProductModelMutationForbidden.yaml
+    '409':
+      description: >-
+        An active model already uses the name (`type:
+        /problems/product-model-name-taken`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/ProductModelPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The name or valuation mode is invalid, or the product code does not
+        exist in the system catalogue. An unknown and a malformed code answer
+        alike.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

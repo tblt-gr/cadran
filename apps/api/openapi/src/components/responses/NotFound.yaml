@@ -1,0 +1,7 @@
+description: >-
+  No such object in the calling workspace. Identical whether the identifier is
+  unknown or belongs to another workspace.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

@@ -1,0 +1,34 @@
+description: >-
+  One slice of a rate scale. The lower bound is included and the upper bound
+  excluded, so two adjacent brackets leave no amount uncovered and count none
+  twice.
+type: object
+additionalProperties: false
+required:
+  - percentage
+  - lowerBound
+  - upperBound
+properties:
+  percentage:
+    description: >-
+      The rate expressed in percent as the source published it: `1.7` reads 1.7
+      %. It travels as a canonical decimal string, so no client multiplies it
+      and no binary float touches a rate.
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+    examples:
+      - '1.7'
+  lowerBound:
+    description: First amount the bracket covers, included.
+    type: string
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+    examples:
+      - '0'
+  upperBound:
+    description: >-
+      First amount the bracket no longer covers, or null when the slice runs
+      without limit.
+    oneOf:
+      - type: string
+        pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'

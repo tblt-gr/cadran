@@ -1,0 +1,48 @@
+description: >-
+  One ceiling kind seen through every authority that states it, and which of
+  them wins. At least one of `catalog`, `inherited` and `override` is present.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - basis
+  - countsCreditedInterest
+  - spansSeveralAccounts
+  - effectiveLayer
+  - catalog
+  - inherited
+  - override
+  - check
+properties:
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  basis:
+    $ref: ./CeilingBasis.yaml
+  countsCreditedInterest:
+    description: >-
+      Whether interest credited by the institution counts towards the measure.
+      When it does not, interest may carry the account past the amount without
+      any rule being broken. It follows from the rule kind, so it is the same on
+      every layer.
+    type: boolean
+  spansSeveralAccounts:
+    description: >-
+      Whether the ceiling is reached across the products sharing it, in which
+      case reading this account alone cannot settle it.
+    type: boolean
+  effectiveLayer:
+    $ref: ./AccountRuleLayer.yaml
+  catalog:
+    oneOf:
+      - $ref: ./AccountCeiling.yaml
+      - type: 'null'
+  inherited:
+    oneOf:
+      - $ref: ./AccountCeiling.yaml
+      - type: 'null'
+  override:
+    oneOf:
+      - $ref: ./AccountCeiling.yaml
+      - type: 'null'
+  check:
+    $ref: ./CeilingCheck.yaml

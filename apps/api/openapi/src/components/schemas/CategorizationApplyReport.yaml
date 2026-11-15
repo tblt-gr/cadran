@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+required:
+  - changed
+  - skippedManual
+  - deactivatedRuleIds
+properties:
+  changed:
+    type: integer
+    minimum: 0
+  skippedManual:
+    type: integer
+    minimum: 0
+  deactivatedRuleIds:
+    type: array
+    items:
+      type: string
+      format: uuid

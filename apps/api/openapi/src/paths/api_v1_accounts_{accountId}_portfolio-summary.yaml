@@ -1,0 +1,42 @@
+get:
+  operationId: readPortfolioSummary
+  x-cadran-bounded: >-
+    Reconciliation warnings are counters keyed by distinct warning code, a
+    closed set.
+  summary: Read the dated portfolio dashboard
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: Workspace-scoped exact values. Response uses no-store cache control.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOverviewSummary.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: Invalid query or bounded replay scope exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOverviewProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: asOf
+      in: query
+      required: false
+      description: >-
+        Defaults to today in the workspace calendar. Future dates are refused;
+        dates before opening return an empty state.
+      schema:
+        type: string
+        format: date

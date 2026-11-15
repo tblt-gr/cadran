@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - reason
+properties:
+  month:
+    type: string
+  reason:
+    type: string
+    enum:
+      - FUTURE
+      - NO_DATA
+      - PROVISIONAL
+      - NULL_VALUE

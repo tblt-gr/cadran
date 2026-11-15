@@ -1,0 +1,5 @@
+type: string
+enum:
+  - NET_OF_MANAGEMENT_FEES
+  - GROSS_OF_MANAGEMENT_FEES
+  - UNKNOWN

@@ -1,0 +1,21 @@
+description: >-
+  A financial decimal. Every amount, quantity, price and rate travels as a
+  canonical decimal string paired with its asset code; a native JSON number is
+  forbidden, because parsing one would put a binary float back into a financial
+  value.
+type: object
+additionalProperties: false
+required:
+  - value
+  - assetCode
+properties:
+  value:
+    type: string
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+    examples:
+      - '230.5688'
+  assetCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+    examples:
+      - EUR

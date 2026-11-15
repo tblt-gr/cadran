@@ -1,0 +1,26 @@
+description: The official publication the value was read from.
+type: object
+additionalProperties: false
+required:
+  - publisher
+  - title
+  - url
+  - publishedOn
+  - retrievedOn
+properties:
+  publisher:
+    type: string
+  title:
+    type: string
+  url:
+    type: string
+    format: uri
+  publishedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  retrievedOn:
+    description: The day a maintainer actually opened the publication.
+    type: string
+    format: date

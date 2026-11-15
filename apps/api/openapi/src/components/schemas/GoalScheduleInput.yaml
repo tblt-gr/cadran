@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - mode
+properties:
+  mode:
+    type: string
+    enum:
+      - LINEAR
+      - CUSTOM
+  parts:
+    description: >-
+      Twelve parts, January first, for CUSTOM only; at most the currency display
+      precision.
+    type: array
+    minItems: 12
+    maxItems: 12
+    items:
+      $ref: ./GoalDecimal.yaml

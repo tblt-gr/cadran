@@ -1,0 +1,29 @@
+x-cadran-asset-scope: The asset is the `assetCode` of the report column the cell belongs to.
+type: object
+additionalProperties: false
+required:
+  - month
+  - state
+  - value
+  - reason
+  - counted
+  - exclusionReason
+properties:
+  month:
+    type: string
+  state:
+    $ref: ./AnnualMonthState.yaml
+  value:
+    type:
+      - string
+      - 'null'
+  reason:
+    type:
+      - string
+      - 'null'
+  counted:
+    type: boolean
+  exclusionReason:
+    type:
+      - string
+      - 'null'

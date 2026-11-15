@@ -1,0 +1,72 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - version
+properties:
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  valueType:
+    description: Defaults to the value type in effect.
+    oneOf:
+      - $ref: ./GoalValueType.yaml
+      - type: 'null'
+  targetAmount:
+    oneOf:
+      - $ref: ./GoalAmountInput.yaml
+      - type: 'null'
+  ratio:
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  tolerance:
+    description: >-
+      New margin around the target; omitted or null keeps the tolerance in
+      effect and `0` makes the goal strict. A negative value or one above the
+      target answers 422 invalid_goal_tolerance.
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1
+  effectiveFrom:
+    description: >-
+      Defaults to the workspace-local current month. A past month makes the new
+      definition retroactive; it applies only until an existing definition with
+      a later effective month.
+    type:
+      - string
+      - 'null'
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  reason:
+    description: >-
+      Required with 3 to 200 trimmed characters when effectiveFrom is before the
+      workspace-local current month.
+    type:
+      - string
+      - 'null'
+    minLength: 3
+    maxLength: 200
+  schedule:
+    description: >-
+      New monthly calendar of a yearly amount goal. When omitted, a linear
+      schedule follows a changed target; a custom one requires its twelve new
+      parts with the new target.
+    oneOf:
+      - $ref: ./GoalScheduleInput.yaml
+      - type: 'null'
+  periodicity:
+    description: Accepted only to return goal_identity_immutable; clients should omit it.
+    $ref: ./GoalPeriodicity.yaml
+  startPeriod:
+    description: Accepted only to return goal_identity_immutable; clients should omit it.
+    $ref: ./GoalPeriod.yaml
+  metric:
+    description: Accepted only to return goal_identity_immutable; clients should omit it.
+    $ref: ./GoalMetric.yaml
+  scope:
+    description: Accepted only to return goal_identity_immutable; clients should omit it.
+    $ref: ./GoalScopeInput.yaml

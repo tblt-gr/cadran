@@ -1,0 +1,43 @@
+type: object
+additionalProperties: false
+required:
+  - groupId
+  - label
+  - asOf
+  - total
+  - totalReason
+  - chartReason
+  - bySubgroup
+  - byAccount
+properties:
+  groupId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  asOf:
+    type: string
+    format: date
+  total:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  totalReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  chartReason:
+    oneOf:
+      - $ref: ./GroupCompositionChartReason.yaml
+      - type: 'null'
+  bySubgroup:
+    description: Empty when the group has no sub-group holding an eligible account.
+    type: array
+    maxItems: 1001
+    items:
+      $ref: ./GroupCompositionSubgroup.yaml
+  byAccount:
+    type: array
+    maxItems: 1000
+    items:
+      $ref: ./GroupCompositionAccount.yaml

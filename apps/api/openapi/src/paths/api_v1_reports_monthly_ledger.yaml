@@ -1,0 +1,53 @@
+get:
+  operationId: readMonthlyLedger
+  summary: Read the month-first budget ledger of the calling workspace
+  description: >-
+    Groups booked split amounts once by income or expense category and booked
+    transfer legs by account. Pending and voided rows move no total. Active
+    categories and accounts remain present without an invented zero.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/IncludeUpcoming.yaml
+    - name: month
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+    - name: axis
+      in: query
+      required: false
+      description: Filters expense splits by their booked analytic axis.
+      schema:
+        type: string
+        enum:
+          - DISCRETIONARY
+          - ESSENTIAL
+          - FIXED
+          - PERSONAL
+          - PROFESSIONAL
+          - VARIABLE
+  responses:
+    '200':
+      description: The exact monthly ledger summary.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyLedger.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: The workspace exceeds a bounded monthly read limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

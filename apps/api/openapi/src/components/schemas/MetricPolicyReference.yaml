@@ -1,0 +1,19 @@
+description: >-
+  The metric policy that produced a figure. `version` is null when a period
+  mixes several versions.
+type: object
+additionalProperties: false
+required:
+  - version
+  - label
+properties:
+  version:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+  label:
+    type:
+      - string
+      - 'null'
+    maxLength: 80

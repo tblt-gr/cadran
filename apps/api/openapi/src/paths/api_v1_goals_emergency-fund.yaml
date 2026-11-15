@@ -1,0 +1,55 @@
+get:
+  operationId: readEmergencyFundCoverage
+  x-cadran-bounded: >-
+    Eligible accounts come from the net-worth read, capped at 500 accounts per
+    workspace, and the reference window holds at most 24 months.
+  summary: >-
+    Calculate how many months of essential expenses the eligible liquid assets
+    cover
+  description: >-
+    covered months = eligible liquid assets / average monthly essential expenses
+    of the reference period; required amount = target months x that average; gap
+    = liquid assets - required amount. Eligible accounts are those flagged for
+    the emergency fund, open and not archived on the as-of date, valued by the
+    net-worth rule. The reference never contains the as-of month. A figure that
+    cannot be computed is null with a reason, never zero or infinite.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: asOf
+      in: query
+      description: Calendar day of the valuation; defaults to the workspace-local today.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The coverage with every eligible account and reference month it read.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/EmergencyFundCoverage.yaml
+    '400':
+      description: The as-of date is not a calendar day written YYYY-MM-DD.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        future_emergency_fund_as_of when the as-of date is after the
+        workspace-local today; emergency_fund_scope_too_large when the workspace
+        holds more accounts, categories or monthly movements than one coverage
+        read scans.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

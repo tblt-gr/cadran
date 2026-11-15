@@ -1,0 +1,41 @@
+post:
+  operationId: previewCategorizationRules
+  x-cadran-idempotency: 'Read-only dry run: nothing is persisted on the transactions.'
+  summary: Preview a bounded historical run without changing transactions
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CategorizationPreviewRequest.yaml
+  responses:
+    '200':
+      description: A one-shot preview and its SHA-256 apply token.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CategorizationPreview.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        Invalid request, more than 5000 eligible transactions, or a
+        categorization execution bound exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

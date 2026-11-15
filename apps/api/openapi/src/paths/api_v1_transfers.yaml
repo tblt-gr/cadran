@@ -1,0 +1,79 @@
+post:
+  operationId: createTransfer
+  summary: Move money between two accounts of the calling workspace atomically
+  description: >-
+    Creates both legs — source negative, target positive — and an optional fee,
+    in one PostgreSQL transaction. sourceAmount and targetAmount are positive
+    magnitudes; the server applies the signs. Same-asset transfers may omit
+    targetAmount, defaulting it to the source magnitude; a cross-asset transfer
+    must supply it, and the exchange rate is derived and stored on both legs.
+    Neither leg carries income or expense, and neither accepts a split.
+  tags:
+    - Transfers
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateTransferRequest.yaml
+  responses:
+    '201':
+      description: >-
+        The transfer with both legs and the optional fee, or its stored response
+        replay.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transfer.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        A source or target account changed concurrently, the key was reused with
+        another request, or the first request is in flight. A write that touches
+        a closed period is refused with one stable problem, whichever the use
+        case (`type: /problems/period-closed`).
+      headers:
+        Retry-After:
+          $ref: ../components/headers/RetryAfterOneSecond.yaml
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The accounts, amounts, dates, state, label or fee are invalid. The
+        source and target account must differ (`type:
+        /problems/transfer.same_account`), and a same-asset pair with an
+        explicit targetAmount must net exactly to zero (`type:
+        /problems/transfer.amount_mismatch`), or the Idempotency-Key is invalid.
+        An income, expense, refund or fee on an account followed in portfolio
+        mode is refused (`type:
+        /problems/portfolio-account-requires-operations`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AmountInputProblem.yaml
+              - $ref: ../components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

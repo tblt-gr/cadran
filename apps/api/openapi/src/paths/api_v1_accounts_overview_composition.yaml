@@ -1,0 +1,48 @@
+get:
+  operationId: readAccountOverviewComposition
+  summary: Read how the whole eligible net worth splits between accounts
+  description: >-
+    One entry per eligible account of the workspace on `asOf`, with its signed
+    value and the very share the overview rows publish against the eligible net
+    worth. Order: signed value descending on exact decimals, accounts without a
+    value last, then label, then id. `color` is the effective color of the
+    primary group, null for an ungrouped account. `chartReason` is null only
+    when every account is valued in one asset, the total is positive and every
+    component is non-negative; the accounts stay listed in every case. A value
+    that cannot be computed is null with a reason, never zero.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: asOf
+      in: query
+      required: false
+      description: ISO 8601 calendar day, today in the workspace when omitted.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The composition of the net worth by account.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountOverviewComposition.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        The workspace holds more than 1000 eligible accounts (`type:
+        /problems/composition-too-large`), or more accounts or groups than one
+        aggregate reads (`type: /problems/net-worth-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

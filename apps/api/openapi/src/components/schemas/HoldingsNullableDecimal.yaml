@@ -1,0 +1,7 @@
+description: >-
+  Exact decimal string, null when the figure cannot be calculated; the reason
+  sits beside it.
+type:
+  - string
+  - 'null'
+pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$

@@ -1,0 +1,8 @@
+description: >-
+  Which side of the balance sheet a model sits on, derived from its family. Net
+  worth adds one and subtracts the other, so the side is stated rather than
+  guessed from a name.
+type: string
+enum:
+  - ASSET
+  - LIABILITY

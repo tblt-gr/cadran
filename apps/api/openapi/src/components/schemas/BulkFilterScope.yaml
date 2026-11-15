@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - type
+  - filters
+  - expectedCount
+properties:
+  type:
+    type: string
+    enum:
+      - FILTER
+  filters:
+    $ref: ./BulkTransactionFilters.yaml
+  expectedCount:
+    type: integer
+    minimum: 0
+    description: The count the user confirmed, from `countTransactions`.

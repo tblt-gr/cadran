@@ -1,0 +1,67 @@
+post:
+  operationId: voidTransaction
+  summary: Void a transaction without deleting it
+  description: >-
+    Sets the state to VOIDED, keeps the row, and excludes it from listings that
+    do not ask for voided movements. Terminal transactions cannot be voided
+    again.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/VoidTransactionRequest.yaml
+  responses:
+    '200':
+      description: The voided transaction.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The submitted version is stale (`type: /problems/stale-version`) or the
+        transaction is already terminal (`type:
+        /problems/transaction-conflict`). A write that touches a closed period
+        is refused with one stable problem, whichever the use case (`type:
+        /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The transaction is a transfer leg or its fee (`type:
+        /problems/transaction-belongs-to-transfer`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/TransactionBelongsToTransferProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

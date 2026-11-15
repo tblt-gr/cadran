@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - expected
+  - status
+properties:
+  expected:
+    $ref: ./GoalStatusValue.yaml
+  status:
+    type: string
+    enum:
+      - AHEAD
+      - BEHIND
+      - ON_TRACK
+      - OVER_PACE

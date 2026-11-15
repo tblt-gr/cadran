@@ -1,0 +1,10 @@
+description: >-
+  Why a pie of the whole net worth would mislead; the table stays available.
+  Checked in the order listed.
+type: string
+enum:
+  - MISSING_VALUATION
+  - MIXED_ASSETS
+  - ZERO_TOTAL
+  - NEGATIVE_TOTAL
+  - NEGATIVE_COMPONENT

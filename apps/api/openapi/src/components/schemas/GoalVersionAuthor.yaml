@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - displayName
+properties:
+  id:
+    type: string
+    format: uuid
+  displayName:
+    type: string
+    minLength: 1
+    maxLength: 100

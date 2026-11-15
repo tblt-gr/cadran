@@ -171,6 +171,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Check the bundled OpenAPI document is up to date
+        run: pnpm openapi:check-bundle
       - name: Lint the OpenAPI document
         run: pnpm openapi:lint
       - name: Regenerate the TypeScript client

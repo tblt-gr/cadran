@@ -1,0 +1,43 @@
+description: >-
+  Gross components of the period. `withdrawals` and the cost totals are
+  positive.
+type: object
+additionalProperties: false
+required:
+  - supportsBought
+  - supportsSold
+  - deposits
+  - withdrawals
+  - buysGross
+  - sellsGross
+  - dividendsGross
+  - interestGross
+  - fees
+  - taxes
+  - cashInLieu
+  - roundingResiduals
+properties:
+  supportsBought:
+    $ref: ./DecimalAmount.yaml
+  supportsSold:
+    $ref: ./DecimalAmount.yaml
+  deposits:
+    $ref: ./DecimalAmount.yaml
+  withdrawals:
+    $ref: ./DecimalAmount.yaml
+  buysGross:
+    $ref: ./DecimalAmount.yaml
+  sellsGross:
+    $ref: ./DecimalAmount.yaml
+  dividendsGross:
+    $ref: ./DecimalAmount.yaml
+  interestGross:
+    $ref: ./DecimalAmount.yaml
+  fees:
+    $ref: ./DecimalAmount.yaml
+  taxes:
+    $ref: ./DecimalAmount.yaml
+  cashInLieu:
+    $ref: ./DecimalAmount.yaml
+  roundingResiduals:
+    $ref: ./DecimalAmount.yaml

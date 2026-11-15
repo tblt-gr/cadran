@@ -1,0 +1,131 @@
+description: >-
+  The fields of the type matrix. A field the type does not carry is refused with
+  `operation_field_not_allowed`, a missing required one with
+  `operation_field_required`. The cash effect is never part of the request.
+  SWITCH requires 1-10 OUT and 1-10 IN legs on an insurance contract, with
+  disjoint supports and optional fees. Other matrix fields including grossAmount
+  are refused. The server derives grossAmount from OUT amounts and requires
+  sum(OUT) - fees = sum(IN) exactly when saving.
+type: object
+additionalProperties: false
+required:
+  - type
+  - tradeDate
+properties:
+  interestBasis:
+    type:
+      - string
+      - 'null'
+    enum:
+      - NET_OF_MANAGEMENT_FEES
+      - GROSS_OF_MANAGEMENT_FEES
+      - UNKNOWN
+      - null
+  rateYear:
+    type:
+      - integer
+      - 'null'
+    description: From subscription year to trade-date year.
+  legs:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./PortfolioOperationLegInput.yaml
+  withheldIncomeTax:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  withheldSocialContributions:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  type:
+    type: string
+    description: >-
+      A `PortfolioOperationType`; `OTHER_CORPORATE_ACTION` is refused as
+      unsupported.
+    maxLength: 40
+  tradeDate:
+    type: string
+    format: date
+  settlementDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  instrumentId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  quantity:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  unitPrice:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  grossAmount:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  fees:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  taxes:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  costBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  counterInstrumentId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  counterQuantity:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  ratio:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - numerator
+          - denominator
+        properties:
+          numerator:
+            type: string
+            maxLength: 64
+          denominator:
+            type: string
+            maxLength: 64
+      - type: 'null'
+  costAllocationRatio:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  reference:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  note:
+    type:
+      - string
+      - 'null'
+    maxLength: 200
+  linkedTransactionId:
+    type:
+      - string
+      - 'null'
+    format: uuid

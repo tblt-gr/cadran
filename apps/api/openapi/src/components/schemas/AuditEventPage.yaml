@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - nextCursor
+properties:
+  items:
+    type: array
+    items:
+      $ref: ./AuditEvent.yaml
+  nextCursor:
+    description: Cursor for the following page, or null on the last page.
+    oneOf:
+      - type: string
+      - type: 'null'

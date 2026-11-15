@@ -1,0 +1,63 @@
+type: object
+additionalProperties: false
+required:
+  - groupId
+  - label
+  - value
+  - share
+  - reason
+  - parentId
+  - depth
+  - hasChildren
+  - directValue
+  - directShare
+  - directReason
+  - color
+properties:
+  groupId:
+    type: string
+    format: uuid
+  label:
+    type: string
+    description: The group's own name; the parent name is derived from parentId.
+  value:
+    type:
+      - string
+      - 'null'
+    description: Roll-up of the whole subtree.
+  share:
+    type:
+      - string
+      - 'null'
+  reason:
+    type:
+      - string
+      - 'null'
+  parentId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  depth:
+    type: integer
+    minimum: 1
+  hasChildren:
+    type: boolean
+  directValue:
+    type:
+      - string
+      - 'null'
+    description: Total of the accounts held directly by the group.
+  directShare:
+    type:
+      - string
+      - 'null'
+  directReason:
+    type:
+      - string
+      - 'null'
+  color:
+    type:
+      - string
+      - 'null'
+    description: Effective group color; null when unresolved.

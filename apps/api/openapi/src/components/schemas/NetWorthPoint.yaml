@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - 'on'
+  - total
+  - reason
+  - quality
+properties:
+  'on':
+    type: string
+    format: date
+  total:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  reason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  quality:
+    $ref: ./ValuationQuality.yaml

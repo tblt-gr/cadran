@@ -1,0 +1,45 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - dates
+properties:
+  code:
+    type: string
+    enum:
+      - NO_START_VALUATION
+      - NO_END_VALUATION
+      - START_VALUATION_PARTIAL
+      - END_VALUATION_PARTIAL
+      - UNVALUED_SECURITY_TRANSFER
+      - UNKNOWN_LOT_COST
+      - STALE_PRICES
+      - CASH_DIFFERENCE
+      - OBSERVED_TOTAL_DIFFERENCE
+      - POSITIONS_CHANGED
+      - NEGATIVE_SECURITIES_VALUE
+      - PERIOD_IN_PROGRESS
+      - BEFORE_TAKEOVER
+      - PERIOD_STARTS_AT_TAKEOVER
+      - DECOMPOSITION_RESIDUAL
+      - NO_INVESTED_CAPITAL
+      - NON_POSITIVE_DENOMINATOR
+      - DENOMINATOR_TOO_SMALL
+      - MONTH_NOT_CALCULABLE
+      - NON_POSITIVE_GROWTH_FACTOR
+      - TOO_MANY_PERIODS
+      - MISSING_FLOW_VALUATION
+      - STALE_FLOW_VALUATION
+      - ZERO_START_VALUE
+      - TOO_MANY_SUBPERIODS
+      - NO_SIGN_CHANGE
+      - NO_ROOT_IN_RANGE
+      - MULTIPLE_ROOTS
+      - NO_CONVERGENCE
+      - TOO_MANY_FLOWS
+  dates:
+    type: array
+    maxItems: 20
+    items:
+      type: string
+      format: date

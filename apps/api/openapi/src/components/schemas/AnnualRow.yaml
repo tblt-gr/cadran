@@ -1,0 +1,32 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - state
+  - closed
+  - snapshot
+  - policyVersion
+  - pendingCount
+  - cells
+properties:
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  state:
+    $ref: ./AnnualMonthState.yaml
+  closed:
+    type: boolean
+  snapshot:
+    description: True when the figures come from the frozen snapshot of the active closure.
+    type: boolean
+  policyVersion:
+    type:
+      - integer
+      - 'null'
+  pendingCount:
+    type: integer
+    minimum: 0
+  cells:
+    type: object
+    additionalProperties:
+      $ref: ./AnnualCell.yaml

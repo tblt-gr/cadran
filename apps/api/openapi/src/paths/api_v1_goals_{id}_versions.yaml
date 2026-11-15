@@ -1,0 +1,32 @@
+get:
+  operationId: listGoalVersions
+  x-cadran-bounded: At most 50 definitions are returned, newest first.
+  summary: List the append-only definition history of a goal
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: >-
+        At most 50 definitions, newest version number first, with
+        server-computed changes.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalVersionHistory.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,8 @@
+oneOf:
+  - type: string
+  - type: array
+    minItems: 12
+    maxItems: 12
+    items:
+      $ref: ./GoalDecimal.yaml
+  - type: 'null'

@@ -1,0 +1,86 @@
+x-cadran-asset-scope: >-
+  Amounts are in the asset of the goal (`assetCode` of the goal); the rate and
+  share values are ratios.
+type: object
+additionalProperties: false
+required:
+  - goalId
+  - month
+  - periodicity
+  - direction
+  - valueType
+  - goalVersion
+  - provisional
+  - metricPolicy
+  - ratio
+  - referenceIncome
+  - target
+  - actual
+  - gap
+  - status
+  - reason
+  - quality
+  - months
+properties:
+  goalId:
+    type: string
+    format: uuid
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  periodicity:
+    type: string
+    const: MONTHLY
+  direction:
+    $ref: ./GoalDirection.yaml
+  valueType:
+    oneOf:
+      - $ref: ./GoalValueType.yaml
+      - type: 'null'
+  goalVersion:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+    maximum: 50
+  provisional:
+    type: boolean
+  metricPolicy:
+    $ref: ./GoalStatusMetricPolicy.yaml
+  ratio:
+    $ref: ./GoalStatusValue.yaml
+  referenceIncome:
+    oneOf:
+      - $ref: ./GoalStatusReferenceIncome.yaml
+      - type: 'null'
+  target:
+    $ref: ./GoalStatusValue.yaml
+  actual:
+    $ref: ./GoalStatusValue.yaml
+  gap:
+    $ref: ./GoalStatusValue.yaml
+  status:
+    type: string
+    enum:
+      - MET
+      - MISSED
+      - WITHIN
+      - OVER
+      - NOT_CALCULABLE
+  reason:
+    $ref: ./GoalStatusReason.yaml
+  quality:
+    type: string
+    enum:
+      - COMPLETE
+      - PROVISIONAL
+      - PARTIAL
+      - EMPTY
+  months:
+    description: >-
+      The months of the read year from the goal start to the read month, each
+      compared with its own target (expectedPart).
+    type: array
+    maxItems: 12
+    items:
+      $ref: ./GoalStatusMonth.yaml

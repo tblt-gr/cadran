@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - operationId
+  - tradeDate
+  - sequence
+  - type
+  - quantityDelta
+  - costDelta
+  - lotId
+properties:
+  operationId:
+    type: string
+    format: uuid
+  tradeDate:
+    type: string
+    format: date
+  sequence:
+    type: integer
+    minimum: 1
+  type:
+    $ref: ./PortfolioOperationType.yaml
+  quantityDelta:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  costDelta:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  lotId:
+    type: string

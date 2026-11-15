@@ -1,0 +1,90 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - requestedOn
+  - asOf
+  - amount
+  - display
+  - belowDisplayStep
+  - source
+  - ageDays
+  - quality
+  - reconciliationStatus
+  - snapshotId
+  - version
+  - basis
+  - derivation
+  - reason
+properties:
+  accountId:
+    type: string
+    format: uuid
+  requestedOn:
+    type: string
+    format: date
+  asOf:
+    description: >-
+      Date the figure is valid on: the snapshot date, or the requested day for a
+      derived balance.
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  amount:
+    description: >-
+      Exact snapshot or derived figure. Null when the balance cannot be
+      calculated.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  display:
+    description: >-
+      Source figure rounded at the asset display boundary. Null when missing or
+      when a non-zero source would display as zero.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  belowDisplayStep:
+    type: boolean
+  source:
+    description: Source of the anchor snapshot.
+    oneOf:
+      - $ref: ./BalanceSnapshotSource.yaml
+      - type: 'null'
+  ageDays:
+    oneOf:
+      - type: integer
+        minimum: 0
+      - type: 'null'
+  quality:
+    $ref: ./ValuationQuality.yaml
+  reconciliationStatus:
+    oneOf:
+      - $ref: ./ReconciliationStatus.yaml
+      - type: 'null'
+  snapshotId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  version:
+    oneOf:
+      - type: integer
+        minimum: 1
+      - type: 'null'
+  basis:
+    oneOf:
+      - $ref: ./ValuationBasis.yaml
+      - type: 'null'
+  derivation:
+    oneOf:
+      - $ref: ./ValuationDerivation.yaml
+      - type: 'null'
+  reason:
+    description: Why a balance cannot be calculated from its anchor.
+    oneOf:
+      - type: string
+        enum:
+          - MIXED_ASSETS
+      - type: 'null'

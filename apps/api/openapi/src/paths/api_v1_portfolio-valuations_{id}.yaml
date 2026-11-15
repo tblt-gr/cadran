@@ -1,0 +1,30 @@
+get:
+  operationId: readPortfolioValuation
+  x-cadran-bounded: >-
+    Positions are instruments of the workspace, at most 500, and flags come from
+    a closed enumeration.
+  summary: Read one portfolio valuation
+  description: >-
+    Superseded and withdrawn valuations are returned as read-only history.
+    Unknown, malformed and foreign identifiers answer the same 404.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioValuationId.yaml
+  responses:
+    '200':
+      description: The valuation.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuation.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

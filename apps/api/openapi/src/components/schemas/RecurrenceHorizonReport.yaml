@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - recurrencesExamined
+  - occurrencesGenerated
+  - horizonEndsOn
+properties:
+  recurrencesExamined:
+    type: integer
+    minimum: 0
+    maximum: 1000
+  occurrencesGenerated:
+    type: integer
+    minimum: 0
+  horizonEndsOn:
+    type: string
+    format: date

@@ -1,0 +1,68 @@
+post:
+  operationId: reconcileTransaction
+  summary: Resolve a movement held for reconciliation review
+  description: >-
+    Applies the human decision on a pending movement carrying a `reviewReason`.
+    A named match is any pending transaction of the same account:
+    `reconciliationCandidateIds` is what the matching rule suggests, not a limit
+    on what the reviewer may choose. The named row is booked carrying the
+    reviewed movement's amount, date and external identifier — a row already
+    carrying a different identifier is refused rather than losing one of the two
+    — and the reviewed row is voided with a durable link back to it. A null
+    match books the reviewed row itself and clears its `reviewReason`. Every row
+    the resolution names is locked, so two reviewers cannot resolve the same
+    ambiguity into two contradictory outcomes.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ReconcileTransactionRequest.yaml
+  responses:
+    '200':
+      description: >-
+        The booked transaction: the settled candidate, or the reviewed movement
+        itself when no match was named.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The submitted version is stale (`type: /problems/stale-version`), the
+        transaction is not held for review, or the named match is not a pending
+        row of the same account (`type: /problems/transaction-conflict`). A
+        write that touches a closed period is refused with one stable problem,
+        whichever the use case (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

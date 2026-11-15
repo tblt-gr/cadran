@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - key
+  - label
+  - value
+  - share
+properties:
+  key: &ref_0
+    type: string
+  label: *ref_0
+  value: &ref_1
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  share: *ref_1

@@ -1,0 +1,56 @@
+description: >-
+  One published monthly figure with everything needed to challenge it. `kpi`
+  names the explanation endpoint when one addresses this figure; an
+  analytic-axis facet has none and carries its sources directly.
+type: object
+additionalProperties: false
+required:
+  - kpi
+  - value
+  - assetCode
+  - reason
+  - pendingCount
+  - sourceTransactionIds
+  - sourceTransferIds
+properties:
+  kpi:
+    type:
+      - string
+      - 'null'
+    enum:
+      - cashIncome
+      - budgetExpenses
+      - savingsInflows
+      - savingsWithdrawals
+      - netSavingsTransfers
+      - netSavingsRate
+      - null
+  value:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  assetCode:
+    type:
+      - string
+      - 'null'
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  reason:
+    oneOf:
+      - $ref: ./MonthlyProjectionReason.yaml
+      - type: 'null'
+  pendingCount:
+    type: integer
+    minimum: 0
+  sourceTransactionIds:
+    type: array
+    maxItems: 500
+    items:
+      type: string
+      format: uuid
+  sourceTransferIds:
+    type: array
+    maxItems: 5000
+    items:
+      type: string
+      format: uuid

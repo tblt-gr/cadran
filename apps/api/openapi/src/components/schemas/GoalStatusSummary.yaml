@@ -1,0 +1,8 @@
+oneOf:
+  - $ref: ./GoalYearlyStatusSummary.yaml
+  - $ref: ./GoalMonthlyStatusSummary.yaml
+discriminator:
+  propertyName: periodicity
+  mapping:
+    YEARLY: ./GoalYearlyStatusSummary.yaml
+    MONTHLY: ./GoalMonthlyStatusSummary.yaml

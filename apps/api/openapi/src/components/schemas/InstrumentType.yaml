@@ -1,0 +1,8 @@
+type: string
+enum:
+  - EQUITY
+  - ETF
+  - FUND
+  - BOND
+  - OTHER
+  - EURO_FUND

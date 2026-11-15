@@ -1,0 +1,45 @@
+type: object
+additionalProperties: false
+required:
+  - year
+  - today
+  - incompleteMonths
+  - metricPolicy
+  - columns
+  - rows
+  - aggregates
+  - charts
+  - quality
+  - previousYearHasData
+properties:
+  year:
+    type: integer
+  today:
+    type: string
+    format: date
+  incompleteMonths:
+    $ref: ./AnnualIncompleteMonths.yaml
+  metricPolicy:
+    $ref: ./AnnualPolicy.yaml
+  columns:
+    type: array
+    maxItems: 40
+    items:
+      $ref: ./AnnualColumn.yaml
+  rows:
+    type: array
+    minItems: 12
+    maxItems: 12
+    items:
+      $ref: ./AnnualRow.yaml
+  aggregates:
+    type: object
+    additionalProperties:
+      $ref: ./AnnualAggregate.yaml
+  charts:
+    $ref: ./AnnualCharts.yaml
+  quality:
+    $ref: ./AnnualAggregateQuality.yaml
+  previousYearHasData:
+    type: boolean
+    description: True when the year before has at least one month with data.

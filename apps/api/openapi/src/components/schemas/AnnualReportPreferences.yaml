@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - columns
+  - goalMarks
+  - incompleteMonths
+  - version
+properties:
+  columns:
+    type: array
+    uniqueItems: true
+    maxItems: 40
+    items:
+      type: string
+      maxLength: 80
+  incompleteMonths:
+    $ref: ./AnnualIncompleteMonths.yaml
+  goalMarks:
+    description: >-
+      Whether goals colour report figures and show their target. False for
+      unsaved preferences; existing saved choices are preserved.
+    type: boolean
+  version:
+    type: integer
+    minimum: 0

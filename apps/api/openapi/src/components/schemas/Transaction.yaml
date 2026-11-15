@@ -1,0 +1,220 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - amount
+  - originalAmount
+  - exchangeRate
+  - nature
+  - state
+  - source
+  - sourceRef
+  - bookedOn
+  - valueOn
+  - authorizedOn
+  - rawLabel
+  - userLabel
+  - displayLabel
+  - counterparty
+  - note
+  - paymentMethod
+  - mcc
+  - maskedCard
+  - bankReference
+  - splits
+  - version
+  - createdAt
+  - updatedAt
+  - voidedAt
+  - transferId
+  - refundOriginalId
+  - refundOriginalLabel
+  - refundedAmount
+  - reviewReason
+  - reconciliationCandidateIds
+  - reconciledIntoId
+  - autoBook
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  amount:
+    $ref: ./DecimalAmount.yaml
+  originalAmount:
+    description: Cross-asset figure carried beside the booked amount, or null.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  exchangeRate:
+    oneOf:
+      - type: string
+        pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  nature:
+    $ref: ./TransactionNature.yaml
+  state:
+    $ref: ./TransactionState.yaml
+  source:
+    $ref: ./TransactionSource.yaml
+  sourceRef:
+    description: >-
+      The provider's own identifier for this movement, when it announced one.
+      Unique per account where present.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 128
+      - type: 'null'
+  bookedOn:
+    type: string
+    format: date
+  valueOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  authorizedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  rawLabel:
+    type: string
+    minLength: 1
+    maxLength: 140
+    description: >-
+      Source label: the original wording of the bank or import, kept for
+      traceability. It can be corrected only for a manually entered transaction
+      and stays unchanged for imported or provider-sourced ones, whose editable
+      label is userLabel. Automatic categorization rules match this label.
+  userLabel:
+    description: >-
+      The user's own display label, or null when none is set. It is editable on
+      every transaction and never alters rawLabel.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 140
+      - type: 'null'
+  displayLabel:
+    type: string
+    minLength: 1
+    maxLength: 140
+    description: >-
+      The label shown and searched everywhere: userLabel when set, otherwise
+      rawLabel. Automatic categorization rules always match rawLabel, never
+      userLabel.
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  paymentMethod:
+    oneOf:
+      - $ref: ./PaymentMethod.yaml
+      - type: 'null'
+  mcc:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  maskedCard:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  bankReference:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 64
+      - type: 'null'
+  splits:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./TransactionSplit.yaml
+  version:
+    type: integer
+    minimum: 1
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  voidedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  transferId:
+    description: >-
+      Read-only. Set when this transaction is a transfer leg or its fee; editing
+      or voiding it then requires the transfer's own endpoint instead of this
+      one.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  refundOriginalId:
+    description: Read-only original transaction when this row is a linked refund.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  refundOriginalLabel:
+    description: Read-only original label when this row is a linked refund.
+    oneOf:
+      - type: string
+      - type: 'null'
+  refundedAmount:
+    description: Read-only sum of live linked refunds when this row is an original.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  reviewReason:
+    description: >-
+      Read-only. Why this pending movement waits for a human before it can be
+      booked. A row carrying one is excluded from every aggregate until `POST
+      /transactions/{id}/reconcile` resolves it.
+    oneOf:
+      - $ref: ./TransactionReviewReason.yaml
+      - type: 'null'
+  reconciliationCandidateIds:
+    description: >-
+      Read-only. The pending rows the matching rule could not choose between, as
+      a suggestion for the reviewer; the resolution accepts any pending row of
+      the account. No score is attached: the rule is deterministic, and a tie is
+      resolved by a human, not by a threshold. Empty when nothing was close
+      enough to suggest.
+    type: array
+    maxItems: 200
+    items:
+      type: string
+      format: uuid
+  reconciledIntoId:
+    description: >-
+      Read-only. Set on a voided reviewed movement: the transaction a human
+      confirmed it settles.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  autoBook:
+    type: boolean
+    description: >-
+      Read-only. True on a pending row planned for a later day of the current
+      month: the booking job books it on its date. Computed by the server; a
+      request body carrying it is refused.

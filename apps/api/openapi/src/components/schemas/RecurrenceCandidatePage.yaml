@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - partial
+properties:
+  items:
+    type: array
+    items:
+      $ref: ./RecurrenceCandidate.yaml
+  partial:
+    type: boolean
+    description: True when the detection stopped at its 5000-row bound.

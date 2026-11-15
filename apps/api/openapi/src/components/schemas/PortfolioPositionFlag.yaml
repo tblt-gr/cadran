@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - dates
+properties:
+  code:
+    type: string
+    enum:
+      - ORDER_DEPENDENT_DAY
+  dates:
+    type: array
+    items:
+      type: string
+      format: date

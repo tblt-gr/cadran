@@ -1,0 +1,7 @@
+description: >-
+  Null for a value nobody published — one read from a workspace product model,
+  and one claimed by an account override. Grading the freshness of a figure the
+  holder typed would fabricate a provenance it never had.
+oneOf:
+  - $ref: ./RuleVerification.yaml
+  - type: 'null'

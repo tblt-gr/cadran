@@ -1,0 +1,75 @@
+description: >-
+  Chained monthly Modified Dietz return of the 12 complete calendar months
+  before the current workspace month. The chain starts at the later of the
+  opening month and the month of the first operation; earlier months have a null
+  index. A month without rate, or a growth factor at or below zero, breaks the
+  chain from that month on.
+type: object
+additionalProperties: false
+required:
+  - months
+  - from
+  - to
+  - cumulativeReturn
+  - reason
+  - reasonMonth
+properties:
+  months:
+    description: Base-100 index at each month end, two decimals, oldest first.
+    type: array
+    minItems: 12
+    maxItems: 12
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - month
+        - index
+      properties:
+        month:
+          type: string
+          pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+        index:
+          type:
+            - string
+            - 'null'
+          pattern: ^-?[0-9]+\.[0-9]{2}$
+  from:
+    description: First chained month, null when nothing chains.
+    type:
+      - string
+      - 'null'
+    pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+  to:
+    description: Last month of the window.
+    type: string
+    pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+  cumulativeReturn:
+    description: >-
+      Last unrounded index over 100 minus one, 6 decimals half-even (0.019494 =
+      1.9494 %); null unless the last month carries an index.
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+\.[0-9]{6}$
+  reason:
+    description: >-
+      Why cumulativeReturn is null. TOO_MANY_OPERATIONS means the account
+      history exceeds the performance read bound; every index is then null.
+    type:
+      - string
+      - 'null'
+    enum:
+      - null
+      - NO_HISTORY
+      - MISSING_MONTH
+      - NON_POSITIVE_GROWTH_FACTOR
+      - TOO_MANY_OPERATIONS
+  reasonMonth:
+    description: >-
+      The month that broke the chain, for MISSING_MONTH and
+      NON_POSITIVE_GROWTH_FACTOR.
+    type:
+      - string
+      - 'null'
+    pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$

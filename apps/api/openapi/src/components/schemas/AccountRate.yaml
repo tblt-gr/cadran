@@ -1,0 +1,44 @@
+description: >-
+  One authority's rate for the account, always as a bracket scale. The products
+  the catalogue ships today resolve to a single bracket running from zero
+  without limit, so a tiered product arrives later as data rather than as a
+  second way of reading a rate.
+type: object
+additionalProperties: false
+required:
+  - guaranteed
+  - application
+  - brackets
+  - validFrom
+  - validTo
+  - verification
+  - source
+  - claim
+properties:
+  guaranteed:
+    description: >-
+      Whether the rate is owed to the holder. A revisable rate is only the rate
+      published today and is never an acquired return. A local claim is graded
+      by the promise of the product behind it, never by its own say-so.
+    type: boolean
+  application:
+    $ref: ./RateApplication.yaml
+  brackets:
+    description: >-
+      The slices the scale is made of, in order. They tile the amounts they
+      cover: the first starts at zero, each one starts where the previous ended,
+      and the last runs without limit.
+    type: array
+    minItems: 1
+    items:
+      $ref: ./RateBracket.yaml
+  validFrom:
+    $ref: ./RuleValidFrom.yaml
+  validTo:
+    $ref: ./RuleValidTo.yaml
+  verification:
+    $ref: ./DeclaredOrVerified.yaml
+  source:
+    $ref: ./DeclaredOrSourced.yaml
+  claim:
+    $ref: ./AccountRuleClaimOrNull.yaml

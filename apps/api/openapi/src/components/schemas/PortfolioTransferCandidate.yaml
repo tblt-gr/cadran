@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+required:
+  - transactionId
+  - bookedOn
+  - amount
+  - label
+properties:
+  transactionId:
+    type: string
+    format: uuid
+  bookedOn:
+    type: string
+    format: date
+  amount:
+    $ref: ./DecimalAmount.yaml
+  label:
+    type:
+      - string
+      - 'null'

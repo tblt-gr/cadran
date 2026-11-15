@@ -1,0 +1,96 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - method
+  - quality
+  - reasons
+  - from
+  - to
+  - days
+  - sources
+  - sourceCount
+  - startValue
+  - endValue
+  - netFlows
+  - decomposition
+  - methodVersion
+  - costPolicy
+  - inputs
+  - freshness
+properties:
+  value:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  method:
+    type: string
+    enum:
+      - TOTAL_GAIN
+  quality:
+    type: string
+    enum:
+      - EXACT
+      - APPROXIMATION
+      - DEGRADED
+      - NOT_CALCULABLE
+  reasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml
+  from:
+    type:
+      - string
+      - 'null'
+    format: date
+  to:
+    type:
+      - string
+      - 'null'
+    format: date
+  days:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+  sources:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./PortfolioOverviewSource.yaml
+  sourceCount:
+    type: integer
+    minimum: 0
+  startValue:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  endValue:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  netFlows:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  decomposition:
+    $ref: ./PortfolioGainDecomposition.yaml
+  methodVersion:
+    type: string
+    enum:
+      - PERF-1
+  costPolicy:
+    type: string
+    enum:
+      - NET_OF_FEES_AND_TAXES
+  freshness:
+    $ref: ./PortfolioPerformanceFreshness.yaml
+  inputs:
+    type: object
+    additionalProperties: false
+    description: >-
+      Values the gain is made of; null when the period has no anchor to read
+      them from.
+    required:
+      - startValue
+      - endValue
+      - netFlows
+    properties:
+      startValue:
+        $ref: ./PortfolioPerformanceAmount.yaml
+      endValue:
+        $ref: ./PortfolioPerformanceAmount.yaml
+      netFlows:
+        $ref: ./PortfolioPerformanceAmount.yaml

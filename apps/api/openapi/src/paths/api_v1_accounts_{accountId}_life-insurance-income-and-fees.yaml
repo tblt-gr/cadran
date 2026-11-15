@@ -1,0 +1,46 @@
+get:
+  operationId: readLifeInsuranceIncomeAndFees
+  x-cadran-bounded: >-
+    Quality issues are one entry per issue code and, for a missing euro-fund
+    rate, one per instrument (at most 500).
+  summary: Read observed annual contract income and deductions
+  description: >-
+    Active operations in the trade-date year. Amounts and tax kinds are
+    observed, never inferred from rates. At most 2000 operations, 20 sources and
+    20 operation IDs per quality issue. Each missing served-rate issue
+    identifies one euro-fund and rate-year pair.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: year
+      in: query
+      required: true
+      schema:
+        type: integer
+      description: From the subscription year to the current workspace year.
+  responses:
+    '200':
+      description: Observed income, fees, taxes and evidence quality.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceIncomeAndFees.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        Invalid year, non-insurance account, missing contract or too many
+        operations.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

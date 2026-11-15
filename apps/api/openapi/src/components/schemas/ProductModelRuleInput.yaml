@@ -1,0 +1,57 @@
+description: >-
+  One dated period as a client submits it. The body carries exactly these
+  fields; the parser decides which value shape the kind requires and refuses the
+  others. Decimals travel as canonical strings — a rate sent as a JSON number is
+  refused rather than rounded.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - amount
+  - amountAssetCode
+  - text
+  - rateApplication
+  - brackets
+  - validFrom
+  - validTo
+properties:
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  amount:
+    description: >-
+      A ceiling amount as a canonical decimal string, or null for a non-ceiling
+      kind.
+    oneOf:
+      - type: string
+        pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  amountAssetCode:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]{1,11}$
+      - type: 'null'
+  text:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+      - type: 'null'
+  rateApplication:
+    oneOf:
+      - $ref: ./RateApplication.yaml
+      - type: 'null'
+  brackets:
+    description: >-
+      One or more brackets for a rate kind, empty otherwise. A single rate is
+      the one-bracket case running from zero without limit.
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./RateBracket.yaml
+  validFrom:
+    type: string
+    format: date
+  validTo:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'

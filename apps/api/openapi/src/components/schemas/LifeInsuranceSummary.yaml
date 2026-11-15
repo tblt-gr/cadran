@@ -1,0 +1,245 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - assetCode
+  - contract
+  - valuation
+  - allocation
+  - cumulative
+  - gainSinceOpening
+  - supports
+  - taxYears
+  - contractAge
+  - taxEstimate
+  - qualityIssues
+properties:
+  asOf:
+    type: string
+    format: date
+  assetCode:
+    type: string
+  contract:
+    oneOf:
+      - $ref: ./LifeInsuranceContract.yaml
+      - type: 'null'
+  valuation:
+    oneOf:
+      - $ref: ./LifeInsuranceSummaryValuation.yaml
+      - type: 'null'
+  allocation:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - items
+    properties:
+      status:
+        type: string
+        enum:
+          - AVAILABLE
+          - NOT_DETAILED
+          - NO_VALUATION
+      items:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - kind
+            - value
+            - share
+          properties:
+            kind:
+              type: string
+              enum:
+                - EURO_FUND
+                - UNIT_LINKED
+                - CASH
+            value:
+              type: string
+              pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+            share:
+              type:
+                - string
+                - 'null'
+              pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        maxItems: 3
+  cumulative:
+    type: object
+    additionalProperties: false
+    required:
+      - premiums
+      - surrendersGross
+      - surrendersNetPaid
+      - fees
+      - withheldTaxes
+      - interestCredited
+      - profitSharing
+      - sources
+      - sourceCount
+    properties:
+      premiums:
+        type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      surrendersGross:
+        type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      surrendersNetPaid:
+        type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      fees:
+        type: object
+        additionalProperties: false
+        required:
+          - ENTRY
+          - MANAGEMENT
+          - SWITCH
+          - SURRENDER
+          - OTHER
+          - total
+        properties:
+          ENTRY:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          MANAGEMENT:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          SWITCH:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          SURRENDER:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          OTHER:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          total:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      withheldTaxes:
+        type: object
+        additionalProperties: false
+        required:
+          - INCOME_TAX
+          - SOCIAL_CONTRIBUTIONS
+          - OTHER
+          - total
+        properties:
+          INCOME_TAX:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          SOCIAL_CONTRIBUTIONS:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          OTHER:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          total:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      interestCredited:
+        type: object
+        additionalProperties: false
+        required:
+          - gross
+          - net
+        properties:
+          gross:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          net:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      profitSharing:
+        type: object
+        additionalProperties: false
+        required:
+          - gross
+          - net
+        properties:
+          gross:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          net:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      sources:
+        type: array
+        items:
+          $ref: ./PortfolioOverviewSource.yaml
+        maxItems: 20
+      sourceCount:
+        type: integer
+        minimum: 0
+  gainSinceOpening:
+    $ref: ./PortfolioGainFigure.yaml
+  supports:
+    type: array
+    items:
+      $ref: ./LifeInsuranceSummarySupport.yaml
+  taxYears:
+    type: array
+    items:
+      $ref: ./LifeInsuranceTaxYear.yaml
+    maxItems: 60
+  contractAge:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - taxStartOn
+          - years
+          - months
+        properties:
+          taxStartOn:
+            type: string
+            format: date
+          years:
+            type: integer
+            minimum: 0
+          months:
+            type: integer
+            minimum: 0
+            maximum: 11
+      - type: 'null'
+  taxEstimate:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - ruleSetId
+    properties:
+      status:
+        type: string
+        const: NO_RULE_SET
+      ruleSetId:
+        type: 'null'
+  qualityIssues:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - operationIds
+        - count
+      properties:
+        code:
+          type: string
+          enum:
+            - INTEREST_BASIS_UNKNOWN
+            - MISSING_EURO_FUND_RATE
+            - STALE_VALUATION
+            - NO_VALUATION
+            - NOT_DETAILED
+            - RATE_NOT_UPDATED
+        operationIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 20
+        count:
+          type: integer
+          minimum: 1

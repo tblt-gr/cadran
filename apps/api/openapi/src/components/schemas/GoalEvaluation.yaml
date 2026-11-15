@@ -1,0 +1,122 @@
+x-cadran-asset-scope: Amounts are in the asset of the goal (`assetCode` of each figure).
+type: object
+additionalProperties: false
+required:
+  - goalId
+  - label
+  - periodicity
+  - metric
+  - scopeType
+  - scopeRef
+  - direction
+  - valueType
+  - columnKey
+  - target
+  - achieved
+  - gap
+  - status
+  - reason
+  - formula
+  - versionNo
+  - overrides
+  - pace
+  - tolerance
+  - withinTolerance
+properties:
+  goalId:
+    type: string
+    format: uuid
+  label:
+    type: string
+    maxLength: 80
+  periodicity:
+    $ref: ./GoalPeriodicity.yaml
+  metric:
+    $ref: ./GoalMetric.yaml
+  scopeType:
+    $ref: ./GoalScopeType.yaml
+  scopeRef:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  direction:
+    $ref: ./GoalDirection.yaml
+  valueType:
+    $ref: ./GoalValueType.yaml
+  columnKey:
+    description: >-
+      The identifier of the report column showing the same figure; null for
+      account contributions.
+    type:
+      - string
+      - 'null'
+    maxLength: 80
+  start:
+    oneOf:
+      - $ref: ./GoalEvaluationFigure.yaml
+      - type: 'null'
+  valuationDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  valuationQuality:
+    type:
+      - string
+      - 'null'
+  explanationUrl:
+    type:
+      - string
+      - 'null'
+  target:
+    oneOf:
+      - $ref: ./GoalEvaluationFigure.yaml
+      - type: 'null'
+  achieved:
+    oneOf:
+      - $ref: ./GoalEvaluationFigure.yaml
+      - type: 'null'
+  gap:
+    description: >-
+      Signed so that a positive gap is in the goal's favour; null when the
+      target or the achieved value is.
+    $ref: ./GoalStatusValue.yaml
+  status:
+    $ref: ./GoalEvaluationStatus.yaml
+  reason:
+    oneOf:
+      - $ref: ./GoalEvaluationReason.yaml
+      - type: 'null'
+  formula:
+    $ref: ./GoalEvaluationFormula.yaml
+  versionNo:
+    type: integer
+    minimum: 1
+    maximum: 50
+  overrides:
+    type: array
+    maxItems: 500
+    items:
+      type: string
+      format: uuid
+  pace:
+    oneOf:
+      - $ref: ./GoalEvaluationPace.yaml
+      - type: 'null'
+  tolerance:
+    description: >-
+      The margin accepted around the target, in the same figure shape as target;
+      null when the goal is strict.
+    oneOf:
+      - $ref: ./GoalEvaluationFigure.yaml
+      - type: 'null'
+  withinTolerance:
+    description: >-
+      True when the achieved value is on the wrong side of the target yet inside
+      the margin (a running minimum is judged on the bound too); false for a
+      strict goal or a value on the right side; null when the evaluation is not
+      calculable. The status is the server's.
+    type:
+      - boolean
+      - 'null'

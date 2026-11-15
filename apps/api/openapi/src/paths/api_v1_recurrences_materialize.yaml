@@ -1,0 +1,42 @@
+post:
+  operationId: materializeRecurrences
+  x-cadran-idempotency: >-
+    Every instalment has at most one generated transaction, so a replay creates
+    and books nothing new.
+  summary: Create the current month transactions of the auto-create recurrences
+  description: >-
+    For every active recurrence with autoCreate on, creates one transaction per
+    instalment dated in the current calendar month that has none yet (pending
+    when dated after today, booked otherwise) and books the generated pending
+    transactions that are due. Nothing is created for a later month. An
+    instalment in a closed period is skipped and counted. Idempotent and bounded
+    to 1000 recurrences and 500 instalments each.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/EmptyRequest.yaml
+  responses:
+    '200':
+      description: Materialisation counts.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MaterializeRecurrencesResult.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

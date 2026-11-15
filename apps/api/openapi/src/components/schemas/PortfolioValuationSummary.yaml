@@ -1,0 +1,58 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - valuedOn
+  - detail
+  - source
+  - totalValue
+  - cash
+  - securitiesValue
+  - completeness
+  - priceQuality
+  - flags
+  - version
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  valuedOn:
+    type: string
+    format: date
+  detail:
+    $ref: ./PortfolioValuationDetail.yaml
+  source:
+    type: string
+    enum:
+      - MANUAL
+      - IMPORT
+  totalValue:
+    description: 'Null when the valuation is partial: never zero by default.'
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  cash:
+    $ref: ./DecimalAmount.yaml
+  securitiesValue:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  completeness:
+    type: string
+    enum:
+      - COMPLETE
+      - PARTIAL
+  priceQuality:
+    description: The worst quality among the positions.
+    $ref: ./PortfolioPriceQuality.yaml
+  flags:
+    type: array
+    items:
+      $ref: ./PortfolioValuationFlag.yaml
+  version:
+    type: integer
+    minimum: 1

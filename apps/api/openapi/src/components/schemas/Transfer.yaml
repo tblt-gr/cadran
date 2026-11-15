@@ -1,0 +1,45 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - source
+  - target
+  - fee
+  - exchangeRate
+  - version
+  - createdAt
+  - updatedAt
+  - voidedAt
+properties:
+  id:
+    type: string
+    format: uuid
+  source:
+    $ref: ./Transaction.yaml
+  target:
+    $ref: ./Transaction.yaml
+  fee:
+    description: The separate FEE transaction on the source account, or null.
+    oneOf:
+      - $ref: ./Transaction.yaml
+      - type: 'null'
+  exchangeRate:
+    description: Derived rate for a cross-asset transfer, or null for a same-asset one.
+    oneOf:
+      - type: string
+        pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  voidedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'

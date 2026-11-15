@@ -1,0 +1,63 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - periodicity
+  - metric
+  - scope
+  - startPeriod
+  - valueType
+properties:
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  periodicity:
+    $ref: ./GoalPeriodicity.yaml
+  direction:
+    description: Optional direction for stock goals only; defaults to MINIMUM.
+    $ref: ./GoalDirection.yaml
+  metric:
+    $ref: ./GoalMetric.yaml
+  scope:
+    $ref: ./GoalScopeInput.yaml
+  startPeriod:
+    $ref: ./GoalPeriod.yaml
+  endPeriod:
+    description: >-
+      Null for a recurring goal without end; equal to startPeriod for a one-off
+      goal; never before startPeriod. A period outside its periodicity format
+      answers 400.
+    oneOf:
+      - $ref: ./GoalPeriod.yaml
+      - type: 'null'
+  valueType:
+    description: >-
+      A value type the metric or periodicity does not take (an amount for a
+      savings rate, a rolling share on a yearly goal) answers 400.
+    $ref: ./GoalValueType.yaml
+  targetAmount:
+    description: Required with AMOUNT, refused otherwise.
+    oneOf:
+      - $ref: ./GoalAmountInput.yaml
+      - type: 'null'
+  ratio:
+    description: Required with the three other value types, refused with AMOUNT.
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  schedule:
+    description: >-
+      Monthly calendar of a yearly flow amount goal; LINEAR when omitted.
+      Refused for stock goals and every other goal.
+    oneOf:
+      - $ref: ./GoalScheduleInput.yaml
+      - type: 'null'
+  tolerance:
+    description: >-
+      Optional margin around the target in the unit of the target, between 0 and
+      the target; omitted or null means 0 (strict). A negative value or one
+      above the target answers 422 invalid_goal_tolerance.
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'

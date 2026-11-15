@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - versionNo
+  - effectiveFrom
+  - valueType
+  - targetAmount
+  - ratio
+  - tolerance
+  - schedule
+properties:
+  versionNo:
+    type: integer
+    minimum: 1
+    maximum: 50
+  effectiveFrom:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  valueType:
+    $ref: ./GoalValueType.yaml
+  targetAmount:
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  ratio:
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  tolerance:
+    description: >-
+      Margin accepted around the target, in the unit of the target (an amount in
+      the goal asset for AMOUNT, a ratio otherwise); `0` is a strict goal.
+    $ref: ./GoalDecimal.yaml
+  schedule:
+    description: >-
+      Twelve monthly parts summing exactly to targetAmount; null for every goal
+      but a yearly amount goal, or for a pre-schedule version whose target could
+      not be split (not calculable).
+    oneOf:
+      - $ref: ./GoalSchedule.yaml
+      - type: 'null'

@@ -1,0 +1,21 @@
+description: >-
+  Raised when an income, expense, refund or fee would be booked on an account
+  valued by its portfolio, which would count the same money twice. Record a
+  portfolio operation instead; transfers and adjustments stay allowed.
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+      - accountId
+    properties:
+      type:
+        const: /problems/portfolio-account-requires-operations
+      status:
+        const: 422
+      code:
+        type: string
+        const: portfolio_account_requires_operations
+      accountId:
+        type: string
+        format: uuid

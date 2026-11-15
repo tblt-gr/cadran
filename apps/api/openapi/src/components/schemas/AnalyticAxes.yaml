@@ -1,0 +1,12 @@
+type: array
+uniqueItems: true
+maxItems: 6
+items:
+  type: string
+  enum:
+    - DISCRETIONARY
+    - ESSENTIAL
+    - FIXED
+    - PERSONAL
+    - PROFESSIONAL
+    - VARIABLE

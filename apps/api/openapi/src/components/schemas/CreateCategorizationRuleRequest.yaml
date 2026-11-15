@@ -1,0 +1,49 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - priority
+  - accountScope
+  - conditions
+  - targetCategoryId
+  - targetAxes
+  - targetCounterparty
+  - effectiveFrom
+  - effectiveTo
+properties:
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  priority:
+    type: integer
+    minimum: 1
+    maximum: 999
+  accountScope:
+    type: array
+    maxItems: 20
+    uniqueItems: true
+    items:
+      type: string
+      format: uuid
+  conditions:
+    $ref: ./CategorizationRuleConditions.yaml
+  targetCategoryId:
+    type: string
+    format: uuid
+  targetAxes:
+    $ref: ./AnalyticAxes.yaml
+  targetCounterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  effectiveFrom:
+    type: string
+    format: date
+  effectiveTo:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'

@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - mode
+  - value
+properties:
+  mode:
+    type: string
+    enum:
+      - SAME
+  value:
+    type: string
+    maxLength: 140

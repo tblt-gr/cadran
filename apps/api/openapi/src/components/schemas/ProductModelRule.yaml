@@ -1,0 +1,54 @@
+description: >-
+  One dated period of a model. Exactly one value shape is set, decided by the
+  rule kind: an `amount` for a ceiling, a bracket scale for a rate, a `text`
+  token for a method or a term. A null `validTo` is in force with no known end
+  and is never rendered as an expiry or a zero.
+type: object
+additionalProperties: false
+required:
+  - id
+  - kind
+  - valueType
+  - amount
+  - text
+  - rateApplication
+  - brackets
+  - validFrom
+  - validTo
+properties:
+  id:
+    type: string
+    format: uuid
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  valueType:
+    $ref: ./RuleValueType.yaml
+  amount:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  text:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+      - type: 'null'
+  rateApplication:
+    oneOf:
+      - $ref: ./RateApplication.yaml
+      - type: 'null'
+  brackets:
+    description: >-
+      The slices a rate scale is made of, in order; empty for a ceiling or a
+      term. They tile `[0, +∞[`: the first starts at zero, each starts where the
+      previous ended, and the last runs without limit.
+    type: array
+    items:
+      $ref: ./RateBracket.yaml
+  validFrom:
+    type: string
+    format: date
+  validTo:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'

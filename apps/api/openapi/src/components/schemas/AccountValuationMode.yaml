@@ -1,0 +1,9 @@
+description: >-
+  Where the value of the account comes from: recorded movements, dated
+  valuations entered by hand, or portfolio positions. Only an account kind that
+  holds positions accepts `PORTFOLIO`.
+type: string
+enum:
+  - TRANSACTIONS
+  - SNAPSHOTS
+  - PORTFOLIO

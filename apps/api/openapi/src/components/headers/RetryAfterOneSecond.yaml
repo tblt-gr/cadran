@@ -1,0 +1,4 @@
+description: Present only for a retryable `/problems/idempotency.in_flight` response.
+schema:
+  type: string
+  const: '1'

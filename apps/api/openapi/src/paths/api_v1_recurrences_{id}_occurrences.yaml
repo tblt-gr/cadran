@@ -1,0 +1,47 @@
+get:
+  operationId: listRecurrenceOccurrences
+  x-cadran-bounded: >-
+    The window is at most 60 months and the server returns at most 1000
+    occurrences.
+  summary: List stored occurrence snapshots with their effective read-time status
+  description: >-
+    LATE is computed in the workspace timezone and is never persisted by this
+    GET.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: from
+      in: query
+      schema:
+        type: string
+        format: date
+    - name: to
+      in: query
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: Stored occurrence snapshots in expected-date order.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/RecurrenceOccurrencePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

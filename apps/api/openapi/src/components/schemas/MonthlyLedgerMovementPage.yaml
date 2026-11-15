@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - nextCursor
+  - hasMore
+  - pageSize
+properties:
+  items:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./MonthlyLedgerMovement.yaml
+  nextCursor:
+    type:
+      - string
+      - 'null'
+    maxLength: 512
+  hasMore:
+    type: boolean
+  pageSize:
+    type: integer
+    minimum: 1
+    maximum: 100

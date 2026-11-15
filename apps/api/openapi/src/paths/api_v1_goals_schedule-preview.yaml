@@ -1,0 +1,43 @@
+get:
+  operationId: previewGoalSchedule
+  summary: Compute the linear monthly parts of an annual target without saving anything
+  description: >-
+    Parts 1 to 11 are the target divided by twelve, rounded HALF_UP at the
+    display precision of the workspace currency; December takes the exact
+    residual so the parts sum to the target.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: target
+      in: query
+      required: true
+      schema:
+        $ref: ../components/schemas/GoalDecimal.yaml
+    - name: mode
+      in: query
+      required: true
+      schema:
+        type: string
+        enum:
+          - LINEAR
+  responses:
+    '200':
+      description: The twelve backend-computed parts with exact running totals.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalSchedulePreview.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: The target is malformed, too small or finer than the currency precision.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

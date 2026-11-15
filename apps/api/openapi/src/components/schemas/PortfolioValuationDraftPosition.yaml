@@ -1,0 +1,44 @@
+x-cadran-asset-scope: The last price is in the currency of the instrument.
+type: object
+additionalProperties: false
+required:
+  - instrument
+  - quantity
+  - lastPrice
+  - lastPriceDate
+  - lastPriceOrigin
+properties:
+  instrument:
+    $ref: ./PortfolioValuationInstrument.yaml
+  quantity:
+    type: string
+  lastPrice:
+    type:
+      - string
+      - 'null'
+  lastPriceDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  lastPriceOrigin:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - kind
+          - id
+          - date
+        properties:
+          kind:
+            type: string
+            enum:
+              - VALUATION
+              - OPERATION
+          id:
+            type: string
+            format: uuid
+          date:
+            type: string
+            format: date
+      - type: 'null'

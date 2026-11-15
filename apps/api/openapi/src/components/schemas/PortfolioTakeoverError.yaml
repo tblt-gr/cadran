@@ -1,0 +1,35 @@
+type: object
+additionalProperties: false
+required:
+  - line
+  - field
+  - code
+properties:
+  line:
+    description: The 1-based line concerned, null for the request.
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+  field:
+    type: string
+    enum:
+      - takenOverOn
+      - lines
+      - cash
+      - instrumentId
+      - quantity
+      - costBasis
+      - price
+      - priceDate
+      - body
+  code:
+    description: >-
+      A stable code: `invalid_date`, `before_account_opening`, `in_the_future`,
+      `lines_count`, `unknown_instrument`, `instrument_inactive`,
+      `instrument_currency_mismatch`, `duplicate_instrument`, `invalid_decimal`,
+      `precision_exceeded`, `not_positive`, `negative`,
+      `quantity_precision_exceeded`, `price_precision_exceeded`,
+      `price_date_after_takeover`, `value_too_large`, `invalid_payload`, or the
+      code of the operation rule that refused the line.
+    type: string

@@ -1,0 +1,8 @@
+type: string
+enum:
+  - INCOME
+  - EXPENSE
+  - TRANSFER
+  - REFUND
+  - FEE
+  - ADJUSTMENT

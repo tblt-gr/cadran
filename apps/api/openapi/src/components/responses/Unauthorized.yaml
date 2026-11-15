@@ -1,0 +1,5 @@
+description: The request carries no authenticated session.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

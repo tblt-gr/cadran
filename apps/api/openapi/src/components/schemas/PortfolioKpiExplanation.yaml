@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - period
+  - quality
+  - reason
+  - sources
+  - truncatedSourceCount
+properties:
+  period:
+    $ref: ./PortfolioOverviewPeriod.yaml
+  quality:
+    type: string
+  reason:
+    type:
+      - string
+      - 'null'
+  sources:
+    type: array
+    items:
+      $ref: ./PortfolioOverviewSource.yaml
+    maxItems: 50
+  truncatedSourceCount:
+    type: integer
+    minimum: 0

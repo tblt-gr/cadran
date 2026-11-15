@@ -1,0 +1,10 @@
+description: >-
+  Bounded structured attributes, or null when the event has no such side.
+  Sensitive attribute values are stored redacted, never in clear.
+oneOf:
+  - type: object
+    additionalProperties:
+      oneOf:
+        - type: string
+        - type: 'null'
+  - type: 'null'

@@ -1,0 +1,30 @@
+description: >-
+  Figures over the positions whose cost AND value are both known, published
+  beside a null full cost (`UNKNOWN_LOT_COST`). They are never the total:
+  `excludedCount` positions (value `excludedValue`) are left out.
+type: object
+additionalProperties: false
+required:
+  - securitiesValue
+  - costBasis
+  - unrealizedGain
+  - performance
+  - excludedCount
+  - excludedValue
+properties:
+  securitiesValue:
+    $ref: ./HoldingsDecimal.yaml
+  costBasis:
+    $ref: ./HoldingsDecimal.yaml
+  unrealizedGain:
+    $ref: ./HoldingsDecimal.yaml
+  performance:
+    $ref: ./HoldingsNullableDecimal.yaml
+  excludedCount:
+    type: integer
+    minimum: 1
+  excludedValue:
+    description: >-
+      Sum of the values of the excluded positions, null when one of them is
+      unknown.
+    $ref: ./HoldingsNullableDecimal.yaml

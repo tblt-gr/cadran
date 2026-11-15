@@ -1,0 +1,72 @@
+description: >-
+  One contributing account. `amount` is the stored figure as it appears on a
+  statement; `signedAmount` is what it adds to net worth.
+type: object
+additionalProperties: false
+required:
+  - primaryGroupColor
+  - accountId
+  - label
+  - kind
+  - netWorthSign
+  - primaryGroupId
+  - primaryGroupLabel
+  - eligible
+  - amount
+  - signedAmount
+  - quality
+  - ageDays
+  - valuedOn
+  - share
+properties:
+  primaryGroupColor:
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  kind:
+    $ref: ./AccountKind.yaml
+  netWorthSign:
+    type: integer
+    enum:
+      - -1
+      - 1
+  primaryGroupId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  primaryGroupLabel:
+    oneOf:
+      - type: string
+      - type: 'null'
+  eligible:
+    description: Open on the requested day and included in net worth.
+    type: boolean
+  amount:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  signedAmount:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  quality:
+    $ref: ./ValuationQuality.yaml
+  ageDays:
+    oneOf:
+      - type: integer
+        minimum: 0
+      - type: 'null'
+  valuedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml

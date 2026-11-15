@@ -1,0 +1,31 @@
+get:
+  operationId: getTransactionRefundable
+  summary: Read the remaining refundable amount and proposed category allocation
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The refundable balance of an expense or fee.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/RefundableTransaction.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

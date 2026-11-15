@@ -1,0 +1,16 @@
+x-cadran-asset-scope: Amounts are in the workspace currency, as the operation description states.
+type: object
+additionalProperties: false
+required:
+  - monthIndex
+  - amount
+  - cumulative
+properties:
+  monthIndex:
+    type: integer
+    minimum: 1
+    maximum: 12
+  amount:
+    $ref: ./GoalDecimal.yaml
+  cumulative:
+    $ref: ./GoalDecimal.yaml

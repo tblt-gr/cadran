@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+required:
+  - field
+  - before
+  - after
+properties:
+  field:
+    type: string
+    enum:
+      - valueType
+      - targetAmount
+      - ratio
+      - tolerance
+      - scheduleMode
+      - schedule
+  before:
+    $ref: ./GoalVersionChangeValue.yaml
+  after:
+    $ref: ./GoalVersionChangeValue.yaml

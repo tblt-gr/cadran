@@ -1,0 +1,57 @@
+post:
+  operationId: archiveAccountGroup
+  summary: Archive an unused account group
+  description: >-
+    Archives a group that has no children and is not referenced by an account.
+    Archived groups are read-only.
+  tags:
+    - Account groups
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ArchiveAccountGroupRequest.yaml
+  responses:
+    '200':
+      description: The archived group.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountGroup.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: The submitted version is stale.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The group is already archived, has children or is referenced.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

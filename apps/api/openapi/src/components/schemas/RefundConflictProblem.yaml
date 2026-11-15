@@ -1,0 +1,15 @@
+description: >-
+  Raised by the refund creation endpoint when the original is already fully
+  refunded (`type: /problems/refund.already_settled`) or the requested amount
+  exceeds what remains (`type: /problems/refund.exceeds_refundable`).
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - remaining
+    properties:
+      status:
+        const: 409
+      remaining:
+        description: What remains refundable on the original, before this request.
+        $ref: ./DecimalAmount.yaml

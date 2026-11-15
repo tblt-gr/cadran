@@ -1,0 +1,5 @@
+description: The endpoint requires an application/json request body.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

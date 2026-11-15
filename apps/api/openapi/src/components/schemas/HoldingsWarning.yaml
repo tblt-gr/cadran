@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - accountIds
+properties:
+  code:
+    type: string
+    enum:
+      - MIXED_VALUATION_DATES
+      - STALE_PRICES
+      - POSITIONS_CHANGED
+      - TRUNCATED_ACCOUNTS
+  accountIds:
+    type: array
+    maxItems: 50
+    items:
+      type: string
+      format: uuid

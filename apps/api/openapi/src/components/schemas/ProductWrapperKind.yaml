@@ -1,0 +1,12 @@
+description: >-
+  The regulatory or contractual envelope a product sits in. Shared by the system
+  catalogue and the product models a workspace describes itself.
+type: string
+enum:
+  - NONE
+  - REGULATED_SAVINGS
+  - TAX_WRAPPER
+  - SECURITIES_ACCOUNT
+  - LIFE_INSURANCE
+  - RETIREMENT
+  - EMPLOYEE_SAVINGS

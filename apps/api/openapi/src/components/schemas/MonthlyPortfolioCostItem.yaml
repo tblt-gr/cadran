@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - assetCode
+  - fees
+  - taxes
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  assetCode:
+    type: string
+  fees:
+    $ref: ./DecimalAmount.yaml
+  taxes:
+    $ref: ./DecimalAmount.yaml

@@ -1,0 +1,13 @@
+description: >-
+  Where the account reads the rules it inherits. An account that inherits no
+  rule and an account whose rules could not be read are different answers, and
+  neither of them means the account has no ceiling. `WORKSPACE_MODEL` rules
+  carry no `verification` or `source`: nobody published them. Overrides are
+  independent of this: an account keeps answering with the claims recorded
+  against it whatever its origin.
+type: string
+enum:
+  - NO_PRODUCT
+  - SYSTEM_CATALOG
+  - PRODUCT_WITHDRAWN
+  - WORKSPACE_MODEL

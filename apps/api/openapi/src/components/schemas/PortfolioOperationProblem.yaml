@@ -1,0 +1,105 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        enum:
+          - account_not_portfolio
+          - portfolio_account_inactive
+          - life_insurance_contract_required
+          - life_insurance_contract_closed
+          - operation_type_not_allowed_for_account
+          - instrument_not_euro_fund
+          - invalid_interest_basis
+          - invalid_year
+          - euro_fund_price_fixed
+          - invalid_operation_type
+          - unsupported_operation_type
+          - operation_field_required
+          - operation_field_not_allowed
+          - invalid_operation_amount
+          - invalid_operation_quantity
+          - quantity_precision_exceeded
+          - price_precision_exceeded
+          - operation_asset_mismatch
+          - instrument_inactive
+          - instrument_currency_mismatch
+          - surrender_exceeds_available
+          - premium_allocation_exceeds_net
+          - leg_amount_mismatch
+          - unknown_leg_instrument
+          - duplicate_leg_instrument
+          - invalid_leg_direction
+          - switch_same_support
+          - switch_not_balanced
+          - too_many_operation_legs
+          - invalid_surrender_amounts
+          - full_surrender_positions_remaining
+          - full_surrender_not_balanced
+          - operations_after_full_surrender
+          - unknown_instrument
+          - invalid_corporate_action
+          - invalid_operation_date
+          - invalid_settlement_date
+          - operation_amount_mismatch
+          - linked_transfer_mismatch
+          - invalid_operation_text
+          - invalid_operation_payload
+          - invalid_operation_query
+          - invalid_position_query
+          - invalid_cash_query
+          - cash_range_too_large
+          - cash_range_too_dense
+          - cash_amount_too_large
+          - portfolio_account_not_found
+          - portfolio_operation_not_found
+          - portfolio_instrument_not_found
+          - stale_operation_version
+          - stale_operation_order
+          - operation_voided
+          - linked_transfer_taken
+          - operation_limit_reached
+          - portfolio_operation_conflict
+          - portfolio_forbidden
+          - portfolio_payload_too_large
+          - position_would_go_negative
+          - split_fraction_unsupported
+          - corporate_action_without_position
+      legIndex:
+        type: integer
+        minimum: 1
+        maximum: 20
+      expectedAmount:
+        description: Exact quantity times price on leg_amount_mismatch.
+        type: string
+      expectedIncomingAmount:
+        description: Exact outgoing sum less fees on switch_not_balanced.
+        type: string
+      instrumentIds:
+        description: Supports remaining after a full surrender.
+        type: array
+        items:
+          type: string
+          format: uuid
+      field:
+        description: >-
+          The matrix field named by `operation_field_required` and
+          `operation_field_not_allowed`.
+        type: string
+      expectedGrossAmount:
+        description: >-
+          Exact expected gross on operation_amount_mismatch or
+          full_surrender_not_balanced.
+        type: string
+      operationId:
+        type: string
+        format: uuid
+      tradeDate:
+        type: string
+        format: date
+      instrumentId:
+        type: string
+        format: uuid

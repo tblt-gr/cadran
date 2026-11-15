@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - price
+  - priceDate
+  - priceQuality
+properties:
+  price:
+    $ref: ./HoldingsDecimal.yaml
+  priceDate:
+    type: string
+    format: date
+  priceQuality:
+    $ref: ./PortfolioPriceQuality.yaml

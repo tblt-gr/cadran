@@ -1,0 +1,38 @@
+get:
+  operationId: readProduct
+  x-cadran-bounded: >-
+    Capabilities, rules and unavailable rule kinds come from the closed
+    ProductCapability and ProductRuleKind enumerations, with at most one rule
+    per kind.
+  summary: Read one catalogue product on a business date
+  description: >-
+    Requires an authenticated session. An unknown code and a malformed one
+    answer alike, so the endpoint keeps a single contract for "no such product".
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: code
+      in: path
+      required: true
+      description: Product code, such as `FR_LIVRET_A`.
+      schema:
+        type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+    - $ref: ../components/parameters/BusinessDate.yaml
+  responses:
+    '200':
+      description: The requested product, resolved on the business date.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Product.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,47 @@
+get:
+  operationId: readPortfolioPositionLots
+  x-cadran-bounded: >-
+    Lots and movements derive from at most 10000 active operations of one
+    account.
+  summary: Read the open lots and lot movements of an instrument
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: instrumentId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: asOf
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: >-
+        Open FIFO traceability lots and every movement through the requested
+        date.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioPositionLots.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The date is invalid or in the future.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,13 @@
+name: Idempotency-Key
+in: header
+required: false
+description: >-
+  Retries the same creation safely for seven days: the same key with the same
+  body replays the first response without a second row, the same key with
+  another body answers 409. Required only when a transaction source is IMPORT or
+  PROVIDER. A replayed successful response adds `Idempotency-Replayed: true`.
+schema:
+  type: string
+  minLength: 16
+  maxLength: 255
+  pattern: ^[A-Za-z0-9_.:-]+$

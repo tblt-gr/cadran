@@ -1,0 +1,32 @@
+description: >-
+  Where the classifications of a category are redirected. A merge carries no
+  date and redirects the whole history; a replacement carries the day it takes
+  effect and leaves the period before it untouched.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - targetId
+  - targetLabel
+  - effectiveFrom
+properties:
+  kind:
+    type: string
+    enum:
+      - MERGE
+      - REPLACEMENT
+  targetId:
+    type: string
+    format: uuid
+  targetLabel:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  effectiveFrom:
+    description: Null for a merge, which redirects the whole history.
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'

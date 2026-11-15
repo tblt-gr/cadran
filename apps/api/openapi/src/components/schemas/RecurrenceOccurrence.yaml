@@ -1,0 +1,60 @@
+description: >-
+  A forecast snapshot; `LATE` is an effective read-time state and is never
+  stored.
+type: object
+additionalProperties: false
+required:
+  - id
+  - recurrenceId
+  - expectedOn
+  - expectedAmount
+  - amountTolerance
+  - status
+  - matchedTransactionId
+  - matchedAt
+  - generatedTransactionId
+  - periodClosed
+properties:
+  id:
+    type: string
+    format: uuid
+  recurrenceId:
+    type: string
+    format: uuid
+  expectedOn:
+    type: string
+    format: date
+  expectedAmount:
+    $ref: ./DecimalAmount.yaml
+  amountTolerance:
+    $ref: ./DecimalAmount.yaml
+  status:
+    type: string
+    enum:
+      - EXPECTED
+      - RECEIVED
+      - LATE
+  matchedTransactionId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  matchedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  generatedTransactionId:
+    description: >-
+      The transaction the application created for this instalment, when the
+      recurrence creates its own.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  periodClosed:
+    description: >-
+      The instalment falls in a closed month. It stays waiting: a recurrence
+      never books into a closed period, and the movement that would settle it is
+      refused like any other write.
+    type: boolean

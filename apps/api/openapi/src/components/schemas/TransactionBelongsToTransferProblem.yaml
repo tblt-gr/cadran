@@ -1,0 +1,18 @@
+description: >-
+  Raised by the transaction update, void and split-replacement endpoints when
+  the targeted transaction is a transfer leg or its fee: only the transfer's own
+  endpoint may change it.
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - transferId
+    properties:
+      type:
+        const: /problems/transaction-belongs-to-transfer
+      status:
+        const: 422
+      transferId:
+        description: The transfer to use instead.
+        type: string
+        format: uuid

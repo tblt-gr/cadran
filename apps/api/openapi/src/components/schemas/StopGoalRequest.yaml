@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+required:
+  - expectedVersion
+  - lastPeriod
+properties:
+  expectedVersion:
+    type: integer
+    minimum: 1
+  lastPeriod:
+    $ref: ./GoalPeriod.yaml

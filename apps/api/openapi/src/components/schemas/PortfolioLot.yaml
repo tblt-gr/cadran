@@ -1,0 +1,34 @@
+type: object
+additionalProperties: false
+required:
+  - lotId
+  - originOperationId
+  - originType
+  - acquiredOn
+  - originalQuantity
+  - openQuantity
+  - costBasis
+  - unitCost
+properties:
+  lotId:
+    type: string
+  originOperationId:
+    type: string
+    format: uuid
+  originType:
+    $ref: ./PortfolioOperationType.yaml
+  acquiredOn:
+    type: string
+    format: date
+  originalQuantity:
+    $ref: ./PortfolioDecimal.yaml
+  openQuantity:
+    $ref: ./PortfolioDecimal.yaml
+  costBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  unitCost:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

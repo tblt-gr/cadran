@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - type
+  - ref
+properties:
+  type:
+    $ref: ./GoalScopeType.yaml
+  ref:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 64

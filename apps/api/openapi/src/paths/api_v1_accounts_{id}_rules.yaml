@@ -1,0 +1,60 @@
+get:
+  operationId: readAccountRules
+  x-cadran-bounded: >-
+    At most one ceiling or rate per rule kind (9 kinds) and at most 20 brackets
+    per scale.
+  summary: Read the rules in force for an account on a business date
+  description: >-
+    Resolves the ceilings, rates and terms that apply to one account of the
+    calling workspace on the business date asked for. Almost nothing here is
+    stored on the account: the rules are read on that date from the authority
+    the account follows, so a regulatory revision reaches every account at once
+    and a past statement stays re-readable against the rules that applied then.
+
+    Each entry states the same rule as every authority sees it, side by side and
+    never merged. `catalog` is what the system catalogue publishes, reached
+    through the account's own product reference or through the provenance of the
+    workspace model it follows. `inherited` is what that workspace model says,
+    and is present only when a model sits between the account and the catalogue.
+    `override` is what was recorded against this account alone, and it carries
+    the claim that explains it — who recorded it, when, and why.
+    `effectiveLayer` names the one that wins, so no client re-implements the
+    precedence.
+
+    A ceiling always states the figure it is measured against, because the
+    amount alone decides nothing: 22 950 € checked against a total balance and
+    the same amount checked against deposits excluding interest give opposite
+    verdicts on the same passbook. A rate always resolves to a bracket scale,
+    single-bracket for the products the catalogue ships today, so a client reads
+    every rate the same way. A rule the account is expected to carry and that no
+    layer covers on the date is listed in `unavailableRuleKinds` and is never
+    returned as zero.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - $ref: ../components/parameters/BusinessDate.yaml
+  responses:
+    '200':
+      description: The rules in force for the account on the business date.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountRules.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

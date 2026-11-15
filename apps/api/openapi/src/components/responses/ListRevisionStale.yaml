@@ -1,0 +1,10 @@
+description: >-
+  The opt-in list revision no longer matches the workspace or catalogue data,
+  route, filters or page size (`type: /problems/lists.revision_stale`). Keep
+  previously loaded rows visible and restart from page 1 only after explaining
+  that the list changed. A revision is a consistency guard, not a retained
+  snapshot.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

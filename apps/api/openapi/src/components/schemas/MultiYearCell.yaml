@@ -1,0 +1,40 @@
+x-cadran-asset-scope: The asset is the `assetCode` of the report column the cell belongs to.
+description: >-
+  A year's value for one column, with the change against the previous year.
+  `changeReason` explains whichever of `change`/`changeRatio` is null, `change`
+  first.
+type: object
+additionalProperties: false
+required:
+  - value
+  - reason
+  - asOf
+  - change
+  - changeRatio
+  - changeReason
+properties:
+  value:
+    type:
+      - string
+      - 'null'
+  reason:
+    type:
+      - string
+      - 'null'
+  asOf:
+    description: The `YYYY-MM` of the period-end month, for a stock column only.
+    type:
+      - string
+      - 'null'
+  change:
+    type:
+      - string
+      - 'null'
+  changeRatio:
+    type:
+      - string
+      - 'null'
+  changeReason:
+    type:
+      - string
+      - 'null'

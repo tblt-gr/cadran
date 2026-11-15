@@ -1,0 +1,82 @@
+get:
+  operationId: readInstrument
+  summary: Read one investment instrument
+  description: >-
+    Returns active and inactive instruments so historical operations stay
+    resolvable. Unknown, malformed and foreign identifiers answer the same 404.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/InstrumentId.yaml
+  responses:
+    '200':
+      description: The instrument.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Instrument.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: updateInstrument
+  summary: Update an investment instrument
+  description: >-
+    Replaces editable fields with optimistic versioning and marks the result
+    reviewed. ISIN, currency and precisions are immutable after the first
+    operation references the instrument.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/InstrumentId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateInstrumentRequest.yaml
+  responses:
+    '200':
+      description: The updated reviewed instrument.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Instrument.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The version is stale, the ISIN exists, or similar candidates need
+        confirmation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/InstrumentProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: A field is invalid or an identity field is locked after first use.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/InstrumentProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

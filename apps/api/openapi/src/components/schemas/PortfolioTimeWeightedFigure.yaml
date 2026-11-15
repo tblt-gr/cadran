@@ -1,0 +1,100 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - method
+  - quality
+  - reasons
+  - from
+  - to
+  - days
+  - sources
+  - sourceCount
+  - subperiods
+  - subperiodCount
+  - missingCount
+  - methodVersion
+  - costPolicy
+  - inputs
+  - freshness
+properties:
+  value:
+    $ref: ./PortfolioModifiedDietzRate.yaml
+  method:
+    type: string
+    enum:
+      - TWR
+  quality:
+    type: string
+    enum:
+      - EXACT
+      - DEGRADED
+      - NOT_CALCULABLE
+  reasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml
+  from:
+    type:
+      - string
+      - 'null'
+    format: date
+  to:
+    type:
+      - string
+      - 'null'
+    format: date
+  days:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+  sources:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./PortfolioOverviewSource.yaml
+  sourceCount:
+    type: integer
+    minimum: 0
+  subperiods:
+    description: >-
+      First 400 subperiods, in chronological order. Processing is limited to
+      2000.
+    type: array
+    maxItems: 400
+    items:
+      $ref: ./PortfolioTimeWeightedSubperiod.yaml
+  subperiodCount:
+    type: integer
+    minimum: 0
+  missingCount:
+    description: Exact count of distinct missing or stale required valuation dates.
+    type: integer
+    minimum: 0
+  methodVersion:
+    type: string
+    enum:
+      - PERF-1
+  costPolicy:
+    type: string
+    enum:
+      - NET_OF_FEES_AND_TAXES
+  freshness:
+    $ref: ./PortfolioPerformanceFreshness.yaml
+  inputs:
+    type: object
+    additionalProperties: false
+    required:
+      - breakpointCount
+      - subperiodCount
+    properties:
+      breakpointCount:
+        description: >-
+          Dates that split the period, the start anchor included; 0 when the
+          period was not split.
+        type: integer
+        minimum: 0
+      subperiodCount:
+        type: integer
+        minimum: 0

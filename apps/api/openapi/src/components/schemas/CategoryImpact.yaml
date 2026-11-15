@@ -1,0 +1,96 @@
+type: object
+additionalProperties: false
+required:
+  - operation
+  - categoryId
+  - targetId
+  - targetLabel
+  - effectiveFrom
+  - descendantCount
+  - archivedDescendantCount
+  - reparentedChildCount
+  - incomingRedirectionCount
+  - resultingDepth
+  - maximumDepth
+  - archivesSource
+  - redirectsHistory
+  - allowed
+  - blockers
+  - affectedClassifications
+  - affectedClassificationsReason
+properties:
+  operation:
+    $ref: ./CategoryLifecycleOperation.yaml
+  categoryId:
+    type: string
+    format: uuid
+  targetId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  targetLabel:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  effectiveFrom:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  descendantCount:
+    description: Categories below the source, archived ones included.
+    type: integer
+    minimum: 0
+  archivedDescendantCount:
+    type: integer
+    minimum: 0
+  reparentedChildCount:
+    description: Direct children a merge would move under the target.
+    type: integer
+    minimum: 0
+  incomingRedirectionCount:
+    description: >-
+      Redirections that name this category as their target. A merge carries them
+      over to its own target; archiving is refused while any exists, because it
+      names no successor to carry them to.
+    type: integer
+    minimum: 0
+  resultingDepth:
+    description: >-
+      The deepest level the branch would reach afterwards. It may exceed
+      `maximumDepth`, which is exactly what `DEPTH_EXCEEDED` reports.
+    type: integer
+    minimum: 1
+  maximumDepth:
+    type: integer
+    minimum: 1
+  archivesSource:
+    type: boolean
+  redirectsHistory:
+    type: boolean
+  allowed:
+    type: boolean
+  blockers:
+    type: array
+    items:
+      $ref: ./CategoryImpactBlocker.yaml
+  affectedClassifications:
+    description: >-
+      Historical classifications the operation would re-point, or null when that
+      count cannot be established. Never an invented `0`.
+    oneOf:
+      - type: integer
+        minimum: 0
+      - type: 'null'
+  affectedClassificationsReason:
+    description: >-
+      Why `affectedClassifications` could not be counted, or null when the count
+      is known.
+    oneOf:
+      - type: string
+        enum:
+          - TRANSACTIONS_UNAVAILABLE
+      - type: 'null'

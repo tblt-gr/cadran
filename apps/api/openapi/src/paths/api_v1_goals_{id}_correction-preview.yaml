@@ -1,0 +1,58 @@
+post:
+  operationId: previewGoalCorrection
+  summary: Preview every monthly impact of a goal definition without saving it
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateGoalRequest.yaml
+  responses:
+    '200':
+      description: >-
+        Before and after status from the proposed effective month through the
+        workspace-local current month, capped at the goal's last covered month.
+        Each month selects the latest effective definition, so a retroactive
+        correction yields to an existing definition with a later effective
+        month.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalCorrectionPreview.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        correction_reason_required, invalid_effective_month,
+        correction_span_exceeded (a correction reaching back more than 120
+        months, current month included), or another invalid goal definition.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

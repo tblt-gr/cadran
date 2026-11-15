@@ -1,0 +1,44 @@
+get:
+  operationId: listAssets
+  summary: Read the system asset reference
+  description: >-
+    Requires an authenticated session. Returns the currencies and crypto-assets
+    every financial figure is denominated in, with the precisions and rounding
+    rule each one is read against. The reference is global and read-only: it
+    belongs to no workspace and every session reads the same rows.
+  tags:
+    - Reference
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: page
+      in: query
+      required: false
+      description: Page number, between 1 and 1000. Defaults to 1.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1
+    - name: pageSize
+      in: query
+      required: false
+      description: Page size, between 1 and 100. Defaults to 50.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: One page of the asset reference.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AssetPage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

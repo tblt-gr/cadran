@@ -1,0 +1,47 @@
+type: object
+additionalProperties: false
+required:
+  - essentialMode
+  - essentialCategoryIds
+  - referenceMode
+  - trailingMonths
+  - targetMonths
+  - version
+properties:
+  essentialMode:
+    $ref: ./EmergencyFundEssentialMode.yaml
+  essentialCategoryIds:
+    description: Empty in AXIS mode; 1 to 50 distinct expense categories otherwise.
+    type: array
+    maxItems: 50
+    uniqueItems: true
+    items:
+      type: string
+      format: uuid
+  referenceMode:
+    $ref: ./EmergencyFundReferenceMode.yaml
+  trailingMonths:
+    description: Null with PREVIOUS_YEAR; 1 to 24 with TRAILING_MONTHS.
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+    maximum: 24
+  targetMonths:
+    $ref: ./EmergencyFundTargetMonths.yaml
+  version:
+    type: integer
+    minimum: 0
+  targetMode:
+    description: Omitted keeps MONTHS.
+    $ref: ./EmergencyFundTargetMode.yaml
+  targetAmount:
+    description: Required with AMOUNT, null otherwise.
+    oneOf:
+      - $ref: ./GoalAmountInput.yaml
+      - type: 'null'
+  targetRatio:
+    description: Required with INCOME_RATIO, null otherwise.
+    oneOf:
+      - $ref: ./EmergencyFundTargetRatio.yaml
+      - type: 'null'

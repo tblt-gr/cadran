@@ -1,0 +1,52 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - kind
+  - displayName
+  - storagePrecision
+  - displayPrecision
+  - roundingMode
+  - displayStep
+properties:
+  code:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+    examples:
+      - EUR
+  kind:
+    type: string
+    enum:
+      - FIAT
+      - CRYPTO
+  displayName:
+    type: string
+  storagePrecision:
+    description: >-
+      Decimal places a *submitted* figure of this asset may carry. A value
+      beyond it is refused before persistence, never rounded in silence. It does
+      not cap a derived figure: a conversion or a split keeps the full 24
+      decimals of the storage type.
+    type: integer
+    minimum: 0
+    maximum: 24
+  displayPrecision:
+    description: >-
+      Decimal places an interface or export shows. Never greater than
+      `storagePrecision`, which JSON Schema cannot express here: showing more
+      decimals than are stored would invent digits. A non-zero value smaller
+      than the last shown decimal is displayed as such, never as a rounded zero.
+    type: integer
+    minimum: 0
+    maximum: 24
+  roundingMode:
+    description: >-
+      Rule the presentation boundary applies when it shows fewer decimals than
+      are stored.
+    type: string
+    enum:
+      - HALF_UP
+      - HALF_EVEN
+      - DOWN
+  displayStep:
+    $ref: ./DecimalAmount.yaml

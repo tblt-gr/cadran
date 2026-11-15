@@ -1,0 +1,59 @@
+get:
+  operationId: previewCategoryImpact
+  x-cadran-bounded: Blockers come from the closed set of 15 category blocker codes.
+  summary: Preview what a category lifecycle operation would change
+  description: >-
+    Answers what moving, merging, archiving or replacing a category would
+    change, without changing anything. The same assessment gates the write, so a
+    confirmation screen and the operation it leads to never disagree.
+    `affectedClassifications` stays null with an explicit reason while no
+    transaction history exists; it is never an invented `0`.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: operation
+      in: query
+      required: true
+      schema:
+        $ref: ../components/schemas/CategoryLifecycleOperation.yaml
+    - name: targetId
+      in: query
+      required: false
+      description: >-
+        The new parent for `MOVE` (absent means the root), and the category
+        receiving the history for `MERGE` and `REPLACE`. Rejected for `ARCHIVE`.
+      schema:
+        type: string
+        format: uuid
+    - name: effectiveFrom
+      in: query
+      required: false
+      description: Required for `REPLACE` and rejected for every other operation.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The impact the operation would have.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CategoryImpact.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

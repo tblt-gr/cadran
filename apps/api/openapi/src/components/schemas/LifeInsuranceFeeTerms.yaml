@@ -1,0 +1,48 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - validFrom
+  - entryFeeRate
+  - euroFundManagementFeeRate
+  - unitLinkedManagementFeeRate
+  - switchFeeRate
+  - switchFeeFixed
+  - sourceNote
+properties:
+  id:
+    type: string
+    format: uuid
+  validFrom:
+    type: string
+    format: date
+  entryFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  euroFundManagementFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  unitLinkedManagementFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  switchFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  switchFeeFixed:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  sourceNote:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 200

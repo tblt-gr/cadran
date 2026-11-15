@@ -1,0 +1,5 @@
+description: 'The CSRF token or Origin check failed (`type: /problems/csrf-token`).'
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

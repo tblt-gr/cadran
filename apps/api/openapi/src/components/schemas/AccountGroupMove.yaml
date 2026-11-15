@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - parentId
+  - siblingIds
+  - rank
+properties:
+  parentId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  siblingIds:
+    description: The new active sibling order.
+    type: array
+    items:
+      type: string
+      format: uuid
+  rank:
+    description: 1-based position of the moved group among its active siblings.
+    type: integer
+    minimum: 1

@@ -1,0 +1,7 @@
+description: >-
+  Six-decimal rate as a decimal string (0.023499 reads 2.3499 %); null when the
+  return cannot be calculated.
+type:
+  - string
+  - 'null'
+pattern: ^-?[0-9]+\.[0-9]{6}$

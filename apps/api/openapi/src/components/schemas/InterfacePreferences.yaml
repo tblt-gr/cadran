@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - includeUpcoming
+  - version
+properties:
+  includeUpcoming:
+    description: >-
+      Whether the planned (upcoming) transactions of the current month count in
+      the monthly budget and report figures.
+    type: boolean
+  version:
+    description: 0 when the workspace never saved a preference.
+    type: integer
+    minimum: 0

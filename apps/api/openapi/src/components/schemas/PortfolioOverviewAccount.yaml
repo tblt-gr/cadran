@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - institution
+  - productCode
+  - assetCode
+  - status
+  - openedOn
+properties:
+  id:
+    type: string
+    format: uuid
+  label: &ref_1
+    type: string
+  institution: &ref_0
+    type:
+      - string
+      - 'null'
+  productCode: *ref_0
+  assetCode: *ref_1
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - CLOSED
+      - ARCHIVED
+  openedOn:
+    type: string
+    format: date

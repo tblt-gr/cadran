@@ -1,0 +1,5 @@
+description: The JSON request body exceeds the 4 KiB profile limit.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

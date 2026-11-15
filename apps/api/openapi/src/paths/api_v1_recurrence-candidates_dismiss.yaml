@@ -1,0 +1,31 @@
+post:
+  operationId: dismissRecurrenceCandidate
+  x-cadran-idempotency: >-
+    A dismissal is stored once per candidate fingerprint; a replay stores
+    nothing new.
+  summary: Dismiss a detected recurrence candidate
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/DismissRecurrenceCandidateRequest.yaml
+  responses:
+    '204':
+      description: Candidate dismissed.
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

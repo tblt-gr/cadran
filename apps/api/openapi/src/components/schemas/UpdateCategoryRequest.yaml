@@ -1,0 +1,39 @@
+type: object
+additionalProperties: false
+required:
+  - type
+  - label
+  - icon
+  - color
+  - defaultAnalyticAxes
+  - budgetIncluded
+  - sortOrder
+  - version
+properties:
+  type:
+    $ref: ./CategoryType.yaml
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  icon:
+    oneOf:
+      - type: string
+        pattern: ^[a-z][a-z0-9-]{0,31}$
+      - type: 'null'
+  color:
+    oneOf:
+      - type: string
+        pattern: ^#[0-9A-F]{6}$
+      - type: 'null'
+  defaultAnalyticAxes:
+    $ref: ./AnalyticAxes.yaml
+  budgetIncluded:
+    type: boolean
+  sortOrder:
+    type: integer
+    minimum: 0
+    maximum: 32767
+  version:
+    type: integer
+    minimum: 1

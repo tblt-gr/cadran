@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - amount
+  - amountAssetCode
+  - comment
+  - version
+properties:
+  asOf:
+    type: string
+    format: date
+  amount:
+    type: string
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  amountAssetCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  comment:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 200
+      - type: 'null'
+  version:
+    description: Required when replacing the active snapshot of that day and source.
+    oneOf:
+      - type: integer
+        minimum: 1
+      - type: 'null'

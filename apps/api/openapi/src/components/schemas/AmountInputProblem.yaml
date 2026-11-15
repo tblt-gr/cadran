@@ -1,0 +1,16 @@
+description: >-
+  An RFC 9457 problem raised by the shared exact-amount parser. The JSON pointer
+  names the public request member that failed validation.
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - pointer
+    properties:
+      type:
+        pattern: ^/problems/amount\.
+      status:
+        const: 422
+      pointer:
+        type: string
+        pattern: ^/

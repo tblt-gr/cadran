@@ -1,0 +1,78 @@
+description: >-
+  A full replacement: omitted autoCreate, categoryId, note and paymentMethod
+  default to off or null, which switches automatic creation off.
+x-cadran-asset-scope: >-
+  The amount is in the asset of the recurrence account, which cannot change; the
+  response states it explicitly.
+type: object
+additionalProperties: false
+required:
+  - label
+  - counterparty
+  - expectedAmount
+  - amountTolerance
+  - intervalKind
+  - dayOfPeriod
+  - version
+properties:
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  expectedAmount:
+    $ref: ./RecurrenceAmountLiteral.yaml
+  amountTolerance:
+    allOf:
+      - $ref: ./RecurrenceAmountLiteral.yaml
+    description: Exact non-negative tolerance in the recurrence asset.
+  intervalKind:
+    $ref: ./RecurrenceIntervalKind.yaml
+  dayOfPeriod:
+    type: integer
+    minimum: 1
+    maximum: 31
+  version:
+    type: integer
+    minimum: 1
+  firstExpectedOn:
+    description: >-
+      Optional later period start. Unmatched instalments between today and this
+      date are dropped and the schedule is generated from it. Null, omitted, or
+      a date up to today changes nothing; a date beyond the twelve month horizon
+      is refused. Matched, booked and touched rows are never rewritten.
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  autoCreate:
+    description: >-
+      Create this recurrence's transactions for the current calendar month only,
+      pending until their date and booked from it. Defaults to false when
+      omitted.
+    type: boolean
+  categoryId:
+    description: >-
+      Optional active category every generated transaction receives. It must
+      match the amount direction (expense for an exit, income for an entry).
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  note:
+    description: Optional note every generated transaction receives.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  paymentMethod:
+    description: Optional payment method every generated transaction receives.
+    oneOf:
+      - $ref: ./PaymentMethod.yaml
+      - type: 'null'

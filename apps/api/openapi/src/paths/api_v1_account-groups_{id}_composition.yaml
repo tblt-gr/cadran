@@ -1,0 +1,58 @@
+get:
+  operationId: readAccountGroupComposition
+  summary: Read how a group splits between its sub-groups and accounts
+  description: >-
+    Weighs the direct sub-groups (plus the group's own accounts as a `DIRECT`
+    entry, only when it also has sub-groups) and every account of the subtree
+    against the group's own roll-up on `asOf`, never against net worth. Only
+    eligible accounts of the subtree are read. Shares are exact ratios with a
+    two-decimal display; amounts are signed. A value that cannot be computed is
+    null with a reason, never zero. `chartReason` is null only when the total is
+    positive and every component is non-negative and valued; the entries stay
+    available for a table in every case. An archived, unknown or foreign group
+    is a 404.
+  tags:
+    - Account groups
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: asOf
+      in: query
+      required: false
+      description: ISO 8601 calendar day, today in the workspace when omitted.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The composition of the group.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountGroupComposition.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        The subtree holds more than 1000 accounts (`type:
+        /problems/composition-too-large`), or the workspace holds more accounts
+        or groups than one aggregate reads (`type:
+        /problems/net-worth-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

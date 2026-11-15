@@ -1,0 +1,62 @@
+allOf:
+  - $ref: ./PortfolioValuationSummary.yaml
+  - type: object
+    required:
+      - derivedCash
+      - cashSource
+      - cashDifference
+      - observedTotal
+      - observedTotalDifference
+      - tolerance
+      - note
+      - supersedesId
+      - supersededAt
+      - recordedAt
+      - positions
+    properties:
+      derivedCash:
+        $ref: ./DecimalAmount.yaml
+      cashSource:
+        type: string
+        enum:
+          - DERIVED
+          - OBSERVED
+      cashDifference:
+        oneOf:
+          - $ref: ./DecimalAmount.yaml
+          - type: 'null'
+      observedTotal:
+        oneOf:
+          - $ref: ./DecimalAmount.yaml
+          - type: 'null'
+      observedTotalDifference:
+        description: Statement total minus computed total, exact.
+        oneOf:
+          - $ref: ./DecimalAmount.yaml
+          - type: 'null'
+      tolerance:
+        description: >-
+          (priced positions + 1) x 0.5 x 10^-display precision of the account
+          currency.
+        $ref: ./DecimalAmount.yaml
+      note:
+        type:
+          - string
+          - 'null'
+      supersedesId:
+        type:
+          - string
+          - 'null'
+        format: uuid
+      supersededAt:
+        type:
+          - string
+          - 'null'
+        format: date-time
+      recordedAt:
+        type: string
+        format: date-time
+      positions:
+        type: array
+        items:
+          $ref: ./PortfolioValuationPosition.yaml

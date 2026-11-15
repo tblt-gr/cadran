@@ -1,0 +1,26 @@
+x-cadran-asset-scope: Amounts are in the currency of the portfolio account.
+type: object
+additionalProperties: false
+required:
+  - takenOverOn
+  - lines
+properties:
+  takenOverOn:
+    description: On or after the opening day, on or before today, in an open month.
+    type: string
+    format: date
+  lines:
+    description: One line per instrument, 1 to 200.
+    type: array
+    minItems: 1
+    maxItems: 200
+    items:
+      $ref: ./PortfolioTakeoverLineInput.yaml
+  cash:
+    description: >-
+      The cash held on the date, zero or more; recorded as a deposit. Null means
+      none.
+    type:
+      - string
+      - 'null'
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$

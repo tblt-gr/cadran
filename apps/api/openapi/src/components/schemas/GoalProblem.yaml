@@ -1,0 +1,28 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+      goalId:
+        description: >-
+          Selected accessible row that blocks the batch. Never emitted for
+          inaccessible identifiers.
+        type: string
+        format: uuid
+      field:
+        description: Selected row field that needs correction.
+        type: string
+      expected:
+        description: Present with schedule_sum_mismatch; the annual target.
+        type: string
+      actual:
+        description: >-
+          Present with schedule_sum_mismatch; the exact sum of the submitted
+          parts.
+        type: string
+      difference:
+        description: Present with schedule_sum_mismatch; expected minus actual, signed.
+        type: string

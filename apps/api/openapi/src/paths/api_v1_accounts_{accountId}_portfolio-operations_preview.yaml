@@ -1,0 +1,66 @@
+post:
+  operationId: previewPortfolioOperation
+  x-cadran-idempotency: 'Read-only dry run: nothing is persisted.'
+  summary: Preview the server-derived figures of an operation
+  description: >-
+    Applies the same rules as the creation and writes nothing: no operation, no
+    idempotency key, no first-use freeze. With correctingOperationId, validates
+    an active target in this workspace and account, excludes it from replay and
+    permits reuse of its linked transfer. Same-date replacements preserve the
+    target sequence; moved dates use the next sequence. Replacing a full
+    surrender simulates reopening the contract without persisting it.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: correctingOperationId
+      in: query
+      required: false
+      description: >-
+        Active operation replaced by this preview, in the same workspace and
+        account. Unknown, malformed or foreign targets return 404.
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PortfolioOperationRequest.yaml
+  responses:
+    '200':
+      description: The cash effect, rounding residual and expected gross amount.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationPreview.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: The correction target is no longer active (operation_voided).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: Same refusals as the creation, with the same problem codes.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

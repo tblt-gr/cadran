@@ -1,0 +1,25 @@
+get:
+  operationId: listPortfolioValuationReminders
+  x-cadran-bounded: At most 650 reminders (50 accounts over a 13-month window).
+  summary: List the month-end portfolio valuations still to enter
+  description: >-
+    Computed on every read in the workspace time zone from accounts, valuations
+    and closures; at most 650 items (50 accounts over a 13-month window, so
+    never truncated), oldest month first.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: Caller workspace only. Response uses no-store cache control.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationReminders.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

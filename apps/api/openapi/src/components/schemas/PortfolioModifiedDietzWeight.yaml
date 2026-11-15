@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - operationId
+  - date
+  - amount
+  - remainingDays
+  - weight
+properties:
+  operationId:
+    type: string
+    format: uuid
+  date:
+    type: string
+    format: date
+  amount:
+    type: string
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  remainingDays:
+    type: string
+    pattern: ^[0-9]+$
+  weight:
+    type: string
+    pattern: ^[0-9]+\.[0-9]{6}$

@@ -1,0 +1,58 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: string
+      format: uuid
+get:
+  operationId: readGoalStatus
+  summary: Calculate one goal's progress and status at a calendar month
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: year
+      in: query
+      description: >-
+        Year the status month must belong to; defaults to the current
+        workspace-local year.
+      schema:
+        type: integer
+        minimum: 1900
+        maximum: 2999
+    - name: month
+      in: query
+      description: >-
+        Status month; defaults to the current workspace-local month, December
+        for a past year, and January (a future month, hence 422) for a future
+        year.
+      schema:
+        type: string
+        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  responses:
+    '200':
+      description: >-
+        Status calculated from monthly reporting figures and the goal versions
+        effective in each month.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalStatus.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The requested month is after the current workspace-local month.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

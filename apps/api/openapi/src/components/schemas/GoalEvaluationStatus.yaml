@@ -1,0 +1,6 @@
+type: string
+enum:
+  - MET
+  - MISSED
+  - IN_PROGRESS
+  - NOT_CALCULABLE

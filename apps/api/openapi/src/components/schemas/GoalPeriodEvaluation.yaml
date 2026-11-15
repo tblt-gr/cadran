@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - period
+  - items
+properties:
+  period:
+    $ref: ./GoalPeriod.yaml
+  items:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./GoalEvaluation.yaml

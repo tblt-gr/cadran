@@ -1,0 +1,53 @@
+type: object
+additionalProperties: false
+required:
+  - name
+  - instrumentType
+  - currencyCode
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 120
+  isin:
+    oneOf:
+      - type: string
+        maxLength: 32
+      - type: 'null'
+  ticker:
+    oneOf:
+      - type: string
+        maxLength: 32
+      - type: 'null'
+  venueMic:
+    oneOf:
+      - type: string
+        maxLength: 16
+      - type: 'null'
+  instrumentType:
+    $ref: ./InstrumentType.yaml
+  assetClass:
+    oneOf:
+      - $ref: ./InstrumentAssetClass.yaml
+      - type: 'null'
+  region:
+    oneOf:
+      - $ref: ./InstrumentRegion.yaml
+      - type: 'null'
+  currencyCode:
+    type: string
+    minLength: 2
+    maxLength: 12
+  quantityPrecision:
+    type: integer
+    minimum: 0
+    maximum: 12
+    default: 6
+  pricePrecision:
+    type: integer
+    minimum: 0
+    maximum: 12
+    default: 4
+  confirmDuplicate:
+    type: boolean
+    default: false

@@ -1,0 +1,24 @@
+description: >-
+  Which optional category and axis breakdowns the compact recap shows. The
+  selection picks rows only: it never changes a total or a formula, and the core
+  totals stay published whatever it holds. Version 0 means the workspace never
+  saved one and is reading the default selection.
+type: object
+additionalProperties: false
+required:
+  - visibleCategoryIds
+  - visibleAxes
+  - version
+properties:
+  visibleCategoryIds:
+    type: array
+    uniqueItems: true
+    maxItems: 100
+    items:
+      type: string
+      format: uuid
+  visibleAxes:
+    $ref: ./AnalyticAxes.yaml
+  version:
+    type: integer
+    minimum: 0

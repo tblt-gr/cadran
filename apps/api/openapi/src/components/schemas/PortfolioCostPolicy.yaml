@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - performanceBasis
+  - budgetTreatment
+properties:
+  performanceBasis:
+    type: string
+    const: NET_OF_FEES_AND_TAXES
+  budgetTreatment:
+    type: string
+    const: OUTSIDE_BUDGET_INFORMATIVE

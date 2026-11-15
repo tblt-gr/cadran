@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - scope
+  - changes
+properties:
+  scope:
+    oneOf:
+      - $ref: ./BulkIdsScope.yaml
+      - $ref: ./BulkFilterScope.yaml
+    discriminator:
+      propertyName: type
+      mapping:
+        IDS: ./BulkIdsScope.yaml
+        FILTER: ./BulkFilterScope.yaml
+  changes:
+    $ref: ./BulkEditChanges.yaml
+  preview:
+    type: boolean
+    description: >-
+      Only with `accountId` or `bookedOn`: answers the impact of the move and
+      writes nothing.
+  previewToken:
+    type: string
+    maxLength: 256
+    description: >-
+      The token of a preview of the same scope and changes; required to apply
+      `accountId` or `bookedOn`.

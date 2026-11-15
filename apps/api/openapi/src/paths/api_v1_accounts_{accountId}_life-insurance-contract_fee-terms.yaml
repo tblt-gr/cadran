@@ -1,0 +1,56 @@
+post:
+  operationId: addLifeInsuranceFeeTerms
+  x-cadran-idempotency: 'One fee-terms row exists per contract and start date: a replay is refused.'
+  summary: Record a dated version of the fee terms
+  description: >-
+    Rates are percentages (`0.85` is 0.85 %). Versions are immutable and
+    informative: they never produce a fee. The version applicable on a date is
+    the latest `validFrom` on or before it.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/LifeInsuranceFeeTermsInput.yaml
+  responses:
+    '201':
+      description: The fee terms were recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceFeeTerms.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        A version already exists on that date, or the contract carries the
+        maximum number of versions.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The body is invalid, or the account is inactive.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

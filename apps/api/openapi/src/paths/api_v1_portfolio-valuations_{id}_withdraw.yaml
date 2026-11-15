@@ -1,0 +1,54 @@
+post:
+  operationId: withdrawPortfolioValuation
+  summary: Withdraw a portfolio valuation
+  description: >-
+    Supersedes the valuation without replacement and retires the figure it
+    published to net worth. The row stays in the history.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioValuationId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/WithdrawPortfolioValuationRequest.yaml
+  responses:
+    '200':
+      description: The withdrawn valuation.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The version is stale, the valuation is no longer active, or the period
+        is closed (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The body is invalid, or the account is inactive.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

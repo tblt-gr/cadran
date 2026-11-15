@@ -1,0 +1,7 @@
+description: >-
+  The account behind the session no longer exists or has lost its password. The
+  browser is signed out on its next session probe.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

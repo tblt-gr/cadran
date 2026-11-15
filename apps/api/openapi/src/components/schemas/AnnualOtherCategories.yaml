@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - color
+  - total
+  - share
+  - items
+description: >-
+  The categories beyond the top ones; total and share are the exact sum of
+  items.
+properties:
+  color:
+    type:
+      - string
+      - 'null'
+    description: Always null, the aggregate has no color of its own.
+  total:
+    type: string
+  share:
+    type: string
+  items:
+    type: array
+    items:
+      $ref: ./AnnualCategoryShare.yaml

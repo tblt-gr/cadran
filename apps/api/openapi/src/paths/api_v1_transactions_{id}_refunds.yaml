@@ -1,0 +1,82 @@
+post:
+  operationId: createTransactionRefund
+  summary: Create a linked refund of an expense or fee
+  description: >-
+    The amount is a positive magnitude. The server writes a positive (credited)
+    REFUND movement, under a lock on the original transaction, so concurrent
+    requests cannot exceed its remaining refundable balance.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateRefundRequest.yaml
+  responses:
+    '201':
+      description: The created, linked REFUND movement, or its stored response replay.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The original is already fully refunded or the requested amount exceeds
+        what remains refundable; key reuse with a different request uses
+        `/problems/idempotency.key_reused`, and an in-flight request uses
+        `/problems/idempotency.in_flight`. A write that touches a closed period
+        is refused with one stable problem, whichever the use case (`type:
+        /problems/period-closed`).
+      headers:
+        Retry-After:
+          $ref: ../components/headers/RetryAfterOneSecond.yaml
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/RefundConflictProblem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The refund input or Idempotency-Key is invalid, or the submitted splits
+        leave a remainder unallocated (`type: /problems/splits.sum_missing`),
+        exceed the amount (`type: /problems/splits.sum_exceeds`), or explicitly
+        empty an allocation the categorised original requires (`type:
+        /problems/splits.required`). An income, expense, refund or fee on an
+        account followed in portfolio mode is refused (`type:
+        /problems/portfolio-account-requires-operations`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

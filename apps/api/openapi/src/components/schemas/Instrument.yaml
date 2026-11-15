@@ -1,0 +1,80 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - name
+  - isin
+  - ticker
+  - venueMic
+  - instrumentType
+  - assetClass
+  - region
+  - currencyCode
+  - quantityPrecision
+  - pricePrecision
+  - source
+  - reviewed
+  - reviewedAt
+  - status
+  - used
+  - version
+properties:
+  id:
+    type: string
+    format: uuid
+  name:
+    type: string
+    minLength: 1
+    maxLength: 120
+  isin:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z]{2}[A-Z0-9]{9}[0-9]$
+      - type: 'null'
+  ticker:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z0-9][A-Z0-9.\-]{0,11}$
+      - type: 'null'
+  venueMic:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z0-9]{4}$
+      - type: 'null'
+  instrumentType:
+    $ref: ./InstrumentType.yaml
+  assetClass:
+    oneOf:
+      - $ref: ./InstrumentAssetClass.yaml
+      - type: 'null'
+  region:
+    oneOf:
+      - $ref: ./InstrumentRegion.yaml
+      - type: 'null'
+  currencyCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  quantityPrecision:
+    type: integer
+    minimum: 0
+    maximum: 12
+  pricePrecision:
+    type: integer
+    minimum: 0
+    maximum: 12
+  source:
+    $ref: ./InstrumentSource.yaml
+  reviewed:
+    type: boolean
+  reviewedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  status:
+    $ref: ./InstrumentStatus.yaml
+  used:
+    type: boolean
+  version:
+    type: integer
+    minimum: 1

@@ -1,0 +1,153 @@
+type: object
+additionalProperties: false
+required:
+  - kpi
+  - value
+  - assetCode
+  - reason
+  - reasonExplanation
+  - formula
+  - scope
+  - period
+  - sourceTransactionIds
+  - sourceTransactions
+  - sourceTransferIds
+  - sourceAccountIds
+  - freshness
+  - quality
+  - pendingCount
+  - metricPolicy
+  - includesUpcoming
+  - upcomingCount
+properties:
+  includesUpcoming:
+    type: boolean
+    description: >-
+      True when the caller asked for the planned (upcoming) transactions of the
+      month to be counted.
+  upcomingCount:
+    type: integer
+    minimum: 0
+    description: >-
+      Number of planned transactions counted in the figures; 0 unless
+      `includesUpcoming`.
+  metricPolicy:
+    $ref: ./MetricPolicyReference.yaml
+  kpi:
+    type: string
+    enum:
+      - cashIncome
+      - nonCashBenefits
+      - benefitSpending
+      - budgetExpenses
+      - uncategorizedExpenses
+      - budgetSurplus
+      - savingsTransfers
+      - cashSavingsRate
+      - savingsInflows
+      - savingsWithdrawals
+      - netSavingsTransfers
+      - netSavingsRate
+      - beginningNetWorth
+      - endNetWorth
+      - netWorthDelta
+      - budgetComparison
+  value:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  assetCode:
+    type:
+      - string
+      - 'null'
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - MIXED_ASSETS
+      - NO_ACCOUNT
+      - ZERO_CASH_INCOME
+      - MISSING_BENEFIT_SOURCE
+      - MISSING_VALUATION
+      - NO_ELIGIBLE_ACCOUNT
+      - MISSING_TARGET
+      - INCOMPLETE_TRANSFER_PAIR
+      - MISMATCHED_TRANSFER_PAIR
+      - MISSING_ACCOUNT_CLASSIFICATION
+      - UNKNOWN_METRIC_POLICY
+      - MIXED_METRIC_POLICIES
+      - null
+  reasonExplanation:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+  formula:
+    type: string
+    minLength: 1
+  scope:
+    type: string
+    minLength: 1
+  period:
+    type: object
+    additionalProperties: false
+    required:
+      - start
+      - end
+    properties:
+      start:
+        type: string
+        format: date
+      end:
+        type: string
+        format: date
+  sourceTransactionIds:
+    type: array
+    maxItems: 500
+    uniqueItems: true
+    items:
+      type: string
+      format: uuid
+  sourceTransactions:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyKpiSourceTransaction.yaml
+  sourceTransferIds:
+    type: array
+    maxItems: 500
+    uniqueItems: true
+    items:
+      type: string
+      format: uuid
+  sourceAccountIds:
+    type: array
+    maxItems: 500
+    uniqueItems: true
+    items:
+      type: string
+      format: uuid
+  freshness:
+    type: string
+    enum:
+      - COMPLETE
+      - EMPTY
+      - PENDING
+      - CURRENT
+  quality:
+    type: string
+    enum:
+      - CURRENT
+      - STALE
+      - MISSING
+      - WITHIN_TARGET
+      - ON_TARGET
+      - OVER_TARGET
+      - NON_CALCULABLE
+  pendingCount:
+    type: integer
+    minimum: 0
+    maximum: 500

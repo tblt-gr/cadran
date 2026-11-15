@@ -1,0 +1,45 @@
+put:
+  operationId: updateRecurrence
+  summary: Edit a recurrence forward only with optimistic concurrency
+  description: >-
+    Past and matched snapshots remain immutable; only unmatched occurrences from
+    today are regenerated.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateRecurrenceRequest.yaml
+  responses:
+    '200':
+      description: The updated recurrence.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Recurrence.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

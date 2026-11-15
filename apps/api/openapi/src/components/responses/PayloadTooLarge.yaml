@@ -1,0 +1,5 @@
+description: The JSON request body exceeds the 16 KiB mutation limit.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

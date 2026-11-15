@@ -1,0 +1,29 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - total
+  - totalReason
+  - chartReason
+  - accounts
+properties:
+  asOf:
+    type: string
+    format: date
+  total:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  totalReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  chartReason:
+    oneOf:
+      - $ref: ./AccountOverviewCompositionChartReason.yaml
+      - type: 'null'
+  accounts:
+    type: array
+    maxItems: 1000
+    items:
+      $ref: ./AccountOverviewCompositionAccount.yaml

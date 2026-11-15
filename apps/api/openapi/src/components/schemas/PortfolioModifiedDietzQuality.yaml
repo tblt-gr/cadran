@@ -1,0 +1,6 @@
+description: An approximation by construction, so never EXACT.
+type: string
+enum:
+  - APPROXIMATION
+  - DEGRADED
+  - NOT_CALCULABLE

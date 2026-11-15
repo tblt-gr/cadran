@@ -1,0 +1,30 @@
+get:
+  operationId: readInstrumentHolding
+  summary: Read an instrument holding and lifetime account gains
+  description: >-
+    Uses retained valuations and one bounded active history per account, up to
+    50 accounts. Unknown, malformed and foreign instruments answer the same
+    instrument_not_found 404. Histories beyond 5000 operations return an account
+    row with all figures, count and dates null and HISTORY_TOO_LARGE; other
+    accounts remain computed. No financial data is logged.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/InstrumentId.yaml
+  responses:
+    '200':
+      description: The instrument, retained holding and exact lifetime contributions.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/InstrumentHolding.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

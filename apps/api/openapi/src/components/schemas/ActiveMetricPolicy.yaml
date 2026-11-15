@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+required:
+  - active
+  - activeSince
+properties:
+  active:
+    $ref: ./MetricPolicy.yaml
+  activeSince:
+    type: string
+    format: date-time

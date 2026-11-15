@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - splits
+  - version
+properties:
+  splits:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./TransactionSplitInput.yaml
+  version:
+    type: integer
+    minimum: 1

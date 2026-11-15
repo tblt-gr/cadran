@@ -1,0 +1,100 @@
+x-cadran-asset-scope: Amounts are in the asset of the goal (`assetCode` of the goal).
+type: object
+additionalProperties: false
+required:
+  - goalId
+  - month
+  - periodicity
+  - direction
+  - valueType
+  - goalVersion
+  - scheduleMode
+  - provisional
+  - metricPolicy
+  - target
+  - achieved
+  - expected
+  - gap
+  - remaining
+  - excess
+  - status
+  - progressRatio
+  - progressRatioDisplay
+  - reason
+  - quality
+  - months
+properties:
+  goalId:
+    type: string
+    format: uuid
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  periodicity:
+    type: string
+    const: YEARLY
+  direction:
+    $ref: ./GoalDirection.yaml
+  valueType:
+    oneOf:
+      - $ref: ./GoalValueType.yaml
+      - type: 'null'
+  goalVersion:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+    maximum: 50
+  scheduleMode:
+    type:
+      - string
+      - 'null'
+    enum:
+      - LINEAR
+      - CUSTOM
+      - null
+  provisional:
+    type: boolean
+  metricPolicy:
+    $ref: ./GoalStatusMetricPolicy.yaml
+  target:
+    $ref: ./GoalStatusValue.yaml
+  achieved:
+    $ref: ./GoalStatusValue.yaml
+  expected:
+    $ref: ./GoalStatusValue.yaml
+  gap:
+    $ref: ./GoalStatusValue.yaml
+  remaining:
+    $ref: ./GoalStatusValue.yaml
+  excess:
+    $ref: ./GoalStatusValue.yaml
+  status:
+    type: string
+    enum:
+      - REACHED
+      - AHEAD
+      - BEHIND
+      - EXCEEDED
+      - ON_TRACK
+      - OVER_PACE
+      - NOT_CALCULABLE
+  progressRatio:
+    $ref: ./GoalStatusValue.yaml
+  progressRatioDisplay:
+    $ref: ./GoalStatusValue.yaml
+  reason:
+    $ref: ./GoalStatusReason.yaml
+  quality:
+    type: string
+    enum:
+      - COMPLETE
+      - PROVISIONAL
+      - PARTIAL
+      - EMPTY
+  months:
+    description: Month-by-month detail required on the dedicated status endpoint.
+    type: array
+    maxItems: 12
+    items:
+      $ref: ./GoalStatusMonth.yaml

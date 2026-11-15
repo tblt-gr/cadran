@@ -1,0 +1,53 @@
+get:
+  operationId: readPortfolioAllocation
+  x-cadran-bounded: >-
+    One row per allocation class of a single frozen valuation, a closed
+    reference set.
+  summary: Read exact frozen valuation allocation
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: Workspace-scoped exact values. Response uses no-store cache control.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOverviewAllocation.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: Invalid query or bounded replay scope exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOverviewProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: asOf
+      in: query
+      required: false
+      description: >-
+        Defaults to today in the workspace calendar. Future dates are refused;
+        dates before opening return an empty state.
+      schema:
+        type: string
+        format: date
+    - name: by
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - INSTRUMENT
+          - ASSET_CLASS
+          - REGION
+          - CURRENCY
+        default: INSTRUMENT

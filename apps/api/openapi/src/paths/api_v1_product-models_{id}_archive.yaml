@@ -1,0 +1,61 @@
+post:
+  operationId: archiveProductModel
+  summary: Archive a product model
+  description: >-
+    Takes the model out of the working set and frees its name, without deleting
+    it: it stays readable by identifier with everything it ever said, so an
+    account created from it keeps a reproducible reference. An already archived
+    model is rejected. The mutation requires the same-origin CSRF token.
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ArchiveProductModelRequest.yaml
+  responses:
+    '200':
+      description: The archived model.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ProductModel.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/ProductModelMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: 'The submitted version is stale (`type: /problems/stale-version`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/ProductModelPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The model is already archived (`type:
+        /problems/product-model-archived`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

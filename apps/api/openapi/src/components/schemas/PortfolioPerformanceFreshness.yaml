@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - start
+  - end
+properties:
+  start:
+    oneOf:
+      - $ref: ./PortfolioAnchorFreshness.yaml
+      - type: 'null'
+  end:
+    oneOf:
+      - $ref: ./PortfolioAnchorFreshness.yaml
+      - type: 'null'

@@ -1,0 +1,31 @@
+get:
+  operationId: listPortfolios
+  x-cadran-bounded: >-
+    At most 50 portfolio accounts are returned and the response flags
+    truncation.
+  summary: List portfolio-mode accounts of the workspace
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: Workspace-scoped exact values. Response uses no-store cache control.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOverviewList.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: Invalid query or bounded replay scope exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOverviewProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

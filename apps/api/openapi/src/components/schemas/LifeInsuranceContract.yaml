@@ -1,0 +1,64 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - insurer
+  - distributor
+  - commercialName
+  - contractNumberMasked
+  - subscribedOn
+  - taxStartOn
+  - managementMode
+  - status
+  - closedOn
+  - version
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  insurer:
+    type: string
+    minLength: 1
+    maxLength: 80
+  distributor:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 80
+  commercialName:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 120
+  contractNumberMasked:
+    description: >-
+      The last four characters of the contract number behind four bullets; the
+      full number is never exposed.
+    type:
+      - string
+      - 'null'
+    pattern: ^•••• [A-Z0-9]{4}$
+  subscribedOn:
+    type: string
+    format: date
+  taxStartOn:
+    type: string
+    format: date
+  managementMode:
+    $ref: ./LifeInsuranceManagementMode.yaml
+  status:
+    $ref: ./LifeInsuranceContractStatus.yaml
+  closedOn:
+    type:
+      - string
+      - 'null'
+    format: date
+  version:
+    type: integer
+    minimum: 1

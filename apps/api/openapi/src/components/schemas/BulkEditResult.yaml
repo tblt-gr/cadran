@@ -1,0 +1,43 @@
+type: object
+additionalProperties: false
+required:
+  - requestedCount
+  - changed
+  - skipped
+  - fieldsChanged
+  - impactedAccountIds
+properties:
+  requestedCount:
+    type: integer
+    minimum: 0
+    description: Distinct transactions the scope named or matched.
+  changed:
+    type: integer
+    minimum: 0
+  skipped:
+    type: array
+    maxItems: 500
+    description: >-
+      Transactions left untouched, and rows written without their category, with
+      the reason.
+    items:
+      $ref: ./BulkSkippedTransaction.yaml
+  fieldsChanged:
+    type: array
+    description: The fields written on at least one transaction.
+    items:
+      type: string
+      enum:
+        - label
+        - paymentMethod
+        - note
+        - counterparty
+        - categoryId
+        - accountId
+        - bookedOn
+  impactedAccountIds:
+    type: array
+    description: The accounts whose balance changed, for cache invalidation.
+    items:
+      type: string
+      format: uuid

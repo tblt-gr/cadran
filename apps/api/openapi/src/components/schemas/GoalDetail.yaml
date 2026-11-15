@@ -1,0 +1,16 @@
+allOf:
+  - $ref: ./GoalSummary.yaml
+  - type: object
+    required:
+      - versions
+    properties:
+      versions:
+        type: array
+        minItems: 1
+        maxItems: 50
+        items:
+          $ref: ./GoalVersion.yaml
+      referenceIncome:
+        $ref: ./GoalReferenceIncome.yaml
+      resolvedMonthlyTarget:
+        $ref: ./GoalResolvedMonthlyTarget.yaml

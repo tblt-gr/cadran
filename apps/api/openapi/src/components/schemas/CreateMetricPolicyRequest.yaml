@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - cashExcludedAccountKinds
+properties:
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  cashExcludedAccountKinds:
+    type: array
+    maxItems: 8
+    uniqueItems: true
+    items:
+      $ref: ./AccountKind.yaml

@@ -1,0 +1,16 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    properties:
+      code:
+        type: string
+        enum:
+          - policy_definition_exists
+          - policy_version_limit
+          - stale_active_policy
+          - policy_already_active
+          - activation_limit
+          - unknown_policy_version
+      version:
+        type: integer
+        minimum: 1

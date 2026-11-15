@@ -1,0 +1,64 @@
+description: >-
+  The exclusive weight of one group: its own accounts and those of its
+  descendants, counted once. A tag never enters this figure, so two groups of
+  the same depth never claim the same account. They do not add up to the
+  published total: an account with no primary group belongs to no bucket, and a
+  group weighed against a small eligible base can exceed 100 %.
+type: object
+additionalProperties: false
+required:
+  - color
+  - groupId
+  - label
+  - parentId
+  - depth
+  - value
+  - share
+  - directValue
+  - directShare
+  - directPreviousValue
+  - hasChildren
+properties:
+  color:
+    type: string
+    pattern: ^#[0-9A-F]{6}$
+  groupId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  parentId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  depth:
+    type: integer
+    minimum: 1
+    maximum: 8
+  value:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml
+  directValue:
+    description: >-
+      The signed total of the accounts whose primary group is exactly this
+      group, descendants excluded. Direct totals of all groups plus the
+      ungrouped bucket equal eligible net worth. Null when not calculable.
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  directShare:
+    $ref: ./NetWorthShare.yaml
+  directPreviousValue:
+    description: >-
+      The same direct total on the compared day; null when that day is not
+      calculable.
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  hasChildren:
+    description: True when the group has at least one active sub-group.
+    type: boolean

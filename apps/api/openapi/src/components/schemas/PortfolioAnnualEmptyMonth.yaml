@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - status
+properties:
+  month:
+    type: string
+    pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+  status:
+    type: string
+    enum:
+      - BEFORE_OPENING
+      - FUTURE

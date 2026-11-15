@@ -1,0 +1,82 @@
+type: object
+additionalProperties: false
+required:
+  - instrument
+  - quantity
+  - fifoCostBasis
+  - averageCostBasis
+  - averageUnitCost
+  - costReason
+  - marketValue
+  - unrealizedGain
+  - valueReason
+  - firstAcquiredOn
+  - lastOperationOn
+  - openLotCount
+  - flags
+properties:
+  instrument:
+    $ref: ./PortfolioPositionInstrument.yaml
+  quantity:
+    $ref: ./PortfolioDecimal.yaml
+  fifoCostBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  averageCostBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  averageUnitCost:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  costReason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - UNKNOWN_LOT_COST
+      - null
+  marketValue:
+    description: >-
+      Frozen market value of the line of the valuation retained at asOf; null
+      unless that line was frozen with the quantity held at asOf.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  unrealizedGain:
+    description: >-
+      Frozen market value minus the frozen acquisition cost of the same line;
+      null when either is missing.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  valueReason:
+    description: Why marketValue is null; null when it is known.
+    type:
+      - string
+      - 'null'
+    enum:
+      - NO_VALUATION
+      - PARTIAL_VALUATION
+      - NOT_DETAILED
+      - QUANTITY_CHANGED
+      - null
+  firstAcquiredOn:
+    type:
+      - string
+      - 'null'
+    format: date
+  lastOperationOn:
+    type:
+      - string
+      - 'null'
+    format: date
+  openLotCount:
+    type: integer
+    minimum: 0
+  flags:
+    type: array
+    items:
+      $ref: ./PortfolioPositionFlag.yaml

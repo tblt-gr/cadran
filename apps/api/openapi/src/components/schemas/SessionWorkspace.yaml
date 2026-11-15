@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - role
+  - timeZone
+  - baseCurrency
+properties:
+  id:
+    type: string
+    format: uuid
+  role:
+    type: string
+    enum:
+      - OWNER
+  timeZone:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: >-
+      IANA timezone of the workspace, which decides its current day and month.
+      The SPA reads this instead of assuming a fixed zone.
+  baseCurrency:
+    type: string
+    pattern: ^[A-Z]{3}$
+    description: >-
+      ISO 4217 base currency of the workspace, operator-chosen at provisioning
+      time. The SPA reads this instead of assuming a fixed currency.

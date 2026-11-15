@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - cashIncome
+  - budgetExpenses
+  - budgetSurplus
+properties:
+  month:
+    type: string
+  cashIncome:
+    $ref: ./AnnualCell.yaml
+  budgetExpenses:
+    $ref: ./AnnualCell.yaml
+  budgetSurplus:
+    $ref: ./AnnualCell.yaml

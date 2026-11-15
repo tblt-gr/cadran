@@ -1,0 +1,30 @@
+get:
+  operationId: readPeriodStatus
+  x-cadran-bounded: Blockers are one entry per closing condition, a closed enumeration.
+  summary: Read one month, closed or not, with what would block closing it
+  description: >-
+    A closed month returns its active closure. An open month returns the
+    conditions that currently block closing it, each with a count and never an
+    amount or a label. The three conditions are checked across every
+    non-archived account open during the month.
+  tags:
+    - Period closures
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PeriodMonth.yaml
+  responses:
+    '200':
+      description: The state of the month.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PeriodStatus.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

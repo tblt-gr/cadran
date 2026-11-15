@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - transactionId
+  - bookedOn
+  - currentCategoryId
+  - targetCategoryId
+properties:
+  transactionId:
+    type: string
+    format: uuid
+  bookedOn:
+    type: string
+    format: date
+  currentCategoryId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  targetCategoryId:
+    type: string
+    format: uuid

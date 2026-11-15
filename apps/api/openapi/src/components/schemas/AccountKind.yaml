@@ -1,0 +1,13 @@
+description: >-
+  What an account holds. Shared by the product catalogue and the accounts of a
+  workspace, so a product-based account inherits exactly one of these kinds.
+type: string
+enum:
+  - CURRENT
+  - SAVINGS
+  - PORTFOLIO
+  - INSURANCE_CONTRACT
+  - EMPLOYEE_BENEFIT
+  - CASH
+  - REAL_ASSET
+  - LIABILITY

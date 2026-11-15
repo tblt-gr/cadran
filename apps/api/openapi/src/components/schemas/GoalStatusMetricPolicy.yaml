@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - state
+  - version
+  - versions
+properties:
+  state:
+    type: string
+    enum:
+      - NONE
+      - SINGLE
+      - MIXED
+  version:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+  versions:
+    type: array
+    uniqueItems: true
+    maxItems: 13
+    items:
+      type: integer
+      minimum: 1

@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - value
+  - quality
+  - reasons
+properties:
+  month:
+    type: string
+    pattern: ^[0-9]{4}-(0[1-9]|1[0-2])$
+  value:
+    $ref: ./PortfolioModifiedDietzRate.yaml
+  quality:
+    $ref: ./PortfolioModifiedDietzQuality.yaml
+  reasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml

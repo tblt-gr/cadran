@@ -1,0 +1,49 @@
+get:
+  operationId: listPortfolioPositions
+  x-cadran-bounded: >-
+    Positions derive from at most 10000 active operations of a single account
+    (one row per instrument held).
+  summary: Reconcile the positions of a portfolio account
+  description: >-
+    Replays active operations through the requested date. Positions and lots are
+    derived and never persisted.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: asOf
+      in: query
+      required: false
+      description: Defaults to today in the workspace calendar and cannot be in the future.
+      schema:
+        type: string
+        format: date
+    - name: includeClosed
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+  responses:
+    '200':
+      description: Positions ordered by instrument name.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioPositions.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The date is invalid or in the future.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,38 @@
+description: One account standing in the way of a closing and the precise reason why.
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - kind
+  - valuationMode
+  - reason
+  - snapshotAsOf
+  - discrepancy
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  kind:
+    $ref: ./AccountKind.yaml
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  reason:
+    $ref: ./PeriodClosingReason.yaml
+  snapshotAsOf:
+    description: >-
+      Day of the latest balance of the month that was examined, null when the
+      month has none.
+    type:
+      - string
+      - 'null'
+    format: date
+  discrepancy:
+    description: >-
+      Signed gap `observed - computed` in the account's asset, exact and never
+      rounded. Only set for DISCREPANCY.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

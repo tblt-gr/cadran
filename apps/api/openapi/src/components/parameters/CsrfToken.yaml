@@ -1,0 +1,8 @@
+name: X-CSRF-TOKEN
+in: header
+required: true
+description: >-
+  Double-submit CSRF token: the value of the `csrf_token` cookie from a prior
+  safe response. Rejected with 403 if missing, altered, or expired.
+schema:
+  type: string

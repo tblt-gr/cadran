@@ -1,0 +1,6 @@
+type: string
+enum:
+  - WEEKLY
+  - MONTHLY
+  - QUARTERLY
+  - YEARLY

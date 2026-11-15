@@ -1,0 +1,40 @@
+x-cadran-asset-scope: The unit price is in the currency of the instrument.
+type: object
+additionalProperties: false
+required:
+  - instrument
+  - quantity
+  - unitPrice
+  - priceDate
+  - priceAgeDays
+  - priceQuality
+  - marketValue
+  - averageCostBasis
+properties:
+  instrument:
+    $ref: ./PortfolioValuationInstrument.yaml
+  quantity:
+    type: string
+  unitPrice:
+    type:
+      - string
+      - 'null'
+  priceDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  priceAgeDays:
+    type:
+      - integer
+      - 'null'
+  priceQuality:
+    $ref: ./PortfolioPriceQuality.yaml
+  marketValue:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  averageCostBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

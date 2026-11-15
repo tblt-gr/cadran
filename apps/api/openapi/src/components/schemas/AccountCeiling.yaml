@@ -1,0 +1,31 @@
+description: One authority's ceiling for the account, with its provenance.
+type: object
+additionalProperties: false
+required:
+  - measurable
+  - amount
+  - validFrom
+  - validTo
+  - verification
+  - source
+  - claim
+properties:
+  measurable:
+    description: >-
+      False when the ceiling is published in another unit than the account is
+      denominated in. No conversion is applied and no verdict is produced; the
+      ceiling is reported as not comparable. An override is always measurable: a
+      local claim is recorded in the account's own unit.
+    type: boolean
+  amount:
+    $ref: ./DecimalAmount.yaml
+  validFrom:
+    $ref: ./RuleValidFrom.yaml
+  validTo:
+    $ref: ./RuleValidTo.yaml
+  verification:
+    $ref: ./DeclaredOrVerified.yaml
+  source:
+    $ref: ./DeclaredOrSourced.yaml
+  claim:
+    $ref: ./AccountRuleClaimOrNull.yaml

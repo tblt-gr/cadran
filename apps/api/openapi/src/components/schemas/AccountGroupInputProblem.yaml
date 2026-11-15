@@ -1,0 +1,29 @@
+description: >-
+  Invalid account group input. Invalid colors include a field error without
+  reflecting submitted data.
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    properties:
+      errors:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - field
+            - code
+          properties:
+            field:
+              type: string
+              enum:
+                - color
+                - colorMode
+            code:
+              type: string
+              enum:
+                - invalid_choice
+                - parent_mode_on_root
+                - required_for_custom
+                - forbidden_unless_custom
+                - invalid_color

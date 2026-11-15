@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - value
+properties:
+  month:
+    type: string
+  value:
+    $ref: ./AnnualCell.yaml

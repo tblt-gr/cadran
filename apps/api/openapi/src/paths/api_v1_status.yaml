@@ -1,0 +1,23 @@
+get:
+  operationId: getFoundationStatus
+  summary: Check that the API foundation is available
+  tags:
+    - Foundation
+  security: []
+  responses:
+    '200':
+      description: The API foundation is ready.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/FoundationStatus.yaml
+    '400':
+      description: >-
+        The request is rejected before reaching the controller, for example
+        because the Host header is malformed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

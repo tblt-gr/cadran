@@ -1,0 +1,7 @@
+type: string
+enum:
+  - NO_REFERENCE_INCOME
+  - ZERO_CASH_INCOME
+  - NO_DATA
+  - MIXED_ASSETS
+  - REFERENCE_ARCHIVED

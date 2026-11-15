@@ -1,0 +1,46 @@
+type: object
+additionalProperties: false
+required:
+  - key
+  - operands
+properties:
+  key:
+    type: string
+    enum:
+      - goals.formula.amount
+      - goals.formula.incomeShare
+      - goals.formula.rollingIncomeShare
+      - goals.formula.rate
+      - goals.formula.stock
+  operands:
+    type: object
+    additionalProperties: false
+    required:
+      - target
+      - achieved
+      - tolerance
+    properties:
+      start:
+        $ref: ./GoalStatusValue.yaml
+      valuationDate:
+        type:
+          - string
+          - 'null'
+        format: date
+      valuationQuality:
+        type:
+          - string
+          - 'null'
+      target:
+        $ref: ./GoalStatusValue.yaml
+      achieved:
+        $ref: ./GoalStatusValue.yaml
+      income:
+        $ref: ./GoalStatusValue.yaml
+      ratio:
+        $ref: ./GoalStatusValue.yaml
+      tolerance:
+        description: >-
+          The margin in the unit of the target (converted to an amount for a
+          share); null when the goal is strict.
+        $ref: ./GoalStatusValue.yaml

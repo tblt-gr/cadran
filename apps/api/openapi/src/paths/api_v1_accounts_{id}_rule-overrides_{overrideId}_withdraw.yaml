@@ -1,0 +1,76 @@
+post:
+  operationId: withdrawAccountRuleOverride
+  x-cadran-idempotency: A replay finds the override already withdrawn and answers 409.
+  summary: Withdraw a rule override
+  description: >-
+    Withdrawing is not ending. Ending an override is a dated fact recorded in
+    its `validTo`, and the account keeps resolving against it up to that day for
+    ever after. Withdrawing says the claim should not have applied at all: it
+    stops answering on every date, past ones included, and the inherited rule of
+    each of those dates takes over again — the dated one, not whatever is in
+    force today.
+
+    The row is kept and stays readable, so the trail still shows what was
+    claimed, by whom and why. Withdrawing a second time is refused rather than
+    silently accepted.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: overrideId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/EmptyRequest.yaml
+  responses:
+    '200':
+      description: The override as withdrawn.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountRuleOverride.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The override was already withdrawn (`type:
+        /problems/account-rule-override-conflict`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The body carries a field, or the account is archived (`type:
+        /problems/account-archived`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,27 @@
+delete:
+  operationId: restoreRecurrenceCandidate
+  x-cadran-idempotency: Removing a dismissal that is already removed is a no-op.
+  summary: Undo a recurrence candidate dismissal
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: fingerprint
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^[0-9a-f]{64}$
+  responses:
+    '204':
+      description: Candidate dismissal removed.
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

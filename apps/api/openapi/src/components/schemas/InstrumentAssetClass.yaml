@@ -1,0 +1,9 @@
+type: string
+enum:
+  - EQUITY
+  - BOND
+  - MONEY_MARKET
+  - REAL_ESTATE
+  - COMMODITY
+  - MIXED
+  - OTHER

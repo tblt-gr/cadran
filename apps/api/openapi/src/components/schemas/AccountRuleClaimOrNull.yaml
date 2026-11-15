@@ -1,0 +1,6 @@
+description: >-
+  Who claimed this value and why, or null when nobody claimed it and it was
+  inherited or published.
+oneOf:
+  - $ref: ./AccountRuleClaim.yaml
+  - type: 'null'

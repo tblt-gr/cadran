@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - gross
+  - withheld
+  - net
+properties:
+  gross:
+    $ref: ./PortfolioDecimal.yaml
+  withheld:
+    $ref: ./PortfolioDecimal.yaml
+  net:
+    $ref: ./PortfolioDecimal.yaml

@@ -1,0 +1,38 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - from
+  - to
+  - hasHistory
+  - truncated
+  - points
+properties:
+  accountId:
+    type: string
+    format: uuid
+  from:
+    type: string
+    format: date
+    description: >-
+      The resolved first day of the window, which differs from the request when
+      from was omitted.
+  to:
+    type: string
+    format: date
+  truncated:
+    type: boolean
+    description: >-
+      True only when from was omitted and the history starts earlier than the
+      3660-day cap, so older days are not shown.
+  hasHistory:
+    type: boolean
+    description: >-
+      Whether an active anchor exists on any requested day, even if movements
+      make its value non-calculable.
+  points:
+    type: array
+    minItems: 1
+    maxItems: 3661
+    items:
+      $ref: ./AccountValuationHistoryPoint.yaml

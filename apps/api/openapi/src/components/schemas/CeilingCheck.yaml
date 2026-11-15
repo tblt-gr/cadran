@@ -1,0 +1,39 @@
+description: >-
+  Comparison of a measured figure to the effective ceiling. EXCEEDED is a
+  warning, never a refusal: a Livret Bleu, credited interest or an imported
+  history may sit above the published amount. The scale, not this status,
+  decides what the excess earns.
+type: object
+additionalProperties: false
+required:
+  - status
+  - warning
+  - measured
+  - excess
+  - unsettledReason
+properties:
+  status:
+    type: string
+    enum:
+      - WITHIN
+      - EXCEEDED
+      - NOT_COMPARABLE
+      - UNSETTLED
+  warning:
+    type: boolean
+  measured:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  excess:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  unsettledReason:
+    oneOf:
+      - type: string
+        enum:
+          - MISSING_VALUATION
+          - CONTRIBUTIONS_NOT_TRACKED
+          - COMBINED_CEILING
+      - type: 'null'

@@ -1,0 +1,38 @@
+get:
+  operationId: readAccountValuation
+  summary: Read the latest valid balance of an account on a business date
+  description: >-
+    Returns the latest active snapshot on or before the requested date, with its
+    age, source and missing/stale quality. A missing valuation is `null` on both
+    the source and display amounts: a zero would invent a figure the holder
+    never recorded. Display rounding is applied by the backend from the asset's
+    display precision; the source literal is kept exact.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - $ref: ../components/parameters/BusinessDate.yaml
+  responses:
+    '200':
+      description: The latest valid valuation on the requested date.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountValuation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

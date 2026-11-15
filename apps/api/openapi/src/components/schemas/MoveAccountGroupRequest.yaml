@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - beforeGroupId
+  - expectedSiblingIds
+properties:
+  beforeGroupId:
+    description: The active sibling the group must precede, or null to move it last.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  expectedSiblingIds:
+    description: The active sibling order the client displayed, moved group included.
+    type: array
+    minItems: 1
+    maxItems: 100
+    uniqueItems: true
+    items:
+      type: string
+      format: uuid

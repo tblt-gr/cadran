@@ -1,0 +1,9 @@
+description: >-
+  How the required amount is set: MONTHS of essential expenses (targetMonths), a
+  fixed AMOUNT (targetAmount), or an INCOME_RATIO of the annual income
+  (targetRatio).
+type: string
+enum:
+  - MONTHS
+  - AMOUNT
+  - INCOME_RATIO

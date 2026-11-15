@@ -1,0 +1,66 @@
+post:
+  operationId: duplicateProductModel
+  x-cadran-idempotency: 'Active model names are unique: a replay answers 409 and creates nothing.'
+  summary: Duplicate a product model of the calling workspace
+  description: >-
+    Copies the description and the dated periods with their effective dates
+    untouched, under a new identity and name, and nothing else: no account,
+    balance, valuation or external identifier has ever belonged to a model. The
+    copy records the model it started from and stops following it. An archived
+    model cannot be duplicated. The mutation requires the same-origin CSRF
+    token.
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/DuplicateProductModelRequest.yaml
+  responses:
+    '201':
+      description: The model was duplicated.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ProductModel.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/ProductModelMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        An active model already uses the name (`type:
+        /problems/product-model-name-taken`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/ProductModelPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The name is invalid, or the source model is archived and cannot start a
+        new one (`type: /problems/product-model-archived`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

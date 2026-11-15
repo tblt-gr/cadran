@@ -1,0 +1,5 @@
+description: The submitted version is stale or the label conflicts with an active sibling.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

@@ -1,0 +1,68 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - assetCode
+  - scope
+  - period
+  - methodVersion
+  - costPolicy
+  - start
+  - end
+  - flows
+  - flowCount
+  - netFlows
+  - gain
+  - modifiedDietz
+  - timeWeighted
+  - moneyWeighted
+properties:
+  accountId:
+    type: string
+    format: uuid
+  assetCode:
+    type: string
+  scope:
+    type: string
+    enum:
+      - MONTH
+      - YEAR
+      - INCEPTION
+  period:
+    type:
+      - string
+      - 'null'
+  methodVersion:
+    type: string
+    enum:
+      - PERF-1
+  costPolicy:
+    type: string
+    enum:
+      - NET_OF_FEES_AND_TAXES
+  start:
+    oneOf:
+      - $ref: ./PortfolioPerformanceAnchor.yaml
+      - type: 'null'
+  end:
+    oneOf:
+      - $ref: ./PortfolioPerformanceAnchor.yaml
+      - type: 'null'
+  flows:
+    type: array
+    maxItems: 100
+    items:
+      $ref: ./PortfolioPerformanceFlow.yaml
+  flowCount:
+    type: integer
+    minimum: 0
+  netFlows:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  gain:
+    $ref: ./PortfolioGainFigure.yaml
+  modifiedDietz:
+    $ref: ./PortfolioModifiedDietzFigure.yaml
+  timeWeighted:
+    $ref: ./PortfolioTimeWeightedFigure.yaml
+  moneyWeighted:
+    $ref: ./PortfolioMoneyWeightedFigure.yaml

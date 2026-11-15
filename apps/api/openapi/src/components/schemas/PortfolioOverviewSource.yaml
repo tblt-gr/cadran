@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+required:
+  - kind
+  - id
+  - date
+properties:
+  kind:
+    type: string
+    enum:
+      - OPERATION
+      - VALUATION
+  id:
+    type: string
+    format: uuid
+  date:
+    type: string
+    format: date

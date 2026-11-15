@@ -1,0 +1,12 @@
+description: >-
+  Too many failed sign-in attempts for this email and source address. Identical
+  whether or not the email exists. Retry after the window.
+headers:
+  Retry-After:
+    description: Seconds to wait before retrying.
+    schema:
+      type: integer
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

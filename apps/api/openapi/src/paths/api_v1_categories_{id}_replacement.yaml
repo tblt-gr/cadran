@@ -1,0 +1,50 @@
+post:
+  operationId: replaceCategory
+  summary: Replace a category by another one from a date onwards
+  description: >-
+    Records that classifications from `effectiveFrom` belong to the target. The
+    source keeps its tree position and stays selectable for the period before
+    that date: history is never silently rewritten.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ReplaceCategoryRequest.yaml
+  responses:
+    '200':
+      description: The source category and its dated redirection.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Category.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/CategoryMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/CategoryVersionConflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/CategoryOperationRefused.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

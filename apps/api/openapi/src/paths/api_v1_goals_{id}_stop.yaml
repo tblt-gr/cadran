@@ -1,0 +1,53 @@
+post:
+  operationId: stopGoal
+  x-cadran-idempotency: >-
+    The body carries the expected goal version: a second stop with the same
+    version answers 409 stale_goal_version and changes nothing.
+  summary: Stop a goal after a period
+  description: >-
+    Sets the end period of the goal. `lastPeriod` is written like the goal
+    periods, not before its start and not after an end it already has (400
+    invalid_goal_period). A closed month the goal used to cover after
+    `lastPeriod` answers 409 goal_closed_period. Versions planned after
+    `lastPeriod` are removed with the stop.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/StopGoalRequest.yaml
+  responses:
+    '200':
+      description: The stopped goal.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalDetail.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

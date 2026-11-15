@@ -1,0 +1,38 @@
+get:
+  operationId: listPeriodClosures
+  x-cadran-bounded: >-
+    One calendar year of monthly closures, plus the reopened rows of those
+    months.
+  summary: List the closures of one year, reopened ones included
+  description: >-
+    The history of the workspace's monthly closures, newest month first. A
+    reopened closure stays listed with its reopening date and reason; a month
+    closed again after reopening appears as a second row. Reading is never
+    refused by a closure.
+  tags:
+    - Period closures
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: year
+      in: query
+      required: true
+      schema:
+        type: integer
+        minimum: 1900
+        maximum: 2999
+  responses:
+    '200':
+      description: The closures of the year.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PeriodClosureList.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

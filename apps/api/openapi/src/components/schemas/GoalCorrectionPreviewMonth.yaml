@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - before
+  - after
+properties:
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  before:
+    $ref: ./GoalCorrectionPreviewState.yaml
+  after:
+    $ref: ./GoalCorrectionPreviewState.yaml

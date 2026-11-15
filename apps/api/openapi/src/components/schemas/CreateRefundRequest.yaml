@@ -1,0 +1,47 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - amount
+  - bookedOn
+  - rawLabel
+  - counterparty
+  - note
+properties:
+  accountId:
+    type: string
+    format: uuid
+  amount:
+    description: >-
+      Positive magnitude; the stored REFUND transaction reduces the linked
+      expense.
+    $ref: ./DecimalAmount.yaml
+  bookedOn:
+    type: string
+    format: date
+  rawLabel:
+    type: string
+    minLength: 1
+    maxLength: 140
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  splits:
+    description: >-
+      Null accepts the exact server proposal; a list overrides it but must sum
+      exactly.
+    oneOf:
+      - type: array
+        maxItems: 20
+        items:
+          $ref: ./TransactionSplitInput.yaml
+      - type: 'null'

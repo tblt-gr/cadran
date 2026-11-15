@@ -1,0 +1,98 @@
+get:
+  operationId: readLifeInsuranceContract
+  x-cadran-bounded: Euro funds are instruments of the workspace, at most 500.
+  summary: Read the life-insurance contract of an account
+  description: >-
+    The contract (null until it is recorded), its fee terms, the announced
+    euro-fund rates and, for each euro fund held today or rated, the year of its
+    latest rate. The contract number is never returned, only its last four
+    characters. Unknown and foreign accounts answer the same 404.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  responses:
+    '200':
+      description: The contract and its dated figures.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceOverview.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The account is not a life-insurance contract followed in portfolio mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: saveLifeInsuranceContract
+  summary: Create or revise the life-insurance contract
+  description: >-
+    Creates the one contract of the account (201), or revises it when `version`
+    is sent (200). Sending `contractNumber: null` clears the stored suffix;
+    omitting it keeps it. The full number is read once and never stored,
+    returned, logged or audited.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/LifeInsuranceContractInput.yaml
+  responses:
+    '200':
+      description: The contract was revised.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceContract.yaml
+    '201':
+      description: The contract was created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceContract.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: A contract already exists, or the version is stale.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The body is invalid, or the account is inactive or not a life-insurance
+        contract.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

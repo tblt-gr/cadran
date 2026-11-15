@@ -1,0 +1,69 @@
+x-cadran-asset-scope: >-
+  The amount is in the asset of the account named by `accountId`; the response
+  states it explicitly.
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - counterparty
+  - expectedAmount
+  - amountTolerance
+  - intervalKind
+  - dayOfPeriod
+  - firstExpectedOn
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  expectedAmount:
+    $ref: ./RecurrenceAmountLiteral.yaml
+  amountTolerance:
+    allOf:
+      - $ref: ./RecurrenceAmountLiteral.yaml
+    description: Exact non-negative tolerance in the account asset.
+  intervalKind:
+    $ref: ./RecurrenceIntervalKind.yaml
+  dayOfPeriod:
+    type: integer
+    minimum: 1
+    maximum: 31
+  firstExpectedOn:
+    type: string
+    format: date
+  autoCreate:
+    description: >-
+      Create this recurrence's transactions for the current calendar month only,
+      pending until their date and booked from it. Defaults to false when
+      omitted.
+    type: boolean
+  categoryId:
+    description: >-
+      Optional active category every generated transaction receives. It must
+      match the amount direction (expense for an exit, income for an entry).
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  note:
+    description: Optional note every generated transaction receives.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  paymentMethod:
+    description: Optional payment method every generated transaction receives.
+    oneOf:
+      - $ref: ./PaymentMethod.yaml
+      - type: 'null'

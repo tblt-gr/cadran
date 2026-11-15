@@ -1,0 +1,63 @@
+post:
+  operationId: duplicateTransaction
+  summary: Duplicate a transaction as a booked movement dated today
+  description: >-
+    Copies account, nature, amount, labels, counterparty, note, payment method
+    and category. Drops external identity, provenance, bank reference and masked
+    card. Transfer legs and refunds cannot be duplicated.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '201':
+      description: The duplicated transaction, or its stored response replay.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        A linked account or category changed concurrently, the key was reused
+        with another request, or the first request is in flight. A write that
+        touches a closed period is refused with one stable problem, whichever
+        the use case (`type: /problems/period-closed`).
+      headers:
+        Retry-After:
+          $ref: ../components/headers/RetryAfterOneSecond.yaml
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '422':
+      description: >-
+        A transfer leg or refund cannot be duplicated, or the Idempotency-Key is
+        invalid. An income, expense, refund or fee on an account followed in
+        portfolio mode is refused (`type:
+        /problems/portfolio-account-requires-operations`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

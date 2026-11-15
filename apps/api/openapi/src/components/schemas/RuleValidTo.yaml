@@ -1,0 +1,7 @@
+description: >-
+  Last day covered, inclusive, or null while no revision has closed the period.
+  An open end is in force for every later business date; it is never an expiry.
+oneOf:
+  - type: string
+    format: date
+  - type: 'null'

@@ -1,0 +1,7 @@
+description: >-
+  INFLOW is money coming in (amount above zero), OUTFLOW money going out (amount
+  below zero).
+type: string
+enum:
+  - INFLOW
+  - OUTFLOW

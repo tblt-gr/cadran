@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - overrides
+properties:
+  overrides:
+    description: >-
+      Every override ever recorded on the account, withdrawn ones included,
+      ordered by rule kind then by the day each period starts.
+    type: array
+    items:
+      $ref: ./AccountRuleOverride.yaml

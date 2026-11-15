@@ -1,0 +1,17 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        enum:
+          - invalid_performance_scope
+          - invalid_performance_period
+          - account_not_portfolio
+          - performance_range_too_dense
+          - cash_amount_too_large
+          - position_would_go_negative
+          - corporate_action_without_position
+          - split_fraction_unsupported

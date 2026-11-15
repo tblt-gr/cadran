@@ -1,0 +1,59 @@
+x-cadran-asset-scope: >-
+  Amounts are in the asset of the account identified by accountId. Operation
+  entry requires that asset to equal the enclosing instrument.currencyCode;
+  quantities are instrument units. No currency conversion is performed.
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - quantity
+  - value
+  - unrealizedGain
+  - realizedGain
+  - income
+  - feesAndTaxes
+  - operationCount
+  - firstOperationOn
+  - lastOperationOn
+  - reason
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+    maxLength: 120
+  quantity:
+    $ref: ./HoldingsNullableDecimal.yaml
+  value:
+    $ref: ./HoldingsNullableDecimal.yaml
+  unrealizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  realizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  income:
+    $ref: ./HoldingsNullableDecimal.yaml
+  feesAndTaxes:
+    $ref: ./HoldingsNullableDecimal.yaml
+  operationCount:
+    description: >-
+      Active operations referencing the instrument, null when history exceeds
+      the read bound.
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+    maximum: 5000
+  firstOperationOn:
+    type:
+      - string
+      - 'null'
+    format: date
+  lastOperationOn:
+    type:
+      - string
+      - 'null'
+    format: date
+  reason:
+    $ref: ./InstrumentHoldingReason.yaml

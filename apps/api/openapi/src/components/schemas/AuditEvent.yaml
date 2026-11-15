@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - occurredAt
+  - actorId
+  - eventType
+  - entityType
+  - entityId
+  - before
+  - after
+properties:
+  id:
+    type: string
+    format: uuid
+  occurredAt:
+    type: string
+    format: date-time
+  actorId:
+    description: >-
+      The user who performed the operation, or null when it had no authenticated
+      actor - console provisioning and the first-run password flow.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  eventType:
+    type: string
+    examples:
+      - session.opened
+  entityType:
+    type: string
+    examples:
+      - user
+  entityId:
+    type: string
+    format: uuid
+  before:
+    $ref: ./AuditDiffSide.yaml
+  after:
+    $ref: ./AuditDiffSide.yaml

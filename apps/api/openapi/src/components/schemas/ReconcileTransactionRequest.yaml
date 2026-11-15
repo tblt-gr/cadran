@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - version
+  - matchedTransactionId
+properties:
+  version:
+    type: integer
+    minimum: 1
+  matchedTransactionId:
+    description: >-
+      The pending transaction this reviewed movement settles: one of its
+      recorded candidates, or any other pending row of the same account the
+      reviewer judges to be the same movement. Null means the movement is
+      genuinely new and books on its own.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'

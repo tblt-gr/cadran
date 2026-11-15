@@ -1,0 +1,64 @@
+x-cadran-asset-scope: >-
+  Amounts are in the asset of the goal; the tolerance of a ratio goal is a
+  ratio.
+type: object
+additionalProperties: false
+required:
+  - versionNo
+  - effectiveFrom
+  - year
+  - targetAmount
+  - ratio
+  - tolerance
+  - schedule
+  - retroactive
+  - reason
+  - createdAt
+  - createdBy
+  - changes
+properties:
+  versionNo:
+    type: integer
+    minimum: 1
+    maximum: 50
+  effectiveFrom:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  year:
+    type:
+      - integer
+      - 'null'
+    minimum: 1900
+    maximum: 2999
+  targetAmount:
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  ratio:
+    oneOf:
+      - $ref: ./GoalDecimal.yaml
+      - type: 'null'
+  tolerance:
+    $ref: ./GoalDecimal.yaml
+  schedule:
+    oneOf:
+      - $ref: ./GoalSchedule.yaml
+      - type: 'null'
+  retroactive:
+    type: boolean
+  reason:
+    type:
+      - string
+      - 'null'
+    minLength: 3
+    maxLength: 200
+  createdAt:
+    type: string
+    format: date-time
+  createdBy:
+    $ref: ./GoalVersionAuthor.yaml
+  changes:
+    type: array
+    maxItems: 6
+    items:
+      $ref: ./GoalVersionChange.yaml

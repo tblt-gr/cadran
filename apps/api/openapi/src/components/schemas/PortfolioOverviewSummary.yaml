@@ -1,0 +1,167 @@
+x-cadran-asset-scope: Amounts are in the asset of the portfolio account (`account.assetCode`).
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - account
+  - valuation
+  - totalValue
+  - cash
+  - unrealizedGain
+  - netDeposits
+  - costs
+  - reconciliation
+  - explanations
+  - newerPartialValuation
+  - dueMonths
+properties:
+  dueMonths:
+    description: >-
+      Months still owed a complete month-end valuation, oldest first, computed
+      on every read.
+    type: array
+    maxItems: 13
+    items:
+      $ref: ./PortfolioDueMonth.yaml
+  newerPartialValuation:
+    description: >-
+      A newer active PARTIAL observation when selected values come from an older
+      COMPLETE valuation; null without fallback.
+    oneOf:
+      - $ref: ./PortfolioOverviewValuation.yaml
+      - type: 'null'
+  asOf: &ref_2
+    type: string
+    format: date
+  account:
+    $ref: ./PortfolioOverviewAccount.yaml
+  valuation:
+    oneOf:
+      - $ref: ./PortfolioOverviewValuation.yaml
+      - type: 'null'
+  totalValue: &ref_0
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  cash: &ref_1
+    type: string
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  unrealizedGain:
+    type: object
+    additionalProperties: false
+    required:
+      - value
+      - securitiesValue
+      - costBasis
+      - performance
+      - reason
+    properties:
+      value: *ref_0
+      securitiesValue: *ref_0
+      costBasis: *ref_0
+      performance:
+        description: >-
+          Gain over cost as an exact ratio (0.097561 is 9.7561 %); null when the
+          gain or the cost is unknown, or the cost is zero.
+        type:
+          - string
+          - 'null'
+      reason:
+        type:
+          - string
+          - 'null'
+        enum:
+          - null
+          - NO_VALUATION
+          - PARTIAL_VALUATION
+          - UNKNOWN_LOT_COST
+  netDeposits:
+    type: object
+    additionalProperties: false
+    required:
+      - value
+      - deposits
+      - withdrawals
+      - from
+      - to
+    properties:
+      value: *ref_1
+      deposits: *ref_1
+      withdrawals: *ref_1
+      from: *ref_2
+      to: *ref_2
+  costs:
+    type: object
+    additionalProperties: false
+    required:
+      - fees
+      - taxes
+      - total
+      - from
+      - to
+    properties:
+      fees: *ref_1
+      taxes: *ref_1
+      total: *ref_1
+      from: *ref_2
+      to: *ref_2
+  reconciliation:
+    type: object
+    additionalProperties: false
+    required:
+      - status
+      - warnings
+    properties:
+      status:
+        type: string
+        enum:
+          - RECONCILED
+          - NEEDS_REVIEW
+      warnings:
+        type: array
+        items:
+          type: object
+          additionalProperties: false
+          required:
+            - code
+            - count
+          properties:
+            code:
+              type: string
+            count:
+              type: integer
+              minimum: 1
+  explanations:
+    type: object
+    additionalProperties: false
+    required:
+      - TOTAL_VALUE
+      - UNREALIZED_GAIN
+      - CASH
+      - NET_DEPOSITS
+      - COSTS
+      - RECONCILIATION
+    properties:
+      TOTAL_VALUE:
+        $ref: ./PortfolioKpiExplanation.yaml
+      UNREALIZED_GAIN:
+        $ref: ./PortfolioKpiExplanation.yaml
+      CASH:
+        $ref: ./PortfolioKpiExplanation.yaml
+      NET_DEPOSITS:
+        $ref: ./PortfolioKpiExplanation.yaml
+      COSTS:
+        $ref: ./PortfolioKpiExplanation.yaml
+      RECONCILIATION:
+        $ref: ./PortfolioKpiExplanation.yaml
+description: >-
+  Latest active COMPLETE valuation on or before asOf, falling back to the latest
+  PARTIAL only when no complete exists. A newer partial stays explicit and
+  contributes reconciliation warnings and sources. Unrealized gain uses frozen
+  average cost, COMPLETE only. Cash is the one frozen with the selected
+  valuation (observed when the statement gave it, otherwise derived on its
+  date), so it shares the total value date; without valuation it is derived at
+  asOf. Deposits and costs are year-to-date. Reconciliation excludes
+  UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per
+  KPI.

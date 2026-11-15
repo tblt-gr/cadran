@@ -1,0 +1,30 @@
+description: One authority's rule for the account that states neither a ceiling nor a rate.
+type: object
+additionalProperties: false
+required:
+  - token
+  - validFrom
+  - validTo
+  - verification
+  - source
+  - claim
+properties:
+  token:
+    description: >-
+      An uppercase token the interface translates, never a sentence: regulatory
+      wording belongs to the publication it was read from and to the translation
+      catalogue.
+    type: string
+    pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+    examples:
+      - NO_REGULATORY_CONTRIBUTION_CEILING
+  validFrom:
+    $ref: ./RuleValidFrom.yaml
+  validTo:
+    $ref: ./RuleValidTo.yaml
+  verification:
+    $ref: ./DeclaredOrVerified.yaml
+  source:
+    $ref: ./DeclaredOrSourced.yaml
+  claim:
+    $ref: ./AccountRuleClaimOrNull.yaml

@@ -1,0 +1,12 @@
+name: includeUpcoming
+in: query
+required: false
+description: >-
+  When `true`, the planned (upcoming) transactions of the month, pending rows
+  the booking job will book on their date, are counted as if booked and reported
+  apart. Defaults to `false`: they are then treated like any other pending row.
+  Net worth and balances never include them. Any other value is refused with
+  400.
+schema:
+  type: boolean
+  default: false

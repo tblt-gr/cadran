@@ -1,0 +1,27 @@
+get:
+  operationId: detectRecurrenceCandidates
+  x-cadran-bounded: >-
+    Detection reads the latest 24 months and at most 5000 movements; the result
+    reports partial when the cap is reached.
+  summary: Detect recurring transaction candidates in a bounded history window
+  description: >-
+    Read-only detection over the latest 24 months and at most 5000 eligible
+    movements. Reaching the row cap returns `partial: true`; this operation
+    never writes a recurrence, occurrence, dismissal or transaction.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: Qualitative recurring candidates not dismissed by the workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/RecurrenceCandidatePage.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

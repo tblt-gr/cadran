@@ -1,0 +1,72 @@
+type: object
+additionalProperties: false
+required:
+  - from
+  - to
+  - startValue
+  - endValue
+  - deposits
+  - withdrawals
+  - netFlows
+  - gain
+  - realized
+  - unrealizedChange
+  - income
+  - fees
+  - feesPaid
+  - taxes
+  - gainQuality
+  - gainReasons
+  - modifiedDietz
+  - timeWeighted
+  - moneyWeighted
+properties:
+  from:
+    type:
+      - string
+      - 'null'
+    format: date
+  to:
+    type:
+      - string
+      - 'null'
+    format: date
+  startValue:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  endValue:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  deposits:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  withdrawals:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  netFlows:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  gain:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  realized:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  unrealizedChange:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  income:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  fees:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  feesPaid:
+    description: >-
+      Every fee paid in the period, purchases included; `fees` leaves out the
+      ones capitalized into a purchase.
+    $ref: ./PortfolioPerformanceAmount.yaml
+  taxes:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  gainQuality:
+    $ref: ./PortfolioAnnualQuality.yaml
+  gainReasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml
+  modifiedDietz:
+    $ref: ./PortfolioAnnualRateCell.yaml
+  timeWeighted:
+    $ref: ./PortfolioAnnualRateCell.yaml
+  moneyWeighted:
+    $ref: ./PortfolioAnnualMoneyWeighted.yaml
