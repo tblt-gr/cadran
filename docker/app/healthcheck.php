@@ -8,6 +8,14 @@ if (1 !== preg_match('/\A(?=.{1,253}\z)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?\z/i', $s
     exit(1);
 }
 
+// Caddy's internal authority signs the served certificate. A missing root must fail the check,
+// never fall back to an unverified connection.
+$caFile = '/data/caddy/pki/authorities/local/root.crt';
+
+if (!is_readable($caFile)) {
+    exit(1);
+}
+
 $context = stream_context_create([
     'http' => [
         'header' => "Host: {$serverName}\r\n",
@@ -15,8 +23,9 @@ $context = stream_context_create([
     'ssl' => [
         'peer_name' => $serverName,
         'SNI_enabled' => true,
-        'verify_peer' => false,
-        'verify_peer_name' => false,
+        'cafile' => $caFile,
+        'verify_peer' => true,
+        'verify_peer_name' => true,
     ],
 ]);
 $response = @file_get_contents('https://127.0.0.1:8443/api/v1/status', false, $context);
