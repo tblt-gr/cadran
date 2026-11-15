@@ -260,7 +260,7 @@ final class ReadAccountRulesTest extends TestCase
         self::assertSame('22950.00', $rules->ceilings[0]->catalog?->amount->value->toString());
         // The catalogue still publishes 1.7 % on this date. The model never
         // carried a rate, so that figure is a gap rather than an in-force
-        // fallback — otherwise the same response would list ANNUAL_RATE as
+        // fallback - otherwise the same response would list ANNUAL_RATE as
         // both effective and unavailable.
         self::assertSame([], $rules->rates);
         self::assertSame([RuleKind::ANNUAL_RATE], $rules->unavailableRuleKinds);

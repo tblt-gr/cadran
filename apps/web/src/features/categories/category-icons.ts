@@ -4,7 +4,7 @@
  * The catalogue is flat and carries no category meaning: the owner freely
  * associates any glyph with any category, so entries are named after what they
  * draw, never after what they could classify. Keys are stable and never
- * removed — a renamed French name keeps its key so stored categories keep
+ * removed - a renamed French name keeps its key so stored categories keep
  * rendering.
  */
 export const CATEGORY_ICONS = [

@@ -216,9 +216,9 @@ final class TransactionPersistenceTest extends KernelTestCase
         $this->repository->add($this->transaction(self::OWN_TRANSACTION, WorkspaceFixture::own(), self::OWN_ACCOUNT, '-10.00'));
 
         // The two amounts already sum exactly to the transaction total, so the
-        // only constraint the second insert can violate — inside one explicit
+        // only constraint the second insert can violate - inside one explicit
         // transaction, where the deferred sum trigger never gets to run before
-        // it — is the (transaction_id, category_id) uniqueness itself.
+        // it - is the (transaction_id, category_id) uniqueness itself.
         try {
             $this->connection->transactional(function (): void {
                 foreach ([['00000000-0000-7000-8000-0000000000e1', '-6.00'], ['00000000-0000-7000-8000-0000000000e2', '-4.00']] as [$id, $amount]) {

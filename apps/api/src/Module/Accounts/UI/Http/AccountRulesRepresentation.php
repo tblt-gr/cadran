@@ -28,7 +28,7 @@ use App\Module\Foundation\Domain\AssetAmount;
  *
  * Ceilings, rates and terms travel in three lists rather than one, because a
  * client that had to sort them by kind would be re-deriving the basis a
- * ceiling is measured on and whether a percentage is a scale — decisions the
+ * ceiling is measured on and whether a percentage is a scale - decisions the
  * server already made and must not delegate.
  *
  * Each entry states the same rule as every authority sees it. The catalogue
@@ -253,7 +253,7 @@ final readonly class AccountRulesRepresentation
 
     /**
      * The period a value covers, how fresh its verification is, where it was
-     * read from, and — when nobody read it anywhere — who claimed it.
+     * read from, and, when nobody read it anywhere, who claimed it.
      *
      * A catalogue-sourced rule carries the verification and the source; a rule
      * read from a workspace product model carries neither, because nobody

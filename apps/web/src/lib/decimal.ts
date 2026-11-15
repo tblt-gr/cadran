@@ -363,7 +363,7 @@ export function decimalRatio(numerator: string, denominator: string, scale: numb
  * never carries a leading zero, and the fraction part compares lexicographically
  * once padded to the same length.
  *
- * Both operands must already be canonical unsigned decimals — the length-first
+ * Both operands must already be canonical unsigned decimals - the length-first
  * comparison this relies on reads a sign or a leading zero as extra integer
  * digits and answers a wrong order silently, so an uncanonical operand throws
  * rather than being trusted.

@@ -144,8 +144,8 @@ final readonly class DbalTransactionRepository implements TransactionRepository
         int $limit,
         bool $lock,
     ): array {
-        // Every eligibility filter — state, review, exact amount, the booked
-        // window, and the transfer/refund exclusions below — sits ahead of
+        // Every eligibility filter - state, review, exact amount, the booked
+        // window, and the transfer/refund exclusions below - sits ahead of
         // ORDER BY and LIMIT, so a row inside the window is scanned however
         // large the account's unrelated pending backlog is.
         $sql = 'SELECT '.self::COLUMNS.' FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '

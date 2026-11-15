@@ -17,7 +17,7 @@ get:
     workspace model it follows. `inherited` is what that workspace model says,
     and is present only when a model sits between the account and the catalogue.
     `override` is what was recorded against this account alone, and it carries
-    the claim that explains it — who recorded it, when, and why.
+    the claim that explains it - who recorded it, when, and why.
     `effectiveLayer` names the one that wins, so no client re-implements the
     precedence.
 

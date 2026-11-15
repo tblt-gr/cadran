@@ -14,7 +14,7 @@ use App\Module\Audit\Domain\AuditDiff;
  * Two deliberate silences. An attempt on an email that matches no account
  * records nothing: there is no workspace to attribute it to, and storing the
  * submitted string would put attacker-controlled text in the trail. A session
- * event carries no diff either — the act itself is the whole content, and a
+ * event carries no diff either - the act itself is the whole content, and a
  * credential must never be described, not even by shape.
  */
 final readonly class RecordSessionEvent

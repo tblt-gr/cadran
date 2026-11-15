@@ -10,7 +10,7 @@ namespace App\Module\Identity\Application;
  * Recording inline would put a database round trip on the authentication
  * response path. On a failed sign-in that is measurable: the write only happens
  * for an email that matches an account, so its latency would tell an attacker
- * which addresses exist — the very channel the dummy password verify in
+ * which addresses exist - the very channel the dummy password verify in
  * IdentityUserProvider exists to close. On sign-out and sign-in it would also
  * let a write failure break an operation that has already succeeded.
  */

@@ -40,7 +40,7 @@ interface CategoryPickerProps {
   selectedLabel?: string | null;
   /**
    * Restricts the choices to one type. Without it both types are offered, grouped,
-   * with `preferredType` first — the host then validates the pairing itself.
+   * with `preferredType` first - the host then validates the pairing itself.
    */
   type?: CategoryType;
   preferredType?: CategoryType;
@@ -52,7 +52,7 @@ interface CategoryPickerProps {
  *
  * A single combobox rather than a search box wired to a separate select: the
  * workspace can hold more categories than any list should render at once, so
- * the choices are a search result — and a control where you type in one place
+ * the choices are a search result - and a control where you type in one place
  * and choose in another does not read as one decision.
  */
 export function CategoryPicker({

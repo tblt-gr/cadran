@@ -6,7 +6,7 @@ namespace App\Module\Catalog\Domain;
 
 /**
  * The legal or fiscal envelope a product sits in. It decides which rules may
- * apply to it — a regulated ceiling, a tax reference — independently of what
+ * apply to it, a regulated ceiling, a tax reference, independently of what
  * the account holds.
  */
 enum WrapperKind: string

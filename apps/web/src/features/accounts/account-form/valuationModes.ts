@@ -26,7 +26,7 @@ export function productFeedsValuationMode(
  * The mode an origin-backed account starts on: the most faithful one the
  * catalogue product or the workspace template and its kind actually support.
  *
- * A plan that holds positions is valued by those positions — starting a share
+ * A plan that holds positions is valued by those positions - starting a share
  * savings plan on recorded movements would leave its value forever detached
  * from what it holds. Anything else starts on recorded movements, which explain
  * a balance rather than assert one.

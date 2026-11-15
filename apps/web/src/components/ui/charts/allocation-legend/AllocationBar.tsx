@@ -12,8 +12,8 @@ interface AllocationBarProps {
  *
  * The bar is decorative and hidden from assistive technology: the same
  * percentage is already written beside it as the canonical string the backend
- * produced. A share outside 0–100 % — a group weighed against a small eligible
- * base — is clamped so the bar cannot overflow its track.
+ * produced. A share outside 0–100 % - a group weighed against a small eligible
+ * base - is clamped so the bar cannot overflow its track.
  */
 export function AllocationBar({ color, percent }: AllocationBarProps) {
   if (percent === null) {

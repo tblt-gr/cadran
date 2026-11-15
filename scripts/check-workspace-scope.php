@@ -748,7 +748,7 @@ function analyseMethodBody(array $tokens, int $from, int $to, array $constants, 
         // whatever variable receives it. That variable must not inherit the
         // query's resolved literal text below: doing so would make a later,
         // unrelated call that merely forwards the fetched rows (e.g. a
-        // hydration helper) look like it re-embeds the raw query — flagging
+        // hydration helper) look like it re-embeds the raw query - flagging
         // it as an unrecognised, unscoped access to the very table the
         // original query already proved was correctly bound.
         $statementIsQueryResult = false;

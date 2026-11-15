@@ -1,5 +1,5 @@
 description: >-
-  Null for a value nobody published — one read from a workspace product model,
+  Null for a value nobody published - one read from a workspace product model,
   and one claimed by an account override. There is no publication to name.
 oneOf:
   - $ref: ./ProductRuleSource.yaml

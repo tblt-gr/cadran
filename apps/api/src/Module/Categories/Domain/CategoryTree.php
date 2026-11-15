@@ -10,7 +10,7 @@ namespace App\Module\Categories\Domain;
  *
  * The walk never refuses an operation: an impact preview has to report a branch
  * that would grow too deep rather than fail on it. The ceiling is enforced
- * elsewhere — by the DEPTH_EXCEEDED blocker of the impact assessment, by the
+ * elsewhere - by the DEPTH_EXCEEDED blocker of the impact assessment, by the
  * {@see Category} constructor on every rewritten descendant, and by the database
  * depth trigger.
  */

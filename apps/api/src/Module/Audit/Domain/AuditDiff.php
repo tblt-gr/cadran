@@ -87,8 +87,8 @@ final readonly class AuditDiff
     }
 
     /**
-     * For an event whose meaning is the act itself — signing in, defining a
-     * password — where every attribute worth naming would have to be redacted.
+     * For an event whose meaning is the act itself - signing in, defining a
+     * password - where every attribute worth naming would have to be redacted.
      */
     public static function none(): self
     {

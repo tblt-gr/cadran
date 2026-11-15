@@ -17,7 +17,7 @@ interface ProductModelPeriodTableProps {
  * Every dated period a model has ever recorded. It stays readable for an
  * archived model too: an account created from it must keep resolving against
  * the description it was created with. A null end is in force with no known
- * end — never shown as an expiry or a zero.
+ * end - never shown as an expiry or a zero.
  */
 export function ProductModelPeriodTable({ name, rules }: ProductModelPeriodTableProps) {
   const { i18n, t } = useTranslation();

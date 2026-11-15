@@ -61,8 +61,8 @@ final readonly class AccountRuleOverrides
 
         // A stable order keeps two identical reads byte-identical: by rule kind
         // as the kinds are declared, then oldest period first, then by
-        // identifier so two periods recorded for the same dates — one of them
-        // withdrawn — never swap places between reads.
+        // identifier so two periods recorded for the same dates - one of them
+        // withdrawn - never swap places between reads.
         $ordered = $overrides;
         usort($ordered, static function (AccountRuleOverride $left, AccountRuleOverride $right): int {
             $byKind = self::ordinal($left->kind) <=> self::ordinal($right->kind);

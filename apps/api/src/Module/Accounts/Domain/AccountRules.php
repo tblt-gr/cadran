@@ -98,7 +98,7 @@ final readonly class AccountRules
      * Resolves the rules of a workspace product model, the counterpart of
      * {@see self::fromProduct()}. A model rule carries no publication, so
      * every ceiling, rate and term it states reads as self-declared: null
-     * verification, null source. Archiving the model changes nothing here —
+     * verification, null source. Archiving the model changes nothing here:
      * the account keeps resolving the same periods either way.
      *
      * `$catalogBehindModel` is the system product the model was copied from,

@@ -2,7 +2,7 @@ post:
   operationId: createTransfer
   summary: Move money between two accounts of the calling workspace atomically
   description: >-
-    Creates both legs — source negative, target positive — and an optional fee,
+    Creates both legs, source negative, target positive, and an optional fee,
     in one PostgreSQL transaction. sourceAmount and targetAmount are positive
     magnitudes; the server applies the signs. Same-asset transfers may omit
     targetAmount, defaulting it to the source magnitude; a cross-asset transfer

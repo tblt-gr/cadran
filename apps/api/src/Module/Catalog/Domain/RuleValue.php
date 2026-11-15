@@ -11,7 +11,7 @@ use App\Module\Foundation\Domain\DecimalValue;
  * The value of a catalogue rule, in exactly one of the three shapes a rule
  * kind may take.
  *
- * A percentage is stored as written in the source — `1.7` reads 1.7 % — so no
+ * A percentage is stored as written in the source, `1.7` reads 1.7 %, so no
  * consumer converts a rate to display it. A text value is an uppercase token,
  * never a sentence: the interface translates the token, which keeps regulatory
  * wording out of the React bundle and out of the database alike.

@@ -13,7 +13,7 @@ use App\Module\Foundation\Application\CallerWorkspace;
  * A closed or archived account answers like any other: the detail page it
  * feeds stays linkable once the account leaves the working set, which is what
  * makes a past statement re-readable. An identifier that names no account of
- * this workspace — unknown, or belonging to another one — answers the same
+ * this workspace, unknown, or belonging to another one, answers the same
  * absence, so the response never confirms that a stranger's account exists.
  *
  * The account carries no balance of its own. The valuation attached here is

@@ -31,7 +31,7 @@ interface SplitEditorProps {
 /**
  * Splits a transaction across categories: rows, add/remove, the live
  * remaining amount and the two allocation helpers. Mounted inside the
- * transaction modal — it never opens its own overlay.
+ * transaction modal - it never opens its own overlay.
  */
 export function SplitEditor({
   assetCode,
@@ -59,8 +59,8 @@ export function SplitEditor({
     isCanonicalDecimal(row.amount) &&
     !isZeroDecimal(row.amount) &&
     exactTotal.startsWith('-') !== row.amount.startsWith('-');
-  // A row whose amount cannot become a real split — inexact, zero, or the
-  // wrong sign — is flagged on the amount field itself.
+  // A row whose amount cannot become a real split - inexact, zero, or the
+  // wrong sign - is flagged on the amount field itself.
   const amountInvalid = (row: SplitRowValues): boolean =>
     !isCanonicalDecimal(row.amount) || isZeroDecimal(row.amount) || signMismatch(row);
   // The type of a row's category when the transaction sign refuses it, else null.

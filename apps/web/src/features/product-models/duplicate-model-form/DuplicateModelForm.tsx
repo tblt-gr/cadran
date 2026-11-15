@@ -18,7 +18,7 @@ interface DuplicateModelFormProps {
 
 /**
  * Copies a model under a new name. The copy takes the description and the dated
- * periods with their effective dates untouched, and nothing else — no account,
+ * periods with their effective dates untouched, and nothing else - no account,
  * balance or external identifier ever belonged to a model. It records the model
  * it started from and stops following it.
  */

@@ -19,7 +19,7 @@ use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Replaces the whole split allocation of a transaction: `PUT .../splits`. The
- * amount, state and every other field stay untouched — only the categorisation
+ * amount, state and every other field stay untouched - only the categorisation
  * changes, so an empty allocation returns the transaction to the "to
  * categorise" queue instead of leaving a partial state at rest.
  */

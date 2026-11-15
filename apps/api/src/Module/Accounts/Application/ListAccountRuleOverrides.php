@@ -14,7 +14,7 @@ use App\Module\Foundation\Application\CallerWorkspace;
  * whatever business date is being looked at.
  *
  * It is a different question from {@see ReadAccountRules}, which answers what
- * applies on one day. This answers what was ever claimed, by whom and why —
+ * applies on one day. This answers what was ever claimed, by whom and why:
  * the history a holder needs to explain why their figures diverge from the
  * published ones, and the only place a withdrawn claim remains visible.
  */

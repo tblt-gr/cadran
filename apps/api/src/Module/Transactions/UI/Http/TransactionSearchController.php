@@ -179,7 +179,7 @@ final readonly class TransactionSearchController
      * client sends them as plain repeated keys (`?accountId=A&accountId=B`),
      * never bracketed. PHP's superglobal query parsing collapses repeated
      * non-bracket keys to the last value, and `$request->query` is built
-     * from that superglobal — so reading it here would silently drop every
+     * from that superglobal - so reading it here would silently drop every
      * value but the last. Parsing the raw query string ourselves preserves
      * every repeated key, whether the client used brackets or not.
      *

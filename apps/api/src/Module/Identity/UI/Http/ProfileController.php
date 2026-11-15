@@ -108,7 +108,7 @@ final readonly class ProfileController
         // The policy check comes before the budget is touched: a candidate that
         // is the wrong length, or a common password, is a malformed request, not a guess at the current
         // password, and must not be able to lock its own owner out. The use case
-        // re-runs it — it stays the authority — but by then no token is at stake.
+        // re-runs it, it stays the authority, but by then no token is at stake.
         try {
             PlainPassword::chosen($fields['newPassword'], $this->commonPasswords);
         } catch (CommonPassword) {

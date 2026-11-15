@@ -1895,7 +1895,7 @@ final class TransactionControllerTest extends WebTestCase
         $this->requestRawUpdate($id, $this->updateBody($transaction));
     }
 
-    /** @param array<string, mixed> $body already in the wire shape — not derived from a Transaction resource */
+    /** @param array<string, mixed> $body already in the wire shape - not derived from a Transaction resource */
     private function requestRawUpdate(string $id, array $body): void
     {
         $this->client->request(

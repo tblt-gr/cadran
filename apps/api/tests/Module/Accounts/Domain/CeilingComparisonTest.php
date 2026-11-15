@@ -17,7 +17,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * A ceiling is compared, never enforced. A Livret Bleu (or credited interest
  * on a Livret A) may sit above 22 950 €: the verdict is a warning, not a
- * refusal, and the scale — not the ceiling — decides what the excess earns.
+ * refusal, and the scale, not the ceiling, decides what the excess earns.
  */
 final class CeilingComparisonTest extends TestCase
 {

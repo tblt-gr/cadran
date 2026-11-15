@@ -11,7 +11,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  *
  * An event always belongs to a workspace: the trail is read back through that
  * scope and nothing else. The actor is nullable because two legitimate writers
- * carry no authenticated session — the provisioning console command, and the
+ * carry no authenticated session - the provisioning console command, and the
  * one-time first-run password flow that runs before any session exists.
  */
 final readonly class AuditEvent

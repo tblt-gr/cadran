@@ -20,7 +20,7 @@ use App\Module\Foundation\Domain\AssetCode;
  * could not have stated. A catalogue entry refuses a rate on a market product
  * and a ceiling on a product that tracks no balance; a workspace model refuses
  * both the same way. Without this, the override endpoint would be a second,
- * unguarded door onto the same figures — a rate typed onto a PEA, presented
+ * unguarded door onto the same figures - a rate typed onto a PEA, presented
  * beside a published one, and read as a promise nothing backs.
  */
 final readonly class AccountRuleAuthority

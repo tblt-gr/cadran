@@ -22,7 +22,7 @@ function isStaleCsrf(result: MutationResult): boolean {
 /**
  * Runs an auth mutation. If the server refuses it for a stale or missing CSRF
  * token, a session probe replants the `csrf_token` cookie and the mutation is
- * retried once — so a tab left open past the token's lifetime still logs out,
+ * retried once - so a tab left open past the token's lifetime still logs out,
  * signs in, or sets its password instead of failing silently.
  */
 export async function withCsrfRetry<T extends MutationResult>(call: () => Promise<T>): Promise<T> {

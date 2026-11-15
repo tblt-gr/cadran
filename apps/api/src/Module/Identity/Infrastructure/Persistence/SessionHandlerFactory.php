@@ -15,7 +15,7 @@ use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
  * handler must keep its own connection, so that a rolled-back business
  * transaction never takes the session with it and its row lock never joins the
  * application's transaction. But it must reach the *same* database, and the raw
- * DATABASE_URL is not that database — DoctrineBundle appends `dbname_suffix`
+ * DATABASE_URL is not that database - DoctrineBundle appends `dbname_suffix`
  * to it, which is how the test suite is isolated. A handler wired to the raw
  * URL writes its sessions into the production database while the suite asserts
  * on the test one.

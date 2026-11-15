@@ -570,7 +570,3 @@ if (
 ) {
   fail('The rollback must restore with the newer app image left stopped');
 }
-
-if (/—/.test(upgradeScript)) {
-  fail('The upgrade script must not contain an em dash');
-}

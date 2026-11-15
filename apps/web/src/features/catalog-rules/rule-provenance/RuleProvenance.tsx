@@ -76,7 +76,7 @@ function RuleSourceReading({ source }: { source: ProductRuleSource | null }) {
 
 /**
  * The three cells every account rule carries: the period it covers, how
- * fresh its verification is and the publication it was read from — or, for a
+ * fresh its verification is and the publication it was read from - or, for a
  * rule read from a workspace's own product model, that it was declared by
  * the workspace and grades no freshness, since nobody published it.
  *

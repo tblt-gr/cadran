@@ -11,7 +11,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 /**
  * Publishes only the category fact another module's scope reference needs:
  * whether it exists in this workspace, its display label, whether it is
- * archived, and its ancestor chain — used by Budget to validate and present a
+ * archived, and its ancestor chain - used by Budget to validate and present a
  * target's scope and to detect parent/child overlaps without reaching into the
  * category tree itself.
  */

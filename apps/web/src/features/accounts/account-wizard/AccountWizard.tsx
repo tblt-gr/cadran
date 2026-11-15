@@ -26,7 +26,7 @@ interface AccountWizardProps {
  * The review exists because an account backed by a product or a template
  * inherits a kind, a valuation mode and a set of dated rules the user never
  * typed. Confirming is the moment they see what that origin says, with each
- * figure's period and — for a catalogue product — its official source,
+ * figure's period and, for a catalogue product, its official source,
  * before anything is written.
  */
 export function AccountWizard({ onCreate, pending, submitError }: AccountWizardProps) {

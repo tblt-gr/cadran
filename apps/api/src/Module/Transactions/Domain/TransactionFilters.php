@@ -13,7 +13,7 @@ use App\Module\Foundation\Domain\DecimalValue;
  * transaction listing runs under. Everything here is a parsed value, never a
  * raw client string: shape and bound validation happened before this object
  * exists, and `includeDescendants` has already been expanded into
- * `categoryIds` by the caller — this object does not know about subtrees.
+ * `categoryIds` by the caller - this object does not know about subtrees.
  *
  * `states` is always the caller's fully-resolved scope: an empty list means
  * "every state", never an implicit default. The default state scope (PENDING

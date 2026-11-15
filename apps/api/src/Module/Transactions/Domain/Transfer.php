@@ -76,7 +76,7 @@ final readonly class Transfer
 
     /**
      * A same-asset transfer carries no rate: the two legs must net to exactly
-     * zero, with no rounding anywhere. A cross-asset pair is exempt here —
+     * zero, with no rounding anywhere. A cross-asset pair is exempt here:
      * {@see deriveExchangeRate()} is what relates them, and it never feeds
      * back into either amount.
      */
@@ -94,7 +94,7 @@ final readonly class Transfer
     /**
      * The only rounding boundary in a cross-asset transfer: the quotient of
      * the two exact magnitudes, HALF_UP at scale 24. The result documents the
-     * operation and is stored on both legs — it is never used to recompute
+     * operation and is stored on both legs - it is never used to recompute
      * either amount.
      */
     public static function deriveExchangeRate(AssetAmount $source, AssetAmount $target): DecimalValue

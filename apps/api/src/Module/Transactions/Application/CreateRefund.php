@@ -110,7 +110,7 @@ final readonly class CreateRefund
             $proposal = $this->allocation->propose($original, $magnitude, $asset->precision->display);
             if ([] !== $original->splits && [] === $input->splits) {
                 // The original is categorised, so an explicit empty array is a deliberate
-                // refusal to allocate, not an "unset" default — the caller must state a
+                // refusal to allocate, not an "unset" default - the caller must state a
                 // split set, even to keep the proposal above unchanged.
                 throw new InvalidSplitsInput(InvalidSplitsInput::REQUIRED);
             }

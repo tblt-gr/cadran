@@ -17,8 +17,8 @@ use App\Module\Foundation\Domain\ExactDecimal;
  * partitioned".
  *
  * An axis with no split is an exact zero, because the month really did hold
- * nothing on it. An axis that cannot be computed at all — no account, mixed
- * assets — carries the same reason the rest of the projection carries, never a
+ * nothing on it. An axis that cannot be computed at all - no account, mixed
+ * assets - carries the same reason the rest of the projection carries, never a
  * zero standing in for an absence.
  */
 final class MonthlyAxisExpenseCalculator

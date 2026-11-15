@@ -1837,7 +1837,7 @@ export type ProductWrapperKind = 'NONE' | 'REGULATED_SAVINGS' | 'TAX_WRAPPER' | 
 export type ProductYieldKind = 'NONE' | 'REGULATED_RATE' | 'CONTRACTUAL_FIXED' | 'CONTRACTUAL_VARIABLE' | 'MARKET' | 'MANUAL_VALUATION';
 
 /**
- * How a rule's value is written down. A `PERCENTAGE` is expressed in percent — `1.7` reads 1.7 % — so no consumer ever multiplies a rate to display it.
+ * How a rule's value is written down. A `PERCENTAGE` is expressed in percent: `1.7` reads 1.7 % - so no consumer ever multiplies a rate to display it.
  */
 export type RuleValueType = 'AMOUNT' | 'PERCENTAGE' | 'TEXT';
 
@@ -1924,7 +1924,7 @@ export type ProductModelRule = {
 };
 
 /**
- * One dated period as a client submits it. The body carries exactly these fields; the parser decides which value shape the kind requires and refuses the others. Decimals travel as canonical strings — a rate sent as a JSON number is refused rather than rounded.
+ * One dated period as a client submits it. The body carries exactly these fields; the parser decides which value shape the kind requires and refuses the others. Decimals travel as canonical strings - a rate sent as a JSON number is refused rather than rounded.
  */
 export type ProductModelRuleInput = {
     kind: ProductRuleKind;
@@ -3032,7 +3032,7 @@ export type RateBracket = {
 };
 
 /**
- * One term kind — how interest accrues, who is eligible, which tax regime applies — seen through every authority that states it. At least one of `catalog`, `inherited` and `override` is present.
+ * One term kind - how interest accrues, who is eligible, which tax regime applies - seen through every authority that states it. At least one of `catalog`, `inherited` and `override` is present.
  */
 export type AccountTermRule = {
     kind: ProductRuleKind;
@@ -3058,12 +3058,12 @@ export type AccountTerm = {
 };
 
 /**
- * Null for a value nobody published — one read from a workspace product model, and one claimed by an account override. Grading the freshness of a figure the holder typed would fabricate a provenance it never had.
+ * Null for a value nobody published - one read from a workspace product model, and one claimed by an account override. Grading the freshness of a figure the holder typed would fabricate a provenance it never had.
  */
 export type DeclaredOrVerified = RuleVerification | null;
 
 /**
- * Null for a value nobody published — one read from a workspace product model, and one claimed by an account override. There is no publication to name.
+ * Null for a value nobody published - one read from a workspace product model, and one claimed by an account override. There is no publication to name.
  */
 export type DeclaredOrSourced = ProductRuleSource | null;
 
@@ -13750,7 +13750,7 @@ export type ListTransactionsData = {
         categoryType?: CategoryType;
         includeVoided?: boolean;
         /**
-         * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.
+         * `NONE` restricts the page to the transactions carrying no split at all: the "to categorise" queue.
          */
         categorization?: 'ANY' | 'NONE';
         pageSize?: number;
@@ -14210,7 +14210,7 @@ export type CountTransactionsData = {
         categoryType?: CategoryType;
         includeVoided?: boolean;
         /**
-         * `NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.
+         * `NONE` restricts the page to the transactions carrying no split at all: the "to categorise" queue.
          */
         categorization?: 'ANY' | 'NONE';
     };

@@ -22,8 +22,8 @@ use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
  * Every handler call is bracketed by open/close. The handler's default lock mode
  * keeps a transaction open from a write until close, holding a row lock on
  * everything it wrote; in production each session is written by its own request
- * on its own connection, so only the caller's row — the one revocation
- * deliberately spares — is ever locked.
+ * on its own connection, so only the caller's row - the one revocation
+ * deliberately spares - is ever locked.
  */
 final class DbalOwnerSessionRegistryTest extends KernelTestCase
 {

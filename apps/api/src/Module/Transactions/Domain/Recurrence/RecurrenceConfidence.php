@@ -9,7 +9,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 /**
  * How firmly a detected rhythm is established, as a label and never as a
  * figure. A percentage would read as a guarantee the history cannot give, so a
- * spread the table does not cover yields no confidence at all — the caller then
+ * spread the table does not cover yields no confidence at all - the caller then
  * carries a {@see RecurrenceConfidenceReason} instead of a fabricated number.
  */
 enum RecurrenceConfidence: string

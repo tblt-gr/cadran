@@ -11,8 +11,8 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * One expected instalment of a recurrence.
  *
  * It snapshots the expected amount, its submitted scale and the tolerance, so a
- * later edit of the recurrence cannot change how an already generated — and
- * possibly already matched — instalment is explained. An occurrence matches at
+ * later edit of the recurrence cannot change how an already generated - and
+ * possibly already matched - instalment is explained. An occurrence matches at
  * most one transaction, and that pairing is the only thing that makes it
  * `RECEIVED`.
  */

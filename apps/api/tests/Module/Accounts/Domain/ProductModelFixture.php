@@ -26,8 +26,8 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
- * A ready workspace product model for the tests that are about something else
- * — a schedule, a duplication, a repository — rather than about the aggregate.
+ * A ready workspace product model for the tests that are about something else,
+ * a schedule, a duplication, a repository, rather than about the aggregate.
  */
 final class ProductModelFixture
 {
@@ -110,7 +110,7 @@ final class ProductModelFixture
         );
     }
 
-    /** 4 % up to 10 000, then 2 % above — the scale the ticket works through. */
+    /** 4 % up to 10 000, then 2 % above - the scale the ticket works through. */
     public static function tieredScale(RateApplication $application = RateApplication::MARGINAL): RateScale
     {
         return new RateScale(

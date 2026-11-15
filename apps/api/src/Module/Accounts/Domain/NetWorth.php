@@ -10,7 +10,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 /**
  * The net worth of one workspace on one business day, with everything a
  * reader needs to challenge it: the contributing accounts, how fresh their
- * valuations are, and — when there is no figure — why.
+ * valuations are, and, when there is no figure, why.
  */
 final readonly class NetWorth
 {

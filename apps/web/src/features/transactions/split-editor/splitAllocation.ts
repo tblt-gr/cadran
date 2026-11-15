@@ -1,7 +1,7 @@
 /**
  * Pure, exact arithmetic for the split editor: the remaining amount and the
  * two row helpers ("assign the remainder" and "split evenly"). Nothing here
- * ever reads a decimal string as a JavaScript `Number` — every operation
+ * ever reads a decimal string as a JavaScript `Number` - every operation
  * works on canonical decimal strings or `BigInt` smallest-unit integers, the
  * same primitives the backend re-checks the submitted allocation against.
  */
@@ -13,7 +13,7 @@ export const MAX_SPLIT_ROWS = 20;
 
 /**
  * A fresh row, keyed for React reconciliation. `analyticAxes: null` means
- * "inherit the picked category's default axes" — the backend resolves it;
+ * "inherit the picked category's default axes" - the backend resolves it;
  * an explicit array, even empty, is a deliberate override.
  */
 export function emptySplitRow(): SplitRowValues {
@@ -49,9 +49,9 @@ export function assignRemainderToRow(
 /**
  * Whether {@see evenSplitRows} can serve this amount: it is an exact,
  * non-zero canonical decimal, the row count is within bounds, the amount
- * carries no more fraction digits than the asset's display precision — a more
+ * carries no more fraction digits than the asset's display precision - a more
  * precise source figure would need rounding to spread evenly, which the
- * helper refuses to do silently — and the amount holds at least one smallest
+ * helper refuses to do silently - and the amount holds at least one smallest
  * unit per row, so no row would be forced to zero (itself refused elsewhere:
  * a split amount cannot be zero).
  */
@@ -73,7 +73,7 @@ export function canEvenSplit(total: string, precision: number, rowCount: number)
  * Splits `total` evenly across `rowCount` rows at the asset's display
  * precision `p`: `base = trunc(|total| / rowCount, p)`, and the exact
  * multiple-of-`10^-p` remainder goes one smallest unit at a time to the
- * first rows, in order. Deterministic and reproducible — the same inputs
+ * first rows, in order. Deterministic and reproducible - the same inputs
  * always produce the same rows, independent of anything but the inputs
  * themselves.
  */

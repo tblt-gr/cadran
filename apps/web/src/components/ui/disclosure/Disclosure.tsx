@@ -18,7 +18,7 @@ interface DisclosureProps {
 
 /**
  * A native `details` disclosure, controlled so that its host can open it when
- * something inside needs attention — typically a validation error it would
+ * something inside needs attention - typically a validation error it would
  * otherwise keep out of sight.
  */
 export function Disclosure({

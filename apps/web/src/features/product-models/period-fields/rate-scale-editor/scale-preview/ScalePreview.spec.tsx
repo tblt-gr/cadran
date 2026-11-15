@@ -45,7 +45,7 @@ describe('ScalePreview', () => {
     renderPreview();
 
     const enterPrevented = fireEvent.keyDown(balanceField(), { key: 'Enter', cancelable: true });
-    // The guard must be specific to Enter — one that swallowed every key
+    // The guard must be specific to Enter - one that swallowed every key
     // would leave the field unable to receive digits at all.
     const digitPrevented = fireEvent.keyDown(balanceField(), { key: '1', cancelable: true });
 
@@ -76,7 +76,7 @@ describe('ScalePreview', () => {
 
     const status = screen.getByRole('status').textContent ?? '';
     expect(status).toContain('totalité du solde');
-    // The bracket reached at 15 000 is the second one, at 2 % — not the
+    // The bracket reached at 15 000 is the second one, at 2 % - not the
     // first bracket's 4 %, which a component that read the wrong bracket
     // would still make this test pass without this assertion.
     expect(status).toContain('2,00 %');
@@ -162,7 +162,7 @@ describe('ScalePreview', () => {
     // reason must announce itself rather than wait to be read on demand.
     expect(reason?.getAttribute('aria-live')).toBe('polite');
     // The region carrying it is the one that was already on the page as the
-    // hint, not one that turns live at the instant of the swap — several
+    // hint, not one that turns live at the instant of the swap - several
     // screen readers skip that first announcement.
     expect(describedBy).toBe(hintId);
     // The reason lives with the field, not duplicated in the status region.

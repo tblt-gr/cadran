@@ -30,7 +30,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 /**
  * Read-only access to the product catalogue. Its normalized tables carry no
  * workspace_id: they are a global system reference, identical for every
- * caller, and this class offers no write path — a product, a rule or a source
+ * caller, and this class offers no write path - a product, a rule or a source
  * changes through a reviewed migration.
  */
 #[AsAlias(ProductCatalog::class)]

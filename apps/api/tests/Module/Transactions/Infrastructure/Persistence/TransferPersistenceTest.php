@@ -42,8 +42,8 @@ use Symfony\Component\Clock\MockClock;
 
 /**
  * Proves the invariants a controller test cannot reach: a failure between
- * the legs leaves neither behind, and the database itself — not only the
- * domain — refuses a same-asset pair that does not net to exactly zero.
+ * the legs leaves neither behind, and the database itself - not only the
+ * domain - refuses a same-asset pair that does not net to exactly zero.
  */
 final class TransferPersistenceTest extends KernelTestCase
 {
@@ -167,7 +167,7 @@ final class TransferPersistenceTest extends KernelTestCase
             try {
                 // The opposite role order (source=TARGET, target=SOURCE) still
                 // sorts to the same ascending sequence, so it contends for the
-                // account this connection already holds — not the other one.
+                // account this connection already holds - not the other one.
                 $secondReferences->lockForCreation(
                     WorkspaceFixture::own(), self::OWN_TARGET_ACCOUNT, self::OWN_SOURCE_ACCOUNT, $bookedOn, $bookedOn, $now,
                 );

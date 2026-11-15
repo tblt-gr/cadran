@@ -16,7 +16,7 @@ interface CapabilitySelectProps {
  * The behaviours a model activates. It is the public contract a screen reads
  * instead of guessing from a name. Two are not free choices: the capability the
  * valuation mode consumes is kept on, and `SUPPORTS_LIABILITY` is bound to a
- * liability family — on for one, unavailable for the others — so the model
+ * liability family, on for one, unavailable for the others, so the model
  * cannot claim a side of the balance sheet its family denies.
  */
 export function CapabilitySelect({

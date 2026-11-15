@@ -25,7 +25,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * is the drift this class exists to make visible.
  *
  * Withdrawing an override is not the same as ending it. Ending it is a dated
- * fact — {@see EffectivePeriod::$validTo} — and the account resolves against
+ * fact, {@see EffectivePeriod::$validTo}, and the account resolves against
  * the override up to that day for ever after. Withdrawing says the override
  * should not have applied at all: it stops answering on every date, including
  * past ones, and the inherited rule takes over again. The row is kept either

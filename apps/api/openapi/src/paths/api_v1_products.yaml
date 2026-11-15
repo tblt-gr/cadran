@@ -3,7 +3,7 @@ get:
   summary: Read the system product catalogue on a business date
   description: >-
     Requires an authenticated session. Returns the financial product models the
-    application ships with — Livret A, LDDS, LEP, PEA, CTO, life insurance —
+    application ships with, Livret A, LDDS, LEP, PEA, CTO, life insurance:
     each resolved against the business date asked for. The catalogue is global
     and read-only: it belongs to no workspace, every session reads the same
     rows, and a regulatory value changes through a reviewed migration rather

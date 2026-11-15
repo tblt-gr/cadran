@@ -29,9 +29,9 @@ enum NetWorthReason: string
     case ZERO_BASE = 'ZERO_BASE';
 
     /**
-     * The compared base is negative. A percentage against it reads backwards —
+     * The compared base is negative. A percentage against it reads backwards:
      * debt shrinking from -100 to -50 is not "+50 %" of anything a reader
-     * would understand — so the rate stays null and the delta speaks alone.
+     * would understand - so the rate stays null and the delta speaks alone.
      */
     case NEGATIVE_BASE = 'NEGATIVE_BASE';
 }

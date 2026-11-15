@@ -7,8 +7,8 @@ namespace App\Module\Transactions\Domain\Categorization;
 /**
  * Write-time guard against catastrophic backtracking. A stored pattern is run
  * against every movement of a workspace, so this refuses the constructs that
- * make PCRE explode — lookaround, backreferences, a quantifier applied to a
- * group that already repeats, possessive and atomic forms, mode switches —
+ * make PCRE explode - lookaround, backreferences, a quantifier applied to a
+ * group that already repeats, possessive and atomic forms, mode switches:
  * before the pattern is ever compiled against data. The scan is conservative:
  * it may refuse an exotic but harmless pattern, never accept a listed one.
  * Execution stays bounded independently of this check.

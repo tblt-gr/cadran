@@ -59,7 +59,7 @@ final readonly class DefineInitialPassword
 
             // The request that sets the first password is necessarily
             // unauthenticated, so the event has no actor; the entity identifies
-            // the account. The diff is empty on purpose — recording anything
+            // the account. The diff is empty on purpose - recording anything
             // about a credential, even its length, is a leak.
             ($this->recordAuditEvent)(new AuditEventRecord(
                 workspace: $membership->workspace,

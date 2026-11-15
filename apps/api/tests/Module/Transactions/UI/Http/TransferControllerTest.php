@@ -148,7 +148,7 @@ final class TransferControllerTest extends WebTestCase
         $target = self::arrayValue($created, 'target');
         // The response is re-read from NUMERIC(50,24) rather than presented
         // from memory, so the transfer's own rate and each leg's copy go
-        // through the same trimming and never disagree on trailing zeros —
+        // through the same trimming and never disagree on trailing zeros:
         // including against a later GET of the same transfer.
         self::assertSame('1.0805', $created['exchangeRate']);
         self::assertSame(['value' => '-500.00', 'assetCode' => 'EUR'], $source['amount']);

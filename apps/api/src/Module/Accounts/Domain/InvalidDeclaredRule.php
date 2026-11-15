@@ -9,8 +9,8 @@ namespace App\Module\Accounts\Domain;
  * negative ceiling, a text value that is not a token.
  *
  * It is distinct from {@see InvalidProductModel} because the same value shape
- * is declared in two places — on a reusable product model and on a per-account
- * override — and neither of them is a product model to the other.
+ * is declared in two places - on a reusable product model and on a per-account
+ * override - and neither of them is a product model to the other.
  */
 final class InvalidDeclaredRule extends \DomainException
 {

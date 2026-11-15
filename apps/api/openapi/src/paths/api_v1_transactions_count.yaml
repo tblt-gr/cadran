@@ -159,7 +159,7 @@ get:
       in: query
       required: false
       description: >-
-        `NONE` restricts the page to the transactions carrying no split at all —
+        `NONE` restricts the page to the transactions carrying no split at all:
         the "to categorise" queue.
       schema:
         type: string

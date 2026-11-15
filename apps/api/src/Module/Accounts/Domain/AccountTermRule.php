@@ -7,8 +7,8 @@ namespace App\Module\Accounts\Domain;
 use App\Module\Catalog\Domain\RuleKind;
 
 /**
- * One term kind — how interest accrues, who is eligible, which tax regime
- * applies — seen through every authority that states it on a business date,
+ * One term kind - how interest accrues, who is eligible, which tax regime
+ * applies - seen through every authority that states it on a business date,
  * and which of them wins.
  */
 final readonly class AccountTermRule

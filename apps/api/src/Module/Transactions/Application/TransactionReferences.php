@@ -133,7 +133,7 @@ final readonly class TransactionReferences
      * Resolves an explicit multi-row split allocation. Unlike {@see split()},
      * each row carries its own amount and analytic axes from the client, so
      * this re-checks the count, the duplicate categories and the exact sum
-     * itself instead of trusting the caller's total — the allocation the
+     * itself instead of trusting the caller's total - the allocation the
      * client computed is never assumed correct.
      *
      * @param list<TransactionSplitInput>     $inputs
@@ -193,7 +193,7 @@ final readonly class TransactionReferences
                 // Every split shares the transaction's sign, so the two magnitudes alone say
                 // which side is off: a smaller sum leaves an unallocated remainder, a larger
                 // one has spent more than the transaction carries. Either way the reported
-                // figure is unsigned — the rule code already states the direction.
+                // figure is unsigned - the rule code already states the direction.
                 $amountMagnitude = ExactDecimal::absolute($transactionAmount->value);
                 $sumMagnitude = ExactDecimal::absolute($sum);
                 $difference = ExactDecimal::absolute(ExactDecimal::subtract($amountMagnitude, $sumMagnitude));

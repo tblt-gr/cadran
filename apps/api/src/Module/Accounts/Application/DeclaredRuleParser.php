@@ -130,8 +130,8 @@ final class DeclaredRuleParser
 
             return new RateScale($brackets, $application);
         } catch (InvalidCatalogEntry $failure) {
-            // The tiling rules — starting at zero, meeting exactly, ending
-            // without a limit — are stated back to the client rather than
+            // The tiling rules - starting at zero, meeting exactly, ending
+            // without a limit - are stated back to the client rather than
             // swallowed: a scale with a gap leaves amounts with no rate at all.
             throw new InvalidDeclaredRuleInput($failure->getMessage(), previous: $failure);
         }

@@ -13,8 +13,8 @@ use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
- * A ready account for the tests that are about something else — the rules read
- * against it, the date they are read on — rather than about the aggregate.
+ * A ready account for the tests that are about something else - the rules read
+ * against it, the date they are read on - rather than about the aggregate.
  */
 final class AccountFixture
 {

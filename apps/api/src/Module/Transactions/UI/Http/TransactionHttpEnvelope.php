@@ -153,8 +153,8 @@ final readonly class TransactionHttpEnvelope
     }
 
     /**
-     * The rule code both selects the translated title and detail — one entry
-     * per rule, `api.problem.invalid_splits_<rule>` — and names the RFC 9457
+     * The rule code both selects the translated title and detail - one entry
+     * per rule, `api.problem.invalid_splits_<rule>` - and names the RFC 9457
      * problem type, so a new split rule needs no controller change.
      *
      * Every rule code carries the fixed `splits.` prefix (never a second dot),

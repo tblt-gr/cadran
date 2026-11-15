@@ -8,7 +8,7 @@ export type ProductModelErrorKind =
 /**
  * A refused product-model request, classified by its RFC 9457 problem type
  * rather than by status alone: a taken name and a stale version are both 409
- * and ask the user for opposite things — pick another name, or reload and
+ * and ask the user for opposite things - pick another name, or reload and
  * reapply.
  */
 export class ProductModelRequestError extends Error {

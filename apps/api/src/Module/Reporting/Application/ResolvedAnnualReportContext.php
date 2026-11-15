@@ -11,7 +11,7 @@ use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 /**
  * Everything {@see ComputeAnnualReport} resolves about the calling workspace that does not depend
  * on a single year: the workspace, the incomplete-month setting, the catalogue and the selected
- * columns, and the first data month. A caller that computes several years — the multi-year report —
+ * columns, and the first data month. A caller that computes several years, the multi-year report,
  * resolves this once and reuses it across every year, instead of re-reading the catalogue and the
  * preferences once per year.
  */

@@ -14,8 +14,8 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
  *
  * The caller's own record is spared by identifier rather than by user: the
  * table has no owner column, because a session row is opaque serialized data
- * the handler owns. That is sound while the install has one account — see
- * {@see OwnerSessionRegistry} — and the exclusion also keeps this DELETE off
+ * the handler owns. That is sound while the install has one account - see
+ * {@see OwnerSessionRegistry} - and the exclusion also keeps this DELETE off
  * the very row the handler holds a transactional lock on for this request.
  */
 #[AsAlias(OwnerSessionRegistry::class)]
@@ -29,8 +29,8 @@ final readonly class DbalOwnerSessionRegistry implements OwnerSessionRegistry
      * its own session row for that request's duration, on the handler's
      * connection. Without a ceiling this DELETE would wait for it while holding
      * the row lock on identity_users, so the credential change would be as slow
-     * as the slowest concurrent request. Timing out rolls the whole change back
-     * — no partial write — and the owner simply retries.
+     * as the slowest concurrent request. Timing out rolls the whole change back,
+     * no partial write, and the owner simply retries.
      */
     private const string LOCK_TIMEOUT = '3s';
 

@@ -9,7 +9,7 @@ use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionState;
 
-/** The facts of a movement a rule may read — a stored transaction or one being created. */
+/** The facts of a movement a rule may read - a stored transaction or one being created. */
 final readonly class CategorizationSubject
 {
     public function __construct(

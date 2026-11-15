@@ -7,7 +7,7 @@ post:
     its `validTo`, and the account keeps resolving against it up to that day for
     ever after. Withdrawing says the claim should not have applied at all: it
     stops answering on every date, past ones included, and the inherited rule of
-    each of those dates takes over again — the dated one, not whatever is in
+    each of those dates takes over again - the dated one, not whatever is in
     force today.
 
     The row is kept and stays readable, so the trail still shows what was
