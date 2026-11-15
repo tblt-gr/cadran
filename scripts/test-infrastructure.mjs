@@ -424,6 +424,10 @@ if (
   fail('Docker commands must not depend on excluded environment files');
 }
 
+if (!/DATABASE_URL="[^"]*[?&]gssencmode=disable/.test(appEntrypoint)) {
+  fail('The application DSN must disable GSSAPI encryption so libpq never negotiates Kerberos');
+}
+
 for (const [serviceName, service] of Object.entries(services)) {
   const mountsBackups = (service.volumes ?? []).some(
     (volume) => /backup/i.test(volume.source ?? '') || /backup/i.test(volume.target ?? ''),

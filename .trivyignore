@@ -72,3 +72,33 @@ CVE-2026-9538
 # RSA keys parsed from untrusted input. The Caddyfile configures no JWT/JWK
 # module, so no request path parses a JWK. No fixed v3 release exists upstream.
 CVE-2026-116587
+
+# review: 2026-12-31
+# krb5 family (libgssapi-krb5-2, libk5crypto3, libkrb5-3, libkrb5support0):
+# pulled in by libpq5 only. The application authenticates to PostgreSQL by
+# password over the internal network, GSSAPI encryption is disabled in the DSN
+# (gssencmode=disable), and the affected code (KDC, kadmind) is not installed
+# in the image.
+CVE-2026-107364
+CVE-2026-112315
+CVE-2026-112316
+CVE-2026-112317
+CVE-2026-112318
+CVE-2026-112319
+CVE-2026-112320
+CVE-2026-112321
+CVE-2026-112322
+CVE-2026-112323
+CVE-2026-118380
+CVE-2026-119079
+CVE-2026-71199
+CVE-2026-71200
+
+# review: 2026-12-31
+# libsqlite3-0: cannot be purged. The PHP binary links it for the built-in
+# sqlite3 and pdo_sqlite extensions (and liblastlog2-2 depends on it). The
+# application stores everything in PostgreSQL and never opens a SQLite
+# database; no request path reaches the affected SQL parsing code.
+CVE-2026-119373
+CVE-2026-119374
+CVE-2026-119379

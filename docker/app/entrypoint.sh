@@ -29,7 +29,7 @@ app_secret=$(read_secret /run/secrets/app_secret)
 db_password=$(read_secret /run/secrets/db_password)
 
 export APP_SECRET="$app_secret"
-export DATABASE_URL="postgresql://cadran:${db_password}@db:5432/cadran?serverVersion=18&charset=utf8"
+export DATABASE_URL="postgresql://cadran:${db_password}@db:5432/cadran?serverVersion=18&charset=utf8&gssencmode=disable"
 
 unset app_secret db_password
 
