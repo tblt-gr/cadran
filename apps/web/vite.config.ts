@@ -15,6 +15,8 @@ export default defineConfig({
     },
   },
   build: {
+    // Keep in sync with "Supported browsers" in README.md.
+    target: ['chrome107', 'edge107', 'firefox116', 'safari16'],
     // Read by scripts/check-bundle-budget.mjs to enforce the bundle budgets.
     manifest: true,
   },

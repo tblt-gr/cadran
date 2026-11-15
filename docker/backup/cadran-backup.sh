@@ -464,6 +464,32 @@ verify() {
     printf 'verified: the backup restores into an isolated database and passes the checks\n'
 }
 
+# Plain SQL on stdout, readable without Cadran. Needs no database: age feeds pg_restore,
+# which only translates the archive. Only fixed messages are printed on failure.
+export_sql() {
+    dump_file=$restore_dir/backup.dump.age
+    require_regular_file "$dump_file"
+    require_regular_file "$identity_file"
+    make_work_dir
+    mkfifo "$work_dir/plain.fifo"
+    age --decrypt --identity "$identity_file" < "$dump_file" > "$work_dir/plain.fifo" 2> "$work_dir/age.err" &
+    age_pid=$!
+    pg_restore --no-owner --no-privileges -f - < "$work_dir/plain.fifo" 2> "$work_dir/restore.err" &
+    restore_pid=$!
+    restore_pids="$age_pid $restore_pid"
+    age_status=0
+    wait "$age_pid" || age_status=$?
+    restore_status=0
+    wait "$restore_pid" || restore_status=$?
+    restore_pids=''
+    if [ "$age_status" -ne 0 ] && grep -Eqi 'identit' "$work_dir/age.err"; then
+        die 'IDENTITY does not match this backup'
+    fi
+    if [ "$age_status" -ne 0 ] || [ "$restore_status" -ne 0 ]; then
+        die 'the backup could not be exported; it may be corrupt'
+    fi
+}
+
 restore_new() {
     prepare_restore
     init_admin
@@ -559,11 +585,12 @@ case $command in
     prune) prune "$@" ;;
     keygen) exec age-keygen ;;
     verify) verify ;;
+    export-sql) export_sql ;;
     restore-new) restore_new ;;
     swap) swap ;;
     rollback) rollback "$@" ;;
     drop-new) drop_new ;;
     list-previous) list_previous ;;
     drop-previous) drop_previous ;;
-    *) die 'usage: cadran-backup create <label> | prune [--dry-run] | keygen | verify | restore-new | swap | rollback | drop-new | list-previous | drop-previous' ;;
+    *) die 'usage: cadran-backup create <label> | prune [--dry-run] | keygen | verify | export-sql | restore-new | swap | rollback | drop-new | list-previous | drop-previous' ;;
 esac
