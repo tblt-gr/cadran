@@ -3,6 +3,8 @@ doctrine:
     url: '%env(DATABASE_URL)%'
     server_version: '18'
     profiling_collect_backtrace: '%kernel.debug%'
+    # The SQL logger writes bound parameters (e-mails, labels, amounts) to the logs in debug.
+    logging: false
 
 when@test:
   doctrine:

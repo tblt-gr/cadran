@@ -116,6 +116,23 @@ OpenAPI and generated-client drift check, a production build of both application
 and npm audits, and a Trivy scan of the runtime images. The aggregate `CI gate` status is the
 one branch protection requires.
 
+## Dependency updates
+
+Dependabot stays alerts-only (`open-pull-requests-limit: 0`): updates follow a monthly routine
+instead of a stream of automated pull requests.
+
+On the first working day of each month:
+
+1. Run `make outdated` to list the outdated npm and Composer direct dependencies.
+2. Update every minor and patch release in one `chore(deps)` pull request. Major versions are
+   left out and each gets its own issue.
+3. Run `make quality test build audit e2e` and check that no rendered value, API response or
+   reference test changed.
+4. Keep `pnpm.overrides` minimal: remove an override once its parent resolves a fixed version
+   on its own.
+
+Security advisories are handled as soon as Dependabot raises them, outside the monthly cycle.
+
 ## Implementation principles
 
 - Protect invariants in the domain and PostgreSQL, not only in the interface.

@@ -25,3 +25,10 @@ parameters:
             identifier: shipmonk.deadEnumCase
             count: 1
             path: src/Module/Reporting/Domain/MonthlyProjectionReason.php
+        # Tests keep explicit assertions on values PHPStan already infers; they guard regressions of the contract.
+        -
+            identifier: staticMethod.alreadyNarrowedType
+            path: tests
+        -
+            identifier: nullCoalesce.offset
+            path: tests

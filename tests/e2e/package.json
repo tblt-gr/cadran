@@ -9,10 +9,10 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
-    "@axe-core/playwright": "4.11.1",
-    "@playwright/test": "1.62.1",
+    "@axe-core/playwright": "4.14.0",
+    "@playwright/test": "1.65.1",
     "@types/node": "^24.13.3",
-    "oxlint": "^1.75.0",
+    "oxlint": "^1.93.0",
     "typescript": "~6.0.2"
   }
 }
