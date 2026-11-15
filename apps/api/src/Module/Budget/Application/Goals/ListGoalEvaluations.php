@@ -48,7 +48,7 @@ final readonly class ListGoalEvaluations
         private CallerWorkspace $caller,
         private GoalRepository $goals,
         private GoalVersionRepository $versions,
-        private ReadGoalStatus $readStatus,
+        private GoalMetricReader $metrics,
         private ResolveGoalScope $scope,
         private WorkspaceCalendar $calendar,
         private ?EvaluateStockGoal $stocks = null,
@@ -86,7 +86,7 @@ final readonly class ListGoalEvaluations
         }
         $monthly = $granularity->months() ? array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::MONTHLY === $goal->periodicity)) : [];
         $yearly = $granularity->years() ? array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::YEARLY === $goal->periodicity)) : [];
-        $inputs = $this->readStatus->inputsBetween($workspace, [] === $yearly ? $first : new CalendarMonth($first->year, 1), $end, [...$monthly, ...$yearly]);
+        $inputs = $this->metrics->inputsBetween($workspace, [] === $yearly ? $first : new CalendarMonth($first->year, 1), $end, [...$monthly, ...$yearly]);
         $context = new EvaluationContext($today, $inputs);
         $context->versions = $this->versions->listByGoals($workspace, array_map(static fn (Goal $goal): string => $goal->id, $goals));
 
@@ -256,7 +256,7 @@ final readonly class ListGoalEvaluations
     /** @return array{value: ?string, reason: ?string} */
     private function monthFigure(EvaluationContext $context, Goal $goal, AnnualMonth $month): array
     {
-        $metric = $this->readStatus->metric($goal, $month, $context->categoryIds($this->readStatus, $goal), $context->inputs);
+        $metric = $this->metrics->metric($goal, $month, $context->categoryIds($this->metrics, $goal), $context->inputs);
         if (null === $metric['value'] && 'NO_MOVEMENTS' === $metric['reason']) {
             // The reports count a month without movement as an exact zero in their totals.
             return ['value' => '0', 'reason' => null];

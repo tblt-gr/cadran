@@ -9,9 +9,9 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Application\Goals\GoalEvaluationGranularity;
 use App\Module\Budget\Application\Goals\GoalEvaluationView;
 use App\Module\Budget\Application\Goals\GoalInputError;
+use App\Module\Budget\Application\Goals\GoalMetricReader;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
 use App\Module\Budget\Application\Goals\ListGoalEvaluations;
-use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalMetric;
@@ -473,14 +473,14 @@ final class ListGoalEvaluationsTest extends TestCase
         $categories = $this->createStub(CategoryRepository::class);
         $scope = new ResolveGoalScope(new ReadCategoryReference($categories), new ReadAccountReference(new InMemoryAccountRepository()));
         $calendar = self::calendar();
-        $status = new ReadGoalStatus($caller, $goals, $versions, $source, new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs(new class implements MonthlyTransferPairReader {
+        $metrics = new GoalMetricReader($source, new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs(new class implements MonthlyTransferPairReader {
             public function read(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit): array
             {
                 return [];
             }
-        })), $calendar, $scope, new ReadBudgetCategoryFacts($categories));
+        })), new ReadBudgetCategoryFacts($categories));
 
-        return new ListGoalEvaluations($caller, $goals, $versions, $status, $scope, $calendar);
+        return new ListGoalEvaluations($caller, $goals, $versions, $metrics, $scope, $calendar);
     }
 
     /** @return list<Goal> */

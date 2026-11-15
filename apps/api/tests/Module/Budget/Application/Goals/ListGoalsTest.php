@@ -7,7 +7,9 @@ namespace App\Tests\Module\Budget\Application\Goals;
 use App\Module\Accounts\Application\ReadAccountReference;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Application\Goals\GoalInputError;
+use App\Module\Budget\Application\Goals\GoalMetricReader;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
+use App\Module\Budget\Application\Goals\GoalPeriodEvaluator;
 use App\Module\Budget\Application\Goals\ListGoals;
 use App\Module\Budget\Application\Goals\PresentGoal;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
@@ -257,18 +259,14 @@ final class ListGoalsTest extends TestCase
         $scope = new ResolveGoalScope(new ReadCategoryReference($categories), new ReadAccountReference($accounts ?? new InMemoryAccountRepository()));
         $reference = new ReadReferenceIncome($source);
         $calendar = self::calendar();
-        $status = new ReadGoalStatus(
-            $caller,
-            $goals,
-            $versions,
+        $metrics = new GoalMetricReader(
             $source,
             new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs($transfers ?? new EmptyTransferPairReader())),
-            $calendar,
-            $scope,
             new ReadBudgetCategoryFacts($categories),
         );
+        $status = new ReadGoalStatus($caller, $goals, $versions, $metrics, new GoalPeriodEvaluator($metrics), $calendar, $scope);
 
-        return new ListGoals($caller, $goals, $versions, new PresentGoal($scope, $reference, $calendar), $status, $scope, $calendar);
+        return new ListGoals($caller, $goals, $versions, new PresentGoal($scope, $reference, $calendar), $status, $metrics, $scope, $calendar);
     }
 
     private static function version(string $goalId): GoalVersion

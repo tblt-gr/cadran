@@ -19,6 +19,7 @@ final readonly class PreviewGoalCorrection
         private GoalVersionRepository $versions,
         private BuildGoalRevision $revision,
         private ReadGoalStatus $statuses,
+        private GoalMetricReader $metrics,
         private WorkspaceCalendar $calendar,
     ) {
     }
@@ -51,7 +52,7 @@ final readonly class PreviewGoalCorrection
         }
         $months = [];
         while ($cursor->key() <= $lastMonth) {
-            $inputs = $this->statuses->inputs($context->workspace, $cursor, [$goal]);
+            $inputs = $this->metrics->inputs($context->workspace, $cursor, [$goal]);
             $before = $this->statuses->forGoal($goal, $versions, $cursor, $inputs);
             $after = $this->statuses->forGoal($goal, $afterVersions, $cursor, $inputs);
             $months[] = new GoalCorrectionPreviewMonthView($cursor->key(), self::state($before), self::state($after));
