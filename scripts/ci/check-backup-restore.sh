@@ -401,6 +401,22 @@ fi
 database_exists cadran_restore_check && fail 'cadran_restore_check was left behind'
 assert_equal 'verification leaves the live database untouched' "$counts_before" "$(table_counts)"
 
+# Plain SQL export (DOC-002): readable without Cadran, mode 600, never overwritten, silent on content.
+sql_out="$scratch/export.sql"
+export_output=$(make --no-print-directory db-export-sql FILE="$dump" IDENTITY="$identity" OUT="$sql_out" 2>&1) ||
+    fail "db-export-sql failed: $(printf '%s' "$export_output" | tail -n 5)"
+assert_equal 'exported SQL mode is 600' 600 "$(stat -c %a "$sql_out")"
+grep -q 'CREATE TABLE public.identity_workspaces' "$sql_out" || fail 'exported SQL lacks the workspace table'
+grep -q '^COPY public.identity_workspaces' "$sql_out" || fail 'exported SQL lacks the workspace rows'
+if printf '%s' "$export_output" | grep -Eq 'CREATE TABLE|Backup check|AGE-SECRET-KEY|PGDMP'; then
+    fail 'export output leaks a value'
+fi
+if make --no-print-directory db-export-sql FILE="$dump" IDENTITY="$identity" OUT="$sql_out" >/dev/null 2>&1; then
+    fail 'db-export-sql must refuse an existing OUT'
+fi
+assert_equal 'a refused export keeps the existing file' 600 "$(stat -c %a "$sql_out")"
+rm -f "$sql_out"
+
 # Fixtures for refusals: every case works on a private copy of the backup trio.
 stage() {
     # stage <directory>: copies the trio and prints the staged dump path

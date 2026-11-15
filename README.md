@@ -270,6 +270,65 @@ backup with a schema newer than the checked-out code supports; use compatible co
 The application version alone is not a compatibility gate. Re-export and trust
 the replacement machine's HTTPS authority on each device.
 
+## Your data
+
+Everything Cadran stores lives in three places on the host:
+
+| What                                | Where                                                                                  |
+| ----------------------------------- | -------------------------------------------------------------------------------------- |
+| The database                        | The Docker volume `cadran_db_data`                                                     |
+| Encrypted backups                   | `backups/`, or the directory set by `CADRAN_BACKUP_DIR` in `.env.local`                |
+| Generated secrets and configuration | `var/docker-secrets/` and `.env.local` (neither is part of a backup, keep a safe copy) |
+
+The HTTPS authority of the local Caddy lives in the volumes `cadran_caddy_data` and
+`cadran_caddy_config`. The age identity needed to read backups is kept offline by you, see
+[Backups](#backups).
+
+### Read your data without Cadran
+
+Export a backup as plain SQL, a text file any PostgreSQL tool can read:
+
+```bash
+make db-export-sql FILE=/backup/cadran-YYYYMMDD-HHMMSS-manual.dump.age IDENTITY=/secure/offline/backup-identity.txt OUT=/secure/export/cadran.sql
+```
+
+`OUT` must not exist yet: an existing file is never overwritten. The file is created with mode 600
+and its content is never printed. It is not encrypted and contains every amount and label, so keep
+it on an encrypted disk and delete it after use. Replace the timestamp and paths with existing
+files; `FILE` needs its `.sha256` and `.manifest.json` files next to it, like for a verification.
+
+### Erase everything
+
+This destroys all data, irreversibly. Keep a verified backup and its identity first if you may need
+the data again. Run the steps one by one, only after reading them:
+
+1. `make down` stops the stack.
+2. After you have confirmed that nothing must be kept, delete the data volumes with
+   `docker volume rm cadran_db_data cadran_caddy_data cadran_caddy_config`.
+3. Delete the configuration and secrets with `rm -r var/docker-secrets .env.local`.
+4. Backups are separate: delete the backup directory and the offline identity only if you do not
+   want to keep any backup. Without the identity, remaining backups can never be read again.
+
+## Network exposure
+
+The application listens on `127.0.0.1` by default, so only the machine itself can reach it. To use
+it from other devices, put it behind a VPN, or behind a reverse proxy that adds its own
+authentication on top of Cadran, and bind it as described in [Configuration](#configuration).
+Never publish the port directly on the internet. Cadran has a single owner password and no second
+factor: anyone who reaches the sign-in page can try to guess it, and login throttling is the only
+brake.
+
+## Supported browsers
+
+| Browser             | Minimum version |
+| ------------------- | --------------- |
+| Chrome, Edge        | 107             |
+| Firefox             | 116             |
+| Safari (macOS, iOS) | 16              |
+
+The build targets widely available baseline features, and amounts are formatted with
+`Intl.NumberFormat` on decimal strings, available from Firefox 116. Older versions are not tested.
+
 ## Upgrade
 
 Read the target release's [changelog](./CHANGELOG.md), have disk space for a complete additional
@@ -303,16 +362,17 @@ rollback process remains active.
 
 ## Troubleshooting
 
-| Symptom                        | Recovery                                                                                                                                                                                                                                                                                                                                                       |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Certificate warning            | Check the URL matches `CADRAN_SERVER_NAME`, the host clock and trust store. Re-export the root with `make tls-certificate` and trust it on the affected device. Caddy renews leaf certificates automatically while its data volume persists. After a root renewal or replacement, export and trust the new root; preserve that volume rather than deleting it. |
-| HTTPS port already in use      | Choose a free `CADRAN_HTTPS_PORT` in `.env.local`, restart with `make down` then `make up`, and use the new URL.                                                                                                                                                                                                                                               |
-| A feature fails after updating | Confirm `make status` and the intended version. Run `make migrate` with that version's code; if the upgrade failed, use its printed rollback command. Never migrate with arbitrarily older code.                                                                                                                                                               |
-| Forgotten owner password       | Run `make reset-password` on the host: it asks twice for a new password without echo, replaces it and closes every session. No old password is needed.                                                                                                                                                                                                         |
-| Database will not start        | Inspect disk space and `docker compose --env-file .env.local logs --tail=100 db`. Preserve volumes and the original database secret; regenerating a secret does not change an existing database password.                                                                                                                                                      |
-| Restore refused                | Check all three backup files are together and regular files, the identity is the original one, and the code supports the manifest version/schema. Recover a corrupt set from another copy; never bypass validation.                                                                                                                                            |
-| Disk full                      | Stop further writes, free unrelated files or expand storage, then retry. Keep the last verified backup and recovery databases. Preview pruning before removing eligible backups; do not delete Docker volumes.                                                                                                                                                 |
-| No recent backup               | Check cron output, Docker permissions, the public recipient and backup directory space. Create a backup and verify it with the offline identity.                                                                                                                                                                                                               |
+| Symptom                        | Recovery                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Certificate warning            | Check the URL matches `CADRAN_SERVER_NAME`, the host clock and trust store. Re-export the root with `make tls-certificate` and trust it on the affected device. Caddy renews leaf certificates automatically while its data volume persists. After a root renewal or replacement, export and trust the new root; preserve that volume rather than deleting it.                                                                                                                                                                                  |
+| HTTPS port already in use      | Choose a free `CADRAN_HTTPS_PORT` in `.env.local`, restart with `make down` then `make up`, and use the new URL.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| A feature fails after updating | Confirm `make status` and the intended version. Run `make migrate` with that version's code; if the upgrade failed, use its printed rollback command. Never migrate with arbitrarily older code.                                                                                                                                                                                                                                                                                                                                                |
+| Forgotten owner password       | Run `make reset-password` on the host: it asks twice for a new password without echo, replaces it and closes every session. No old password is needed.                                                                                                                                                                                                                                                                                                                                                                                          |
+| Health check fails             | Run `make doctor`. `FAIL app health`: the application is unhealthy or stopped, run `make up` then `make status`. `FAIL migrations`: a migration is pending, run `make migrate` with the intended version. `FAIL backup`: no backup exists or the newest is older than 48 hours, run `make db-backup LABEL=manual` and check the cron block. `WARN cron`: no scheduled jobs, run `sh scripts/install-cron.sh`. `FAIL database size`: the database cannot be queried, see "Database will not start". Only a `FAIL` line makes the command exit 1. |
+| Database will not start        | Inspect disk space and `docker compose --env-file .env.local logs --tail=100 db`. Preserve volumes and the original database secret; regenerating a secret does not change an existing database password.                                                                                                                                                                                                                                                                                                                                       |
+| Restore refused                | Check all three backup files are together and regular files, the identity is the original one, and the code supports the manifest version/schema. Recover a corrupt set from another copy; never bypass validation.                                                                                                                                                                                                                                                                                                                             |
+| Disk full                      | Stop further writes, free unrelated files or expand storage, then retry. Keep the last verified backup and recovery databases. Preview pruning before removing eligible backups; do not delete Docker volumes.                                                                                                                                                                                                                                                                                                                                  |
+| No recent backup               | Check cron output, Docker permissions, the public recipient and backup directory space. Create a backup and verify it with the offline identity.                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Application logs are written by the `app` container as one JSON object per line: read them with
 `docker compose --env-file .env.local logs app`. Every response carries an `X-Request-Id` header

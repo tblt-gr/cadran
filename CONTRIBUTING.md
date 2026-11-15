@@ -154,6 +154,12 @@ Security advisories are handled as soon as Dependabot raises them, outside the m
 - Meet WCAG 2.2 AA with semantic HTML, keyboard access, focus management, contrast, and chart
   alternatives.
 
+## API compatibility
+
+`/api/v1` ships with the web application of the same release and has no other supported client. A
+change may break `/api/v1` only together with the matching web change in the same pull request.
+Once a third-party client is supported, a breaking change requires `/api/v2`.
+
 ## Hooks and branch protection
 
 `pnpm install` configures `core.hooksPath=.githooks` in the current clone and installs Lefthook:

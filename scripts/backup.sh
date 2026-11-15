@@ -6,6 +6,7 @@
 #   prune     apply the retention policy (--dry-run to preview)
 #   health    print the age of the newest backup; warnings never fail unless --strict
 #   verify    restore FILE into the isolated cadran_restore_check database and check it
+#   export-sql  decrypt FILE into plain SQL at OUT (mode 600, never overwritten)
 #   restore   verify FILE, take a pre-restore backup, replace the live database
 #   restore-precheck   validate CONFIRM, FILE and IDENTITY without any docker call
 #   restore-cleanup    list and (after an interactive yes) drop cadran_previous_*
@@ -311,6 +312,32 @@ verify() {
     restore_container verify
 }
 
+# Writes a backup as plain SQL to OUT. The file holds every financial value, so it is
+# created with mode 600 and an existing OUT is refused; nothing is printed to the terminal.
+export_sql() {
+    resolve_restore_inputs
+    out=${OUT:-}
+    [ -n "$out" ] || die 'OUT is required: the path of the plain SQL file to create'
+    case $out in
+        /*) ;;
+        *) out=$PWD/$out ;;
+    esac
+    case $out in
+        */../* | */.. | */./* | */.) die 'OUT must not contain . or .. components' ;;
+    esac
+    [ ! -e "$out" ] && [ ! -L "$out" ] || die 'OUT already exists; it is never overwritten'
+    [ -d "$(dirname -- "$out")" ] || die 'the OUT directory does not exist'
+    if ! (umask 077 && set -C && run_container --network none \
+        --mount "type=bind,source=$restore_dump,target=/restore/backup.dump.age,readonly" \
+        --mount "type=bind,source=$restore_identity,target=/run/backup_identity,readonly" \
+        "$image" export-sql > "$out"); then
+        rm -f -- "$out"
+        die 'the export failed; no file was kept'
+    fi
+    chmod 600 "$out"
+    printf 'Plain SQL written to %s (mode 600). It is not encrypted: protect or delete it after use.\n' "$out"
+}
+
 restore_exit() {
     restore_status=$?
     trap - EXIT INT TERM HUP
@@ -432,6 +459,7 @@ case $command in
     prune) prune "$@" ;;
     health) health "$@" ;;
     verify) verify ;;
+    export-sql) export_sql ;;
     restore) restore ;;
     restore-precheck) restore_precheck ;;
     restore-cleanup) restore_cleanup ;;
@@ -439,5 +467,5 @@ case $command in
         resolve_backup_dir
         printf '%s\n' "$backup_dir"
         ;;
-    *) die 'usage: backup.sh key | create | prune [--dry-run] | health [--strict] | verify | restore | restore-precheck | restore-cleanup | dir' ;;
+    *) die 'usage: backup.sh key | create | prune [--dry-run] | health [--strict] | verify | export-sql | restore | restore-precheck | restore-cleanup | dir' ;;
 esac

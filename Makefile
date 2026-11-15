@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup recurrences-materialize idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup recurrences-materialize idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -146,6 +146,10 @@ db-backup-verify: backup-image
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) up --detach --wait db
 	sh scripts/backup.sh verify
+
+# Decrypts FILE into a plain SQL file OUT, readable without Cadran. OUT must not exist; it is created with mode 600.
+db-export-sql: backup-image
+	sh scripts/backup.sh export-sql
 
 # Verifies FILE, takes a pre-restore backup, then replaces the live database. Needs CONFIRM=restore-cadran.
 db-restore:
