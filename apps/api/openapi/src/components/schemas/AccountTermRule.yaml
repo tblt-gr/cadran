@@ -1,6 +1,6 @@
 description: >-
-  One term kind — how interest accrues, who is eligible, which tax regime
-  applies — seen through every authority that states it. At least one of
+  One term kind - how interest accrues, who is eligible, which tax regime
+  applies - seen through every authority that states it. At least one of
   `catalog`, `inherited` and `override` is present.
 type: object
 additionalProperties: false

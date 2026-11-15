@@ -58,7 +58,7 @@ export function transactionErrorKind(
   return isError ? 'network' : null;
 }
 
-/** The server's own explanation, when the error carried one — e.g. a refund's exact remaining balance. */
+/** The server's own explanation, when the error carried one - e.g. a refund's exact remaining balance. */
 export function transactionErrorDetail(error: unknown): string | null {
   return error instanceof TransactionRequestError ? (error.detail ?? null) : null;
 }

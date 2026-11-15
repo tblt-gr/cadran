@@ -60,7 +60,7 @@ final readonly class TransferReferences
      * On edit, neither account changes and neither is written, so a plain
      * read validates the (possibly changed) booked date without taking a
      * lock. Unlike creation, an edit does not require the accounts to still
-     * be active — correcting a label or a fee on a transfer whose account
+     * be active - correcting a label or a fee on a transfer whose account
      * was archived since must keep working, exactly like a plain
      * transaction's own edit path ({@see TransactionReferences::accountForExisting()}).
      *

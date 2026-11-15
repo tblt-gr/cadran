@@ -177,7 +177,7 @@ describe('matchingBracket', () => {
 
   it('answers incompleteScale for rows out of order, since row order is what the backend reads', () => {
     // Well-formed once sorted by lower bound, but `toRuleInput` and
-    // `RateScale::__construct` both read row order, not sorted bounds — a
+    // `RateScale::__construct` both read row order, not sorted bounds - a
     // scale that would only pass once reordered does not pass.
     const reversed = [
       { lowerBound: '10000', upperBound: '', percentage: '2' },

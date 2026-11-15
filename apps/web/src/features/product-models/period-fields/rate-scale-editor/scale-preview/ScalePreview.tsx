@@ -47,7 +47,7 @@ interface Settled {
  * reference instead would make the debounce depend on a caller's render
  * habits: one that rebuilds the array inline on every render would leave the
  * preview permanently mid-debounce and permanently blank, with nothing to
- * show for it — no error, no failing test.
+ * show for it - no error, no failing test.
  */
 function scaleKey(brackets: BracketValues[]): string {
   return JSON.stringify(
@@ -58,7 +58,7 @@ function scaleKey(brackets: BracketValues[]): string {
 /**
  * A configuration-time preview: which bracket of the scale being edited an
  * example balance falls into, and what that bracket pays under the chosen
- * application mode. It answers no question about any real account — nothing
+ * application mode. It answers no question about any real account - nothing
  * here is submitted with the period, and an account's actual balance isn't
  * modelled anywhere yet.
  */
@@ -81,7 +81,7 @@ export function ScalePreview({ brackets, rateApplication }: ScalePreviewProps) {
 
   // The balance shown in the field or the scale being edited may already
   // have moved past what `settled` still describes, during the debounce
-  // window — the message must go quiet rather than answer for an input that
+  // window - the message must go quiet rather than answer for an input that
   // is no longer the one on screen.
   const stale = settled.balance !== previewBalance || settled.scale !== scale;
   const preview = matchingBracket(settled.brackets, settled.balance);
@@ -92,7 +92,7 @@ export function ScalePreview({ brackets, rateApplication }: ScalePreviewProps) {
       : undefined;
 
   // Blank before the reader has typed anything reads as "nothing to preview
-  // yet", not as a wrong balance — that message only earns its place once
+  // yet", not as a wrong balance - that message only earns its place once
   // there is something to be wrong about.
   function statusMessage(): string {
     if (stale || !touched) {

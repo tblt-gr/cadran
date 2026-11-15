@@ -10,7 +10,7 @@ namespace App\Module\Accounts\UI\Http;
  * The contract is exact rather than tolerant: a body carries the fields its
  * endpoint declares, no more and no fewer. Refusing an unknown field is what
  * stops a client from reaching an attribute the endpoint never meant to
- * expose — the account currency, its usage marker or its version — and
+ * expose, the account currency, its usage marker or its version, and
  * refusing a missing one stops a partial body from silently blanking a value
  * the client did not mean to clear.
  *

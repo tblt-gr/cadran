@@ -69,8 +69,8 @@ final readonly class TransactionRecurrenceRow
     }
 
     /**
-     * An instalment stores no asset of its own — a forecast is only ever read
-     * through the recurrence it belongs to — so every occurrence query joins
+     * An instalment stores no asset of its own - a forecast is only ever read
+     * through the recurrence it belongs to - so every occurrence query joins
      * that recurrence and carries its `asset_code` into this row.
      *
      * @param array<string, mixed> $row

@@ -79,7 +79,7 @@ export type BracketPreview =
 
 /** A figure whose next keystroke is a decimal digit: `1000.`, not yet `1000.5`. */
 const BEING_TYPED = /^[0-9]+\.$/;
-/** `007`, padded rather than malformed — `0.7` and `0` are not this. */
+/** `007`, padded rather than malformed - `0.7` and `0` are not this. */
 const LEADING_ZERO = /^0[0-9]/;
 
 /**
@@ -103,28 +103,28 @@ function balanceProblem(balance: string): BracketPreview {
 }
 
 /**
- * The bracket an example balance falls into, for the scale being edited — a
+ * The bracket an example balance falls into, for the scale being edited - a
  * preview only, not tied to any account's actual balance and never a computed
  * effective rate: which rate a matched bracket actually pays on the balance
  * still depends on the application mode (`MARGINAL` or `FLAT_BY_BRACKET`),
  * which this function has no opinion on. Comparison is by exact decimal
  * string throughout, never by parsing either side to a `Number`.
  *
- * The balance verdicts — `incompleteBalance`, `negativeBalance`,
- * `paddedBalance` and `invalidBalance` — mean the balance itself cannot be
+ * The balance verdicts - `incompleteBalance`, `negativeBalance`,
+ * `paddedBalance` and `invalidBalance` - mean the balance itself cannot be
  * read; the scale may be perfectly fine. `incompleteBalance` is the one that
  * is not a mistake: a figure whose next keystroke would complete it, which a
  * reader pausing mid-number should not be scolded for. `incompleteScale` means
  * the opposite: the balance is fine but the draft scale's *bounds*, read in
  * the row order the holder entered them, aren't the shape the backend
- * requires yet — starting at zero, each row's upper bound equal to the next
+ * requires yet - starting at zero, each row's upper bound equal to the next
  * row's lower bound with no gap or overlap, and the last row open-ended. Rows
  * are never reordered to make a scale fit: `toRuleInput` submits them in row
  * order and `RateScale` reads that same order, so a scale only well-formed
  * once sorted is exactly as incomplete as one with a hole. Rates are judged
  * apart from bounds, and only on the bracket actually reached: a blank rate
  * two tiers above the balance says nothing about where that balance falls, so
- * it is `missingRate` — never a verdict on bounds that are in fact correct.
+ * it is `missingRate` - never a verdict on bounds that are in fact correct.
  * `noMatch` would mean a well-bounded scale failed to cover a balance, which
  * the [0, +∞[ invariant makes unreachable in practice, but a match loop that
  * found nothing should say so rather than being folded into the others.
@@ -156,13 +156,13 @@ export function matchingBracket(brackets: BracketValues[], balance: string): Bra
 }
 
 /**
- * The draft brackets, trimmed, if their bounds — read in the row order they
- * were entered, never sorted — tile [0, +∞[ with no gap and no overlap: the
+ * The draft brackets, trimmed, if their bounds - read in the row order they
+ * were entered, never sorted - tile [0, +∞[ with no gap and no overlap: the
  * invariant `RateScale::__construct` checks position by position server-side.
  * `null` covers everything short of that: a bound not yet a canonical
  * decimal, a first row not starting at zero, a last row that isn't
  * open-ended, or a hole, overlap or wrong order between two rows. Rates are
- * deliberately out of scope here — a half-filled rate column leaves the
+ * deliberately out of scope here - a half-filled rate column leaves the
  * bounds as tiled as they were, and {@link matchingBracket} judges the rate
  * of the reached bracket alone.
  */

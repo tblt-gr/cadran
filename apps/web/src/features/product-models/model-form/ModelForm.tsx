@@ -43,7 +43,7 @@ interface ModelFormProps {
 
 /**
  * Describing a workspace product model: its classification and the behaviours
- * it activates. Its dated periods — ceilings, rates, methods — are recorded
+ * it activates. Its dated periods, ceilings, rates, methods, are recorded
  * afterwards through their own endpoint, so this form never duplicates the
  * period editor and a model with no period yet is a valid starting point.
  */

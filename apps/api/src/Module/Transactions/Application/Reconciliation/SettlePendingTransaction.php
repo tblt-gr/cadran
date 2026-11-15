@@ -27,7 +27,7 @@ use App\Module\Transactions\Domain\TransferRepository;
 /**
  * Books the pending row an incoming movement settles.
  *
- * Only what the movement itself observed crosses over — its exact amount and
+ * Only what the movement itself observed crosses over - its exact amount and
  * the day it was booked. The row's own identity and everything a human added
  * to it (raw label, counterparty, note, categorisation) stays untouched: a
  * provider delivery is not allowed to overwrite the owner's work, and the

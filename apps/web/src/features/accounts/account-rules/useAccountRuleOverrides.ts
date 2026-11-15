@@ -8,7 +8,7 @@ import { authApiOptions } from '@/features/auth/apiOptions';
  *
  * It is a different question from the account's rules, which answer for one
  * business date. This answers what was ever claimed, by whom and why, and is
- * the only place a withdrawn claim remains visible — the trail that explains
+ * the only place a withdrawn claim remains visible - the trail that explains
  * why a past statement diverged from the published figures.
  */
 export function useAccountRuleOverrides(accountId: string) {

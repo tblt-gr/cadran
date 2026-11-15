@@ -10,8 +10,8 @@ use App\Module\Accounts\Domain\AccountBalanceSnapshot;
  * What the audit trail may remember about a snapshot.
  *
  * The amount and the comment are financial data and stay out of the trail.
- * Only the structural attributes a reviewer needs — which day, which source,
- * whether it still answers — travel here.
+ * Only the structural attributes a reviewer needs - which day, which source,
+ * whether it still answers - travel here.
  */
 final class AccountBalanceAuditFingerprint
 {

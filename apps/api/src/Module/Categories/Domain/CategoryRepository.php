@@ -35,7 +35,7 @@ interface CategoryRepository
      * Whether an active sibling under $parentId already carries $label.
      *
      * $excludingIds names the categories that leave the active set in the same
-     * transaction — the category being written, and, on a merge, the source being
+     * transaction - the category being written, and, on a merge, the source being
      * archived. Without them a child folded into its own parent collides with the
      * parent the merge is about to archive.
      *

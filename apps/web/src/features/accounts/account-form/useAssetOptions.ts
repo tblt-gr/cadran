@@ -18,7 +18,7 @@ export interface AssetOptions {
  * The effective selection is derived during render rather than pushed into
  * state by an effect: the form must never submit a currency that is merely a
  * leftover default. When the reference cannot be read the selection is empty,
- * and the form refuses to create the account — the denomination is fixed at
+ * and the form refuses to create the account - the denomination is fixed at
  * creation and could not be corrected afterwards.
  */
 export function useAssetOptions(selection: string): AssetOptions {

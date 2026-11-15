@@ -32,8 +32,8 @@ interface UseTransactionMutationsOptions {
 }
 
 /**
- * The four write operations the transactions screen offers — create or edit, transfer, void
- * and duplicate — and the toast and double-submission guard they share. Isolated from the
+ * The four write operations the transactions screen offers - create or edit, transfer, void
+ * and duplicate - and the toast and double-submission guard they share. Isolated from the
  * page's layout so each mutation's success and error handling is readable on its own.
  */
 export function useTransactionMutations({

@@ -22,8 +22,8 @@ use App\Module\Foundation\Application\AmountInputParser;
  * What a model says about one dated rule is parsed by
  * {@see DeclaredRuleParser}, which an account override submits to as well: the
  * two state the same thing about different scopes and must refuse the same
- * malformed values. What remains here is the description around those periods
- * — the family, the envelope, the yield, the capabilities — which belongs to a
+ * malformed values. What remains here is the description around those periods,
+ * the family, the envelope, the yield, the capabilities, which belongs to a
  * model and to nothing else.
  *
  * Every unknown token is refused rather than defaulted.

@@ -380,7 +380,7 @@ final class AccountRulesTest extends TestCase
     /**
      * Withdrawing is not ending. It removes the claim from every date, past
      * ones included, and each of them falls back on the inherited rule that
-     * covered it — the dated one, not whatever is in force today.
+     * covered it - the dated one, not whatever is in force today.
      */
     public function testAWithdrawnOverrideStopsAnsweringOnPastDatesToo(): void
     {

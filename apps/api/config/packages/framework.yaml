@@ -35,8 +35,8 @@ when@test:
       storage_factory_id: session.storage.factory.mock_file
 
 # The suite runs on mock_file storage, which never reaches a save handler. That
-# would leave the session table — and therefore revocation on a password change
-# — asserted by inspection only, so this environment exists to run the handler
+# would leave the session table, and therefore revocation on a password change,
+# asserted by inspection only, so this environment exists to run the handler
 # the application actually ships. Used by the session-handler integration tests.
 when@sessiondb:
   framework:

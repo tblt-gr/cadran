@@ -100,7 +100,7 @@ final readonly class ProvisionInitialWorkspace
 
     /**
      * Recorded inside the provisioning transaction: an install either has an
-     * owner and its trail, or neither. No email reaches the diff — the entity
+     * owner and its trail, or neither. No email reaches the diff - the entity
      * identifier already names the account, and the trail is not a second copy
      * of the identity record.
      */

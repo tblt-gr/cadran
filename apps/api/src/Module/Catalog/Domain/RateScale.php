@@ -14,7 +14,7 @@ use App\Module\Foundation\Domain\ExactDecimal;
  * catalogue ships today: a Livret A at 1.7 % answers with one bracket running
  * from zero without limit. Resolving the simple case into the general shape is
  * what lets a tiered product arrive later as data, without a consumer having to
- * learn a second way of reading a rate — and without any screen having to guess
+ * learn a second way of reading a rate - and without any screen having to guess
  * whether "1.7 %" applies to the whole balance or to a slice of it.
  *
  * The brackets tile the amounts they cover: the first starts at zero, each one

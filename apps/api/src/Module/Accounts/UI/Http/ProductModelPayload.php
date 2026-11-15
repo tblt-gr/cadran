@@ -10,8 +10,8 @@ namespace App\Module\Accounts\UI\Http;
  * The contract is exact rather than tolerant: a body carries the fields its
  * endpoint declares, no more and no fewer, at every level of nesting. Refusing
  * an unknown field is what stops a client from reaching an attribute the
- * endpoint never meant to expose — the model version, its provenance, its
- * workspace — and refusing a missing one stops a partial body from silently
+ * endpoint never meant to expose - the model version, its provenance, its
+ * workspace - and refusing a missing one stops a partial body from silently
  * clearing a value the client did not mean to clear.
  *
  * Every accessor asserts the JSON type it needs instead of coercing, so `"1"`

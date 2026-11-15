@@ -21,7 +21,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  *
  * It exists beside the system catalogue rather than inside it. The catalogue
  * is global, sourced and read-only, and a workspace must be able to model the
- * product its own institution actually sells — a promotional rate, a tiered
+ * product its own institution actually sells - a promotional rate, a tiered
  * scale, a ceiling no publication states. Keeping the two apart is what stops
  * a workspace edit from reaching a system product, and a catalogue revision
  * from overwriting a figure the holder entered.
@@ -124,7 +124,7 @@ final readonly class ProductModel
      * reported as having no ceiling. Several kinds that disagree cannot be
      * collapsed into one measure, so the view says NONE rather than picking.
      * When no ceiling period is recorded yet, the envelope's expected kind
-     * remains the fallback — a regulated passbook is still capped on deposits
+     * remains the fallback - a regulated passbook is still capped on deposits
      * even before the holder types an amount.
      */
     public function ceilingBasis(): CeilingBasis

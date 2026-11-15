@@ -84,7 +84,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
         // was already recording a period is waited out and its rules are part
         // of what is read here. Reading them first would return a schedule
         // older than the version stamped on the row, and a caller with no
-        // version check — duplication — would copy an incomplete model.
+        // version check, duplication, would copy an incomplete model.
         $row = $this->connection->fetchAssociative(
             'SELECT '.self::COLUMNS.' FROM account_product_models WHERE workspace_id = :workspace_id AND id = :id FOR UPDATE',
             ['workspace_id' => $workspace->id, 'id' => $id],

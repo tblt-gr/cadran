@@ -302,7 +302,7 @@ export function resolvePeriod(
  * A combination the server would run but that can never return a row, detected here so the
  * screen shows a dedicated state instead of firing the request: the "to categorise" queue
  * (`categorization: NONE`) holds transactions with no split at all, so a category or axis
- * filter — which only ever matches through a split — excludes every row in it, and the queue
+ * filter, which only ever matches through a split, excludes every row in it, and the queue
  * never lists a voided movement, so asking it for voided rows only is empty as well.
  */
 export function isImpossibleCombination(filters: TransactionFilterState): boolean {

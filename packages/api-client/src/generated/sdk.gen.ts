@@ -215,7 +215,7 @@ export const readAsset = <ThrowOnError extends boolean = false>(options: Options
 /**
  * Read the system product catalogue on a business date
  *
- * Requires an authenticated session. Returns the financial product models the application ships with — Livret A, LDDS, LEP, PEA, CTO, life insurance — each resolved against the business date asked for. The catalogue is global and read-only: it belongs to no workspace, every session reads the same rows, and a regulatory value changes through a reviewed migration rather than through a request.
+ * Requires an authenticated session. Returns the financial product models the application ships with, Livret A, LDDS, LEP, PEA, CTO, life insurance: each resolved against the business date asked for. The catalogue is global and read-only: it belongs to no workspace, every session reads the same rows, and a regulatory value changes through a reviewed migration rather than through a request.
  */
 export const listProducts = <ThrowOnError extends boolean = false>(options?: Options<ListProductsData, ThrowOnError>): RequestResult<ListProductsResponses, ListProductsErrors, ThrowOnError> => (options?.client ?? client).get<ListProductsResponses, ListProductsErrors, ThrowOnError>({
     security: [{
@@ -1539,7 +1539,7 @@ export const withdrawAccountBalance = <ThrowOnError extends boolean = false>(opt
  * Read the rules in force for an account on a business date
  *
  * Resolves the ceilings, rates and terms that apply to one account of the calling workspace on the business date asked for. Almost nothing here is stored on the account: the rules are read on that date from the authority the account follows, so a regulatory revision reaches every account at once and a past statement stays re-readable against the rules that applied then.
- * Each entry states the same rule as every authority sees it, side by side and never merged. `catalog` is what the system catalogue publishes, reached through the account's own product reference or through the provenance of the workspace model it follows. `inherited` is what that workspace model says, and is present only when a model sits between the account and the catalogue. `override` is what was recorded against this account alone, and it carries the claim that explains it — who recorded it, when, and why. `effectiveLayer` names the one that wins, so no client re-implements the precedence.
+ * Each entry states the same rule as every authority sees it, side by side and never merged. `catalog` is what the system catalogue publishes, reached through the account's own product reference or through the provenance of the workspace model it follows. `inherited` is what that workspace model says, and is present only when a model sits between the account and the catalogue. `override` is what was recorded against this account alone, and it carries the claim that explains it - who recorded it, when, and why. `effectiveLayer` names the one that wins, so no client re-implements the precedence.
  * A ceiling always states the figure it is measured against, because the amount alone decides nothing: 22 950 € checked against a total balance and the same amount checked against deposits excluding interest give opposite verdicts on the same passbook. A rate always resolves to a bracket scale, single-bracket for the products the catalogue ships today, so a client reads every rate the same way. A rule the account is expected to carry and that no layer covers on the date is listed in `unavailableRuleKinds` and is never returned as zero.
  */
 export const readAccountRules = <ThrowOnError extends boolean = false>(options: Options<ReadAccountRulesData, ThrowOnError>): RequestResult<ReadAccountRulesResponses, ReadAccountRulesErrors, ThrowOnError> => (options.client ?? client).get<ReadAccountRulesResponses, ReadAccountRulesErrors, ThrowOnError>({
@@ -1592,7 +1592,7 @@ export const recordAccountRuleOverride = <ThrowOnError extends boolean = false>(
 /**
  * Withdraw a rule override
  *
- * Withdrawing is not ending. Ending an override is a dated fact recorded in its `validTo`, and the account keeps resolving against it up to that day for ever after. Withdrawing says the claim should not have applied at all: it stops answering on every date, past ones included, and the inherited rule of each of those dates takes over again — the dated one, not whatever is in force today.
+ * Withdrawing is not ending. Ending an override is a dated fact recorded in its `validTo`, and the account keeps resolving against it up to that day for ever after. Withdrawing says the claim should not have applied at all: it stops answering on every date, past ones included, and the inherited rule of each of those dates takes over again - the dated one, not whatever is in force today.
  * The row is kept and stays readable, so the trail still shows what was claimed, by whom and why. Withdrawing a second time is refused rather than silently accepted.
  */
 export const withdrawAccountRuleOverride = <ThrowOnError extends boolean = false>(options: Options<WithdrawAccountRuleOverrideData, ThrowOnError>): RequestResult<WithdrawAccountRuleOverrideResponses, WithdrawAccountRuleOverrideErrors, ThrowOnError> => (options.client ?? client).post<WithdrawAccountRuleOverrideResponses, WithdrawAccountRuleOverrideErrors, ThrowOnError>({
@@ -1868,7 +1868,7 @@ export const activateMetricPolicy = <ThrowOnError extends boolean = false>(optio
 /**
  * Read the explainable net worth of the calling workspace
  *
- * Requires an authenticated session. The workspace is resolved from the session and cannot be selected by a query parameter. The total is the sum of the signed values of the accounts included in net worth and open on the requested day; a liability carries the negative sign while its stored amount stays positive. The total is null with a reason whenever it cannot be produced — a missing valuation, no eligible account, or eligible accounts denominated in more than one asset — and is never an invented `0`. The delta and the change rate fail independently: a real movement against a zero or negative base keeps its amount and publishes no rate. Every contributing account and every exclusive group weight travels with the figure so the result can be challenged.
+ * Requires an authenticated session. The workspace is resolved from the session and cannot be selected by a query parameter. The total is the sum of the signed values of the accounts included in net worth and open on the requested day; a liability carries the negative sign while its stored amount stays positive. The total is null with a reason whenever it cannot be produced - a missing valuation, no eligible account, or eligible accounts denominated in more than one asset - and is never an invented `0`. The delta and the change rate fail independently: a real movement against a zero or negative base keeps its amount and publishes no rate. Every contributing account and every exclusive group weight travels with the figure so the result can be challenged.
  */
 export const readNetWorth = <ThrowOnError extends boolean = false>(options?: Options<ReadNetWorthData, ThrowOnError>): RequestResult<ReadNetWorthResponses, ReadNetWorthErrors, ThrowOnError> => (options?.client ?? client).get<ReadNetWorthResponses, ReadNetWorthErrors, ThrowOnError>({
     security: [{
@@ -2527,7 +2527,7 @@ export const resolveAccountReconciliation = <ThrowOnError extends boolean = fals
 /**
  * Resolve a movement held for reconciliation review
  *
- * Applies the human decision on a pending movement carrying a `reviewReason`. A named match is any pending transaction of the same account: `reconciliationCandidateIds` is what the matching rule suggests, not a limit on what the reviewer may choose. The named row is booked carrying the reviewed movement's amount, date and external identifier — a row already carrying a different identifier is refused rather than losing one of the two — and the reviewed row is voided with a durable link back to it. A null match books the reviewed row itself and clears its `reviewReason`. Every row the resolution names is locked, so two reviewers cannot resolve the same ambiguity into two contradictory outcomes.
+ * Applies the human decision on a pending movement carrying a `reviewReason`. A named match is any pending transaction of the same account: `reconciliationCandidateIds` is what the matching rule suggests, not a limit on what the reviewer may choose. The named row is booked carrying the reviewed movement's amount, date and external identifier - a row already carrying a different identifier is refused rather than losing one of the two - and the reviewed row is voided with a durable link back to it. A null match books the reviewed row itself and clears its `reviewReason`. Every row the resolution names is locked, so two reviewers cannot resolve the same ambiguity into two contradictory outcomes.
  */
 export const reconcileTransaction = <ThrowOnError extends boolean = false>(options: Options<ReconcileTransactionData, ThrowOnError>): RequestResult<ReconcileTransactionResponses, ReconcileTransactionErrors, ThrowOnError> => (options.client ?? client).post<ReconcileTransactionResponses, ReconcileTransactionErrors, ThrowOnError>({
     security: [{
@@ -2561,7 +2561,7 @@ export const duplicateTransaction = <ThrowOnError extends boolean = false>(optio
 /**
  * Move money between two accounts of the calling workspace atomically
  *
- * Creates both legs — source negative, target positive — and an optional fee, in one PostgreSQL transaction. sourceAmount and targetAmount are positive magnitudes; the server applies the signs. Same-asset transfers may omit targetAmount, defaulting it to the source magnitude; a cross-asset transfer must supply it, and the exchange rate is derived and stored on both legs. Neither leg carries income or expense, and neither accepts a split.
+ * Creates both legs, source negative, target positive, and an optional fee, in one PostgreSQL transaction. sourceAmount and targetAmount are positive magnitudes; the server applies the signs. Same-asset transfers may omit targetAmount, defaulting it to the source magnitude; a cross-asset transfer must supply it, and the exchange rate is derived and stored on both legs. Neither leg carries income or expense, and neither accepts a split.
  */
 export const createTransfer = <ThrowOnError extends boolean = false>(options: Options<CreateTransferData, ThrowOnError>): RequestResult<CreateTransferResponses, CreateTransferErrors, ThrowOnError> => (options.client ?? client).post<CreateTransferResponses, CreateTransferErrors, ThrowOnError>({
     security: [{

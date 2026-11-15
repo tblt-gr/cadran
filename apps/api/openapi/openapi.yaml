@@ -466,7 +466,7 @@ paths:
     get:
       operationId: listProducts
       summary: Read the system product catalogue on a business date
-      description: 'Requires an authenticated session. Returns the financial product models the application ships with — Livret A, LDDS, LEP, PEA, CTO, life insurance — each resolved against the business date asked for. The catalogue is global and read-only: it belongs to no workspace, every session reads the same rows, and a regulatory value changes through a reviewed migration rather than through a request.'
+      description: 'Requires an authenticated session. Returns the financial product models the application ships with, Livret A, LDDS, LEP, PEA, CTO, life insurance: each resolved against the business date asked for. The catalogue is global and read-only: it belongs to no workspace, every session reads the same rows, and a regulatory value changes through a reviewed migration rather than through a request.'
       tags:
         - Catalog
       security:
@@ -4306,7 +4306,7 @@ paths:
       summary: Read the rules in force for an account on a business date
       description: |-
         Resolves the ceilings, rates and terms that apply to one account of the calling workspace on the business date asked for. Almost nothing here is stored on the account: the rules are read on that date from the authority the account follows, so a regulatory revision reaches every account at once and a past statement stays re-readable against the rules that applied then.
-        Each entry states the same rule as every authority sees it, side by side and never merged. `catalog` is what the system catalogue publishes, reached through the account's own product reference or through the provenance of the workspace model it follows. `inherited` is what that workspace model says, and is present only when a model sits between the account and the catalogue. `override` is what was recorded against this account alone, and it carries the claim that explains it — who recorded it, when, and why. `effectiveLayer` names the one that wins, so no client re-implements the precedence.
+        Each entry states the same rule as every authority sees it, side by side and never merged. `catalog` is what the system catalogue publishes, reached through the account's own product reference or through the provenance of the workspace model it follows. `inherited` is what that workspace model says, and is present only when a model sits between the account and the catalogue. `override` is what was recorded against this account alone, and it carries the claim that explains it - who recorded it, when, and why. `effectiveLayer` names the one that wins, so no client re-implements the precedence.
         A ceiling always states the figure it is measured against, because the amount alone decides nothing: 22 950 € checked against a total balance and the same amount checked against deposits excluding interest give opposite verdicts on the same passbook. A rate always resolves to a bracket scale, single-bracket for the products the catalogue ships today, so a client reads every rate the same way. A rule the account is expected to carry and that no layer covers on the date is listed in `unavailableRuleKinds` and is never returned as zero.
       tags:
         - Accounts
@@ -4438,7 +4438,7 @@ paths:
       x-cadran-idempotency: A replay finds the override already withdrawn and answers 409.
       summary: Withdraw a rule override
       description: |-
-        Withdrawing is not ending. Ending an override is a dated fact recorded in its `validTo`, and the account keeps resolving against it up to that day for ever after. Withdrawing says the claim should not have applied at all: it stops answering on every date, past ones included, and the inherited rule of each of those dates takes over again — the dated one, not whatever is in force today.
+        Withdrawing is not ending. Ending an override is a dated fact recorded in its `validTo`, and the account keeps resolving against it up to that day for ever after. Withdrawing says the claim should not have applied at all: it stops answering on every date, past ones included, and the inherited rule of each of those dates takes over again - the dated one, not whatever is in force today.
         The row is kept and stays readable, so the trail still shows what was claimed, by whom and why. Withdrawing a second time is refused rather than silently accepted.
       tags:
         - Accounts
@@ -5218,7 +5218,7 @@ paths:
       operationId: readNetWorth
       x-cadran-bounded: Contributions come from at most 500 accounts and allocation from at most 500 groups; a larger workspace is refused.
       summary: Read the explainable net worth of the calling workspace
-      description: 'Requires an authenticated session. The workspace is resolved from the session and cannot be selected by a query parameter. The total is the sum of the signed values of the accounts included in net worth and open on the requested day; a liability carries the negative sign while its stored amount stays positive. The total is null with a reason whenever it cannot be produced — a missing valuation, no eligible account, or eligible accounts denominated in more than one asset — and is never an invented `0`. The delta and the change rate fail independently: a real movement against a zero or negative base keeps its amount and publishes no rate. Every contributing account and every exclusive group weight travels with the figure so the result can be challenged.'
+      description: 'Requires an authenticated session. The workspace is resolved from the session and cannot be selected by a query parameter. The total is the sum of the signed values of the accounts included in net worth and open on the requested day; a liability carries the negative sign while its stored amount stays positive. The total is null with a reason whenever it cannot be produced - a missing valuation, no eligible account, or eligible accounts denominated in more than one asset - and is never an invented `0`. The delta and the change rate fail independently: a real movement against a zero or negative base keeps its amount and publishes no rate. Every contributing account and every exclusive group weight travels with the figure so the result can be challenged.'
       tags:
         - Net worth
       security:
@@ -6501,7 +6501,7 @@ paths:
         - name: categorization
           in: query
           required: false
-          description: '`NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.'
+          description: '`NONE` restricts the page to the transactions carrying no split at all: the "to categorise" queue.'
           schema:
             type: string
             enum:
@@ -6987,7 +6987,7 @@ paths:
         - name: categorization
           in: query
           required: false
-          description: '`NONE` restricts the page to the transactions carrying no split at all — the "to categorise" queue.'
+          description: '`NONE` restricts the page to the transactions carrying no split at all: the "to categorise" queue.'
           schema:
             type: string
             enum:
@@ -7417,7 +7417,7 @@ paths:
     post:
       operationId: reconcileTransaction
       summary: Resolve a movement held for reconciliation review
-      description: 'Applies the human decision on a pending movement carrying a `reviewReason`. A named match is any pending transaction of the same account: `reconciliationCandidateIds` is what the matching rule suggests, not a limit on what the reviewer may choose. The named row is booked carrying the reviewed movement''s amount, date and external identifier — a row already carrying a different identifier is refused rather than losing one of the two — and the reviewed row is voided with a durable link back to it. A null match books the reviewed row itself and clears its `reviewReason`. Every row the resolution names is locked, so two reviewers cannot resolve the same ambiguity into two contradictory outcomes.'
+      description: 'Applies the human decision on a pending movement carrying a `reviewReason`. A named match is any pending transaction of the same account: `reconciliationCandidateIds` is what the matching rule suggests, not a limit on what the reviewer may choose. The named row is booked carrying the reviewed movement''s amount, date and external identifier - a row already carrying a different identifier is refused rather than losing one of the two - and the reviewed row is voided with a durable link back to it. A null match books the reviewed row itself and clears its `reviewReason`. Every row the resolution names is locked, so two reviewers cannot resolve the same ambiguity into two contradictory outcomes.'
       tags:
         - Transactions
       security:
@@ -7522,7 +7522,7 @@ paths:
     post:
       operationId: createTransfer
       summary: Move money between two accounts of the calling workspace atomically
-      description: Creates both legs — source negative, target positive — and an optional fee, in one PostgreSQL transaction. sourceAmount and targetAmount are positive magnitudes; the server applies the signs. Same-asset transfers may omit targetAmount, defaulting it to the source magnitude; a cross-asset transfer must supply it, and the exchange rate is derived and stored on both legs. Neither leg carries income or expense, and neither accepts a split.
+      description: Creates both legs, source negative, target positive, and an optional fee, in one PostgreSQL transaction. sourceAmount and targetAmount are positive magnitudes; the server applies the signs. Same-asset transfers may omit targetAmount, defaulting it to the source magnitude; a cross-asset transfer must supply it, and the exchange rate is derived and stored on both legs. Neither leg carries income or expense, and neither accepts a split.
       tags:
         - Transfers
       security:
@@ -13331,7 +13331,7 @@ components:
         - MARKET
         - MANUAL_VALUATION
     RuleValueType:
-      description: How a rule's value is written down. A `PERCENTAGE` is expressed in percent — `1.7` reads 1.7 % — so no consumer ever multiplies a rate to display it.
+      description: 'How a rule''s value is written down. A `PERCENTAGE` is expressed in percent: `1.7` reads 1.7 % - so no consumer ever multiplies a rate to display it.'
       type: string
       enum:
         - AMOUNT
@@ -13519,7 +13519,7 @@ components:
               format: date
             - type: 'null'
     ProductModelRuleInput:
-      description: One dated period as a client submits it. The body carries exactly these fields; the parser decides which value shape the kind requires and refuses the others. Decimals travel as canonical strings — a rate sent as a JSON number is refused rather than rounded.
+      description: One dated period as a client submits it. The body carries exactly these fields; the parser decides which value shape the kind requires and refuses the others. Decimals travel as canonical strings - a rate sent as a JSON number is refused rather than rounded.
       type: object
       additionalProperties: false
       required:
@@ -16309,7 +16309,7 @@ components:
               pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
             - type: 'null'
     AccountTermRule:
-      description: One term kind — how interest accrues, who is eligible, which tax regime applies — seen through every authority that states it. At least one of `catalog`, `inherited` and `override` is present.
+      description: One term kind - how interest accrues, who is eligible, which tax regime applies - seen through every authority that states it. At least one of `catalog`, `inherited` and `override` is present.
       type: object
       additionalProperties: false
       required:
@@ -16364,12 +16364,12 @@ components:
         claim:
           $ref: '#/components/schemas/AccountRuleClaimOrNull'
     DeclaredOrVerified:
-      description: Null for a value nobody published — one read from a workspace product model, and one claimed by an account override. Grading the freshness of a figure the holder typed would fabricate a provenance it never had.
+      description: Null for a value nobody published - one read from a workspace product model, and one claimed by an account override. Grading the freshness of a figure the holder typed would fabricate a provenance it never had.
       oneOf:
         - $ref: '#/components/schemas/RuleVerification'
         - type: 'null'
     DeclaredOrSourced:
-      description: Null for a value nobody published — one read from a workspace product model, and one claimed by an account override. There is no publication to name.
+      description: Null for a value nobody published - one read from a workspace product model, and one claimed by an account override. There is no publication to name.
       oneOf:
         - $ref: '#/components/schemas/ProductRuleSource'
         - type: 'null'

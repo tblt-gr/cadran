@@ -10,7 +10,7 @@ namespace App\Module\Transactions\Application;
  * explicitly and reports it through
  * {@see \App\Module\Transactions\UI\Http\TransactionHttpEnvelope::invalidSplitsProblem()},
  * which turns the rule code into the RFC 9457 problem type and the
- * translation parameters — unlike
+ * translation parameters - unlike
  * {@see \App\Module\Foundation\Application\InvalidAmountInput}, which the
  * global {@see \App\Module\Foundation\UI\Http\ApiProblemResponseListener}
  * handles without any controller catch. A new call site must add its own

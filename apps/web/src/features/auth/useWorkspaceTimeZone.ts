@@ -3,8 +3,8 @@ import { useSession } from './useSession';
 /**
  * The workspace's own IANA timezone, read from the session payload the SPA
  * already loads (`session.data.workspace.timeZone`). Every feature that needs
- * to resolve "today" — the budget route, a transaction's or transfer's
- * default booking date — reads it through this hook instead of assuming a
+ * to resolve "today" - the budget route, a transaction's or transfer's
+ * default booking date - reads it through this hook instead of assuming a
  * fixed zone or duplicating the fallback.
  *
  * `UTC` is a defensive fallback only, for the instant before the session

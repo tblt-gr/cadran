@@ -13,7 +13,7 @@ use App\Module\Accounts\Domain\AccountRuleOverride;
  * scale and the sentence explaining them are financial data, and the trail is
  * read in contexts the account itself is not. What a reviewer needs in order
  * to explain a change is which rule was claimed, over which dates, by whom,
- * and whether it still stands — all of which is here.
+ * and whether it still stands - all of which is here.
  */
 final class AccountRuleOverrideAuditFingerprint
 {

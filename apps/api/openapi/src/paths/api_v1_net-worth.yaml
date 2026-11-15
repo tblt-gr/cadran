@@ -10,8 +10,8 @@ get:
     the signed values of the accounts included in net worth and open on the
     requested day; a liability carries the negative sign while its stored amount
     stays positive. The total is null with a reason whenever it cannot be
-    produced — a missing valuation, no eligible account, or eligible accounts
-    denominated in more than one asset — and is never an invented `0`. The delta
+    produced - a missing valuation, no eligible account, or eligible accounts
+    denominated in more than one asset - and is never an invented `0`. The delta
     and the change rate fail independently: a real movement against a zero or
     negative base keeps its amount and publishes no rate. Every contributing
     account and every exclusive group weight travels with the figure so the

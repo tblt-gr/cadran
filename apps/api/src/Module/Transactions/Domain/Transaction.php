@@ -230,7 +230,7 @@ final readonly class Transaction
      *
      * A row already carrying a different identifier refuses instead: one row
      * holds one identifier, so settling would have to drop one of the two, and
-     * the dropped one would stop being recognisable on its own next delivery —
+     * the dropped one would stop being recognisable on its own next delivery:
      * a silent path back to counting one movement twice. Such a pair is a real
      * question about two announcements, and it goes to a human.
      */

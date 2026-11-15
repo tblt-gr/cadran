@@ -11,8 +11,8 @@ use App\Module\Catalog\Domain\RuleKind;
  *
  * A local claim wins over what the account follows, which wins over what the
  * system catalogue publishes behind it. The order lives here rather than in
- * each of the three layered rules so that a fourth authority — or a change of
- * mind about who wins — cannot be applied to ceilings and forgotten on rates.
+ * each of the three layered rules so that a fourth authority - or a change of
+ * mind about who wins - cannot be applied to ceilings and forgotten on rates.
  */
 final class AccountRuleLayers
 {

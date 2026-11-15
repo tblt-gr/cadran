@@ -33,8 +33,8 @@ interface UseRecurrenceMutationsOptions {
 }
 
 /**
- * The recurrences screen's five write operations — confirm or edit, dismiss a candidate,
- * undo that dismissal, and archive or restore a recurrence — and the one toast and one undo
+ * The recurrences screen's five write operations - confirm or edit, dismiss a candidate,
+ * undo that dismissal, and archive or restore a recurrence - and the one toast and one undo
  * banner they share.
  */
 export function useRecurrenceMutations({

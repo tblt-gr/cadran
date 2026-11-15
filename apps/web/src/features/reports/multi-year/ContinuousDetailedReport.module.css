@@ -1,7 +1,7 @@
 /* Scoped to the multi-year detailed table only: the annual per-year table (AnnualReportTable)
    shares AnnualReportTable.module.css's `.scroll`/`.table` classes but keeps its own natural
    height. This table alone flattens years of rows, so it alone gets a vertical scroll clamp,
-   added onto the same element as `.scroll`'s overflow-x — not a separate wrapping div — so the
+   added onto the same element as `.scroll`'s overflow-x, not a separate wrapping div, so the
    horizontal scrollbar sits at the bottom of the 480px visible viewport (always reachable)
    rather than at the bottom of the full, much taller table content. */
 .verticalScroll {
@@ -16,7 +16,7 @@
    The footer's 5 aggregate rows are NOT sticky: `position: sticky; bottom: 0` on every
    one of them pins them all to the same spot, so they overlap instead of stacking as
    you scroll. Making a multi-row footer stick correctly needs each row offset by the
-   height of the rows below it, which is not worth it here — the footer stays reachable
+   height of the rows below it, which is not worth it here - the footer stays reachable
    by scrolling to the end, like any other row. */
 .verticalScroll thead th {
   position: sticky;

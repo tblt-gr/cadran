@@ -11,7 +11,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * One dated observed balance of a single account.
  *
  * The figure is stored as submitted: trailing zeros stay, a zero is a real
- * balance, and a missing valuation is the absence of this row — never a
+ * balance, and a missing valuation is the absence of this row - never a
  * silent 0. Two active snapshots of the same account, day and source would
  * leave that day with two answers, so the later one supersedes the earlier
  * instead of sitting beside it.

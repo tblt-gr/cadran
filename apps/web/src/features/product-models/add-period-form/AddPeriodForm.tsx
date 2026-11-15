@@ -24,8 +24,8 @@ interface AddPeriodFormProps {
 /**
  * Records one dated period on a model. Recording is adding: the server appends
  * the period and closes the open-ended one of the same kind it supersedes the
- * day before it starts. There is no period edit and no deletion — a mistake is
- * fixed by archiving the model and duplicating it — so this form only ever
+ * day before it starts. There is no period edit and no deletion - a mistake is
+ * fixed by archiving the model and duplicating it - so this form only ever
  * describes a new period, never rewrites an old one.
  */
 export function AddPeriodForm({

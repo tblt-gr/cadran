@@ -17,8 +17,8 @@ interface PeriodFieldsProps {
   /**
    * The kinds this period may state at all. It defaults to every kind, which
    * is what describing a model from scratch offers; a caller that already
-   * knows which kinds its subject can carry — an account, whose authority has
-   * settled the question — passes the shorter list instead of offering choices
+   * knows which kinds its subject can carry - an account, whose authority has
+   * settled the question - passes the shorter list instead of offering choices
    * the API would refuse. Those caller-supplied kinds are not re-disabled
    * against yield and capabilities the caller does not have.
    */
@@ -29,8 +29,8 @@ interface PeriodFieldsProps {
 
 /**
  * One dated period being described: the rule it states, its value in the shape
- * that kind requires, and the days it covers. A kind the model cannot carry —
- * a rate on a market yield, a ceiling without the capability that measures it —
+ * that kind requires, and the days it covers. A kind the model cannot carry,
+ * a rate on a market yield, a ceiling without the capability that measures it,
  * is offered disabled rather than hidden, so the reason is visible. The value
  * is exact text throughout; nothing is parsed to a number here.
  */

@@ -11,7 +11,7 @@ use App\Module\Foundation\Domain\DecimalValue;
  * the effective percentage, and which bracket the balance reached.
  *
  * A zero or negative balance cannot produce an effective rate. Zero interest
- * is a real figure; a missing effective percentage is not — inventing 0 %
+ * is a real figure; a missing effective percentage is not - inventing 0 %
  * would read as "this scale pays nothing".
  */
 final readonly class AppliedRate

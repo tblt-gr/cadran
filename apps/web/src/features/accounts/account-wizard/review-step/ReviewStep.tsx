@@ -26,7 +26,7 @@ interface ReviewStepProps {
  * The inherited block is read straight from that origin, with each rule's
  * effective period. A catalogue product also carries its verification state
  * and its official source; a workspace template carries neither, since
- * nobody published it — its periods are declared by the workspace itself.
+ * nobody published it - its periods are declared by the workspace itself.
  * Nothing here is copied into the account: the account stores the reference,
  * and these figures are read again on the business date they are needed. A
  * market product shows no rate at all, and a rule the catalogue cannot vouch

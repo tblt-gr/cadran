@@ -17,7 +17,7 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 /**
  * Read-only access to reference_assets. The table carries no workspace_id: it
  * is a global system reference, identical for every caller, and this class
- * offers no write path — assets change through a migration.
+ * offers no write path - assets change through a migration.
  */
 #[AsAlias(AssetCatalog::class)]
 final readonly class DbalAssetCatalog implements AssetCatalog

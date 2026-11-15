@@ -472,7 +472,7 @@ final class SessionControllerTest extends WebTestCase
             $statuses[] = $this->client->getResponse()->getStatusCode();
         }
 
-        // Five 401s then a 429 — identical to the known-account curve above, so
+        // Five 401s then a 429 - identical to the known-account curve above, so
         // the throttle leaks nothing about which emails exist.
         self::assertSame([401, 401, 401, 401, 401, 429], $statuses);
     }

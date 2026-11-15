@@ -26,7 +26,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * only the identifier of the workspace product model it was created from, and
  * the ceilings, rates and terms behind it are read from that model on the
  * business date they are needed. An account carries at most one of the two
- * references — never both at once, since each names a different authority for
+ * references - never both at once, since each names a different authority for
  * the rules the account inherits.
  */
 final readonly class Account
@@ -123,7 +123,7 @@ final readonly class Account
 
         // Swapping the product or the model of an account that already carries
         // history would re-read every past movement against another set of
-        // dated rules — a Livret A ceiling becoming a PEA contribution
+        // dated rules - a Livret A ceiling becoming a PEA contribution
         // ceiling, retroactively.
         if (null !== $this->usedAt && !self::sameProduct($this->productCode, $productCode)) {
             throw new InvalidAccount('A used account cannot change product.');
@@ -275,7 +275,7 @@ final readonly class Account
     /**
      * A recorded snapshot is history: the kind and product can no longer
      * change without reinterpreting that figure. A second snapshot does not
-     * bump the version again — the lock is already on.
+     * bump the version again - the lock is already on.
      */
     public function markUsed(\DateTimeImmutable $usedAt): self
     {
@@ -409,7 +409,7 @@ final readonly class Account
      * Lifecycle dates are checked against the aggregate's own timestamps rather
      * than a clock: the day of the last write is the entity's own notion of
      * "now", so neither date can be set in the future. The reference is the
-     * later of creation and update, not creation alone — a correction made
+     * later of creation and update, not creation alone - a correction made
      * months later must still be able to record a past opening date the
      * paperwork revealed.
      */

@@ -1,6 +1,6 @@
 description: >-
-  How a rule's value is written down. A `PERCENTAGE` is expressed in percent —
-  `1.7` reads 1.7 % — so no consumer ever multiplies a rate to display it.
+  How a rule's value is written down. A `PERCENTAGE` is expressed in percent:
+  `1.7` reads 1.7 % - so no consumer ever multiplies a rate to display it.
 type: string
 enum:
   - AMOUNT

@@ -266,7 +266,7 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
                 $bookedOn = $baseDate->modify(sprintf('-%d days', intdiv($index, 40)))->format('Y-m-d');
                 $isExpense = 0 === $index % 2;
                 // A handful of rows (0.04%) carry a distinctive label so the
-                // free-text branch has a genuinely rare match to find — rare
+                // free-text branch has a genuinely rare match to find - rare
                 // enough that a sorted listing-index scan cannot short-circuit
                 // on the page LIMIT and the trigram index actually earns its
                 // keep.

@@ -10,8 +10,8 @@ import {
  *
  * The numbers produced here are coordinates inside an SVG viewBox, never a
  * financial figure: nothing computed in this file is shown to a reader. Every
- * amount on the screen — the headline, the hover tooltip and the tabular
- * alternative — is the canonical decimal string the backend produced. Turning
+ * amount on the screen - the headline, the hover tooltip and the tabular
+ * alternative - is the canonical decimal string the backend produced. Turning
  * a decimal into a coordinate happens only after exact comparison and
  * subtraction, because a pixel has no cents.
  */
@@ -106,7 +106,7 @@ export function polylinePoints(run: readonly PlotPoint[]): string {
 }
 
 /**
- * Catmull-Rom spline as cubic Bézier commands. Coordinates only — never a
+ * Catmull-Rom spline as cubic Bézier commands. Coordinates only - never a
  * published figure.
  */
 export function smoothPath(run: readonly PlotPoint[]): string {

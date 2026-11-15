@@ -30,7 +30,7 @@ final readonly class TransactionAuditFingerprint
      * on its own: whether the figure itself moved between the two versions.
      * Amounts have too little entropy for any digest of one to stay
      * non-reversible, so this never encodes the value, only the fact that it
-     * differs — which is what a reconciliation anomaly or a mistaken edit is
+     * differs - which is what a reconciliation anomaly or a mistaken edit is
      * read from.
      *
      * @return array<string, scalar|null>

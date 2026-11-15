@@ -1,7 +1,7 @@
 description: >-
   One dated period as a client submits it. The body carries exactly these
   fields; the parser decides which value shape the kind requires and refuses the
-  others. Decimals travel as canonical strings — a rate sent as a JSON number is
+  others. Decimals travel as canonical strings - a rate sent as a JSON number is
   refused rather than rounded.
 type: object
 additionalProperties: false

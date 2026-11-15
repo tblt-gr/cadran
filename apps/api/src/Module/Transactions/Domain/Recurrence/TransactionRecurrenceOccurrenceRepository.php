@@ -30,7 +30,7 @@ interface TransactionRecurrenceOccurrenceRepository
 
     /**
      * The unmatched instalments of the live recurrences of one account inside a
-     * date window — the only candidates a real movement may settle.
+     * date window - the only candidates a real movement may settle.
      *
      * @return list<TransactionRecurrenceOccurrence>
      */

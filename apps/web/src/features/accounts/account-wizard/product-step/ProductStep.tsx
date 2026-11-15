@@ -27,7 +27,7 @@ interface ProductStepProps {
 }
 
 /**
- * The first step: what the account is created from, if anything — a system
+ * The first step: what the account is created from, if anything - a system
  * catalogue product, a reusable template of the calling workspace, or a
  * description typed by hand.
  *
@@ -35,7 +35,7 @@ interface ProductStepProps {
  * records which one the account follows; its ceilings, rates and methods stay
  * where they are declared and are read on the business date they are needed.
  * The two lists load and fail independently, so a workspace with no template
- * yet — or a template list that failed to load — never blocks picking a
+ * yet, or a template list that failed to load, never blocks picking a
  * catalogue product, and the reverse holds too.
  */
 export function ProductStep({

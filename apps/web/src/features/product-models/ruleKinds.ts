@@ -8,7 +8,7 @@ import type {
 /**
  * The frontend copy of the rule taxonomy the domain owns. It never decides a
  * financial value; it only keeps the form from offering a period the backend
- * would refuse — a rate on a market model, a ceiling without the capability
+ * would refuse - a rate on a market model, a ceiling without the capability
  * that measures it. The backend stays the authority and re-checks every case.
  */
 

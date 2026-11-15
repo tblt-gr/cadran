@@ -6,10 +6,10 @@ Closes #
 
 ## Type of change
 
-- [ ] `feat` — new capability
-- [ ] `fix` — bug fix
-- [ ] `perf` — performance improvement
-- [ ] `refactor` — no intended behavior change
+- [ ] `feat`: new capability
+- [ ] `fix`: bug fix
+- [ ] `perf`: performance improvement
+- [ ] `refactor`: no intended behavior change
 - [ ] `docs` / `test` / `build` / `ci` / `chore`
 
 ## Verification

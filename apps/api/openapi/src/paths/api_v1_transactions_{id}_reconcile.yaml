@@ -6,9 +6,9 @@ post:
     A named match is any pending transaction of the same account:
     `reconciliationCandidateIds` is what the matching rule suggests, not a limit
     on what the reviewer may choose. The named row is booked carrying the
-    reviewed movement's amount, date and external identifier — a row already
+    reviewed movement's amount, date and external identifier - a row already
     carrying a different identifier is refused rather than losing one of the two
-    — and the reviewed row is voided with a durable link back to it. A null
+    - and the reviewed row is voided with a durable link back to it. A null
     match books the reviewed row itself and clears its `reviewReason`. Every row
     the resolution names is locked, so two reviewers cannot resolve the same
     ambiguity into two contradictory outcomes.

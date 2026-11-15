@@ -8,9 +8,9 @@ function failed(result: { response?: Response }) {
 }
 
 /**
- * The recurrences screen's four read queries — detected candidates, active recurrences, the
+ * The recurrences screen's four read queries - detected candidates, active recurrences, the
  * archived ones (fetched only once the user asks to see them) and the accounts a new or
- * edited recurrence can name — plus the derived loading and error state the page renders from.
+ * edited recurrence can name - plus the derived loading and error state the page renders from.
  */
 export function useRecurrencesListing() {
   const [showArchived, setShowArchived] = useState(false);

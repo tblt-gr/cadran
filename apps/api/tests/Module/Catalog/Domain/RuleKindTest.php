@@ -31,8 +31,8 @@ final class RuleKindTest extends TestCase
     /**
      * The whole kind-to-measure table, asserted from the kinds themselves so a
      * kind added without a measure fails here rather than silently resolving to
-     * "no ceiling", and a measure no kind produces cannot stay in the enum — or
-     * in the published contract — as an answer the server can never give.
+     * "no ceiling", and a measure no kind produces cannot stay in the enum - or
+     * in the published contract - as an answer the server can never give.
      */
     public function testEveryRuleKindNamesTheMeasureItCapsAndEveryMeasureHasAKind(): void
     {

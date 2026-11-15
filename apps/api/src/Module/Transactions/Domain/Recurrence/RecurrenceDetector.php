@@ -14,8 +14,8 @@ use App\Module\Reference\Domain\Asset;
  *
  * The service is strictly read-only: it returns proposals and writes nothing,
  * because no recurrence, occurrence or transaction may exist before the user
- * confirms one. Every figure it produces is exact — medians, tolerance and gap
- * deviations are decimal arithmetic, never a float — and a group the rules
+ * confirms one. Every figure it produces is exact - medians, tolerance and gap
+ * deviations are decimal arithmetic, never a float - and a group the rules
  * cannot recognise is dropped rather than approximated into the nearest rhythm.
  */
 final class RecurrenceDetector
@@ -147,7 +147,7 @@ final class RecurrenceDetector
     /**
      * The exact median: the central value, or the arithmetic mean of the two
      * central values. Dividing by two adds at most one decimal place, so the
-     * result is written at that scale and stays exact — a day median may
+     * result is written at that scale and stays exact - a day median may
      * therefore legitimately end in `.5`.
      *
      * @param list<DecimalValue> $values

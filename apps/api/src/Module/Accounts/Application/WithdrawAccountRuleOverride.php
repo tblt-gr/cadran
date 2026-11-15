@@ -22,7 +22,7 @@ use Symfony\Component\Clock\ClockInterface;
  * recorded in its period, and the account keeps resolving against it up to
  * that day for ever after. Withdrawing says the claim should not have applied
  * at all: it stops answering on every date, including past ones, and the
- * inherited rule of each of those dates takes over again — the dated one, not
+ * inherited rule of each of those dates takes over again - the dated one, not
  * whatever is in force today.
  *
  * The row is kept. Deleting it would erase who claimed what and why, which is

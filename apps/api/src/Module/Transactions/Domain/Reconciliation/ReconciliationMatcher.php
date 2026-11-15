@@ -30,7 +30,7 @@ final class ReconciliationMatcher
 
     /**
      * The single pending row this movement settles, or null when the rule
-     * cannot single one out — no eligible row, or several equally close ones.
+     * cannot single one out - no eligible row, or several equally close ones.
      *
      * @param list<Transaction> $pending pending rows of the movement's own account
      */

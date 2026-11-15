@@ -201,7 +201,7 @@ final class AccountRulesControllerTest extends WebTestCase
     /**
      * The rate is set for a semester and the ceiling is open-ended. Reading a
      * date outside the semester must keep the ceiling and report the rate as
-     * unavailable — never as 0 %, which would read as "this passbook earns
+     * unavailable - never as 0 %, which would read as "this passbook earns
      * nothing".
      */
     public function testADateNoRatePeriodCoversReportsTheRateUnavailableRatherThanZero(): void

@@ -23,7 +23,7 @@ export interface SplitRowValues {
   amount: string;
   /** `null` inherits the picked category's default axes; an explicit array, even empty, overrides them. */
   analyticAxes: AnalyticAxis[] | null;
-  /** Stable identity for React reconciliation only — never sent to the API. */
+  /** Stable identity for React reconciliation only - never sent to the API. */
   key: string;
   note: string;
 }

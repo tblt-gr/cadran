@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * A rule is either published (verification and source) or declared by the
  * workspace (neither). A mixed pair would invent a publication the model
- * never had, or a freshness grade nobody computed — and a locally claimed
+ * never had, or a freshness grade nobody computed - and a locally claimed
  * value can never be either, whatever else it carries.
  */
 final class AccountRuleProvenanceTest extends TestCase

@@ -114,7 +114,7 @@ export interface RouteDefinition {
 }
 
 /**
- * Every route this shell serves once authenticated, checked in order — first
+ * Every route this shell serves once authenticated, checked in order - first
  * match wins, exactly like the if/else chain it replaces. The dashboard ('/')
  * and the 404 placeholder are not listed here: both depend on the foundation
  * status query and stay in AuthenticatedApp, which renders them only when no
