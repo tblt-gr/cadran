@@ -224,6 +224,17 @@ if (
 }
 
 if (
+  !healthcheck.includes("'verify_peer' => true") ||
+  !healthcheck.includes("'verify_peer_name' => true") ||
+  !healthcheck.includes("$caFile = '/data/caddy/pki/authorities/local/root.crt'") ||
+  !healthcheck.includes("'cafile' => $caFile") ||
+  !/is_readable\(\$caFile\)\) \{\s*exit\(1\);/.test(healthcheck) ||
+  /verify_peer(_name)?'\s*=>\s*false/.test(healthcheck)
+) {
+  fail('The app health check must verify the peer against the Caddy local root and fail without it');
+}
+
+if (
   !healthcheck.includes("'ready' === ($payload['status'] ?? null)") ||
   !healthcheck.includes("'v1' === ($payload['apiVersion'] ?? null)") ||
   /\['status' => 'ready', 'apiVersion' => 'v1'\] === \$payload/.test(healthcheck)
