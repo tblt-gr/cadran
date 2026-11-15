@@ -20,6 +20,7 @@ final class IdentityAuditEvents
     public const string PASSWORD_DEFINED = 'user.password_defined';
     public const string PASSWORD_CHANGED = 'user.password_changed';
     public const string PASSWORD_CHANGE_FAILED = 'user.password_change_failed';
+    public const string PASSWORD_RESET = 'user.password_reset';
     public const string PROFILE_UPDATED = 'user.profile_updated';
     public const string INTERFACE_PREFERENCES_UPDATED = 'workspace.interface_preferences_updated';
     public const string SESSION_OPENED = 'session.opened';
