@@ -73,7 +73,7 @@ jobs:
   backend:
     name: Backend quality and tests
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:18
@@ -135,7 +135,7 @@ jobs:
           php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
       - name: Tests with coverage
         working-directory: apps/api
-        run: php bin/phpunit --coverage-cobertura=var/coverage/cobertura.xml --coverage-text=var/coverage/coverage.txt
+        run: php -d pcov.directory=src bin/phpunit --coverage-cobertura=var/coverage/cobertura.xml --coverage-text=var/coverage/coverage.txt
       - name: Summarize the backend line coverage
         run: |
           awk '/^ *Lines:/ { print "### Backend coverage\n\nLine coverage: " $2 }' apps/api/var/coverage/coverage.txt >> "$GITHUB_STEP_SUMMARY"
