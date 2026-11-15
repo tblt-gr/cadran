@@ -225,6 +225,7 @@ build: tools
 audit: tools
 	$(TOOLS_RUN) composer audit --working-dir=apps/api --locked
 	$(TOOLS_RUN) pnpm audit --audit-level=high
+	$(TOOLS_RUN) sh scripts/ci/check-licenses.sh
 
 # Lists outdated direct dependencies; never fails so the monthly routine can read it.
 outdated: tools

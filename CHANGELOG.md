@@ -16,6 +16,8 @@ goals, portfolios and multi-support life insurance features are described in the
   reconciliation. This is a controlled migration, not a generic import assistant.
 - Encrypted PostgreSQL backups, daily/weekly/monthly retention, isolated restore verification,
   guarded restoration and retained recovery databases.
+- Each release attaches a CycloneDX SBOM, a production license report and a schema-only database
+  dump; `make audit` fails on a production dependency outside the license allowlist.
 - Safe upgrades with a verified encrypted pre-upgrade backup, version checks, migration and
   health checks, plus rollback that restores the matching schema before starting older code.
 - Installable responsive PWA with application-asset caching, update notification and explicit

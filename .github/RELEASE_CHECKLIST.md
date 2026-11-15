@@ -92,6 +92,9 @@ against a developer's live installation.
       in this record. Record unsupported host/browser combinations and outstanding checks.
 - [ ] Review the changelog, supported-version policy and release exclusions; update the package
       version and move Unreleased only in the actual release preparation.
+- [ ] On the release page, check that `cadran-<tag>-sbom.cdx.json` (CycloneDX, Composer and pnpm
+      lockfiles), `cadran-<tag>-licenses.json` (no violation) and `cadran-<tag>-schema.sql`
+      (schema only, no data) are attached and not empty.
 - [ ] After merging and successful CI, create the signed annotated matching version tag using
       the CONTRIBUTING procedure, then record the successful release workflow and artifacts.
 
