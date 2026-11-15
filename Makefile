@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate shell test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -29,6 +29,7 @@ E2E_RESULTS_DIR := $(CURDIR)/var/e2e-results
 TOOLS_DOCKER_RUN := docker run --rm --user $(HOST_UID):$(HOST_GID) --env HOME=/tmp --mount "type=bind,source=$(CURDIR),target=/workspace" --workdir /workspace
 TOOLS_RUN := $(TOOLS_DOCKER_RUN) $(TOOLS_IMAGE)
 TOOLS_RUN_WITH_DB := $(TOOLS_DOCKER_RUN) --network cadran_internal --mount "type=bind,source=$(CURDIR)/var/docker-secrets/db_password,target=/run/secrets/db_password,readonly" $(TOOLS_IMAGE)
+TOOLS_RUN_WITH_DB_INTERACTIVE := $(subst docker run --rm,docker run --rm --interactive --tty,$(TOOLS_RUN_WITH_DB))
 E2E_COMPOSE := env CADRAN_STACK=$(E2E_STACK) CADRAN_SECRETS_DIR=./$(E2E_SECRETS_DIR) CADRAN_HTTPS_PORT=$(E2E_PORT) docker compose --project-name $(E2E_STACK) --env-file .env.example
 E2E_TOOLS_RUN_WITH_DB := $(TOOLS_DOCKER_RUN) --network $(E2E_STACK)_internal --mount "type=bind,source=$(CURDIR)/$(E2E_SECRETS_DIR)/db_password,target=/run/secrets/db_password,readonly" $(TOOLS_IMAGE)
 
@@ -189,8 +190,15 @@ test-database: tools
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console doctrine:database:create --env=test --if-not-exists --no-interaction
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
 
+# FILTER is a PHPUnit --filter expression (class, method or Class::method), passed as one quoted argument.
 test-api: test-database
-	$(TOOLS_RUN_WITH_DB) composer test --working-dir=apps/api
+	$(TOOLS_RUN_WITH_DB) composer test --working-dir=apps/api $(if $(FILTER),-- --filter '$(subst ','\'',$(FILTER))')
+
+# Interactive shell in the tooling container (host user, repository mounted, database network).
+shell: tools
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) up --detach --wait db
+	$(TOOLS_RUN_WITH_DB_INTERACTIVE) sh
 
 # Backend performance budgets (NFR-001): seeds 100 000 transactions over 15 years in the test database and prints
 # p50/p95 per endpoint. PERF_ASSERT=1 turns the monthly report p95 target (300 ms) into a failure.
