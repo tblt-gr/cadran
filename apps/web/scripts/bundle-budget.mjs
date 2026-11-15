@@ -107,3 +107,25 @@ export function landingFigure(report, routeName) {
   const route = report.chunks.find((chunk) => chunk.kind === 'route' && chunk.name === routeName);
   return route ? { name: route.name, gzip: report.entryJs + route.gzip } : null;
 }
+
+/** A label of the French dictionary that no application code spells out. */
+export const DICTIONARY_SENTINEL = 'Aller au contenu';
+
+/**
+ * The initial load must not carry the dictionary (NFR-002), and another emitted file must,
+ * otherwise the sentinel went stale.
+ * @param initialFiles Map of file to source for the JavaScript of the entry's static closure.
+ * @param otherFiles Map of file to source for every other emitted JavaScript file.
+ */
+export function dictionaryViolations(initialFiles, otherFiles, sentinel = DICTIONARY_SENTINEL) {
+  const violations = [];
+  for (const [file, source] of initialFiles) {
+    if (source.includes(sentinel)) {
+      violations.push(`The entry load ${file} contains the French dictionary.`);
+    }
+  }
+  if (![...otherFiles.values()].some((source) => source.includes(sentinel))) {
+    violations.push('No emitted chunk contains the French dictionary sentinel.');
+  }
+  return violations;
+}

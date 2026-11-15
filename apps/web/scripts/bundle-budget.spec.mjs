@@ -1,5 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { analyzeBundle, DEFAULT_BUDGETS, landingFigure } from './bundle-budget.mjs';
+import {
+  analyzeBundle,
+  DEFAULT_BUDGETS,
+  dictionaryViolations,
+  landingFigure,
+} from './bundle-budget.mjs';
+
+describe('dictionaryViolations', () => {
+  const sentinel = 'Aller au contenu';
+
+  it('accepts a dictionary kept out of the entry load', () => {
+    const initial = new Map([['assets/index-a.js', 'code']]);
+    const others = new Map([['assets/translation-f.js', `{"skip":"${sentinel}"}`]]);
+    expect(dictionaryViolations(initial, others, sentinel)).toEqual([]);
+  });
+
+  it('flags a dictionary inside the entry load', () => {
+    const initial = new Map([['assets/index-a.js', `x="${sentinel}"`]]);
+    const others = new Map([['assets/translation-f.js', sentinel]]);
+    expect(dictionaryViolations(initial, others, sentinel)).toEqual([
+      'The entry load assets/index-a.js contains the French dictionary.',
+    ]);
+  });
+
+  it('flags a sentinel found nowhere', () => {
+    const initial = new Map([['assets/index-a.js', 'code']]);
+    expect(dictionaryViolations(initial, new Map(), sentinel)).toHaveLength(1);
+  });
+});
 
 const KB = 1000;
 

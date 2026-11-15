@@ -2,7 +2,12 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
-import { analyzeBundle, DEFAULT_BUDGETS, landingFigure } from './bundle-budget.mjs';
+import {
+  analyzeBundle,
+  DEFAULT_BUDGETS,
+  dictionaryViolations,
+  landingFigure,
+} from './bundle-budget.mjs';
 
 const distRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const manifest = JSON.parse(await readFile(path.join(distRoot, '.vite', 'manifest.json'), 'utf8'));
@@ -35,6 +40,27 @@ if (landing) {
   );
 }
 console.log(`  ${kilobytes(report.initialCss).padStart(10)}  css   initial stylesheet`);
+
+const initialFiles = new Map();
+const pendingKeys = Object.keys(manifest).filter((key) => manifest[key].isEntry);
+for (const key of pendingKeys) {
+  for (const next of manifest[key].imports ?? []) {
+    if (!pendingKeys.includes(next)) pendingKeys.push(next);
+  }
+}
+for (const key of pendingKeys) {
+  initialFiles.set(
+    manifest[key].file,
+    await readFile(path.join(distRoot, manifest[key].file), 'utf8'),
+  );
+}
+const otherFiles = new Map();
+for (const file of gzipSizes.keys()) {
+  if (file.endsWith('.js') && !initialFiles.has(file)) {
+    otherFiles.set(file, await readFile(path.join(distRoot, file), 'utf8'));
+  }
+}
+report.violations.push(...dictionaryViolations(initialFiles, otherFiles));
 
 if (report.violations.length > 0) {
   console.error(['Bundle budget exceeded:', ...report.violations.map((v) => `- ${v}`)].join('\n'));
