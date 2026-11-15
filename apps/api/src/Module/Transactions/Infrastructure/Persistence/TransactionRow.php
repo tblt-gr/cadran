@@ -132,6 +132,16 @@ final readonly class TransactionRow
             : $integer.'.'.substr(str_pad($fraction, $requestedScale, '0'), 0, $requestedScale);
     }
 
+    public static function canonicalNumeric(string $numeric): string
+    {
+        if (!str_contains($numeric, '.')) {
+            return $numeric;
+        }
+        $trimmed = rtrim(rtrim($numeric, '0'), '.');
+
+        return '-0' === $trimmed ? '0' : $trimmed;
+    }
+
     private static function trimNumeric(string $numeric): string
     {
         if (!str_contains($numeric, '.')) {
