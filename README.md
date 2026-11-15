@@ -206,13 +206,22 @@ configuration or certificates. Preserve those separately under equivalent protec
 
 ### Schedule, retain and verify
 
-Install this entry in the host user's crontab, replacing the path. That user needs Docker access;
-configure cron's PATH to find Docker and GNU Make. Monitor nonzero exits and backup age rather
-than relying only on the presence of a cron entry.
+Install the daily jobs (recurrence materialization, backup, retention pruning) and the weekly
+idempotency key purge in the host user's crontab. That user needs Docker access; configure cron's
+PATH to find Docker and GNU Make. The installer manages one block delimited by `# BEGIN cadran`
+and `# END cadran` and leaves every other line untouched:
 
-```cron
-0 3 * * * cd /path/to/cadran && make db-backup LABEL=daily
+```bash
+sh scripts/install-cron.sh --dry-run   # print the block without changing the crontab
+sh scripts/install-cron.sh             # install or replace the block (idempotent)
+sh scripts/install-cron.sh --remove    # delete the block
 ```
+
+Check the installation with `make doctor`: it prints one line per check (application health,
+pending migrations, newest backup, cron block, database size) and exits 1 when the application
+is unhealthy, a migration is pending, or no backup exists or the newest is older than 48 hours.
+A missing cron block is only a warning. Run it from a monitoring cron or by hand and act on its
+exit code.
 
 Review retention before applying it:
 

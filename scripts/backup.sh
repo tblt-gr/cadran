@@ -4,7 +4,7 @@
 #   key       create an age key pair (identity stays outside the repository)
 #   create    take an encrypted backup (LABEL: manual, daily, pre-upgrade, pre-restore)
 #   prune     apply the retention policy (--dry-run to preview)
-#   health    print the age of the newest backup; warnings never fail
+#   health    print the age of the newest backup; warnings never fail unless --strict
 #   verify    restore FILE into the isolated cadran_restore_check database and check it
 #   restore   verify FILE, take a pre-restore backup, replace the live database
 #   restore-precheck   validate CONFIRM, FILE and IDENTITY without any docker call
@@ -162,10 +162,17 @@ prune() {
         "$image" prune "$@"
 }
 
+# health [--strict]: with --strict every warning also returns 1 (used by make doctor).
 health() {
+    strict=0
+    case ${1:-} in
+        '') ;;
+        --strict) strict=1 ;;
+        *) die 'usage: backup.sh health [--strict]' ;;
+    esac
     if ! (resolve_backup_dir) 2>/dev/null; then
         printf 'Backup: WARNING the backup directory is missing or unsafe.\n'
-        return 0
+        return "$strict"
     fi
     resolve_backup_dir
     # A manifest without its dump (failed or interrupted run) must not hide a missing backup.
@@ -179,20 +186,22 @@ health() {
         done)
     if [ -z "$newest" ]; then
         printf 'Backup: WARNING no backup found.\n'
-        return 0
+        return "$strict"
     fi
     created=$(sed -n 's/^  "createdAt": "\(.*\)",$/\1/p' "$newest")
     label=$(sed -n 's/^  "label": "\(.*\)",$/\1/p' "$newest")
     created_epoch=$(date -u -d "$created" +%s 2>/dev/null || true)
     if [ -z "$created_epoch" ]; then
         printf 'Backup: WARNING newest manifest is unreadable.\n'
-        return 0
+        return "$strict"
     fi
     age_hours=$((($(date -u +%s) - created_epoch) / 3600))
     printf 'Backup: newest is %s hours old (%s).\n' "$age_hours" "$label"
     if [ "$age_hours" -gt 48 ]; then
         printf 'Backup: WARNING newest backup is older than 48 hours.\n'
+        return "$strict"
     fi
+    return 0
 }
 
 # --- Restore (OPS-002) --------------------------------------------------------
@@ -421,7 +430,7 @@ case $command in
     key) key ;;
     create) create ;;
     prune) prune "$@" ;;
-    health) health ;;
+    health) health "$@" ;;
     verify) verify ;;
     restore) restore ;;
     restore-precheck) restore_precheck ;;
@@ -430,5 +439,5 @@ case $command in
         resolve_backup_dir
         printf '%s\n' "$backup_dir"
         ;;
-    *) die 'usage: backup.sh key | create | prune [--dry-run] | health | verify | restore | restore-precheck | restore-cleanup | dir' ;;
+    *) die 'usage: backup.sh key | create | prune [--dry-run] | health [--strict] | verify | restore | restore-precheck | restore-cleanup | dir' ;;
 esac
