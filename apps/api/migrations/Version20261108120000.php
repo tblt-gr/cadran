@@ -36,7 +36,7 @@ final class Version20261108120000 extends AbstractMigration
 
     public function getDescription(): string
     {
-        return 'Unifies budget plans, budget targets and goals into monthly or yearly goals.';
+        return '[data] Unifies budget plans, budget targets and goals into monthly or yearly goals.';
     }
 
     public function preUp(Schema $schema): void

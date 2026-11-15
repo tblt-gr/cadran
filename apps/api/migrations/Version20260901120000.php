@@ -11,7 +11,7 @@ final class Version20260901120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Creates the global read-only asset reference with its storage, display and rounding rules.';
+        return '[data] Creates the global read-only asset reference with its storage, display and rounding rules.';
     }
 
     public function up(Schema $schema): void

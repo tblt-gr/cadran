@@ -11,7 +11,7 @@ final class Version20261102120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Plans upcoming transactions within the month: booking marker on transactions and the per-workspace interface preferences.';
+        return '[data] Plans upcoming transactions within the month: booking marker on transactions and the per-workspace interface preferences.';
     }
 
     public function up(Schema $schema): void

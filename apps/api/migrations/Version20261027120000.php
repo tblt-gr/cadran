@@ -11,7 +11,7 @@ final class Version20261027120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Adds the account group color mode and stable color slot; migrated sub-group palette defaults become inherited shades.';
+        return '[data] Adds the account group color mode and stable color slot; migrated sub-group palette defaults become inherited shades.';
     }
 
     public function up(Schema $schema): void

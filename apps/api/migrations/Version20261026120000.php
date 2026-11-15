@@ -11,7 +11,7 @@ final class Version20261026120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Promotes account tags that name a sub-group of the primary group into the primary membership and drops account_group_tags. down() recreates the table empty: dropped tags are not restored.';
+        return '[data] Promotes account tags that name a sub-group of the primary group into the primary membership and drops account_group_tags. down() recreates the table empty: dropped tags are not restored.';
     }
 
     public function up(Schema $schema): void

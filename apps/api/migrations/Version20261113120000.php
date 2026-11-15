@@ -18,7 +18,7 @@ final class Version20261113120000 extends AbstractMigration
 
     public function getDescription(): string
     {
-        return 'Adds transactional revision guards for incremental numbered lists.';
+        return '[data] Adds transactional revision guards for incremental numbered lists.';
     }
 
     public function up(Schema $schema): void
