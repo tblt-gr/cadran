@@ -122,7 +122,7 @@ one branch protection requires.
 
 Migrations live in `apps/api/migrations`. A migration whose `up()` issues `INSERT`, `UPDATE` or
 `DELETE` statements (including `WITH ... UPDATE` and `WITH ... INSERT`) rewrites rows and must
-return a `getDescription()` starting with `[data] `, so an operator can spot it before an
+return a `getDescription()` starting with `[data]` followed by a space, so an operator can spot it before an
 upgrade. A schema-only migration never carries that prefix. `MigrationConventionTest` enforces
 both rules and names the offending file.
 
