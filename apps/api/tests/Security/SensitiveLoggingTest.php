@@ -121,6 +121,27 @@ final class SensitiveLoggingTest extends WebTestCase
         $this->assertNothingSensitiveWasLoggedAtTheDeployedLevel([WorkspaceFixture::OWNER_EMAIL]);
     }
 
+    public function testAFailedSignInIsLoggedOnTheSecurityChannelWithoutTheEmailOrAnyHashOfIt(): void
+    {
+        foreach ([WorkspaceFixture::OWNER_EMAIL, self::UNKNOWN_EMAIL] as $email) {
+            // The logger is reset when a request ends, so each sign-in is inspected on its own.
+            $this->login($email, self::WRONG_PASSWORD);
+            self::assertResponseStatusCodeSame(401);
+
+            $failures = array_values(array_filter(
+                $this->logger->records(),
+                static fn (array $record): bool => 'login_failed' === $record['data']['message'],
+            ));
+            self::assertCount(1, $failures);
+            self::assertSame(['client_ip'], array_keys((array) $failures[0]['data']['context']));
+            self::assertSame('security', $failures[0]['data']['channel']);
+            self::assertArrayHasKey('request_id', (array) $failures[0]['data']['extra']);
+            foreach ([$email, md5($email), sha1($email), hash('sha256', $email), self::WRONG_PASSWORD] as $needle) {
+                self::assertStringNotContainsString($needle, $failures[0]['line']);
+            }
+        }
+    }
+
     public function testCreatingAnAccountAndATransactionNeverLogsTheirLabelsOrAmounts(): void
     {
         $this->signIn();
