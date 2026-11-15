@@ -3,6 +3,7 @@ set -eu
 
 php scripts/check-architecture.php apps/api/src
 php scripts/check-workspace-scope.php apps/api/src apps/api/migrations
+sh scripts/check-file-sizes.sh
 
 result_file=$(mktemp)
 trap 'rm -f "$result_file"' EXIT
@@ -159,3 +160,29 @@ if ! node scripts/check-openapi-csrf.mjs apps/api/openapi/openapi.yaml >"$result
 fi
 
 printf '%s\n' 'Every mutating /api/v1 operation in the real contract documents the CSRF guard.'
+
+size_root=$(mktemp -d)
+trap 'rm -f "$result_file"; rm -rf "$size_root"' EXIT
+mkdir -p "$size_root/apps/api/src" "$size_root/apps/web/src"
+seq 1 301 >"$size_root/apps/api/src/Big.php"
+seq 1 251 >"$size_root/apps/web/src/Grown.tsx"
+seq 1 100 >"$size_root/apps/web/src/Shrunk.tsx"
+seq 1 400 >"$size_root/apps/web/src/Big.spec.tsx"
+printf '%s\n' '250 apps/web/src/Grown.tsx fixture' '250 apps/web/src/Shrunk.tsx fixture' >"$size_root/allowlist.txt"
+
+if sh scripts/check-file-sizes.sh "$size_root" "$size_root/allowlist.txt" >"$result_file" 2>&1; then
+  printf '%s\n' 'Oversized, grown and stale files were not rejected.' >&2
+  exit 1
+fi
+
+if ! grep -q 'Big.php: 301 lines, limit 300' "$result_file" || ! grep -q 'Grown.tsx: 251 lines, recorded ceiling 250' "$result_file" || ! grep -q 'Shrunk.tsx: 100 lines, now within the limit 250' "$result_file"; then
+  printf '%s\n' 'The size gate failed without the expected diagnostics.' >&2
+  exit 1
+fi
+
+if grep -q 'Big.spec.tsx' "$result_file"; then
+  printf '%s\n' 'A spec file was counted by the size gate.' >&2
+  exit 1
+fi
+
+printf '%s\n' 'Oversized, grown and stale files were rejected.'

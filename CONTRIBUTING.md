@@ -120,6 +120,24 @@ OpenAPI and generated-client drift check, a production build of both application
 and npm audits, and a Trivy scan of the runtime images. The aggregate `CI gate` status is the
 one branch protection requires.
 
+## Size thresholds
+
+A PHP class over 300 lines or a React component over 250 lines triggers a responsibility review.
+`make architecture` (so `make quality` and CI) enforces it with `wc -l` on every PHP file under
+`apps/api/src` and every `.tsx` file under `apps/web/src`, except `*.spec.tsx` and `*.test.tsx`.
+
+A file above its threshold fails unless `scripts/file-size-allowlist.txt` lists it. One entry per
+line, sorted by path, `#` comments allowed:
+
+```text
+<ceiling> <path> <reason>
+```
+
+The ceiling is the current line count: the file may stay above the threshold but cannot grow. The
+gate also fails when a listed file is back under the threshold or no longer exists, so the list
+only shrinks. Use the reason `split pending` only when no honest justification exists, and track
+the split in an issue.
+
 ## Dependency updates
 
 Dependabot stays alerts-only (`open-pull-requests-limit: 0`): updates follow a monthly routine
