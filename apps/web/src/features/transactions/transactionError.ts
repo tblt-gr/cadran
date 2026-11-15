@@ -1,5 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type TransactionErrorKind =
   | 'conflict'
   | 'invalid'
@@ -24,33 +26,17 @@ export class TransactionRequestError extends Error {
   constructor(status: number, problem: Problem | undefined) {
     super(`Transaction request failed with status ${status}.`);
     this.status = status;
-    this.kind = classify(status, problem?.type);
+    this.kind = classifyProblem(status, problem?.type, PROBLEM_KINDS);
     this.detail = problem?.detail;
   }
 }
 
-function classify(status: number, problemType: string | undefined): TransactionErrorKind {
-  if (problemType === '/problems/stale-version') {
-    return 'stale';
-  }
-  if (problemType === '/problems/period-closed') {
-    return 'periodClosed';
-  }
-  if (problemType === '/problems/portfolio-account-requires-operations') {
-    return 'portfolioOperationsRequired';
-  }
-  if (problemType === '/problems/transaction-conflict') {
-    return 'conflict';
-  }
-  if (problemType === '/problems/transactions.cursor_stale') {
-    return 'staleCursor';
-  }
-  if (status === 401 || status === 403) {
-    return 'unauthorized';
-  }
-
-  return status === 409 ? 'conflict' : status === 400 || status === 422 ? 'invalid' : 'network';
-}
+const PROBLEM_KINDS: Record<string, TransactionErrorKind> = {
+  '/problems/period-closed': 'periodClosed',
+  '/problems/portfolio-account-requires-operations': 'portfolioOperationsRequired',
+  '/problems/transaction-conflict': 'conflict',
+  '/problems/transactions.cursor_stale': 'staleCursor',
+};
 
 export function transactionRequestError(result: {
   error?: unknown;

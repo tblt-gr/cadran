@@ -1,5 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type RecurrenceErrorKind =
   'archived' | 'forbidden' | 'invalid' | 'network' | 'notFound' | 'stale';
 
@@ -21,21 +23,19 @@ export class RecurrenceRequestError extends Error {
   }
 }
 
-function classify(status: number, problemType: string | undefined): RecurrenceErrorKind {
-  if (problemType === '/problems/stale-version') {
-    return 'stale';
-  }
-  if (problemType === '/problems/recurrences.archived') {
-    return 'archived';
-  }
-  if (problemType === '/problems/recurrences.not_found') {
-    return 'notFound';
-  }
-  if (problemType === '/problems/recurrences.forbidden' || status === 401 || status === 403) {
-    return 'forbidden';
-  }
+const PROBLEM_KINDS: Record<string, RecurrenceErrorKind> = {
+  '/problems/recurrences.archived': 'archived',
+  '/problems/recurrences.not_found': 'notFound',
+  '/problems/recurrences.forbidden': 'forbidden',
+};
 
-  return status === 400 || status === 422 ? 'invalid' : 'network';
+/** 401 and 403 both mean the caller may not touch this recurrence: `forbidden`. */
+function classify(status: number, problemType: string | undefined): RecurrenceErrorKind {
+  const kind = classifyProblem(status, problemType, PROBLEM_KINDS);
+  if (kind === 'unauthorized') return 'forbidden';
+
+  // A concurrent write has no message of its own here: reload and retry.
+  return kind === 'conflict' ? 'network' : kind;
 }
 
 export function recurrenceRequestError(result: {

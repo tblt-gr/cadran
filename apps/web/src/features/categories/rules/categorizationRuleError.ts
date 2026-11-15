@@ -1,26 +1,28 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type CategorizationRuleErrorKind =
   'executionLimit' | 'invalid' | 'network' | 'stale' | 'unauthorized';
 
 const PREVIEW_STALE = '/problems/rules.preview_stale';
 const EXECUTION_LIMIT = '/problems/rules.execution_limit';
 
+const PROBLEM_KINDS: Record<string, CategorizationRuleErrorKind> = {
+  [PREVIEW_STALE]: 'stale',
+  [EXECUTION_LIMIT]: 'executionLimit',
+};
+
 export class CategorizationRuleRequestError extends Error {
   readonly kind: CategorizationRuleErrorKind;
 
   constructor(status: number, problem?: Problem) {
     super(`Categorization rule request failed with status ${status}.`);
+    const kind = classifyProblem(status, problem?.type, PROBLEM_KINDS);
+    // A rule or preview refused as missing is the caller's to correct, and a
+    // concurrent write asks for a fresh preview.
     this.kind =
-      problem?.type === PREVIEW_STALE || status === 409
-        ? 'stale'
-        : problem?.type === EXECUTION_LIMIT
-          ? 'executionLimit'
-          : status === 401 || status === 403
-            ? 'unauthorized'
-            : status === 400 || status === 404 || status === 422
-              ? 'invalid'
-              : 'network';
+      kind === 'conflict' ? 'stale' : kind === 'network' && status === 404 ? 'invalid' : kind;
   }
 }
 

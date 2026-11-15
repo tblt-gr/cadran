@@ -44,8 +44,8 @@ export function DetailedAnnualReports({
         {report.years.map((year, index) => {
           const result = results[index]!;
           if (result.data) return null;
-          const status = result.error instanceof AnnualRequestError ? result.error.status : 0;
-          const unauthorized = status === 401 || status === 403;
+          const unauthorized =
+            result.error instanceof AnnualRequestError && result.error.kind === 'unauthorized';
           return (
             <section className={`card ${styles.state}`} key={year.year} role="alert">
               <h2>{t('reports.annual.caption', { year: year.year })}</h2>

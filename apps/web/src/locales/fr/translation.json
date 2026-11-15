@@ -696,7 +696,8 @@
       "stale": "Ce compte a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le compte puis réappliquez votre modification.",
       "archived": "Ce compte est archivé et ne peut plus être modifié.",
       "invalid": "Le compte est invalide. Vérifiez la nature, le mode de valorisation et les dates.",
-      "network": "L’enregistrement a échoué. Réessayez."
+      "network": "L’enregistrement a échoué. Réessayez.",
+      "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez."
     },
     "empty": {
       "title": "Aucun compte",
@@ -841,7 +842,8 @@
         "stale": "Ce solde a été modifié ailleurs. La liste vient d’être rechargée : rouvrez puis réappliquez.",
         "archived": "Ce compte est archivé et ne peut plus recevoir de solde.",
         "invalid": "Le solde est invalide. Vérifiez la date, le montant et l’unité.",
-        "network": "L’enregistrement a échoué. Réessayez."
+        "network": "L’enregistrement a échoué. Réessayez.",
+        "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez."
       }
     },
     "rules": {
@@ -986,7 +988,8 @@
         "archived": "Ce compte est archivé : il n’accepte plus de dérogation.",
         "stale": "Le compte a été modifié par une autre requête. Rechargez-le puis réappliquez la modification.",
         "reason": "Le motif est obligatoire et ne dépasse pas 200 caractères.",
-        "network": "La demande n’a pas abouti. Réessayez."
+        "network": "La demande n’a pas abouti. Réessayez.",
+        "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez."
       },
       "withdrawEntry": "Retirer la dérogation de {{value}} : {{period}}",
       "withdrawSubject": "{{rule}} : {{value}}, {{period}}",
@@ -1210,6 +1213,7 @@
       "conflict": "Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.",
       "invalid": "Le groupe est invalide. Vérifiez son libellé, son parent et l’absence de cycle.",
       "network": "L’enregistrement a échoué. Réessayez.",
+      "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez.",
       "staleOrder": "L’ordre des groupes a changé. Rechargez pour réessayer.",
       "stale": "Ce groupe a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le groupe puis réappliquez votre modification.",
       "colorMode": "Ce mode de couleur n’est pas disponible pour ce groupe."
@@ -1834,7 +1838,8 @@
       "stale": "Ce modèle a été modifié ailleurs entre-temps. La liste vient d’être rechargée : rouvrez le modèle puis réappliquez votre modification.",
       "archived": "Ce modèle est archivé : il est en lecture seule et n’accepte plus de période ni de duplication.",
       "invalid": "Vérifiez le nom, la famille, l’enveloppe, le rendement, les capacités et les périodes datées. Un barème par tranches part de zéro, ses tranches se suivent sans trou ni recouvrement et la dernière reste sans plafond.",
-      "network": "L’enregistrement a échoué. Réessayez."
+      "network": "L’enregistrement a échoué. Réessayez.",
+      "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez."
     },
     "natures": {
       "ASSET": "Actif",

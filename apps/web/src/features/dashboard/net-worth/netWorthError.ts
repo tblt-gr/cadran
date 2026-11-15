@@ -1,5 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type NetWorthErrorKind = 'error' | 'unauthorized';
 
 /**
@@ -11,7 +13,8 @@ class NetWorthRequestError extends Error {
 
   constructor(status: number) {
     super(`Net worth request failed with status ${status}.`);
-    this.kind = status === 403 ? 'unauthorized' : 'error';
+    this.kind =
+      classifyProblem<never>(status, undefined, {}) === 'unauthorized' ? 'unauthorized' : 'error';
   }
 }
 

@@ -1,5 +1,7 @@
 import type { CategoryImpactBlocker, CategoryOperationProblem, Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type CategoryErrorKind = 'conflict' | 'invalid' | 'network' | 'refused' | 'unauthorized';
 
 const OPERATION_REFUSED = '/problems/category-operation-refused';
@@ -18,26 +20,17 @@ export class CategoryRequestError extends Error {
   constructor(status: number, problem: Problem | undefined, blockers: CategoryImpactBlocker[]) {
     super(`Category request failed with status ${status}.`);
     this.status = status;
-    this.kind = classify(status, problem?.type);
+    const kind = classifyProblem(status, problem?.type, PROBLEM_KINDS);
+    // A stale version carries no dedicated message here: it asks for the same
+    // reload as any other concurrent change.
+    this.kind = kind === 'stale' ? 'conflict' : kind;
     this.blockers = blockers;
   }
 }
 
-function classify(status: number, problemType: string | undefined): CategoryErrorKind {
-  if (problemType === OPERATION_REFUSED) {
-    return 'refused';
-  }
-
-  // 401 and 403 are the same answer to the user: sign in again. Telling them to
-  // retry, or that the category changed elsewhere, sends them nowhere.
-  return status === 401 || status === 403
-    ? 'unauthorized'
-    : status === 409
-      ? 'conflict'
-      : status === 400 || status === 422
-        ? 'invalid'
-        : 'network';
-}
+const PROBLEM_KINDS: Record<string, CategoryErrorKind> = {
+  [OPERATION_REFUSED]: 'refused',
+};
 
 export function categoryRequestError(result: {
   error?: unknown;

@@ -1,5 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type PeriodClosureErrorKind =
   'blocked' | 'conflict' | 'forbidden' | 'invalid' | 'network' | 'stale';
 
@@ -19,21 +21,16 @@ export class PeriodClosureRequestError extends Error {
   }
 }
 
-function classify(status: number, problemType: string | undefined): PeriodClosureErrorKind {
-  if (problemType === '/problems/stale-version') {
-    return 'stale';
-  }
-  if (problemType === '/problems/period-closing-blocked') {
-    return 'blocked';
-  }
-  if (problemType === '/problems/period-closure-conflict') {
-    return 'conflict';
-  }
-  if (status === 401 || status === 403) {
-    return 'forbidden';
-  }
+const PROBLEM_KINDS: Record<string, PeriodClosureErrorKind> = {
+  '/problems/period-closing-blocked': 'blocked',
+  '/problems/period-closure-conflict': 'conflict',
+};
 
-  return status === 400 || status === 422 ? 'invalid' : 'network';
+/** 401 and 403 both mean the caller may not act on this period: `forbidden`. */
+function classify(status: number, problemType: string | undefined): PeriodClosureErrorKind {
+  const kind = classifyProblem(status, problemType, PROBLEM_KINDS);
+
+  return kind === 'unauthorized' ? 'forbidden' : kind;
 }
 
 export function periodClosureRequestError(result: {

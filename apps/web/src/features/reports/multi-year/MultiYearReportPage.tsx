@@ -47,10 +47,11 @@ export function MultiYearReportPage({
   }, []);
   const bounds = useMultiYearReport();
   const report = useMultiYearReport(range?.from, range?.to);
-  const status = report.error instanceof MultiYearRequestError ? report.error.status : 0;
+  const kind = report.error instanceof MultiYearRequestError ? report.error.kind : 'network';
   // A range the selector itself cannot construct was still refused by the backend: the
   // toolbar selector stays usable, so the error is only a message, not a replaced screen.
-  const boundsForRangeError = report.isError && status === 422 && bounds.data ? bounds.data : null;
+  const boundsForRangeError =
+    report.isError && kind === 'invalid' && bounds.data ? bounds.data : null;
   const effectiveRange =
     range ??
     (report.data ? { from: report.data.from, to: report.data.to } : null) ??
@@ -70,13 +71,13 @@ export function MultiYearReportPage({
     content = (
       <section className={`card ${styles.state}`} role="alert">
         <h2>
-          {status === 422
+          {kind === 'invalid'
             ? t('reports.multiYear.invalidRange')
-            : status === 401 || status === 403
+            : kind === 'unauthorized'
               ? t('reports.unauthorized')
               : t('reports.error')}
         </h2>
-        {status === 422 || status === 401 || status === 403 ? null : (
+        {kind === 'invalid' || kind === 'unauthorized' ? null : (
           <button className="secondary-action" onClick={() => void report.refetch()} type="button">
             {t('reports.retry')}
           </button>

@@ -39,7 +39,7 @@ export function AccountRulesPanel({
   const overrides = useAccountRuleOverrides(account.id);
 
   const failure = rules.error instanceof AccountRequestError ? rules.error : null;
-  const unauthorized = failure?.status === 401;
+  const unauthorized = failure?.kind === 'unauthorized';
 
   if (rules.isPending || overrides.isPending) {
     return <AccountRulesPanelSkeleton account={account} status={t('accounts.rules.loading')} />;

@@ -1,5 +1,7 @@
 import type { Problem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 /**
  * A refused profile request, classified by its RFC 9457 problem type rather
  * than by its status: the three 422 refusals of a password change point at
@@ -33,18 +35,15 @@ export class ProfileRequestError extends Error {
 }
 
 function classify(status: number, problemType: string | undefined): ProfileErrorKind {
-  const byType = problemType === undefined ? undefined : PROBLEM_KINDS[problemType];
-  if (byType !== undefined) {
-    return byType;
-  }
-
-  if (status === 429) {
+  const kind = classifyProblem(status, problemType, PROBLEM_KINDS);
+  if (kind === 'network' && status === 429) {
     return 'throttled';
   }
 
   // 401 and 403 ask the user for the same thing: sign in again. A CSRF failure
   // lands here too, after withCsrfRetry has already replanted the token once.
-  return status === 401 || status === 403 ? 'unauthorized' : 'network';
+  // Any other refusal has no message of its own and asks to retry.
+  return kind === 'stale' || kind === 'conflict' || kind === 'invalid' ? 'network' : kind;
 }
 
 export function profileRequestError(result: {

@@ -1,5 +1,7 @@
 import type { GoalProblem } from '@cadran/api-client';
 
+import { classifyProblem } from '@/lib/apiProblem';
+
 export type GoalErrorKind =
   | 'conflict'
   | 'correction_span_exceeded'
@@ -57,16 +59,10 @@ export class GoalRequestError extends Error {
 
   constructor(status: number, problem?: GoalProblem) {
     super(`Goal request failed with status ${status}.`);
-    const byCode = problem?.code === undefined ? undefined : CODE_KINDS[problem.code];
-    this.kind =
-      byCode ??
-      (status === 401 || status === 403
-        ? 'unauthorized'
-        : status === 409
-          ? 'conflict'
-          : status === 400 || status === 422
-            ? 'invalid'
-            : 'network');
+    const kind = classifyProblem(status, problem?.code, CODE_KINDS);
+    // Goals are keyed by problem `code`, so the shared stale version type never
+    // matches: a stale answer is a plain conflict here.
+    this.kind = kind === 'stale' ? 'conflict' : kind;
     this.mismatch =
       problem?.expected !== undefined &&
       problem.actual !== undefined &&

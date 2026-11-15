@@ -1,6 +1,9 @@
 import type { Problem } from '@cadran/api-client';
 
-export type AccountErrorKind = 'archived' | 'conflict' | 'invalid' | 'network' | 'stale';
+import { classifyProblem } from '@/lib/apiProblem';
+
+export type AccountErrorKind =
+  'archived' | 'conflict' | 'invalid' | 'network' | 'stale' | 'unauthorized';
 
 /**
  * A refused account request, classified by its RFC 9457 problem type rather
@@ -14,34 +17,20 @@ export class AccountRequestError extends Error {
   constructor(status: number, problemType: string | undefined) {
     super(`Account request failed with status ${status}.`);
     this.status = status;
-    this.kind = classify(status, problemType);
+    this.kind = classifyProblem(status, problemType, PROBLEM_KINDS);
   }
 }
 
-function classify(status: number, problemType: string | undefined): AccountErrorKind {
-  switch (problemType) {
-    case '/problems/stale-version':
-    case '/problems/stale-account-order':
-      return 'stale';
-    case '/problems/account-label-taken':
-      return 'conflict';
-    case '/problems/account-archived':
-      return 'archived';
-    // A standing override already covering these dates, or one withdrawn
-    // between the read and the write: both ask the caller to reload the
-    // account's claims and reapply, not to correct a field.
-    case '/problems/account-rule-override-conflict':
-    case '/problems/account-balance-conflict':
-      return 'conflict';
-    default:
-      // A refused query and a refused body are both the caller's to correct,
-      // and neither is retried by repeating the same request: a business date
-      // outside the years the API covers answers 400 and would otherwise be
-      // shown as a network failure with a Retry button that can only fail
-      // again.
-      return status === 409 ? 'conflict' : 400 === status || 422 === status ? 'invalid' : 'network';
-  }
-}
+const PROBLEM_KINDS: Record<string, AccountErrorKind> = {
+  '/problems/stale-account-order': 'stale',
+  '/problems/account-label-taken': 'conflict',
+  '/problems/account-archived': 'archived',
+  // A standing override already covering these dates, or one withdrawn
+  // between the read and the write: both ask the caller to reload the
+  // account's claims and reapply, not to correct a field.
+  '/problems/account-rule-override-conflict': 'conflict',
+  '/problems/account-balance-conflict': 'conflict',
+};
 
 export function requestFailed(result: { data?: unknown; response?: Response }): boolean {
   return !result.response?.ok || !result.data;

@@ -37,7 +37,7 @@ type FailureKey = 'forbidden' | 'stale' | 'conflict' | 'invalid' | 'network';
 
 function failureKey(error: unknown): FailureKey {
   if (error instanceof AccountRequestError) {
-    if (error.status === 403) {
+    if (error.kind === 'unauthorized') {
       return 'forbidden';
     }
     if (error.kind === 'stale') {

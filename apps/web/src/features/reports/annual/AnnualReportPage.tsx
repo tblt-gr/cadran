@@ -26,17 +26,17 @@ export function AnnualReportPage({ year }: AnnualReportPageProps) {
   if (report.isPending) {
     content = <AnnualReportPageSkeleton status={t('reports.loading')} year={year} />;
   } else if (report.isError) {
-    const status = report.error instanceof AnnualRequestError ? report.error.status : 0;
+    const kind = report.error instanceof AnnualRequestError ? report.error.kind : 'network';
     content = (
       <section className={`card ${styles.state}`} role="alert">
         <h2>
-          {status === 422
+          {kind === 'invalid'
             ? t('reports.annual.invalidYear')
-            : status === 401 || status === 403
+            : kind === 'unauthorized'
               ? t('reports.unauthorized')
               : t('reports.error')}
         </h2>
-        {status === 422 || status === 401 || status === 403 ? null : (
+        {kind === 'invalid' || kind === 'unauthorized' ? null : (
           <button className="secondary-action" onClick={() => void report.refetch()} type="button">
             {t('reports.retry')}
           </button>
