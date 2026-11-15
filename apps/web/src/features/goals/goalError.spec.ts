@@ -71,7 +71,7 @@ describe('goalRequestError', () => {
 describe('goalErrorKind / goalErrorMismatch', () => {
   it('reads kind and mismatch off a GoalRequestError instance', () => {
     const error = new GoalRequestError(422, {
-      type: 't',
+      type: 'about:blank',
       title: 't',
       status: 422,
       detail: 'd',
