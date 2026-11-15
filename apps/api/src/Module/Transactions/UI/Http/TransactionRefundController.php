@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\IdempotencyConflict;
@@ -37,7 +38,7 @@ final readonly class TransactionRefundController
     #[Route('/api/v1/transactions/{id}/refundable', name: 'api_v1_transactions_refundable', methods: ['GET'])]
     public function refundable(string $id, ReadRefundable $readRefundable): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         }
         try {
@@ -56,10 +57,10 @@ final readonly class TransactionRefundController
     #[Route('/api/v1/transactions/{id}/refunds', name: 'api_v1_transactions_create_refund', methods: ['POST'])]
     public function createRefund(string $id, Request $request, CreateRefund $createRefund): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -67,7 +68,7 @@ final readonly class TransactionRefundController
             $body += ['splits' => null];
             $payload = TransactionPayload::of($body, self::REFUND_FIELDS);
             $input = new CreateRefundInput(
-                $payload->identifier('accountId'), $payload->amount('amount'), $payload->string('bookedOn'),
+                $payload->uuid('accountId'), $payload->amount('amount'), $payload->string('bookedOn'),
                 $payload->string('rawLabel'), $payload->nullableString('counterparty'), $payload->nullableString('note'),
                 $payload->nullableSplitRows('splits'),
             );

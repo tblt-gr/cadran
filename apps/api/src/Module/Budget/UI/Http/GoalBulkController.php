@@ -9,13 +9,15 @@ use App\Module\Budget\Application\Goals\GoalBulkConflict;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalBulkController
 {
-    public function __construct(private BudgetHttpEnvelope $envelope, private BulkGoalLifecycle $bulk)
+    public function __construct(private JsonRequestEnvelope $envelope, private BulkGoalLifecycle $bulk)
     {
     }
 
@@ -33,7 +35,7 @@ final readonly class GoalBulkController
 
     private function execute(Request $request, bool $stop): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.budget_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }

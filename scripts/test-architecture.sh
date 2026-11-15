@@ -19,6 +19,13 @@ fi
 
 printf '%s\n' 'The representative forbidden dependency was rejected.'
 
+if ! grep -q 'declare the body ceiling in BodyLimit' "$result_file" || ! grep -q 'body() duplicates the shared JsonRequestEnvelope' "$result_file"; then
+  printf '%s\n' 'Duplicated request plumbing under UI/Http was not rejected.' >&2
+  exit 1
+fi
+
+printf '%s\n' 'Duplicated request plumbing was rejected.'
+
 if php scripts/check-workspace-scope.php tests/architecture/fixtures/unscoped apps/api/migrations >"$result_file" 2>&1; then
   printf '%s\n' 'The representative unscoped query was not rejected.' >&2
   exit 1

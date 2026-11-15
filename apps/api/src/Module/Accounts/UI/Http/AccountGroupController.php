@@ -20,6 +20,9 @@ use App\Module\Accounts\Application\UpdateAccountGroup;
 use App\Module\Accounts\Application\UpdateAccountGroupInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,14 +37,13 @@ final readonly class AccountGroupController
     public const string TYPE_STALE_ORDER = '/problems/stale-account-group-order';
     public const string TYPE_INVALID_ANCHOR = '/problems/invalid-account-group-anchor';
 
-    private const int MAX_BODY_BYTES = 16_384;
     private const int MAX_MOVE_SIBLINGS = 100;
     private const array CREATE_FIELDS = ['label', 'parentId'];
     private const array UPDATE_FIELDS = ['label', 'parentId', 'version'];
     /** Deprecated on write: accepted and ignored on create, applied on update only while the parent stays. */
     private const array DEPRECATED_FIELDS = ['sortOrder'];
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -114,7 +116,7 @@ final readonly class AccountGroupController
     #[Route('/api/v1/account-groups/{id}', name: 'api_v1_account_groups_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateAccountGroup $updateAccountGroup): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
         }
 
@@ -164,7 +166,7 @@ final readonly class AccountGroupController
     #[Route('/api/v1/account-groups/{id}/archive', name: 'api_v1_account_groups_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveAccountGroup $archiveAccountGroup): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
         }
 
@@ -197,7 +199,7 @@ final readonly class AccountGroupController
     #[Route('/api/v1/account-groups/{id}/move', name: 'api_v1_account_groups_move', methods: ['POST'])]
     public function move(string $id, Request $request, MoveAccountGroup $moveAccountGroup): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
         }
 
@@ -210,7 +212,7 @@ final readonly class AccountGroupController
             $payload = AccountGroupPayload::of($body, ['beforeGroupId', 'expectedSiblingIds']);
             $beforeGroupId = $payload->nullableString('beforeGroupId');
             $expected = $body['expectedSiblingIds'] ?? null;
-            if ((null !== $beforeGroupId && !self::identifier($beforeGroupId)) || !self::siblingIds($expected)) {
+            if ((null !== $beforeGroupId && !Identifier::isValid($beforeGroupId)) || !self::siblingIds($expected)) {
                 throw new \UnexpectedValueException('The move identifiers are malformed.');
             }
 
@@ -241,7 +243,7 @@ final readonly class AccountGroupController
             return false;
         }
         foreach ($value as $id) {
-            if (!is_string($id) || !self::identifier($id)) {
+            if (!is_string($id) || !Identifier::isValid($id)) {
                 return false;
             }
         }
@@ -252,28 +254,12 @@ final readonly class AccountGroupController
     /** @return array<mixed>|Response */
     private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.account_group_payload_too_large');
-        }
-
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
+        return $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_group_payload_too_large');
     }
 
     private static function unsignedIntegerOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
     }
 
     /** @param array<string, mixed> $data */

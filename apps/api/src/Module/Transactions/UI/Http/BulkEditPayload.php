@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\BulkEditChanges;
 use App\Module\Transactions\Application\BulkEditInput;
 use App\Module\Transactions\Application\BulkFieldChange;
@@ -27,7 +28,7 @@ final readonly class BulkEditPayload
         'minAmount', 'maxAmount', 'assetCode', 'sources', 'categorization', 'q', 'includeVoided', 'direction', 'categoryType',
     ];
 
-    public function __construct(private TransactionHttpEnvelope $envelope, private TransactionFilterShape $shape)
+    public function __construct(private TransactionFilterShape $shape)
     {
     }
 
@@ -74,8 +75,8 @@ final readonly class BulkEditPayload
             paymentMethod: array_key_exists('paymentMethod', $changes) ? $this->paymentMethod($changes['paymentMethod']) : null,
             note: array_key_exists('note', $changes) ? $this->fieldText($changes['note'], Transaction::MAX_NOTE_LENGTH) : null,
             counterparty: array_key_exists('counterparty', $changes) ? $this->fieldText($changes['counterparty'], Transaction::MAX_COUNTERPARTY_LENGTH) : null,
-            categoryId: array_key_exists('categoryId', $changes) ? TransactionPayload::of(['categoryId' => $changes['categoryId']], ['categoryId'])->identifier('categoryId') : null,
-            accountId: array_key_exists('accountId', $changes) ? TransactionPayload::of(['accountId' => $changes['accountId']], ['accountId'])->identifier('accountId') : null,
+            categoryId: array_key_exists('categoryId', $changes) ? TransactionPayload::of(['categoryId' => $changes['categoryId']], ['categoryId'])->uuid('categoryId') : null,
+            accountId: array_key_exists('accountId', $changes) ? TransactionPayload::of(['accountId' => $changes['accountId']], ['accountId'])->uuid('accountId') : null,
             bookedOn: array_key_exists('bookedOn', $changes) ? $this->day($changes['bookedOn']) : null,
         );
     }
@@ -117,7 +118,7 @@ final readonly class BulkEditPayload
             }
             TransactionPayload::of($entry, ['id', 'value']);
             $id = $entry['id'];
-            if (!is_string($id) || !$this->envelope->isIdentifier($id) || isset($each[$id])) {
+            if (!is_string($id) || !Identifier::isValid($id) || isset($each[$id])) {
                 throw new \UnexpectedValueException('Each label value names a distinct canonical UUID.');
             }
             $each[$id] = $this->boundedText($entry['value'], Transaction::MAX_RAW_LABEL_LENGTH);
@@ -159,7 +160,7 @@ final readonly class BulkEditPayload
         }
         // Not bounded here: the use case owns the cap and answers it with its own problem.
         foreach ($ids as $id) {
-            if (!is_string($id) || !$this->envelope->isIdentifier($id)) {
+            if (!is_string($id) || !Identifier::isValid($id)) {
                 throw new \UnexpectedValueException('Each id must be a canonical UUID.');
             }
         }

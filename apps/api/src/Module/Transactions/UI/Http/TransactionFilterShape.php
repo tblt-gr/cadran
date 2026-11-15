@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Categories\Domain\CategoryType;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
 use App\Module\Transactions\Domain\TransactionDirection;
@@ -22,10 +23,6 @@ final readonly class TransactionFilterShape
 {
     public const int MAX_MULTI_VALUE_FILTER = 20;
     private const string DATE_PATTERN = '/^\d{4}-\d{2}-\d{2}$/D';
-
-    public function __construct(private TransactionHttpEnvelope $envelope)
-    {
-    }
 
     /**
      * @param list<string> $accountIds
@@ -61,8 +58,8 @@ final readonly class TransactionFilterShape
         if (count($accountIds) > self::MAX_MULTI_VALUE_FILTER || count($categoryIds) > self::MAX_MULTI_VALUE_FILTER
             || count($states) > self::MAX_MULTI_VALUE_FILTER || count($natures) > self::MAX_MULTI_VALUE_FILTER
             || count($axes) > self::MAX_MULTI_VALUE_FILTER || count($sources) > self::MAX_MULTI_VALUE_FILTER
-            || !self::allMatch($accountIds, $this->envelope->isIdentifier(...))
-            || !self::allMatch($categoryIds, $this->envelope->isIdentifier(...))
+            || !self::allMatch($accountIds, Identifier::isValid(...))
+            || !self::allMatch($categoryIds, Identifier::isValid(...))
             || !self::allMatch($states, static fn (string $value): bool => null !== TransactionState::tryFrom($value))
             || !self::allMatch($natures, static fn (string $value): bool => null !== TransactionNature::tryFrom($value))
             || !self::allMatch($axes, static fn (string $value): bool => null !== AnalyticAxis::tryFrom($value))

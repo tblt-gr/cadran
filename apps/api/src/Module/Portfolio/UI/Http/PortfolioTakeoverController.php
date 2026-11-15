@@ -6,6 +6,9 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Portfolio\Application\PortfolioAccountNotFound;
 use App\Module\Portfolio\Application\PortfolioOperationConflict;
 use App\Module\Portfolio\Application\Takeover\InvalidPortfolioTakeover;
@@ -33,12 +36,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class PortfolioTakeoverController
 {
-    private const int MAX_BODY_BYTES = 131_072;
     private const string ACCOUNT_NOT_FOUND = 'portfolio_account_not_found';
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
     public function __construct(
         private TranslatorInterface $translator,
+        private JsonRequestEnvelope $requestEnvelope,
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -47,7 +49,7 @@ final readonly class PortfolioTakeoverController
     #[Route('/api/v1/accounts/{accountId}/portfolio-takeover', name: 'api_v1_portfolio_takeover_show', methods: ['GET'])]
     public function show(string $accountId, ReadPortfolioTakeover $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
         try {
@@ -62,10 +64,10 @@ final readonly class PortfolioTakeoverController
     #[Route('/api/v1/accounts/{accountId}/portfolio-takeover/preview', name: 'api_v1_portfolio_takeover_preview', methods: ['POST'])]
     public function preview(string $accountId, Request $request, PreviewPortfolioTakeover $preview, ReadPortfolioTakeover $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -81,10 +83,10 @@ final readonly class PortfolioTakeoverController
     #[Route('/api/v1/accounts/{accountId}/portfolio-takeover', name: 'api_v1_portfolio_takeover_create', methods: ['POST'])]
     public function create(string $accountId, Request $request, TakeOverPortfolioPositions $takeOver, ReadPortfolioTakeover $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -155,19 +157,14 @@ final readonly class PortfolioTakeoverController
     }
 
     /** @return array<mixed>|Response */
-    private function body(Request $request): array|Response
+    private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'portfolio_payload_too_large');
-        }
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_request');
-        }
+        return $this->requestEnvelope->body(
+            $request,
+            BodyLimit::Bulk,
+            'api.problem.portfolio_payload_too_large',
+            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
+        );
     }
 
     /** @param array<string, mixed> $extensions */
@@ -186,10 +183,5 @@ final readonly class PortfolioTakeoverController
     private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
     {
         return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match(self::UUID_PATTERN, $value);
     }
 }

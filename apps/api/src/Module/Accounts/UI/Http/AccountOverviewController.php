@@ -15,6 +15,8 @@ use App\Module\Accounts\Application\StaleAccountOrder;
 use App\Module\Accounts\Domain\InvalidAccountMove;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,12 +32,11 @@ final readonly class AccountOverviewController
     public const string TYPE_STALE_ORDER = '/problems/stale-account-order';
     public const string TYPE_SCOPE_TOO_LARGE = '/problems/net-worth-scope-too-large';
 
-    private const int MAX_BODY_BYTES = 1_024;
     private const int MAX_CURSOR_LENGTH = 200;
     private const string UNGROUPED = 'ungrouped';
     private const string UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -126,17 +127,9 @@ final readonly class AccountOverviewController
         if (1 !== preg_match(self::UUID, $id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.account_payload_too_large');
-        }
-
-        try {
-            $body = $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
+        $body = $this->envelope->body($request, BodyLimit::Tiny, 'api.problem.account_payload_too_large');
+        if ($body instanceof Response) {
+            return $body;
         }
 
         try {

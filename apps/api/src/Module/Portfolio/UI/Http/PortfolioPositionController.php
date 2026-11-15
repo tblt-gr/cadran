@@ -6,6 +6,9 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Portfolio\Application\CashRangeTooDense;
 use App\Module\Portfolio\Application\CashRangeTooLarge;
 use App\Module\Portfolio\Application\InvalidCashQuery;
@@ -29,17 +32,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final readonly class PortfolioPositionController
 {
     /** 10 000 UUIDs plus JSON structure, bounded with room for insignificant whitespace. */
-    private const int MAX_BODY_BYTES = 500_000;
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
-
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private TranslatorInterface $translator, private JsonRequestEnvelope $requestEnvelope)
     {
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-positions', name: 'api_v1_portfolio_positions_list', methods: ['GET'])]
     public function positions(string $accountId, Request $request, ReadPortfolioPositions $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
         }
         try {
@@ -61,7 +61,7 @@ final readonly class PortfolioPositionController
     #[Route('/api/v1/accounts/{accountId}/portfolio-cash', name: 'api_v1_portfolio_cash', methods: ['GET'])]
     public function cash(string $accountId, Request $request, ReadPortfolioCash $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
         }
         try {
@@ -77,10 +77,10 @@ final readonly class PortfolioPositionController
     #[Route('/api/v1/accounts/{accountId}/portfolio-positions/{instrumentId}/lots', name: 'api_v1_portfolio_position_lots', methods: ['GET'])]
     public function lots(string $accountId, string $instrumentId, Request $request, ReadPortfolioLots $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
         }
-        if (!self::identifier($instrumentId)) {
+        if (!Identifier::isValid($instrumentId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_instrument_not_found');
         }
         try {
@@ -101,10 +101,10 @@ final readonly class PortfolioPositionController
     #[Route('/api/v1/accounts/{accountId}/portfolio-operations/order', name: 'api_v1_portfolio_operations_order', methods: ['PUT'])]
     public function reorder(string $accountId, Request $request, ReorderPortfolioOperations $reorder): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -147,19 +147,14 @@ final readonly class PortfolioPositionController
     }
 
     /** @return array<mixed>|Response */
-    private function body(Request $request): array|Response
+    private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'portfolio_payload_too_large');
-        }
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_request');
-        }
+        return $this->requestEnvelope->body(
+            $request,
+            BodyLimit::Batch,
+            'api.problem.portfolio_payload_too_large',
+            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
+        );
     }
 
     /** @param array<string, string|int|list<string>> $extensions */
@@ -178,11 +173,6 @@ final readonly class PortfolioPositionController
     private static function json(array $data): JsonResponse
     {
         return new JsonResponse($data, Response::HTTP_OK, ['Cache-Control' => 'no-store']);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match(self::UUID_PATTERN, $value);
     }
 
     /** @param array<string, mixed> $query */

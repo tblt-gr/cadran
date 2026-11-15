@@ -20,6 +20,9 @@ use App\Module\Budget\Application\Goals\StopGoal;
 use App\Module\Budget\Application\Goals\StopGoalInput;
 use App\Module\Budget\Application\Goals\UpdateGoal;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -33,7 +36,7 @@ use Symfony\Component\Routing\Attribute\Route;
 final readonly class GoalController
 {
     public function __construct(
-        private BudgetHttpEnvelope $envelope,
+        private JsonRequestEnvelope $envelope,
         private TransactionHttpEnvelope $idempotencyEnvelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -107,7 +110,7 @@ final readonly class GoalController
     #[Route('/api/v1/goals/{id}/status', name: 'api_v1_goals_status', methods: ['GET'])]
     public function status(string $id, Request $request, ReadGoalStatus $read): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
         try {
@@ -129,7 +132,7 @@ final readonly class GoalController
     #[Route('/api/v1/goals', name: 'api_v1_goals_create', methods: ['POST'])]
     public function create(Request $request, CreateGoal $create): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.budget_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -169,7 +172,7 @@ final readonly class GoalController
     #[Route('/api/v1/goals/{id}', name: 'api_v1_goals_read', methods: ['GET'])]
     public function read(string $id, ReadGoal $read): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
         try {
@@ -184,10 +187,10 @@ final readonly class GoalController
     #[Route('/api/v1/goals/{id}', name: 'api_v1_goals_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateGoal $update): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.budget_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -211,10 +214,10 @@ final readonly class GoalController
     #[Route('/api/v1/goals/{id}/stop', name: 'api_v1_goals_stop', methods: ['POST'])]
     public function stop(string $id, Request $request, StopGoal $stop): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.budget_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -243,7 +246,7 @@ final readonly class GoalController
     #[Route('/api/v1/goals/{id}', name: 'api_v1_goals_delete', methods: ['DELETE'])]
     public function delete(string $id, Request $request, DeleteGoal $delete): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
         $header = $request->headers->get('If-Match');

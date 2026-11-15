@@ -6,6 +6,9 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Portfolio\Application\CreateInstrument;
 use App\Module\Portfolio\Application\CreateInstrumentInput;
 use App\Module\Portfolio\Application\DeactivateInstrument;
@@ -34,7 +37,6 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class InstrumentController
 {
-    private const int MAX_BODY_BYTES = 16_384;
     private const array REQUIRED_WRITE_FIELDS = ['name', 'instrumentType', 'currencyCode'];
     private const array OPTIONAL_WRITE_FIELDS = [
         'isin', 'ticker', 'venueMic', 'assetClass', 'region', 'quantityPrecision', 'pricePrecision', 'confirmDuplicate',
@@ -42,6 +44,7 @@ final readonly class InstrumentController
 
     public function __construct(
         private TranslatorInterface $translator,
+        private JsonRequestEnvelope $requestEnvelope,
         private TransactionHttpEnvelope $idempotencyEnvelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -76,7 +79,7 @@ final readonly class InstrumentController
     #[Route('/api/v1/instruments', name: 'api_v1_instruments_create', methods: ['POST'])]
     public function create(Request $request, CreateInstrument $create): Response
     {
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -121,7 +124,7 @@ final readonly class InstrumentController
     #[Route('/api/v1/instruments/{id}', name: 'api_v1_instruments_show', methods: ['GET'])]
     public function show(string $id, ReadInstrument $read): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
         }
         try {
@@ -138,7 +141,7 @@ final readonly class InstrumentController
     #[Route('/api/v1/instruments/{id}/holding', name: 'api_v1_instruments_holding', methods: ['GET'])]
     public function holding(string $id, ReadInstrumentHolding $read): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
         }
         try {
@@ -156,10 +159,10 @@ final readonly class InstrumentController
     #[Route('/api/v1/instruments/{id}', name: 'api_v1_instruments_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateInstrument $update): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -207,10 +210,10 @@ final readonly class InstrumentController
     /** @param callable(string, int): \App\Module\Portfolio\Application\InstrumentView $change */
     private function lifecycle(string $id, Request $request, callable $change): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -236,19 +239,14 @@ final readonly class InstrumentController
     }
 
     /** @return array<mixed>|Response */
-    private function body(Request $request): array|Response
+    private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'instrument_payload_too_large');
-        }
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_request');
-        }
+        return $this->requestEnvelope->body(
+            $request,
+            BodyLimit::Standard,
+            'api.problem.instrument_payload_too_large',
+            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
+        );
     }
 
     /** @param array<string, mixed> $extensions */
@@ -272,10 +270,5 @@ final readonly class InstrumentController
     private static function unsignedIntegerOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
     }
 }

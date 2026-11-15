@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\UI\Http;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Portfolio\Application\CashRangeTooDense;
 use App\Module\Portfolio\Application\ListPortfolios;
 use App\Module\Portfolio\Application\PortfolioAccountNotFound;
@@ -44,13 +45,13 @@ final readonly class PortfolioOverviewController
     #[Route('/api/v1/accounts/{accountId}/portfolio-summary', name: 'api_v1_portfolio_summary', methods: ['GET'])]
     public function summary(string $accountId, Request $request, ReadPortfolioSummary $read): Response
     {
-        return $this->execute(static fn (): array => $read(self::identifier($accountId), self::scalar($request, 'asOf', 'invalid_as_of')));
+        return $this->execute(static fn (): array => $read(self::accountId($accountId), self::scalar($request, 'asOf', 'invalid_as_of')));
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-allocation', name: 'api_v1_portfolio_allocation', methods: ['GET'])]
     public function allocation(string $accountId, Request $request, ReadPortfolioAllocation $read): Response
     {
-        return $this->execute(static fn (): array => $read(self::identifier($accountId), self::scalar($request, 'asOf', 'invalid_as_of'), self::scalar($request, 'by', 'invalid_allocation_by')));
+        return $this->execute(static fn (): array => $read(self::accountId($accountId), self::scalar($request, 'asOf', 'invalid_as_of'), self::scalar($request, 'by', 'invalid_allocation_by')));
     }
 
     /** @param callable(): array<string, mixed> $read */
@@ -76,9 +77,9 @@ final readonly class PortfolioOverviewController
         }
     }
 
-    private static function identifier(string $literal): string
+    private static function accountId(string $literal): string
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $literal)) {
+        if (!Identifier::isValid($literal)) {
             throw new PortfolioAccountNotFound();
         }
 

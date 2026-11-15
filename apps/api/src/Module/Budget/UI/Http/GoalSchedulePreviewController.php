@@ -7,13 +7,14 @@ namespace App\Module\Budget\UI\Http;
 use App\Module\Budget\Application\Goals\GoalInputError;
 use App\Module\Budget\Application\Goals\PreviewGoalSchedule;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalSchedulePreviewController
 {
-    public function __construct(private BudgetHttpEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
