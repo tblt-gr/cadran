@@ -5,7 +5,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const ALLOWED = new Set([
+const ALLOWED = new Set([
   'MIT',
   'ISC',
   'BSD-2-Clause',
