@@ -52,7 +52,7 @@ final class MigrationConventionTest extends TestCase
     {
         yield 'insert' => ["\$this->addSql('INSERT INTO t (a) VALUES (1)');", true];
         yield 'lowercase update' => ["\$this->addSql('  update t set a = 1');", true];
-        yield 'delete' => ["\$this->addSql(\"DELETE FROM t WHERE a = 1\");", true];
+        yield 'delete' => ['$this->addSql("DELETE FROM t WHERE a = 1");', true];
         yield 'with update' => ["\$this->addSql('WITH x AS (SELECT 1) UPDATE t SET a = 1');", true];
         yield 'with insert' => ["\$this->addSql('WITH x AS (SELECT 1) INSERT INTO t SELECT * FROM x');", true];
         yield 'leading comment' => ["\$this->addSql('-- fix\nUPDATE t SET a = 1');", true];
