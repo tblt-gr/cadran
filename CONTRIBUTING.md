@@ -211,6 +211,8 @@ linear history, with no permanent bypass. The aggregate gate includes the applic
 ## Releases
 
 Create releases only from a commit already merged into `main` with a successful `CI gate`.
+A tag is placed only on a `main` commit whose `CI gate` push run succeeded, which `release.yml`
+enforces.
 Follow the [release checklist](./.github/RELEASE_CHECKLIST.md), including a recorded clean-machine
 installation and operational recovery rehearsal. Keep the upcoming 1.0.0 capabilities under
 `Unreleased` until the release is actually prepared. Update the root package version as part of
