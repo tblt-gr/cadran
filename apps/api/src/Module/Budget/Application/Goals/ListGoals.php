@@ -14,7 +14,7 @@ use App\Module\Foundation\Application\WorkspaceCalendar;
 
 final readonly class ListGoals
 {
-    public function __construct(private CallerWorkspace $caller, private GoalRepository $goals, private GoalVersionRepository $versions, private PresentGoal $present, private ReadGoalStatus $readStatus, private ResolveGoalScope $scope, private WorkspaceCalendar $calendar)
+    public function __construct(private CallerWorkspace $caller, private GoalRepository $goals, private GoalVersionRepository $versions, private PresentGoal $present, private ReadGoalStatus $readStatus, private GoalMetricReader $metrics, private ResolveGoalScope $scope, private WorkspaceCalendar $calendar)
     {
     }
 
@@ -37,15 +37,15 @@ final readonly class ListGoals
             if ((int) substr($period, 0, 4) < 1900 || (int) substr($period, 0, 4) > $today->year + 5) {
                 throw new GoalInputError('invalid_goal_year', 'A goal list period lies from 1900 to five years ahead.');
             }
-            $month = 4 === strlen($period) ? ReadGoalStatus::defaultMonth($today, (int) $period) : CalendarMonth::fromString($period);
+            $month = 4 === strlen($period) ? GoalCalendar::defaultMonth($today, (int) $period) : CalendarMonth::fromString($period);
         }
         $workspace = $this->caller->resolve();
         $filter = new GoalFilter($today, $goalPeriodicity, $period, $current);
         $goals = $this->goals->search($workspace, $filter, $pageSize, ($page - 1) * $pageSize);
         $total = $this->goals->count($workspace, $filter);
         // A future month has no real figure to read: its goals show their definition without a status amount.
-        $future = ReadGoalStatus::isFuture($month, $today);
-        $inputs = $future ? null : $this->readStatus->inputs($workspace, $month, $goals);
+        $future = GoalCalendar::isFuture($month, $today);
+        $inputs = $future ? null : $this->metrics->inputs($workspace, $month, $goals);
         $items = array_map(function ($goal) use ($workspace, $month, $today, $inputs): GoalSummaryView {
             $versions = $this->versions->listByGoal($workspace, $goal->id, 50);
             $scope = ($this->scope)($workspace, $goal->scopeType, $goal->scopeRef, true);
