@@ -394,6 +394,8 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for architecture, branches, PRs and ver
 ```bash
 make quality   # format, static analysis, boundaries, types, OpenAPI, infrastructure
 make test      # module boundaries, infrastructure, PHPUnit, Vitest
+make test-api FILTER=ExactDecimalTest  # only the matching PHPUnit tests
+make shell     # interactive shell in the tooling container
 make build     # SPA and API client
 make audit     # Composer and pnpm dependency audits
 make perf      # performance suite on synthetic transactions

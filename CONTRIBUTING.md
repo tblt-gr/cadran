@@ -81,6 +81,10 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 `make quality` and `make test` are the global entry points. `make quality` runs
 PHP-CS-Fixer, PHPStan, PHPUnit, module-boundary checks, ESLint, strict TypeScript, the OpenAPI
 lint, documented-command checks and infrastructure checks; `make test` runs PHPUnit against PostgreSQL and the frontend suite.
+To iterate on one backend test, run `make test-api FILTER=ExactDecimalTest`. `FILTER` is a PHPUnit
+`--filter` expression (class, method or `Class::method`; quote it when it contains spaces) passed as a
+single argument. `make shell` opens an interactive shell in the tooling container as the host user,
+on the database network with the repository mounted.
 Do not add a required quality tool without wiring it into the matching global command and into CI.
 
 For the 1.0.0 MVP, browser checks are required for applicable application changes. CI selects
