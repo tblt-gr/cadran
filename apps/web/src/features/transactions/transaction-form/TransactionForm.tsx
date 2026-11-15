@@ -5,46 +5,20 @@ import type {
   Transaction,
   UpdateTransactionRequest,
 } from '@cadran/api-client';
-import { useId, useState } from 'react';
-import { useCategoryDefaultAxes } from '@/features/categories/useCategoryDefaultAxes';
 import { useTranslation } from 'react-i18next';
-import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import type { TransactionErrorKind } from '@/features/transactions/transactionError';
-import {
-  hasRecordedAmount,
-  SignedAmountHint,
-} from '@/components/ui/signed-amount-hint/SignedAmountHint';
-import { addDecimals, formatAmount } from '@/lib/decimal';
-import { isUpcomingDay, workspaceToday } from '@/lib/workspaceTime';
-import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
-import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
 import { SplitAxes } from '@/features/transactions/split-editor/split-axes/SplitAxes';
+import type { TransactionErrorKind } from '@/features/transactions/transactionError';
+import { AdvancedTransactionFields } from './advanced-fields/AdvancedTransactionFields';
+import { TransactionMainFields } from './main-fields/TransactionMainFields';
 import { SplitField } from './split-field/SplitField';
 import { TransactionCategoryField } from './transaction-category-field/TransactionCategoryField';
-import {
-  categoryTypeForAmount,
-  initialTransactionValues,
-  signedTransactionValues,
-  transactionDirection,
-  transactionRequest,
-  validateTransactionValues,
-  type TransactionFormValues,
-} from './transactionFormValues';
-import type { SavedCategory } from './transaction-category-field/TransactionCategoryField';
 import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { useTransactionFormState, type TransactionFormDefaults } from './useTransactionFormState';
 import styles from './TransactionForm.module.css';
 
-const NATURES: TransactionFormValues['nature'][] = ['EXPENSE', 'INCOME', 'FEE', 'ADJUSTMENT'];
-const PAYMENT_METHODS: Array<NonNullable<CreateTransactionRequest['paymentMethod']>> = [
-  'CARD',
-  'TRANSFER',
-  'DIRECT_DEBIT',
-  'CHECK',
-  'CASH',
-  'OTHER',
-];
+export type { TransactionFormDefaults };
 
 interface TransactionFormProps {
   accounts: Account[];
@@ -57,15 +31,9 @@ interface TransactionFormProps {
   transaction?: Transaction;
 }
 
-export interface TransactionFormDefaults {
-  bookedOn: string;
-  category: SavedCategory & { type: TransactionFormValues['categoryType'] };
-  nature: TransactionFormValues['nature'];
-}
-
 /**
- * The fields of nearly every entry — account, date, amount, nature, label, payment
- * method and category — come first; the rest is folded under "advanced fields".
+ * The fields of nearly every entry - account, date, amount, nature, label, payment
+ * method and category - come first; the rest is folded under "advanced fields".
  */
 export function TransactionForm({
   accounts,
@@ -77,107 +45,30 @@ export function TransactionForm({
   submitErrorDetail,
   transaction,
 }: TransactionFormProps) {
-  const { t, i18n } = useTranslation();
-  const errorId = useId();
-  const workspaceTimeZone = useWorkspaceTimeZone();
-  const today = workspaceToday(new Date(), workspaceTimeZone);
-  const [values, setValues] = useState(() => {
-    const initial = initialTransactionValues(transaction, accounts, defaults?.bookedOn ?? today);
-
-    return transaction === undefined && defaults
-      ? {
-          ...initial,
-          bookedOn: defaults.bookedOn,
-          categoryId: defaults.category.id,
-          categoryType: defaults.category.type,
-          nature: defaults.nature,
-          // An income added from the budget is nearly always received by transfer.
-          paymentMethod:
-            defaults.nature === 'INCOME' ? ('TRANSFER' as const) : initial.paymentMethod,
-        }
-      : initial;
-  });
-  const [showErrors, setShowErrors] = useState(false);
-  const [accountChosen, setAccountChosen] = useState(false);
-  // Category allocation stays beside the amount; metadata keeps its own disclosure.
-  const categoryDefaultAxes = useCategoryDefaultAxes(
-    values.categoryId,
-    (savedCategory(transaction) ?? defaults?.category ?? null)?.label ?? null,
-    values.categoryDefaultAxes,
-  );
-  const [advancedOpen, setAdvancedOpen] = useState(false);
-  const withAccount =
-    !transaction && !accountChosen
-      ? {
-          ...values,
-          accountId:
-            accounts.find(
-              (account) => account.id === defaultAccountId && account.status === 'ACTIVE',
-            )?.id ??
-            accounts.find((account) => account.isPrimary && account.status === 'ACTIVE')?.id ??
-            '',
-        }
-      : values;
-  // A date later this month can only be a planned (pending) row: the chosen state is kept aside
-  // and comes back when the date returns to today or earlier. A booked row stays bound to today.
-  const upcoming =
-    isUpcomingDay(values.bookedOn, today) &&
-    transaction?.state !== 'BOOKED' &&
-    values.state !== 'REJECTED';
-  const resolved = upcoming ? { ...withAccount, state: 'PENDING' as const } : withAccount;
-  const errors = validateTransactionValues(resolved, accounts, today, transaction);
-  const editing = transaction !== undefined;
-  const stateLocked = editing && transaction.state !== 'PENDING';
-
-  const rawLabelLocked = editing && transaction.source !== 'MANUAL';
-  const direction = transactionDirection(values);
-  const signedAmount = signedTransactionValues(values).amountValue;
-  const preferredType = categoryTypeForAmount(signedAmount, values.nature);
-  const amountAssetCode =
-    transaction?.amount.assetCode ??
-    accounts.find((account) => account.id === resolved.accountId)?.assetCode ??
-    '';
-
-  // The exact balance the server reports for an account, when it can be calculated.
-  const accountOptionLabel = (account: Account) => {
-    const balance = account.valuation?.amount ?? null;
-
-    return balance === null
-      ? account.label
-      : `${account.label} · ${formatAmount(balance.value, balance.assetCode, i18n.language)}`;
-  };
-
-  // On creation only: an existing row is already counted in the reported balance.
-  const accountBalance = accounts.find((account) => account.id === resolved.accountId)?.valuation
-    ?.amount;
-  const balanceAfter =
-    !editing &&
-    !errors.amountValue &&
-    accountBalance &&
-    accountBalance.assetCode === amountAssetCode
-      ? {
-          value: addDecimals(accountBalance.value, signedAmount),
-          assetCode: accountBalance.assetCode,
-        }
-      : null;
-
-  function set<K extends keyof TransactionFormValues>(field: K, value: TransactionFormValues[K]) {
-    setValues((current) => ({ ...current, [field]: value }));
-  }
-
-  function submit(event: React.FormEvent) {
-    event.preventDefault();
-    if (Object.keys(errors).length > 0) {
-      setShowErrors(true);
-      // An invalid field must never stay folded out of sight.
-      if (ADVANCED_FIELDS.some((field) => errors[field])) {
-        setAdvancedOpen(true);
-      }
-      return;
-    }
-
-    onSubmit(transactionRequest(resolved, accounts, transaction));
-  }
+  const { t } = useTranslation();
+  const {
+    advancedOpen,
+    amountAssetCode,
+    balanceAfter,
+    categoryDefaultAxes,
+    direction,
+    editing,
+    errors,
+    markAccountChosen,
+    preferredType,
+    rawLabelLocked,
+    resolved,
+    savedCategory,
+    set,
+    setAdvancedOpen,
+    setValues,
+    showErrors,
+    signedAmount,
+    stateLocked,
+    submit,
+    upcoming,
+    values,
+  } = useTransactionFormState({ accounts, defaultAccountId, defaults, onSubmit, transaction });
 
   return (
     <ModalForm className={styles.form} noValidate onSubmit={submit}>
@@ -191,194 +82,21 @@ export function TransactionForm({
       ) : null}
 
       <FormGrid className={styles.essential}>
-        <label>
-          <span>{t('transactions.fields.account')}</span>
-          <select
-            aria-describedby={
-              [
-                editing ? 'transaction-account-hint' : undefined,
-                showErrors && errors.accountId ? `${errorId}-accountId` : undefined,
-              ]
-                .filter(Boolean)
-                .join(' ') || undefined
-            }
-            aria-invalid={showErrors && errors.accountId ? true : undefined}
-            aria-label={t('transactions.fields.account')}
-            disabled={editing}
-            onChange={(event) => {
-              setAccountChosen(true);
-              set('accountId', event.target.value);
-            }}
-            value={resolved.accountId}
-          >
-            {!editing ? (
-              <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
-            ) : null}
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {accountOptionLabel(account)}
-              </option>
-            ))}
-          </select>
-          {showErrors && errors.accountId ? (
-            <small id={`${errorId}-accountId`}>{t('transactions.validation.account')}</small>
-          ) : null}
-          {balanceAfter ? (
-            <small className={styles.hint}>
-              {t('transactions.transfer.balanceAfter', {
-                amount: formatAmount(balanceAfter.value, balanceAfter.assetCode, i18n.language),
-              })}
-            </small>
-          ) : null}
-          {editing ? (
-            <small className={styles.hint} id="transaction-account-hint">
-              {t('transactions.form.accountLocked')}
-            </small>
-          ) : null}
-        </label>
-
-        <label>
-          <span>{t('transactions.fields.bookedOn')}</span>
-          <input
-            aria-describedby={
-              [
-                upcoming ? 'transaction-upcoming-hint' : undefined,
-                showErrors && errors.bookedOn ? `${errorId}-bookedOn` : undefined,
-              ]
-                .filter(Boolean)
-                .join(' ') || undefined
-            }
-            aria-invalid={showErrors && errors.bookedOn ? true : undefined}
-            onChange={(event) => set('bookedOn', event.target.value)}
-            type="date"
-            value={values.bookedOn}
-          />
-          {upcoming ? (
-            <small className={styles.hint} id="transaction-upcoming-hint">
-              {t('transactions.form.upcomingHint')}
-            </small>
-          ) : null}
-          {showErrors && errors.bookedOn ? (
-            <small id={`${errorId}-bookedOn`}>{t('transactions.validation.bookedOn')}</small>
-          ) : null}
-        </label>
-
-        {rawLabelLocked ? (
-          <>
-            <label>
-              <span>{t('transactions.fields.displayLabel')}</span>
-              <input
-                aria-describedby={
-                  showErrors && errors.userLabel ? `${errorId}-userLabel` : undefined
-                }
-                aria-invalid={showErrors && errors.userLabel ? true : undefined}
-                aria-label={t('transactions.fields.displayLabel')}
-                data-autofocus
-                onChange={(event) => set('userLabel', event.target.value)}
-                value={values.userLabel}
-              />
-              {showErrors && errors.userLabel ? (
-                <small id={`${errorId}-userLabel`}>{t('transactions.validation.userLabel')}</small>
-              ) : null}
-            </label>
-            {rawLabelLocked ? (
-              <label>
-                <span>{t('transactions.fields.rawLabel')}</span>
-                <input
-                  aria-describedby="transaction-raw-label-hint"
-                  aria-label={t('transactions.fields.rawLabel')}
-                  readOnly
-                  value={values.rawLabel}
-                />
-                <small className={styles.hint} id="transaction-raw-label-hint">
-                  {t('transactions.form.rawLabelLocked')}
-                </small>
-              </label>
-            ) : null}
-          </>
-        ) : (
-          <label>
-            <span>{t('transactions.fields.label')}</span>
-            <input
-              aria-describedby={showErrors && errors.rawLabel ? `${errorId}-rawLabel` : undefined}
-              aria-invalid={showErrors && errors.rawLabel ? true : undefined}
-              aria-label={t('transactions.fields.label')}
-              data-autofocus
-              onChange={(event) => set('rawLabel', event.target.value)}
-              value={values.rawLabel}
-            />
-            {showErrors && errors.rawLabel ? (
-              <small id={`${errorId}-rawLabel`}>{t('transactions.validation.rawLabel')}</small>
-            ) : null}
-          </label>
-        )}
-
-        <label>
-          <span>{t('transactions.fields.amount')}</span>
-          <input
-            aria-describedby={[
-              hasRecordedAmount(values.amountValue) ? `${errorId}-amountHint` : null,
-              showErrors && errors.amountValue ? `${errorId}-amountValue` : null,
-            ]
-              .filter(Boolean)
-              .join(' ')}
-            aria-invalid={showErrors && errors.amountValue ? true : undefined}
-            aria-label={t('transactions.fields.amount')}
-            autoComplete="off"
-            inputMode="decimal"
-            onChange={(event) => set('amountValue', event.target.value)}
-            spellCheck={false}
-            value={values.amountValue}
-          />
-          {showErrors && errors.amountValue ? (
-            <small id={`${errorId}-amountValue`}>{t('transactions.validation.amount')}</small>
-          ) : null}
-          <SignedAmountHint
-            assetCode={amountAssetCode}
-            direction={direction}
-            id={`${errorId}-amountHint`}
-            recordedOnly
-            typed={values.amountValue}
-          />
-        </label>
-
-        <label>
-          <span>{t('transactions.fields.nature')}</span>
-          <select
-            aria-describedby={showErrors && errors.nature ? `${errorId}-nature` : undefined}
-            aria-invalid={showErrors && errors.nature ? true : undefined}
-            onChange={(event) =>
-              set('nature', event.target.value as TransactionFormValues['nature'])
-            }
-            value={values.nature}
-          >
-            {NATURES.map((nature) => (
-              <option key={nature} value={nature}>
-                {t(`transactions.natures.${nature}`)}
-              </option>
-            ))}
-          </select>
-          {showErrors && errors.nature ? (
-            <small id={`${errorId}-nature`}>{t('transactions.validation.nature')}</small>
-          ) : null}
-        </label>
-
-        <label>
-          <span>{t('transactions.fields.paymentMethod')}</span>
-          <select
-            onChange={(event) =>
-              set('paymentMethod', event.target.value as TransactionFormValues['paymentMethod'])
-            }
-            value={values.paymentMethod}
-          >
-            <option value="">{t('transactions.form.noPaymentMethod')}</option>
-            {PAYMENT_METHODS.map((method) => (
-              <option key={method} value={method}>
-                {t(`transactions.paymentMethods.${method}`)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <TransactionMainFields
+          accounts={accounts}
+          amountAssetCode={amountAssetCode}
+          balanceAfter={balanceAfter}
+          direction={direction}
+          editing={editing}
+          errors={errors}
+          onAccountChosen={markAccountChosen}
+          onChange={set}
+          rawLabelLocked={rawLabelLocked}
+          resolvedAccountId={resolved.accountId}
+          showErrors={showErrors}
+          upcoming={upcoming}
+          values={values}
+        />
 
         {values.splitMode ? (
           <div className={styles.splitNotice}>
@@ -402,7 +120,7 @@ export function TransactionForm({
               }))
             }
             preferredType={preferredType}
-            savedCategory={savedCategory(transaction) ?? defaults?.category ?? null}
+            savedCategory={savedCategory}
             value={values.categoryId}
           />
         )}
@@ -438,7 +156,7 @@ export function TransactionForm({
           onChange={set}
           onToggle={setAdvancedOpen}
           open={advancedOpen}
-          rejectable={editing && transaction.state === 'PENDING'}
+          rejectable={transaction?.state === 'PENDING'}
           showErrors={showErrors}
 
           stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}
@@ -454,17 +172,4 @@ export function TransactionForm({
       </ModalActions>
     </ModalForm>
   );
-}
-
-function savedCategory(transaction: Transaction | undefined): SavedCategory | null {
-  const split = transaction?.splits[0];
-
-  return split
-    ? {
-        color: split.categoryColor,
-        icon: split.categoryIcon,
-        id: split.categoryId,
-        label: split.categoryLabel,
-      }
-    : null;
 }

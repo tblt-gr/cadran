@@ -10,7 +10,7 @@ import {
 } from './FlowsChart';
 import { annualReport } from './annualFixtures';
 import { multiYearReport } from '@/features/reports/multi-year/multiYearFixtures';
-import { netWorthAssetCode } from '@/features/reports/multi-year/MultiYearCharts';
+import { netWorthAssetCode } from '@/features/reports/multi-year/multi-year-net-worth-chart/MultiYearNetWorthChart';
 import { MultiYearCellValue } from '@/features/reports/multi-year/MultiYearCellValue';
 
 describe('report visual semantics', () => {
