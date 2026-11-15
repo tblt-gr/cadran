@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup recurrences-materialize demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup recurrences-materialize demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -90,6 +90,12 @@ demo-extend: tools
 setup:
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console cadran:identity:setup
+
+# Forgotten owner password: prompts twice without echo, then replaces the hash and closes
+# every session. Run on the host; no old password is asked.
+reset-password:
+	sh scripts/check-local-runtime.sh
+	$(COMPOSE) run --rm --no-deps app php apps/api/bin/console cadran:identity:reset-password
 
 status:
 	sh scripts/check-local-runtime.sh

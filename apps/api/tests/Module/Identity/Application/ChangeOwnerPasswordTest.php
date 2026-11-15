@@ -19,6 +19,7 @@ use App\Module\Identity\Application\InvalidCurrentPassword;
 use App\Module\Identity\Application\NewPasswordReused;
 use App\Module\Identity\Application\OwnerAccountNotProvisioned;
 use App\Module\Identity\Application\OwnerCredentials;
+use App\Module\Identity\Application\OwnerPasswordPolicy;
 use App\Module\Identity\Application\OwnerPasswordWriter;
 use App\Module\Identity\Application\OwnerSessionRegistry;
 use App\Module\Identity\Domain\WeakPassword;
@@ -239,9 +240,9 @@ final class ChangeOwnerPasswordTest extends TestCase
             $writer,
             $sessions ?? new CountingOwnerSessionRegistry(),
             $renewal ?? new CountingCurrentSessionRenewal(),
-            $hasher ?? new PrefixPasswordHasher(),
+            $hasher ??= new PrefixPasswordHasher(),
             new RecordAuditEvent($auditEvents ?? new CollectingAuditEventRepository(), new SequenceUuidGenerator()),
-            new FilePasswordList(),
+            new OwnerPasswordPolicy(new FilePasswordList(), $hasher),
         );
     }
 

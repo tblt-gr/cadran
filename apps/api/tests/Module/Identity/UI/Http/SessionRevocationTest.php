@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Module\Identity\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
+use App\Module\Identity\Application\ResetOwnerPassword;
+use App\Module\Identity\Application\ResetOwnerPasswordInput;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Identity\Domain\PlainPassword;
 use Doctrine\DBAL\Connection;
@@ -96,6 +98,35 @@ final class SessionRevocationTest extends WebTestCase
         $this->useSession($second);
         $this->client->request('GET', '/api/v1/session');
         self::assertFalse($this->decode()['authenticated']);
+    }
+
+    public function testAConsoleResetClosesEverySessionAndTheNewPasswordSignsIn(): void
+    {
+        $first = $this->signIn();
+        $second = $this->signIn();
+        self::assertSame(2, $this->storedSessionCount());
+
+        $reset = self::getContainer()->get(ResetOwnerPassword::class);
+        self::assertInstanceOf(ResetOwnerPassword::class, $reset);
+        $reset(new ResetOwnerPasswordInput(self::NEW_PASSWORD));
+
+        self::assertSame(0, $this->storedSessionCount());
+        foreach ([$first, $second] as $stale) {
+            $this->useSession($stale);
+            $this->client->request('GET', '/api/v1/accounts');
+            self::assertResponseStatusCodeSame(401);
+        }
+
+        $this->client->getCookieJar()->clear();
+        $this->client->request('GET', '/api/v1/session');
+        $csrf = $this->client->getCookieJar()->get(SignedCsrfToken::COOKIE_NAME);
+        self::assertNotNull($csrf);
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', $csrf->getValue());
+        $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: (string) json_encode([
+            'email' => self::EMAIL,
+            'password' => self::NEW_PASSWORD,
+        ]));
+        self::assertResponseStatusCodeSame(204);
     }
 
     public function testARefusedChangeRevokesNothing(): void
