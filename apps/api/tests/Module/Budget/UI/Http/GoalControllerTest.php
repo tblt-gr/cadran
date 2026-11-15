@@ -197,7 +197,7 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('/accounts', $item['explanationUrl']);
         $this->stockSnapshot($account, '2026-12-31', '19500.00');
         $this->clock->modify('2026-12-31T12:00:00+00:00');
-        $this->refreshCsrf();
+        $this->signInAgain();
         $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-01&to=2026-12&granularity=YEAR');
         self::assertResponseIsSuccessful();
         $item = self::arr($this->stockItem('years'));
@@ -1197,7 +1197,7 @@ final class GoalControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         $id = $this->id($this->decode());
         $this->clock->modify('2027-03-14T09:12:04+00:00');
-        $this->refreshCsrf();
+        $this->signInAgain();
 
         $this->requestJson('POST', '/api/v1/goals/'.$id.'/correction-preview', [
             'label' => 'Annual savings',
@@ -1352,6 +1352,18 @@ final class GoalControllerTest extends WebTestCase
         self::assertIsScalar($value);
 
         return (string) $value;
+    }
+
+    /**
+     * The frozen clock jumps past the 30-day absolute session lifetime of the sign-in done in setUp()
+     * (real clock), so the owner signs in again under the frozen clock.
+     */
+    private function signInAgain(): void
+    {
+        $this->refreshCsrf();
+        $this->requestJson('POST', '/api/v1/session', ['email' => WorkspaceFixture::OWNER_EMAIL, 'password' => WorkspaceFixture::OWNER_PASSWORD]);
+        self::assertResponseStatusCodeSame(204);
+        $this->refreshCsrf();
     }
 
     private function refreshCsrf(): void
