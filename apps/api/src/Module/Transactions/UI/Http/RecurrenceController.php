@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -63,7 +64,7 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrence-candidates/dismiss', name: 'api_v1_recurrence_candidates_dismiss', methods: ['POST'])]
     public function dismiss(Request $request, DismissRecurrenceCandidate $dismiss): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -121,14 +122,14 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences', name: 'api_v1_recurrences_create', methods: ['POST'])]
     public function create(Request $request, ConfirmRecurrence $confirm): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
         try {
             $payload = RecurrencePayload::of($body, self::CREATE_FIELDS, self::AUTO_CREATE_FIELDS);
             $input = new RecurrenceInput(
-                $payload->identifier('accountId'), $payload->string('label'), $payload->nullableString('counterparty'),
+                $payload->uuid('accountId'), $payload->string('label'), $payload->nullableString('counterparty'),
                 $payload->string('expectedAmount'), $payload->string('amountTolerance'), $payload->string('intervalKind'),
                 $payload->integer('dayOfPeriod'), $payload->string('firstExpectedOn'),
                 $payload->boolean('autoCreate'), $payload->nullableIdentifier('categoryId'),
@@ -157,7 +158,7 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/refresh-horizon', name: 'api_v1_recurrences_refresh_horizon', methods: ['POST'], priority: 10)]
     public function refresh(Request $request, RefreshOccurrenceHorizon $refresh): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -175,7 +176,7 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/materialize', name: 'api_v1_recurrences_materialize', methods: ['POST'], priority: 10)]
     public function materialize(Request $request, MaterializeRecurrenceOccurrences $materialize): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -193,10 +194,10 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/{id}', name: 'api_v1_recurrences_update', methods: ['PUT'])]
     public function update(string $id, Request $request, EditRecurrence $edit): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(404, '/problems/recurrences.not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -225,10 +226,10 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/{id}/archive', name: 'api_v1_recurrences_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveRecurrence $archive): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(404, '/problems/recurrences.not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -250,10 +251,10 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/{id}/restore', name: 'api_v1_recurrences_restore', methods: ['POST'])]
     public function restoreRecurrence(string $id, Request $request, RestoreRecurrence $restore): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(404, '/problems/recurrences.not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -275,7 +276,7 @@ final readonly class RecurrenceController
     #[Route('/api/v1/recurrences/{id}/occurrences', name: 'api_v1_recurrences_occurrences', methods: ['GET'])]
     public function occurrences(string $id, Request $request, ListRecurrenceOccurrences $list): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(404, '/problems/recurrences.not_found');
         }
         if ([] !== array_diff(array_keys($request->query->all()), ['from', 'to'])) {

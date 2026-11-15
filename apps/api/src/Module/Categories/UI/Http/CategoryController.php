@@ -13,6 +13,9 @@ use App\Module\Categories\Application\ListCategories;
 use App\Module\Categories\Application\UpdateCategory;
 use App\Module\Categories\Application\UpdateCategoryInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -21,7 +24,7 @@ use Symfony\Component\Routing\Attribute\Route;
  * Adapts HTTP to the category read and edit use cases. Field-level validation
  * lives in {@see CategoryPayload}, the wire shape in
  * {@see CategoryRepresentation} and the envelope in
- * {@see CategoryHttpEnvelope}; what remains here is the routing and the status
+ * {@see JsonRequestEnvelope}; what remains here is the routing and the status
  * mapping. The lifecycle operations have their own controller.
  */
 final readonly class CategoryController
@@ -33,7 +36,7 @@ final readonly class CategoryController
         'type', 'label', 'icon', 'color', 'defaultAnalyticAxes', 'budgetIncluded', 'sortOrder', 'version',
     ];
 
-    public function __construct(private CategoryHttpEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -74,7 +77,7 @@ final readonly class CategoryController
     #[Route('/api/v1/categories', name: 'api_v1_categories_create', methods: ['POST'])]
     public function create(Request $request, CreateCategory $createCategory): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.category_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -106,11 +109,11 @@ final readonly class CategoryController
     #[Route('/api/v1/categories/{id}', name: 'api_v1_categories_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateCategory $updateCategory): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
         }
 
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.category_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }

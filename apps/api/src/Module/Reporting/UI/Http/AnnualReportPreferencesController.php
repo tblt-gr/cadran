@@ -6,6 +6,8 @@ namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Reporting\Application\AnnualPreferencesView;
 use App\Module\Reporting\Application\InvalidAnnualPreferencesInput;
 use App\Module\Reporting\Application\ReadAnnualPreferences;
@@ -26,11 +28,10 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class AnnualReportPreferencesController
 {
-    private const int MAX_BODY_BYTES = 16_384;
     private const array FIELDS = ['columns', 'incompleteMonths', 'version'];
     private const string OPTIONAL_FIELD = 'goalMarks';
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -49,17 +50,9 @@ final readonly class AnnualReportPreferencesController
     #[Route('/api/v1/reports/annual/preferences', name: 'api_v1_reports_annual_preferences_save', methods: ['PUT'])]
     public function save(Request $request, SaveAnnualPreferences $save): Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.invalid_annual_preferences');
-        }
-
-        try {
-            $body = $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.invalid_annual_preferences');
+        if ($body instanceof Response) {
+            return $body;
         }
 
         try {

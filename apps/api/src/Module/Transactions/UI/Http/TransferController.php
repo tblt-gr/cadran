@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\CreateTransfer;
 use App\Module\Transactions\Application\CreateTransferInput;
 use App\Module\Transactions\Application\IdempotencyConflict;
@@ -45,7 +46,7 @@ final readonly class TransferController
     #[Route('/api/v1/transfers', name: 'api_v1_transfers_create', methods: ['POST'])]
     public function create(Request $request, CreateTransfer $createTransfer): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -53,8 +54,8 @@ final readonly class TransferController
         try {
             $payload = TransferPayload::of($body, self::CREATE_FIELDS);
             $input = new CreateTransferInput(
-                sourceAccountId: $payload->identifier('sourceAccountId'),
-                targetAccountId: $payload->identifier('targetAccountId'),
+                sourceAccountId: $payload->uuid('sourceAccountId'),
+                targetAccountId: $payload->uuid('targetAccountId'),
                 sourceAmount: $payload->amount('sourceAmount'),
                 targetAmount: $payload->nullableAmount('targetAmount'),
                 state: $payload->string('state'),
@@ -97,7 +98,7 @@ final readonly class TransferController
     #[Route('/api/v1/transfers/{id}', name: 'api_v1_transfers_read', methods: ['GET'])]
     public function read(string $id, ReadTransfer $readTransfer): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
         }
 
@@ -115,10 +116,10 @@ final readonly class TransferController
     #[Route('/api/v1/transfers/{id}', name: 'api_v1_transfers_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateTransfer $updateTransfer): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -126,8 +127,8 @@ final readonly class TransferController
         try {
             $payload = TransferPayload::of($body, self::UPDATE_FIELDS);
             $transfer = $updateTransfer($id, new UpdateTransferInput(
-                sourceAccountId: $payload->identifier('sourceAccountId'),
-                targetAccountId: $payload->identifier('targetAccountId'),
+                sourceAccountId: $payload->uuid('sourceAccountId'),
+                targetAccountId: $payload->uuid('targetAccountId'),
                 state: $payload->string('state'),
                 bookedOn: $payload->string('bookedOn'),
                 valueOn: $payload->nullableString('valueOn'),
@@ -160,10 +161,10 @@ final readonly class TransferController
     #[Route('/api/v1/transfers/{id}/void', name: 'api_v1_transfers_void', methods: ['POST'])]
     public function void(string $id, Request $request, VoidTransfer $voidTransfer): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }

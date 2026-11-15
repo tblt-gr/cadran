@@ -6,6 +6,8 @@ namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Reporting\Application\ActivateMetricPolicy;
 use App\Module\Reporting\Application\ActivateMetricPolicyInput;
 use App\Module\Reporting\Application\CreateMetricPolicy;
@@ -27,9 +29,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 /** Lists, creates and activates the workspace metric policy versions. No version is ever edited or deleted. */
 final readonly class MetricPolicyController
 {
-    private const int MAX_BODY_BYTES = 4096;
-
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -48,7 +48,7 @@ final readonly class MetricPolicyController
     #[Route('/api/v1/reports/metric-policies', name: 'api_v1_reports_metric_policies_create', methods: ['POST'])]
     public function create(Request $request, CreateMetricPolicy $create): Response
     {
-        $body = $this->body($request, ['label', 'cashExcludedAccountKinds']);
+        $body = $this->readBody($request, ['label', 'cashExcludedAccountKinds']);
         if ($body instanceof Response) {
             return $body;
         }
@@ -76,7 +76,7 @@ final readonly class MetricPolicyController
     #[Route('/api/v1/reports/metric-policies/active', name: 'api_v1_reports_metric_policies_activate', methods: ['PUT'])]
     public function activate(Request $request, ActivateMetricPolicy $activate): Response
     {
-        $body = $this->body($request, ['version', 'expectedActiveVersion'], ['reason']);
+        $body = $this->readBody($request, ['version', 'expectedActiveVersion'], ['reason']);
         if ($body instanceof Response) {
             return $body;
         }
@@ -113,18 +113,11 @@ final readonly class MetricPolicyController
      *
      * @return array<mixed>|Response
      */
-    private function body(Request $request, array $required, array $optional = []): array|Response
+    private function readBody(Request $request, array $required, array $optional = []): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.invalid_metric_policy');
-        }
-        try {
-            $body = $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
+        $body = $this->envelope->body($request, BodyLimit::Small, 'api.problem.invalid_metric_policy');
+        if ($body instanceof Response) {
+            return $body;
         }
         $keys = array_keys($body);
         if ([] !== array_diff($required, $keys) || [] !== array_diff($keys, [...$required, ...$optional])) {

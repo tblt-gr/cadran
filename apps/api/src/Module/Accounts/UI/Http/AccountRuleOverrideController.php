@@ -20,6 +20,9 @@ use App\Module\Accounts\Application\ResolveAuthorNames;
 use App\Module\Accounts\Application\WithdrawAccountRuleOverride;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -43,14 +46,13 @@ final readonly class AccountRuleOverrideController
     public const string TYPE_OVERRIDE_CONFLICT = '/problems/account-rule-override-conflict';
     public const string TYPE_ARCHIVED = '/problems/account-archived';
 
-    private const int MAX_BODY_BYTES = 16_384;
     private const array OVERRIDE_FIELDS = [
         'kind', 'amount', 'amountAssetCode', 'text', 'rateApplication', 'brackets',
         'validFrom', 'validTo', 'reason',
     ];
     private const array BRACKET_FIELDS = ['lowerBound', 'upperBound', 'percentage'];
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -62,7 +64,7 @@ final readonly class AccountRuleOverrideController
     #[Route('/api/v1/accounts/{id}/rule-overrides', name: 'api_v1_account_rule_overrides_list', methods: ['GET'])]
     public function list(string $id, ListAccountRuleOverrides $listOverrides, ResolveAuthorNames $authors): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
@@ -85,7 +87,7 @@ final readonly class AccountRuleOverrideController
     #[Route('/api/v1/accounts/{id}/rule-overrides', name: 'api_v1_account_rule_overrides_record', methods: ['POST'])]
     public function record(string $id, Request $request, RecordAccountRuleOverride $recordOverride): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
@@ -127,7 +129,7 @@ final readonly class AccountRuleOverrideController
         Request $request,
         WithdrawAccountRuleOverride $withdrawOverride,
     ): Response {
-        if (!self::identifier($id) || !self::identifier($overrideId)) {
+        if (!Identifier::isValid($id) || !Identifier::isValid($overrideId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_rule_override_not_found');
         }
 
@@ -190,23 +192,7 @@ final readonly class AccountRuleOverrideController
      */
     private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.account_payload_too_large');
-        }
-
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
+        return $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_payload_too_large');
     }
 
     /** @param array<string, mixed> $data */

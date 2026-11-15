@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
 use App\Module\Transactions\Application\IdempotencyConflict;
@@ -59,7 +60,7 @@ final readonly class TransactionController
     #[Route('/api/v1/transactions', name: 'api_v1_transactions_create', methods: ['POST'])]
     public function create(Request $request, CreateTransaction $createTransaction): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -105,7 +106,7 @@ final readonly class TransactionController
     #[Route('/api/v1/transactions/{id}', name: 'api_v1_transactions_read', methods: ['GET'])]
     public function read(string $id, ReadTransaction $readTransaction): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         }
 
@@ -123,10 +124,10 @@ final readonly class TransactionController
     #[Route('/api/v1/transactions/{id}', name: 'api_v1_transactions_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateTransaction $updateTransaction): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -170,7 +171,7 @@ final readonly class TransactionController
     private static function createInput(TransactionPayload $payload): CreateTransactionInput
     {
         return new CreateTransactionInput(
-            accountId: $payload->identifier('accountId'),
+            accountId: $payload->uuid('accountId'),
             amount: $payload->amount('amount'),
             nature: $payload->string('nature'),
             state: $payload->string('state'),
@@ -195,7 +196,7 @@ final readonly class TransactionController
     private static function updateInput(TransactionPayload $payload): UpdateTransactionInput
     {
         return new UpdateTransactionInput(
-            accountId: $payload->identifier('accountId'),
+            accountId: $payload->uuid('accountId'),
             amount: $payload->amount('amount'),
             nature: $payload->string('nature'),
             state: $payload->string('state'),

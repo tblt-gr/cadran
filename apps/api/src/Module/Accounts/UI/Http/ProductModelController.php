@@ -23,6 +23,9 @@ use App\Module\Accounts\Application\StaleProductModelVersion;
 use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -50,13 +53,12 @@ final readonly class ProductModelController
     public const string TYPE_STALE_VERSION = '/problems/stale-version';
     public const string TYPE_ARCHIVED = '/problems/product-model-archived';
 
-    private const int MAX_BODY_BYTES = 32_768;
     private const array RULE_FIELDS = [
         'kind', 'amount', 'amountAssetCode', 'text', 'rateApplication', 'brackets', 'validFrom', 'validTo',
     ];
     private const array BRACKET_FIELDS = ['lowerBound', 'upperBound', 'percentage'];
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -153,7 +155,7 @@ final readonly class ProductModelController
     #[Route('/api/v1/product-models/{id}', name: 'api_v1_product_models_read', methods: ['GET'])]
     public function read(string $id, ReadProductModel $readProductModel): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
@@ -171,7 +173,7 @@ final readonly class ProductModelController
     #[Route('/api/v1/product-models/{id}/duplicate', name: 'api_v1_product_models_duplicate', methods: ['POST'])]
     public function duplicate(string $id, Request $request, DuplicateProductModel $duplicateProductModel): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
@@ -205,7 +207,7 @@ final readonly class ProductModelController
     #[Route('/api/v1/product-models/{id}/rules', name: 'api_v1_product_models_add_rule', methods: ['POST'])]
     public function addRule(string $id, Request $request, AddProductModelRule $addProductModelRule): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
@@ -235,7 +237,7 @@ final readonly class ProductModelController
     #[Route('/api/v1/product-models/{id}/archive', name: 'api_v1_product_models_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveProductModel $archiveProductModel): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
@@ -306,18 +308,7 @@ final readonly class ProductModelController
      */
     private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.product_model_payload_too_large');
-        }
-
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
+        return $this->envelope->body($request, BodyLimit::Large, 'api.problem.product_model_payload_too_large');
     }
 
     private static function flag(string $value): bool
@@ -328,11 +319,6 @@ final readonly class ProductModelController
     private static function unsignedIntegerOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
     }
 
     /** @param array<string, mixed> $data */

@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -39,12 +40,12 @@ final readonly class AccountReconciliationController
     #[Route('/api/v1/accounts/{accountId}/reconciliation', name: 'api_v1_account_reconciliation_read', methods: ['GET'])]
     public function read(string $accountId, Request $request, ReadAccountReconciliation $readAccountReconciliation): Response
     {
-        if (!$this->envelope->isIdentifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->notFound();
         }
         $snapshotId = $request->query->get('snapshotId');
         $periodStart = $request->query->get('periodStart');
-        if (!is_string($snapshotId) || !$this->envelope->isIdentifier($snapshotId)
+        if (!is_string($snapshotId) || !Identifier::isValid($snapshotId)
             || !is_string($periodStart) || 1 !== preg_match(self::DATE_PATTERN, $periodStart)
             || [] !== array_diff(array_keys($request->query->all()), ['snapshotId', 'periodStart'])) {
             return $this->invalid();
@@ -66,10 +67,10 @@ final readonly class AccountReconciliationController
     #[Route('/api/v1/accounts/{accountId}/reconciliation', name: 'api_v1_account_reconciliation_resolve', methods: ['POST'])]
     public function resolve(string $accountId, Request $request, ReconcileAccountBalance $reconcileAccountBalance): Response
     {
-        if (!$this->envelope->isIdentifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->notFound();
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -77,7 +78,7 @@ final readonly class AccountReconciliationController
         try {
             $payload = TransactionPayload::of($body, self::RECONCILE_FIELDS);
             $input = new ReconcileAccountBalanceInput(
-                $payload->identifier('snapshotId'),
+                $payload->uuid('snapshotId'),
                 $payload->integer('snapshotVersion'),
                 $payload->string('periodStart'),
                 $payload->string('resolution'),

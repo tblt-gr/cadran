@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\Categorization\CategorizationRuleInput;
 
 final readonly class CategorizationRulePayload
 {
-    private const string IDENTIFIER = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
-
     /** @param array<string, mixed> $fields */
     private function __construct(private array $fields)
     {
@@ -45,7 +44,7 @@ final readonly class CategorizationRulePayload
     {
         return new CategorizationRuleInput(
             $this->string('label'), $this->integer('priority'), $this->identifiers('accountScope'),
-            $this->object('conditions'), $this->identifier('targetCategoryId'), $this->strings('targetAxes'),
+            $this->object('conditions'), $this->uuid('targetCategoryId'), $this->strings('targetAxes'),
             $this->nullableString('targetCounterparty'), $this->string('effectiveFrom'), $this->nullableString('effectiveTo'),
             $updating ? $this->boolean('active') : true, $updating ? $this->integer('version') : null,
         );
@@ -119,10 +118,10 @@ final readonly class CategorizationRulePayload
         return $value;
     }
 
-    private function identifier(string $key): string
+    private function uuid(string $key): string
     {
         $value = $this->string($key);
-        if (1 !== preg_match(self::IDENTIFIER, $value)) {
+        if (!Identifier::isValid($value)) {
             throw new \UnexpectedValueException();
         }
 
@@ -138,7 +137,7 @@ final readonly class CategorizationRulePayload
     private function identifiers(string $key): array
     {
         return array_map(static function (string $item): string {
-            if (1 !== preg_match(self::IDENTIFIER, $item)) {
+            if (!Identifier::isValid($item)) {
                 throw new \UnexpectedValueException();
             }
 

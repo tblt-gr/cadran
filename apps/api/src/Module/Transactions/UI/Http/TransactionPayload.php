@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
+use App\Module\Foundation\UI\Http\Identifier;
+
 /** A transaction body narrowed to its exact, non-coercing public field set. */
 final readonly class TransactionPayload
 {
@@ -56,10 +58,10 @@ final readonly class TransactionPayload
         return $value;
     }
 
-    public function identifier(string $field): string
+    public function uuid(string $field): string
     {
         $value = $this->string($field);
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (!Identifier::isValid($value)) {
             throw new \UnexpectedValueException(sprintf('%s must be a canonical UUID.', $field));
         }
 
@@ -69,7 +71,7 @@ final readonly class TransactionPayload
     public function nullableIdentifier(string $field): ?string
     {
         $value = $this->nullableString($field);
-        if (null !== $value && 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (null !== $value && !Identifier::isValid($value)) {
             throw new \UnexpectedValueException(sprintf('%s must be a canonical UUID or null.', $field));
         }
 
@@ -141,7 +143,7 @@ final readonly class TransactionPayload
         }
 
         $categoryId = $row['categoryId'];
-        if (!is_string($categoryId) || 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $categoryId)) {
+        if (!is_string($categoryId) || !Identifier::isValid($categoryId)) {
             throw new \UnexpectedValueException('A split categoryId must be a canonical UUID.');
         }
         $rawAxes = $row['analyticAxes'];

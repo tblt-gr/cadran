@@ -36,6 +36,16 @@ foreach ($iterator as $file) {
         exit(2);
     }
 
+    // Request plumbing lives in Foundation\UI\Http (JsonRequestEnvelope, BodyLimit, Identifier).
+    if ('UI' === $sourceLayer && str_contains($path, '/UI/Http/') && !str_ends_with($path, '/Foundation/UI/Http/JsonRequestEnvelope.php')) {
+        if (1 === preg_match('/\bconst\s+(?:\w+\s+)?MAX_BODY_BYTES\b/', $contents)) {
+            $violations[] = sprintf('%s: declare the body ceiling in BodyLimit, not MAX_BODY_BYTES', $path);
+        }
+        if (1 === preg_match('/\bfunction\s+(identifier|isIdentifier|body)\s*\(/', $contents, $helper)) {
+            $violations[] = sprintf('%s: %s() duplicates the shared JsonRequestEnvelope or Identifier', $path, $helper[1]);
+        }
+    }
+
     foreach (token_get_all($contents) as $token) {
         if (!is_array($token) || !in_array($token[0], [T_NAME_QUALIFIED, T_NAME_FULLY_QUALIFIED], true)) {
             continue;

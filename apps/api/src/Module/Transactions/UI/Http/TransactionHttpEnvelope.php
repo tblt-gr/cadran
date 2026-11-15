@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotencyRequest;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
@@ -22,32 +24,15 @@ final readonly class TransactionHttpEnvelope
 {
     public const string TYPE_STALE_VERSION = '/problems/stale-version';
     public const string TYPE_CONFLICT = '/problems/transaction-conflict';
-    private const int MAX_BODY_BYTES = 32_768;
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
     /** @return array<mixed>|Response */
-    public function body(Request $request): array|Response
+    public function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.transaction_payload_too_large');
-        }
-
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
-    }
-
-    public function isIdentifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
+        return $this->envelope->body($request, BodyLimit::Large, 'api.problem.transaction_payload_too_large');
     }
 
     /**

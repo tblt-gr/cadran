@@ -6,6 +6,9 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Portfolio\Application\BuildValuationDraft;
 use App\Module\Portfolio\Application\InvalidHistoryRange;
 use App\Module\Portfolio\Application\InvalidValuationQuery;
@@ -33,13 +36,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class PortfolioValuationController
 {
-    private const int MAX_BODY_BYTES = 65_536;
     private const string ACCOUNT_NOT_FOUND = 'portfolio_account_not_found';
     private const string VALUATION_NOT_FOUND = 'portfolio_valuation_not_found';
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
     public function __construct(
         private TranslatorInterface $translator,
+        private JsonRequestEnvelope $requestEnvelope,
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -48,7 +50,7 @@ final readonly class PortfolioValuationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-valuations', name: 'api_v1_portfolio_valuations_list', methods: ['GET'])]
     public function list(string $accountId, Request $request, ListPortfolioValuations $list): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
         try {
@@ -64,7 +66,7 @@ final readonly class PortfolioValuationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-valuation-history', name: 'api_v1_portfolio_valuation_history', methods: ['GET'])]
     public function history(string $accountId, Request $request, ReadPortfolioValuationHistory $read): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
         try {
@@ -85,7 +87,7 @@ final readonly class PortfolioValuationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-valuations/draft', name: 'api_v1_portfolio_valuations_draft', methods: ['GET'])]
     public function draft(string $accountId, Request $request, BuildValuationDraft $build): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
         try {
@@ -100,10 +102,10 @@ final readonly class PortfolioValuationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-valuations', name: 'api_v1_portfolio_valuations_create', methods: ['POST'])]
     public function create(string $accountId, Request $request, RecordPortfolioValuation $record): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -130,7 +132,7 @@ final readonly class PortfolioValuationController
     #[Route('/api/v1/portfolio-valuations/{id}', name: 'api_v1_portfolio_valuations_show', methods: ['GET'])]
     public function show(string $id, ReadPortfolioValuation $read): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::VALUATION_NOT_FOUND);
         }
         try {
@@ -145,10 +147,10 @@ final readonly class PortfolioValuationController
     #[Route('/api/v1/portfolio-valuations/{id}/withdraw', name: 'api_v1_portfolio_valuations_withdraw', methods: ['POST'])]
     public function withdraw(string $id, Request $request, WithdrawPortfolioValuation $withdraw): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::VALUATION_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -183,19 +185,14 @@ final readonly class PortfolioValuationController
     }
 
     /** @return array<mixed>|Response */
-    private function body(Request $request): array|Response
+    private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'portfolio_payload_too_large');
-        }
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_request');
-        }
+        return $this->requestEnvelope->body(
+            $request,
+            BodyLimit::XLarge,
+            'api.problem.portfolio_payload_too_large',
+            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
+        );
     }
 
     /** @param array<string, mixed> $extensions */
@@ -214,11 +211,6 @@ final readonly class PortfolioValuationController
     private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
     {
         return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match(self::UUID_PATTERN, $value);
     }
 
     /** @param array<string, mixed> $query */

@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace App\Module\Identity\UI\Http;
 
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The request and response envelope shared by the owner profile endpoints.
@@ -26,27 +27,14 @@ final readonly class ProfileHttpEnvelope
     public const string TYPE_REUSED_PASSWORD = '/problems/reused-password';
     public const string TYPE_INVALID_DISPLAY_NAME = '/problems/invalid-display-name';
 
-    private const int MAX_BODY_BYTES = 4_096;
-
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
     /** @return array<mixed>|Response */
-    public function body(Request $request): array|Response
+    public function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.profile_payload_too_large');
-        }
-
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
+        return $this->envelope->body($request, BodyLimit::Small, 'api.problem.profile_payload_too_large');
     }
 
     /**
@@ -84,7 +72,7 @@ final readonly class ProfileHttpEnvelope
     /** @param array<string, mixed> $data */
     public function json(array $data, int $status = Response::HTTP_OK): JsonResponse
     {
-        return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
+        return $this->envelope->json($data, $status);
     }
 
     /** @param array<string, string> $headers */
@@ -94,12 +82,6 @@ final readonly class ProfileHttpEnvelope
         string $type = ApiProblem::TYPE_BLANK,
         array $headers = [],
     ): JsonResponse {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-            $type,
-            $headers,
-        );
+        return $this->envelope->problem($status, $translationKey, $type, headers: $headers);
     }
 }

@@ -6,6 +6,7 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Portfolio\Application\Performance\PerformanceRangeTooDense;
 use App\Module\Portfolio\Application\Performance\ReadPortfolioAnnualPerformance;
 use App\Module\Portfolio\Application\Performance\ReadPortfolioPerformance;
@@ -29,7 +30,7 @@ final readonly class PortfolioPerformanceController
     public function performance(string $accountId, Request $request, ReadPortfolioPerformance $read): Response
     {
         return $this->respond(static fn (): array => PortfolioPerformanceRepresentation::of(
-            $read(self::identifier($accountId), self::scalar($request, 'scope', 'invalid_performance_scope'), self::scalar($request, 'period', 'invalid_performance_period')),
+            $read(self::accountId($accountId), self::scalar($request, 'scope', 'invalid_performance_scope'), self::scalar($request, 'period', 'invalid_performance_period')),
         ));
     }
 
@@ -37,7 +38,7 @@ final readonly class PortfolioPerformanceController
     public function annual(string $accountId, Request $request, ReadPortfolioAnnualPerformance $read): Response
     {
         return $this->respond(static fn (): array => PortfolioAnnualPerformanceRepresentation::of(
-            $read(self::identifier($accountId), self::scalar($request, 'year', 'invalid_performance_period')),
+            $read(self::accountId($accountId), self::scalar($request, 'year', 'invalid_performance_period')),
         ));
     }
 
@@ -64,9 +65,9 @@ final readonly class PortfolioPerformanceController
         }
     }
 
-    private static function identifier(string $literal): string
+    private static function accountId(string $literal): string
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $literal)) {
+        if (!Identifier::isValid($literal)) {
             throw new PortfolioAccountNotFound();
         }
 

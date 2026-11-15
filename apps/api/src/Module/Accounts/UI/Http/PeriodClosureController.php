@@ -17,6 +17,8 @@ use App\Module\Accounts\Application\ReopenPeriod;
 use App\Module\Accounts\Application\StalePeriodClosureVersion;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,10 +32,9 @@ final readonly class PeriodClosureController
     public const string TYPE_CONFLICT = '/problems/period-closure-conflict';
     public const string TYPE_STALE_VERSION = '/problems/stale-version';
 
-    private const int MAX_BODY_BYTES = 8_192;
     private const string PERIOD = '\d{4}-\d{2}';
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -171,18 +172,8 @@ final readonly class PeriodClosureController
         if ($optional && '' === $request->getContent()) {
             return [];
         }
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.period_closure_payload_too_large');
-        }
 
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
-        }
+        return $this->envelope->body($request, BodyLimit::Medium, 'api.problem.period_closure_payload_too_large');
     }
 
     /** @param array<string, mixed> $data */

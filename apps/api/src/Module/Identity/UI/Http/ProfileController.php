@@ -62,7 +62,7 @@ final readonly class ProfileController
     #[Route('/api/v1/profile', name: 'api_v1_profile_update', methods: ['PATCH'])]
     public function update(Request $request, UpdateOwnerProfile $updateOwnerProfile): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -95,7 +95,7 @@ final readonly class ProfileController
         #[CurrentUser] UserInterface $user,
         ChangeOwnerPassword $changeOwnerPassword,
     ): Response {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }

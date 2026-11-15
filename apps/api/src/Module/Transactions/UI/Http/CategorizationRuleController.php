@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Transactions\Application\Categorization\ApplyCategorizationRules;
 use App\Module\Transactions\Application\Categorization\ArchiveCategorizationRule;
 use App\Module\Transactions\Application\Categorization\CategorizationExecutionLimitExceeded;
@@ -60,7 +61,7 @@ final readonly class CategorizationRuleController
     #[Route('/api/v1/categorization-rules', name: 'api_v1_categorization_rules_create', methods: ['POST'])]
     public function create(Request $request, CreateCategorizationRule $create): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -95,10 +96,10 @@ final readonly class CategorizationRuleController
     #[Route('/api/v1/categorization-rules/{id}', name: 'api_v1_categorization_rules_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateCategorizationRule $update): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(404, '/problems/rules.not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -126,10 +127,10 @@ final readonly class CategorizationRuleController
     #[Route('/api/v1/categorization-rules/{id}/archive', name: 'api_v1_categorization_rules_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveCategorizationRule $archive): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(404, '/problems/rules.not_found');
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -151,14 +152,14 @@ final readonly class CategorizationRuleController
     #[Route('/api/v1/categorization-rules/preview', name: 'api_v1_categorization_rules_preview', methods: ['POST'], priority: 10)]
     public function preview(Request $request, PreviewCategorizationRules $preview): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
         try {
             $payload = CategorizationRulePayload::of($body, ['ruleId', 'from', 'to']);
             $ruleId = $payload->nullableString('ruleId');
-            if (null !== $ruleId && !$this->envelope->isIdentifier($ruleId)) {
+            if (null !== $ruleId && !Identifier::isValid($ruleId)) {
                 throw new \UnexpectedValueException();
             }
 
@@ -179,7 +180,7 @@ final readonly class CategorizationRuleController
     #[Route('/api/v1/categorization-rules/apply', name: 'api_v1_categorization_rules_apply', methods: ['POST'], priority: 10)]
     public function apply(Request $request, ApplyCategorizationRules $apply): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
