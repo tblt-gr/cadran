@@ -2,6 +2,7 @@ version: 2
 
 # Keep vulnerability alerts enabled without opening automated version PRs.
 # Automated security PRs are disabled in the repository settings.
+# Version updates follow the monthly routine described in CONTRIBUTING.md (Dependency updates).
 updates:
   - package-ecosystem: npm
     directory: /

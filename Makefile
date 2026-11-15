@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup recurrences-materialize demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-restore db-restore-cleanup recurrences-materialize demo-seed demo-extend init install tools up down migrate setup status tls-certificate generate test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -188,6 +188,11 @@ build: tools
 audit: tools
 	$(TOOLS_RUN) composer audit --working-dir=apps/api --locked
 	$(TOOLS_RUN) pnpm audit --audit-level=high
+
+# Lists outdated direct dependencies; never fails so the monthly routine can read it.
+outdated: tools
+	$(TOOLS_RUN) pnpm outdated -r || true
+	$(TOOLS_RUN) composer outdated --direct --working-dir=apps/api || true
 
 e2e-image:
 	docker build --file docker/e2e/Dockerfile --tag $(E2E_IMAGE) .
