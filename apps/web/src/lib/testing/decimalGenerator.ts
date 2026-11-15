@@ -2,8 +2,8 @@
  * Deterministic generator of canonical decimal strings for property tests.
  * It only assembles digit strings: no Number ever carries a financial value.
  */
-export const DEFAULT_PROPERTY_SEED = 539;
-export const DEFAULT_PROPERTY_CASES = 500;
+const DEFAULT_PROPERTY_SEED = 539;
+const DEFAULT_PROPERTY_CASES = 500;
 
 function environmentInteger(name: string, fallback: number): number {
   const env = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process
