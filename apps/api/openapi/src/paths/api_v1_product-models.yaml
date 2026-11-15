@@ -1,0 +1,118 @@
+get:
+  operationId: listProductModels
+  summary: List the calling workspace product models
+  description: >-
+    Requires an authenticated session. The workspace is resolved from the
+    session and cannot be selected by a query parameter. These are the models a
+    workspace describes itself, beside the read-only system catalogue; archived
+    models are omitted unless explicitly requested.
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/ListRevision.yaml
+    - name: includeArchived
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1
+    - name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: One page of product models from the calling workspace.
+      headers:
+        X-List-Revision:
+          $ref: ../components/headers/ListRevision.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ProductModelPage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '409':
+      $ref: ../components/responses/ListRevisionStale.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: createProductModel
+  x-cadran-idempotency: 'Active model names are unique: a replay answers 409 and creates nothing.'
+  summary: Describe a product model in the calling workspace
+  description: >-
+    Records a model the workspace describes itself: a family, an envelope, a
+    yield, a valuation mode, capabilities, and its own dated rule periods.
+    Nothing here reads or writes the system catalogue. A rate period is a
+    bracket scale with an explicit `MARGINAL` or `FLAT_BY_BRACKET` mode; a
+    single rate is the one-bracket case of the same shape. The mutation requires
+    the same-origin CSRF token.
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateProductModelRequest.yaml
+  responses:
+    '201':
+      description: The model was recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ProductModel.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/ProductModelMutationForbidden.yaml
+    '409':
+      description: >-
+        An active model already uses the name (`type:
+        /problems/product-model-name-taken`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/ProductModelPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The name, family, envelope, yield, valuation mode, capabilities or a
+        dated period is invalid. A rate scale that overlaps, leaves a gap, does
+        not start at zero or leaves no open upper bracket is refused here and
+        nothing is persisted.
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AmountInputProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

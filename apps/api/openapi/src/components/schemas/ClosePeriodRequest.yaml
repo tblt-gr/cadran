@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+properties:
+  overrides:
+    description: >-
+      Each confirmed condition with the reason for waiving it. A condition
+      absent from the month's blockers is refused.
+    type: object
+    additionalProperties: false
+    properties:
+      UNRECONCILED_ACCOUNT:
+        type: string
+        minLength: 1
+        maxLength: 200
+      UNEXPLAINED_DISCREPANCY:
+        type: string
+        minLength: 1
+        maxLength: 200
+      PENDING_TRANSACTIONS:
+        type: string
+        minLength: 1
+        maxLength: 200
+      MISSING_PORTFOLIO_VALUATION:
+        type: string
+        minLength: 1
+        maxLength: 200

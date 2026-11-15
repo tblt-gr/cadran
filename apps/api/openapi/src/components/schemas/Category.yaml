@@ -1,0 +1,118 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - type
+  - label
+  - parentId
+  - parentLabel
+  - icon
+  - color
+  - effectiveColor
+  - effectiveIcon
+  - defaultAnalyticAxes
+  - budgetIncluded
+  - sortOrder
+  - depth
+  - version
+  - used
+  - typeEditable
+  - typeEditReason
+  - canAcceptChildren
+  - archivedAt
+  - replacement
+properties:
+  id:
+    type: string
+    format: uuid
+  type:
+    $ref: ./CategoryType.yaml
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  parentId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  parentLabel:
+    description: Label of the parent category, or null when the category is a root.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  icon:
+    oneOf:
+      - type: string
+        pattern: ^[a-z][a-z0-9-]{0,31}$
+      - type: 'null'
+  color:
+    oneOf:
+      - type: string
+        pattern: ^#[0-9A-F]{6}$
+      - type: 'null'
+  effectiveColor:
+    description: >-
+      Color the category is drawn with: its own explicit color, else the nearest
+      ancestor's explicit color in the same workspace, else null. Derived at
+      read time, never stored, never accepted on write. `color` stays the
+      explicit stored value.
+    oneOf:
+      - type: string
+        pattern: ^#[0-9A-F]{6}$
+      - type: 'null'
+  effectiveIcon:
+    description: >-
+      Icon the category is drawn with: its own explicit icon, else the nearest
+      ancestor's explicit icon in the same workspace, else null. Derived at read
+      time, never stored, never accepted on write. `icon` stays the explicit
+      stored value.
+    oneOf:
+      - type: string
+        pattern: ^[a-z][a-z0-9-]{0,31}$
+      - type: 'null'
+  defaultAnalyticAxes:
+    $ref: ./AnalyticAxes.yaml
+  budgetIncluded:
+    type: boolean
+  sortOrder:
+    type: integer
+    minimum: 0
+    maximum: 32767
+  depth:
+    type: integer
+    minimum: 1
+    maximum: 8
+  version:
+    type: integer
+    minimum: 1
+  used:
+    type: boolean
+  typeEditable:
+    description: Backend-owned eligibility for changing income/expense type.
+    type: boolean
+  typeEditReason:
+    description: Why the type is immutable, or null when it can be changed.
+    oneOf:
+      - type: string
+        enum:
+          - ARCHIVED
+          - USED
+          - CHILD
+          - HAS_CHILDREN
+      - type: 'null'
+  canAcceptChildren:
+    description: True only for active categories below the maximum tree depth.
+    type: boolean
+  archivedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  replacement:
+    description: Where this category is redirected, or null when it is not.
+    oneOf:
+      - $ref: ./CategoryReplacement.yaml
+      - type: 'null'

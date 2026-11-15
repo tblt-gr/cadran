@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - items
+properties:
+  items:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./PortfolioTransferCandidate.yaml

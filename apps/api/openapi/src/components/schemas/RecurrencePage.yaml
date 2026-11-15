@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - page
+  - pageSize
+  - total
+properties:
+  items:
+    type: array
+    items:
+      $ref: ./Recurrence.yaml
+  page:
+    type: integer
+    minimum: 1
+  pageSize:
+    type: integer
+    minimum: 1
+    maximum: 100
+  total:
+    type: integer
+    minimum: 0

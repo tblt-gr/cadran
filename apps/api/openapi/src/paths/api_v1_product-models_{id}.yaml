@@ -1,0 +1,39 @@
+get:
+  operationId: readProductModel
+  x-cadran-bounded: >-
+    A model holds at most 200 dated rule periods, a closed capability
+    enumeration and at most 20 brackets per scale.
+  summary: Read one product model of the calling workspace
+  description: >-
+    Returns the model with every dated period it ever recorded, including when
+    it is archived: an account created from a model must keep resolving against
+    the description it was created with. An unknown identifier and one that
+    belongs to another workspace answer alike.
+  tags:
+    - Catalog
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The requested product model.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ProductModel.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

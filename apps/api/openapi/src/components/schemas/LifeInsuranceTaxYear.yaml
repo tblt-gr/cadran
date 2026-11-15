@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - year
+  - premiums
+  - surrendersGross
+  - surrendersNetPaid
+  - withheldIncomeTax
+  - withheldSocialContributions
+properties:
+  year:
+    type: integer
+    minimum: 1
+  premiums:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  surrendersGross:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  surrendersNetPaid:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  withheldIncomeTax:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  withheldSocialContributions:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$

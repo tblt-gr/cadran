@@ -1,0 +1,88 @@
+description: >-
+  One selectable category row computed with the same signed split policy as the
+  monthly ledger. Expense amounts are presented as positive costs, refunds
+  reduce them, and income keeps its financial sign. A category without a
+  movement is null with `NO_MOVEMENTS`; mixed assets are null with
+  `MIXED_ASSETS`. Preferences only select these published rows.
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - type
+  - kpi
+  - value
+  - assetCode
+  - reason
+  - pendingCount
+  - sourceTransactionIds
+  - sourceTransactions
+  - sourceTransferIds
+properties:
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  type:
+    type: string
+    enum:
+      - INCOME
+      - EXPENSE
+  benefitSpending:
+    description: >-
+      Spending of this category, descendants included, on accounts outside the
+      treasury perimeter of the metric policy (for example meal vouchers), as a
+      positive cost with refunds reducing it. It is told apart and never part of
+      `value` or of the budget expenses. Null when the category (an expense one)
+      has no such movement or the assets are mixed.
+    type:
+      - string
+      - 'null'
+  benefitAssetCode:
+    description: Asset of `benefitSpending`; null whenever `benefitSpending` is null.
+    type:
+      - string
+      - 'null'
+  kpi:
+    type: 'null'
+  value:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  assetCode:
+    type:
+      - string
+      - 'null'
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - NO_MOVEMENTS
+      - MIXED_ASSETS
+      - null
+  pendingCount:
+    type: integer
+    minimum: 0
+  sourceTransactionIds:
+    type: array
+    maxItems: 500
+    items:
+      type: string
+      format: uuid
+  sourceTransactions:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyKpiSourceTransaction.yaml
+  sourceTransferIds:
+    type: array
+    maxItems: 0
+    items:
+      type: string
+      format: uuid

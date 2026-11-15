@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - targetId
+  - effectiveFrom
+  - version
+properties:
+  targetId:
+    type: string
+    format: uuid
+  effectiveFrom:
+    description: The first day the target receives the classifications.
+    type: string
+    format: date
+  version:
+    type: integer
+    minimum: 1

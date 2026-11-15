@@ -1,0 +1,10 @@
+description: >-
+  The stable identifier of a catalogue product. The catalogue is a global system
+  reference with no workspace, so a code either exists for every workspace or
+  for none.
+type: string
+minLength: 3
+maxLength: 32
+pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+examples:
+  - FR_LIVRET_A

@@ -1,0 +1,33 @@
+x-cadran-asset-scope: Amounts are in the currency of the portfolio account.
+type: object
+additionalProperties: false
+required:
+  - instrumentId
+  - quantity
+  - price
+properties:
+  instrumentId:
+    type: string
+    format: uuid
+  quantity:
+    description: Strictly positive, within the quantity precision of the instrument.
+    type: string
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  costBasis:
+    description: >-
+      The total cost of the line, zero or more; null when unknown (the gain
+      stays unknown).
+    type:
+      - string
+      - 'null'
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  price:
+    description: Strictly positive, within the price precision of the instrument.
+    type: string
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  priceDate:
+    description: On or before the takeover date; null means the takeover date.
+    type:
+      - string
+      - 'null'
+    format: date

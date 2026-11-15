@@ -1,0 +1,131 @@
+post:
+  operationId: bulkEditTransactions
+  summary: >-
+    Edit the label, payment method, note, counterparty and category of several
+    transactions at once
+  description: >-
+    Applies the same set of changes to the selected transactions in a single
+    PostgreSQL transaction. `changes` names at least one of `label`,
+    `paymentMethod`, `note`, `counterparty` and `categoryId`; a field left out
+    is untouched. The `label` is either one value for every row (`SAME`) or one
+    value per transaction (`EACH`, an `IDS` scope whose identifiers are exactly
+    the listed ones). An externally sourced transaction takes the label as its
+    display label and keeps its bank label; a manual one takes it as its label,
+    and an empty value is refused for that row (`LABEL_REQUIRED`). The scope is
+    either explicit identifiers (`IDS`) or the filters of the listing with the
+    count the user confirmed (`FILTER`); a filter scope is re-resolved server
+    side at confirmation time and refused with 409 (`type:
+    /problems/transactions.bulk-scope-changed`) when it no longer matches
+    `expectedCount`. At most 500 transactions per operation: a larger identifier
+    list, or a filter matching more, is refused with 422 (`type:
+    /problems/transactions.bulk-scope-too-large`) and nothing is written.
+    Eligible transactions are written and the others are reported with a reason
+    and left untouched; when none is eligible nothing is written and `changed`
+    is 0. Transfer legs, originals with live refunds, voided or rejected
+    transactions and transactions of a closed period are skipped whole. A
+    refund, a multi-category transaction, a transaction already in the category
+    and one whose sign contradicts the category type only skip the category
+    change: when other fields change, the row is written without the category
+    and also reported with that reason. An identifier that does not exist in the
+    calling workspace, including one of another workspace, is reported
+    `NOT_FOUND`. The `Idempotency-Key` header is required to apply and a replay
+    returns the stored result for seven days, unless a period it touched has
+    been closed since.
+
+
+    `accountId` (the target account) and `bookedOn` (the new booked day) move
+    money and are guarded by a preview. A request with `preview: true` writes
+    nothing, needs no `Idempotency-Key` and answers a `BulkEditPreview`: how
+    many transactions would move, why the others would not, the exact balance
+    impact per account and a `previewToken` valid ten minutes. The apply call
+    must carry that token; it is bound to the workspace, the scope, the changes
+    and the identifier and version of every eligible row. Without a token the
+    apply is refused with 409 (`type:
+    /problems/transactions.bulk-preview-required`); with a token that expired,
+    was issued for another request or no longer matches the rows, with 409
+    (`type: /problems/transactions.bulk-preview-stale`). A target account that
+    does not exist in the calling workspace, belongs to another workspace or is
+    archived refuses the whole request with 404. A row refused for a move reason
+    is left entirely untouched, its other changes included. At most 500
+    transactions per operation.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: Idempotency-Key
+      in: header
+      required: false
+      description: >-
+        Required to apply, ignored by a preview. Retries the same operation
+        safely for seven days. A replayed response adds `Idempotency-Replayed:
+        true`.
+      schema:
+        type: string
+        minLength: 16
+        maxLength: 255
+        pattern: ^[A-Za-z0-9_.:-]+$
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/BulkEditRequest.yaml
+  responses:
+    '200':
+      description: >-
+        How many transactions changed and which were skipped, or the stored
+        response of a replay; with `preview: true`, the preview of a move.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/BulkEditResult.yaml
+              - $ref: ../components/schemas/BulkEditPreview.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      description: >-
+        The target category or the target account does not exist in the calling
+        workspace or is archived.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: >-
+        The filter scope no longer matches the confirmed count (`type:
+        /problems/transactions.bulk-scope-changed`, with `actualCount`), a move
+        is applied without the token of a preview (`type:
+        /problems/transactions.bulk-preview-required`) or with a stale one
+        (`type: /problems/transactions.bulk-preview-stale`), the Idempotency-Key
+        was reused with another body or is in flight, or a transaction changed
+        concurrently. A replay touching a closed period is refused with `type:
+        /problems/period-closed`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The body or the Idempotency-Key is invalid, or the scope exceeds 500
+        transactions (`type: /problems/transactions.bulk-scope-too-large`, with
+        `limit`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

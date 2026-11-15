@@ -1,0 +1,47 @@
+post:
+  operationId: applyCategorizationRules
+  x-cadran-idempotency: >-
+    The preview token is bound to the current outcome of the rules, so a replay
+    after the first apply is refused as stale.
+  summary: Apply an unchanged, unexpired preview once
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CategorizationApplyRequest.yaml
+  responses:
+    '200':
+      description: The applied run report.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CategorizationApplyReport.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '409':
+      description: >-
+        The preview is missing, expired, consumed or stale, or a movement it
+        would change sits in a closed period (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The token request is malformed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

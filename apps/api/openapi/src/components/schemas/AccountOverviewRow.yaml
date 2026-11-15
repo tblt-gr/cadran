@@ -1,0 +1,181 @@
+description: >-
+  An account row with the primary group it is ordered in (the account
+  representation plus the group context).
+type: object
+additionalProperties: false
+required:
+  - primaryGroupLabel
+  - primaryGroupParentLabel
+  - groupOrderVersion
+  - isPrimary
+  - id
+  - label
+  - assetCode
+  - kind
+  - productCode
+  - productModelId
+  - institution
+  - maskedIdentifier
+  - valuationMode
+  - liquidityLevel
+  - includeInNetWorth
+  - includeInEmergencyFund
+  - openedOn
+  - closedOn
+  - status
+  - netWorthSign
+  - used
+  - editable
+  - kindEditable
+  - kindEditReason
+  - version
+  - archivedAt
+  - primaryGroupId
+  - share
+  - valuation
+properties:
+  primaryGroupLabel:
+    description: Label of the account primary group, null when ungrouped.
+    type:
+      - string
+      - 'null'
+  primaryGroupParentLabel:
+    description: >-
+      Immediate parent label of the primary group, null when the primary group
+      is the section group, a root or ungrouped.
+    type:
+      - string
+      - 'null'
+  groupOrderVersion:
+    description: Order version of the row primary group, to send with a move of this row.
+    type: integer
+    minimum: 0
+  isPrimary:
+    description: >-
+      Whether this active current account is the workspace default for new
+      transactions.
+    type: boolean
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  assetCode:
+    description: >-
+      The unit the account is denominated in, from the read-only system asset
+      reference. It is fixed at creation: changing it would reinterpret every
+      figure already recorded against the account.
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  kind:
+    $ref: ./AccountKind.yaml
+  productCode:
+    description: >-
+      The catalogue product this account was created from, or null for an
+      account described by hand or from a workspace model. Only the reference is
+      stored: ceilings, rates and methods stay in the catalogue and are read on
+      the business date they are needed, so a regulatory revision is never
+      frozen into an account.
+    oneOf:
+      - $ref: ./ProductCode.yaml
+      - type: 'null'
+  productModelId:
+    description: >-
+      The reusable workspace product model this account was created from, or
+      null for an account described by hand or from a catalogue product. An
+      account carries at most one of `productCode` and `productModelId`. Only
+      the reference is stored: any dated rule the model carries stays on the
+      model and is read on the business date it is needed, so archiving the
+      model never changes what an existing account resolves.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  institution:
+    description: >-
+      Free text naming where the account is held, such as the bank or the
+      insurer. No reference of institutions ships with the application, so this
+      is bounded rather than validated against a list.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  maskedIdentifier:
+    description: >-
+      The visible tail of a banking or contract identifier, such as `4821`.
+      Bounded to eight characters, which cannot hold a full identifier.
+    oneOf:
+      - type: string
+        pattern: ^[A-Z0-9]{2,8}$
+      - type: 'null'
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  liquidityLevel:
+    $ref: ./LiquidityLevel.yaml
+  includeInNetWorth:
+    type: boolean
+  includeInEmergencyFund:
+    description: Only an account counted in net worth may back the emergency fund.
+    type: boolean
+  openedOn:
+    type: string
+    format: date
+  closedOn:
+    description: The day the account was closed, or null while it is open.
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  status:
+    $ref: ./AccountStatus.yaml
+  netWorthSign:
+    description: >-
+      The sign this account contributes to net worth: `1` for an asset, `-1` for
+      a liability. It carries no amount; a balance arrives with its own record
+      and stays null until then. The sign is independent of `includeInNetWorth`:
+      an excluded account still reports its nature, so an aggregation must read
+      the inclusion flag before applying the sign.
+    type: integer
+    enum:
+      - -1
+      - 1
+  used:
+    type: boolean
+  editable:
+    description: False for an archived account, which is read-only.
+    type: boolean
+  kindEditable:
+    description: Backend-owned eligibility for changing the account kind.
+    type: boolean
+  kindEditReason:
+    description: Why the kind is immutable, or null when it can be changed.
+    oneOf:
+      - type: string
+        enum:
+          - ARCHIVED
+          - USED
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1
+  archivedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  primaryGroupId:
+    description: >-
+      Exclusive membership used by group weights. Null until the account is
+      assigned. It may name a sub-group: the account then also counts in every
+      ancestor of that group.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml
+  valuation:
+    $ref: ./AccountValuation.yaml

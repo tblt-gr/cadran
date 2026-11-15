@@ -1,0 +1,7 @@
+type: string
+enum:
+  - IMMEDIATE
+  - SHORT_TERM
+  - MEDIUM_TERM
+  - LONG_TERM
+  - ILLIQUID

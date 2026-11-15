@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - quality
+  - reasons
+properties:
+  value:
+    $ref: ./PortfolioAnnualRate.yaml
+  quality:
+    $ref: ./PortfolioAnnualQuality.yaml
+  reasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml

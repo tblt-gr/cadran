@@ -1,0 +1,50 @@
+type: object
+additionalProperties: false
+required:
+  - sourceAccountId
+  - targetAccountId
+  - state
+  - bookedOn
+  - valueOn
+  - label
+  - note
+  - fee
+  - version
+properties:
+  sourceAccountId:
+    type: string
+    format: uuid
+  targetAccountId:
+    type: string
+    format: uuid
+  state:
+    type: string
+    enum:
+      - PENDING
+      - BOOKED
+  bookedOn:
+    type: string
+    format: date
+  valueOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  label:
+    type: string
+    minLength: 1
+    maxLength: 140
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  fee:
+    description: Replaces, adds or removes the fee. Null means no fee.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1

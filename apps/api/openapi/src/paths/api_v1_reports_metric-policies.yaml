@@ -1,0 +1,83 @@
+get:
+  operationId: listMetricPolicies
+  summary: Read the active metric policy and the version history
+  description: >-
+    Version 1 is built in and always listed first; workspace versions start at
+    2. `activeSince` is null while no activation exists.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The active policy and every version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MetricPolicyCatalog.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: createMetricPolicy
+  x-cadran-idempotency: >-
+    An identical definition already stored is refused, so a replay appends no
+    version.
+  summary: Append the next immutable metric policy version
+  description: >-
+    Owner only. A version is never edited or deleted. The mutation requires the
+    same-origin CSRF token.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateMetricPolicyRequest.yaml
+  responses:
+    '201':
+      description: The created version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MetricPolicy.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        The CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+        caller is not the workspace owner.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: >-
+        `policy_definition_exists` (with the existing `version`) or
+        `policy_version_limit`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/MetricPolicyProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: Invalid label or account kind, duplicated kind or more than 8 kinds.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

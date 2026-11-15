@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - instrument
+  - latestRateYear
+  - missingLastYear
+properties:
+  instrument:
+    $ref: ./Instrument.yaml
+  latestRateYear:
+    type:
+      - integer
+      - 'null'
+  missingLastYear:
+    description: True when the rate of the last closed year is not recorded.
+    type: boolean

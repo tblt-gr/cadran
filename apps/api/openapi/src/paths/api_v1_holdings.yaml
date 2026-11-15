@@ -1,0 +1,63 @@
+get:
+  operationId: readHoldings
+  x-cadran-bounded: >-
+    At most 50 portfolio accounts of at most 500 lines each are aggregated into
+    at most 1000 instruments; beyond that the read is refused.
+  summary: >-
+    Read every holding of the retained valuations, aggregated by instrument
+    across accounts
+  description: >-
+    Aggregates the position snapshots of the retained valuation of every
+    portfolio account of the workspace by instrument, with a per-account
+    breakdown. Accounts valued in total, partially or not at all contribute no
+    line and are listed in `unsplitAccounts`. A missing price, cost or valuation
+    is null with a reason, never zero. Every figure is an exact decimal string
+    computed by the server; the order is decided by the server.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: sort
+      in: query
+      required: false
+      description: >-
+        Order of the items, exact decimal comparison, nulls last, then name,
+        then instrument identifier.
+      schema:
+        type: string
+        enum:
+          - VALUE_DESC
+          - GAIN_DESC
+          - PERFORMANCE_DESC
+          - NAME_ASC
+        default: VALUE_DESC
+  responses:
+    '200':
+      description: Workspace-scoped exact values. Response uses no-store cache control.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Holdings.yaml
+    '400':
+      description: >-
+        The `sort` parameter is not one of the published orders (code
+        invalid_holdings_query).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        More than 1000 distinct instruments (type /problems/holdings-too-large)
+        or a bounded replay scope exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

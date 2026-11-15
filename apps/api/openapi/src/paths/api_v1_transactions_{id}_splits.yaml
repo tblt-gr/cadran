@@ -1,0 +1,74 @@
+put:
+  operationId: replaceTransactionSplits
+  summary: Replace the whole split allocation of a transaction
+  description: >-
+    Zero to twenty splits, each sharing the transaction asset and sign, no
+    category repeated, summing exactly to the transaction amount, or an empty
+    list to return the transaction to the "to categorise" queue. The amount,
+    state and every other field stay untouched. Optimistic versioning.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ReplaceTransactionSplitsRequest.yaml
+  responses:
+    '200':
+      description: The transaction with its new allocation.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The submitted version is stale (`type: /problems/stale-version`) or the
+        transaction is terminal (`type: /problems/transaction-conflict`). A
+        write that touches a closed period is refused with one stable problem,
+        whichever the use case (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The transaction is a transfer leg or its fee (`type:
+        /problems/transaction-belongs-to-transfer`), or the allocation leaves a
+        remainder unallocated (`type: /problems/splits.sum_missing`), exceeds
+        the amount (`type: /problems/splits.sum_exceeds`), carries more than
+        twenty rows (`type: /problems/splits.too_many`), repeats a category
+        (`type: /problems/splits.duplicate_category`), or a split is zero, of
+        the opposite sign, of another asset, or its category is archived or of
+        the wrong type.
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AmountInputProblem.yaml
+              - $ref: ../components/schemas/TransactionBelongsToTransferProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

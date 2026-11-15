@@ -1,0 +1,59 @@
+get:
+  operationId: readPortfolioValuationHistory
+  x-cadran-bounded: >-
+    A history returns at most 240 points and flags come from the closed
+    valuation flag enumeration.
+  summary: Read the valuation series of a portfolio account
+  description: >-
+    One point per active valuation (a superseded or withdrawn valuation is
+    absent), oldest first, with the figures exactly as stored. A point whose
+    total is not computable has `totalValue: null`: it is never zero. At most
+    240 points are returned, the most recent ones, and `truncated` is true when
+    older points exist inside the range. `to` defaults to today and cannot be in
+    the future; `from` omitted means since the first valuation. A closed or
+    archived account stays readable.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: from
+      in: query
+      required: false
+      description: >-
+        First valuation date kept, inclusive. Omitted: since the first
+        valuation.
+      schema:
+        type: string
+        format: date
+    - name: to
+      in: query
+      required: false
+      description: >-
+        Last valuation date kept, inclusive. Defaults to today and cannot be in
+        the future.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The bounded valuation series.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationHistory.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        The range is invalid (`invalid_history_range`), or the account is not
+        followed in portfolio mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationProblem.yaml

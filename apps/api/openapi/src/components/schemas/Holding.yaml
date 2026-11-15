@@ -1,0 +1,53 @@
+type: object
+additionalProperties: false
+required:
+  - instrument
+  - instrumentType
+  - quantity
+  - value
+  - costBasis
+  - unrealizedGain
+  - performance
+  - averageUnitCost
+  - reason
+  - lastPrice
+  - share
+  - accounts
+properties:
+  instrument:
+    $ref: ./PortfolioPositionInstrument.yaml
+  instrumentType:
+    $ref: ./InstrumentType.yaml
+  quantity:
+    $ref: ./HoldingsDecimal.yaml
+  value:
+    $ref: ./HoldingsNullableDecimal.yaml
+  costBasis:
+    $ref: ./HoldingsNullableDecimal.yaml
+  unrealizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  performance:
+    $ref: ./HoldingsNullableDecimal.yaml
+  averageUnitCost:
+    description: Cost basis over quantity at the instrument price precision, half even.
+    $ref: ./HoldingsNullableDecimal.yaml
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - MISSING_PRICE
+      - UNKNOWN_LOT_COST
+      - MIXED_ASSETS
+      - null
+  lastPrice:
+    oneOf:
+      - $ref: ./HoldingLastPrice.yaml
+      - type: 'null'
+  share:
+    $ref: ./HoldingsShare.yaml
+  accounts:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./HoldingAccountLine.yaml

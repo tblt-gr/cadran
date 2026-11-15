@@ -1,0 +1,102 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - assetCode
+  - valuedFrom
+  - valuedTo
+  - quality
+  - warnings
+  - totals
+  - items
+  - allocation
+  - unsplitAccounts
+  - accounts
+  - truncated
+properties:
+  asOf:
+    type: string
+    format: date
+  assetCode:
+    description: Null when the accounts mix assets.
+    type:
+      - string
+      - 'null'
+  valuedFrom:
+    type:
+      - string
+      - 'null'
+    format: date
+  valuedTo:
+    type:
+      - string
+      - 'null'
+    format: date
+  quality:
+    type: string
+    enum:
+      - EXACT
+      - DEGRADED
+      - NOT_CALCULABLE
+  warnings:
+    type: array
+    maxItems: 4
+    items:
+      $ref: ./HoldingsWarning.yaml
+  totals:
+    $ref: ./HoldingsTotals.yaml
+  items:
+    type: array
+    maxItems: 1000
+    items:
+      $ref: ./Holding.yaml
+  allocation:
+    type: object
+    additionalProperties: false
+    required:
+      - byInstrument
+      - byAssetClass
+      - byRegion
+      - byAccount
+    properties:
+      byInstrument:
+        type: array
+        maxItems: 1001
+        description: >-
+          One slice per instrument, plus `UNSPLIT` ("Comptes valorisés en
+          total") when accounts valued in total hold securities.
+        items:
+          $ref: ./HoldingAllocationSlice.yaml
+      byAssetClass:
+        type: array
+        maxItems: 9
+        items:
+          $ref: ./HoldingAllocationSlice.yaml
+      byRegion:
+        type: array
+        maxItems: 9
+        items:
+          $ref: ./HoldingAllocationSlice.yaml
+      byAccount:
+        description: >-
+          One slice per account whose securities value is known and positive,
+          value descending, then label.
+        type: array
+        maxItems: 50
+        items:
+          $ref: ./HoldingAllocationSlice.yaml
+  unsplitAccounts:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./HoldingsUnsplitAccount.yaml
+  accounts:
+    description: >-
+      Every shown account, securities value descending (nulls last), then label,
+      then identifier; independent of `sort`.
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./HoldingsAccountSummary.yaml
+  truncated:
+    type: boolean

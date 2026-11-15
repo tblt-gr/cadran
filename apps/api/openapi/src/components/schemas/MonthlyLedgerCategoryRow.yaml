@@ -1,0 +1,61 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - icon
+  - color
+  - budgetIncluded
+  - archived
+  - total
+  - movementCount
+  - hasMovements
+  - pendingAmount
+  - pendingCount
+properties:
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  icon:
+    description: >-
+      Effective category icon, meaning its own explicit icon, else the nearest
+      ancestor's, else null.
+    type:
+      - string
+      - 'null'
+  color:
+    description: >-
+      Effective category color, meaning its own explicit color, else the nearest
+      ancestor's, else null.
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  budgetIncluded:
+    type: boolean
+  archived:
+    type: boolean
+  total:
+    $ref: ./MonthlyLedgerMetric.yaml
+  movementCount:
+    type: integer
+    minimum: 0
+    maximum: 500
+  hasMovements:
+    type: boolean
+  pendingAmount:
+    description: >-
+      Exact sum of the scheduled (pending) movements, in the same sign
+      convention as total. Null when none, or when they mix assets.
+      Informational: never part of total, a gap, net worth or a KPI.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  pendingCount:
+    type: integer
+    minimum: 0
+    maximum: 500

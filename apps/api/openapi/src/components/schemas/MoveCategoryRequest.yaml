@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - parentId
+  - version
+properties:
+  parentId:
+    description: The new parent, or null to move the category to the root.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1

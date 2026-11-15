@@ -1,0 +1,52 @@
+type: object
+additionalProperties: false
+required:
+  - previewToken
+  - matched
+  - wouldChange
+  - skippedManual
+  - conflictCount
+  - conflicts
+  - conflictsTruncated
+  - samples
+  - skipped
+  - deactivatedRuleIds
+properties:
+  previewToken:
+    type: string
+    pattern: ^[0-9a-f]{64}$
+  matched:
+    type: integer
+    minimum: 0
+  wouldChange:
+    type: integer
+    minimum: 0
+  skippedManual:
+    type: integer
+    minimum: 0
+  conflictCount:
+    type: integer
+    minimum: 0
+    maximum: 5000
+  conflicts:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./CategorizationConflict.yaml
+  conflictsTruncated:
+    type: boolean
+  samples:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./CategorizationSample.yaml
+  skipped:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./CategorizationSkipped.yaml
+  deactivatedRuleIds:
+    type: array
+    items:
+      type: string
+      format: uuid

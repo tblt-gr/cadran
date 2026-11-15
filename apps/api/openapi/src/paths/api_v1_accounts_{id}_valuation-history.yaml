@@ -1,0 +1,62 @@
+get:
+  operationId: readAccountValuationHistory
+  x-cadran-bounded: >-
+    At most 3661 chronological points over 3660 elapsed days (366 when from is
+    given), resolved in batches of at most 60 dates.
+  summary: Read exact end-of-day account balance steps
+  description: >-
+    Uses the shared valuation strategy, including the latest snapshot before the
+    window. Returns the boundaries and effective balance, snapshot, booked-count
+    or quality changes. Snapshot-day movements are excluded. Pending and voided
+    movements never create steps. Held snapshot values retain their original
+    asOf date and freshness; no interest or interpolation is invented. Missing
+    intervals are null with a reason. No aggregation occurs. When from is
+    omitted the window starts at the earliest active balance snapshot of the
+    account, capped at 3660 days before to; truncated is then true. Without any
+    snapshot the window is the single day to.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: from
+      in: query
+      required: false
+      description: >-
+        Inclusive ISO calendar day. Must not follow to and at most 366 days
+        before it. Omit to read since the start of the history.
+      schema:
+        type: string
+        format: date
+    - name: to
+      in: query
+      required: true
+      description: >-
+        Inclusive ISO calendar day, no later than workspace-local today; at most
+        366 days after from when from is given.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: Exact chronological steps and provenance, including null gaps.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountValuationHistory.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

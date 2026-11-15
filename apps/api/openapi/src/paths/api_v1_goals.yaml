@@ -1,0 +1,111 @@
+get:
+  operationId: listGoals
+  summary: List monthly and yearly goals
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: periodicity
+      in: query
+      schema:
+        $ref: ../components/schemas/GoalPeriodicity.yaml
+    - name: period
+      in: query
+      description: >-
+        Keep the goals covering this month (`YYYY-MM`) or year (`YYYY`). The
+        status is read at that month (the current month for the current year,
+        December for a past year).
+      schema:
+        type: string
+        pattern: ^\d{4}(-(0[1-9]|1[0-2]))?$
+    - name: current
+      in: query
+      description: Only goals whose end period is null or not past; `false` lists them all.
+      schema:
+        type: boolean
+        default: true
+    - name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1
+    - name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: Goals matching the filters, one bounded page.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalList.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: The requested status month is after the current workspace-local month.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: createGoal
+  summary: Create a monthly or yearly goal
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateGoalRequest.yaml
+  responses:
+    '201':
+      description: The goal and its first immutable definition version.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalDetail.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The goal or its monthly schedule is invalid; a sum mismatch carries the
+        exact figures. A correction reaching back more than 120 months, current
+        month included, is refused with correction_span_exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

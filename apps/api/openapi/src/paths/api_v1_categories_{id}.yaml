@@ -1,0 +1,58 @@
+put:
+  operationId: updateCategory
+  summary: Update an active category
+  description: >-
+    Replaces editable category fields using optimistic versioning. Parent moves
+    and archival are separate impact-aware operations outside this endpoint. A
+    category already used by history cannot change type.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateCategoryRequest.yaml
+  responses:
+    '200':
+      description: The updated category.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Category.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/CategoryMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: The label conflicts or the submitted version is stale.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The category fields are invalid or an immutable rule was violated.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

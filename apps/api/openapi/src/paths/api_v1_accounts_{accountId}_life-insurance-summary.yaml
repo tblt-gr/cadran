@@ -1,0 +1,48 @@
+get:
+  operationId: readLifeInsuranceSummary
+  x-cadran-bounded: >-
+    Supports are instruments of the workspace, at most 500; flags and reasons
+    come from closed enumerations.
+  summary: Read observed life-insurance summary and informative tax tracking
+  description: >-
+    Latest active COMPLETE valuation on or before asOf, with frozen supports and
+    cash. No projection or tax estimate. Active operations stop at asOf. At most
+    60 calendar years, 5000 history operations, 2000 operations per year and 20
+    source previews. Served rates are recorded percentages, never contract
+    returns.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: asOf
+      in: query
+      required: false
+      description: Defaults to workspace today; a future date is refused.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: >-
+        Observed value, allocation, flows, supports and informative tax
+        tracking.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceSummary.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: Invalid summary date, non-insurance account or report bound exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceSummaryProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

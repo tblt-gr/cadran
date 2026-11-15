@@ -1,0 +1,32 @@
+type: object
+additionalProperties: false
+required:
+  - kind
+  - id
+  - label
+  - color
+  - value
+  - share
+properties:
+  kind:
+    description: >-
+      `SUBGROUP` is a direct sub-group roll-up; `DIRECT` is the group's own
+      accounts, identified by the group itself.
+    type: string
+    enum:
+      - SUBGROUP
+      - DIRECT
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+  color:
+    type: string
+    pattern: ^#[0-9A-F]{6}$
+  value:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml

@@ -1,0 +1,12 @@
+description: >-
+  Where a product's return comes from. `MARKET` and `MANUAL_VALUATION` carry no
+  rate rule at all: what they earn comes from their assets and flows. A model of
+  one of those kinds cannot record a rate period.
+type: string
+enum:
+  - NONE
+  - REGULATED_RATE
+  - CONTRACTUAL_FIXED
+  - CONTRACTUAL_VARIABLE
+  - MARKET
+  - MANUAL_VALUATION

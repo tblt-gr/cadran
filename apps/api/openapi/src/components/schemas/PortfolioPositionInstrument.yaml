@@ -1,0 +1,29 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - name
+  - isin
+  - ticker
+  - status
+  - quantityPrecision
+properties:
+  id:
+    type: string
+    format: uuid
+  name:
+    type: string
+  isin:
+    type:
+      - string
+      - 'null'
+  ticker:
+    type:
+      - string
+      - 'null'
+  status:
+    $ref: ./InstrumentStatus.yaml
+  quantityPrecision:
+    type: integer
+    minimum: 0
+    maximum: 12

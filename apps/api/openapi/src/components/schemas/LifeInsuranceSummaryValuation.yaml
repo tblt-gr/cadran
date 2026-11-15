@@ -1,0 +1,70 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - valuedOn
+  - totalValue
+  - completeness
+  - detail
+  - ageDays
+  - stale
+  - cash
+  - euroFundValue
+  - unitLinkedValue
+  - observedTotal
+  - observedTotalDifference
+  - tolerance
+  - flags
+properties:
+  id:
+    type: string
+    format: uuid
+  valuedOn:
+    type: string
+    format: date
+  totalValue:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  completeness:
+    type: string
+    const: COMPLETE
+  detail:
+    type: string
+    enum:
+      - TOTAL
+      - POSITIONS
+  ageDays:
+    type: integer
+    minimum: 0
+  stale:
+    type: boolean
+  cash:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  euroFundValue:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  unitLinkedValue:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  observedTotal:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  observedTotalDifference:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  tolerance:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  flags:
+    type: array
+    items:
+      $ref: ./PortfolioValuationFlag.yaml

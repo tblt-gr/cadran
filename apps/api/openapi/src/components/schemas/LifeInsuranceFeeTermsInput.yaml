@@ -1,0 +1,40 @@
+type: object
+additionalProperties: false
+required:
+  - validFrom
+properties:
+  validFrom:
+    description: Not before the subscription date.
+    type: string
+    format: date
+  entryFeeRate:
+    description: A percentage in [0, 100] with at most 4 decimals.
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  euroFundManagementFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  unitLinkedManagementFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  switchFeeRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  switchFeeFixed:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  sourceNote:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 200

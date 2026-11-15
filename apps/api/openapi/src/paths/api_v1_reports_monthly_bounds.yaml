@@ -1,0 +1,25 @@
+get:
+  operationId: readMonthlyBounds
+  summary: Read the month range the monthly views can navigate
+  description: >-
+    The first month holding an active balance snapshot, portfolio valuation or
+    booked non-voided transaction on or before today, and the current month,
+    both resolved in the workspace calendar. The first month is null for a
+    workspace without eligible data.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The navigable month range of the calling workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyBounds.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

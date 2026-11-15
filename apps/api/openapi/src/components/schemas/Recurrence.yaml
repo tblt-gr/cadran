@@ -1,0 +1,88 @@
+description: >-
+  A forecast schedule. Its expected occurrences are not booked transactions or
+  included in totals.
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - label
+  - counterparty
+  - expectedAmount
+  - amountTolerance
+  - intervalKind
+  - dayOfPeriod
+  - nextExpectedOn
+  - confirmedAt
+  - version
+  - createdAt
+  - updatedAt
+  - archivedAt
+  - autoCreate
+  - categoryId
+  - note
+  - paymentMethod
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  expectedAmount:
+    $ref: ./DecimalAmount.yaml
+  amountTolerance:
+    $ref: ./DecimalAmount.yaml
+  intervalKind:
+    $ref: ./RecurrenceIntervalKind.yaml
+  dayOfPeriod:
+    type: integer
+    minimum: 1
+    maximum: 31
+  nextExpectedOn:
+    type: string
+    format: date
+  confirmedAt:
+    type: string
+    format: date-time
+  version:
+    type: integer
+    minimum: 1
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  archivedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  autoCreate:
+    type: boolean
+  categoryId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  paymentMethod:
+    oneOf:
+      - $ref: ./PaymentMethod.yaml
+      - type: 'null'

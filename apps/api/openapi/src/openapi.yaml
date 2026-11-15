@@ -1,0 +1,1382 @@
+openapi: 3.1.0
+info:
+  title: Cadran Budget API
+  version: 0.1.0
+  description: Versioned HTTP contract for the Cadran Budget modular monolith.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: /
+paths:
+  /api/v1/status:
+    $ref: paths/api_v1_status.yaml
+  /api/v1/session:
+    $ref: paths/api_v1_session.yaml
+  /api/v1/session/password:
+    $ref: paths/api_v1_session_password.yaml
+  /api/v1/interface-preferences:
+    $ref: paths/api_v1_interface-preferences.yaml
+  /api/v1/profile:
+    $ref: paths/api_v1_profile.yaml
+  /api/v1/profile/password:
+    $ref: paths/api_v1_profile_password.yaml
+  /api/v1/audit-events:
+    $ref: paths/api_v1_audit-events.yaml
+  /api/v1/audit-events/{id}:
+    $ref: paths/api_v1_audit-events_{id}.yaml
+  /api/v1/assets:
+    $ref: paths/api_v1_assets.yaml
+  /api/v1/assets/{code}:
+    $ref: paths/api_v1_assets_{code}.yaml
+  /api/v1/products:
+    $ref: paths/api_v1_products.yaml
+  /api/v1/products/{code}:
+    $ref: paths/api_v1_products_{code}.yaml
+  /api/v1/categories:
+    $ref: paths/api_v1_categories.yaml
+  /api/v1/categories/{id}:
+    $ref: paths/api_v1_categories_{id}.yaml
+  /api/v1/categories/{id}/impact:
+    $ref: paths/api_v1_categories_{id}_impact.yaml
+  /api/v1/categories/{id}/move:
+    $ref: paths/api_v1_categories_{id}_move.yaml
+  /api/v1/categories/{id}/merge:
+    $ref: paths/api_v1_categories_{id}_merge.yaml
+  /api/v1/categories/{id}/archive:
+    $ref: paths/api_v1_categories_{id}_archive.yaml
+  /api/v1/categories/{id}/replacement:
+    $ref: paths/api_v1_categories_{id}_replacement.yaml
+  /api/v1/goals:
+    $ref: paths/api_v1_goals.yaml
+  /api/v1/goals/bulk-stop:
+    $ref: paths/api_v1_goals_bulk-stop.yaml
+  /api/v1/goals/bulk-delete:
+    $ref: paths/api_v1_goals_bulk-delete.yaml
+  /api/v1/goals/evaluations:
+    $ref: paths/api_v1_goals_evaluations.yaml
+  /api/v1/goals/schedule-preview:
+    $ref: paths/api_v1_goals_schedule-preview.yaml
+  /api/v1/goals/emergency-fund:
+    $ref: paths/api_v1_goals_emergency-fund.yaml
+  /api/v1/goals/emergency-fund/policy:
+    $ref: paths/api_v1_goals_emergency-fund_policy.yaml
+  /api/v1/goals/{id}:
+    $ref: paths/api_v1_goals_{id}.yaml
+  /api/v1/goals/{id}/stop:
+    $ref: paths/api_v1_goals_{id}_stop.yaml
+  /api/v1/goals/{id}/correction-preview:
+    $ref: paths/api_v1_goals_{id}_correction-preview.yaml
+  /api/v1/goals/{id}/versions:
+    $ref: paths/api_v1_goals_{id}_versions.yaml
+  /api/v1/goals/{id}/status:
+    $ref: paths/api_v1_goals_{id}_status.yaml
+  /api/v1/account-groups:
+    $ref: paths/api_v1_account-groups.yaml
+  /api/v1/account-groups/{id}:
+    $ref: paths/api_v1_account-groups_{id}.yaml
+  /api/v1/account-groups/{id}/composition:
+    $ref: paths/api_v1_account-groups_{id}_composition.yaml
+  /api/v1/account-groups/{id}/archive:
+    $ref: paths/api_v1_account-groups_{id}_archive.yaml
+  /api/v1/account-groups/{id}/move:
+    $ref: paths/api_v1_account-groups_{id}_move.yaml
+  /api/v1/instruments:
+    $ref: paths/api_v1_instruments.yaml
+  /api/v1/instruments/{id}/holding:
+    $ref: paths/api_v1_instruments_{id}_holding.yaml
+  /api/v1/instruments/{id}:
+    $ref: paths/api_v1_instruments_{id}.yaml
+  /api/v1/instruments/{id}/deactivate:
+    $ref: paths/api_v1_instruments_{id}_deactivate.yaml
+  /api/v1/instruments/{id}/reactivate:
+    $ref: paths/api_v1_instruments_{id}_reactivate.yaml
+  /api/v1/accounts/{accountId}/portfolio-positions:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-positions.yaml
+  /api/v1/accounts/{accountId}/portfolio-cash:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-cash.yaml
+  /api/v1/accounts/{accountId}/portfolio-positions/{instrumentId}/lots:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-positions_{instrumentId}_lots.yaml
+  /api/v1/accounts/{accountId}/portfolio-operations/order:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-operations_order.yaml
+  /api/v1/accounts/{accountId}/portfolio-operations:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-operations.yaml
+  /api/v1/accounts/{accountId}/portfolio-operations/preview:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-operations_preview.yaml
+  /api/v1/portfolio-operations/{id}:
+    $ref: paths/api_v1_portfolio-operations_{id}.yaml
+  /api/v1/portfolio-operations/{id}/void:
+    $ref: paths/api_v1_portfolio-operations_{id}_void.yaml
+  /api/v1/portfolio-operations/{id}/correct:
+    $ref: paths/api_v1_portfolio-operations_{id}_correct.yaml
+  /api/v1/accounts/{accountId}/portfolio-valuation-history:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-valuation-history.yaml
+  /api/v1/accounts/{accountId}/portfolio-valuations:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-valuations.yaml
+  /api/v1/accounts/{accountId}/portfolio-valuations/draft:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-valuations_draft.yaml
+  /api/v1/portfolio-valuations/{id}:
+    $ref: paths/api_v1_portfolio-valuations_{id}.yaml
+  /api/v1/portfolio-valuations/{id}/withdraw:
+    $ref: paths/api_v1_portfolio-valuations_{id}_withdraw.yaml
+  /api/v1/accounts/{accountId}/life-insurance-summary:
+    $ref: paths/api_v1_accounts_{accountId}_life-insurance-summary.yaml
+  /api/v1/accounts/{accountId}/life-insurance-income-and-fees:
+    $ref: paths/api_v1_accounts_{accountId}_life-insurance-income-and-fees.yaml
+  /api/v1/accounts/{accountId}/life-insurance-contract:
+    $ref: paths/api_v1_accounts_{accountId}_life-insurance-contract.yaml
+  /api/v1/accounts/{accountId}/life-insurance-contract/fee-terms:
+    $ref: paths/api_v1_accounts_{accountId}_life-insurance-contract_fee-terms.yaml
+  /api/v1/life-insurance-fee-terms/{id}:
+    $ref: paths/api_v1_life-insurance-fee-terms_{id}.yaml
+  /api/v1/accounts/{accountId}/life-insurance-contract/euro-fund-rates:
+    $ref: paths/api_v1_accounts_{accountId}_life-insurance-contract_euro-fund-rates.yaml
+  /api/v1/life-insurance-euro-fund-rates/{id}:
+    $ref: paths/api_v1_life-insurance-euro-fund-rates_{id}.yaml
+  /api/v1/accounts/{accountId}/portfolio-transfer-candidates:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-transfer-candidates.yaml
+  /api/v1/accounts:
+    $ref: paths/api_v1_accounts.yaml
+  /api/v1/accounts/overview/composition:
+    $ref: paths/api_v1_accounts_overview_composition.yaml
+  /api/v1/accounts/overview:
+    $ref: paths/api_v1_accounts_overview.yaml
+  /api/v1/accounts/overview/{groupKey}/accounts:
+    $ref: paths/api_v1_accounts_overview_{groupKey}_accounts.yaml
+  /api/v1/accounts/{id}:
+    $ref: paths/api_v1_accounts_{id}.yaml
+  /api/v1/accounts/{id}/archive:
+    $ref: paths/api_v1_accounts_{id}_archive.yaml
+  /api/v1/accounts/{id}/move:
+    $ref: paths/api_v1_accounts_{id}_move.yaml
+  /api/v1/accounts/{id}/valuation:
+    $ref: paths/api_v1_accounts_{id}_valuation.yaml
+  /api/v1/accounts/{id}/valuation-history:
+    $ref: paths/api_v1_accounts_{id}_valuation-history.yaml
+  /api/v1/accounts/{id}/balances:
+    $ref: paths/api_v1_accounts_{id}_balances.yaml
+  /api/v1/accounts/{id}/balances/{snapshotId}:
+    $ref: paths/api_v1_accounts_{id}_balances_{snapshotId}.yaml
+  /api/v1/accounts/{id}/balances/{snapshotId}/withdraw:
+    $ref: paths/api_v1_accounts_{id}_balances_{snapshotId}_withdraw.yaml
+  /api/v1/accounts/{id}/rules:
+    $ref: paths/api_v1_accounts_{id}_rules.yaml
+  /api/v1/accounts/{id}/rule-overrides:
+    $ref: paths/api_v1_accounts_{id}_rule-overrides.yaml
+  /api/v1/accounts/{id}/rule-overrides/{overrideId}/withdraw:
+    $ref: paths/api_v1_accounts_{id}_rule-overrides_{overrideId}_withdraw.yaml
+  /api/v1/reports/monthly:
+    $ref: paths/api_v1_reports_monthly.yaml
+  /api/v1/reports/monthly/bounds:
+    $ref: paths/api_v1_reports_monthly_bounds.yaml
+  /api/v1/reports/monthly/ledger:
+    $ref: paths/api_v1_reports_monthly_ledger.yaml
+  /api/v1/reports/monthly/ledger/{kind}/{id}/movements:
+    $ref: paths/api_v1_reports_monthly_ledger_{kind}_{id}_movements.yaml
+  /api/v1/reports/monthly/{kpi}/explain:
+    $ref: paths/api_v1_reports_monthly_{kpi}_explain.yaml
+  /api/v1/reports/monthly/recap:
+    $ref: paths/api_v1_reports_monthly_recap.yaml
+  /api/v1/reports/monthly/recap-preferences:
+    $ref: paths/api_v1_reports_monthly_recap-preferences.yaml
+  /api/v1/reports/annual/preferences:
+    $ref: paths/api_v1_reports_annual_preferences.yaml
+  /api/v1/reports/annual/{year}:
+    $ref: paths/api_v1_reports_annual_{year}.yaml
+  /api/v1/reports/annual/{year}/columns/{columnId}/explain:
+    $ref: paths/api_v1_reports_annual_{year}_columns_{columnId}_explain.yaml
+  /api/v1/reports/multi-year:
+    $ref: paths/api_v1_reports_multi-year.yaml
+  /api/v1/reports/metric-policies:
+    $ref: paths/api_v1_reports_metric-policies.yaml
+  /api/v1/reports/metric-policies/active:
+    $ref: paths/api_v1_reports_metric-policies_active.yaml
+  /api/v1/net-worth:
+    $ref: paths/api_v1_net-worth.yaml
+  /api/v1/net-worth/history:
+    $ref: paths/api_v1_net-worth_history.yaml
+  /api/v1/product-models:
+    $ref: paths/api_v1_product-models.yaml
+  /api/v1/product-models/from-product:
+    $ref: paths/api_v1_product-models_from-product.yaml
+  /api/v1/product-models/{id}:
+    $ref: paths/api_v1_product-models_{id}.yaml
+  /api/v1/product-models/{id}/duplicate:
+    $ref: paths/api_v1_product-models_{id}_duplicate.yaml
+  /api/v1/product-models/{id}/rules:
+    $ref: paths/api_v1_product-models_{id}_rules.yaml
+  /api/v1/product-models/{id}/archive:
+    $ref: paths/api_v1_product-models_{id}_archive.yaml
+  /api/v1/recurrence-candidates:
+    $ref: paths/api_v1_recurrence-candidates.yaml
+  /api/v1/recurrence-candidates/dismiss:
+    $ref: paths/api_v1_recurrence-candidates_dismiss.yaml
+  /api/v1/recurrence-candidates/dismissals/{fingerprint}:
+    $ref: paths/api_v1_recurrence-candidates_dismissals_{fingerprint}.yaml
+  /api/v1/recurrences:
+    $ref: paths/api_v1_recurrences.yaml
+  /api/v1/recurrences/refresh-horizon:
+    $ref: paths/api_v1_recurrences_refresh-horizon.yaml
+  /api/v1/recurrences/materialize:
+    $ref: paths/api_v1_recurrences_materialize.yaml
+  /api/v1/recurrences/{id}:
+    $ref: paths/api_v1_recurrences_{id}.yaml
+  /api/v1/recurrences/{id}/archive:
+    $ref: paths/api_v1_recurrences_{id}_archive.yaml
+  /api/v1/recurrences/{id}/restore:
+    $ref: paths/api_v1_recurrences_{id}_restore.yaml
+  /api/v1/recurrences/{id}/occurrences:
+    $ref: paths/api_v1_recurrences_{id}_occurrences.yaml
+  /api/v1/categorization-rules:
+    $ref: paths/api_v1_categorization-rules.yaml
+  /api/v1/categorization-rules/{id}:
+    $ref: paths/api_v1_categorization-rules_{id}.yaml
+  /api/v1/categorization-rules/{id}/archive:
+    $ref: paths/api_v1_categorization-rules_{id}_archive.yaml
+  /api/v1/categorization-rules/preview:
+    $ref: paths/api_v1_categorization-rules_preview.yaml
+  /api/v1/categorization-rules/apply:
+    $ref: paths/api_v1_categorization-rules_apply.yaml
+  /api/v1/transactions:
+    $ref: paths/api_v1_transactions.yaml
+  /api/v1/transactions/{id}:
+    $ref: paths/api_v1_transactions_{id}.yaml
+  /api/v1/transactions/{id}/splits:
+    $ref: paths/api_v1_transactions_{id}_splits.yaml
+  /api/v1/transactions/{id}/refundable:
+    $ref: paths/api_v1_transactions_{id}_refundable.yaml
+  /api/v1/transactions/{id}/refunds:
+    $ref: paths/api_v1_transactions_{id}_refunds.yaml
+  /api/v1/transactions/count:
+    $ref: paths/api_v1_transactions_count.yaml
+  /api/v1/transactions/facets:
+    $ref: paths/api_v1_transactions_facets.yaml
+  /api/v1/transactions/bulk-edit:
+    $ref: paths/api_v1_transactions_bulk-edit.yaml
+  /api/v1/transactions/{id}/void:
+    $ref: paths/api_v1_transactions_{id}_void.yaml
+  /api/v1/accounts/{accountId}/reconciliation:
+    $ref: paths/api_v1_accounts_{accountId}_reconciliation.yaml
+  /api/v1/transactions/{id}/reconcile:
+    $ref: paths/api_v1_transactions_{id}_reconcile.yaml
+  /api/v1/transactions/{id}/duplicate:
+    $ref: paths/api_v1_transactions_{id}_duplicate.yaml
+  /api/v1/transfers:
+    $ref: paths/api_v1_transfers.yaml
+  /api/v1/transfers/{id}:
+    $ref: paths/api_v1_transfers_{id}.yaml
+  /api/v1/transfers/{id}/void:
+    $ref: paths/api_v1_transfers_{id}_void.yaml
+  /api/v1/period-closures:
+    $ref: paths/api_v1_period-closures.yaml
+  /api/v1/periods/{period}:
+    $ref: paths/api_v1_periods_{period}.yaml
+  /api/v1/periods/{period}/closure:
+    $ref: paths/api_v1_periods_{period}_closure.yaml
+  /api/v1/periods/{period}/reopening:
+    $ref: paths/api_v1_periods_{period}_reopening.yaml
+  /api/v1/portfolios:
+    $ref: paths/api_v1_portfolios.yaml
+  /api/v1/holdings:
+    $ref: paths/api_v1_holdings.yaml
+  /api/v1/portfolio-valuation-reminders:
+    $ref: paths/api_v1_portfolio-valuation-reminders.yaml
+  /api/v1/accounts/{accountId}/portfolio-summary:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-summary.yaml
+  /api/v1/accounts/{accountId}/portfolio-allocation:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-allocation.yaml
+  /api/v1/accounts/{accountId}/portfolio-takeover:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-takeover.yaml
+  /api/v1/accounts/{accountId}/portfolio-takeover/preview:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-takeover_preview.yaml
+  /api/v1/accounts/{accountId}/portfolio-performance:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-performance.yaml
+  /api/v1/accounts/{accountId}/portfolio-performance/annual:
+    $ref: paths/api_v1_accounts_{accountId}_portfolio-performance_annual.yaml
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: cadran_session
+      description: >-
+        Same-origin session cookie issued by POST /api/v1/session. HttpOnly, so
+        the browser attaches it automatically and no script can read it.
+  responses:
+    ListRevisionStale:
+      $ref: components/responses/ListRevisionStale.yaml
+    Unauthorized:
+      $ref: components/responses/Unauthorized.yaml
+    InternalServerError:
+      $ref: components/responses/InternalServerError.yaml
+    UnsupportedMediaType:
+      $ref: components/responses/UnsupportedMediaType.yaml
+    BadRequest:
+      $ref: components/responses/BadRequest.yaml
+    InvalidCredentials:
+      $ref: components/responses/InvalidCredentials.yaml
+    Forbidden:
+      $ref: components/responses/Forbidden.yaml
+    WorkspaceForbidden:
+      $ref: components/responses/WorkspaceForbidden.yaml
+    NotFound:
+      $ref: components/responses/NotFound.yaml
+    CsrfFailure:
+      $ref: components/responses/CsrfFailure.yaml
+    CategoryMutationForbidden:
+      $ref: components/responses/CategoryMutationForbidden.yaml
+    CategoryOperationRefused:
+      $ref: components/responses/CategoryOperationRefused.yaml
+    CategoryVersionConflict:
+      $ref: components/responses/CategoryVersionConflict.yaml
+    AccountMutationForbidden:
+      $ref: components/responses/AccountMutationForbidden.yaml
+    ProductModelMutationForbidden:
+      $ref: components/responses/ProductModelMutationForbidden.yaml
+    TransactionMutationForbidden:
+      $ref: components/responses/TransactionMutationForbidden.yaml
+    TransactionPayloadTooLarge:
+      $ref: components/responses/TransactionPayloadTooLarge.yaml
+    PayloadTooLarge:
+      $ref: components/responses/PayloadTooLarge.yaml
+    ProductModelPayloadTooLarge:
+      $ref: components/responses/ProductModelPayloadTooLarge.yaml
+    OwnerNotProvisioned:
+      $ref: components/responses/OwnerNotProvisioned.yaml
+    ProfileMutationForbidden:
+      $ref: components/responses/ProfileMutationForbidden.yaml
+    ProfilePayloadTooLarge:
+      $ref: components/responses/ProfilePayloadTooLarge.yaml
+    InvalidDisplayName:
+      $ref: components/responses/InvalidDisplayName.yaml
+    PasswordChangeRefused:
+      $ref: components/responses/PasswordChangeRefused.yaml
+    PasswordChangeThrottled:
+      $ref: components/responses/PasswordChangeThrottled.yaml
+    TooManyRequests:
+      $ref: components/responses/TooManyRequests.yaml
+    Conflict:
+      $ref: components/responses/Conflict.yaml
+    UnprocessableEntity:
+      $ref: components/responses/UnprocessableEntity.yaml
+  headers:
+    ListRevision:
+      $ref: components/headers/ListRevision.yaml
+    IdempotencyReplayed:
+      $ref: components/headers/IdempotencyReplayed.yaml
+    RetryAfterOneSecond:
+      $ref: components/headers/RetryAfterOneSecond.yaml
+  parameters:
+    ListRevision:
+      $ref: components/parameters/ListRevision.yaml
+    IncludeUpcoming:
+      $ref: components/parameters/IncludeUpcoming.yaml
+    PeriodMonth:
+      $ref: components/parameters/PeriodMonth.yaml
+    CsrfToken:
+      $ref: components/parameters/CsrfToken.yaml
+    InstrumentId:
+      $ref: components/parameters/InstrumentId.yaml
+    PortfolioAccountId:
+      $ref: components/parameters/PortfolioAccountId.yaml
+    LifeInsuranceRecordId:
+      $ref: components/parameters/LifeInsuranceRecordId.yaml
+    PortfolioValuationId:
+      $ref: components/parameters/PortfolioValuationId.yaml
+    PortfolioOperationId:
+      $ref: components/parameters/PortfolioOperationId.yaml
+    IdempotencyKey:
+      $ref: components/parameters/IdempotencyKey.yaml
+    RequiredIdempotencyKey:
+      $ref: components/parameters/RequiredIdempotencyKey.yaml
+    BusinessDate:
+      $ref: components/parameters/BusinessDate.yaml
+  schemas:
+    PortfolioOverviewValuation:
+      $ref: components/schemas/PortfolioOverviewValuation.yaml
+    PortfolioOverviewAccount:
+      $ref: components/schemas/PortfolioOverviewAccount.yaml
+    PortfolioOverviewPeriod:
+      $ref: components/schemas/PortfolioOverviewPeriod.yaml
+    PortfolioOverviewSource:
+      $ref: components/schemas/PortfolioOverviewSource.yaml
+    PortfolioKpiExplanation:
+      $ref: components/schemas/PortfolioKpiExplanation.yaml
+    PortfolioDueMonth:
+      $ref: components/schemas/PortfolioDueMonth.yaml
+    PortfolioValuationReminder:
+      $ref: components/schemas/PortfolioValuationReminder.yaml
+    PortfolioValuationReminders:
+      $ref: components/schemas/PortfolioValuationReminders.yaml
+    PortfolioOverviewAccountCard:
+      $ref: components/schemas/PortfolioOverviewAccountCard.yaml
+    PortfolioReturnTrend:
+      $ref: components/schemas/PortfolioReturnTrend.yaml
+    HoldingsDecimal:
+      $ref: components/schemas/HoldingsDecimal.yaml
+    HoldingsNullableDecimal:
+      $ref: components/schemas/HoldingsNullableDecimal.yaml
+    HoldingsShare:
+      $ref: components/schemas/HoldingsShare.yaml
+    HoldingAccountLine:
+      $ref: components/schemas/HoldingAccountLine.yaml
+    HoldingLastPrice:
+      $ref: components/schemas/HoldingLastPrice.yaml
+    InstrumentHolding:
+      $ref: components/schemas/InstrumentHolding.yaml
+    InstrumentAccountHistory:
+      $ref: components/schemas/InstrumentAccountHistory.yaml
+    InstrumentHoldingTotals:
+      $ref: components/schemas/InstrumentHoldingTotals.yaml
+    InstrumentHoldingReason:
+      $ref: components/schemas/InstrumentHoldingReason.yaml
+    Holding:
+      $ref: components/schemas/Holding.yaml
+    HoldingsKnownCostFigures:
+      $ref: components/schemas/HoldingsKnownCostFigures.yaml
+    HoldingsTotals:
+      $ref: components/schemas/HoldingsTotals.yaml
+    HoldingAllocationSlice:
+      $ref: components/schemas/HoldingAllocationSlice.yaml
+    HoldingsWarning:
+      $ref: components/schemas/HoldingsWarning.yaml
+    HoldingsUnsplitAccount:
+      $ref: components/schemas/HoldingsUnsplitAccount.yaml
+    HoldingsAccountSummaryLine:
+      $ref: components/schemas/HoldingsAccountSummaryLine.yaml
+    HoldingsAccountSummary:
+      $ref: components/schemas/HoldingsAccountSummary.yaml
+    Holdings:
+      $ref: components/schemas/Holdings.yaml
+    PortfolioOverviewList:
+      $ref: components/schemas/PortfolioOverviewList.yaml
+    PortfolioOverviewSummary:
+      $ref: components/schemas/PortfolioOverviewSummary.yaml
+    PortfolioAllocationItem:
+      $ref: components/schemas/PortfolioAllocationItem.yaml
+    PortfolioOverviewAllocation:
+      $ref: components/schemas/PortfolioOverviewAllocation.yaml
+    PortfolioOverviewProblem:
+      $ref: components/schemas/PortfolioOverviewProblem.yaml
+    PortfolioPerformanceAmount:
+      $ref: components/schemas/PortfolioPerformanceAmount.yaml
+    PortfolioPerformanceAnchor:
+      $ref: components/schemas/PortfolioPerformanceAnchor.yaml
+    PortfolioPerformanceFlow:
+      $ref: components/schemas/PortfolioPerformanceFlow.yaml
+    PortfolioPerformanceReason:
+      $ref: components/schemas/PortfolioPerformanceReason.yaml
+    PortfolioGainDecomposition:
+      $ref: components/schemas/PortfolioGainDecomposition.yaml
+    PortfolioAnchorFreshness:
+      $ref: components/schemas/PortfolioAnchorFreshness.yaml
+    PortfolioPerformanceFreshness:
+      $ref: components/schemas/PortfolioPerformanceFreshness.yaml
+    PortfolioGainFigure:
+      $ref: components/schemas/PortfolioGainFigure.yaml
+    PortfolioModifiedDietzRate:
+      $ref: components/schemas/PortfolioModifiedDietzRate.yaml
+    PortfolioModifiedDietzWeight:
+      $ref: components/schemas/PortfolioModifiedDietzWeight.yaml
+    PortfolioModifiedDietzMonth:
+      $ref: components/schemas/PortfolioModifiedDietzMonth.yaml
+    PortfolioModifiedDietzQuality:
+      $ref: components/schemas/PortfolioModifiedDietzQuality.yaml
+    PortfolioModifiedDietzFigure:
+      $ref: components/schemas/PortfolioModifiedDietzFigure.yaml
+    PortfolioMoneyWeightedFigure:
+      $ref: components/schemas/PortfolioMoneyWeightedFigure.yaml
+    PortfolioTimeWeightedFigure:
+      $ref: components/schemas/PortfolioTimeWeightedFigure.yaml
+    PortfolioTimeWeightedSubperiod:
+      $ref: components/schemas/PortfolioTimeWeightedSubperiod.yaml
+    PortfolioPerformance:
+      $ref: components/schemas/PortfolioPerformance.yaml
+    PortfolioPerformanceProblem:
+      $ref: components/schemas/PortfolioPerformanceProblem.yaml
+    PortfolioAnnualPerformanceProblem:
+      $ref: components/schemas/PortfolioAnnualPerformanceProblem.yaml
+    PortfolioAnnualQuality:
+      $ref: components/schemas/PortfolioAnnualQuality.yaml
+    PortfolioAnnualRate:
+      $ref: components/schemas/PortfolioAnnualRate.yaml
+    PortfolioAnnualRateCell:
+      $ref: components/schemas/PortfolioAnnualRateCell.yaml
+    PortfolioAnnualMoneyWeighted:
+      $ref: components/schemas/PortfolioAnnualMoneyWeighted.yaml
+    PortfolioAnnualPeriodLine:
+      $ref: components/schemas/PortfolioAnnualPeriodLine.yaml
+    PortfolioAnnualMonthLine:
+      $ref: components/schemas/PortfolioAnnualMonthLine.yaml
+    PortfolioAnnualEmptyMonth:
+      $ref: components/schemas/PortfolioAnnualEmptyMonth.yaml
+    PortfolioAnnualCalculatedMonth:
+      $ref: components/schemas/PortfolioAnnualCalculatedMonth.yaml
+    PortfolioAnnualPerformance:
+      $ref: components/schemas/PortfolioAnnualPerformance.yaml
+    GoalPeriodicity:
+      $ref: components/schemas/GoalPeriodicity.yaml
+    GoalValueType:
+      $ref: components/schemas/GoalValueType.yaml
+    GoalPeriod:
+      $ref: components/schemas/GoalPeriod.yaml
+    GoalMetric:
+      $ref: components/schemas/GoalMetric.yaml
+    GoalDirection:
+      $ref: components/schemas/GoalDirection.yaml
+    GoalScopeType:
+      $ref: components/schemas/GoalScopeType.yaml
+    GoalDecimal:
+      $ref: components/schemas/GoalDecimal.yaml
+    GoalScopeInput:
+      $ref: components/schemas/GoalScopeInput.yaml
+    GoalAmountInput:
+      $ref: components/schemas/GoalAmountInput.yaml
+    CreateGoalRequest:
+      $ref: components/schemas/CreateGoalRequest.yaml
+    UpdateGoalRequest:
+      $ref: components/schemas/UpdateGoalRequest.yaml
+    GoalScope:
+      $ref: components/schemas/GoalScope.yaml
+    GoalScheduleInput:
+      $ref: components/schemas/GoalScheduleInput.yaml
+    GoalSchedulePart:
+      $ref: components/schemas/GoalSchedulePart.yaml
+    GoalSchedule:
+      $ref: components/schemas/GoalSchedule.yaml
+    GoalSchedulePreviewPart:
+      $ref: components/schemas/GoalSchedulePreviewPart.yaml
+    GoalSchedulePreview:
+      $ref: components/schemas/GoalSchedulePreview.yaml
+    GoalProblem:
+      $ref: components/schemas/GoalProblem.yaml
+    EmergencyFundEssentialMode:
+      $ref: components/schemas/EmergencyFundEssentialMode.yaml
+    EmergencyFundReferenceMode:
+      $ref: components/schemas/EmergencyFundReferenceMode.yaml
+    EmergencyFundTargetMode:
+      $ref: components/schemas/EmergencyFundTargetMode.yaml
+    EmergencyFundTargetRatio:
+      $ref: components/schemas/EmergencyFundTargetRatio.yaml
+    EmergencyFundTargetMonths:
+      $ref: components/schemas/EmergencyFundTargetMonths.yaml
+    EmergencyFundPolicy:
+      $ref: components/schemas/EmergencyFundPolicy.yaml
+    UpdateEmergencyFundPolicyRequest:
+      $ref: components/schemas/UpdateEmergencyFundPolicyRequest.yaml
+    EmergencyFundCoverage:
+      $ref: components/schemas/EmergencyFundCoverage.yaml
+    GoalVersion:
+      $ref: components/schemas/GoalVersion.yaml
+    GoalCorrectionPreviewState:
+      $ref: components/schemas/GoalCorrectionPreviewState.yaml
+    GoalCorrectionPreviewMonth:
+      $ref: components/schemas/GoalCorrectionPreviewMonth.yaml
+    GoalCorrectionPreview:
+      $ref: components/schemas/GoalCorrectionPreview.yaml
+    GoalVersionChangeValue:
+      $ref: components/schemas/GoalVersionChangeValue.yaml
+    GoalVersionChange:
+      $ref: components/schemas/GoalVersionChange.yaml
+    GoalVersionAuthor:
+      $ref: components/schemas/GoalVersionAuthor.yaml
+    GoalVersionHistoryItem:
+      $ref: components/schemas/GoalVersionHistoryItem.yaml
+    BulkGoalStopRequest:
+      $ref: components/schemas/BulkGoalStopRequest.yaml
+    BulkGoalDeleteRequest:
+      $ref: components/schemas/BulkGoalDeleteRequest.yaml
+    StopGoalRequest:
+      $ref: components/schemas/StopGoalRequest.yaml
+    GoalEvaluationStatus:
+      $ref: components/schemas/GoalEvaluationStatus.yaml
+    GoalEvaluationReason:
+      $ref: components/schemas/GoalEvaluationReason.yaml
+    GoalEvaluationFigure:
+      $ref: components/schemas/GoalEvaluationFigure.yaml
+    GoalEvaluationFormula:
+      $ref: components/schemas/GoalEvaluationFormula.yaml
+    GoalEvaluationPace:
+      $ref: components/schemas/GoalEvaluationPace.yaml
+    GoalEvaluation:
+      $ref: components/schemas/GoalEvaluation.yaml
+    GoalPeriodEvaluation:
+      $ref: components/schemas/GoalPeriodEvaluation.yaml
+    GoalEvaluations:
+      $ref: components/schemas/GoalEvaluations.yaml
+    GoalVersionHistory:
+      $ref: components/schemas/GoalVersionHistory.yaml
+    GoalSummary:
+      $ref: components/schemas/GoalSummary.yaml
+    GoalList:
+      $ref: components/schemas/GoalList.yaml
+    GoalReferenceIncome:
+      $ref: components/schemas/GoalReferenceIncome.yaml
+    GoalResolvedMonthlyTarget:
+      $ref: components/schemas/GoalResolvedMonthlyTarget.yaml
+    GoalDetail:
+      $ref: components/schemas/GoalDetail.yaml
+    GoalStatusMetricPolicy:
+      $ref: components/schemas/GoalStatusMetricPolicy.yaml
+    GoalStatusReason:
+      $ref: components/schemas/GoalStatusReason.yaml
+    GoalStatusValue:
+      $ref: components/schemas/GoalStatusValue.yaml
+    GoalStatusMonth:
+      $ref: components/schemas/GoalStatusMonth.yaml
+    GoalStatusReferenceIncome:
+      $ref: components/schemas/GoalStatusReferenceIncome.yaml
+    GoalYearlyStatus:
+      $ref: components/schemas/GoalYearlyStatus.yaml
+    GoalYearlyStatusSummary:
+      $ref: components/schemas/GoalYearlyStatusSummary.yaml
+    GoalMonthlyStatus:
+      $ref: components/schemas/GoalMonthlyStatus.yaml
+    GoalMonthlyStatusSummary:
+      $ref: components/schemas/GoalMonthlyStatusSummary.yaml
+    GoalStatus:
+      $ref: components/schemas/GoalStatus.yaml
+    GoalStatusSummary:
+      $ref: components/schemas/GoalStatusSummary.yaml
+    FoundationStatus:
+      $ref: components/schemas/FoundationStatus.yaml
+    SessionState:
+      $ref: components/schemas/SessionState.yaml
+    SessionUser:
+      $ref: components/schemas/SessionUser.yaml
+    SessionWorkspace:
+      $ref: components/schemas/SessionWorkspace.yaml
+    LoginRequest:
+      $ref: components/schemas/LoginRequest.yaml
+    DefinePasswordRequest:
+      $ref: components/schemas/DefinePasswordRequest.yaml
+    OwnerProfile:
+      $ref: components/schemas/OwnerProfile.yaml
+    UpdateProfileRequest:
+      $ref: components/schemas/UpdateProfileRequest.yaml
+    ChangePasswordRequest:
+      $ref: components/schemas/ChangePasswordRequest.yaml
+    AuditEventPage:
+      $ref: components/schemas/AuditEventPage.yaml
+    AuditEvent:
+      $ref: components/schemas/AuditEvent.yaml
+    AuditDiffSide:
+      $ref: components/schemas/AuditDiffSide.yaml
+    AssetPage:
+      $ref: components/schemas/AssetPage.yaml
+    Asset:
+      $ref: components/schemas/Asset.yaml
+    ProductPage:
+      $ref: components/schemas/ProductPage.yaml
+    CeilingBasis:
+      $ref: components/schemas/CeilingBasis.yaml
+    ProductCode:
+      $ref: components/schemas/ProductCode.yaml
+    Product:
+      $ref: components/schemas/Product.yaml
+    ProductCapability:
+      $ref: components/schemas/ProductCapability.yaml
+    ProductRuleKind:
+      $ref: components/schemas/ProductRuleKind.yaml
+    ProductRule:
+      $ref: components/schemas/ProductRule.yaml
+    ProductRuleSource:
+      $ref: components/schemas/ProductRuleSource.yaml
+    ProductWrapperKind:
+      $ref: components/schemas/ProductWrapperKind.yaml
+    ProductYieldKind:
+      $ref: components/schemas/ProductYieldKind.yaml
+    RuleValueType:
+      $ref: components/schemas/RuleValueType.yaml
+    ProductNature:
+      $ref: components/schemas/ProductNature.yaml
+    ProductModelOrigin:
+      $ref: components/schemas/ProductModelOrigin.yaml
+    ProductModelPage:
+      $ref: components/schemas/ProductModelPage.yaml
+    ProductModel:
+      $ref: components/schemas/ProductModel.yaml
+    ProductModelRule:
+      $ref: components/schemas/ProductModelRule.yaml
+    ProductModelRuleInput:
+      $ref: components/schemas/ProductModelRuleInput.yaml
+    CreateProductModelRequest:
+      $ref: components/schemas/CreateProductModelRequest.yaml
+    CreateProductModelFromProductRequest:
+      $ref: components/schemas/CreateProductModelFromProductRequest.yaml
+    DuplicateProductModelRequest:
+      $ref: components/schemas/DuplicateProductModelRequest.yaml
+    AddProductModelRuleRequest:
+      $ref: components/schemas/AddProductModelRuleRequest.yaml
+    ArchiveProductModelRequest:
+      $ref: components/schemas/ArchiveProductModelRequest.yaml
+    CategoryPage:
+      $ref: components/schemas/CategoryPage.yaml
+    Category:
+      $ref: components/schemas/Category.yaml
+    CategoryLifecycleOperation:
+      $ref: components/schemas/CategoryLifecycleOperation.yaml
+    CategoryImpactBlocker:
+      $ref: components/schemas/CategoryImpactBlocker.yaml
+    CategoryReplacement:
+      $ref: components/schemas/CategoryReplacement.yaml
+    CategoryImpact:
+      $ref: components/schemas/CategoryImpact.yaml
+    MoveCategoryRequest:
+      $ref: components/schemas/MoveCategoryRequest.yaml
+    MergeCategoryRequest:
+      $ref: components/schemas/MergeCategoryRequest.yaml
+    ArchiveCategoryRequest:
+      $ref: components/schemas/ArchiveCategoryRequest.yaml
+    ReplaceCategoryRequest:
+      $ref: components/schemas/ReplaceCategoryRequest.yaml
+    CategoryOperationProblem:
+      $ref: components/schemas/CategoryOperationProblem.yaml
+    CreateCategoryRequest:
+      $ref: components/schemas/CreateCategoryRequest.yaml
+    UpdateCategoryRequest:
+      $ref: components/schemas/UpdateCategoryRequest.yaml
+    InstrumentType:
+      $ref: components/schemas/InstrumentType.yaml
+    InstrumentAssetClass:
+      $ref: components/schemas/InstrumentAssetClass.yaml
+    InstrumentRegion:
+      $ref: components/schemas/InstrumentRegion.yaml
+    InstrumentStatus:
+      $ref: components/schemas/InstrumentStatus.yaml
+    InstrumentSource:
+      $ref: components/schemas/InstrumentSource.yaml
+    Instrument:
+      $ref: components/schemas/Instrument.yaml
+    InstrumentPage:
+      $ref: components/schemas/InstrumentPage.yaml
+    InstrumentCandidate:
+      $ref: components/schemas/InstrumentCandidate.yaml
+    InstrumentProblem:
+      $ref: components/schemas/InstrumentProblem.yaml
+    CreateInstrumentRequest:
+      $ref: components/schemas/CreateInstrumentRequest.yaml
+    UpdateInstrumentRequest:
+      $ref: components/schemas/UpdateInstrumentRequest.yaml
+    InstrumentVersionRequest:
+      $ref: components/schemas/InstrumentVersionRequest.yaml
+    AccountPage:
+      $ref: components/schemas/AccountPage.yaml
+    AccountOverview:
+      $ref: components/schemas/AccountOverview.yaml
+    AccountOverviewGroup:
+      $ref: components/schemas/AccountOverviewGroup.yaml
+    AccountOverviewRows:
+      $ref: components/schemas/AccountOverviewRows.yaml
+    AccountOverviewRow:
+      $ref: components/schemas/AccountOverviewRow.yaml
+    MoveAccountRequest:
+      $ref: components/schemas/MoveAccountRequest.yaml
+    MoveAccountGroupRequest:
+      $ref: components/schemas/MoveAccountGroupRequest.yaml
+    AccountGroupMove:
+      $ref: components/schemas/AccountGroupMove.yaml
+    AccountMove:
+      $ref: components/schemas/AccountMove.yaml
+    NetWorthShare:
+      $ref: components/schemas/NetWorthShare.yaml
+    NetWorthShareReason:
+      $ref: components/schemas/NetWorthShareReason.yaml
+    GroupCompositionChartReason:
+      $ref: components/schemas/GroupCompositionChartReason.yaml
+    GroupCompositionSubgroup:
+      $ref: components/schemas/GroupCompositionSubgroup.yaml
+    GroupCompositionAccount:
+      $ref: components/schemas/GroupCompositionAccount.yaml
+    AccountOverviewCompositionChartReason:
+      $ref: components/schemas/AccountOverviewCompositionChartReason.yaml
+    AccountOverviewCompositionAccount:
+      $ref: components/schemas/AccountOverviewCompositionAccount.yaml
+    AccountOverviewComposition:
+      $ref: components/schemas/AccountOverviewComposition.yaml
+    AccountGroupComposition:
+      $ref: components/schemas/AccountGroupComposition.yaml
+    AccountGroupPage:
+      $ref: components/schemas/AccountGroupPage.yaml
+    AccountGroup:
+      $ref: components/schemas/AccountGroup.yaml
+    CreateAccountGroupRequest:
+      $ref: components/schemas/CreateAccountGroupRequest.yaml
+    UpdateAccountGroupRequest:
+      $ref: components/schemas/UpdateAccountGroupRequest.yaml
+    ArchiveAccountGroupRequest:
+      $ref: components/schemas/ArchiveAccountGroupRequest.yaml
+    Account:
+      $ref: components/schemas/Account.yaml
+    AccountValuationHistory:
+      $ref: components/schemas/AccountValuationHistory.yaml
+    AccountValuationHistoryPoint:
+      $ref: components/schemas/AccountValuationHistoryPoint.yaml
+    AccountValuation:
+      $ref: components/schemas/AccountValuation.yaml
+    ValuationBasis:
+      $ref: components/schemas/ValuationBasis.yaml
+    ValuationDerivation:
+      $ref: components/schemas/ValuationDerivation.yaml
+    ValuationQuality:
+      $ref: components/schemas/ValuationQuality.yaml
+    BalanceSnapshotSource:
+      $ref: components/schemas/BalanceSnapshotSource.yaml
+    ReconciliationStatus:
+      $ref: components/schemas/ReconciliationStatus.yaml
+    AccountBalanceSnapshot:
+      $ref: components/schemas/AccountBalanceSnapshot.yaml
+    AccountBalanceSnapshotPage:
+      $ref: components/schemas/AccountBalanceSnapshotPage.yaml
+    WithdrawAccountBalanceRequest:
+      $ref: components/schemas/WithdrawAccountBalanceRequest.yaml
+    RecordAccountBalanceRequest:
+      $ref: components/schemas/RecordAccountBalanceRequest.yaml
+    CorrectAccountBalanceRequest:
+      $ref: components/schemas/CorrectAccountBalanceRequest.yaml
+    CreateAccountRequest:
+      $ref: components/schemas/CreateAccountRequest.yaml
+    UpdateAccountRequest:
+      $ref: components/schemas/UpdateAccountRequest.yaml
+    ArchiveAccountRequest:
+      $ref: components/schemas/ArchiveAccountRequest.yaml
+    AccountKind:
+      $ref: components/schemas/AccountKind.yaml
+    AccountStatus:
+      $ref: components/schemas/AccountStatus.yaml
+    AccountValuationMode:
+      $ref: components/schemas/AccountValuationMode.yaml
+    LiquidityLevel:
+      $ref: components/schemas/LiquidityLevel.yaml
+    AccountRules:
+      $ref: components/schemas/AccountRules.yaml
+    AccountYieldReading:
+      $ref: components/schemas/AccountYieldReading.yaml
+    AccountRulesOrigin:
+      $ref: components/schemas/AccountRulesOrigin.yaml
+    AccountRuleLayer:
+      $ref: components/schemas/AccountRuleLayer.yaml
+    AccountCeilingRule:
+      $ref: components/schemas/AccountCeilingRule.yaml
+    CeilingCheck:
+      $ref: components/schemas/CeilingCheck.yaml
+    AccountCeiling:
+      $ref: components/schemas/AccountCeiling.yaml
+    AccountRateRule:
+      $ref: components/schemas/AccountRateRule.yaml
+    AppliedRate:
+      $ref: components/schemas/AppliedRate.yaml
+    AccountRate:
+      $ref: components/schemas/AccountRate.yaml
+    RateApplication:
+      $ref: components/schemas/RateApplication.yaml
+    RateBracket:
+      $ref: components/schemas/RateBracket.yaml
+    AccountTermRule:
+      $ref: components/schemas/AccountTermRule.yaml
+    AccountTerm:
+      $ref: components/schemas/AccountTerm.yaml
+    DeclaredOrVerified:
+      $ref: components/schemas/DeclaredOrVerified.yaml
+    DeclaredOrSourced:
+      $ref: components/schemas/DeclaredOrSourced.yaml
+    AccountRuleClaimOrNull:
+      $ref: components/schemas/AccountRuleClaimOrNull.yaml
+    AccountRuleClaim:
+      $ref: components/schemas/AccountRuleClaim.yaml
+    AccountRuleOverridePage:
+      $ref: components/schemas/AccountRuleOverridePage.yaml
+    AccountRuleOverride:
+      $ref: components/schemas/AccountRuleOverride.yaml
+    RecordAccountRuleOverrideRequest:
+      $ref: components/schemas/RecordAccountRuleOverrideRequest.yaml
+    EmptyRequest:
+      $ref: components/schemas/EmptyRequest.yaml
+    RuleValidFrom:
+      $ref: components/schemas/RuleValidFrom.yaml
+    RuleValidTo:
+      $ref: components/schemas/RuleValidTo.yaml
+    RuleVerification:
+      $ref: components/schemas/RuleVerification.yaml
+    CategoryType:
+      $ref: components/schemas/CategoryType.yaml
+    AnalyticAxes:
+      $ref: components/schemas/AnalyticAxes.yaml
+    MonthlyProjectionReason:
+      $ref: components/schemas/MonthlyProjectionReason.yaml
+    MonthlyProjectionMetric:
+      $ref: components/schemas/MonthlyProjectionMetric.yaml
+    MonthlyKpiExplanation:
+      $ref: components/schemas/MonthlyKpiExplanation.yaml
+    MonthlyKpiSourceTransaction:
+      $ref: components/schemas/MonthlyKpiSourceTransaction.yaml
+    MonthlyAccountValue:
+      $ref: components/schemas/MonthlyAccountValue.yaml
+    MonthlyLedgerMetric:
+      $ref: components/schemas/MonthlyLedgerMetric.yaml
+    MonthlyLedgerCategoryRow:
+      $ref: components/schemas/MonthlyLedgerCategoryRow.yaml
+    MonthlyLedgerAccountRow:
+      $ref: components/schemas/MonthlyLedgerAccountRow.yaml
+    MonthlyBounds:
+      $ref: components/schemas/MonthlyBounds.yaml
+    MonthlyLedger:
+      $ref: components/schemas/MonthlyLedger.yaml
+    MonthlyLedgerMovement:
+      $ref: components/schemas/MonthlyLedgerMovement.yaml
+    MonthlyLedgerMovementPage:
+      $ref: components/schemas/MonthlyLedgerMovementPage.yaml
+    MonthlyProjectionAccount:
+      $ref: components/schemas/MonthlyProjectionAccount.yaml
+    MonthlyProjection:
+      $ref: components/schemas/MonthlyProjection.yaml
+    MonthlyRecapMetric:
+      $ref: components/schemas/MonthlyRecapMetric.yaml
+    MonthlyRecapAxis:
+      $ref: components/schemas/MonthlyRecapAxis.yaml
+    MonthlyRecapCategory:
+      $ref: components/schemas/MonthlyRecapCategory.yaml
+    MonthlyRecapTotals:
+      $ref: components/schemas/MonthlyRecapTotals.yaml
+    MonthlyRecapAccount:
+      $ref: components/schemas/MonthlyRecapAccount.yaml
+    MonthlyRecapGroup:
+      $ref: components/schemas/MonthlyRecapGroup.yaml
+    MonthlyRecapNetWorth:
+      $ref: components/schemas/MonthlyRecapNetWorth.yaml
+    StaleValuation:
+      $ref: components/schemas/StaleValuation.yaml
+    MonthlyRecap:
+      $ref: components/schemas/MonthlyRecap.yaml
+    MonthlyRecapPreferences:
+      $ref: components/schemas/MonthlyRecapPreferences.yaml
+    InterfacePreferences:
+      $ref: components/schemas/InterfacePreferences.yaml
+    InterfacePreferencesInput:
+      $ref: components/schemas/InterfacePreferencesInput.yaml
+    MonthlyRecapPreferencesInput:
+      $ref: components/schemas/MonthlyRecapPreferencesInput.yaml
+    AnnualIncompleteMonths:
+      $ref: components/schemas/AnnualIncompleteMonths.yaml
+    AnnualReportPreferences:
+      $ref: components/schemas/AnnualReportPreferences.yaml
+    AnnualReportPreferencesInput:
+      $ref: components/schemas/AnnualReportPreferencesInput.yaml
+    AnnualColumnKind:
+      $ref: components/schemas/AnnualColumnKind.yaml
+    AnnualMonthState:
+      $ref: components/schemas/AnnualMonthState.yaml
+    AnnualAggregateQuality:
+      $ref: components/schemas/AnnualAggregateQuality.yaml
+    AnnualPolicy:
+      $ref: components/schemas/AnnualPolicy.yaml
+    AnnualColumn:
+      $ref: components/schemas/AnnualColumn.yaml
+    AnnualCell:
+      $ref: components/schemas/AnnualCell.yaml
+    AnnualRow:
+      $ref: components/schemas/AnnualRow.yaml
+    AnnualExtreme:
+      $ref: components/schemas/AnnualExtreme.yaml
+    AnnualExcludedMonth:
+      $ref: components/schemas/AnnualExcludedMonth.yaml
+    AnnualAggregate:
+      $ref: components/schemas/AnnualAggregate.yaml
+    AnnualCategoryShare:
+      $ref: components/schemas/AnnualCategoryShare.yaml
+    AnnualTopExpenseCategories:
+      $ref: components/schemas/AnnualTopExpenseCategories.yaml
+    AnnualOtherCategories:
+      $ref: components/schemas/AnnualOtherCategories.yaml
+    AnnualAllocationItem:
+      $ref: components/schemas/AnnualAllocationItem.yaml
+    AnnualAllocation:
+      $ref: components/schemas/AnnualAllocation.yaml
+    AnnualFlowMonth:
+      $ref: components/schemas/AnnualFlowMonth.yaml
+    AnnualFlows:
+      $ref: components/schemas/AnnualFlows.yaml
+    AnnualNetWorthPoint:
+      $ref: components/schemas/AnnualNetWorthPoint.yaml
+    AnnualNetWorthSeries:
+      $ref: components/schemas/AnnualNetWorthSeries.yaml
+    AnnualCharts:
+      $ref: components/schemas/AnnualCharts.yaml
+    AnnualReport:
+      $ref: components/schemas/AnnualReport.yaml
+    AnnualMonthExplanation:
+      $ref: components/schemas/AnnualMonthExplanation.yaml
+    AnnualColumnExplanation:
+      $ref: components/schemas/AnnualColumnExplanation.yaml
+    MultiYearMetricPolicy:
+      $ref: components/schemas/MultiYearMetricPolicy.yaml
+    MultiYearCell:
+      $ref: components/schemas/MultiYearCell.yaml
+    MultiYearYearState:
+      $ref: components/schemas/MultiYearYearState.yaml
+    MultiYearFlows:
+      $ref: components/schemas/MultiYearFlows.yaml
+    MultiYearYear:
+      $ref: components/schemas/MultiYearYear.yaml
+    MultiYearExtreme:
+      $ref: components/schemas/MultiYearExtreme.yaml
+    MultiYearSummaryCell:
+      $ref: components/schemas/MultiYearSummaryCell.yaml
+    MultiYearDetailedExtreme:
+      $ref: components/schemas/MultiYearDetailedExtreme.yaml
+    MultiYearDetailedAggregate:
+      $ref: components/schemas/MultiYearDetailedAggregate.yaml
+    MultiYearReport:
+      $ref: components/schemas/MultiYearReport.yaml
+    NetWorthReason:
+      $ref: components/schemas/NetWorthReason.yaml
+    NetWorthAmount:
+      $ref: components/schemas/NetWorthAmount.yaml
+    NetWorthDelta:
+      $ref: components/schemas/NetWorthDelta.yaml
+    NetWorthContribution:
+      $ref: components/schemas/NetWorthContribution.yaml
+    NetWorthAllocationEntry:
+      $ref: components/schemas/NetWorthAllocationEntry.yaml
+    NetWorth:
+      $ref: components/schemas/NetWorth.yaml
+    NetWorthPoint:
+      $ref: components/schemas/NetWorthPoint.yaml
+    NetWorthHistory:
+      $ref: components/schemas/NetWorthHistory.yaml
+    RecurrenceIntervalKind:
+      $ref: components/schemas/RecurrenceIntervalKind.yaml
+    RecurrenceAmountLiteral:
+      $ref: components/schemas/RecurrenceAmountLiteral.yaml
+    RecurrenceCandidate:
+      $ref: components/schemas/RecurrenceCandidate.yaml
+    RecurrenceCandidatePage:
+      $ref: components/schemas/RecurrenceCandidatePage.yaml
+    DismissRecurrenceCandidateRequest:
+      $ref: components/schemas/DismissRecurrenceCandidateRequest.yaml
+    CreateRecurrenceRequest:
+      $ref: components/schemas/CreateRecurrenceRequest.yaml
+    UpdateRecurrenceRequest:
+      $ref: components/schemas/UpdateRecurrenceRequest.yaml
+    Recurrence:
+      $ref: components/schemas/Recurrence.yaml
+    RecurrencePage:
+      $ref: components/schemas/RecurrencePage.yaml
+    RecurrenceOccurrence:
+      $ref: components/schemas/RecurrenceOccurrence.yaml
+    RecurrenceOccurrencePage:
+      $ref: components/schemas/RecurrenceOccurrencePage.yaml
+    MaterializeRecurrencesResult:
+      $ref: components/schemas/MaterializeRecurrencesResult.yaml
+    RecurrenceHorizonReport:
+      $ref: components/schemas/RecurrenceHorizonReport.yaml
+    TransactionPage:
+      $ref: components/schemas/TransactionPage.yaml
+    Transaction:
+      $ref: components/schemas/Transaction.yaml
+    TransactionReviewReason:
+      $ref: components/schemas/TransactionReviewReason.yaml
+    RefundableTransaction:
+      $ref: components/schemas/RefundableTransaction.yaml
+    CreateRefundRequest:
+      $ref: components/schemas/CreateRefundRequest.yaml
+    RefundConflictProblem:
+      $ref: components/schemas/RefundConflictProblem.yaml
+    RuleTextPredicate:
+      $ref: components/schemas/RuleTextPredicate.yaml
+    RuleTextConditionGroup:
+      $ref: components/schemas/RuleTextConditionGroup.yaml
+    RuleAmountCondition:
+      $ref: components/schemas/RuleAmountCondition.yaml
+    CategorizationRuleConditions:
+      $ref: components/schemas/CategorizationRuleConditions.yaml
+    CreateCategorizationRuleRequest:
+      $ref: components/schemas/CreateCategorizationRuleRequest.yaml
+    UpdateCategorizationRuleRequest:
+      $ref: components/schemas/UpdateCategorizationRuleRequest.yaml
+    VersionRequest:
+      $ref: components/schemas/VersionRequest.yaml
+    CategorizationRule:
+      $ref: components/schemas/CategorizationRule.yaml
+    CategorizationRulePage:
+      $ref: components/schemas/CategorizationRulePage.yaml
+    CategorizationPreviewRequest:
+      $ref: components/schemas/CategorizationPreviewRequest.yaml
+    CategorizationConflict:
+      $ref: components/schemas/CategorizationConflict.yaml
+    CategorizationSample:
+      $ref: components/schemas/CategorizationSample.yaml
+    CategorizationSkipped:
+      $ref: components/schemas/CategorizationSkipped.yaml
+    CategorizationPreview:
+      $ref: components/schemas/CategorizationPreview.yaml
+    CategorizationApplyRequest:
+      $ref: components/schemas/CategorizationApplyRequest.yaml
+    CategorizationApplyReport:
+      $ref: components/schemas/CategorizationApplyReport.yaml
+    TransactionSplit:
+      $ref: components/schemas/TransactionSplit.yaml
+    TransactionNature:
+      $ref: components/schemas/TransactionNature.yaml
+    StandaloneTransactionNature:
+      $ref: components/schemas/StandaloneTransactionNature.yaml
+    TransactionState:
+      $ref: components/schemas/TransactionState.yaml
+    TransactionSource:
+      $ref: components/schemas/TransactionSource.yaml
+    TransactionDirection:
+      $ref: components/schemas/TransactionDirection.yaml
+    PaymentMethod:
+      $ref: components/schemas/PaymentMethod.yaml
+    CreateTransactionRequest:
+      $ref: components/schemas/CreateTransactionRequest.yaml
+    ResolveAccountReconciliationRequest:
+      $ref: components/schemas/ResolveAccountReconciliationRequest.yaml
+    AccountReconciliationResolution:
+      $ref: components/schemas/AccountReconciliationResolution.yaml
+    AccountReconciliationReason:
+      $ref: components/schemas/AccountReconciliationReason.yaml
+    AccountReconciliation:
+      $ref: components/schemas/AccountReconciliation.yaml
+    ReconcileTransactionRequest:
+      $ref: components/schemas/ReconcileTransactionRequest.yaml
+    UpdateTransactionRequest:
+      $ref: components/schemas/UpdateTransactionRequest.yaml
+    ReplaceTransactionSplitsRequest:
+      $ref: components/schemas/ReplaceTransactionSplitsRequest.yaml
+    TransactionSplitInput:
+      $ref: components/schemas/TransactionSplitInput.yaml
+    TransactionCount:
+      $ref: components/schemas/TransactionCount.yaml
+    TransactionFacets:
+      $ref: components/schemas/TransactionFacets.yaml
+    BulkTransactionFilters:
+      $ref: components/schemas/BulkTransactionFilters.yaml
+    BulkIdsScope:
+      $ref: components/schemas/BulkIdsScope.yaml
+    BulkFilterScope:
+      $ref: components/schemas/BulkFilterScope.yaml
+    BulkEditRequest:
+      $ref: components/schemas/BulkEditRequest.yaml
+    BulkEditChanges:
+      $ref: components/schemas/BulkEditChanges.yaml
+    BulkLabelSame:
+      $ref: components/schemas/BulkLabelSame.yaml
+    BulkLabelEach:
+      $ref: components/schemas/BulkLabelEach.yaml
+    BulkLabelValue:
+      $ref: components/schemas/BulkLabelValue.yaml
+    BulkSkipReason:
+      $ref: components/schemas/BulkSkipReason.yaml
+    BulkSkippedTransaction:
+      $ref: components/schemas/BulkSkippedTransaction.yaml
+    BulkEditResult:
+      $ref: components/schemas/BulkEditResult.yaml
+    BulkMoveImpact:
+      $ref: components/schemas/BulkMoveImpact.yaml
+    BulkEditPreview:
+      $ref: components/schemas/BulkEditPreview.yaml
+    VoidTransactionRequest:
+      $ref: components/schemas/VoidTransactionRequest.yaml
+    Transfer:
+      $ref: components/schemas/Transfer.yaml
+    CreateTransferRequest:
+      $ref: components/schemas/CreateTransferRequest.yaml
+    UpdateTransferRequest:
+      $ref: components/schemas/UpdateTransferRequest.yaml
+    VoidTransferRequest:
+      $ref: components/schemas/VoidTransferRequest.yaml
+    PortfolioOperationType:
+      $ref: components/schemas/PortfolioOperationType.yaml
+    PortfolioDecimal:
+      $ref: components/schemas/PortfolioDecimal.yaml
+    PortfolioOperationInstrument:
+      $ref: components/schemas/PortfolioOperationInstrument.yaml
+    PortfolioOperationLegInput:
+      $ref: components/schemas/PortfolioOperationLegInput.yaml
+    PortfolioOperationLeg:
+      $ref: components/schemas/PortfolioOperationLeg.yaml
+    PortfolioOperationRatio:
+      $ref: components/schemas/PortfolioOperationRatio.yaml
+    PortfolioOperation:
+      $ref: components/schemas/PortfolioOperation.yaml
+    PortfolioOperationPage:
+      $ref: components/schemas/PortfolioOperationPage.yaml
+    PortfolioOperationRequest:
+      $ref: components/schemas/PortfolioOperationRequest.yaml
+    VoidPortfolioOperationRequest:
+      $ref: components/schemas/VoidPortfolioOperationRequest.yaml
+    CorrectPortfolioOperationRequest:
+      $ref: components/schemas/CorrectPortfolioOperationRequest.yaml
+    PortfolioOperationPreview:
+      $ref: components/schemas/PortfolioOperationPreview.yaml
+    PortfolioPositionInstrument:
+      $ref: components/schemas/PortfolioPositionInstrument.yaml
+    PortfolioPositionFlag:
+      $ref: components/schemas/PortfolioPositionFlag.yaml
+    PortfolioPosition:
+      $ref: components/schemas/PortfolioPosition.yaml
+    PortfolioCashWarning:
+      $ref: components/schemas/PortfolioCashWarning.yaml
+    PortfolioCashMovement:
+      $ref: components/schemas/PortfolioCashMovement.yaml
+    PortfolioCashTotals:
+      $ref: components/schemas/PortfolioCashTotals.yaml
+    PortfolioCostPolicy:
+      $ref: components/schemas/PortfolioCostPolicy.yaml
+    PortfolioCash:
+      $ref: components/schemas/PortfolioCash.yaml
+    MonthlyPortfolioCostItem:
+      $ref: components/schemas/MonthlyPortfolioCostItem.yaml
+    MonthlyPortfolioCosts:
+      $ref: components/schemas/MonthlyPortfolioCosts.yaml
+    PortfolioPositions:
+      $ref: components/schemas/PortfolioPositions.yaml
+    PortfolioLot:
+      $ref: components/schemas/PortfolioLot.yaml
+    PortfolioLotMovement:
+      $ref: components/schemas/PortfolioLotMovement.yaml
+    PortfolioPositionLots:
+      $ref: components/schemas/PortfolioPositionLots.yaml
+    PortfolioOperationOrder:
+      $ref: components/schemas/PortfolioOperationOrder.yaml
+    PortfolioTransferCandidate:
+      $ref: components/schemas/PortfolioTransferCandidate.yaml
+    PortfolioTransferCandidates:
+      $ref: components/schemas/PortfolioTransferCandidates.yaml
+    PortfolioOperationProblem:
+      $ref: components/schemas/PortfolioOperationProblem.yaml
+    DecimalAmount:
+      $ref: components/schemas/DecimalAmount.yaml
+    MetricPolicyReference:
+      $ref: components/schemas/MetricPolicyReference.yaml
+    MetricPolicy:
+      $ref: components/schemas/MetricPolicy.yaml
+    MetricPolicyCatalog:
+      $ref: components/schemas/MetricPolicyCatalog.yaml
+    ActiveMetricPolicy:
+      $ref: components/schemas/ActiveMetricPolicy.yaml
+    CreateMetricPolicyRequest:
+      $ref: components/schemas/CreateMetricPolicyRequest.yaml
+    ActivateMetricPolicyRequest:
+      $ref: components/schemas/ActivateMetricPolicyRequest.yaml
+    MetricPolicyProblem:
+      $ref: components/schemas/MetricPolicyProblem.yaml
+    Problem:
+      $ref: components/schemas/Problem.yaml
+    AccountGroupInputProblem:
+      $ref: components/schemas/AccountGroupInputProblem.yaml
+    AmountInputProblem:
+      $ref: components/schemas/AmountInputProblem.yaml
+    PortfolioAccountRequiresOperationsProblem:
+      $ref: components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+    TransactionBelongsToTransferProblem:
+      $ref: components/schemas/TransactionBelongsToTransferProblem.yaml
+    PeriodClosingCondition:
+      $ref: components/schemas/PeriodClosingCondition.yaml
+    PeriodClosingReason:
+      $ref: components/schemas/PeriodClosingReason.yaml
+    PeriodClosingBlockerItem:
+      $ref: components/schemas/PeriodClosingBlockerItem.yaml
+    PeriodClosingBlocker:
+      $ref: components/schemas/PeriodClosingBlocker.yaml
+    PeriodClosure:
+      $ref: components/schemas/PeriodClosure.yaml
+    PeriodClosureList:
+      $ref: components/schemas/PeriodClosureList.yaml
+    PeriodStatus:
+      $ref: components/schemas/PeriodStatus.yaml
+    ClosePeriodRequest:
+      $ref: components/schemas/ClosePeriodRequest.yaml
+    ReopenPeriodRequest:
+      $ref: components/schemas/ReopenPeriodRequest.yaml
+    PeriodClosingBlockedProblem:
+      $ref: components/schemas/PeriodClosingBlockedProblem.yaml
+    PortfolioValuationDetail:
+      $ref: components/schemas/PortfolioValuationDetail.yaml
+    PortfolioValuationFlag:
+      $ref: components/schemas/PortfolioValuationFlag.yaml
+    PortfolioPriceQuality:
+      $ref: components/schemas/PortfolioPriceQuality.yaml
+    PortfolioValuationPriceEntry:
+      $ref: components/schemas/PortfolioValuationPriceEntry.yaml
+    PortfolioValuationRequest:
+      $ref: components/schemas/PortfolioValuationRequest.yaml
+    WithdrawPortfolioValuationRequest:
+      $ref: components/schemas/WithdrawPortfolioValuationRequest.yaml
+    PortfolioValuationInstrument:
+      $ref: components/schemas/PortfolioValuationInstrument.yaml
+    PortfolioValuationSummary:
+      $ref: components/schemas/PortfolioValuationSummary.yaml
+    PortfolioValuationHistoryPoint:
+      $ref: components/schemas/PortfolioValuationHistoryPoint.yaml
+    PortfolioValuationHistory:
+      $ref: components/schemas/PortfolioValuationHistory.yaml
+    PortfolioValuationPage:
+      $ref: components/schemas/PortfolioValuationPage.yaml
+    PortfolioValuationPosition:
+      $ref: components/schemas/PortfolioValuationPosition.yaml
+    PortfolioValuation:
+      $ref: components/schemas/PortfolioValuation.yaml
+    PortfolioValuationDraftPosition:
+      $ref: components/schemas/PortfolioValuationDraftPosition.yaml
+    PortfolioValuationDraft:
+      $ref: components/schemas/PortfolioValuationDraft.yaml
+    LifeInsuranceManagementMode:
+      $ref: components/schemas/LifeInsuranceManagementMode.yaml
+    LifeInsuranceContractStatus:
+      $ref: components/schemas/LifeInsuranceContractStatus.yaml
+    LifeInsuranceEuroFundRateBasis:
+      $ref: components/schemas/LifeInsuranceEuroFundRateBasis.yaml
+    LifeInsuranceContract:
+      $ref: components/schemas/LifeInsuranceContract.yaml
+    LifeInsuranceContractInput:
+      $ref: components/schemas/LifeInsuranceContractInput.yaml
+    LifeInsuranceFeeTerms:
+      $ref: components/schemas/LifeInsuranceFeeTerms.yaml
+    LifeInsuranceFeeTermsInput:
+      $ref: components/schemas/LifeInsuranceFeeTermsInput.yaml
+    LifeInsuranceEuroFundRate:
+      $ref: components/schemas/LifeInsuranceEuroFundRate.yaml
+    LifeInsuranceEuroFundRateInput:
+      $ref: components/schemas/LifeInsuranceEuroFundRateInput.yaml
+    LifeInsuranceEuroFund:
+      $ref: components/schemas/LifeInsuranceEuroFund.yaml
+    LifeInsuranceOverview:
+      $ref: components/schemas/LifeInsuranceOverview.yaml
+    LifeInsuranceProblem:
+      $ref: components/schemas/LifeInsuranceProblem.yaml
+    PortfolioTakeoverBlockReason:
+      $ref: components/schemas/PortfolioTakeoverBlockReason.yaml
+    PortfolioTakeover:
+      $ref: components/schemas/PortfolioTakeover.yaml
+    PortfolioTakeoverState:
+      $ref: components/schemas/PortfolioTakeoverState.yaml
+    PortfolioTakeoverLineInput:
+      $ref: components/schemas/PortfolioTakeoverLineInput.yaml
+    PortfolioTakeoverRequest:
+      $ref: components/schemas/PortfolioTakeoverRequest.yaml
+    PortfolioTakeoverError:
+      $ref: components/schemas/PortfolioTakeoverError.yaml
+    PortfolioTakeoverPreviewLine:
+      $ref: components/schemas/PortfolioTakeoverPreviewLine.yaml
+    PortfolioTakeoverPreview:
+      $ref: components/schemas/PortfolioTakeoverPreview.yaml
+    PortfolioTakeoverProblem:
+      $ref: components/schemas/PortfolioTakeoverProblem.yaml
+    PortfolioValuationProblem:
+      $ref: components/schemas/PortfolioValuationProblem.yaml
+    LifeInsuranceObservedIncome:
+      $ref: components/schemas/LifeInsuranceObservedIncome.yaml
+    LifeInsuranceIncomeAndFees:
+      $ref: components/schemas/LifeInsuranceIncomeAndFees.yaml
+    LifeInsuranceSummaryProblem:
+      $ref: components/schemas/LifeInsuranceSummaryProblem.yaml
+    LifeInsuranceSummaryValuation:
+      $ref: components/schemas/LifeInsuranceSummaryValuation.yaml
+    LifeInsuranceSummarySupport:
+      $ref: components/schemas/LifeInsuranceSummarySupport.yaml
+    LifeInsuranceTaxYear:
+      $ref: components/schemas/LifeInsuranceTaxYear.yaml
+    LifeInsuranceSummary:
+      $ref: components/schemas/LifeInsuranceSummary.yaml

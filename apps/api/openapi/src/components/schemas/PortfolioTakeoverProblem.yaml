@@ -1,0 +1,29 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    properties:
+      code:
+        type: string
+        enum:
+          - portfolio_takeover_exists
+          - portfolio_takeover_not_empty
+          - portfolio_takeover_not_supported
+          - invalid_portfolio_takeover
+          - operation_limit_reached
+          - valuation_limit_reached
+          - portfolio_operation_conflict
+          - portfolio_valuation_conflict
+          - cash_amount_too_large
+          - position_would_go_negative
+          - portfolio_account_not_found
+          - portfolio_forbidden
+          - portfolio_payload_too_large
+      blockingReason:
+        description: 'With `portfolio_takeover_not_empty`: why the account cannot take over.'
+        $ref: ./PortfolioTakeoverBlockReason.yaml
+      errors:
+        description: 'With `invalid_portfolio_takeover`: every problem of the request.'
+        type: array
+        maxItems: 1000
+        items:
+          $ref: ./PortfolioTakeoverError.yaml

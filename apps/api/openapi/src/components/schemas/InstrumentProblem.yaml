@@ -1,0 +1,41 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        enum:
+          - invalid_instrument_query
+          - invalid_instrument_payload
+          - invalid_instrument_name
+          - invalid_instrument_isin
+          - invalid_instrument_ticker
+          - invalid_instrument_venue
+          - instrument_identifier_required
+          - instrument_field_not_allowed
+          - invalid_instrument_type
+          - invalid_instrument_classification
+          - unsupported_instrument_currency
+          - invalid_instrument_precision
+          - instrument_identity_locked
+          - instrument_isin_exists
+          - instrument_duplicate_candidates
+          - instrument_limit_reached
+          - stale_instrument_version
+          - instrument_already_inactive
+          - instrument_already_active
+          - instrument_not_found
+          - instrument_forbidden
+          - instrument_payload_too_large
+      existingId:
+        oneOf:
+          - type: string
+            format: uuid
+          - type: 'null'
+      candidates:
+        type: array
+        maxItems: 5
+        items:
+          $ref: ./InstrumentCandidate.yaml

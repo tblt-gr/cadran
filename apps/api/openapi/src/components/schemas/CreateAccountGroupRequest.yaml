@@ -1,0 +1,39 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - parentId
+properties:
+  color:
+    description: Explicit color, only with CUSTOM mode. Omitted means no explicit color.
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9a-fA-F]{6}$
+  colorMode:
+    description: >-
+      AUTO, PARENT (sub-groups only) or CUSTOM (requires `color`). When omitted,
+      a non-null `color` means CUSTOM and a null or omitted one means AUTO.
+    type: string
+    enum:
+      - AUTO
+      - PARENT
+      - CUSTOM
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  parentId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  sortOrder:
+    description: >-
+      Deprecated on write. Ignored on creation (the group is appended after its
+      last sibling) and on an update that changes the parent. Use the move
+      operation to reorder siblings.
+    deprecated: true
+    type: integer
+    minimum: 0
+    maximum: 32767

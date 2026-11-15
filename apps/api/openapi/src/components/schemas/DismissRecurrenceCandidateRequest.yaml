@@ -1,0 +1,8 @@
+type: object
+additionalProperties: false
+required:
+  - fingerprint
+properties:
+  fingerprint:
+    type: string
+    pattern: ^[0-9a-f]{64}$

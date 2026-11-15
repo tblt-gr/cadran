@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - numerator
+  - denominator
+properties:
+  numerator:
+    $ref: ./PortfolioDecimal.yaml
+  denominator:
+    $ref: ./PortfolioDecimal.yaml

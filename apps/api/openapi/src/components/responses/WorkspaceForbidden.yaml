@@ -1,0 +1,5 @@
+description: The session is attached to no workspace, so there is nothing to read.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

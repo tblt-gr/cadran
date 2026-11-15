@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - ratio
+  - percentDisplay
+  - reason
+properties:
+  ratio:
+    $ref: ./HoldingsNullableDecimal.yaml
+  percentDisplay:
+    description: >-
+      The percentage rounded half up to two decimals at the presentation
+      boundary.
+    $ref: ./HoldingsNullableDecimal.yaml
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - MIXED_ASSETS
+      - MISSING_VALUE
+      - ZERO_TOTAL
+      - NEGATIVE_TOTAL
+      - null

@@ -1,0 +1,14 @@
+description: An RFC 9457 problem carrying the refusal reasons as an extension member.
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - blockers
+    properties:
+      type:
+        const: /problems/category-operation-refused
+      blockers:
+        type: array
+        minItems: 1
+        items:
+          $ref: ./CategoryImpactBlocker.yaml

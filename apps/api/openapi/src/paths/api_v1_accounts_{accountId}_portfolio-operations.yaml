@@ -1,0 +1,167 @@
+get:
+  operationId: listPortfolioOperations
+  summary: List the operations of a portfolio account
+  description: >-
+    Ordered by trade date then sequence, newest first. Voided and replaced
+    operations are kept in the history and returned only with `includeVoided`. A
+    closed or archived account stays readable.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/ListRevision.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: from
+      in: query
+      required: false
+      description: First trade date kept, inclusive.
+      schema:
+        type: string
+        format: date
+    - name: to
+      in: query
+      required: false
+      description: Last trade date kept, inclusive. The range spans at most ten years.
+      schema:
+        type: string
+        format: date
+    - name: type
+      in: query
+      required: false
+      description: Keeps only these operation types. Repeat the key for several.
+      style: form
+      explode: true
+      schema:
+        type: array
+        maxItems: 13
+        items:
+          $ref: ../components/schemas/PortfolioOperationType.yaml
+    - name: instrumentId
+      in: query
+      required: false
+      description: Keeps operations whose instrument or counter instrument is this one.
+      schema:
+        type: string
+        format: uuid
+    - name: includeVoided
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1
+    - name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: One bounded page of operations.
+      headers:
+        X-List-Revision:
+          $ref: ../components/headers/ListRevision.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationPage.yaml
+    '400':
+      description: A filter or pagination value is out of bounds.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/ListRevisionStale.yaml
+    '422':
+      description: The account is not followed in portfolio mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: recordPortfolioOperation
+  summary: Record a portfolio operation
+  description: >-
+    Records one operation of the type matrix. The server derives the signed cash
+    effect and, for a buy or a sell, the rounding residual; the client never
+    sends them. A gross amount further than half a display unit from quantity x
+    unit price is refused. Optional `Idempotency-Key` replays the first answer
+    (`Idempotency-Replayed: true`). A write that touches a closed period is
+    refused with `type: /problems/period-closed`. The complete account history
+    is replayed before commit, so a negative position or an unsupported
+    corporate action is refused atomically.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PortfolioOperationRequest.yaml
+  responses:
+    '201':
+      description: The operation was recorded, or the stored response was replayed.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The period is closed, the Idempotency-Key was reused or is in flight,
+        the 10 000 active operations limit is reached, or the linked transfer
+        leg already backs an active operation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        A field, figure, date, instrument, linked transfer or the account
+        eligibility is invalid. The problem `code` names the rule.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

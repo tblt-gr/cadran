@@ -1,0 +1,73 @@
+get:
+  operationId: getOwnerProfile
+  summary: Read the signed-in owner's own account
+  description: >-
+    Requires an authenticated session. The account is resolved from the session;
+    there is no way to ask for another one. It answers from the identity record
+    alone, so the settings screen renders on an install that holds no account or
+    transaction yet.
+  tags:
+    - Profile
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The owner account as its own owner sees it.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/OwnerProfile.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '409':
+      $ref: ../components/responses/OwnerNotProvisioned.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+patch:
+  operationId: updateOwnerProfile
+  x-cadran-idempotency: >-
+    The body states the resulting profile fields, so a replay writes the same
+    state.
+  summary: Edit the signed-in owner's display name
+  description: >-
+    A same-origin browser mutation: it must send the X-CSRF-TOKEN header
+    matching the csrf_token cookie, with an Origin of this server. The display
+    name is the only editable field; a body carrying any other key is refused
+    rather than silently ignored.
+  tags:
+    - Profile
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateProfileRequest.yaml
+  responses:
+    '200':
+      description: The stored account, with the new display name.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/OwnerProfile.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/ProfileMutationForbidden.yaml
+    '409':
+      $ref: ../components/responses/OwnerNotProvisioned.yaml
+    '413':
+      $ref: ../components/responses/ProfilePayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/InvalidDisplayName.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

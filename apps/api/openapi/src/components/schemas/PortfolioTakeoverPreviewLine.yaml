@@ -1,0 +1,26 @@
+x-cadran-asset-scope: Amounts are in the currency of the portfolio account.
+type: object
+additionalProperties: false
+required:
+  - instrumentId
+  - value
+  - averageUnitCost
+properties:
+  instrumentId:
+    type: string
+  value:
+    description: >-
+      Quantity x price, exact, with at least the display precision; null when
+      not computable.
+    type:
+      - string
+      - 'null'
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  averageUnitCost:
+    description: >-
+      Cost / quantity at the price precision of the instrument, half-even; null
+      without a cost.
+    type:
+      - string
+      - 'null'
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$

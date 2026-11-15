@@ -1,0 +1,17 @@
+type: object
+additionalProperties: false
+required:
+  - mode
+  - values
+properties:
+  mode:
+    type: string
+    enum:
+      - EACH
+  values:
+    type: array
+    minItems: 1
+    maxItems: 100
+    description: Only with an `IDS` scope whose identifiers are exactly these.
+    items:
+      $ref: ./BulkLabelValue.yaml

@@ -1,0 +1,28 @@
+x-cadran-asset-scope: The asset is the `assetCode` of the report column the cell belongs to.
+description: >-
+  The average of `COMPLETE` years for one column, with its minimum and maximum
+  year.
+type: object
+additionalProperties: false
+required:
+  - average
+  - averageReason
+  - minimum
+  - maximum
+properties:
+  average:
+    type:
+      - string
+      - 'null'
+  averageReason:
+    type:
+      - string
+      - 'null'
+  minimum:
+    oneOf:
+      - $ref: ./MultiYearExtreme.yaml
+      - type: 'null'
+  maximum:
+    oneOf:
+      - $ref: ./MultiYearExtreme.yaml
+      - type: 'null'

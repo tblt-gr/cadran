@@ -1,0 +1,37 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - institution
+  - primaryGroupId
+  - color
+  - value
+  - share
+properties:
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+  institution:
+    type:
+      - string
+      - 'null'
+  primaryGroupId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  color:
+    description: Effective color of the primary group, null for an ungrouped account.
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  value:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml

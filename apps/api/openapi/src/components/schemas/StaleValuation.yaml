@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+description: An eligible account whose usable valuation predates the day read.
+required:
+  - accountId
+  - label
+  - institution
+  - kind
+  - valuationMode
+  - valuedOn
+  - ageDays
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  institution:
+    type:
+      - string
+      - 'null'
+  kind:
+    $ref: ./AccountKind.yaml
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  valuedOn:
+    description: Day of the valuation carried forward (ISO 8601).
+    type:
+      - string
+      - 'null'
+    format: date
+  ageDays:
+    type:
+      - integer
+      - 'null'
+    minimum: 0

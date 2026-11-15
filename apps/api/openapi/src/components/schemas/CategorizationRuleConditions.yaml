@@ -1,0 +1,27 @@
+description: >-
+  MCC, amount and direction each combine conjunctively with the complete text
+  group.
+type: object
+additionalProperties: false
+properties:
+  text:
+    oneOf:
+      - $ref: ./RuleTextConditionGroup.yaml
+      - type: 'null'
+  mcc:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  amount:
+    oneOf:
+      - $ref: ./RuleAmountCondition.yaml
+      - type: 'null'
+  direction:
+    oneOf:
+      - type: string
+        enum:
+          - IN
+          - OUT
+      - type: 'null'
+minProperties: 1

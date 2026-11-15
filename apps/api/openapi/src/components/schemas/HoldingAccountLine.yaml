@@ -1,0 +1,39 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - quantity
+  - value
+  - costBasis
+  - unrealizedGain
+  - performance
+  - valuedOn
+  - priceDate
+  - priceQuality
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  quantity:
+    $ref: ./HoldingsDecimal.yaml
+  value:
+    $ref: ./HoldingsNullableDecimal.yaml
+  costBasis:
+    $ref: ./HoldingsNullableDecimal.yaml
+  unrealizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  performance:
+    $ref: ./HoldingsNullableDecimal.yaml
+  valuedOn:
+    type: string
+    format: date
+  priceDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  priceQuality:
+    $ref: ./PortfolioPriceQuality.yaml

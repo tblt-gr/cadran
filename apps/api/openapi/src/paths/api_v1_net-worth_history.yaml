@@ -1,0 +1,81 @@
+get:
+  operationId: readNetWorthHistory
+  x-cadran-bounded: A history spans at most 60 month ends plus the comparison day.
+  summary: Read the net-worth history curve of the calling workspace
+  description: >-
+    Requires an authenticated session. The curve starts on the comparison day,
+    then has one point per month end, ending on the requested day itself so the
+    curve finishes on the headline figure. The comparison day is not drawn only
+    when ALL is truncated to 60 months. Each point is recomputed from the
+    valuations that were valid on its own day, so a figure recorded late lands
+    on the day it describes. A month that cannot be computed keeps its place
+    with a null total and a reason, never a fall to zero. The delta compares the
+    requested day against the last day of the month of the first active source
+    day for ALL (or the requested day within that month; independent of the
+    60-point cap), the same calendar day twelve months earlier for
+    LAST_12_MONTHS (clamped to the target month), and the closing balance of
+    December 31 of the previous year for YTD. Legacy months-only requests
+    compare against the same calendar day that many months earlier.
+  tags:
+    - Net worth
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: asOf
+      in: query
+      required: false
+      description: Business day the curve ends on. Defaults to today.
+      schema:
+        type: string
+        format: date
+    - name: months
+      in: query
+      required: false
+      description: >-
+        Legacy number of points, the final one included. Cannot be combined with
+        period.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 60
+        default: 12
+    - name: period
+      in: query
+      required: false
+      description: >-
+        Server-resolved period. ALL starts at the first active snapshot,
+        non-voided booked transaction or portfolio valuation on or before asOf,
+        capped to the most recent 60 months; its comparison day is the last day
+        of that month. YTD compares against December 31 of the year before asOf
+        and draws that day first. Cannot be combined with months. Defaults to
+        LAST_12_MONTHS when neither is supplied.
+      schema:
+        type: string
+        enum:
+          - ALL
+          - LAST_12_MONTHS
+          - YTD
+  responses:
+    '200':
+      description: The net-worth curve of the calling workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/NetWorthHistory.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        The period is invalid or combined with months, or the workspace holds
+        more accounts or more groups than one aggregate reads (`type:
+        /problems/net-worth-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - reason
+  - securitiesValue
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  reason:
+    type: string
+    enum:
+      - TOTAL_VALUATION
+      - PARTIAL_VALUATION
+      - NO_VALUATION
+  securitiesValue:
+    $ref: ./HoldingsNullableDecimal.yaml

@@ -1,0 +1,36 @@
+description: >-
+  Backend-owned weight of one account or exclusive group. Both the ratio and the
+  percent are canonical decimal strings. When the share cannot be computed it is
+  null with a reason, never `0%`.
+type: object
+additionalProperties: false
+required:
+  - ratio
+  - percent
+  - percentDisplay
+  - reason
+properties:
+  ratio:
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  percent:
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  percentDisplay:
+    description: >-
+      The percent rounded at the presentation boundary, two decimals, HALF_UP. A
+      share is almost never a terminating decimal, so the exact figure above
+      stays available while this is what a screen shows; the interface rounds
+      nothing itself.
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  reason:
+    oneOf:
+      - $ref: ./NetWorthShareReason.yaml
+      - type: 'null'

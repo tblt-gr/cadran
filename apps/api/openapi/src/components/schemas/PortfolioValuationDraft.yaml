@@ -1,0 +1,50 @@
+type: object
+additionalProperties: false
+required:
+  - valuedOn
+  - derivedCash
+  - suggestedDetail
+  - lastTotal
+  - currentValuation
+  - positions
+properties:
+  valuedOn:
+    type: string
+    format: date
+  derivedCash:
+    $ref: ./DecimalAmount.yaml
+  suggestedDetail:
+    $ref: ./PortfolioValuationDetail.yaml
+  lastTotal:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - value
+          - valuedOn
+        properties:
+          value:
+            $ref: ./DecimalAmount.yaml
+          valuedOn:
+            type: string
+            format: date
+      - type: 'null'
+  currentValuation:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - id
+          - version
+        properties:
+          id:
+            type: string
+            format: uuid
+          version:
+            type: integer
+            minimum: 1
+      - type: 'null'
+  positions:
+    type: array
+    items:
+      $ref: ./PortfolioValuationDraftPosition.yaml

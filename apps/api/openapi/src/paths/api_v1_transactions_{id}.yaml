@@ -1,0 +1,109 @@
+get:
+  operationId: getTransaction
+  summary: Read one transaction of the calling workspace
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The transaction.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: updateTransaction
+  summary: Replace the editable fields of a transaction
+  description: >-
+    Optimistic versioning. Asset and provenance never change. A linked refund
+    allows account, booked date, label, counterparty and note corrections only;
+    its amount, allocation and original expense remain fixed. The refund date
+    cannot precede the original expense date (422,
+    /problems/refund.date_before_original). A changed account must be active, in
+    the workspace, and compatible with the asset and dates. Other transactions
+    keep their account. Imported source labels remain fixed. A voided or
+    rejected transaction cannot be edited.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateTransactionRequest.yaml
+  responses:
+    '200':
+      description: The updated transaction.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transaction.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The submitted version is stale (`type: /problems/stale-version`) or the
+        transaction is terminal (`type: /problems/transaction-conflict`). A
+        write that touches a closed period is refused with one stable problem,
+        whichever the use case (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The edit is invalid, tried to change an immutable field, targets a
+        transfer leg or its fee (`type:
+        /problems/transaction-belongs-to-transfer`), or the splits allocation
+        leaves a remainder unallocated (`type: /problems/splits.sum_missing`),
+        exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more
+        than twenty rows (`type: /problems/splits.too_many`) or repeats a
+        category (`type: /problems/splits.duplicate_category`). An income,
+        expense, refund or fee on an account followed in portfolio mode is
+        refused (`type: /problems/portfolio-account-requires-operations`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AmountInputProblem.yaml
+              - $ref: ../components/schemas/TransactionBelongsToTransferProblem.yaml
+              - $ref: ../components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

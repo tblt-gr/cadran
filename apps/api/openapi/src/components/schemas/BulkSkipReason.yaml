@@ -1,0 +1,32 @@
+type: string
+description: >-
+  Why a transaction was left untouched, whole or for its category only: it does
+  not exist in the workspace, it stopped matching the filters of a filter scope
+  before the write, it is voided or rejected, a transfer leg, an original with
+  live refunds, in a closed period, a manual transaction given an empty label, a
+  refund, split across several categories, of a sign contradicting the category
+  type, or already in the category. For a move: the target account holds another
+  asset, is closed on the day, or is valued by a portfolio; the transaction is
+  linked to a portfolio operation, under reconciliation review, matched by a
+  reconciliation or already on the target account; a booked transaction would be
+  dated in the future.
+enum:
+  - NOT_FOUND
+  - NO_LONGER_MATCHING
+  - TERMINAL
+  - TRANSFER_LEG
+  - HAS_REFUNDS
+  - CLOSED_PERIOD
+  - LABEL_REQUIRED
+  - REFUND
+  - SPLIT
+  - SIGN_MISMATCH
+  - ALREADY_IN_CATEGORY
+  - ASSET_MISMATCH
+  - ACCOUNT_NOT_OPEN
+  - PORTFOLIO_ACCOUNT
+  - PORTFOLIO_LINKED
+  - UNDER_REVIEW
+  - RECONCILED
+  - ALREADY_ON_ACCOUNT
+  - FUTURE_BOOKED

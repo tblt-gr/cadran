@@ -1,0 +1,6 @@
+type: string
+enum:
+  - MANUAL
+  - IMPORT
+  - BANK_API
+  - CALCULATED

@@ -1,0 +1,81 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - by
+  - assetCode
+  - valuation
+  - total
+  - items
+  - slices
+  - reason
+  - basis
+  - newerPartialValuation
+properties:
+  newerPartialValuation:
+    description: >-
+      A newer active PARTIAL observation when selected values come from an older
+      COMPLETE valuation; null without fallback.
+    oneOf:
+      - $ref: ./PortfolioOverviewValuation.yaml
+      - type: 'null'
+  asOf:
+    type: string
+    format: date
+  by:
+    type: string
+    enum:
+      - INSTRUMENT
+      - ASSET_CLASS
+      - REGION
+      - CURRENCY
+  assetCode:
+    type: string
+  valuation:
+    oneOf:
+      - $ref: ./PortfolioOverviewValuation.yaml
+      - type: 'null'
+  total:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  items:
+    type: array
+    items:
+      $ref: ./PortfolioAllocationItem.yaml
+  slices:
+    type: array
+    items:
+      $ref: ./PortfolioAllocationItem.yaml
+    maxItems: 8
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - null
+      - NO_VALUATION
+      - PARTIAL_VALUATION
+      - NOT_DETAILED
+      - NON_POSITIVE_TOTAL
+  basis:
+    description: >-
+      What the grouped values measure. MARKET splits the frozen market values;
+      COST splits the frozen acquisition costs of a TOTAL valuation, whose lines
+      have no market value; null when no split is available.
+    type:
+      - string
+      - 'null'
+    enum:
+      - null
+      - MARKET
+      - COST
+description: >-
+  Frozen position values of the selected latest COMPLETE valuation grouped with
+  CASH and UNSPECIFIED; a newer partial observation is reported separately.
+  Shares are exact scale-24 HALF_UP decimals of total. At most eight chart
+  slices, smaller buckets merged as OTHERS; table retains every bucket. A TOTAL
+  valuation keeps reason NOT_DETAILED and is split at cost (basis COST, total =
+  costs + cash) when every frozen line has a known cost, otherwise it has two
+  unpriced-share lines.

@@ -1,0 +1,18 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        enum:
+          - invalid_as_of
+          - invalid_allocation_by
+          - portfolio_account_not_found
+          - account_not_portfolio
+          - cash_range_too_dense
+          - cash_amount_too_large
+          - position_would_go_negative
+          - corporate_action_without_position
+          - split_fraction_unsupported

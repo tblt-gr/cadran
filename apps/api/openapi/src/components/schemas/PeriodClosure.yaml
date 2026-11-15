@@ -1,0 +1,40 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - period
+  - closedAt
+  - closedBy
+  - reopenedAt
+  - reopenReason
+  - active
+  - version
+properties:
+  id:
+    type: string
+    format: uuid
+  period:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  closedAt:
+    type: string
+    format: date-time
+  closedBy:
+    type: string
+    format: uuid
+  reopenedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  reopenReason:
+    type:
+      - string
+      - 'null'
+    maxLength: 200
+  active:
+    description: Only the active closure of a month refuses writes.
+    type: boolean
+  version:
+    type: integer
+    minimum: 1

@@ -1,0 +1,76 @@
+description: >-
+  The account, wealth and totals recap of one month. `previousAsOf` is the last
+  calendar day of the preceding month. `currentAsOf` is the month's calendar
+  end, or the workspace-local current day while the month is still running, in
+  which case `provisional` is true.
+type: object
+additionalProperties: false
+required:
+  - month
+  - previousAsOf
+  - currentAsOf
+  - provisional
+  - state
+  - quality
+  - accounts
+  - groups
+  - netWorth
+  - totals
+  - metricPolicy
+  - portfolioCosts
+  - includesUpcoming
+  - upcomingCount
+properties:
+  includesUpcoming:
+    type: boolean
+    description: >-
+      True when the caller asked for the planned (upcoming) transactions of the
+      month to be counted.
+  upcomingCount:
+    type: integer
+    minimum: 0
+    description: >-
+      Number of planned transactions counted in the figures; 0 unless
+      `includesUpcoming`.
+  metricPolicy:
+    $ref: ./MetricPolicyReference.yaml
+  portfolioCosts:
+    oneOf:
+      - $ref: ./MonthlyPortfolioCosts.yaml
+      - type: 'null'
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  previousAsOf:
+    type: string
+    format: date
+  currentAsOf:
+    type: string
+    format: date
+  provisional:
+    type: boolean
+  state:
+    type: string
+    enum:
+      - COMPLETE
+      - EMPTY
+      - PENDING
+  quality:
+    description: >-
+      Valuation quality at effective N. The independent N−1 quality is published
+      as `netWorth.previousQuality`.
+    $ref: ./ValuationQuality.yaml
+  accounts:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyRecapAccount.yaml
+  groups:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyRecapGroup.yaml
+  netWorth:
+    $ref: ./MonthlyRecapNetWorth.yaml
+  totals:
+    $ref: ./MonthlyRecapTotals.yaml

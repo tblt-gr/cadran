@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - instrument
+  - openLots
+  - movements
+  - fifoCostBasis
+properties:
+  asOf:
+    type: string
+    format: date
+  instrument:
+    $ref: ./PortfolioPositionInstrument.yaml
+  openLots:
+    type: array
+    items:
+      $ref: ./PortfolioLot.yaml
+  movements:
+    type: array
+    items:
+      $ref: ./PortfolioLotMovement.yaml
+  fifoCostBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

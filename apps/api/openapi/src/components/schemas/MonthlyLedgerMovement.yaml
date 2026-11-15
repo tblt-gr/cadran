@@ -1,0 +1,68 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - transactionId
+  - transferId
+  - bookedOn
+  - label
+  - amount
+  - direction
+  - counterpartAccountId
+  - counterpartAccountLabel
+  - pending
+  - upcoming
+properties:
+  upcoming:
+    type: boolean
+    description: >-
+      True for a planned movement counted as if booked on its date; it is part
+      of the totals of a read that asked for upcoming transactions.
+  id:
+    type: string
+    format: uuid
+  transactionId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  transferId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  bookedOn:
+    type: string
+    format: date
+  label:
+    type: string
+    minLength: 1
+    maxLength: 140
+    description: >-
+      Transaction label, or the counterpart account label for a transfer leg.
+      The client composes the direction sentence.
+  amount:
+    $ref: ./DecimalAmount.yaml
+  direction:
+    type:
+      - string
+      - 'null'
+    enum:
+      - IN
+      - OUT
+      - null
+  counterpartAccountId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  counterpartAccountLabel:
+    type:
+      - string
+      - 'null'
+    maxLength: 100
+  pending:
+    type: boolean
+    description: >-
+      True for a pending movement, listed for information only. It is never part
+      of any sum, count, gap, net worth or KPI of the month.

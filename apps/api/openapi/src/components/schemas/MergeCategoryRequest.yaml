@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - targetId
+  - version
+properties:
+  targetId:
+    type: string
+    format: uuid
+  version:
+    type: integer
+    minimum: 1

@@ -1,0 +1,51 @@
+post:
+  operationId: previewPortfolioTakeover
+  x-cadran-idempotency: 'Writes nothing: a replay computes the same preview.'
+  x-cadran-bounded: At most 200 lines, each with a closed set of error fields and codes.
+  summary: Preview a takeover without writing it
+  description: >-
+    The value and the average unit cost of every line, the totals and every
+    problem of the request, so that the form shows them before submitting. A
+    line value is quantity x price, exact, shown with at least the display
+    precision of the currency. Nothing is written and no lock is taken; a value
+    that cannot be computed is `null`.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PortfolioTakeoverRequest.yaml
+  responses:
+    '200':
+      description: The preview, with its errors.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioTakeoverPreview.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The account kind, mode or status is not supported, or the body does not
+        have the declared shape.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioTakeoverProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

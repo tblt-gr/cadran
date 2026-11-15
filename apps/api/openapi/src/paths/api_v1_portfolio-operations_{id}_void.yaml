@@ -1,0 +1,54 @@
+post:
+  operationId: voidPortfolioOperation
+  summary: Void a portfolio operation
+  description: >-
+    Keeps the row visible as voided and releases its linked transfer leg. The
+    reason is required. A voided or replaced operation cannot be voided again.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioOperationId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/VoidPortfolioOperationRequest.yaml
+  responses:
+    '200':
+      description: The voided operation.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The version is stale, the operation is already voided or replaced, or
+        the period is closed (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The reason is missing or invalid, or the account is closed or archived.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

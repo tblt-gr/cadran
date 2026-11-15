@@ -1,0 +1,90 @@
+type: object
+additionalProperties: false
+required:
+  - color
+  - colorMode
+  - resolvedColor
+  - defaultColor
+  - parentResolvedColor
+  - id
+  - label
+  - parentId
+  - parentLabel
+  - sortOrder
+  - depth
+  - version
+  - hasChildren
+  - canAcceptChildren
+  - share
+  - archivedAt
+properties:
+  color:
+    description: Explicit color, non null only in CUSTOM mode.
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  colorMode:
+    description: >-
+      AUTO is the palette color of a root or a shade of the parent for a
+      sub-group, PARENT reuses the parent effective color, CUSTOM uses `color`.
+    type: string
+    enum:
+      - AUTO
+      - PARENT
+      - CUSTOM
+  resolvedColor:
+    description: Effective color, resolved on read from the whole tree.
+    type: string
+    pattern: ^#[0-9A-F]{6}$
+  defaultColor:
+    description: What the default mode of the group would produce now.
+    type: string
+    pattern: ^#[0-9A-F]{6}$
+  parentResolvedColor:
+    description: Effective color of the parent, null for a root.
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  parentId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  parentLabel:
+    description: Label of the parent group, or null when the group is a root.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  sortOrder:
+    type: integer
+    minimum: 0
+    maximum: 32767
+  depth:
+    type: integer
+    minimum: 1
+    maximum: 8
+  version:
+    type: integer
+    minimum: 1
+  hasChildren:
+    type: boolean
+  canAcceptChildren:
+    type: boolean
+  share:
+    $ref: ./NetWorthShare.yaml
+  archivedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'

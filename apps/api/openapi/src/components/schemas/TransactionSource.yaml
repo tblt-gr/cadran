@@ -1,0 +1,9 @@
+description: >-
+  RECURRENCE marks a transaction the application created from an auto-create
+  recurrence; it cannot be submitted.
+type: string
+enum:
+  - MANUAL
+  - IMPORT
+  - PROVIDER
+  - RECURRENCE

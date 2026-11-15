@@ -1,0 +1,19 @@
+description: Annual flow totals for the chart, independent of the selected report columns.
+type: object
+additionalProperties: false
+required:
+  - assetCode
+  - cashIncome
+  - budgetExpenses
+  - budgetSurplus
+properties:
+  assetCode:
+    type:
+      - string
+      - 'null'
+  cashIncome:
+    $ref: ./AnnualCell.yaml
+  budgetExpenses:
+    $ref: ./AnnualCell.yaml
+  budgetSurplus:
+    $ref: ./AnnualCell.yaml

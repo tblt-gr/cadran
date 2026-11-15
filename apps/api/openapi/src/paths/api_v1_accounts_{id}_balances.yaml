@@ -1,0 +1,117 @@
+get:
+  operationId: listAccountBalances
+  summary: List the balance snapshots recorded on an account
+  description: >-
+    The history of observed balances, superseded rows included. What answers on
+    one day is the valuation resource; this list is the trail.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1
+    - name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: The snapshot history of the account, newest day first.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountBalanceSnapshotPage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: recordAccountBalance
+  summary: Record a manual observed balance on an account
+  description: >-
+    Stores a dated manual snapshot in the account's own unit. The source literal
+    is kept exactly as submitted. A second active snapshot of the same day and
+    source is refused unless the current version is presented, in which case the
+    previous row is superseded and kept on the trail. The author comes from the
+    session. An account valued in `PORTFOLIO` mode refuses it with `422
+    portfolio_account_valued_by_portfolio`: it is valued by its portfolio
+    valuations.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/RecordAccountBalanceRequest.yaml
+  responses:
+    '201':
+      description: The snapshot as recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountBalanceSnapshot.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        An active snapshot already exists (`type:
+        /problems/account-balance-conflict`) or the submitted version is stale
+        (`type: /problems/stale-version`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The snapshot fields are invalid or the account is archived.
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AmountInputProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

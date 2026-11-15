@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - securitiesValue
+  - costBasis
+  - unrealizedGain
+  - performance
+  - cash
+  - totalValue
+  - reason
+  - knownCost
+properties:
+  securitiesValue:
+    $ref: ./HoldingsNullableDecimal.yaml
+  costBasis:
+    $ref: ./HoldingsNullableDecimal.yaml
+  unrealizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  performance:
+    $ref: ./HoldingsNullableDecimal.yaml
+  cash:
+    $ref: ./HoldingsNullableDecimal.yaml
+  totalValue:
+    $ref: ./HoldingsNullableDecimal.yaml
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - MIXED_ASSETS
+      - UNKNOWN_LOT_COST
+      - MISSING_PRICE
+      - NO_VALUATION
+      - null
+  knownCost:
+    description: >-
+      Present only beside a null full cost, when at least one position has both
+      a known cost and a known value.
+    oneOf:
+      - $ref: ./HoldingsKnownCostFigures.yaml
+      - type: 'null'

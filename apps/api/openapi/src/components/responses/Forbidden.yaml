@@ -1,0 +1,8 @@
+description: >-
+  On sign-in, either the credentials were valid but the account is disabled
+  (`type: about:blank`), or the CSRF / Origin check failed (`type:
+  /problems/csrf-token`).
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

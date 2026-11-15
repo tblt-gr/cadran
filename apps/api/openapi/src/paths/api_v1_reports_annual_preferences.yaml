@@ -1,0 +1,89 @@
+get:
+  operationId: readAnnualReportPreferences
+  summary: Read the annual report column preferences of the calling workspace
+  description: >-
+    With no stored row the response carries version 0, the default column
+    selection (the core indicators plus up to three current accounts by label)
+    and the `exclude` incomplete-month setting.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The stored or default selection.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AnnualReportPreferences.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: The workspace exceeds a bounded aggregate limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: saveAnnualReportPreferences
+  summary: Store the annual report column preferences of the calling workspace
+  description: >-
+    At most 40 distinct columns; every category, group or account must belong to
+    the calling workspace, archived or not. The selection picks what is shown
+    and never changes a formula or a metric policy. A save at version 0 inserts
+    the row. The mutation requires the same-origin CSRF token.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/AnnualReportPreferencesInput.yaml
+  responses:
+    '200':
+      description: The stored selection and its new version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AnnualReportPreferences.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        The CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+        session belongs to no workspace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: The stored selection moved past the version the caller read.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The selection is out of bounds, duplicated, unknown or not owned by the
+        workspace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,6 @@
+type: string
+enum:
+  - COMPLETE
+  - PROVISIONAL
+  - FUTURE
+  - NO_DATA

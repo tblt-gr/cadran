@@ -1,0 +1,109 @@
+type: object
+additionalProperties: false
+required:
+  - instrumentId
+  - name
+  - type
+  - quantity
+  - unitPrice
+  - priceDate
+  - priceQuality
+  - marketValue
+  - weight
+  - costBasis
+  - unrealizedGain
+  - unrealizedPerformance
+  - latestServedRate
+  - creditedLastClosedYear
+  - lastClosedYear
+  - missingLastYear
+properties:
+  instrumentId:
+    type: string
+    format: uuid
+  name:
+    type: string
+  type:
+    type: string
+    enum:
+      - EURO_FUND
+      - UNIT_LINKED
+  quantity:
+    type: string
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  unitPrice:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  priceDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  priceQuality:
+    type: string
+    enum:
+      - CURRENT
+      - STALE
+      - MISSING
+      - NOT_DETAILED
+  marketValue:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  weight:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  costBasis:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  unrealizedGain:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  unrealizedPerformance:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  latestServedRate:
+    oneOf:
+      - type: object
+        additionalProperties: false
+        required:
+          - year
+          - rate
+          - bonusRate
+          - basis
+        properties:
+          year:
+            type: integer
+            minimum: 1
+          rate:
+            type: string
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          bonusRate:
+            type:
+              - string
+              - 'null'
+            pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+          basis:
+            $ref: ./LifeInsuranceEuroFundRateBasis.yaml
+      - type: 'null'
+  creditedLastClosedYear:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  lastClosedYear:
+    type: integer
+    minimum: 1
+  missingLastYear:
+    type: boolean

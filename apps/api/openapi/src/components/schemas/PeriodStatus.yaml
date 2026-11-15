@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - period
+  - closed
+  - ended
+  - closure
+  - blockers
+properties:
+  period:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  closed:
+    type: boolean
+  ended:
+    description: >-
+      Whether the month is over in the workspace's own timezone. Only an ended
+      month can be closed.
+    type: boolean
+  closure:
+    oneOf:
+      - $ref: ./PeriodClosure.yaml
+      - type: 'null'
+  blockers:
+    description: Empty when the month is closed or when nothing blocks it.
+    type: array
+    items:
+      $ref: ./PeriodClosingBlocker.yaml

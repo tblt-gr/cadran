@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - assetCode
+properties:
+  value:
+    $ref: ./GoalDecimal.yaml
+  assetCode:
+    type: string
+    minLength: 2
+    maxLength: 12
+    pattern: ^[A-Z][A-Z0-9]+$

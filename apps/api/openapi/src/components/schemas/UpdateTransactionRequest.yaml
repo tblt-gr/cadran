@@ -1,0 +1,124 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - amount
+  - nature
+  - state
+  - bookedOn
+  - valueOn
+  - authorizedOn
+  - rawLabel
+  - userLabel
+  - counterparty
+  - note
+  - paymentMethod
+  - mcc
+  - maskedCard
+  - bankReference
+  - categoryId
+  - splits
+  - version
+properties:
+  accountId:
+    type: string
+    format: uuid
+  amount:
+    $ref: ./DecimalAmount.yaml
+  nature:
+    type: string
+    enum:
+      - EXPENSE
+      - INCOME
+      - FEE
+      - ADJUSTMENT
+      - REFUND
+  state:
+    type: string
+    enum:
+      - PENDING
+      - BOOKED
+      - REJECTED
+  bookedOn:
+    type: string
+    format: date
+  valueOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  authorizedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  rawLabel:
+    type: string
+    minLength: 1
+    maxLength: 140
+    description: >-
+      Editable for manually entered transactions. Imported or provider-sourced
+      transactions must echo their original source label unchanged; their
+      display label is changed through userLabel instead.
+  userLabel:
+    description: >-
+      The user's own display label (1 to 140 characters, surrounding spaces
+      trimmed), or null to clear it. Editable on every transaction, including
+      imported and provider-sourced ones, whose source label stays unchanged. A
+      blank value clears it, so the transaction is displayed under its source
+      label again.
+    oneOf:
+      - type: string
+        maxLength: 140
+      - type: 'null'
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  paymentMethod:
+    oneOf:
+      - $ref: ./PaymentMethod.yaml
+      - type: 'null'
+  mcc:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  maskedCard:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  bankReference:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 64
+      - type: 'null'
+  categoryId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  splits:
+    description: >-
+      An explicit multi-row allocation, replacing the categoryId shorthand. Null
+      keeps the shorthand; an empty list clears the allocation and returns the
+      transaction to the "to categorise" queue.
+    oneOf:
+      - type: array
+        maxItems: 20
+        items:
+          $ref: ./TransactionSplitInput.yaml
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1

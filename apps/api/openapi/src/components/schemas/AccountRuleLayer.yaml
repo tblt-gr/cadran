@@ -1,0 +1,10 @@
+description: >-
+  Which authority a resolved value came from. `CATALOG` is the system
+  publication, `INHERITED` the workspace product model the account follows,
+  `OVERRIDE` a value recorded against this account alone. A local claim wins
+  over the model, which wins over the catalogue.
+type: string
+enum:
+  - CATALOG
+  - INHERITED
+  - OVERRIDE

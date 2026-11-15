@@ -1,0 +1,120 @@
+get:
+  operationId: listCategories
+  summary: List the calling workspace categories
+  description: >-
+    Requires an authenticated session. The workspace is resolved from the
+    session and cannot be selected by a query parameter. Archived rows are
+    omitted unless explicitly requested.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: includeArchived
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: page
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 1000
+        default: 1
+    - name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    - name: type
+      in: query
+      required: false
+      description: Restrict results to income or expense categories.
+      schema:
+        $ref: ../components/schemas/CategoryType.yaml
+    - name: search
+      in: query
+      required: false
+      description: Case-insensitive contained label search, bounded to 80 characters.
+      schema:
+        type: string
+        maxLength: 80
+    - name: parentEligible
+      in: query
+      required: false
+      description: Return only active categories below the maximum tree depth.
+      schema:
+        type: boolean
+        default: false
+  responses:
+    '200':
+      description: One page of categories from the calling workspace.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/CategoryPage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: createCategory
+  x-cadran-idempotency: 'Active sibling labels are unique: a replay answers 409 and creates nothing.'
+  summary: Create a category in the calling workspace
+  description: >-
+    Creates an income or expense category. The parent, when present, must be
+    active, belong to the calling workspace and carry the same type. The
+    mutation requires the same-origin CSRF token.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateCategoryRequest.yaml
+  responses:
+    '201':
+      description: The category was created.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Category.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/CategoryMutationForbidden.yaml
+    '409':
+      description: An active sibling already uses the normalized label.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The category type, parent, metadata or bounds are invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

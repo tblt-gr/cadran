@@ -1,0 +1,52 @@
+type: object
+additionalProperties: false
+required:
+  - from
+  - to
+  - availableFrom
+  - inflationAdjusted
+  - incompleteMonths
+  - columns
+  - years
+  - summary
+  - quality
+  - detailedPeriod
+properties:
+  from:
+    type: integer
+  to:
+    type: integer
+  availableFrom:
+    description: >-
+      The workspace's true first data year, independently of the requested
+      display range; null when it has no data.
+    type:
+      - integer
+      - 'null'
+    minimum: 1900
+  inflationAdjusted:
+    description: Always false. Values are nominal; there is no adjusted variant.
+    type: boolean
+  incompleteMonths:
+    $ref: ./AnnualIncompleteMonths.yaml
+  columns:
+    type: array
+    maxItems: 40
+    items:
+      $ref: ./AnnualColumn.yaml
+  years:
+    type: array
+    maxItems: 15
+    items:
+      $ref: ./MultiYearYear.yaml
+  summary:
+    type: object
+    additionalProperties:
+      $ref: ./MultiYearSummaryCell.yaml
+  quality:
+    $ref: ./AnnualAggregateQuality.yaml
+  detailedPeriod:
+    description: The whole detailed period's aggregate, one entry per column, by column id.
+    type: object
+    additionalProperties:
+      $ref: ./MultiYearDetailedAggregate.yaml

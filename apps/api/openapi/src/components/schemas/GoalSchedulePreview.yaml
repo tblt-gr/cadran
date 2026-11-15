@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - mode
+  - parts
+properties:
+  mode:
+    type: string
+    enum:
+      - LINEAR
+  parts:
+    type: array
+    minItems: 12
+    maxItems: 12
+    items:
+      $ref: ./GoalSchedulePreviewPart.yaml

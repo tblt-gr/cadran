@@ -1,0 +1,42 @@
+x-cadran-asset-scope: Amounts are in the asset of the goal (`assetCode` of the goal).
+type: object
+additionalProperties: false
+required:
+  - month
+  - state
+  - value
+  - expectedPart
+  - cumulativeValue
+  - cumulativeExpected
+  - goalVersion
+  - policyVersion
+properties:
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  state:
+    type: string
+    enum:
+      - COMPLETE
+      - PROVISIONAL
+      - NO_DATA
+      - FUTURE
+  value:
+    $ref: ./GoalStatusValue.yaml
+  expectedPart:
+    $ref: ./GoalStatusValue.yaml
+  cumulativeValue:
+    $ref: ./GoalStatusValue.yaml
+  cumulativeExpected:
+    $ref: ./GoalStatusValue.yaml
+  goalVersion:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+    maximum: 50
+  policyVersion:
+    type:
+      - integer
+      - 'null'
+    minimum: 1

@@ -1,0 +1,21 @@
+description: >-
+  An RFC 9457 problem detail. Extension members are allowed; specialised
+  problems compose it with allOf.
+type: object
+required:
+  - type
+  - title
+  - status
+  - detail
+properties:
+  type:
+    type: string
+    format: uri-reference
+  title:
+    type: string
+  status:
+    type: integer
+    minimum: 400
+    maximum: 599
+  detail:
+    type: string

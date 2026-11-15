@@ -1,0 +1,57 @@
+type: object
+additionalProperties: false
+required:
+  - fingerprint
+  - accountId
+  - counterparty
+  - intervalKind
+  - medianAmount
+  - tolerance
+  - occurrenceCount
+  - firstSeenOn
+  - lastSeenOn
+  - confidence
+  - confidenceReason
+properties:
+  fingerprint:
+    type: string
+    pattern: ^[0-9a-f]{64}$
+  accountId:
+    type: string
+    format: uuid
+  counterparty:
+    type: string
+    minLength: 1
+    maxLength: 140
+  intervalKind:
+    $ref: ./RecurrenceIntervalKind.yaml
+  medianAmount:
+    $ref: ./DecimalAmount.yaml
+  tolerance:
+    $ref: ./DecimalAmount.yaml
+  occurrenceCount:
+    type: integer
+    minimum: 3
+  firstSeenOn:
+    type: string
+    format: date
+  lastSeenOn:
+    type: string
+    format: date
+  confidence:
+    oneOf:
+      - type: string
+        enum:
+          - HIGH
+          - MEDIUM
+          - LOW
+      - type: 'null'
+  confidenceReason:
+    description: >-
+      Present when qualitative confidence cannot be determined; never replaced
+      with zero.
+    oneOf:
+      - type: string
+        enum:
+          - UNCLASSIFIED_GAP_SPREAD
+      - type: 'null'

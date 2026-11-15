@@ -1,0 +1,17 @@
+description: Chart datasets, independent of the selected columns.
+type: object
+additionalProperties: false
+required:
+  - flows
+  - netWorth
+  - topExpenseCategories
+  - allocation
+properties:
+  flows:
+    $ref: ./AnnualFlows.yaml
+  netWorth:
+    $ref: ./AnnualNetWorthSeries.yaml
+  topExpenseCategories:
+    $ref: ./AnnualTopExpenseCategories.yaml
+  allocation:
+    $ref: ./AnnualAllocation.yaml

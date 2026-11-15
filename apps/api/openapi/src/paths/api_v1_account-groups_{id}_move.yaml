@@ -1,0 +1,69 @@
+post:
+  operationId: moveAccountGroup
+  x-cadran-idempotency: >-
+    Moving before the same anchor again is a no-op; a stale sibling list answers
+    409 and changes nothing.
+  summary: Move an account group among its siblings
+  description: >-
+    Places the group just before `beforeGroupId`, or last when it is null, among
+    the active groups sharing its parent. Hidden archived siblings keep their
+    relative place. Every sibling row is locked and `expectedSiblingIds` must
+    equal the saved active order, so concurrent moves cannot both win. Sort
+    orders are rewritten as `0..n-1` without changing the group versions. The
+    mutation requires the same-origin CSRF token.
+  tags:
+    - Account groups
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MoveAccountGroupRequest.yaml
+  responses:
+    '200':
+      description: The new active sibling order and the rank of the moved group.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountGroupMove.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The displayed sibling order is stale (`type:
+        /problems/stale-account-group-order`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The group is archived (`/problems/account-group-archived`), the anchor
+        is not another active sibling (`/problems/invalid-account-group-anchor`)
+        or the sibling list is malformed or longer than 100 identifiers.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

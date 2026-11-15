@@ -1,0 +1,10 @@
+description: >-
+  Where a workspace product model came from. A model copied from the catalogue
+  can be held against the publication it was copied from; one typed by hand
+  answers only for itself. A duplicate stops following its source the moment it
+  is created.
+type: string
+enum:
+  - DECLARED
+  - SYSTEM_PRODUCT
+  - WORKSPACE_MODEL

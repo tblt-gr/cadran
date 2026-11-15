@@ -1,0 +1,125 @@
+parameters:
+  - name: id
+    in: path
+    required: true
+    schema:
+      type: string
+      format: uuid
+get:
+  operationId: readGoal
+  x-cadran-bounded: >-
+    Warnings come from a one-value enumeration and a goal keeps at most 50
+    versions.
+  summary: Read one goal and its immutable definition history
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: >-
+        The goal detail; goals on a rolling income share include the recomputed
+        current reference income.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalDetail.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: updateGoal
+  summary: Edit a goal label or append an effective-month definition
+  description: >-
+    Periodicity, metric and scope are immutable. A definition effective in a
+    closed month answers 409 goal_closed_period; one effective before a revision
+    already planned answers 409 goal_planned_revision_exists.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateGoalRequest.yaml
+  responses:
+    '200':
+      description: The edited goal with its append-only definition history.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/GoalDetail.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The goal or its monthly schedule is invalid; a sum mismatch carries the
+        exact figures.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+delete:
+  operationId: deleteGoal
+  x-cadran-idempotency: The If-Match version makes a repeated delete answer 404 and change nothing.
+  summary: Delete a goal with its versions and schedule parts
+  description: >-
+    `If-Match` carries the goal version. A goal whose range includes a closed
+    month answers 409 goal_covers_closed_period; the client then proposes to
+    stop it.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: If-Match
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^"?[1-9]\d{0,8}"?$
+  responses:
+    '204':
+      description: The goal, its versions and its schedule parts were deleted.
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '428':
+      description: The If-Match header is missing.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,6 @@
+description: >-
+  A body carrying no field. It is still required and still narrowed, so a
+  replayed form cannot smuggle one in and a client cannot believe a payload it
+  sent was applied.
+type: object
+additionalProperties: false

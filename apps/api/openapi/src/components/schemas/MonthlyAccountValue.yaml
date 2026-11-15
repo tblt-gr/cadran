@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - assetCode
+  - quality
+  - ageDays
+  - valuedOn
+properties:
+  value:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  assetCode:
+    type:
+      - string
+      - 'null'
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  quality:
+    $ref: ./ValuationQuality.yaml
+  ageDays:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  valuedOn:
+    type:
+      - string
+      - 'null'
+    format: date

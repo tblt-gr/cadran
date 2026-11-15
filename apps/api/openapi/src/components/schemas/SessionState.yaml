@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - provisioned
+  - authenticated
+  - setupRequired
+  - user
+  - workspace
+properties:
+  provisioned:
+    type: boolean
+    description: True once an owner account exists on this server.
+  authenticated:
+    type: boolean
+    description: True when an active, authenticated session is attached.
+  setupRequired:
+    type: boolean
+    description: True when the provisioned owner has no password yet.
+  user:
+    oneOf:
+      - $ref: ./SessionUser.yaml
+      - type: 'null'
+  workspace:
+    oneOf:
+      - $ref: ./SessionWorkspace.yaml
+      - type: 'null'

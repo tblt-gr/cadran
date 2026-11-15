@@ -1,0 +1,6 @@
+description: >-
+  Present with the literal value `true` when the response is a completed
+  idempotent replay.
+schema:
+  type: string
+  const: 'true'

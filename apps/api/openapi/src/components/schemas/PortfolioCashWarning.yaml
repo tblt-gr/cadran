@@ -1,0 +1,40 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - count
+  - sourceIds
+  - firstDate
+  - amount
+properties:
+  code:
+    type: string
+    enum:
+      - NEGATIVE_CASH
+      - UNLINKED_TRANSFER_IN
+      - UNLINKED_TRANSFER_OUT
+      - UNLINKED_EXTERNAL_FLOW
+      - LINKED_TRANSFER_CHANGED
+      - NON_TRANSFER_TRANSACTION
+      - ROUNDING_RESIDUALS
+  count:
+    type: integer
+    minimum: 1
+  sourceIds:
+    description: Operation or transaction identifiers, at most twenty. The count is exact.
+    type: array
+    maxItems: 20
+    items:
+      type: string
+      format: uuid
+  firstDate:
+    description: The first day of a negative balance, null for the other warnings.
+    type:
+      - string
+      - 'null'
+    format: date
+  amount:
+    description: The signed total of the rounding residuals, null for the other warnings.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

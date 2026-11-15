@@ -1,0 +1,61 @@
+post:
+  operationId: correctPortfolioOperation
+  summary: Replace a portfolio operation by a corrected one
+  description: >-
+    Records the replacement and keeps the original as replaced, atomically. Any
+    field, including the type, may change. Optional `Idempotency-Key` replays
+    the first answer. Both the original and the new trade date must lie in open
+    periods.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+    - $ref: ../components/parameters/PortfolioOperationId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CorrectPortfolioOperationRequest.yaml
+  responses:
+    '201':
+      description: The replacement operation.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The version is stale, the original is already voided or replaced, the
+        period is closed, the Idempotency-Key was reused or is in flight, or the
+        linked transfer leg is taken.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The replacement is invalid, with the same problem codes as the creation.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

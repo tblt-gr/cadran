@@ -1,0 +1,7 @@
+description: >-
+  The display name is empty, whitespace only, or longer than 100 characters
+  (`type: /problems/invalid-display-name`).
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

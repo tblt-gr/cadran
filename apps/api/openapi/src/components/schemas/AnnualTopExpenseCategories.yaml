@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - other
+  - reason
+  - assetCode
+properties:
+  assetCode:
+    type:
+      - string
+      - 'null'
+  items:
+    type: array
+    maxItems: 6
+    items:
+      $ref: ./AnnualCategoryShare.yaml
+  other:
+    oneOf:
+      - $ref: ./AnnualOtherCategories.yaml
+      - type: 'null'
+  reason:
+    type:
+      - string
+      - 'null'

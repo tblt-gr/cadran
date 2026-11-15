@@ -1,0 +1,72 @@
+put:
+  operationId: closePeriod
+  x-cadran-idempotency: >-
+    A replay finds the period already closed and answers 409; only one active
+    closure exists per month.
+  summary: Close a month that has ended
+  description: >-
+    Refused with `type: /problems/period-closing-blocked` and the list of
+    failing conditions unless each one is confirmed in `overrides` with its own
+    reason. There is deliberately no flag that waives everything, and only the
+    workspace owner may confirm a condition. The confirmed conditions and
+    reasons are audited; no amount or label is. Once closed, every ordinary
+    write dated in the month is refused with `type: /problems/period-closed`.
+  tags:
+    - Period closures
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PeriodMonth.yaml
+  requestBody:
+    required: false
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ClosePeriodRequest.yaml
+  responses:
+    '201':
+      description: The active closure.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PeriodClosure.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        Only the workspace owner may confirm a condition (`type: about:blank`),
+        the CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+        session belongs to no workspace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: >-
+        A condition blocks the closing and is not confirmed (`type:
+        /problems/period-closing-blocked`, with `blockers`), or the month is
+        already closed (`type: /problems/period-closure-conflict`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/PeriodClosingBlockedProblem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The month has not ended, a confirmation names an unknown condition or
+        one that does not block, or a reason is empty or longer than 200
+        characters.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

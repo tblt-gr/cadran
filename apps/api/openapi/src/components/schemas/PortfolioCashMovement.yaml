@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - operationId
+  - tradeDate
+  - sequence
+  - type
+  - cashAmount
+  - runningBalance
+properties:
+  operationId:
+    type: string
+    format: uuid
+  tradeDate:
+    type: string
+    format: date
+  sequence:
+    type: integer
+    minimum: 1
+  type:
+    $ref: ./PortfolioOperationType.yaml
+  cashAmount:
+    $ref: ./DecimalAmount.yaml
+  runningBalance:
+    $ref: ./DecimalAmount.yaml

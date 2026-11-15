@@ -1,0 +1,15 @@
+description: An exact decimal string, or null with the reason it cannot be produced.
+type: object
+additionalProperties: false
+required:
+  - value
+  - reason
+properties:
+  value:
+    type:
+      - string
+      - 'null'
+  reason:
+    type:
+      - string
+      - 'null'

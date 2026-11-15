@@ -1,0 +1,85 @@
+x-cadran-asset-scope: The asset is the `assetCode` of the report column the cell belongs to.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - total
+  - totalReason
+  - average
+  - averageReason
+  - median
+  - medianReason
+  - minimum
+  - maximum
+  - extremesReason
+  - periodEnd
+  - previousYearAverage
+  - previousYearAverageReason
+  - countedMonths
+  - excludedMonths
+  - quality
+  - formula
+properties:
+  kind:
+    $ref: ./AnnualColumnKind.yaml
+  total:
+    type:
+      - string
+      - 'null'
+  totalReason:
+    type:
+      - string
+      - 'null'
+  average:
+    type:
+      - string
+      - 'null'
+  averageReason:
+    type:
+      - string
+      - 'null'
+  median:
+    type:
+      - string
+      - 'null'
+  medianReason:
+    type:
+      - string
+      - 'null'
+  minimum:
+    oneOf:
+      - $ref: ./AnnualExtreme.yaml
+      - type: 'null'
+  maximum:
+    oneOf:
+      - $ref: ./AnnualExtreme.yaml
+      - type: 'null'
+  extremesReason:
+    type:
+      - string
+      - 'null'
+  periodEnd:
+    description: The month-end value of the latest counted month, for a stock column.
+    oneOf:
+      - $ref: ./AnnualExtreme.yaml
+      - type: 'null'
+  previousYearAverage:
+    type:
+      - string
+      - 'null'
+  previousYearAverageReason:
+    type:
+      - string
+      - 'null'
+  countedMonths:
+    type: array
+    items:
+      type: string
+  excludedMonths:
+    type: array
+    items:
+      $ref: ./AnnualExcludedMonth.yaml
+  quality:
+    $ref: ./AnnualAggregateQuality.yaml
+  formula:
+    type: string

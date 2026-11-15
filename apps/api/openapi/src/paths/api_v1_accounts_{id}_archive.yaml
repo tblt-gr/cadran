@@ -1,0 +1,59 @@
+post:
+  operationId: archiveAccount
+  summary: Archive a financial account
+  description: >-
+    Takes the account out of the working set without deleting it, so history and
+    later valuations keep a row to point at. Archiving frees the account label
+    for a new active account. An already archived account is rejected rather
+    than archived twice.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ArchiveAccountRequest.yaml
+  responses:
+    '200':
+      description: The archived account.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Account.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: 'The submitted version is stale (`type: /problems/stale-version`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: 'The account is already archived (`type: /problems/account-archived`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,12 @@
+type: object
+additionalProperties: false
+required:
+  - displayName
+properties:
+  displayName:
+    type: string
+    minLength: 1
+    maxLength: 100
+    description: >-
+      Surrounding whitespace is trimmed before the length is measured, and the
+      length counts Unicode code points.

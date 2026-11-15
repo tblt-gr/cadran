@@ -1,0 +1,5 @@
+description: The password does not satisfy the account password policy.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

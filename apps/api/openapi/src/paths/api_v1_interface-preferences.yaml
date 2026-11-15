@@ -1,0 +1,85 @@
+get:
+  operationId: readInterfacePreferences
+  summary: Read the interface preferences of the calling workspace
+  description: >-
+    With no stored row the response carries the defaults (`includeUpcoming`
+    true) at version 0. The server never reads this setting itself: the web
+    client reads it and passes `includeUpcoming` on the monthly reads, so those
+    reads stay deterministic and cacheable by their parameters.
+  tags:
+    - Profile
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The stored or default preferences.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/InterfacePreferences.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: saveInterfacePreferences
+  x-cadran-idempotency: >-
+    The body states the resulting preferences and the version it was read at, so
+    a replay is refused as stale rather than applied twice.
+  summary: Store the interface preferences of the calling workspace
+  description: >-
+    A save at version 0 inserts the row, any other version updates it under an
+    optimistic check. The mutation requires the same-origin CSRF token.
+  tags:
+    - Profile
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/InterfacePreferencesInput.yaml
+  responses:
+    '200':
+      description: The stored preferences and their new version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/InterfacePreferences.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        The CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+        session belongs to no workspace or not to its owner.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: The stored preferences moved past the version the caller read.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The body is not exactly a boolean `includeUpcoming` and an integer
+        `version`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

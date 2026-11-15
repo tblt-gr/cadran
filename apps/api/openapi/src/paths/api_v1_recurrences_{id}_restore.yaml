@@ -1,0 +1,43 @@
+post:
+  operationId: restoreRecurrence
+  summary: Restore an archived recurrence optimistically
+  description: Restores schedule matching without changing historic occurrence snapshots.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/VersionRequest.yaml
+  responses:
+    '200':
+      description: The restored recurrence.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Recurrence.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

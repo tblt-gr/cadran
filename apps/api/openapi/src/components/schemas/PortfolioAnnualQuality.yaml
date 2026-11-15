@@ -1,0 +1,6 @@
+type: string
+enum:
+  - EXACT
+  - APPROXIMATION
+  - DEGRADED
+  - NOT_CALCULABLE

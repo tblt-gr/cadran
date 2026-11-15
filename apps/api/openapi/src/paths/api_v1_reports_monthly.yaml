@@ -1,0 +1,45 @@
+get:
+  operationId: readMonthlyProjection
+  summary: Read the monthly financial projection of the calling workspace
+  description: >-
+    Computes one month from booked, non-voided source transactions and dated
+    account valuations. Pending rows move no total and are counted separately.
+    Transfers and adjustments are excluded from income and expense; transfers
+    into savings and portfolio accounts are reported as savings transfers. Every
+    absent figure carries a specific reason.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/IncludeUpcoming.yaml
+    - name: month
+      in: query
+      required: true
+      description: The bounded calendar month to compute.
+      schema:
+        type: string
+        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  responses:
+    '200':
+      description: The computed monthly projection.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyProjection.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        The workspace exceeds a bounded aggregate limit (`type:
+        /problems/monthly-projection-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

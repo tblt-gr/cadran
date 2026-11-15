@@ -1,0 +1,62 @@
+type: object
+additionalProperties: false
+required:
+  - kind
+  - amount
+  - amountAssetCode
+  - text
+  - rateApplication
+  - brackets
+  - validFrom
+  - validTo
+  - reason
+properties:
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  amount:
+    description: >-
+      The ceiling amount as a canonical decimal string, for a kind whose value
+      is an amount, and null otherwise. It never travels as a JSON number, which
+      a binary float would already have rounded.
+    oneOf:
+      - type: string
+        pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  amountAssetCode:
+    description: >-
+      The unit the amount is denominated in. It must be the unit the account
+      itself is held in: a local ceiling is checked against this account and
+      nothing else, and no conversion ships with the application.
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]{1,11}$
+      - type: 'null'
+  text:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+        maxLength: 64
+      - type: 'null'
+  rateApplication:
+    oneOf:
+      - $ref: ./RateApplication.yaml
+      - type: 'null'
+  brackets:
+    description: >-
+      The slices of a rate scale, for a rate kind, and an empty list otherwise.
+      A single rate is the one-bracket case of the same shape.
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./RateBracket.yaml
+  validFrom:
+    description: First day the claim applies.
+    type: string
+    format: date
+  validTo:
+    $ref: ./RuleValidTo.yaml
+  reason:
+    description: Why this account diverges from what it inherits.
+    type: string
+    minLength: 1
+    maxLength: 200

@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - transactionId
+  - ruleIds
+properties:
+  transactionId:
+    type: string
+    format: uuid
+  ruleIds:
+    type: array
+    minItems: 2
+    items:
+      type: string
+      format: uuid

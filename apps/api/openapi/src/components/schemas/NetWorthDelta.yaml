@@ -1,0 +1,63 @@
+description: >-
+  How net worth moved between two business days. The amount and the rate carry
+  their own reason, because they fail for different causes.
+type: object
+additionalProperties: false
+required:
+  - comparedOn
+  - previousTotal
+  - previousReason
+  - amount
+  - amountReason
+  - rate
+  - ratePercent
+  - ratePercentDisplay
+  - rateReason
+properties:
+  comparedOn:
+    type: string
+    format: date
+  previousTotal:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  previousReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  amount:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  amountReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  rate:
+    description: Signed ratio as a canonical decimal string, never a percentage.
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  ratePercent:
+    description: >-
+      The same ratio expressed in percent by the backend, so no interface
+      multiplies a decimal itself.
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  ratePercentDisplay:
+    description: >-
+      The percent rounded at the presentation boundary, two decimals, HALF_UP. A
+      change rate is almost never a terminating decimal, so the exact figure
+      above stays available while this is what a screen shows; the interface
+      rounds nothing itself.
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+      - type: 'null'
+  rateReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'

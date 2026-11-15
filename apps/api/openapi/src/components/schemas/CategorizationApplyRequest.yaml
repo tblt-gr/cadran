@@ -1,0 +1,8 @@
+type: object
+additionalProperties: false
+required:
+  - previewToken
+properties:
+  previewToken:
+    type: string
+    pattern: ^[0-9a-f]{64}$

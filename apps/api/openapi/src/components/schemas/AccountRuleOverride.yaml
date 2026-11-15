@@ -1,0 +1,96 @@
+description: >-
+  One dated rule value recorded against a single account, in front of whatever
+  that account inherits.
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - kind
+  - valueType
+  - amount
+  - text
+  - application
+  - brackets
+  - validFrom
+  - validTo
+  - standing
+  - withdrawnAt
+  - withdrawnBy
+  - reason
+  - authorId
+  - authorDisplayName
+  - recordedAt
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  valueType:
+    description: >-
+      Which of `amount`, `text` and `brackets` carries the value. It follows
+      from the rule kind, so a client reads the one its kind declares instead of
+      guessing.
+    $ref: ./RuleValueType.yaml
+  amount:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  text:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+      - type: 'null'
+  application:
+    oneOf:
+      - $ref: ./RateApplication.yaml
+      - type: 'null'
+  brackets:
+    oneOf:
+      - type: array
+        minItems: 1
+        items:
+          $ref: ./RateBracket.yaml
+      - type: 'null'
+  validFrom:
+    description: First day the claim applies.
+    type: string
+    format: date
+  validTo:
+    $ref: ./RuleValidTo.yaml
+  standing:
+    description: >-
+      False once the override has been withdrawn. A withdrawn claim stops
+      answering on every date, past ones included, and the inherited rule of
+      each of those dates takes over again. It is kept here because the trail of
+      what was claimed is the provenance an override exists to preserve.
+    type: boolean
+  withdrawnAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  withdrawnBy:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  reason:
+    type: string
+    minLength: 1
+    maxLength: 200
+  authorId:
+    type: string
+    format: uuid
+  authorDisplayName:
+    description: The author's display name, or null when the account no longer exists.
+    oneOf:
+      - type: string
+      - type: 'null'
+  recordedAt:
+    type: string
+    format: date-time

@@ -1,0 +1,11 @@
+description: >-
+  Why the account cannot take over its positions: `NOT_SUPPORTED` (kind, mode or
+  status), `ALREADY_TAKEN_OVER`, `ACTIVE_VALUATION`, `SECURITY_OPERATION` or
+  `CASH_OPERATION_BEFORE` (an active cash operation on or before the date).
+type: string
+enum:
+  - NOT_SUPPORTED
+  - ALREADY_TAKEN_OVER
+  - ACTIVE_VALUATION
+  - SECURITY_OPERATION
+  - CASH_OPERATION_BEFORE

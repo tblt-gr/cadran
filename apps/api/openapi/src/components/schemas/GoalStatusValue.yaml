@@ -1,0 +1,4 @@
+type:
+  - string
+  - 'null'
+pattern: ^-?(0|[1-9]\d*)(\.\d{1,24})?$

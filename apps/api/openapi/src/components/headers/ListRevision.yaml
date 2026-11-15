@@ -1,0 +1,9 @@
+description: >-
+  Present only on a successful list response when X-List-Revision was supplied.
+  Send this opaque value on every subsequent page with the same route, account,
+  filters and explicit page size. Workspace list writes conservatively
+  invalidate all numbered lists in that workspace; catalogue revisions are
+  global.
+schema:
+  type: string
+  pattern: ^[a-f0-9]{64}$

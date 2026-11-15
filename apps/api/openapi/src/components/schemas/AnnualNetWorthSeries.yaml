@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - assetCode
+  - opening
+  - months
+properties:
+  assetCode:
+    type:
+      - string
+      - 'null'
+  opening:
+    description: >-
+      Closing balance of December of the previous year, the same value as that
+      month in the previous year's report; null when that month has no figures.
+    oneOf:
+      - $ref: ./AnnualNetWorthPoint.yaml
+      - type: 'null'
+  months:
+    type: array
+    items:
+      $ref: ./AnnualNetWorthPoint.yaml

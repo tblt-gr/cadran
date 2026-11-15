@@ -1,0 +1,44 @@
+type: object
+additionalProperties: false
+required:
+  - cashIncome
+  - budgetExpenses
+  - savingsInflows
+  - savingsWithdrawals
+  - netSavingsTransfers
+  - netSavingsRate
+  - expensesByAxis
+  - categories
+properties:
+  cashIncome:
+    $ref: ./MonthlyRecapMetric.yaml
+  budgetExpenses:
+    $ref: ./MonthlyRecapMetric.yaml
+  savingsInflows:
+    $ref: ./MonthlyRecapMetric.yaml
+  savingsWithdrawals:
+    $ref: ./MonthlyRecapMetric.yaml
+  netSavingsTransfers:
+    description: >-
+      Gross inflows minus withdrawals. It stays negative when the month took
+      more out of savings than it put in.
+    $ref: ./MonthlyRecapMetric.yaml
+  netSavingsRate:
+    description: >-
+      Net savings transfers over cash income. A month without cash income has no
+      rate: the value is null with `ZERO_CASH_INCOME`, never `0%`.
+    $ref: ./MonthlyRecapMetric.yaml
+  expensesByAxis:
+    type: array
+    maxItems: 6
+    items:
+      $ref: ./MonthlyRecapAxis.yaml
+  categories:
+    description: >-
+      Every active workspace category plus archived categories that have
+      movements in the month. The saved visibility preference filters this list
+      only in the presentation layer.
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyRecapCategory.yaml

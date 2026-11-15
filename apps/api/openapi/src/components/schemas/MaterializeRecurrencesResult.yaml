@@ -1,0 +1,34 @@
+description: Counts only; never an amount or a label.
+type: object
+additionalProperties: false
+required:
+  - recurrencesExamined
+  - transactionsCreated
+  - transactionsBooked
+  - skippedClosedPeriod
+  - skippedRefused
+  - monthStart
+  - monthEnd
+properties:
+  recurrencesExamined:
+    type: integer
+    minimum: 0
+    maximum: 1000
+  transactionsCreated:
+    type: integer
+    minimum: 0
+  transactionsBooked:
+    type: integer
+    minimum: 0
+  skippedClosedPeriod:
+    type: integer
+    minimum: 0
+  skippedRefused:
+    type: integer
+    minimum: 0
+  monthStart:
+    type: string
+    format: date
+  monthEnd:
+    type: string
+    format: date

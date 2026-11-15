@@ -1,0 +1,184 @@
+get:
+  operationId: countTransactions
+  summary: Count the transactions matching the listing filters
+  description: >-
+    The exact number of transactions of the calling workspace that
+    `listTransactions` would return across all its pages for the same filters,
+    so a filter-wide bulk action can show and confirm it. Takes every filter of
+    the listing except `pageSize` and `cursor`. Never reveals rows of another
+    workspace.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: from
+      in: query
+      required: false
+      description: Inclusive booked_on lower bound.
+      schema:
+        type: string
+        format: date
+    - name: to
+      in: query
+      required: false
+      description: Inclusive booked_on upper bound.
+      schema:
+        type: string
+        format: date
+    - name: accountId
+      in: query
+      required: false
+      description: Repeatable. Any of the accounts. At most 20 values.
+      schema:
+        type: array
+        maxItems: 20
+        items:
+          type: string
+          format: uuid
+    - name: state
+      in: query
+      required: false
+      description: >-
+        Repeatable. When present, replaces the default state scope entirely
+        (PENDING and BOOKED, plus VOIDED only when includeVoided is set).
+      schema:
+        type: array
+        items:
+          $ref: ../components/schemas/TransactionState.yaml
+    - name: nature
+      in: query
+      required: false
+      description: Repeatable. Any of the natures.
+      schema:
+        type: array
+        items:
+          $ref: ../components/schemas/TransactionNature.yaml
+    - name: categoryId
+      in: query
+      required: false
+      description: >-
+        Repeatable. The transaction has a split on any of them. At most 20
+        values.
+      schema:
+        type: array
+        maxItems: 20
+        items:
+          type: string
+          format: uuid
+    - name: includeDescendants
+      in: query
+      required: false
+      description: Extends categoryId to the category subtrees.
+      schema:
+        type: boolean
+        default: false
+    - name: axis
+      in: query
+      required: false
+      description: Repeatable. The transaction has a split carrying any of them.
+      schema:
+        type: array
+        items:
+          type: string
+          enum:
+            - DISCRETIONARY
+            - ESSENTIAL
+            - FIXED
+            - PERSONAL
+            - PROFESSIONAL
+            - VARIABLE
+    - name: minAmount
+      in: query
+      required: false
+      description: >-
+        Absolute lower bound on the amount, in assetCode: the sign of a movement
+        is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+        decimal. Requires assetCode.
+      schema:
+        type: string
+    - name: maxAmount
+      in: query
+      required: false
+      description: >-
+        Absolute upper bound on the amount, in assetCode: the sign of a movement
+        is ignored, so 10 matches both +10.00 and -10.00. Must be a non-negative
+        decimal. Requires assetCode.
+      schema:
+        type: string
+    - name: assetCode
+      in: query
+      required: false
+      description: The asset minAmount and maxAmount are expressed in.
+      schema:
+        type: string
+    - name: source
+      in: query
+      required: false
+      description: Repeatable. Any of the sources.
+      schema:
+        type: array
+        items:
+          $ref: ../components/schemas/TransactionSource.yaml
+    - name: q
+      in: query
+      required: false
+      description: >-
+        Free text matched against the normalized label, the raw label and the
+        counterparty, case-insensitively. A text that reads as an amount (10,
+        -10,50 €) also matches the absolute amount of a transaction, in any
+        asset.
+      schema:
+        type: string
+        maxLength: 80
+    - name: direction
+      in: query
+      required: false
+      description: >-
+        Keeps only money coming in (INFLOW, amount above zero) or going out
+        (OUTFLOW, amount below zero). Absent means both.
+      schema:
+        $ref: ../components/schemas/TransactionDirection.yaml
+    - name: categoryType
+      in: query
+      required: false
+      description: >-
+        Keeps the transactions with at least one split on a category of that
+        type in the workspace, archived categories included. Combined with
+        categoryId, only the categories of both filters remain. Any other value
+        answers 400.
+      schema:
+        $ref: ../components/schemas/CategoryType.yaml
+    - name: includeVoided
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: categorization
+      in: query
+      required: false
+      description: >-
+        `NONE` restricts the page to the transactions carrying no split at all —
+        the "to categorise" queue.
+      schema:
+        type: string
+        enum:
+          - ANY
+          - NONE
+        default: ANY
+  responses:
+    '200':
+      description: The exact size of the filtered set.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/TransactionCount.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -10,3 +10,4 @@ playwright-report/
 test-results/
 var/
 packages/api-client/src/generated/
+apps/api/openapi/openapi.yaml

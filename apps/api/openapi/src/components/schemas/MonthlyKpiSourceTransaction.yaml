@@ -1,0 +1,28 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - bookedOn
+  - label
+  - amount
+  - state
+properties:
+  id:
+    type: string
+    format: uuid
+  bookedOn:
+    type: string
+    format: date
+  label:
+    type: string
+    minLength: 1
+    maxLength: 140
+  amount:
+    $ref: ./DecimalAmount.yaml
+  state:
+    type: string
+    enum:
+      - PENDING
+      - BOOKED
+      - VOIDED
+      - REJECTED

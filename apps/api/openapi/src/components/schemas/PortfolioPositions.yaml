@@ -1,0 +1,22 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - valuedOn
+  - items
+properties:
+  asOf:
+    type: string
+    format: date
+  valuedOn:
+    description: >-
+      Date of the valuation the values come from; null without a retained
+      valuation.
+    type:
+      - string
+      - 'null'
+    format: date
+  items:
+    type: array
+    items:
+      $ref: ./PortfolioPosition.yaml

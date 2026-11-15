@@ -1,0 +1,97 @@
+get:
+  operationId: getTransfer
+  summary: Read one transfer of the calling workspace
+  tags:
+    - Transfers
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The transfer.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transfer.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: updateTransfer
+  summary: Replace the editable fields of a transfer atomically
+  description: >-
+    Optimistic versioning. The two accounts and both leg amounts are set once at
+    creation and never change; an edit corrects the state, dates, label, note or
+    fee of both legs together. Voiding and recreating the transfer is how an
+    amount is corrected.
+  tags:
+    - Transfers
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateTransferRequest.yaml
+  responses:
+    '200':
+      description: The updated transfer.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Transfer.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The submitted version is stale (`type: /problems/stale-version`) or the
+        transfer is already voided (`type: /problems/transfer-conflict`). A
+        write that touches a closed period is refused with one stable problem,
+        whichever the use case (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The edit is invalid or tried to change an immutable field. An income,
+        expense, refund or fee on an account followed in portfolio mode is
+        refused (`type: /problems/portfolio-account-requires-operations`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

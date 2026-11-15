@@ -1,0 +1,79 @@
+description: >-
+  Everything in force for one account on one business date, split into the three
+  questions that are answered differently: what caps it, what it earns, and
+  under which terms.
+
+  Each entry shows the same rule through every authority that states it, so a
+  published figure and one the holder typed are never confused for one another.
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - assetCode
+  - productCode
+  - productModelId
+  - origin
+  - asOf
+  - ceilings
+  - rates
+  - terms
+  - unavailableRuleKinds
+  - yieldReading
+properties:
+  accountId:
+    type: string
+    format: uuid
+  assetCode:
+    description: The unit the account is denominated in.
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  productCode:
+    description: >-
+      The system product behind these rules: the one the account references, or
+      the one the workspace model it follows was copied from. Null when no
+      catalogue product is in the chain at all.
+    oneOf:
+      - $ref: ./ProductCode.yaml
+      - type: 'null'
+  productModelId:
+    description: >-
+      The workspace product model these rules were read from, or null unless
+      `origin` is `WORKSPACE_MODEL`.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  origin:
+    $ref: ./AccountRulesOrigin.yaml
+  asOf:
+    description: >-
+      The business date the rules were resolved on. Every value below answers
+      for this date and for no other.
+    type: string
+    format: date
+  ceilings:
+    type: array
+    items:
+      $ref: ./AccountCeilingRule.yaml
+  rates:
+    type: array
+    items:
+      $ref: ./AccountRateRule.yaml
+  terms:
+    type: array
+    items:
+      $ref: ./AccountTermRule.yaml
+  unavailableRuleKinds:
+    description: >-
+      The rules this account is expected to carry and that no layer covers on
+      this date. A gap is shown as unavailable and never as zero, which would
+      read as "no ceiling" or "no interest" when the truth is that the value is
+      unknown. A kind a local override answers for is not a gap. A catalogue
+      figure for a kind the workspace model never carried is also a gap: the
+      model stopped following the publication, and the catalogue layer is
+      comparison only for kinds the model already states.
+    type: array
+    items:
+      $ref: ./ProductRuleKind.yaml
+  yieldReading:
+    $ref: ./AccountYieldReading.yaml

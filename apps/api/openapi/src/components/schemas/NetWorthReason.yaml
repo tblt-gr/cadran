@@ -1,0 +1,10 @@
+description: >-
+  Why a net-worth figure, a delta or a change rate could not be produced. A
+  reason replaces the figure and never accompanies one.
+type: string
+enum:
+  - MISSING_VALUATION
+  - NO_ELIGIBLE_ACCOUNT
+  - MIXED_ASSETS
+  - ZERO_BASE
+  - NEGATIVE_BASE

@@ -1,0 +1,35 @@
+description: >-
+  Fees and taxes of the portfolio accounts for the month, informative and
+  outside every budget total. Read live: the operations of a closed month cannot
+  change. The whole block is null only when the workspace holds no
+  portfolio-mode account. When the items mix assets, each item keeps its own
+  asset and `totalFees`, `totalTaxes` and `assetCode` are null (not computable,
+  never zero).
+type: object
+additionalProperties: false
+required:
+  - items
+  - totalFees
+  - totalTaxes
+  - assetCode
+properties:
+  items:
+    description: >-
+      Accounts with at least one active operation in the month, ordered by
+      label.
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyPortfolioCostItem.yaml
+  totalFees:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  totalTaxes:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  assetCode:
+    type:
+      - string
+      - 'null'

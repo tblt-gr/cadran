@@ -1,0 +1,8 @@
+type: string
+enum:
+  - CARD
+  - TRANSFER
+  - DIRECT_DEBIT
+  - CHECK
+  - CASH
+  - OTHER

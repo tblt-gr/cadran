@@ -1,0 +1,25 @@
+get:
+  operationId: readPortfolioOperation
+  summary: Read one portfolio operation
+  description: Unknown, malformed and foreign identifiers answer the same 404.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioOperationId.yaml
+  responses:
+    '200':
+      description: The operation.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperation.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

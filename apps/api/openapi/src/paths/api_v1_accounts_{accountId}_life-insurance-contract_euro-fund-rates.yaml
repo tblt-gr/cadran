@@ -1,0 +1,59 @@
+post:
+  operationId: recordEuroFundRate
+  x-cadran-idempotency: >-
+    One announced rate exists per contract, support and year: a replay is
+    refused.
+  summary: Record the rate an insurer announced for a euro fund and a year
+  description: >-
+    Announced rates are informative and never shown as a performance of the
+    contract. One rate exists per contract, support and year.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/LifeInsuranceEuroFundRateInput.yaml
+  responses:
+    '201':
+      description: The rate was recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceEuroFundRate.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        A rate already exists for that support and year, or the contract carries
+        the maximum number of rates.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The body is invalid, the support is not a euro fund of the workspace, or
+        the account is inactive.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

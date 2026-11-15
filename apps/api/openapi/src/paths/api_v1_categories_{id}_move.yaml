@@ -1,0 +1,50 @@
+post:
+  operationId: moveCategory
+  summary: Reparent a category and the branch below it
+  description: >-
+    Moves the category under another active category of the same type, or to the
+    root when `parentId` is null, and rewrites the depth of every descendant in
+    one transaction.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MoveCategoryRequest.yaml
+  responses:
+    '200':
+      description: The moved category.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Category.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/CategoryMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/CategoryVersionConflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/CategoryOperationRefused.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,37 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - valuedOn
+  - totalValue
+  - completeness
+  - detail
+  - ageDays
+  - stale
+properties:
+  id:
+    type: string
+    format: uuid
+  valuedOn:
+    type: string
+    format: date
+  totalValue:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  completeness:
+    type: string
+    enum:
+      - COMPLETE
+      - PARTIAL
+  detail:
+    type: string
+    enum:
+      - TOTAL
+      - POSITIONS
+  ageDays:
+    type: integer
+    minimum: 0
+  stale:
+    type: boolean

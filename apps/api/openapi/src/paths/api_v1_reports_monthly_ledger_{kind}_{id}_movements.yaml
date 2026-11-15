@@ -1,0 +1,84 @@
+get:
+  operationId: readMonthlyLedgerMovements
+  summary: Read one monthly ledger row's source movements
+  description: >-
+    Returns at most `pageSize` (default 50) booked source movements, ordered by
+    booked day and source identifier descending. Category amounts are attributed
+    split amounts; account amounts are signed transfer legs.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/IncludeUpcoming.yaml
+    - name: kind
+      in: path
+      required: true
+      schema:
+        type: string
+        enum:
+          - income
+          - expense
+          - account
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: month
+      in: query
+      required: true
+      schema:
+        type: string
+        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+    - name: axis
+      in: query
+      required: false
+      schema:
+        type: string
+        enum:
+          - DISCRETIONARY
+          - ESSENTIAL
+          - FIXED
+          - PERSONAL
+          - PROFESSIONAL
+          - VARIABLE
+    - name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 512
+    - name: pageSize
+      in: query
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: A stable bounded page of source movements.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyLedgerMovementPage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The workspace exceeds a bounded monthly read limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

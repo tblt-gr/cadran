@@ -1,0 +1,62 @@
+description: >-
+  One account from its retained valuation. `detail` tells what the valuation
+  carries: `LINES` (detailed positions, listed in `lines`), `TOTAL` (a statement
+  total, no lines), `PARTIAL` or `NONE` (no valuation). Amounts are null when
+  unknown, never zero.
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - detail
+  - valuedOn
+  - securitiesValue
+  - costBasis
+  - unrealizedGain
+  - performance
+  - cash
+  - share
+  - lines
+  - knownCost
+properties:
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+  detail:
+    type: string
+    enum:
+      - LINES
+      - TOTAL
+      - PARTIAL
+      - NONE
+  valuedOn:
+    type:
+      - string
+      - 'null'
+    format: date
+  securitiesValue:
+    $ref: ./HoldingsNullableDecimal.yaml
+  costBasis:
+    $ref: ./HoldingsNullableDecimal.yaml
+  unrealizedGain:
+    $ref: ./HoldingsNullableDecimal.yaml
+  performance:
+    $ref: ./HoldingsNullableDecimal.yaml
+  cash:
+    $ref: ./HoldingsNullableDecimal.yaml
+  share:
+    $ref: ./HoldingsShare.yaml
+  knownCost:
+    description: >-
+      Present only beside a null full cost, when at least one position has both
+      a known cost and a known value.
+    oneOf:
+      - $ref: ./HoldingsKnownCostFigures.yaml
+      - type: 'null'
+  lines:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./HoldingsAccountSummaryLine.yaml

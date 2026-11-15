@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - contract
+  - feeTerms
+  - euroFundRates
+  - euroFunds
+properties:
+  contract:
+    oneOf:
+      - $ref: ./LifeInsuranceContract.yaml
+      - type: 'null'
+  feeTerms:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./LifeInsuranceFeeTerms.yaml
+  euroFundRates:
+    type: array
+    maxItems: 200
+    items:
+      $ref: ./LifeInsuranceEuroFundRate.yaml
+  euroFunds:
+    type: array
+    items:
+      $ref: ./LifeInsuranceEuroFund.yaml

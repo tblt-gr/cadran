@@ -1,0 +1,61 @@
+post:
+  operationId: reopenPeriod
+  summary: Reopen a closed month with a reason
+  description: >-
+    Owner only, checked on this request. Requires the current version of the
+    closure and a reason, and writes an audit event in the same PostgreSQL
+    transaction. The closure row is kept, stamped with when and why it was
+    reopened.
+  tags:
+    - Period closures
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PeriodMonth.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ReopenPeriodRequest.yaml
+  responses:
+    '200':
+      description: The reopened closure.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PeriodClosure.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        Only the workspace owner may reopen a period, the CSRF / Origin check
+        failed (`type: /problems/csrf-token`), or the session belongs to no
+        workspace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: 'The submitted version is stale (`type: /problems/stale-version`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The reason is empty or longer than 200 characters.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

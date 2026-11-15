@@ -1,0 +1,108 @@
+type: object
+additionalProperties: false
+required:
+  - year
+  - assetCode
+  - interest
+  - profitSharing
+  - fees
+  - withheldTaxes
+  - qualityIssues
+  - sources
+  - sourceCount
+properties:
+  year:
+    type: integer
+  assetCode:
+    type: string
+  interest:
+    $ref: ./LifeInsuranceObservedIncome.yaml
+  profitSharing:
+    $ref: ./LifeInsuranceObservedIncome.yaml
+  fees:
+    type: object
+    additionalProperties: false
+    required:
+      - ENTRY
+      - MANAGEMENT
+      - SWITCH
+      - SURRENDER
+      - OTHER
+      - total
+    properties:
+      ENTRY:
+        $ref: ./PortfolioDecimal.yaml
+      MANAGEMENT:
+        $ref: ./PortfolioDecimal.yaml
+      SWITCH:
+        $ref: ./PortfolioDecimal.yaml
+      SURRENDER:
+        $ref: ./PortfolioDecimal.yaml
+      OTHER:
+        $ref: ./PortfolioDecimal.yaml
+      total:
+        $ref: ./PortfolioDecimal.yaml
+  withheldTaxes:
+    type: object
+    additionalProperties: false
+    required:
+      - INCOME_TAX
+      - SOCIAL_CONTRIBUTIONS
+      - OTHER
+      - total
+    properties:
+      INCOME_TAX:
+        $ref: ./PortfolioDecimal.yaml
+      SOCIAL_CONTRIBUTIONS:
+        $ref: ./PortfolioDecimal.yaml
+      OTHER:
+        $ref: ./PortfolioDecimal.yaml
+      total:
+        $ref: ./PortfolioDecimal.yaml
+  qualityIssues:
+    type: array
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - operationIds
+        - count
+      properties:
+        code:
+          type: string
+          enum:
+            - INTEREST_BASIS_UNKNOWN
+            - MISSING_EURO_FUND_RATE
+        operationIds:
+          type: array
+          maxItems: 20
+          items:
+            type: string
+            format: uuid
+        count:
+          type: integer
+          minimum: 1
+  sources:
+    type: array
+    maxItems: 20
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - id
+        - date
+      properties:
+        kind:
+          type: string
+          const: OPERATION
+        id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+  sourceCount:
+    type: integer
+    minimum: 0

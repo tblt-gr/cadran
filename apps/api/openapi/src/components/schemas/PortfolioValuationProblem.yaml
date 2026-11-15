@@ -1,0 +1,38 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    properties:
+      code:
+        type: string
+        enum:
+          - invalid_valuation_detail
+          - valuation_field_not_allowed
+          - invalid_valuation_total
+          - invalid_valuation_date
+          - valuation_price_entry_missing
+          - unknown_valuation_instrument
+          - invalid_valuation_price
+          - euro_fund_price_fixed
+          - price_precision_exceeded
+          - invalid_price_date
+          - operation_asset_mismatch
+          - invalid_valuation_query
+          - invalid_history_range
+          - invalid_valuation_payload
+          - account_not_portfolio
+          - portfolio_account_inactive
+          - portfolio_account_not_found
+          - portfolio_valuation_not_found
+          - valuation_exists
+          - stale_valuation_version
+          - valuation_limit_reached
+          - portfolio_valuation_conflict
+          - cash_amount_too_large
+          - portfolio_forbidden
+          - portfolio_payload_too_large
+          - position_would_go_negative
+      field:
+        description: >-
+          The member the code refers to, as a JSON pointer such as
+          `/prices/0/price`.
+        type: string

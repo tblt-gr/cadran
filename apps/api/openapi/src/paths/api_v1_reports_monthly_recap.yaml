@@ -1,0 +1,47 @@
+get:
+  operationId: readMonthlyRecap
+  summary: Read the account, wealth and totals recap of one month
+  description: >-
+    Composes the exclusive net-worth roll-up and the monthly projection into one
+    read. N−1 is the last calendar day of the preceding month, never the first
+    day of the selected one. A month still running stops on the workspace-local
+    current day and is marked provisional, so a valuation dated later is never
+    published as already applying. Group subtotals use primary membership only;
+    a secondary label never adds a second total for the same account. Every
+    absent figure carries its own reason and is never shown as zero.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/IncludeUpcoming.yaml
+    - name: month
+      in: query
+      required: true
+      description: The bounded calendar month to recap.
+      schema:
+        type: string
+        pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  responses:
+    '200':
+      description: The exact monthly recap.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyRecap.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        The workspace exceeds a bounded aggregate limit (`type:
+        /problems/monthly-projection-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

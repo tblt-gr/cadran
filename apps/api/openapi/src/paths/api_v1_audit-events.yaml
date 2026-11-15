@@ -1,0 +1,45 @@
+get:
+  operationId: listAuditEvents
+  summary: Read the workspace audit trail
+  description: >-
+    Requires an authenticated session. Returns the calling workspace's audit
+    events, newest first. The workspace is resolved server-side from the
+    session; there is no way to ask for another one.
+  tags:
+    - Audit
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: pageSize
+      in: query
+      required: false
+      description: Page size, between 1 and 100. Defaults to 50.
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+    - name: cursor
+      in: query
+      required: false
+      description: >-
+        Opaque cursor returned as `nextCursor` by the previous page. Omit it to
+        read the newest events.
+      schema:
+        type: string
+        maxLength: 256
+  responses:
+    '200':
+      description: One page of the workspace audit trail.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AuditEventPage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,7 @@
+description: >-
+  Either the CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+  authenticated session belongs to no workspace (`type: about:blank`).
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

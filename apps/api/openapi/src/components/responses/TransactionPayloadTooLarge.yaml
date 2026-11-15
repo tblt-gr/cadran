@@ -1,0 +1,5 @@
+description: The transaction JSON body exceeds 32 KiB.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

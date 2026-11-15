@@ -1,0 +1,48 @@
+type: object
+additionalProperties: false
+required:
+  - insurer
+  - subscribedOn
+  - managementMode
+properties:
+  insurer:
+    type: string
+    minLength: 1
+    maxLength: 80
+  distributor:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 80
+  commercialName:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 120
+  contractNumber:
+    description: >-
+      Input only, 4 to 34 letters, digits, spaces or hyphens. Null clears the
+      stored suffix, omitting keeps it.
+    type:
+      - string
+      - 'null'
+    minLength: 4
+    maxLength: 34
+    pattern: ^[A-Za-z0-9 -]+$
+  subscribedOn:
+    type: string
+    format: date
+  taxStartOn:
+    description: Defaults to `subscribedOn`; may precede it after a contract transfer.
+    type:
+      - string
+      - 'null'
+    format: date
+  managementMode:
+    $ref: ./LifeInsuranceManagementMode.yaml
+  version:
+    description: Sent to revise the contract, omitted to create it.
+    type: integer
+    minimum: 1

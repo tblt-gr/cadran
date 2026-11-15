@@ -1,0 +1,73 @@
+type: object
+additionalProperties: false
+description: >-
+  The filters of `listTransactions`, in body form. An absent field does not
+  restrict.
+properties:
+  from:
+    type: string
+    format: date
+  to:
+    type: string
+    format: date
+  accountIds:
+    type: array
+    maxItems: 20
+    items:
+      type: string
+      format: uuid
+  states:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./TransactionState.yaml
+  natures:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./TransactionNature.yaml
+  categoryIds:
+    type: array
+    maxItems: 20
+    items:
+      type: string
+      format: uuid
+  includeDescendants:
+    type: boolean
+  axes:
+    type: array
+    maxItems: 20
+    items:
+      type: string
+      enum:
+        - DISCRETIONARY
+        - ESSENTIAL
+        - FIXED
+        - PERSONAL
+        - PROFESSIONAL
+        - VARIABLE
+  minAmount:
+    type: string
+  maxAmount:
+    type: string
+  assetCode:
+    type: string
+  sources:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./TransactionSource.yaml
+  categorization:
+    type: string
+    enum:
+      - ANY
+      - NONE
+  q:
+    type: string
+    maxLength: 80
+  direction:
+    $ref: ./TransactionDirection.yaml
+  categoryType:
+    $ref: ./CategoryType.yaml
+  includeVoided:
+    type: boolean

@@ -1,0 +1,56 @@
+put:
+  operationId: activateMetricPolicy
+  summary: Activate an existing metric policy version
+  description: >-
+    Owner only. Appends an activation; a closed month keeps the version it was
+    closed under. Concurrent activations are serialized: the loser receives
+    `stale_active_policy`. The mutation requires the same-origin CSRF token.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ActivateMetricPolicyRequest.yaml
+  responses:
+    '200':
+      description: The newly active version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/ActiveMetricPolicy.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        The CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+        caller is not the workspace owner.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: '`stale_active_policy`, `policy_already_active` or `activation_limit`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/MetricPolicyProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: '`unknown_policy_version`, or an invalid body.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/MetricPolicyProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

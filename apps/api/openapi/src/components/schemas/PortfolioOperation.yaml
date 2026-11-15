@@ -1,0 +1,225 @@
+type: object
+additionalProperties: false
+required:
+  - interestBasis
+  - rateYear
+  - feeNature
+  - id
+  - accountId
+  - type
+  - tradeDate
+  - settlementDate
+  - sequence
+  - activeDayOperationCount
+  - instrument
+  - counterInstrument
+  - quantity
+  - unitPrice
+  - grossAmount
+  - fees
+  - taxes
+  - cashAmount
+  - costBasis
+  - counterQuantity
+  - ratio
+  - costAllocationRatio
+  - roundingResidual
+  - reference
+  - note
+  - linkedTransactionId
+  - state
+  - voidedAt
+  - voidReason
+  - voidKind
+  - correctsOperationId
+  - correctedByOperationId
+  - version
+  - legs
+  - withheldIncomeTax
+  - withheldSocialContributions
+  - netPaidAmount
+  - applicableSwitchFeeRate
+  - applicableSwitchFeeFixed
+properties:
+  interestBasis:
+    type:
+      - string
+      - 'null'
+    enum:
+      - NET_OF_MANAGEMENT_FEES
+      - GROSS_OF_MANAGEMENT_FEES
+      - UNKNOWN
+      - null
+  rateYear:
+    type:
+      - integer
+      - 'null'
+    description: From subscription year to trade-date year.
+  feeNature:
+    type:
+      - string
+      - 'null'
+    enum:
+      - ENTRY
+      - MANAGEMENT
+      - SWITCH
+      - SURRENDER
+      - OTHER
+      - null
+  applicableSwitchFeeRate:
+    description: >-
+      Informative percentage valid on the trade date, never used to compute a
+      fee.
+    type:
+      - string
+      - 'null'
+  applicableSwitchFeeFixed:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  legs:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./PortfolioOperationLeg.yaml
+  withheldIncomeTax:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  withheldSocialContributions:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  netPaidAmount:
+    description: Gross less fees and observed withholdings, null except for surrenders.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  type:
+    $ref: ./PortfolioOperationType.yaml
+  tradeDate:
+    type: string
+    format: date
+  settlementDate:
+    type:
+      - string
+      - 'null'
+    format: date
+  sequence:
+    type: integer
+    minimum: 1
+  activeDayOperationCount:
+    description: Number of active operations on this account and trade date.
+    type: integer
+    minimum: 0
+    maximum: 10000
+  instrument:
+    oneOf:
+      - $ref: ./PortfolioOperationInstrument.yaml
+      - type: 'null'
+  counterInstrument:
+    oneOf:
+      - $ref: ./PortfolioOperationInstrument.yaml
+      - type: 'null'
+  quantity:
+    oneOf:
+      - $ref: ./PortfolioDecimal.yaml
+      - type: 'null'
+  unitPrice:
+    oneOf:
+      - $ref: ./PortfolioDecimal.yaml
+      - type: 'null'
+  grossAmount:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  fees:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  taxes:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  cashAmount:
+    description: The signed cash effect the server derived. Never sent by the client.
+    $ref: ./DecimalAmount.yaml
+  costBasis:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  counterQuantity:
+    oneOf:
+      - $ref: ./PortfolioDecimal.yaml
+      - type: 'null'
+  ratio:
+    oneOf:
+      - $ref: ./PortfolioOperationRatio.yaml
+      - type: 'null'
+  costAllocationRatio:
+    oneOf:
+      - $ref: ./PortfolioDecimal.yaml
+      - type: 'null'
+  roundingResidual:
+    description: >-
+      Gross amount minus quantity x unit price, exact, for a buy or a sell; null
+      otherwise.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  reference:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  note:
+    type:
+      - string
+      - 'null'
+    maxLength: 200
+  linkedTransactionId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  state:
+    type: string
+    enum:
+      - ACTIVE
+      - VOIDED
+  voidedAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  voidReason:
+    type:
+      - string
+      - 'null'
+    maxLength: 200
+  voidKind:
+    oneOf:
+      - type: string
+        enum:
+          - VOIDED
+          - REPLACED
+      - type: 'null'
+  correctsOperationId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  correctedByOperationId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  version:
+    type: integer
+    minimum: 1

@@ -1,0 +1,64 @@
+get:
+  operationId: readPortfolioPerformance
+  x-cadran-bounded: >-
+    Flags and reasons come from the closed valuation flag and performance reason
+    enumerations.
+  summary: Read the total gain of a portfolio account over a period
+  description: >-
+    Gain of a month, a year or the whole life of the account, bounded by two
+    complete valuations, net of signed external flows and decomposed into
+    realized gain, change in unrealized gain, income, fees, taxes and residual.
+    Computed on read, never stored. Response uses no-store cache control.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: >-
+        Workspace-scoped exact figures; a missing input yields a null value with
+        reasons, never zero.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioPerformance.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        Invalid scope or period, account not followed in portfolio mode, or the
+        bounded operation scope exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioPerformanceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: scope
+      in: query
+      required: true
+      description: >-
+        INCEPTION covers the observed history from the earliest active complete
+        valuation, excluding earlier flows.
+      schema:
+        type: string
+        enum:
+          - MONTH
+          - YEAR
+          - INCEPTION
+    - name: period
+      in: query
+      required: false
+      description: >-
+        YYYY-MM for MONTH, YYYY for YEAR, absent for INCEPTION. A period after
+        the current month or year, or before the month of the account opening,
+        is refused.
+      schema:
+        type: string
+        pattern: ^[0-9]{4}(-(0[1-9]|1[0-2]))?$

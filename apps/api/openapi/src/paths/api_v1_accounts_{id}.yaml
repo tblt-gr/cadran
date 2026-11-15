@@ -1,0 +1,106 @@
+get:
+  operationId: readAccount
+  summary: Read one financial account
+  description: >-
+    Returns the same account representation as the listing, for one identifier.
+    Closed and archived accounts are included: a detail view stays linkable once
+    the account leaves the working set, so a past statement remains re-readable.
+    The embedded valuation is always present and reports the current dated
+    reading; its `amount` and `display` are `null` and `quality` is `MISSING`
+    when no source states one, rather than the valuation itself being absent. A
+    dated reading on another business day is the valuation resource. An
+    identifier that is malformed, unknown, or held by another workspace answers
+    the same 404, so the response never confirms that a stranger's account
+    exists.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The account.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Account.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: updateAccount
+  summary: Update an active financial account
+  description: >-
+    Replaces the editable account fields using optimistic versioning, and closes
+    or reopens the account through `closedOn`. The denomination is absent from
+    the body: changing it would reinterpret every figure already recorded
+    against the account. An account already used by history cannot change kind
+    or product, and an archived account is read-only.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The updated account.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Account.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        Either an active account already uses the normalized label (`type:
+        /problems/account-label-taken`), or the submitted version is stale
+        (`type: /problems/stale-version`). The two ask for opposite recoveries,
+        so a client branches on the type rather than the status.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The account fields are invalid, an immutable rule was violated, or the
+        account is archived and read-only (`type: /problems/account-archived`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateAccountRequest.yaml

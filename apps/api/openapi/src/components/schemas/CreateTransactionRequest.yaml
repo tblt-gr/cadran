@@ -1,0 +1,121 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - amount
+  - nature
+  - state
+  - bookedOn
+  - valueOn
+  - authorizedOn
+  - rawLabel
+  - counterparty
+  - note
+  - paymentMethod
+  - mcc
+  - maskedCard
+  - bankReference
+  - categoryId
+  - splits
+properties:
+  accountId:
+    type: string
+    format: uuid
+  amount:
+    $ref: ./DecimalAmount.yaml
+  nature:
+    $ref: ./StandaloneTransactionNature.yaml
+  state:
+    type: string
+    enum:
+      - PENDING
+      - BOOKED
+  bookedOn:
+    type: string
+    format: date
+  valueOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  authorizedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  rawLabel:
+    type: string
+    minLength: 1
+    maxLength: 140
+  counterparty:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 500
+      - type: 'null'
+  paymentMethod:
+    oneOf:
+      - $ref: ./PaymentMethod.yaml
+      - type: 'null'
+  mcc:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  maskedCard:
+    oneOf:
+      - type: string
+        pattern: ^[0-9]{4}$
+      - type: 'null'
+  bankReference:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 64
+      - type: 'null'
+  categoryId:
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  splits:
+    description: >-
+      An explicit multi-row allocation, replacing the categoryId shorthand. Null
+      keeps the shorthand; an empty list is a deliberate, uncategorised
+      transaction.
+    oneOf:
+      - type: array
+        maxItems: 20
+        items:
+          $ref: ./TransactionSplitInput.yaml
+      - type: 'null'
+  source:
+    description: IMPORT and PROVIDER requests require an Idempotency-Key header.
+    type: string
+    enum:
+      - MANUAL
+      - IMPORT
+      - PROVIDER
+  sourceRef:
+    description: >-
+      The provider's own identifier for this movement. Optional; unique per
+      account where present, and matched before any fuzzy rule.
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 128
+      - type: 'null'
+  reconcile:
+    description: >-
+      Optional, false by default. True submits this body as an incoming booked
+      movement to reconcile against the account's pending rows instead of a new
+      entry: it settles the single row it matches, or is created PENDING with a
+      `reviewReason` when the match is absent or ambiguous. It never creates a
+      booked duplicate.
+    type: boolean

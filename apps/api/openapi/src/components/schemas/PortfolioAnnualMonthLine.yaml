@@ -1,0 +1,6 @@
+description: >-
+  A month with its figures, or only month and status when it lies before the
+  opening or in the future.
+oneOf:
+  - $ref: ./PortfolioAnnualCalculatedMonth.yaml
+  - $ref: ./PortfolioAnnualEmptyMonth.yaml

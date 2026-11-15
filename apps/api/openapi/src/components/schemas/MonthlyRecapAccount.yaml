@@ -1,0 +1,68 @@
+description: >-
+  One account of the recap. A value is absent, never zero, when the day holds no
+  valuation; the whole value object is absent when the workspace did not hold
+  the account on that day at all.
+type: object
+additionalProperties: false
+required:
+  - primaryGroupColor
+  - accountId
+  - label
+  - kind
+  - netWorthSign
+  - primaryGroupId
+  - institution
+  - primaryGroupLabel
+  - eligible
+  - previousValue
+  - currentValue
+  - share
+properties:
+  primaryGroupColor:
+    type:
+      - string
+      - 'null'
+    pattern: ^#[0-9A-F]{6}$
+  accountId:
+    type: string
+    format: uuid
+  label:
+    type: string
+    minLength: 1
+    maxLength: 120
+  institution:
+    description: >-
+      Where the account is held, for example the bank or the insurer. Secondary
+      to the label, which it never replaces. Null when the account has none.
+    type:
+      - string
+      - 'null'
+    maxLength: 80
+  kind:
+    type: string
+  netWorthSign:
+    type: integer
+    enum:
+      - -1
+      - 1
+  primaryGroupId:
+    type:
+      - string
+      - 'null'
+    format: uuid
+  primaryGroupLabel:
+    type:
+      - string
+      - 'null'
+  eligible:
+    type: boolean
+  previousValue:
+    oneOf:
+      - $ref: ./MonthlyAccountValue.yaml
+      - type: 'null'
+  currentValue:
+    oneOf:
+      - $ref: ./MonthlyAccountValue.yaml
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml

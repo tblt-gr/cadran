@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - eligible
+  - reason
+  - defaultDate
+  - takeover
+properties:
+  eligible:
+    type: boolean
+  reason:
+    oneOf:
+      - $ref: ./PortfolioTakeoverBlockReason.yaml
+      - type: 'null'
+  defaultDate:
+    description: >-
+      The last day of the previous month in the workspace calendar, or the
+      opening day of the account when later.
+    type: string
+    format: date
+  takeover:
+    oneOf:
+      - $ref: ./PortfolioTakeover.yaml
+      - type: 'null'

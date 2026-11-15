@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - amount
+  - cumulative
+properties:
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  amount:
+    $ref: ./GoalDecimal.yaml
+  cumulative:
+    description: Exact running total from January to this month.
+    $ref: ./GoalDecimal.yaml

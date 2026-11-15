@@ -1,0 +1,45 @@
+get:
+  operationId: readPortfolioValuationDraft
+  x-cadran-bounded: >-
+    Positions are instruments of the workspace, at most 500, and flags come from
+    a closed enumeration.
+  summary: Build the form of a valuation
+  description: >-
+    The positions held on the date with the last known price of each, taken from
+    an earlier valuation or from the unit price of a buy or a sell, and the cash
+    derived from the operations.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: valuedOn
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The draft.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationDraft.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        The date is invalid, or the account is inactive or not followed in
+        portfolio mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioValuationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

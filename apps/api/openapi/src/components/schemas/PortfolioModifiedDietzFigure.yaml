@@ -1,0 +1,133 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - method
+  - quality
+  - reasons
+  - from
+  - to
+  - days
+  - sources
+  - sourceCount
+  - averageCapital
+  - minCapitalRatio
+  - weights
+  - weightCount
+  - months
+  - methodVersion
+  - costPolicy
+  - inputs
+  - freshness
+properties:
+  value:
+    $ref: ./PortfolioModifiedDietzRate.yaml
+  method:
+    type: string
+    enum:
+      - MODIFIED_DIETZ
+  quality:
+    $ref: ./PortfolioModifiedDietzQuality.yaml
+  reasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml
+  from:
+    type:
+      - string
+      - 'null'
+    format: date
+  to:
+    type:
+      - string
+      - 'null'
+    format: date
+  days:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+  sources:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./PortfolioOverviewSource.yaml
+  sourceCount:
+    type: integer
+    minimum: 0
+  averageCapital:
+    description: Exact denominator divided by the period length, six decimals; MONTH only.
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+\.[0-9]{6}$
+  minCapitalRatio:
+    description: Smallest accepted average capital as a share of the capital put to work.
+    type: string
+    enum:
+      - '0.10'
+  weights:
+    description: >-
+      The first 100 external flows with the share of the period each was
+      invested; MONTH only.
+    type: array
+    maxItems: 100
+    items:
+      $ref: ./PortfolioModifiedDietzWeight.yaml
+  weightCount:
+    type: integer
+    minimum: 0
+  months:
+    description: >-
+      The monthly returns chained by YEAR and INCEPTION; null for MONTH or when
+      no month list could be built.
+    oneOf:
+      - type: array
+        maxItems: 600
+        items:
+          $ref: ./PortfolioModifiedDietzMonth.yaml
+      - type: 'null'
+  methodVersion:
+    type: string
+    enum:
+      - PERF-1
+  costPolicy:
+    type: string
+    enum:
+      - NET_OF_FEES_AND_TAXES
+  freshness:
+    $ref: ./PortfolioPerformanceFreshness.yaml
+  inputs:
+    type: object
+    additionalProperties: false
+    description: >-
+      Named values of the Modified Dietz formula of one month. Every field
+      except minCapitalRatio is null for YEAR and INCEPTION, which chain monthly
+      returns, and when the month cannot be calculated.
+    required:
+      - startValue
+      - gain
+      - periodDays
+      - denominatorTimesDays
+      - averageCapital
+      - minCapitalRatio
+    properties:
+      startValue:
+        $ref: ./PortfolioPerformanceAmount.yaml
+      gain:
+        $ref: ./PortfolioPerformanceAmount.yaml
+      periodDays:
+        type:
+          - integer
+          - 'null'
+        minimum: 1
+      denominatorTimesDays:
+        $ref: ./PortfolioPerformanceAmount.yaml
+      averageCapital:
+        type:
+          - string
+          - 'null'
+      minCapitalRatio:
+        type: string
+        enum:
+          - '0.10'

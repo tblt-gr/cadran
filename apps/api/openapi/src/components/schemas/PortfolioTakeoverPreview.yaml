@@ -1,0 +1,35 @@
+x-cadran-asset-scope: Amounts are in the currency of the portfolio account.
+type: object
+additionalProperties: false
+required:
+  - lines
+  - securitiesValue
+  - cash
+  - totalValue
+  - errors
+properties:
+  lines:
+    description: Same order as the request.
+    type: array
+    maxItems: 200
+    items:
+      $ref: ./PortfolioTakeoverPreviewLine.yaml
+  securitiesValue:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  cash:
+    description: The cash typed, or 0.
+    type: string
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  totalValue:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  errors:
+    type: array
+    maxItems: 1000
+    items:
+      $ref: ./PortfolioTakeoverError.yaml

@@ -1,0 +1,38 @@
+post:
+  operationId: refreshRecurrenceHorizon
+  x-cadran-idempotency: >-
+    Occurrences are unique per recurrence and expected date, so a replay
+    generates nothing new.
+  summary: Explicitly extend active recurrence schedules to twelve months
+  description: >-
+    Idempotent; listing recurrences and occurrences never performs this
+    mutation.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/EmptyRequest.yaml
+  responses:
+    '200':
+      description: Horizon refresh report.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/RecurrenceHorizonReport.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

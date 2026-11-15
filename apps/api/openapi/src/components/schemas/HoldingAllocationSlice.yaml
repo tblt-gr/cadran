@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - key
+  - label
+  - value
+  - share
+properties:
+  key:
+    type: string
+  label:
+    type: string
+  value:
+    $ref: ./HoldingsDecimal.yaml
+  share:
+    $ref: ./HoldingsNullableDecimal.yaml

@@ -1,0 +1,23 @@
+x-cadran-asset-scope: The price is in the currency of the instrument.
+type: object
+additionalProperties: false
+required:
+  - instrumentId
+  - price
+properties:
+  instrumentId:
+    type: string
+    format: uuid
+  price:
+    description: >-
+      Unit price, strictly positive and within the instrument price precision;
+      null when unknown.
+    type:
+      - string
+      - 'null'
+  priceDate:
+    description: Required with a price, on or before the valuation date.
+    type:
+      - string
+      - 'null'
+    format: date

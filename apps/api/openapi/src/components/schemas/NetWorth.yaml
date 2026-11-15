@@ -1,0 +1,58 @@
+type: object
+additionalProperties: false
+required:
+  - asOf
+  - total
+  - reason
+  - quality
+  - stalestAgeDays
+  - eligibleAccountCount
+  - valuedAccountCount
+  - missingValuationCount
+  - staleValuationCount
+  - delta
+  - contributions
+  - allocation
+properties:
+  asOf:
+    type: string
+    format: date
+  total:
+    description: Null with a reason when the sum cannot be produced. Never `0`.
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  reason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  quality:
+    $ref: ./ValuationQuality.yaml
+  stalestAgeDays:
+    description: Age in days of the oldest valuation behind the figure.
+    oneOf:
+      - type: integer
+        minimum: 0
+      - type: 'null'
+  eligibleAccountCount:
+    type: integer
+    minimum: 0
+  valuedAccountCount:
+    type: integer
+    minimum: 0
+  missingValuationCount:
+    type: integer
+    minimum: 0
+  staleValuationCount:
+    type: integer
+    minimum: 0
+  delta:
+    $ref: ./NetWorthDelta.yaml
+  contributions:
+    type: array
+    items:
+      $ref: ./NetWorthContribution.yaml
+  allocation:
+    type: array
+    items:
+      $ref: ./NetWorthAllocationEntry.yaml

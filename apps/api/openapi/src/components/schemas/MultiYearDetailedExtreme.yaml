@@ -1,0 +1,13 @@
+x-cadran-asset-scope: The asset is the `assetCode` of the report column the aggregate belongs to.
+description: One extreme month of the whole detailed period.
+type: object
+additionalProperties: false
+required:
+  - value
+  - month
+properties:
+  value:
+    type: string
+  month:
+    description: The `YYYY-MM` of the extreme month.
+    type: string

@@ -1,0 +1,89 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - label
+  - institution
+  - productCode
+  - assetCode
+  - status
+  - latestValuation
+  - currentCash
+  - positionCount
+  - newerPartialValuation
+  - dueMonths
+  - unrealizedGain
+  - returnTrend
+properties:
+  returnTrend:
+    $ref: ./PortfolioReturnTrend.yaml
+  unrealizedGain:
+    description: >-
+      Unrealized gain of the latest complete valuation with its performance
+      (gain over cost, 6 decimals, ratio 0.0732 = 7.32 %); every member is null
+      when not calculable, never zero.
+    type: object
+    additionalProperties: false
+    required:
+      - value
+      - costBasis
+      - performance
+      - reason
+    properties:
+      value: &ref_0
+        type:
+          - string
+          - 'null'
+        pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+      costBasis: *ref_0
+      performance: *ref_0
+      reason:
+        type:
+          - string
+          - 'null'
+        enum:
+          - null
+          - NO_VALUATION
+          - PARTIAL_VALUATION
+          - UNKNOWN_LOT_COST
+  dueMonths:
+    description: >-
+      Months still owed a complete month-end valuation, oldest first, computed
+      on every read.
+    type: array
+    maxItems: 13
+    items:
+      $ref: ./PortfolioDueMonth.yaml
+  newerPartialValuation:
+    description: >-
+      A newer active PARTIAL observation when selected values come from an older
+      COMPLETE valuation; null without fallback.
+    oneOf:
+      - $ref: ./PortfolioOverviewValuation.yaml
+      - type: 'null'
+  accountId:
+    type: string
+    format: uuid
+  label: &ref_2
+    type: string
+  institution: &ref_1
+    type:
+      - string
+      - 'null'
+  productCode: *ref_1
+  assetCode: *ref_2
+  status:
+    type: string
+    enum:
+      - ACTIVE
+      - CLOSED
+  latestValuation:
+    oneOf:
+      - $ref: ./PortfolioOverviewValuation.yaml
+      - type: 'null'
+  currentCash:
+    type: string
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  positionCount:
+    type: integer
+    minimum: 0

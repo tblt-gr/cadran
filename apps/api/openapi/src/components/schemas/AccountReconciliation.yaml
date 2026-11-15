@@ -1,0 +1,72 @@
+type: object
+additionalProperties: false
+required:
+  - accountId
+  - snapshotId
+  - snapshotVersion
+  - reconciliationStatus
+  - periodStart
+  - periodEnd
+  - openingBalance
+  - movementsTotal
+  - closingBalance
+  - discrepancy
+  - nonCalculableReason
+  - pendingCount
+  - pendingTransactions
+  - availableResolutions
+properties:
+  accountId:
+    type: string
+    format: uuid
+  snapshotId:
+    type: string
+    format: uuid
+  snapshotVersion:
+    type: integer
+  reconciliationStatus:
+    type: string
+    enum:
+      - UNRECONCILED
+      - RECONCILED
+  periodStart:
+    type: string
+    format: date
+  periodEnd:
+    type: string
+    format: date
+  openingBalance:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  movementsTotal:
+    description: Sum of the booked, live movements of the period; pending rows excluded.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  closingBalance:
+    $ref: ./DecimalAmount.yaml
+  discrepancy:
+    description: >-
+      closing - (opening + movements). Positive: the account holds more than the
+      movements explain. Null when not calculable.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  nonCalculableReason:
+    oneOf:
+      - $ref: ./AccountReconciliationReason.yaml
+      - type: 'null'
+  pendingCount:
+    type: integer
+    minimum: 0
+  pendingTransactions:
+    description: The pending rows of the period, at most 100.
+    type: array
+    maxItems: 100
+    items:
+      $ref: ./Transaction.yaml
+  availableResolutions:
+    type: array
+    items:
+      $ref: ./AccountReconciliationResolution.yaml

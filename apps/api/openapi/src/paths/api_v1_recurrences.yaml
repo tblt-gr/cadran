@@ -1,0 +1,88 @@
+get:
+  operationId: listRecurrences
+  summary: List confirmed recurrences without extending their horizon
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: includeArchived
+      in: query
+      schema:
+        type: boolean
+        default: false
+    - name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    - name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 50
+  responses:
+    '200':
+      description: Confirmed recurrences in schedule order.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/RecurrencePage.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: confirmRecurrence
+  summary: Confirm a candidate or manually create a recurrence
+  description: >-
+    Creates a forecast schedule and snapshots expected occurrences through the
+    twelve-month horizon.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/CreateRecurrenceRequest.yaml
+  responses:
+    '201':
+      description: The confirmed recurrence.
+      headers:
+        Idempotency-Replayed:
+          $ref: ../components/headers/IdempotencyReplayed.yaml
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Recurrence.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '409':
+      description: >-
+        The Idempotency-Key was reused with a different body, or the first
+        request is still in flight.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

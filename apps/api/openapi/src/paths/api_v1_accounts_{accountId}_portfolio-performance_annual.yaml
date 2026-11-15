@@ -1,0 +1,53 @@
+get:
+  operationId: readPortfolioAnnualPerformance
+  x-cadran-bounded: Reasons come from the closed performance reason enumeration.
+  summary: Read the monthly and annual performance of a portfolio account
+  description: >-
+    The twelve months of a year, the year total and the whole life of the
+    account, from one bounded read of its history. Each month carries the
+    figures of the single-period read for that month (same values, qualities and
+    reasons); the year Modified Dietz and time-weighted returns are the
+    geometric chains of the months and the year money-weighted return is solved
+    on the flows of the year, never derived from the months. The chained index
+    is computed here only. A month before the account opening or after today
+    carries only its status. Response uses no-store cache control.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: >-
+        Workspace-scoped exact figures; a missing input yields a null value with
+        reasons, never zero.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioAnnualPerformance.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        Year outside the opening year and the current year, account not followed
+        in portfolio mode, or the bounded operation scope exceeded.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioAnnualPerformanceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: year
+      in: query
+      required: true
+      description: >-
+        Four-digit year between the year of the account opening and the current
+        workspace year.
+      schema:
+        type: string
+        pattern: ^[0-9]{4}$

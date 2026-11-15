@@ -1,0 +1,90 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - kind
+  - productCode
+  - productModelId
+  - institution
+  - maskedIdentifier
+  - valuationMode
+  - liquidityLevel
+  - includeInNetWorth
+  - includeInEmergencyFund
+  - openedOn
+  - closedOn
+  - version
+  - primaryGroupId
+properties:
+  isPrimary:
+    description: >-
+      Optional; omission preserves the current setting. True selects this active
+      transaction-capable CURRENT account and atomically clears the previous
+      primary in this workspace, advancing its version. False removes this
+      account as the default. Closing or archiving clears it automatically.
+    type: boolean
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  kind:
+    $ref: ./AccountKind.yaml
+  productCode:
+    description: >-
+      Changing the product, the kind or the valuation mode sends the whole
+      triple back through the catalogue. An account already used by history
+      cannot change product at all. Mutually exclusive with `productModelId`.
+    oneOf:
+      - $ref: ./ProductCode.yaml
+      - type: 'null'
+  productModelId:
+    description: >-
+      Changing the model, the kind or the valuation mode sends the whole triple
+      back through the workspace's own models. An account already used by
+      history cannot change model at all. Mutually exclusive with `productCode`.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  institution:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  maskedIdentifier:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z0-9]{2,8}$
+      - type: 'null'
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  liquidityLevel:
+    $ref: ./LiquidityLevel.yaml
+  includeInNetWorth:
+    type: boolean
+  includeInEmergencyFund:
+    type: boolean
+  openedOn:
+    type: string
+    format: date
+  closedOn:
+    description: A day on or after the opening date closes the account; null reopens it.
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  version:
+    type: integer
+    minimum: 1
+  primaryGroupId:
+    description: >-
+      Exclusive membership used by group weights, or null to leave the account
+      ungrouped. It may name a sub-group: the account then also counts in every
+      ancestor of that group. An unknown or foreign group is refused, and so is
+      the retired field `tagGroupIds` (422 field error `tagGroupIds` /
+      `unsupported_field`).
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'

@@ -1,0 +1,50 @@
+post:
+  operationId: archiveCategory
+  summary: Retire a category without deleting it
+  description: >-
+    Takes the category out of the choices offered for new classifications. A
+    used category is never hard-deleted, and a category with active children is
+    refused until its branch is retired first.
+  tags:
+    - Categories
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ArchiveCategoryRequest.yaml
+  responses:
+    '200':
+      description: The archived category.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Category.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/CategoryMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      $ref: ../components/responses/CategoryVersionConflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/CategoryOperationRefused.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

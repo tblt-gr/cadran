@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+required:
+  - type
+  - ids
+properties:
+  type:
+    type: string
+    enum:
+      - IDS
+  ids:
+    type: array
+    minItems: 1
+    maxItems: 500
+    description: At most 500 distinct identifiers; more is refused with 422.
+    items:
+      type: string
+      format: uuid

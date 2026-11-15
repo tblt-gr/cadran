@@ -1,0 +1,111 @@
+description: >-
+  A product model owned by one workspace, beside the read-only system catalogue.
+  It carries its own dated rule periods and never a single current figure, so
+  last year's statement resolves against last year's rate. It is only ever added
+  to: there is no field edit and no period deletion.
+type: object
+additionalProperties: false
+required:
+  - id
+  - name
+  - family
+  - nature
+  - wrapperKind
+  - yieldKind
+  - yieldGuaranteed
+  - ceilingBasis
+  - defaultGroupCode
+  - valuationMode
+  - capabilities
+  - origin
+  - basedOnProductCode
+  - basedOnModelId
+  - rules
+  - editable
+  - version
+  - createdAt
+  - updatedAt
+  - archivedAt
+properties:
+  id:
+    type: string
+    format: uuid
+  name:
+    type: string
+    minLength: 1
+    maxLength: 80
+  family:
+    $ref: ./AccountKind.yaml
+  nature:
+    description: Stated by the server so no interface deduces it from a family name.
+    $ref: ./ProductNature.yaml
+  wrapperKind:
+    $ref: ./ProductWrapperKind.yaml
+  yieldKind:
+    $ref: ./ProductYieldKind.yaml
+  yieldGuaranteed:
+    description: >-
+      Whether a rate the model carries is owed to the holder. False for a
+      revisable or market-driven yield, so no interface shows a rate as an
+      acquired return.
+    type: boolean
+  ceilingBasis:
+    $ref: ./CeilingBasis.yaml
+  defaultGroupCode:
+    oneOf:
+      - type: string
+        maxLength: 32
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+      - type: 'null'
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  capabilities:
+    description: >-
+      The public activation contract. Clients never infer behaviour from a model
+      name the holder chose.
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: ./ProductCapability.yaml
+  origin:
+    $ref: ./ProductModelOrigin.yaml
+  basedOnProductCode:
+    description: >-
+      The catalogue product this model was started from, kept for reading and
+      never for resolving. Null unless `origin` is `SYSTEM_PRODUCT`.
+    oneOf:
+      - $ref: ./ProductCode.yaml
+      - type: 'null'
+  basedOnModelId:
+    description: >-
+      The model this one was duplicated from. Null unless `origin` is
+      `WORKSPACE_MODEL`.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  rules:
+    description: >-
+      Every dated period the model ever recorded, ordered by kind then by start
+      date. Periods of the same kind never overlap.
+    type: array
+    items:
+      $ref: ./ProductModelRule.yaml
+  editable:
+    description: False for an archived model, which is read-only.
+    type: boolean
+  version:
+    type: integer
+    minimum: 1
+  createdAt:
+    type: string
+    format: date-time
+  updatedAt:
+    type: string
+    format: date-time
+  archivedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'

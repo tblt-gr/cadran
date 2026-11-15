@@ -1,0 +1,71 @@
+get:
+  operationId: readEmergencyFundPolicy
+  summary: Read the emergency-fund policy of the calling workspace
+  description: Without a stored policy, the default one is returned at version 0.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The essential perimeter, reference period and target.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/EmergencyFundPolicy.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: updateEmergencyFundPolicy
+  summary: Replace the emergency-fund policy of the calling workspace
+  description: >-
+    Saving at version 0 creates the policy. A listed category is an active
+    expense category counted in the budget; an unknown, foreign, income,
+    unbudgeted or archived category is refused with one and the same answer. A
+    category archived after being listed may stay listed.
+  tags:
+    - Goals
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/UpdateEmergencyFundPolicyRequest.yaml
+  responses:
+    '200':
+      description: The saved policy.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/EmergencyFundPolicy.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/Forbidden.yaml
+    '409':
+      $ref: ../components/responses/Conflict.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        invalid_emergency_fund_policy, invalid_emergency_fund_category,
+        too_many_emergency_fund_categories, invalid_trailing_months or
+        invalid_target_months.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/GoalProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

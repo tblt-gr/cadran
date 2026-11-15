@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+required:
+  - categoryId
+  - amount
+  - analyticAxes
+  - note
+properties:
+  categoryId:
+    type: string
+    format: uuid
+  amount:
+    $ref: ./DecimalAmount.yaml
+  analyticAxes:
+    description: >-
+      Null inherits the picked category's default axes; an explicit list, even
+      empty, overrides them. An override never rewrites the category itself.
+    oneOf:
+      - $ref: ./AnalyticAxes.yaml
+      - type: 'null'
+  note:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 140
+      - type: 'null'

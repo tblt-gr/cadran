@@ -1,0 +1,8 @@
+type: string
+description: >-
+  Why no discrepancy could be produced. It replaces the figure and never
+  accompanies one.
+enum:
+  - MISSING_OPENING_BALANCE
+  - STALE_CLOSING_BALANCE
+  - MIXED_ASSETS

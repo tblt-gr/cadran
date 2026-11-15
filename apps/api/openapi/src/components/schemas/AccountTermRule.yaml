@@ -1,0 +1,29 @@
+description: >-
+  One term kind — how interest accrues, who is eligible, which tax regime
+  applies — seen through every authority that states it. At least one of
+  `catalog`, `inherited` and `override` is present.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - effectiveLayer
+  - catalog
+  - inherited
+  - override
+properties:
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  effectiveLayer:
+    $ref: ./AccountRuleLayer.yaml
+  catalog:
+    oneOf:
+      - $ref: ./AccountTerm.yaml
+      - type: 'null'
+  inherited:
+    oneOf:
+      - $ref: ./AccountTerm.yaml
+      - type: 'null'
+  override:
+    oneOf:
+      - $ref: ./AccountTerm.yaml
+      - type: 'null'

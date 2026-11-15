@@ -1,0 +1,55 @@
+put:
+  operationId: reorderPortfolioOperations
+  x-cadran-idempotency: >-
+    The body states the resulting order of the day, so a replay writes the same
+    order.
+  summary: Reorder every active operation of one trade date
+  description: >-
+    The submitted identifiers must be exactly the active set of the day. The
+    complete history is replayed before commit.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PortfolioOperationOrder.yaml
+  responses:
+    '200':
+      description: The committed order.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationOrder.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: The period is closed or the submitted operation set is stale.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The payload is invalid or the new order violates a position invariant.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -1,0 +1,62 @@
+description: >-
+  Budget expenses seen through one analytic axis. An axis is a facet of a split,
+  not a bucket: a split carrying two axes counts in both, so the axes
+  deliberately do not add up to `budgetExpenses`.
+type: object
+additionalProperties: false
+required:
+  - axis
+  - kpi
+  - value
+  - assetCode
+  - reason
+  - pendingCount
+  - sourceTransactionIds
+  - sourceTransactions
+  - sourceTransferIds
+properties:
+  axis:
+    type: string
+    enum:
+      - DISCRETIONARY
+      - ESSENTIAL
+      - FIXED
+      - PERSONAL
+      - PROFESSIONAL
+      - VARIABLE
+  kpi:
+    type: 'null'
+  value:
+    type:
+      - string
+      - 'null'
+    pattern: ^(?!-0(?:\.0+)?$)-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  assetCode:
+    type:
+      - string
+      - 'null'
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  reason:
+    oneOf:
+      - $ref: ./MonthlyProjectionReason.yaml
+      - type: 'null'
+  pendingCount:
+    type: integer
+    minimum: 0
+  sourceTransactionIds:
+    type: array
+    maxItems: 500
+    items:
+      type: string
+      format: uuid
+  sourceTransactions:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyKpiSourceTransaction.yaml
+  sourceTransferIds:
+    type: array
+    maxItems: 5000
+    items:
+      type: string
+      format: uuid

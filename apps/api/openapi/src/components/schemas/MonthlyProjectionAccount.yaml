@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - assetCode
+  - kind
+  - beginningValue
+  - endValue
+  - reconciliationStatus
+properties:
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+  assetCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  kind:
+    $ref: ./AccountKind.yaml
+  beginningValue:
+    $ref: ./MonthlyAccountValue.yaml
+  endValue:
+    $ref: ./MonthlyAccountValue.yaml
+  reconciliationStatus:
+    type: string
+    enum:
+      - RECONCILED
+      - UNRECONCILED

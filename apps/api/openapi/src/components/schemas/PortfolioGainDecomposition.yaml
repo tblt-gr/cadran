@@ -1,0 +1,52 @@
+type: object
+additionalProperties: false
+required:
+  - status
+  - reason
+  - realized
+  - unrealizedChange
+  - income
+  - fees
+  - taxes
+  - corporateActionCash
+  - capitalizedCosts
+  - residual
+  - feesPaid
+properties:
+  status:
+    type: string
+    enum:
+      - COMPLETE
+      - UNAVAILABLE
+  reason:
+    type:
+      - string
+      - 'null'
+  realized:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  unrealizedChange:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  income:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  fees:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  taxes:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  corporateActionCash:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  capitalizedCosts:
+    description: >-
+      Fees and taxes capitalized into the acquisition cost of purchases;
+      informative, never added to the components.
+    type:
+      - string
+      - 'null'
+    pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+  residual:
+    $ref: ./PortfolioPerformanceAmount.yaml
+  feesPaid:
+    description: >-
+      Every fee paid in the period, purchase fees included (which `fees` leaves
+      out because they are capitalized), negative like `fees`. Informative,
+      never added to the components.
+    $ref: ./PortfolioPerformanceAmount.yaml

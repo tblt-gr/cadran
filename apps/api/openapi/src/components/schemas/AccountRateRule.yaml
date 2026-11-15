@@ -1,0 +1,37 @@
+description: >-
+  One rate kind seen through every authority that states it, and which of them
+  wins. At least one of `catalog`, `inherited` and `override` is present.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - effectiveLayer
+  - catalog
+  - inherited
+  - override
+  - applied
+properties:
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  effectiveLayer:
+    $ref: ./AccountRuleLayer.yaml
+  catalog:
+    oneOf:
+      - $ref: ./AccountRate.yaml
+      - type: 'null'
+  inherited:
+    oneOf:
+      - $ref: ./AccountRate.yaml
+      - type: 'null'
+  override:
+    oneOf:
+      - $ref: ./AccountRate.yaml
+      - type: 'null'
+  applied:
+    description: >-
+      How the effective scale reads the latest recorded balance. Null when no
+      valuation exists on the business date. A Livret Bleu above the Livret A
+      figure shifts onto the next bracket; that is allowed, not a refusal.
+    oneOf:
+      - $ref: ./AppliedRate.yaml
+      - type: 'null'

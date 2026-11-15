@@ -1,0 +1,13 @@
+type: object
+additionalProperties: false
+required:
+  - version
+  - reason
+properties:
+  version:
+    type: integer
+    minimum: 1
+  reason:
+    type: string
+    minLength: 1
+    maxLength: 200

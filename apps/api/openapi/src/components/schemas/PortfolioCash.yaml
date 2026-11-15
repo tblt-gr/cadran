@@ -1,0 +1,43 @@
+type: object
+additionalProperties: false
+required:
+  - from
+  - to
+  - assetCode
+  - openingBalance
+  - closingBalance
+  - currentBalance
+  - totals
+  - movements
+  - warnings
+  - costPolicy
+properties:
+  from:
+    type: string
+    format: date
+  to:
+    type: string
+    format: date
+  assetCode:
+    type: string
+  openingBalance:
+    $ref: ./DecimalAmount.yaml
+  closingBalance:
+    $ref: ./DecimalAmount.yaml
+  currentBalance:
+    description: The balance as of today, independent of the period.
+    $ref: ./DecimalAmount.yaml
+  totals:
+    $ref: ./PortfolioCashTotals.yaml
+  movements:
+    type: array
+    maxItems: 2000
+    items:
+      $ref: ./PortfolioCashMovement.yaml
+  warnings:
+    type: array
+    maxItems: 7
+    items:
+      $ref: ./PortfolioCashWarning.yaml
+  costPolicy:
+    $ref: ./PortfolioCostPolicy.yaml

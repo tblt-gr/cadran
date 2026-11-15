@@ -1,0 +1,97 @@
+get:
+  operationId: readAccountOverviewRows
+  summary: Read one bounded page of the members of an overview table
+  description: >-
+    `groupKey` is a group identifier of the calling workspace or the literal
+    `ungrouped`. Pages hold at most 50 rows. In `PRIMARY` mode rows follow the
+    saved order of that group; in `PARENT` mode they page through the whole
+    subtree ordered by depth-first group order, then saved order of each primary
+    group. Hidden members are included in the rank. Rows reuse the account
+    representation, plus the primary group context, with its resolved valuation
+    and its share of eligible net worth (null with `reason` when it cannot be
+    computed, null without reason when the account is outside the eligible net
+    worth). At most 50 rows per page; `nextCursor` is an opaque cursor bound to
+    this group, to the grouping and to the `orderVersion` it was issued at (the
+    sum of the subtree group versions in `PARENT` mode).
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: groupKey
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: ^(ungrouped|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$
+    - name: cursor
+      in: query
+      required: false
+      schema:
+        type: string
+        maxLength: 200
+    - name: asOf
+      in: query
+      required: false
+      schema:
+        type: string
+        format: date
+    - name: includeClosed
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: includeArchived
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: grouping
+      in: query
+      required: false
+      description: >-
+        `PARENT` (default) cuts one table per root group that rolls its subtree
+        up; `PRIMARY` cuts one table per primary group with its direct accounts.
+        Any other value is a 422 with a `grouping` / `invalid_choice` error.
+      schema:
+        type: string
+        enum:
+          - PARENT
+          - PRIMARY
+        default: PARENT
+  responses:
+    '200':
+      description: The members of the table, in saved order.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountOverviewRows.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The order changed since the cursor was issued (`type:
+        /problems/stale-account-order`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '422':
+      description: >-
+        Invalid `grouping` (`errors[].field: grouping`, `code: invalid_choice`),
+        or the workspace holds more accounts or groups than one overview reads
+        (`type: /problems/net-worth-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

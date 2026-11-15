@@ -1,0 +1,92 @@
+get:
+  operationId: readPortfolioTakeover
+  x-cadran-bounded: >-
+    At most 201 operation identifiers: one transfer in per line (200) and the
+    cash deposit.
+  summary: Read whether a securities account can take over its positions
+  description: >-
+    Whether the account can still take over the positions it already holds, why
+    not, the default takeover date (the last day of the previous month, or the
+    opening day when later) and, once done, the takeover and the identifiers of
+    its operations. A closed or archived account answers `NOT_SUPPORTED`.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  responses:
+    '200':
+      description: The takeover state of the account.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioTakeoverState.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: recordPortfolioTakeover
+  summary: Take over the positions already held by a securities account
+  description: >-
+    Records in one PostgreSQL transaction one `SECURITY_TRANSFER_IN` per line, a
+    `DEPOSIT` of the cash when it is not zero and the complete `POSITIONS`
+    valuation of the date, then the takeover that starts the performance history
+    of the account. Any refusal writes nothing. The `Idempotency-Key` header is
+    required: a replay returns the first answer without a second row.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/RequiredIdempotencyKey.yaml
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/PortfolioTakeoverRequest.yaml
+  responses:
+    '201':
+      description: The recorded takeover.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioTakeover.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The account already has a takeover, is not empty (`blockingReason`), the
+        month is closed (`type: /problems/period-closed`), the idempotency key
+        conflicts or a concurrent change was detected.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioTakeoverProblem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The account kind, mode or status is not supported, the request breaks a
+        date, line or cash rule (`errors`), a limit is reached or the
+        idempotency key is missing or invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioTakeoverProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

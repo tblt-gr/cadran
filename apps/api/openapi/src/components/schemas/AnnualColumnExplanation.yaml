@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - column
+  - kind
+  - formula
+  - policy
+  - months
+  - aggregate
+properties:
+  column:
+    type: string
+  kind:
+    $ref: ./AnnualColumnKind.yaml
+  formula:
+    type: string
+  policy:
+    $ref: ./AnnualPolicy.yaml
+  months:
+    type: array
+    items:
+      $ref: ./AnnualMonthExplanation.yaml
+  aggregate:
+    $ref: ./AnnualAggregate.yaml

@@ -1,0 +1,35 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - accountId
+  - takenOverOn
+  - valuationId
+  - operationIds
+  - createdAt
+properties:
+  id:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+  takenOverOn:
+    description: >-
+      The day of the takeover: the start of the performance history of the
+      account.
+    type: string
+    format: date
+  valuationId:
+    type: string
+    format: uuid
+  operationIds:
+    description: The active transfers in and the cash deposit dated the takeover day.
+    type: array
+    maxItems: 201
+    items:
+      type: string
+      format: uuid
+  createdAt:
+    type: string
+    format: date-time

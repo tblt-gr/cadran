@@ -1,0 +1,121 @@
+get:
+  operationId: readAccountReconciliation
+  x-cadran-bounded: >-
+    Available resolutions are a subset of the three resolutions MATCH, OVERRIDE
+    and ADJUST.
+  summary: Compare an observed closing balance to the movements of its period
+  description: >-
+    `discrepancy = closing - (opening + sum of booked movements)`, with the
+    period ending on the snapshot day. The opening figure is the latest active
+    snapshot on or before the day preceding `periodStart` (a period of at most
+    366 days), and movements are summed from the day after that opening
+    snapshot, so nothing booked between the two is dropped. The response
+    `periodStart` is that effective first day. Pending rows of the same window
+    are listed and counted but never summed. When a side is missing the
+    discrepancy is null and `nonCalculableReason` says why; it is never zero by
+    default.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: snapshotId
+      in: query
+      required: true
+      schema:
+        type: string
+        format: uuid
+    - name: periodStart
+      in: query
+      required: true
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The comparison and the resolutions currently available.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountReconciliation.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: resolveAccountReconciliation
+  summary: Reconcile an observed closing balance
+  description: >-
+    An account valued in `PORTFOLIO` mode refuses it with `422
+    portfolio_account_valued_by_portfolio`. `MATCH` requires a discrepancy of
+    exactly zero (compared as decimals, so `1.10` equals `1.1`). `OVERRIDE`
+    accepts a non-zero discrepancy as it stands and writes no transaction.
+    `ADJUST` records one booked `ADJUSTMENT` movement equal to the discrepancy
+    on the snapshot day, which is neither income nor expense, then reconciles. A
+    non-calculable comparison refuses every resolution. The account is locked,
+    so two concurrent requests never both adjust: the loser receives a 409.
+  tags:
+    - Transactions
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/IdempotencyKey.yaml
+    - name: accountId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/ResolveAccountReconciliationRequest.yaml
+  responses:
+    '200':
+      description: The comparison after the resolution, with the snapshot reconciled.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountReconciliation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/TransactionMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        The snapshot version is stale (`type: /problems/stale-version`), the
+        snapshot is already reconciled or the account is archived (`type:
+        /problems/transaction-conflict`), or the idempotency key is reused or in
+        flight. A write that touches a closed period is refused with one stable
+        problem, whichever the use case (`type: /problems/period-closed`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/TransactionPayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      $ref: ../components/responses/UnprocessableEntity.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

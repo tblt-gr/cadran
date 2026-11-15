@@ -1,0 +1,16 @@
+description: >-
+  The figure a ceiling is compared against. Three of these four measures give a
+  different verdict on the same account, so the amount alone decides nothing. A
+  share savings plan is capped on the contributions paid into it, whatever the
+  plan is worth, so a plan that grew past its ceiling through market value has
+  broken no rule. A regulated passbook is capped on what was deposited, credited
+  interest excluded, so a passbook carried past its ceiling by its own interest
+  has broken no rule either. A combined ceiling is measured across the products
+  sharing it and can be reached while no single account is.
+type: string
+enum:
+  - NONE
+  - BALANCE_EXCLUDING_INTEREST
+  - TOTAL_BALANCE
+  - CONTRIBUTIONS
+  - COMBINED_CONTRIBUTIONS

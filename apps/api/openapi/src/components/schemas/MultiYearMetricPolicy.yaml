@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - state
+  - version
+properties:
+  state:
+    type: string
+    enum:
+      - SINGLE
+      - MIXED
+  version:
+    type:
+      - integer
+      - 'null'

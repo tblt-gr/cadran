@@ -1,0 +1,34 @@
+get:
+  operationId: readAuditEvent
+  summary: Read one audit event of the calling workspace
+  description: >-
+    Requires an authenticated session. The workspace is resolved server-side
+    from the session and combined with the identifier, so an event that belongs
+    to another workspace answers 404 exactly like an unknown one.
+  tags:
+    - Audit
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      description: Identifier of an event of the calling workspace.
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: The requested audit event.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AuditEvent.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

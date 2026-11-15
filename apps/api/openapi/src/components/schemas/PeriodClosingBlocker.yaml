@@ -1,0 +1,21 @@
+description: >-
+  One failing condition and the accounts that raise it. `count` equals the
+  number of items, except for PENDING_TRANSACTIONS whose items are empty because
+  the transactions are reached through their own filtered list.
+type: object
+additionalProperties: false
+required:
+  - condition
+  - count
+  - items
+properties:
+  condition:
+    $ref: ./PeriodClosingCondition.yaml
+  count:
+    type: integer
+    minimum: 1
+  items:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./PeriodClosingBlockerItem.yaml

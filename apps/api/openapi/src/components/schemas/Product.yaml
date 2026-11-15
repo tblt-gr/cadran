@@ -1,0 +1,88 @@
+type: object
+additionalProperties: false
+required:
+  - code
+  - displayName
+  - jurisdiction
+  - accountKind
+  - wrapperKind
+  - yieldKind
+  - yieldGuaranteed
+  - ceilingBasis
+  - defaultGroupCode
+  - capabilities
+  - catalogVersion
+  - archivedAt
+  - asOf
+  - rules
+  - unavailableRuleKinds
+properties:
+  code:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+    examples:
+      - FR_LIVRET_A
+  displayName:
+    type: string
+  jurisdiction:
+    description: >-
+      ISO 3166-1 alpha-2 country code, or null for a model that belongs to no
+      country.
+    oneOf:
+      - type: string
+        pattern: ^[A-Z]{2}$
+      - type: 'null'
+  accountKind:
+    $ref: ./AccountKind.yaml
+  wrapperKind:
+    $ref: ./ProductWrapperKind.yaml
+  yieldKind:
+    $ref: ./ProductYieldKind.yaml
+  yieldGuaranteed:
+    description: >-
+      Whether the rate the catalogue carries is owed to the holder. False for
+      every market product, so no interface has to infer a promise from a
+      product name.
+    type: boolean
+  ceilingBasis:
+    $ref: ./CeilingBasis.yaml
+  defaultGroupCode:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+      - type: 'null'
+  capabilities:
+    description: >-
+      Explicit implemented behaviors enabled by this product. Consumers must use
+      these values rather than infer behavior from the product code or display
+      name.
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: ./ProductCapability.yaml
+  catalogVersion:
+    type: integer
+    minimum: 1
+  archivedAt:
+    oneOf:
+      - type: string
+        format: date-time
+      - type: 'null'
+  asOf:
+    description: The business date the rules below were resolved against.
+    type: string
+    format: date
+  rules:
+    description: The rules covering `asOf`, at most one per rule kind.
+    type: array
+    items:
+      $ref: ./ProductRule.yaml
+  unavailableRuleKinds:
+    description: >-
+      Rule kinds this product is expected to carry and that no sourced period
+      covers on `asOf`. An interface shows them as unavailable with their
+      reason; it never shows them as zero.
+    type: array
+    items:
+      $ref: ./ProductRuleKind.yaml

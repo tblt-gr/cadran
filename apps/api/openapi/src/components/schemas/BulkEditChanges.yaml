@@ -1,0 +1,50 @@
+type: object
+additionalProperties: false
+minProperties: 1
+description: Fields to change; a field left out is untouched.
+properties:
+  label:
+    oneOf:
+      - $ref: ./BulkLabelSame.yaml
+      - $ref: ./BulkLabelEach.yaml
+    discriminator:
+      propertyName: mode
+      mapping:
+        SAME: ./BulkLabelSame.yaml
+        EACH: ./BulkLabelEach.yaml
+  paymentMethod:
+    type:
+      - string
+      - 'null'
+    enum:
+      - CARD
+      - TRANSFER
+      - DIRECT_DEBIT
+      - CHECK
+      - CASH
+      - OTHER
+      - null
+    description: The payment method, or null to clear it.
+  note:
+    type:
+      - string
+      - 'null'
+    maxLength: 500
+    description: The note, or null to clear it.
+  counterparty:
+    type:
+      - string
+      - 'null'
+    maxLength: 80
+    description: The counterparty, or null to clear it.
+  categoryId:
+    type: string
+    format: uuid
+  accountId:
+    type: string
+    format: uuid
+    description: The account every eligible transaction moves to. Needs a preview token.
+  bookedOn:
+    type: string
+    format: date
+    description: The booked day every eligible transaction moves to. Needs a preview token.

@@ -1,0 +1,49 @@
+type: object
+additionalProperties: false
+required:
+  - valuedOn
+  - detail
+properties:
+  valuedOn:
+    type: string
+    format: date
+  detail:
+    $ref: ./PortfolioValuationDetail.yaml
+  totalValue:
+    description: 'TOTAL only: the total value read on the statement, zero or more.'
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  prices:
+    description: 'POSITIONS only: exactly one entry per instrument held on the date.'
+    type:
+      - array
+      - 'null'
+    maxItems: 500
+    items:
+      $ref: ./PortfolioValuationPriceEntry.yaml
+  observedCash:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  observedTotal:
+    description: >-
+      POSITIONS only: the statement total, compared with the computed one, never
+      absorbed.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  note:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 200
+  version:
+    description: >-
+      The current version of the active valuation of that date, required to
+      supersede it.
+    type:
+      - integer
+      - 'null'
+    minimum: 1

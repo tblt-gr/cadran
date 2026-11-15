@@ -1,0 +1,10 @@
+type: object
+additionalProperties: false
+required:
+  - from
+  - to
+properties:
+  from: &ref_0
+    type: string
+    format: date
+  to: *ref_0

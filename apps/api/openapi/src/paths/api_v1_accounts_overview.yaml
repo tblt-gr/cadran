@@ -1,0 +1,74 @@
+get:
+  operationId: readAccountOverview
+  summary: Read the unified account overview headings
+  description: >-
+    In `PARENT` mode one heading per root group with a visible account in its
+    subtree (roll-up total and share, `memberCount` of the whole subtree); in
+    `PRIMARY` mode one heading per group with a visible direct account (direct
+    total and share, `parentLabel` of its immediate parent), in depth-first
+    order. Then a null-ID ungrouped section when it holds members. Totals and
+    shares come from the eligible net worth of `asOf`, whatever the lifecycle
+    filters show: showing closed or archived accounts only changes
+    `memberCount`. A total or share that cannot be computed is null with a
+    reason, never zero. Rows are read per group with `readAccountOverviewRows`.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: asOf
+      in: query
+      required: false
+      description: ISO 8601 calendar day, today in the workspace when omitted.
+      schema:
+        type: string
+        format: date
+    - name: includeClosed
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: includeArchived
+      in: query
+      required: false
+      schema:
+        type: boolean
+        default: false
+    - name: grouping
+      in: query
+      required: false
+      description: >-
+        `PARENT` (default) cuts one table per root group that rolls its subtree
+        up; `PRIMARY` cuts one table per primary group with its direct accounts.
+        Any other value is a 422 with a `grouping` / `invalid_choice` error.
+      schema:
+        type: string
+        enum:
+          - PARENT
+          - PRIMARY
+        default: PARENT
+  responses:
+    '200':
+      description: The ordered group headings.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountOverview.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        Invalid `grouping` (`errors[].field: grouping`, `code: invalid_choice`),
+        or the workspace holds more accounts or groups than one overview reads
+        (`type: /problems/net-worth-scope-too-large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

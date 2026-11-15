@@ -1,0 +1,19 @@
+type: object
+additionalProperties: false
+required:
+  - snapshotId
+  - snapshotVersion
+  - periodStart
+  - resolution
+properties:
+  snapshotId:
+    type: string
+    format: uuid
+  snapshotVersion:
+    type: integer
+    minimum: 1
+  periodStart:
+    type: string
+    format: date
+  resolution:
+    $ref: ./AccountReconciliationResolution.yaml

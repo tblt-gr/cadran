@@ -1,0 +1,136 @@
+description: >-
+  The wealth card: N−1, N, the signed currency difference and the change rate.
+  Each figure carries its own reason because they fail for different causes;
+  none of them is ever replaced by a zero.
+type: object
+additionalProperties: false
+required:
+  - previous
+  - previousReason
+  - current
+  - currentReason
+  - difference
+  - differenceReason
+  - changeRatio
+  - changePercent
+  - changePercentDisplay
+  - changeReason
+  - previousQuality
+  - previousStalestAgeDays
+  - previousMissingValuationCount
+  - previousStaleValuationCount
+  - quality
+  - stalestAgeDays
+  - eligibleAccountCount
+  - missingValuationCount
+  - staleValuationCount
+  - previousSourceAccountIds
+  - currentSourceAccountIds
+  - staleValuations
+  - previousStaleValuations
+properties:
+  previous:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  previousReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  current:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  currentReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  difference:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  differenceReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  changeRatio:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  changePercent:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  changePercentDisplay:
+    type:
+      - string
+      - 'null'
+    pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+  changeReason:
+    oneOf:
+      - $ref: ./NetWorthReason.yaml
+      - type: 'null'
+  previousQuality:
+    description: Valuation quality of the N−1 net worth figure.
+    $ref: ./ValuationQuality.yaml
+  previousStalestAgeDays:
+    description: Oldest usable valuation age, in days, among N−1 eligible accounts.
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  previousMissingValuationCount:
+    description: Eligible accounts without a valuation at N−1.
+    type: integer
+    minimum: 0
+  previousStaleValuationCount:
+    description: Eligible accounts whose usable N−1 valuation predates N−1.
+    type: integer
+    minimum: 0
+  quality:
+    description: Valuation quality of the effective-N net worth figure.
+    $ref: ./ValuationQuality.yaml
+  stalestAgeDays:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  eligibleAccountCount:
+    type: integer
+    minimum: 0
+  missingValuationCount:
+    type: integer
+    minimum: 0
+  staleValuationCount:
+    type: integer
+    minimum: 0
+  previousSourceAccountIds:
+    type: array
+    maxItems: 500
+    items:
+      type: string
+      format: uuid
+  currentSourceAccountIds:
+    type: array
+    maxItems: 500
+    items:
+      type: string
+      format: uuid
+  staleValuations:
+    description: >-
+      Eligible accounts behind staleValuationCount, oldest valuation first. The
+      list size equals the count.
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./StaleValuation.yaml
+  previousStaleValuations:
+    description: >-
+      Eligible accounts behind previousStaleValuationCount, oldest valuation
+      first. The list size equals the count.
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./StaleValuation.yaml

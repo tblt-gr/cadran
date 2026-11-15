@@ -1,0 +1,9 @@
+type: string
+enum:
+  - FRANCE
+  - EUROPE
+  - NORTH_AMERICA
+  - ASIA_PACIFIC
+  - EMERGING
+  - WORLD
+  - OTHER

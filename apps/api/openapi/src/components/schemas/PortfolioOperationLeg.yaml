@@ -1,0 +1,37 @@
+x-cadran-asset-scope: >-
+  The unit price is in the currency of the leg instrument; quantities are
+  instrument units.
+type: object
+additionalProperties: false
+required:
+  - index
+  - direction
+  - instrument
+  - quantity
+  - unitPrice
+  - amount
+  - roundingResidual
+properties:
+  index:
+    type: integer
+    minimum: 1
+    maximum: 20
+  direction:
+    type: string
+    enum:
+      - IN
+      - OUT
+  instrument:
+    oneOf:
+      - $ref: ./PortfolioOperationInstrument.yaml
+      - type: 'null'
+  quantity:
+    $ref: ./PortfolioDecimal.yaml
+  unitPrice:
+    $ref: ./PortfolioDecimal.yaml
+  amount:
+    $ref: ./DecimalAmount.yaml
+  roundingResidual:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

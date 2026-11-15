@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - name
+  - productCode
+  - valuationMode
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 80
+  productCode:
+    $ref: ./ProductCode.yaml
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml

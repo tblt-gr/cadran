@@ -1,0 +1,11 @@
+type: string
+description: >-
+  AMOUNT is an amount in the workspace currency; INCOME_SHARE a share of the
+  period cash income; ROLLING_INCOME_SHARE (monthly goals only) a share of the
+  average cash income of the twelve complete months before the month; RATE the
+  target rate itself (savings rate metrics only).
+enum:
+  - AMOUNT
+  - INCOME_SHARE
+  - ROLLING_INCOME_SHARE
+  - RATE

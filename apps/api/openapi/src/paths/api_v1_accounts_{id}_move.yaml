@@ -1,0 +1,68 @@
+post:
+  operationId: moveAccount
+  x-cadran-idempotency: >-
+    Moving before the same anchor again is a no-op that keeps the version; a
+    stale version answers 409 and changes nothing.
+  summary: Move an account inside its own primary group
+  description: >-
+    Places the account just before `beforeAccountId`, or last when it is null,
+    among every member of its primary group (`groupId`, null for the ungrouped
+    section), hidden members included, whose relative order is preserved. The
+    account must currently belong to `groupId` and the anchor to the same group:
+    a move never reassigns an account. The sequence and the group order version
+    are saved atomically under a row lock; `orderVersion` must be the last one
+    read. The body is bounded and carries exactly these three fields. The
+    mutation requires the same-origin CSRF token.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MoveAccountRequest.yaml
+  responses:
+    '200':
+      description: The new order version and the rank of the moved account.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountMove.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: 'The order version is stale (`type: /problems/stale-account-order`).'
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The account is not a member of `groupId`, the anchor is not another
+        member of that group, or the body is malformed.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

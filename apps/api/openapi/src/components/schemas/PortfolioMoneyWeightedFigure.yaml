@@ -1,0 +1,138 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - method
+  - quality
+  - reasons
+  - from
+  - to
+  - days
+  - sources
+  - sourceCount
+  - annualizedRate
+  - periodRate
+  - shortPeriod
+  - iterations
+  - cashFlows
+  - cashFlowCount
+  - formula
+  - methodVersion
+  - costPolicy
+  - inputs
+  - freshness
+properties:
+  value:
+    $ref: ./PortfolioModifiedDietzRate.yaml
+  method:
+    type: string
+    enum:
+      - MWR
+  quality:
+    type: string
+    enum:
+      - EXACT
+      - DEGRADED
+      - NOT_CALCULABLE
+  reasons:
+    type: array
+    items:
+      $ref: ./PortfolioPerformanceReason.yaml
+  from:
+    type:
+      - string
+      - 'null'
+    format: date
+  to:
+    type:
+      - string
+      - 'null'
+    format: date
+  days:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  sources:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./PortfolioOverviewSource.yaml
+  sourceCount:
+    type: integer
+    minimum: 0
+  annualizedRate:
+    $ref: ./PortfolioModifiedDietzRate.yaml
+  periodRate:
+    $ref: ./PortfolioModifiedDietzRate.yaml
+  shortPeriod:
+    type: boolean
+  iterations:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+    maximum: 100
+  cashFlows:
+    type: array
+    maxItems: 100
+    items:
+      type: object
+      additionalProperties: false
+      required:
+        - date
+        - amount
+      properties:
+        date:
+          type: string
+          format: date
+        amount:
+          type: string
+          pattern: ^-?[0-9]+(\.[0-9]+)?$
+  cashFlowCount:
+    type: integer
+    minimum: 0
+  formula:
+    type: string
+  methodVersion:
+    type: string
+    enum:
+      - PERF-1
+  costPolicy:
+    type: string
+    enum:
+      - NET_OF_FEES_AND_TAXES
+  freshness:
+    $ref: ./PortfolioPerformanceFreshness.yaml
+  inputs:
+    type: object
+    additionalProperties: false
+    required:
+      - workingScale
+      - stopWidth
+      - maxIterations
+      - searchRange
+      - flowDayCount
+    properties:
+      workingScale:
+        type: integer
+        const: 40
+      stopWidth:
+        type: string
+        const: '0.000000000000001'
+      maxIterations:
+        type: integer
+        const: 100
+      searchRange:
+        description: Smallest and largest daily growth factor searched.
+        type: array
+        minItems: 2
+        maxItems: 2
+        prefixItems:
+          - type: string
+            const: '0.98'
+          - type: string
+            const: '1.01'
+      flowDayCount:
+        type: integer
+        minimum: 0

@@ -1,0 +1,57 @@
+get:
+  operationId: explainAnnualReportColumn
+  x-cadran-bounded: >-
+    A year has 12 months and the policy versions are at most 101 (100 stored
+    plus the system version).
+  summary: Explain the aggregate of one annual report column
+  description: >-
+    Formula, policy, the value of every month with whether it was counted and
+    why not, and the aggregate itself. An unknown column, or one that names an
+    entity of another workspace, answers 404.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: year
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+    - name: columnId
+      in: path
+      required: true
+      schema:
+        type: string
+        maxLength: 80
+    - name: incompleteMonths
+      in: query
+      required: false
+      schema:
+        $ref: ../components/schemas/AnnualIncompleteMonths.yaml
+  responses:
+    '200':
+      description: The column explanation.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AnnualColumnExplanation.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        The year is out of range or the workspace exceeds a bounded aggregate
+        limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

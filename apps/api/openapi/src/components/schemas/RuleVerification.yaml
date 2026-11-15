@@ -1,0 +1,9 @@
+description: >-
+  How much the value can be trusted today, independently of the business date it
+  applies to. `STALE` means nobody has re-read the source across a full revision
+  cycle.
+type: string
+enum:
+  - VERIFIED
+  - STALE
+  - UNVERIFIED

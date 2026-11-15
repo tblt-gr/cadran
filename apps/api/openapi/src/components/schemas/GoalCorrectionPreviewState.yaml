@@ -1,0 +1,30 @@
+x-cadran-asset-scope: Amounts are in the asset of the goal (`assetCode` of the goal).
+type: object
+additionalProperties: false
+required:
+  - goalVersion
+  - expected
+  - status
+properties:
+  goalVersion:
+    type:
+      - integer
+      - 'null'
+    minimum: 1
+    maximum: 50
+  expected:
+    $ref: ./GoalStatusValue.yaml
+  status:
+    type: string
+    enum:
+      - REACHED
+      - AHEAD
+      - BEHIND
+      - EXCEEDED
+      - ON_TRACK
+      - OVER_PACE
+      - MET
+      - MISSED
+      - WITHIN
+      - OVER
+      - NOT_CALCULABLE

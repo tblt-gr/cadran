@@ -1,0 +1,39 @@
+type: object
+additionalProperties: false
+required:
+  - version
+  - label
+  - cashExcludedAccountKinds
+  - savingsRateFormula
+  - netSavingsRateFormula
+  - createdAt
+  - system
+properties:
+  version:
+    type: integer
+    minimum: 1
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  cashExcludedAccountKinds:
+    type: array
+    maxItems: 8
+    uniqueItems: true
+    items:
+      $ref: ./AccountKind.yaml
+  savingsRateFormula:
+    type: string
+    enum:
+      - BUDGET_SURPLUS_OVER_CASH_INCOME
+  netSavingsRateFormula:
+    type: string
+    enum:
+      - NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME
+  createdAt:
+    type:
+      - string
+      - 'null'
+    format: date-time
+  system:
+    type: boolean

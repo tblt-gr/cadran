@@ -1,0 +1,15 @@
+type: object
+additionalProperties: false
+required:
+  - today
+  - items
+properties:
+  today:
+    description: The workspace calendar day the reminders are computed for.
+    type: string
+    format: date
+  items:
+    type: array
+    maxItems: 650
+    items:
+      $ref: ./PortfolioValuationReminder.yaml

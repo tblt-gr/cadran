@@ -1,0 +1,30 @@
+type: object
+additionalProperties: false
+required:
+  - from
+  - to
+  - assetCode
+  - truncated
+  - points
+properties:
+  from:
+    description: The requested first day, null when omitted (since the first valuation).
+    type:
+      - string
+      - 'null'
+    format: date
+  to:
+    description: 'The last day of the range: the requested one, or today.'
+    type: string
+    format: date
+  assetCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  truncated:
+    description: True when older valuations exist inside the range beyond the 240 returned.
+    type: boolean
+  points:
+    type: array
+    maxItems: 240
+    items:
+      $ref: ./PortfolioValuationHistoryPoint.yaml

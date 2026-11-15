@@ -1,0 +1,64 @@
+description: >-
+  One dated rule of one product, with the publication it was read from. Exactly
+  one of `amount`, `percentage` and `text` is set, decided by the rule kind.
+type: object
+additionalProperties: false
+required:
+  - kind
+  - valueType
+  - amount
+  - percentage
+  - text
+  - validFrom
+  - validTo
+  - verification
+  - verifiedOn
+  - verifiedBy
+  - source
+properties:
+  kind:
+    $ref: ./ProductRuleKind.yaml
+  valueType:
+    $ref: ./RuleValueType.yaml
+  amount:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  percentage:
+    description: >-
+      A rate expressed in percent as the source published it: `1.7` reads 1.7 %.
+      It travels as a canonical decimal string, so no client multiplies it and
+      no binary float touches a rate.
+    oneOf:
+      - type: string
+        pattern: ^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$
+        examples:
+          - '1.7'
+      - type: 'null'
+  text:
+    description: >-
+      An uppercase token the interface translates, never a sentence: regulatory
+      wording belongs to the source and to the translation catalogue.
+    oneOf:
+      - type: string
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+        examples:
+          - NO_REGULATORY_CONTRIBUTION_CEILING
+      - type: 'null'
+  validFrom:
+    $ref: ./RuleValidFrom.yaml
+  validTo:
+    $ref: ./RuleValidTo.yaml
+  verification:
+    $ref: ./RuleVerification.yaml
+  verifiedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  verifiedBy:
+    oneOf:
+      - type: string
+      - type: 'null'
+  source:
+    $ref: ./ProductRuleSource.yaml

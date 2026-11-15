@@ -1,0 +1,29 @@
+delete:
+  operationId: removeEuroFundRate
+  x-cadran-idempotency: Deleting a row that is already deleted answers 404 and changes nothing.
+  summary: Delete an announced euro-fund rate
+  description: Unknown and foreign identifiers answer the same 404.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - $ref: ../components/parameters/LifeInsuranceRecordId.yaml
+  responses:
+    '204':
+      description: The rate was deleted.
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The account is inactive.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/LifeInsuranceProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

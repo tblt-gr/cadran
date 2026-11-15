@@ -1,0 +1,36 @@
+type: object
+additionalProperties: false
+required:
+  - year
+  - state
+  - countedMonths
+  - snapshotMonths
+  - liveMonths
+  - metricPolicy
+  - cells
+  - flows
+properties:
+  year:
+    type: integer
+  state:
+    $ref: ./MultiYearYearState.yaml
+  countedMonths:
+    type: integer
+    minimum: 0
+    maximum: 12
+  snapshotMonths:
+    type: integer
+    minimum: 0
+    maximum: 12
+  liveMonths:
+    type: integer
+    minimum: 0
+    maximum: 12
+  metricPolicy:
+    $ref: ./MultiYearMetricPolicy.yaml
+  flows:
+    $ref: ./MultiYearFlows.yaml
+  cells:
+    type: object
+    additionalProperties:
+      $ref: ./MultiYearCell.yaml

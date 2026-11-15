@@ -1,0 +1,31 @@
+get:
+  operationId: readAsset
+  summary: Read one asset of the system reference
+  description: >-
+    Requires an authenticated session. An unknown code and a malformed one
+    answer alike, so the endpoint keeps a single contract for "no such asset".
+  tags:
+    - Reference
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: code
+      in: path
+      required: true
+      description: Asset code, such as `EUR` or `BTC`.
+      schema:
+        type: string
+        pattern: ^[A-Z][A-Z0-9]{1,11}$
+  responses:
+    '200':
+      description: The requested asset.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/Asset.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

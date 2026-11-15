@@ -1,0 +1,5 @@
+description: The request body or a query parameter is missing or malformed.
+content:
+  application/problem+json:
+    schema:
+      $ref: ../schemas/Problem.yaml

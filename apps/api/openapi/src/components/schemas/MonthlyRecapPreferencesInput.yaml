@@ -1,0 +1,20 @@
+type: object
+additionalProperties: false
+required:
+  - visibleCategoryIds
+  - visibleAxes
+  - version
+properties:
+  visibleCategoryIds:
+    type: array
+    uniqueItems: true
+    maxItems: 100
+    items:
+      type: string
+      format: uuid
+  visibleAxes:
+    $ref: ./AnalyticAxes.yaml
+  version:
+    description: The version the caller last read. A stale one is refused with 409.
+    type: integer
+    minimum: 0

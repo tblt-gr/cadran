@@ -1,0 +1,54 @@
+type: object
+additionalProperties: false
+description: >-
+  How many transactions sit behind each option of the filter column, one object
+  per section. Every section is always present, `{}` when nothing matches. An
+  option no transaction holds is absent: read a missing key as 0.
+required:
+  - accountId
+  - categoryId
+  - nature
+  - state
+  - source
+  - axis
+properties:
+  accountId:
+    type: object
+    description: Keyed by account identifier.
+    additionalProperties:
+      type: integer
+      minimum: 1
+  categoryId:
+    type: object
+    description: >-
+      Keyed by category identifier. Counts the transactions with a split in the
+      category, once each; with `includeDescendants`, anywhere in its subtree.
+    additionalProperties:
+      type: integer
+      minimum: 1
+  nature:
+    type: object
+    description: Keyed by transaction nature.
+    additionalProperties:
+      type: integer
+      minimum: 1
+  state:
+    type: object
+    description: Keyed by transaction state; each of the four states is counted.
+    additionalProperties:
+      type: integer
+      minimum: 1
+  source:
+    type: object
+    description: Keyed by transaction source.
+    additionalProperties:
+      type: integer
+      minimum: 1
+  axis:
+    type: object
+    description: >-
+      Keyed by analytic axis. Counts the transactions with a split carrying the
+      axis, once each.
+    additionalProperties:
+      type: integer
+      minimum: 1

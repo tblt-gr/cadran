@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - state
+  - version
+  - label
+  - versions
+properties:
+  state:
+    type: string
+    enum:
+      - SINGLE
+      - MIXED
+  version:
+    type:
+      - integer
+      - 'null'
+  label:
+    type:
+      - string
+      - 'null'
+  versions:
+    type: array
+    items:
+      type: integer

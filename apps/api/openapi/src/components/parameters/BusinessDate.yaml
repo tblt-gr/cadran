@@ -1,0 +1,13 @@
+name: asOf
+in: query
+required: false
+description: >-
+  Business date the catalogue rules are resolved against, as an ISO 8601
+  calendar day. Defaults to today. A rule is selected by this date and never by
+  the current date, so reading a past statement shows the ceiling and rate that
+  applied then.
+schema:
+  type: string
+  format: date
+  examples:
+    - '2026-09-02'

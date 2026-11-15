@@ -1,0 +1,25 @@
+type: object
+additionalProperties: false
+required:
+  - eligibleCount
+  - skipped
+  - impacts
+  - previewToken
+properties:
+  eligibleCount:
+    type: integer
+    minimum: 0
+    description: Transactions the move would apply to.
+  skipped:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./BulkSkippedTransaction.yaml
+  impacts:
+    type: array
+    description: One entry per affected account, ordered by label then identifier.
+    items:
+      $ref: ./BulkMoveImpact.yaml
+  previewToken:
+    type: string
+    description: Opaque, valid ten minutes, to pass back to apply this exact move.

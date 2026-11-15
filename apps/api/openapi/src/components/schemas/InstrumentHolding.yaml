@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+required:
+  - instrument
+  - holding
+  - accounts
+  - totals
+  - truncated
+properties:
+  instrument:
+    $ref: ./Instrument.yaml
+  holding:
+    oneOf:
+      - $ref: ./Holding.yaml
+      - type: 'null'
+  accounts:
+    type: array
+    maxItems: 50
+    items:
+      $ref: ./InstrumentAccountHistory.yaml
+  totals:
+    $ref: ./InstrumentHoldingTotals.yaml
+  truncated:
+    type: boolean

@@ -1,0 +1,14 @@
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - blockers
+    properties:
+      type:
+        const: /problems/period-closing-blocked
+      status:
+        const: 409
+      blockers:
+        type: array
+        items:
+          $ref: ./PeriodClosingBlocker.yaml

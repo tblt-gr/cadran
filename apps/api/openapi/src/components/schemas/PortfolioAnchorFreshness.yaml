@@ -1,0 +1,26 @@
+type: object
+additionalProperties: false
+description: >-
+  Age of a period anchor against the workspace today, and the quality of its
+  prices. Informative only; it never changes a value or a quality.
+required:
+  - date
+  - ageDays
+  - priceQuality
+properties:
+  date:
+    type: string
+    format: date
+  ageDays:
+    description: >-
+      Days from the anchor date to the workspace today; 0 for an anchor dated
+      after today.
+    type: integer
+    minimum: 0
+  priceQuality:
+    description: null for the empty opening account, which has no prices.
+    enum:
+      - CURRENT
+      - STALE
+      - NOT_DETAILED
+      - null

@@ -1,0 +1,52 @@
+get:
+  operationId: readAnnualReport
+  x-cadran-bounded: >-
+    A year has 12 months and the policy versions are at most 101 (100 stored
+    plus the system version).
+  summary: Read the annual monthly-summary report of the calling workspace
+  description: >-
+    Twelve rows, one per month, with one cell per selected column, the
+    aggregates of each column computed by the shared exact aggregation engine,
+    the top expense categories and the year-end allocation. A closed month is
+    served from its frozen snapshot. The year lies between 1900 and the current
+    workspace-local year.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: year
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 0
+    - name: incompleteMonths
+      in: query
+      required: false
+      description: Overrides the saved incomplete-month setting for this request only.
+      schema:
+        $ref: ../components/schemas/AnnualIncompleteMonths.yaml
+  responses:
+    '200':
+      description: The annual report.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AnnualReport.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '422':
+      description: >-
+        The year is out of range (`type: /problems/invalid-report-year`) or the
+        workspace exceeds a bounded aggregate limit.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

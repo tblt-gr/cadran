@@ -1,0 +1,38 @@
+description: >-
+  The local claim behind an override, without repeating the value the rule
+  already carries.
+type: object
+additionalProperties: false
+required:
+  - overrideId
+  - reason
+  - authorId
+  - authorDisplayName
+  - recordedAt
+properties:
+  overrideId:
+    type: string
+    format: uuid
+  reason:
+    description: >-
+      Why this account diverges from what it inherits, in the holder's own
+      words. It is required: an unexplained local figure sitting beside a
+      published one is exactly the drift an override has to make visible instead
+      of hiding.
+    type: string
+    minLength: 1
+    maxLength: 200
+  authorId:
+    description: >-
+      Who recorded the claim. It comes from the session, never from a request
+      body.
+    type: string
+    format: uuid
+  authorDisplayName:
+    description: The author's display name, or null when the account no longer exists.
+    oneOf:
+      - type: string
+      - type: 'null'
+  recordedAt:
+    type: string
+    format: date-time

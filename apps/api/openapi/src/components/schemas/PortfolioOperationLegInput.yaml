@@ -1,0 +1,31 @@
+description: >-
+  One support leg. Euro funds accept amount alone; the server sets quantity to
+  amount and unitPrice to 1. Other supports require quantity and unitPrice. All
+  figures are exact strings.
+type: object
+additionalProperties: false
+required:
+  - direction
+  - instrumentId
+  - amount
+properties:
+  direction:
+    type: string
+    enum:
+      - IN
+      - OUT
+  instrumentId:
+    type: string
+    format: uuid
+  quantity:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  unitPrice:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  amount:
+    $ref: ./DecimalAmount.yaml

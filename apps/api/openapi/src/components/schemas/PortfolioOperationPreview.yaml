@@ -1,0 +1,63 @@
+type: object
+additionalProperties: false
+required:
+  - netCreditedAmount
+  - cashAmount
+  - roundingResidual
+  - expectedGrossAmount
+  - legs
+  - netPaidAmount
+  - expectedIncomingAmount
+  - difference
+  - applicableSwitchFeeRate
+  - applicableSwitchFeeFixed
+properties:
+  netCreditedAmount:
+    description: >-
+      Observed net credited to the euro fund, null except for interest and
+      profit sharing.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  expectedIncomingAmount:
+    description: >-
+      Sum of outgoing stated amounts less the entered fee, null except for
+      switches.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  difference:
+    description: >-
+      Incoming stated amounts less expectedIncomingAmount, without tolerance.
+      Unbalanced previews are allowed.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  applicableSwitchFeeRate:
+    type:
+      - string
+      - 'null'
+  applicableSwitchFeeFixed:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  legs:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./PortfolioOperationLeg.yaml
+  netPaidAmount:
+    description: Gross less fees and observed withholdings, null except for surrenders.
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  cashAmount:
+    $ref: ./DecimalAmount.yaml
+  roundingResidual:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'
+  expectedGrossAmount:
+    oneOf:
+      - $ref: ./DecimalAmount.yaml
+      - type: 'null'

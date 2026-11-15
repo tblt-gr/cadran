@@ -1,0 +1,8 @@
+description: Why a pie of the group would mislead; the table stays available.
+type: string
+enum:
+  - MISSING_VALUATION
+  - MIXED_ASSETS
+  - ZERO_GROUP_TOTAL
+  - NEGATIVE_GROUP_TOTAL
+  - NEGATIVE_COMPONENT

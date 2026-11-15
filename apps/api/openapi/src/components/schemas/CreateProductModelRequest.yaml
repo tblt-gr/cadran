@@ -1,0 +1,41 @@
+type: object
+additionalProperties: false
+required:
+  - name
+  - family
+  - wrapperKind
+  - yieldKind
+  - defaultGroupCode
+  - valuationMode
+  - capabilities
+  - rules
+properties:
+  name:
+    type: string
+    minLength: 1
+    maxLength: 80
+  family:
+    $ref: ./AccountKind.yaml
+  wrapperKind:
+    $ref: ./ProductWrapperKind.yaml
+  yieldKind:
+    $ref: ./ProductYieldKind.yaml
+  defaultGroupCode:
+    oneOf:
+      - type: string
+        maxLength: 32
+        pattern: ^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$
+      - type: 'null'
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  capabilities:
+    type: array
+    minItems: 1
+    uniqueItems: true
+    items:
+      $ref: ./ProductCapability.yaml
+  rules:
+    type: array
+    maxItems: 20
+    items:
+      $ref: ./ProductModelRuleInput.yaml

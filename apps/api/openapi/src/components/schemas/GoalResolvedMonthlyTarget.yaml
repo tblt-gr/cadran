@@ -1,0 +1,18 @@
+type: object
+additionalProperties: false
+required:
+  - value
+  - reason
+properties:
+  value:
+    oneOf:
+      - type: string
+        pattern: ^(0|[1-9]\d*)(\.\d{1,24})?$
+      - type: 'null'
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - NO_REFERENCE_INCOME
+      - null

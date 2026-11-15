@@ -1,0 +1,58 @@
+get:
+  operationId: readPortfolioCash
+  summary: Read the cash ledger of a portfolio account
+  description: >-
+    Derives the cash of the account from its active operations in trade date and
+    sequence order: `closing = opening + sum of cash amounts`. It is computed on
+    read and never stored. Fees and taxes are totalled once whichever operation
+    type carries them, and the closing balance equals `openingBalance + deposits
+    - withdrawals - buysGross + sellsGross + dividendsGross + interestGross -
+    fees - taxes + cashInLieu`. Every cash inconsistency is a named warning and
+    none blocks the read.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: from
+      in: query
+      required: false
+      description: First day of the period. Defaults to 1 January of the current year.
+      schema:
+        type: string
+        format: date
+    - name: to
+      in: query
+      required: false
+      description: >-
+        Last day of the period, inclusive. Defaults to today and cannot be in
+        the future.
+      schema:
+        type: string
+        format: date
+  responses:
+    '200':
+      description: The cash ledger of the period.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioCash.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: >-
+        The dates are invalid, reversed or in the future (`invalid_cash_query`),
+        the period is longer than 366 days (`cash_range_too_large`), holds more
+        than 2000 movements (`cash_range_too_dense`), or its amounts are too
+        large to be summed exactly (`cash_amount_too_large`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

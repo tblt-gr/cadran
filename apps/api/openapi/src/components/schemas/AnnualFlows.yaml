@@ -1,0 +1,14 @@
+type: object
+additionalProperties: false
+required:
+  - assetCode
+  - months
+properties:
+  assetCode:
+    type:
+      - string
+      - 'null'
+  months:
+    type: array
+    items:
+      $ref: ./AnnualFlowMonth.yaml

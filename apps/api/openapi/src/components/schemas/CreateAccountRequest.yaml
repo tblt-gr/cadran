@@ -1,0 +1,90 @@
+type: object
+additionalProperties: false
+required:
+  - label
+  - assetCode
+  - kind
+  - productCode
+  - productModelId
+  - institution
+  - maskedIdentifier
+  - valuationMode
+  - liquidityLevel
+  - includeInNetWorth
+  - includeInEmergencyFund
+  - openedOn
+  - closedOn
+  - primaryGroupId
+properties:
+  label:
+    type: string
+    minLength: 1
+    maxLength: 80
+  assetCode:
+    type: string
+    pattern: ^[A-Z][A-Z0-9]{1,11}$
+  kind:
+    description: >-
+      Must equal the `accountKind` or `family` the referenced product or model
+      declares. That reference is the authority, so a tampered form cannot file
+      a PEA as a plain savings account.
+    $ref: ./AccountKind.yaml
+  productCode:
+    description: >-
+      A catalogue product to create the account from, or null for an account
+      described by hand or from a workspace model. Mutually exclusive with
+      `productModelId`. An unknown product is refused by the use case and by a
+      foreign key.
+    oneOf:
+      - $ref: ./ProductCode.yaml
+      - type: 'null'
+  productModelId:
+    description: >-
+      A reusable workspace product model to create the account from, or null for
+      an account described by hand or from a catalogue product. Mutually
+      exclusive with `productCode`. The model must belong to the calling
+      workspace; an unknown or foreign identifier is refused by the use case and
+      by a foreign key. An archived model is refused by the use case only: the
+      foreign key still accepts it, so an account already created from that
+      model keeps resolving.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'
+  institution:
+    oneOf:
+      - type: string
+        minLength: 1
+        maxLength: 80
+      - type: 'null'
+  maskedIdentifier:
+    oneOf:
+      - type: string
+        pattern: ^[A-Z0-9]{2,8}$
+      - type: 'null'
+  valuationMode:
+    $ref: ./AccountValuationMode.yaml
+  liquidityLevel:
+    $ref: ./LiquidityLevel.yaml
+  includeInNetWorth:
+    type: boolean
+  includeInEmergencyFund:
+    type: boolean
+  openedOn:
+    type: string
+    format: date
+  closedOn:
+    oneOf:
+      - type: string
+        format: date
+      - type: 'null'
+  primaryGroupId:
+    description: >-
+      Optional exclusive membership used by group weights. Null leaves the
+      account ungrouped. It may name a sub-group: the account then also counts
+      in every ancestor of that group. The retired field `tagGroupIds` is
+      refused with a 422 field error `tagGroupIds` / `unsupported_field`.
+    oneOf:
+      - type: string
+        format: uuid
+      - type: 'null'

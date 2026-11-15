@@ -1,0 +1,81 @@
+get:
+  operationId: readMonthlyRecapPreferences
+  summary: Read the recap visibility preferences of the calling workspace
+  description: >-
+    With no stored row the response carries version 0, no extra category and
+    every defined analytic axis.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  responses:
+    '200':
+      description: The stored or default recap selection.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyRecapPreferences.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+put:
+  operationId: saveMonthlyRecapPreferences
+  summary: Store the recap visibility preferences of the calling workspace
+  description: >-
+    Each array is bounded to 100 unique items, every category must belong to the
+    calling workspace and every axis must be a defined analytic axis. A save at
+    version 0 inserts the row. An explicitly empty selection hides the optional
+    breakdowns and never the core totals. The mutation requires the same-origin
+    CSRF token.
+  tags:
+    - Reporting
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/MonthlyRecapPreferencesInput.yaml
+  responses:
+    '200':
+      description: The stored selection and its new version.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/MonthlyRecapPreferences.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      description: >-
+        The CSRF / Origin check failed (`type: /problems/csrf-token`), or the
+        session belongs to no workspace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '409':
+      description: The stored selection moved past the version the caller read.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: The selection is out of bounds, unknown or not owned by the workspace.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

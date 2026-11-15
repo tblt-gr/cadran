@@ -1,0 +1,49 @@
+get:
+  operationId: listPortfolioTransferCandidates
+  x-cadran-bounded: The server returns the 50 most recent matching transfer legs.
+  summary: List the transfer legs a deposit or withdrawal could mirror
+  description: >-
+    The 50 most recent booked, non-voided transfer legs of the account in the
+    requested direction, that no active operation backs yet. Amounts are
+    unsigned.
+  tags:
+    - Portfolio
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/PortfolioAccountId.yaml
+    - name: direction
+      in: query
+      required: true
+      schema:
+        type: string
+        enum:
+          - IN
+          - OUT
+  responses:
+    '200':
+      description: The candidate legs.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/PortfolioTransferCandidates.yaml
+    '400':
+      description: The direction is invalid.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '422':
+      description: The account is not followed in portfolio mode.
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/PortfolioOperationProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

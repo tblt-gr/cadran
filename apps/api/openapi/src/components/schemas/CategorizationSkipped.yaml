@@ -1,0 +1,16 @@
+type: object
+additionalProperties: false
+required:
+  - transactionId
+  - bookedOn
+  - reason
+properties:
+  transactionId:
+    type: string
+    format: uuid
+  bookedOn:
+    type: string
+    format: date
+  reason:
+    type: string
+    const: MANUAL_CATEGORIZATION

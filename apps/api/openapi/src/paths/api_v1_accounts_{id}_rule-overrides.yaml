@@ -1,0 +1,121 @@
+get:
+  operationId: listAccountRuleOverrides
+  x-cadran-bounded: >-
+    An account records at most 100 overrides and a scale holds at most 20
+    brackets.
+  summary: List every rule override ever recorded on an account
+  description: >-
+    Withdrawn overrides included, and whatever business date is being looked at.
+    This is the history of what the account claimed, by whom and why; what
+    applies on one day is answered by the account's rules resource instead.
+
+    A withdrawn override stays here on purpose. Deleting it would erase the
+    provenance of a figure a past statement was produced against, which is the
+    one thing an override must never do.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    '200':
+      description: >-
+        Every override recorded on the account, oldest period first per rule
+        kind.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountRuleOverridePage.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/WorkspaceForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml
+post:
+  operationId: recordAccountRuleOverride
+  x-cadran-idempotency: >-
+    An override covering the same dates for the same rule already exists after
+    the first call, so a replay answers 409.
+  summary: Record a dated rule override against one account
+  description: >-
+    States locally what the account inherits wrongly: a rate its branch
+    negotiated, a ceiling the plan was opened under. The claim is dated,
+    explained and attributed; the author comes from the session and is never
+    read from the body.
+
+    An override may only state what the authority behind the account could
+    itself have stated. No rate on a product that promises none, no ceiling on a
+    product that tracks no balance, and no amount in a unit the account is not
+    held in. An account that follows neither a product nor a model inherits no
+    rule and accepts no override at all.
+
+    Two standing overrides of the same kind may not cover the same day. An
+    overlap is refused rather than reconciled, so "the ceiling this account
+    claims on 12 March" always has one answer or none.
+  tags:
+    - Accounts
+  security:
+    - sessionCookie: []
+  parameters:
+    - $ref: ../components/parameters/CsrfToken.yaml
+    - name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: ../components/schemas/RecordAccountRuleOverrideRequest.yaml
+  responses:
+    '201':
+      description: The override as recorded.
+      content:
+        application/json:
+          schema:
+            $ref: ../components/schemas/AccountRuleOverride.yaml
+    '400':
+      $ref: ../components/responses/BadRequest.yaml
+    '401':
+      $ref: ../components/responses/Unauthorized.yaml
+    '403':
+      $ref: ../components/responses/AccountMutationForbidden.yaml
+    '404':
+      $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        A standing override of the same kind already covers these dates (`type:
+        /problems/account-rule-override-conflict`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
+    '413':
+      $ref: ../components/responses/PayloadTooLarge.yaml
+    '415':
+      $ref: ../components/responses/UnsupportedMediaType.yaml
+    '422':
+      description: >-
+        The override is malformed, states something the account's authority
+        could not state, or the account is archived (`type:
+        /problems/account-archived`).
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AmountInputProblem.yaml
+    '500':
+      $ref: ../components/responses/InternalServerError.yaml

@@ -110,7 +110,7 @@ Documentation and contract checks also run without Docker:
 pnpm format        # format supported files
 pnpm format:check  # verify formatting without modifying files
 pnpm lint:docs     # validate published Markdown files
-pnpm quality       # formatting, linting, OpenAPI lint and type checks
+pnpm quality       # formatting, linting, OpenAPI bundle check and lint, and type checks
 pnpm audit         # audit locked npm dependencies
 ```
 
@@ -181,6 +181,13 @@ Security advisories are handled as soon as Dependabot raises them, outside the m
 `/api/v1` ships with the web application of the same release and has no other supported client. A
 change may break `/api/v1` only together with the matching web change in the same pull request.
 Once a third-party client is supported, a breaking change requires `/api/v2`.
+
+The contract is edited under `apps/api/openapi/src` (one file per path in `paths/` and per
+component in `components/`, referenced by `$ref` from `src/openapi.yaml`). Run `pnpm openapi:bundle`
+to regenerate `apps/api/openapi/openapi.yaml`, which stays committed because the PHP tests, the
+client generator and the CSRF check read it. Never edit the bundle by hand: `pnpm quality` and CI
+fail when it differs from a fresh bundle of the sources. A new component is also listed in
+`src/openapi.yaml` so the bundle keeps a stable order.
 
 ## Hooks and branch protection
 

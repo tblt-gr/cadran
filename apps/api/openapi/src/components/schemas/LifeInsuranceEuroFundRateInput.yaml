@@ -1,0 +1,31 @@
+type: object
+additionalProperties: false
+required:
+  - instrumentId
+  - year
+  - servedRate
+  - basis
+properties:
+  instrumentId:
+    type: string
+    format: uuid
+  year:
+    type: integer
+    minimum: 1900
+    maximum: 9999
+  servedRate:
+    type: string
+    maxLength: 64
+  bonusRate:
+    type:
+      - string
+      - 'null'
+    maxLength: 64
+  basis:
+    $ref: ./LifeInsuranceEuroFundRateBasis.yaml
+  sourceNote:
+    type:
+      - string
+      - 'null'
+    minLength: 1
+    maxLength: 200

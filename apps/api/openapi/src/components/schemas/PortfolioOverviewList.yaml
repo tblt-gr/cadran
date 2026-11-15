@@ -1,0 +1,73 @@
+type: object
+additionalProperties: false
+required:
+  - items
+  - total
+  - truncated
+properties:
+  total:
+    description: >-
+      Sum over the shown active accounts, one asset only; gain, cost and
+      performance are null unless every valued account has a computable gain.
+    type: object
+    additionalProperties: false
+    required:
+      - assetCode
+      - totalValue
+      - unrealizedGain
+      - costBasis
+      - performance
+      - valuedAccounts
+      - unvaluedAccounts
+      - oldestValuedOn
+      - partialNewerAccounts
+      - reason
+    properties:
+      assetCode:
+        type:
+          - string
+          - 'null'
+      totalValue: &ref_0
+        type:
+          - string
+          - 'null'
+        pattern: ^-?[0-9]+(?:\.[0-9]{1,24})?$
+      unrealizedGain: *ref_0
+      costBasis: *ref_0
+      performance: *ref_0
+      valuedAccounts:
+        type: integer
+        minimum: 0
+      unvaluedAccounts:
+        type: integer
+        minimum: 0
+      oldestValuedOn:
+        description: >-
+          Oldest valuation date among the valued accounts, null when none is
+          valued.
+        type:
+          - string
+          - 'null'
+        format: date
+      partialNewerAccounts:
+        description: >-
+          Valued accounts whose displayed complete valuation has a newer partial
+          observation.
+        type: integer
+        minimum: 0
+      reason:
+        type:
+          - string
+          - 'null'
+        enum:
+          - null
+          - MIXED_ASSETS
+          - NO_VALUATION
+          - INCOMPLETE_GAIN
+  items:
+    type: array
+    items:
+      $ref: ./PortfolioOverviewAccountCard.yaml
+    maxItems: 50
+  truncated:
+    type: boolean

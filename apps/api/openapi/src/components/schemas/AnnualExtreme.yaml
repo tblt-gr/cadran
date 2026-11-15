@@ -1,0 +1,11 @@
+x-cadran-asset-scope: The asset is the `assetCode` of the report column the aggregate belongs to.
+type: object
+additionalProperties: false
+required:
+  - value
+  - month
+properties:
+  value:
+    type: string
+  month:
+    type: string

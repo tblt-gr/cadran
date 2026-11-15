@@ -1,0 +1,107 @@
+type: object
+additionalProperties: false
+required:
+  - month
+  - periodStart
+  - periodEnd
+  - axis
+  - state
+  - quality
+  - timezone
+  - firstDataMonth
+  - pendingCount
+  - closed
+  - actionsAllowed
+  - actionReason
+  - incomeCategories
+  - expenseCategories
+  - accounts
+  - includesUpcoming
+  - upcomingCount
+properties:
+  includesUpcoming:
+    type: boolean
+    description: >-
+      True when the caller asked for the planned (upcoming) transactions of the
+      month to be counted.
+  upcomingCount:
+    type: integer
+    minimum: 0
+    description: >-
+      Number of planned transactions counted in the figures; 0 unless
+      `includesUpcoming`.
+  month:
+    type: string
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+  periodStart:
+    type: string
+    format: date
+  periodEnd:
+    type: string
+    format: date
+  axis:
+    type:
+      - string
+      - 'null'
+    enum:
+      - DISCRETIONARY
+      - ESSENTIAL
+      - FIXED
+      - PERSONAL
+      - PROFESSIONAL
+      - VARIABLE
+      - null
+  state:
+    type: string
+    enum:
+      - COMPLETE
+      - EMPTY
+      - PENDING
+  quality:
+    type: string
+    enum:
+      - CURRENT
+      - MISSING
+  timezone:
+    type: string
+    minLength: 1
+    maxLength: 64
+    description: IANA timezone of the workspace, which decides the current day and month.
+  firstDataMonth:
+    type:
+      - string
+      - 'null'
+    pattern: ^\d{4}-(0[1-9]|1[0-2])$
+    description: >-
+      Month of the oldest active balance snapshot, portfolio valuation or booked
+      transaction on or before today, null when the workspace has none.
+  pendingCount:
+    type: integer
+    minimum: 0
+    maximum: 500
+  closed:
+    type: boolean
+  actionsAllowed:
+    type: boolean
+  actionReason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - PERIOD_CLOSED
+      - null
+  incomeCategories:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyLedgerCategoryRow.yaml
+  expenseCategories:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyLedgerCategoryRow.yaml
+  accounts:
+    type: array
+    maxItems: 500
+    items:
+      $ref: ./MonthlyLedgerAccountRow.yaml

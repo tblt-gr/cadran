@@ -1,0 +1,32 @@
+type: object
+additionalProperties: false
+required:
+  - id
+  - label
+  - institution
+  - primaryGroupId
+  - color
+  - value
+  - share
+properties:
+  id:
+    type: string
+    format: uuid
+  label:
+    type: string
+  institution:
+    type:
+      - string
+      - 'null'
+  primaryGroupId:
+    type: string
+    format: uuid
+  color:
+    type: string
+    pattern: ^#[0-9A-F]{6}$
+  value:
+    oneOf:
+      - $ref: ./NetWorthAmount.yaml
+      - type: 'null'
+  share:
+    $ref: ./NetWorthShare.yaml

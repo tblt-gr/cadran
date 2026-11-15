@@ -1,0 +1,61 @@
+type: object
+additionalProperties: false
+required:
+  - date
+  - amount
+  - assetCode
+  - quality
+  - source
+  - reason
+  - asOf
+  - ageDays
+  - basis
+  - derivation
+properties:
+  date:
+    type: string
+    format: date
+  amount:
+    type:
+      - string
+      - 'null'
+    description: Exact server decimal, never a rounded chart coordinate. Null for a gap.
+  assetCode:
+    type:
+      - string
+      - 'null'
+  quality:
+    $ref: ./ValuationQuality.yaml
+  source:
+    oneOf:
+      - $ref: ./BalanceSnapshotSource.yaml
+      - type: 'null'
+  reason:
+    type:
+      - string
+      - 'null'
+    enum:
+      - NO_ANCHOR
+      - MIXED_ASSETS
+      - null
+  asOf:
+    type:
+      - string
+      - 'null'
+    format: date
+    description: >-
+      Original observation date for held snapshots, requested day for
+      transaction-derived balances.
+  ageDays:
+    type:
+      - integer
+      - 'null'
+    minimum: 0
+  basis:
+    oneOf:
+      - $ref: ./ValuationBasis.yaml
+      - type: 'null'
+  derivation:
+    oneOf:
+      - $ref: ./ValuationDerivation.yaml
+      - type: 'null'

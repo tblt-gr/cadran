@@ -1,0 +1,9 @@
+type: object
+additionalProperties: false
+required:
+  - months
+properties:
+  months:
+    type: array
+    items:
+      $ref: ./GoalCorrectionPreviewMonth.yaml
