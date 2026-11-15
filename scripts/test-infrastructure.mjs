@@ -72,6 +72,14 @@ for (const [serviceName, service] of Object.entries(services)) {
     fail(`${serviceName} container_name must start with cadran_`);
   }
 
+  if (
+    service.logging?.driver !== 'json-file' ||
+    !service.logging.options?.['max-size'] ||
+    !service.logging.options?.['max-file']
+  ) {
+    fail(`${serviceName} must rotate its logs with json-file, max-size and max-file`);
+  }
+
   if (!service.healthcheck?.test) {
     fail(`${serviceName} must define a health check`);
   }

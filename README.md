@@ -392,7 +392,7 @@ rollback process remains active.
 | No recent backup               | Check cron output, Docker permissions, the public recipient and backup directory space. Create a backup and verify it with the offline identity.                                                                                                                                                                                                                                                                                                                                                                                                |
 
 Application logs are written by the `app` container as one JSON object per line: read them with
-`docker compose --env-file .env.local logs app`. Every response carries an `X-Request-Id` header
+`docker compose --env-file .env.local logs app`. Each container keeps at most 5 files of 10 MB and older lines are dropped. Every response carries an `X-Request-Id` header
 (browser network tab or `curl -i`); search the logs for that value to find every line of a failed
 request. `LOG_LEVEL` in `.env.local` sets the minimum level (`debug`, `info`, `notice`, `warning` or
 `error`, default `notice`) and applies after `make up`; use `debug` for short diagnostics only.
