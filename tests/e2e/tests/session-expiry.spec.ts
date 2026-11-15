@@ -10,16 +10,11 @@ test.describe('session expiry', () => {
     await settled(page);
     await navigateTo(page, 'Budget');
 
-    let expectedPath = new URL(page.url()).pathname;
     await page.context().clearCookies({ name: 'cadran_session' });
-    // A background query of the open page may already have found the session closed.
-    const transactions = page
-      .getByRole('navigation', { name: 'Navigation principale' })
-      .getByRole('link', { name: 'Transactions', exact: true });
-    if (await transactions.isVisible()) {
-      await transactions.click();
-      expectedPath = '/transactions';
-    }
+    await page
+      .getByRole('navigation', { name: 'Budget et transactions' })
+      .getByRole('link', { name: 'Transactions', exact: true })
+      .click();
 
     await expect(page.getByRole('heading', { name: 'Connexion' })).toBeVisible();
     await expect(page).toHaveURL(/\/connexion$/);
@@ -29,7 +24,7 @@ test.describe('session expiry', () => {
     await page.getByLabel('Mot de passe', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Se connecter' }).click();
 
-    await expect(page).toHaveURL(new RegExp(`${expectedPath}(\\?|$)`));
+    await expect(page).toHaveURL(/\/transactions\?period=month&month=\d{4}-\d{2}/);
     await settled(page);
   });
 });
