@@ -56,10 +56,6 @@
   grid-column: 1 / -1;
 }
 
-.hint {
-  color: var(--text-secondary);
-}
-
 /* Stands in the category slot while a split, edited in the advanced section,
    carries the categories. */
 .splitNotice {

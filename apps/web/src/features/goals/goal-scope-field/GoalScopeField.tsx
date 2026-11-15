@@ -5,7 +5,7 @@ import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CategoryPicker } from '@/features/categories/category-picker/CategoryPicker';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import styles from '@/features/goals/GoalForm.module.css';
+import styles from '@/features/goals/goal-form/GoalForm.module.css';
 
 const AXES = [
   'ESSENTIAL',
