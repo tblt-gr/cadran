@@ -1474,6 +1474,54 @@ final class TransactionControllerTest extends WebTestCase
         }
     }
 
+    public function testRefundSplitEditsAcceptOnlyTheStoredAllocation(): void
+    {
+        $original = $this->createTransaction(overrides: [
+            'amount' => ['value' => '-87.40', 'assetCode' => 'EUR'],
+            'categoryId' => null,
+            'splits' => [
+                $this->splitRow(self::OWN_EXPENSE, '-62.10'),
+                $this->splitRow(self::OWN_PLAIN_EXPENSE, '-25.30'),
+            ],
+        ]);
+        $originalId = self::stringValue($original, 'id');
+        $this->requestRefund($originalId, [
+            'accountId' => self::OWN_ACCOUNT,
+            'amount' => ['value' => '30.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Refund',
+            'counterparty' => null, 'note' => null, 'splits' => null,
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $refund = $this->decode();
+        $id = self::stringValue($refund, 'id');
+        $stored = $this->splitInputs($refund);
+        self::assertCount(2, $stored);
+        $splitBody = [...$this->updateBody($refund), 'categoryId' => null, 'splits' => $stored];
+
+        $this->requestRawUpdate($id, [...$splitBody, 'rawLabel' => 'Refund relabelled']);
+        self::assertResponseIsSuccessful();
+        $saved = $this->decodeFromRow($id);
+        self::assertSame('Refund relabelled', $saved['rawLabel']);
+        self::assertSame($stored, $this->splitInputs($saved));
+        $originalBefore = $this->decodeFromRow($originalId);
+
+        [$first, $second] = $stored;
+        $changedAmount = [[...$first, 'amount' => ['value' => '18.00', 'assetCode' => 'EUR']], $second];
+        $changedCategory = [[...$first, 'categoryId' => self::OWN_EXTRA_EXPENSE], $second];
+        $added = [...$stored, $this->splitRow(self::OWN_EXTRA_EXPENSE, '0.00')];
+        foreach ([
+            'changed amount' => [...$splitBody, 'version' => $saved['version'], 'splits' => $changedAmount],
+            'changed category' => [...$splitBody, 'version' => $saved['version'], 'splits' => $changedCategory],
+            'added split' => [...$splitBody, 'version' => $saved['version'], 'splits' => $added],
+            'splits with categoryId' => [...$splitBody, 'version' => $saved['version'], 'categoryId' => self::OWN_EXPENSE],
+        ] as $case => $body) {
+            $this->requestRawUpdate($id, $body);
+            self::assertResponseStatusCodeSame(422, $case);
+            self::assertSame($saved, $this->decodeFromRow($id), $case);
+            self::assertSame($originalBefore, $this->decodeFromRow($originalId), $case);
+        }
+    }
+
     public function testRefundMetadataCanBeEditedWithoutChangingItsFinancialLinks(): void
     {
         $original = $this->createTransaction();
@@ -1923,6 +1971,28 @@ final class TransactionControllerTest extends WebTestCase
             'analyticAxes' => $analyticAxes,
             'note' => $note,
         ];
+    }
+
+    /**
+     * The editable subset of a transaction's splits, as an update body sends it.
+     *
+     * @param array<string, mixed> $transaction
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function splitInputs(array $transaction): array
+    {
+        self::assertIsArray($transaction['splits']);
+        $rows = [];
+        foreach ($transaction['splits'] as $split) {
+            self::assertIsArray($split);
+            $rows[] = [
+                'categoryId' => $split['categoryId'], 'amount' => $split['amount'],
+                'analyticAxes' => $split['analyticAxes'], 'note' => $split['note'],
+            ];
+        }
+
+        return $rows;
     }
 
     private function requestMutation(string $operation, string $id): void

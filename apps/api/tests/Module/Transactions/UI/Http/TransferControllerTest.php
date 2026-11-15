@@ -435,6 +435,151 @@ final class TransferControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
     }
 
+    public function testEditingATransferWithoutFeeToAddOneCreatesAFeeTransactionOnTheSourceAccount(): void
+    {
+        $created = $this->createTransfer();
+        $id = self::stringValue($created, 'id');
+
+        $this->requestUpdate($id, $this->editBody('2026-03-14', fee: ['value' => '-2.50', 'assetCode' => 'EUR']));
+        self::assertResponseIsSuccessful();
+        $edited = $this->decode();
+
+        $fee = self::arrayValue($edited, 'fee');
+        self::assertSame(['value' => '-2.50', 'assetCode' => 'EUR'], $fee['amount']);
+        self::assertSame('FEE', $fee['nature']);
+        self::assertSame(self::SOURCE_ACCOUNT, $fee['accountId']);
+        self::assertSame($id, $fee['transferId']);
+        self::assertSame(1, $this->countQuery(
+            "SELECT count(*) FROM audit_events WHERE event_type = 'transaction.created' AND entity_id = ?",
+            [self::stringValue($fee, 'id')],
+        ));
+        self::assertSame(1, $this->countQuery(
+            "SELECT count(*) FROM audit_events WHERE event_type = 'transfer.updated' AND entity_id = ?",
+            [$id],
+        ));
+        $this->assertLegsNetToZero($edited);
+    }
+
+    public function testEditingATransferFeeKeepsTheSameFeeTransactionWithTheNewAmount(): void
+    {
+        $created = $this->createTransfer(overrides: ['fee' => ['value' => '-2.50', 'assetCode' => 'EUR']]);
+        $id = self::stringValue($created, 'id');
+        $feeId = self::stringValue(self::arrayValue($created, 'fee'), 'id');
+
+        $this->requestUpdate($id, $this->editBody('2026-03-14', fee: ['value' => '-3.00', 'assetCode' => 'EUR']));
+        self::assertResponseIsSuccessful();
+        $edited = $this->decode();
+
+        $fee = self::arrayValue($edited, 'fee');
+        self::assertSame($feeId, $fee['id']);
+        self::assertSame(['value' => '-3.00', 'assetCode' => 'EUR'], $fee['amount']);
+        self::assertSame(1, $this->countQuery(
+            "SELECT count(*) FROM audit_events WHERE event_type = 'transaction.updated' AND entity_id = ?",
+            [$feeId],
+        ));
+        $this->assertLegsNetToZero($edited);
+    }
+
+    public function testEditingATransferToRemoveItsFeeVoidsTheFeeTransaction(): void
+    {
+        $created = $this->createTransfer(overrides: ['fee' => ['value' => '-2.50', 'assetCode' => 'EUR']]);
+        $id = self::stringValue($created, 'id');
+        $feeId = self::stringValue(self::arrayValue($created, 'fee'), 'id');
+
+        $this->requestUpdate($id, $this->editBody('2026-03-14'));
+        self::assertResponseIsSuccessful();
+        $edited = $this->decode();
+
+        self::assertNull($edited['fee']);
+        self::assertSame('VOIDED', $this->connection->fetchOne('SELECT state FROM transaction_transactions WHERE id = ?', [$feeId]));
+        self::assertSame(1, $this->countQuery(
+            "SELECT count(*) FROM audit_events WHERE event_type = 'transaction.voided' AND entity_id = ?",
+            [$feeId],
+        ));
+        $this->assertLegsNetToZero($edited);
+    }
+
+    /** @return iterable<string, array{array{value: string, assetCode: string}}> */
+    public static function invalidEditedFees(): iterable
+    {
+        yield 'positive fee' => [['value' => '2.50', 'assetCode' => 'EUR']];
+        yield 'fee in another asset' => [['value' => '-2.50', 'assetCode' => 'CHF']];
+    }
+
+    /** @param array{value: string, assetCode: string} $fee */
+    #[\PHPUnit\Framework\Attributes\DataProvider('invalidEditedFees')]
+    public function testARefusedFeeEditChangesNothing(array $fee): void
+    {
+        $created = $this->createTransfer(overrides: ['fee' => ['value' => '-2.50', 'assetCode' => 'EUR']]);
+        $id = self::stringValue($created, 'id');
+        $before = $this->legSnapshot();
+
+        $this->requestUpdate($id, $this->editBody('2026-03-15', 'Autre libellé', $fee));
+        self::assertResponseStatusCodeSame(422);
+
+        self::assertSame($before, $this->legSnapshot());
+        $this->client->request('GET', '/api/v1/transfers/'.$id);
+        self::assertSame(1, $this->decode()['version']);
+    }
+
+    public function testEditingAVoidedTransferIsAConflict(): void
+    {
+        $created = $this->createTransfer();
+        $id = self::stringValue($created, 'id');
+        $this->requestVoid($id, 1);
+        self::assertResponseIsSuccessful();
+        $voidedVersion = $this->decode()['version'];
+        self::assertIsInt($voidedVersion);
+
+        $this->requestUpdate($id, $this->editBody('2026-03-14', version: $voidedVersion));
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/transaction-conflict', $this->decode()['type']);
+    }
+
+    /** @return iterable<string, array{string}> */
+    public static function immutableAccountFields(): iterable
+    {
+        yield 'source account' => ['sourceAccountId'];
+        yield 'target account' => ['targetAccountId'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('immutableAccountFields')]
+    public function testEditingNamingAnotherAccountIsRefusedAndChangesNothing(string $field): void
+    {
+        $created = $this->createTransfer();
+        $id = self::stringValue($created, 'id');
+        $before = $this->legSnapshot();
+
+        $this->requestUpdate($id, [...$this->editBody('2026-03-15', 'Autre libellé'), $field => self::CHF_ACCOUNT]);
+        self::assertResponseStatusCodeSame(422);
+
+        self::assertSame($before, $this->legSnapshot());
+        $this->client->request('GET', '/api/v1/transfers/'.$id);
+        self::assertSame(1, $this->decode()['version']);
+    }
+
+    /** @param array<string, mixed> $transfer */
+    private function assertLegsNetToZero(array $transfer): void
+    {
+        $source = self::arrayValue(self::arrayValue($transfer, 'source'), 'amount');
+        $target = self::arrayValue(self::arrayValue($transfer, 'target'), 'amount');
+        self::assertSame('-500.00', $source['value']);
+        self::assertSame('500.00', $target['value']);
+        self::assertSame('0.000000000000000000000000', $this->connection->fetchOne(
+            "SELECT SUM(amount_value) FROM transaction_transactions WHERE nature = 'TRANSFER' AND workspace_id = ?",
+            [WorkspaceFixture::OWN_WORKSPACE],
+        ));
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function legSnapshot(): array
+    {
+        return $this->connection->fetchAllAssociative(
+            'SELECT * FROM transaction_transactions WHERE workspace_id = ? ORDER BY id',
+            [WorkspaceFixture::OWN_WORKSPACE],
+        );
+    }
+
     private function countRows(string $sql): int
     {
         $count = $this->connection->fetchOne($sql);
@@ -443,12 +588,16 @@ final class TransferControllerTest extends WebTestCase
         return (int) $count;
     }
 
-    /** @return array<string, mixed> */
-    private function editBody(string $bookedOn, string $label = 'Virement épargne'): array
+    /**
+     * @param ?array{value: string, assetCode: string} $fee
+     *
+     * @return array<string, mixed>
+     */
+    private function editBody(string $bookedOn, string $label = 'Virement épargne', ?array $fee = null, int $version = 1): array
     {
         return [
             'sourceAccountId' => self::SOURCE_ACCOUNT, 'targetAccountId' => self::TARGET_ACCOUNT, 'state' => 'BOOKED',
-            'bookedOn' => $bookedOn, 'valueOn' => null, 'label' => $label, 'note' => null, 'fee' => null, 'version' => 1,
+            'bookedOn' => $bookedOn, 'valueOn' => null, 'label' => $label, 'note' => null, 'fee' => $fee, 'version' => $version,
         ];
     }
 

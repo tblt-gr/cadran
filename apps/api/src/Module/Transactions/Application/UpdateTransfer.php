@@ -139,7 +139,11 @@ final readonly class UpdateTransfer
             foreach ($auditedLegs as [$before, $after]) {
                 ($this->recordAuditEvent)(new AuditEventRecord(
                     $context->workspace, $context->actorId,
-                    null === $before ? TransactionAuditEvents::CREATED : TransactionAuditEvents::UPDATED,
+                    match (true) {
+                        null === $before => TransactionAuditEvents::CREATED,
+                        null !== $after->voidedAt => TransactionAuditEvents::VOIDED,
+                        default => TransactionAuditEvents::UPDATED,
+                    },
                     TransactionAuditEvents::ENTITY, $after->id,
                     null === $before
                         ? AuditDiff::creation(TransactionAuditFingerprint::of($after))
