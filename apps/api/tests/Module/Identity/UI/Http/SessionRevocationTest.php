@@ -13,6 +13,9 @@ use Doctrine\DBAL\Connection;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\BrowserKit\Cookie;
+use Symfony\Component\Clock\Clock;
+use Symfony\Component\Clock\MockClock;
+use Symfony\Component\Clock\NativeClock;
 
 /**
  * Revocation against the session handler the application actually ships.
@@ -163,6 +166,39 @@ final class SessionRevocationTest extends WebTestCase
         self::assertResponseStatusCodeSame(401);
         $this->client->request('GET', '/api/v1/session');
         self::assertFalse($this->decode()['authenticated']);
+    }
+
+    /**
+     * ASVS 5.0 V7.3.2 (absolute timeout) and V7.4.1 (an ended session is unusable): 30 days after
+     * sign-in the session ends whatever the activity, and its row is deleted.
+     */
+    public function testASessionEndsThirtyDaysAfterSignInEvenWhenUsedEveryDay(): void
+    {
+        $clock = new MockClock();
+        Clock::set($clock);
+
+        try {
+            $session = $this->signIn();
+
+            // Daily use up to day 29 never extends the lifetime and never breaks it.
+            foreach (['+10 days', '+10 days', '+9 days'] as $step) {
+                $clock->modify($step);
+                $this->client->request('GET', '/api/v1/accounts');
+                self::assertResponseIsSuccessful();
+            }
+            self::assertContains($session, $this->storedSessionIds());
+
+            $clock->modify('+1 day');
+            $this->client->request('GET', '/api/v1/accounts');
+
+            self::assertResponseStatusCodeSame(401);
+            self::assertNotContains($session, $this->storedSessionIds(), 'The expired session row must be deleted.');
+
+            $this->client->request('GET', '/api/v1/session');
+            self::assertFalse($this->decode()['authenticated']);
+        } finally {
+            Clock::set(new NativeClock());
+        }
     }
 
     /**

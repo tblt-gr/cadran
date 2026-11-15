@@ -6,6 +6,7 @@ namespace App\Module\Identity\Infrastructure\Security\Http;
 
 use App\Module\Identity\Application\IdentityAuditEvents;
 use App\Module\Identity\Application\SessionAuditIntent;
+use Symfony\Component\Clock\ClockInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -22,14 +23,24 @@ use Symfony\Component\Security\Http\Authentication\AuthenticationSuccessHandlerI
  * `remember: true`; the opt-in is only flagged here and {@see RememberedSessionCookie}
  * gives the cookie its lifetime, so a shared computer stays safe by default.
  */
-final class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
+final readonly class LoginSuccessHandler implements AuthenticationSuccessHandlerInterface
 {
+    public function __construct(private ClockInterface $clock)
+    {
+    }
+
     public function onAuthenticationSuccess(Request $request, TokenInterface $token): Response
     {
         $request->attributes->set(
             SessionAuditIntent::REQUEST_ATTRIBUTE,
             new SessionAuditIntent(IdentityAuditEvents::SESSION_OPENED, $token->getUserIdentifier()),
         );
+
+        // Set here and never refreshed; the session id regeneration keeps attributes.
+        // See {@see AbsoluteSessionLifetime}.
+        if ($request->hasSession()) {
+            $request->getSession()->set(AbsoluteSessionLifetime::AUTHENTICATED_AT, $this->clock->now()->getTimestamp());
+        }
 
         if ($this->wantsToBeRemembered($request)) {
             $request->attributes->set(RememberedSessionCookie::REQUEST_ATTRIBUTE, true);
