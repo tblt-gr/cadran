@@ -22,7 +22,9 @@ else
     fail 'app health' 'the application is unhealthy or not running'
 fi
 
-if compose exec -T app php apps/api/bin/console doctrine:migrations:up-to-date --no-interaction > /dev/null 2>&1; then
+# `exec` skips the image entrypoint that exports the runtime options and DATABASE_URL, so the console
+# only works through a one-off container that goes through the entrypoint.
+if compose run --rm --no-deps app php apps/api/bin/console doctrine:migrations:up-to-date --no-interaction > /dev/null 2>&1; then
     ok migrations
 else
     fail migrations 'a migration is pending or the check could not run'

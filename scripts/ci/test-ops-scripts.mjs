@@ -1,5 +1,5 @@
 // Infrastructure tests for scripts/install-cron.sh and `backup.sh health --strict` (OPS-006), and
-// scripts/ci/report-scheduled-run.sh (OPS-009).
+// scripts/ci/report-scheduled-run.sh (OPS-009), and the migration check of scripts/doctor.sh (OPS-010).
 // No Docker, no real crontab: a fake `crontab` on PATH stores the table in a file.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -157,6 +157,43 @@ try {
     spawnSync('sh', [join(scripts, 'ci', 'report-scheduled-run.sh'), 'x', 'maybe'], { env }).status,
     2,
   );
+
+  // doctor.sh: a stubbed `docker` logs each call. The migration check must run the console through
+  // `compose run --rm --no-deps app` (entrypoint), never `compose exec` (no runtime env).
+  const dockerLog = join(base, 'docker.log');
+  writeFileSync(
+    join(bin, 'docker'),
+    `#!/bin/sh
+printf '%s\\n' "$*" >> "${dockerLog}"
+case "$*" in
+  *" run "*bin/console*) [ -z "$DOCTOR_MIGRATIONS_PENDING" ] ;;
+  *" exec "*bin/console*) echo 'Unable to read the ".env" environment file' >&2; exit 1 ;;
+esac
+`,
+    { mode: 0o755 },
+  );
+  copyFileSync(join(scripts, 'doctor.sh'), join(repo, 'scripts', 'doctor.sh'));
+  const doctor = (extraEnv = {}) => {
+    writeFileSync(dockerLog, '');
+    const out = spawnSync('sh', [join(repo, 'scripts', 'doctor.sh')], {
+      encoding: 'utf8',
+      env: { ...env, CADRAN_BACKUP_DIR: backups, ...extraEnv },
+    });
+    return { lines: out.stdout.split('\n'), calls: readFileSync(dockerLog, 'utf8').split('\n') };
+  };
+
+  const upToDate = doctor();
+  assert.ok(upToDate.lines.includes('OK migrations'));
+  const consoleCalls = upToDate.calls.filter((call) => call.includes('bin/console'));
+  assert.equal(consoleCalls.length, 1);
+  assert.match(
+    consoleCalls[0],
+    / run --rm --no-deps app php apps\/api\/bin\/console doctrine:migrations:up-to-date/,
+  );
+  assert.ok(!upToDate.calls.some((call) => / exec /.test(call) && call.includes('bin/console')));
+
+  const pending = doctor({ DOCTOR_MIGRATIONS_PENDING: '1' });
+  assert.ok(pending.lines.some((line) => line.startsWith('FAIL migrations: ')));
 
   console.log('Operations script tests passed.');
 } finally {
