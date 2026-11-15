@@ -411,11 +411,16 @@ jobs:
           fi
 
   e2e:
-    name: Browser end-to-end
+    name: Browser end-to-end (shard ${{ matrix.shard }}/2)
     needs: e2e_changes
     if: needs.e2e_changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 25
+    strategy:
+      # Let the other shard finish so one failure still reports every failing spec.
+      fail-fast: false
+      matrix:
+        shard: [1, 2]
     env:
       # Throwaway owner of this disposable stack; never a real credential.
       E2E_OWNER_EMAIL: e2e-owner@example.test
@@ -434,16 +439,16 @@ jobs:
         run: |
           started=$(date +%s)
           status=0
-          make e2e || status=$?
+          make e2e E2E_ARGS="--shard=${{ matrix.shard }}/2" || status=$?
           elapsed=$(( $(date +%s) - started ))
-          printf '### Browser end-to-end\n\n`make e2e` (stack build, migrations and Playwright): %d min %d s, exit code %d.\n' \
-            "$((elapsed / 60))" "$((elapsed % 60))" "$status" >> "$GITHUB_STEP_SUMMARY"
+          printf '### Browser end-to-end, shard %d/2\n\n`make e2e` (stack build, migrations and Playwright): %d min %d s, exit code %d.\n' \
+            "${{ matrix.shard }}" "$((elapsed / 60))" "$((elapsed % 60))" "$status" >> "$GITHUB_STEP_SUMMARY"
           exit "$status"
       - name: Upload the Playwright traces and screenshots
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-test-results
+          name: e2e-test-results-${{ matrix.shard }}
           path: var/e2e-results/
           if-no-files-found: ignore
           retention-days: 7
@@ -473,7 +478,13 @@ jobs:
       - name: All checks passed
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
+          E2E_CHANGED: ${{ needs.e2e_changes.outputs.changed }}
+          E2E_RESULT: ${{ needs.e2e.result }}
         run: |
           if echo "$RESULTS" | grep -qE 'failure|cancelled'; then
+            exit 1
+          fi
+          # The matrix reports one aggregated result: success only when every shard passed.
+          if [ "$E2E_CHANGED" = "true" ] && [ "$E2E_RESULT" != "success" ]; then
             exit 1
           fi
