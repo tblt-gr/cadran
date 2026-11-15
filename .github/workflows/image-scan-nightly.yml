@@ -6,7 +6,8 @@ name: Image scan (nightly)
 # surfaced daily rather than never. The same schedule re-scans the whole git history for
 # secrets (gitleaks), which the pull-request gate only checks on the changed commits.
 #
-# A failed scheduled run e-mails the account that last edited this file. GitHub
+# A failed scheduled run opens (or updates) the issue "Scheduled run failing: Image scan
+# (nightly)" through the `report` job, and the next passing run closes it. GitHub
 # runs `schedule` only from the default branch and disables it after 60 days
 # without repository activity; a `workflow_dispatch` run re-arms it.
 
@@ -74,3 +75,22 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Pinned so a gitleaks release cannot change the rules or the config schema without a diff.
           GITLEAKS_VERSION: 8.30.1
+
+  report:
+    name: Report the scheduled result
+    needs: [image-scan-strict, secrets]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Open, update or close the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+          FAILED_JOBS: ${{ needs.image-scan-strict.result != 'success' && 'image-scan-strict' || '' }} ${{ needs.secrets.result != 'success' && 'secrets' || '' }}
+        run: sh scripts/ci/report-scheduled-run.sh "Image scan (nightly)" "$([ "$RESULT" = true ] && echo failure || echo success)"

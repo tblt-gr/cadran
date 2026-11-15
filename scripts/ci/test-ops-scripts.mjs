@@ -1,4 +1,5 @@
-// Infrastructure tests for scripts/install-cron.sh and `backup.sh health --strict` (OPS-006).
+// Infrastructure tests for scripts/install-cron.sh and `backup.sh health --strict` (OPS-006), and
+// scripts/ci/report-scheduled-run.sh (OPS-009).
 // No Docker, no real crontab: a fake `crontab` on PATH stores the table in a file.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -102,6 +103,60 @@ try {
   addBackup('29990101-000000', new Date().toISOString().replace(/\.\d+Z$/, 'Z'));
   assert.equal(health('--strict').status, 0, 'fresh backup');
   assert.equal(health('--bogus').status, 1);
+
+  // report-scheduled-run.sh: a stubbed `gh` logs each call and answers `issue list` from a file.
+  const ghLog = join(base, 'gh.log');
+  const ghList = join(base, 'gh-list');
+  writeFileSync(
+    join(bin, 'gh'),
+    `#!/bin/sh\nprintf '%s\\036' "$*" >> "${ghLog}"\nif [ "$2" = list ]; then cat "${ghList}"; fi\n`,
+    { mode: 0o755 },
+  );
+  const report = (result, existing, extraEnv = {}) => {
+    writeFileSync(ghLog, '');
+    writeFileSync(ghList, existing);
+    const out = spawnSync(
+      'sh',
+      [join(scripts, 'ci', 'report-scheduled-run.sh'), 'Image scan (nightly)', result],
+      {
+        encoding: 'utf8',
+        env: {
+          ...env,
+          GITHUB_SERVER_URL: 'https://github.com',
+          GITHUB_REPOSITORY: 'o/r',
+          GITHUB_RUN_ID: '42',
+          ...extraEnv,
+        },
+      },
+    );
+    return { status: out.status, calls: readFileSync(ghLog, 'utf8').split('\x1e').slice(1, -1) };
+  };
+  const issueTitle = 'Scheduled run failing: Image scan (nightly)';
+  const runUrl = 'https://github.com/o/r/actions/runs/42';
+  const today = new Date().toISOString().slice(0, 10);
+  // The stub ignores --jq, so it prints what the real command would after filtering.
+  const found = '7\n';
+
+  const opened = report('failure', '', { FAILED_JOBS: 'image-scan-strict secrets' });
+  assert.equal(opened.status, 0);
+  assert.deepEqual(opened.calls, [
+    `issue create --title ${issueTitle} --label bug --label area:quality --body The scheduled workflow "Image scan (nightly)" failed on ${today}.\n\nRun: ${runUrl}\nFailed jobs: image-scan-strict secrets`,
+  ]);
+
+  const again = report('failure', found);
+  assert.deepEqual(again.calls, [`issue comment 7 --body Failed again on ${today}: ${runUrl}`]);
+
+  const recovered = report('success', found);
+  assert.deepEqual(recovered.calls, [
+    `issue comment 7 --body Recovered in ${runUrl}`,
+    'issue close 7',
+  ]);
+
+  assert.deepEqual(report('success', '').calls, [], 'nothing to close');
+  assert.equal(
+    spawnSync('sh', [join(scripts, 'ci', 'report-scheduled-run.sh'), 'x', 'maybe'], { env }).status,
+    2,
+  );
 
   console.log('Operations script tests passed.');
 } finally {
