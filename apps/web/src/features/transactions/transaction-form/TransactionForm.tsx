@@ -156,7 +156,7 @@ export function TransactionForm({
           onChange={set}
           onToggle={setAdvancedOpen}
           open={advancedOpen}
-          rejectable={editing && transaction.state === 'PENDING'}
+          rejectable={transaction?.state === 'PENDING'}
           showErrors={showErrors}
 
           stateLockedHint={stateLocked ? t('transactions.form.stateLocked') : null}

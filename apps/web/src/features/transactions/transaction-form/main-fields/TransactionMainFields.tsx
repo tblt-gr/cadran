@@ -6,6 +6,7 @@ import {
   SignedAmountHint,
 } from '@/components/ui/signed-amount-hint/SignedAmountHint';
 import { formatAmount } from '@/lib/decimal';
+import type { AmountDirection } from '@/lib/signedAmount';
 import type {
   TransactionFormErrors,
   TransactionFormValues,
