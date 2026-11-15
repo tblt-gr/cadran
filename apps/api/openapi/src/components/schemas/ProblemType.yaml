@@ -1,0 +1,773 @@
+description: >-
+  Every RFC 9457 problem type the API returns, with the situation that
+  produces it. A client branches on this value. `about:blank` is used when
+  the HTTP status alone describes the problem.
+type: string
+oneOf:
+  - const: about:blank
+    description: The HTTP status code alone describes the problem.
+  - const: /problems/account-archived
+    description: >-
+      The account is archived and cannot be changed.
+  - const: /problems/account-balance-conflict
+    description: >-
+      A balance snapshot already exists for the account and date.
+  - const: /problems/account-group-archived
+    description: >-
+      The account group is archived and cannot be changed.
+  - const: /problems/account-group-label-taken
+    description: >-
+      Another account group of the workspace already uses this label.
+  - const: /problems/account-label-taken
+    description: >-
+      Another account of the workspace already uses this label.
+  - const: /problems/account-not-life-insurance
+    description: >-
+      The request is refused because of a business rule: account not life insurance.
+  - const: /problems/account-not-portfolio
+    description: >-
+      The request is refused because of a business rule: account not portfolio.
+  - const: /problems/account-rule-override-conflict
+    description: >-
+      An account rule override already exists for this rule.
+  - const: /problems/activation-limit
+    description: >-
+      The metric policy has reached its limit of activations.
+  - const: /problems/amount.asset_precision_exceeded
+    description: >-
+      An amount has more decimal places than its asset allows.
+  - const: /problems/amount.asset_unknown
+    description: >-
+      An amount names an asset that does not exist.
+  - const: /problems/amount.missing
+    description: >-
+      A required amount member is missing.
+  - const: /problems/amount.not_a_string
+    description: >-
+      An amount member is not a decimal string.
+  - const: /problems/amount.not_canonical
+    description: >-
+      An amount member is not a canonical decimal string.
+  - const: /problems/amount.precision_exceeded
+    description: >-
+      An amount has more decimal places than the platform stores.
+  - const: /problems/cash-amount-too-large
+    description: >-
+      The request exceeds a size or count limit: cash amount too large.
+  - const: /problems/cash-range-too-dense
+    description: >-
+      The request exceeds a size or count limit: cash range too dense.
+  - const: /problems/cash-range-too-large
+    description: >-
+      The request exceeds a size or count limit: cash range too large.
+  - const: /problems/category-operation-refused
+    description: >-
+      A category merge, move or archive is refused; the reasons are listed in the extension members.
+  - const: /problems/common-password
+    description: >-
+      The new password is one of the most common passwords.
+  - const: /problems/composition-too-large
+    description: >-
+      The requested account group composition is larger than allowed.
+  - const: /problems/corporate-action-without-position
+    description: >-
+      The request is refused because of a business rule: corporate action without position.
+  - const: /problems/correction_reason_required
+    description: >-
+      The request is refused because of a business rule: correction reason required.
+  - const: /problems/correction_span_exceeded
+    description: >-
+      The request is refused because of a business rule: correction span exceeded.
+  - const: /problems/csrf-token
+    description: >-
+      The CSRF token or Origin check of a mutating request failed.
+  - const: /problems/duplicate-leg-instrument
+    description: >-
+      The request is refused because of a business rule: duplicate leg instrument.
+  - const: /problems/emergency_fund_forbidden
+    description: >-
+      The caller may not access emergency fund in this workspace.
+  - const: /problems/emergency_fund_scope_too_large
+    description: >-
+      The request exceeds a size or count limit: emergency fund scope too large.
+  - const: /problems/euro-fund-price-fixed
+    description: >-
+      The request is refused because of a business rule: euro fund price fixed.
+  - const: /problems/euro-fund-rate-exists
+    description: >-
+      The request is refused because of a business rule: euro fund rate exists.
+  - const: /problems/euro-fund-rate-limit-reached
+    description: >-
+      The request exceeds a size or count limit: euro fund rate limit reached.
+  - const: /problems/euro-fund-rate-not-found
+    description: >-
+      The referenced euro fund rate does not exist in the workspace.
+  - const: /problems/fee-terms-exist
+    description: >-
+      The request is refused because of a business rule: fee terms exist.
+  - const: /problems/fee-terms-limit-reached
+    description: >-
+      The request exceeds a size or count limit: fee terms limit reached.
+  - const: /problems/full-surrender-not-balanced
+    description: >-
+      The request is refused because of a business rule: full surrender not balanced.
+  - const: /problems/full-surrender-positions-remaining
+    description: >-
+      The request is refused because of a business rule: full surrender positions remaining.
+  - const: /problems/future_emergency_fund_as_of
+    description: >-
+      The request is refused because of a business rule: future emergency fund as of.
+  - const: /problems/future_goal_month
+    description: >-
+      The request is refused because of a business rule: future goal month.
+  - const: /problems/goal_forbidden
+    description: >-
+      The caller may not access goal in this workspace.
+  - const: /problems/goal_identity_immutable
+    description: >-
+      The request is refused because of a business rule: goal identity immutable.
+  - const: /problems/goal_not_found
+    description: >-
+      The referenced goal does not exist in the workspace.
+  - const: /problems/goal_precondition_required
+    description: >-
+      The request is refused because of a business rule: goal precondition required.
+  - const: /problems/holdings-too-large
+    description: >-
+      The holdings sheet would list more rows than one response may return.
+  - const: /problems/idempotency.in_flight
+    description: >-
+      A request with the same idempotency key is still being processed; retry after the delay in the Retry-After header.
+  - const: /problems/idempotency.invalid
+    description: >-
+      The idempotency key is malformed.
+  - const: /problems/idempotency.key_reused
+    description: >-
+      The idempotency key was already used with a different request body.
+  - const: /problems/idempotency.required
+    description: >-
+      The mutation requires an idempotency key and none was sent.
+  - const: /problems/instrument-already-active
+    description: >-
+      The request is refused because of a business rule: instrument already active.
+  - const: /problems/instrument-already-inactive
+    description: >-
+      The request is refused because of a business rule: instrument already inactive.
+  - const: /problems/instrument-currency-mismatch
+    description: >-
+      The request is refused because of a business rule: instrument currency mismatch.
+  - const: /problems/instrument-duplicate-candidates
+    description: >-
+      The request is refused because of a business rule: instrument duplicate candidates.
+  - const: /problems/instrument-field-not-allowed
+    description: >-
+      The request is refused because of a business rule: instrument field not allowed.
+  - const: /problems/instrument-forbidden
+    description: >-
+      The caller may not access instrument in this workspace.
+  - const: /problems/instrument-identifier-required
+    description: >-
+      The request is refused because of a business rule: instrument identifier required.
+  - const: /problems/instrument-identity-locked
+    description: >-
+      The request is refused because of a business rule: instrument identity locked.
+  - const: /problems/instrument-inactive
+    description: >-
+      The request is refused because of a business rule: instrument inactive.
+  - const: /problems/instrument-isin-exists
+    description: >-
+      The request is refused because of a business rule: instrument isin exists.
+  - const: /problems/instrument-limit-reached
+    description: >-
+      The request exceeds a size or count limit: instrument limit reached.
+  - const: /problems/instrument-not-euro-fund
+    description: >-
+      The request is refused because of a business rule: instrument not euro fund.
+  - const: /problems/instrument-not-found
+    description: >-
+      The referenced instrument does not exist in the workspace.
+  - const: /problems/invalid-account-group-anchor
+    description: >-
+      The anchor group of an account group move is missing or invalid.
+  - const: /problems/invalid-allocation-by
+    description: >-
+      The request carries an invalid allocation by (malformed or out of range).
+  - const: /problems/invalid-as-of
+    description: >-
+      The request carries an invalid as of (malformed or out of range).
+  - const: /problems/invalid-cash-query
+    description: >-
+      The request carries an invalid cash query (malformed or out of range).
+  - const: /problems/invalid-contract-date
+    description: >-
+      The request carries an invalid contract date (malformed or out of range).
+  - const: /problems/invalid-contract-field
+    description: >-
+      The request carries an invalid contract field (malformed or out of range).
+  - const: /problems/invalid-corporate-action
+    description: >-
+      The request carries an invalid corporate action (malformed or out of range).
+  - const: /problems/invalid-current-password
+    description: >-
+      The current password submitted for a password change is wrong.
+  - const: /problems/invalid-display-name
+    description: >-
+      The display name is empty or longer than allowed.
+  - const: /problems/invalid-euro-fund-rate
+    description: >-
+      The request carries an invalid euro fund rate (malformed or out of range).
+  - const: /problems/invalid-fee-rate
+    description: >-
+      The request carries an invalid fee rate (malformed or out of range).
+  - const: /problems/invalid-fee-terms-date
+    description: >-
+      The request carries an invalid fee terms date (malformed or out of range).
+  - const: /problems/invalid-history-range
+    description: >-
+      The request carries an invalid history range (malformed or out of range).
+  - const: /problems/invalid-holdings-query
+    description: >-
+      The request carries an invalid holdings query (malformed or out of range).
+  - const: /problems/invalid-instrument-classification
+    description: >-
+      The request carries an invalid instrument classification (malformed or out of range).
+  - const: /problems/invalid-instrument-isin
+    description: >-
+      The request carries an invalid instrument isin (malformed or out of range).
+  - const: /problems/invalid-instrument-name
+    description: >-
+      The request carries an invalid instrument name (malformed or out of range).
+  - const: /problems/invalid-instrument-payload
+    description: >-
+      The request carries an invalid instrument payload (malformed or out of range).
+  - const: /problems/invalid-instrument-precision
+    description: >-
+      The request carries an invalid instrument precision (malformed or out of range).
+  - const: /problems/invalid-instrument-query
+    description: >-
+      The request carries an invalid instrument query (malformed or out of range).
+  - const: /problems/invalid-instrument-ticker
+    description: >-
+      The request carries an invalid instrument ticker (malformed or out of range).
+  - const: /problems/invalid-instrument-type
+    description: >-
+      The request carries an invalid instrument type (malformed or out of range).
+  - const: /problems/invalid-instrument-venue
+    description: >-
+      The request carries an invalid instrument venue (malformed or out of range).
+  - const: /problems/invalid-interest-basis
+    description: >-
+      The request carries an invalid interest basis (malformed or out of range).
+  - const: /problems/invalid-leg-direction
+    description: >-
+      The request carries an invalid leg direction (malformed or out of range).
+  - const: /problems/invalid-life-insurance-payload
+    description: >-
+      The request carries an invalid life insurance payload (malformed or out of range).
+  - const: /problems/invalid-operation-amount
+    description: >-
+      The request carries an invalid operation amount (malformed or out of range).
+  - const: /problems/invalid-operation-date
+    description: >-
+      The request carries an invalid operation date (malformed or out of range).
+  - const: /problems/invalid-operation-payload
+    description: >-
+      The request carries an invalid operation payload (malformed or out of range).
+  - const: /problems/invalid-operation-quantity
+    description: >-
+      The request carries an invalid operation quantity (malformed or out of range).
+  - const: /problems/invalid-operation-query
+    description: >-
+      The request carries an invalid operation query (malformed or out of range).
+  - const: /problems/invalid-operation-text
+    description: >-
+      The request carries an invalid operation text (malformed or out of range).
+  - const: /problems/invalid-operation-type
+    description: >-
+      The request carries an invalid operation type (malformed or out of range).
+  - const: /problems/invalid-operation-version
+    description: >-
+      The request carries an invalid operation version (malformed or out of range).
+  - const: /problems/invalid-performance-period
+    description: >-
+      The request carries an invalid performance period (malformed or out of range).
+  - const: /problems/invalid-performance-scope
+    description: >-
+      The request carries an invalid performance scope (malformed or out of range).
+  - const: /problems/invalid-portfolio-takeover
+    description: >-
+      The request carries an invalid portfolio takeover (malformed or out of range).
+  - const: /problems/invalid-position-query
+    description: >-
+      The request carries an invalid position query (malformed or out of range).
+  - const: /problems/invalid-price-date
+    description: >-
+      The request carries an invalid price date (malformed or out of range).
+  - const: /problems/invalid-report-year
+    description: >-
+      The requested report year is outside the supported range.
+  - const: /problems/invalid-settlement-date
+    description: >-
+      The request carries an invalid settlement date (malformed or out of range).
+  - const: /problems/invalid-summary-date
+    description: >-
+      The request carries an invalid summary date (malformed or out of range).
+  - const: /problems/invalid-surrender-amounts
+    description: >-
+      The request carries an invalid surrender amounts (malformed or out of range).
+  - const: /problems/invalid-valuation-date
+    description: >-
+      The request carries an invalid valuation date (malformed or out of range).
+  - const: /problems/invalid-valuation-detail
+    description: >-
+      The request carries an invalid valuation detail (malformed or out of range).
+  - const: /problems/invalid-valuation-payload
+    description: >-
+      The request carries an invalid valuation payload (malformed or out of range).
+  - const: /problems/invalid-valuation-price
+    description: >-
+      The request carries an invalid valuation price (malformed or out of range).
+  - const: /problems/invalid-valuation-query
+    description: >-
+      The request carries an invalid valuation query (malformed or out of range).
+  - const: /problems/invalid-valuation-total
+    description: >-
+      The request carries an invalid valuation total (malformed or out of range).
+  - const: /problems/invalid-year
+    description: >-
+      The request carries an invalid year (malformed or out of range).
+  - const: /problems/invalid-year-range
+    description: >-
+      The requested range of report years is malformed.
+  - const: /problems/invalid_effective_month
+    description: >-
+      The request carries an invalid effective month (malformed or out of range).
+  - const: /problems/invalid_emergency_fund_as_of
+    description: >-
+      The request carries an invalid emergency fund as of (malformed or out of range).
+  - const: /problems/invalid_emergency_fund_category
+    description: >-
+      The request carries an invalid emergency fund category (malformed or out of range).
+  - const: /problems/invalid_emergency_fund_policy
+    description: >-
+      The request carries an invalid emergency fund policy (malformed or out of range).
+  - const: /problems/invalid_goal_batch
+    description: >-
+      The request carries an invalid goal batch (malformed or out of range).
+  - const: /problems/invalid_goal_direction
+    description: >-
+      The request carries an invalid goal direction (malformed or out of range).
+  - const: /problems/invalid_goal_metric_scope
+    description: >-
+      The request carries an invalid goal metric scope (malformed or out of range).
+  - const: /problems/invalid_goal_month
+    description: >-
+      The request carries an invalid goal month (malformed or out of range).
+  - const: /problems/invalid_goal_period
+    description: >-
+      The request carries an invalid goal period (malformed or out of range).
+  - const: /problems/invalid_goal_query
+    description: >-
+      The request carries an invalid goal query (malformed or out of range).
+  - const: /problems/invalid_goal_ratio
+    description: >-
+      The request carries an invalid goal ratio (malformed or out of range).
+  - const: /problems/invalid_goal_schedule
+    description: >-
+      The request carries an invalid goal schedule (malformed or out of range).
+  - const: /problems/invalid_goal_target
+    description: >-
+      The request carries an invalid goal target (malformed or out of range).
+  - const: /problems/invalid_goal_tolerance
+    description: >-
+      The request carries an invalid goal tolerance (malformed or out of range).
+  - const: /problems/invalid_goal_value_type
+    description: >-
+      The request carries an invalid goal value type (malformed or out of range).
+  - const: /problems/invalid_goal_year
+    description: >-
+      The request carries an invalid goal year (malformed or out of range).
+  - const: /problems/invalid_schedule_preview
+    description: >-
+      The request carries an invalid schedule preview (malformed or out of range).
+  - const: /problems/invalid_target_amount
+    description: >-
+      The request carries an invalid target amount (malformed or out of range).
+  - const: /problems/invalid_target_months
+    description: >-
+      The request carries an invalid target months (malformed or out of range).
+  - const: /problems/invalid_target_ratio
+    description: >-
+      The request carries an invalid target ratio (malformed or out of range).
+  - const: /problems/invalid_trailing_months
+    description: >-
+      The request carries an invalid trailing months (malformed or out of range).
+  - const: /problems/leg-amount-mismatch
+    description: >-
+      The request is refused because of a business rule: leg amount mismatch.
+  - const: /problems/life-insurance-contract-closed
+    description: >-
+      The request is refused because of a business rule: life insurance contract closed.
+  - const: /problems/life-insurance-contract-exists
+    description: >-
+      The request is refused because of a business rule: life insurance contract exists.
+  - const: /problems/life-insurance-contract-not-found
+    description: >-
+      The referenced life insurance contract does not exist in the workspace.
+  - const: /problems/life-insurance-contract-required
+    description: >-
+      The request is refused because of a business rule: life insurance contract required.
+  - const: /problems/life-insurance-fee-terms-not-found
+    description: >-
+      The referenced life insurance fee terms does not exist in the workspace.
+  - const: /problems/linear_schedule_impossible
+    description: >-
+      The request is refused because of a business rule: linear schedule impossible.
+  - const: /problems/linked-transfer-mismatch
+    description: >-
+      The request is refused because of a business rule: linked transfer mismatch.
+  - const: /problems/linked-transfer-taken
+    description: >-
+      The request is refused because of a business rule: linked transfer taken.
+  - const: /problems/lists.forbidden
+    description: >-
+      The caller may not read the revision of this list.
+  - const: /problems/lists.invalid_revision
+    description: >-
+      The list revision header is malformed.
+  - const: /problems/lists.revision_stale
+    description: >-
+      The list revision sent by the client is out of date.
+  - const: /problems/monthly-ledger-scope-too-large
+    description: >-
+      The monthly ledger scope holds more rows than one response may return.
+  - const: /problems/monthly-projection-scope-too-large
+    description: >-
+      The monthly projection scope holds more rows than one response may return.
+  - const: /problems/net-worth-scope-too-large
+    description: >-
+      The net worth scope holds more accounts than one response may return.
+  - const: /problems/operation-amount-mismatch
+    description: >-
+      The request is refused because of a business rule: operation amount mismatch.
+  - const: /problems/operation-asset-mismatch
+    description: >-
+      The request is refused because of a business rule: operation asset mismatch.
+  - const: /problems/operation-field-not-allowed
+    description: >-
+      The request is refused because of a business rule: operation field not allowed.
+  - const: /problems/operation-field-required
+    description: >-
+      The request is refused because of a business rule: operation field required.
+  - const: /problems/operation-limit-reached
+    description: >-
+      The request exceeds a size or count limit: operation limit reached.
+  - const: /problems/operation-type-not-allowed-for-account
+    description: >-
+      The request is refused because of a business rule: operation type not allowed for account.
+  - const: /problems/operation-voided
+    description: >-
+      The request is refused because of a business rule: operation voided.
+  - const: /problems/operations-after-full-surrender
+    description: >-
+      The request is refused because of a business rule: operations after full surrender.
+  - const: /problems/performance-range-too-dense
+    description: >-
+      The request exceeds a size or count limit: performance range too dense.
+  - const: /problems/period-closed
+    description: >-
+      The change touches a monthly period that is closed; reopen the period first.
+  - const: /problems/period-closing-blocked
+    description: >-
+      The period cannot be closed because blocking checks remain; the blockers are listed in the extension members.
+  - const: /problems/period-closure-conflict
+    description: >-
+      The period is already in the requested closure state.
+  - const: /problems/policy-already-active
+    description: >-
+      The requested metric policy version is already active.
+  - const: /problems/policy-definition-exists
+    description: >-
+      A metric policy version with this definition already exists.
+  - const: /problems/policy-version-limit
+    description: >-
+      The metric policy has reached its limit of versions.
+  - const: /problems/portfolio-account-inactive
+    description: >-
+      The request is refused because of a business rule: portfolio account inactive.
+  - const: /problems/portfolio-account-not-found
+    description: >-
+      The referenced portfolio account does not exist in the workspace.
+  - const: /problems/portfolio-account-requires-operations
+    description: >-
+      A cash transaction on a portfolio account is refused; the movement must be recorded as a portfolio operation.
+  - const: /problems/portfolio-account-valued-by-portfolio
+    description: >-
+      The balance of a portfolio account is derived from its operations and cannot be set directly.
+  - const: /problems/portfolio-forbidden
+    description: >-
+      The caller may not access portfolio in this workspace.
+  - const: /problems/portfolio-instrument-not-found
+    description: >-
+      The referenced portfolio instrument does not exist in the workspace.
+  - const: /problems/portfolio-operation-conflict
+    description: >-
+      The request is refused because of a business rule: portfolio operation conflict.
+  - const: /problems/portfolio-operation-not-found
+    description: >-
+      The referenced portfolio operation does not exist in the workspace.
+  - const: /problems/portfolio-takeover-exists
+    description: >-
+      The request is refused because of a business rule: portfolio takeover exists.
+  - const: /problems/portfolio-takeover-not-empty
+    description: >-
+      The request is refused because of a business rule: portfolio takeover not empty.
+  - const: /problems/portfolio-takeover-not-supported
+    description: >-
+      The request is refused because of a business rule: portfolio takeover not supported.
+  - const: /problems/portfolio-valuation-conflict
+    description: >-
+      The request is refused because of a business rule: portfolio valuation conflict.
+  - const: /problems/portfolio-valuation-not-found
+    description: >-
+      The referenced portfolio valuation does not exist in the workspace.
+  - const: /problems/position-would-go-negative
+    description: >-
+      The request is refused because of a business rule: position would go negative.
+  - const: /problems/premium-allocation-exceeds-net
+    description: >-
+      The request is refused because of a business rule: premium allocation exceeds net.
+  - const: /problems/price-precision-exceeded
+    description: >-
+      The request is refused because of a business rule: price precision exceeded.
+  - const: /problems/product-model-archived
+    description: >-
+      The product model is archived and cannot be changed.
+  - const: /problems/product-model-name-taken
+    description: >-
+      Another product model of the workspace already uses this name.
+  - const: /problems/quantity-precision-exceeded
+    description: >-
+      The request is refused because of a business rule: quantity precision exceeded.
+  - const: /problems/range-too-large
+    description: >-
+      The requested range of report years spans more years than one report may cover.
+  - const: /problems/recurrences.archived
+    description: >-
+      The recurrence is archived.
+  - const: /problems/recurrences.forbidden
+    description: >-
+      The caller may not use recurrences of this workspace.
+  - const: /problems/recurrences.invalid
+    description: >-
+      The recurrence payload is invalid.
+  - const: /problems/recurrences.invalid_query
+    description: >-
+      The recurrence query parameters are invalid.
+  - const: /problems/recurrences.not_archived
+    description: >-
+      The recurrence is not archived.
+  - const: /problems/recurrences.not_found
+    description: >-
+      The recurrence does not exist in the workspace.
+  - const: /problems/refund.already_settled
+    description: >-
+      The original transaction is already fully refunded.
+  - const: /problems/refund.asset_mismatch
+    description: >-
+      The refund uses a different asset than its original transaction.
+  - const: /problems/refund.date_before_original
+    description: >-
+      The refund is dated before the original transaction.
+  - const: /problems/refund.exceeds_refundable
+    description: >-
+      The refund amount exceeds what remains refundable on the original transaction.
+  - const: /problems/refund.original_nature
+    description: >-
+      The refund and its original transaction do not have compatible natures.
+  - const: /problems/refund.original_not_refundable
+    description: >-
+      The original transaction cannot be refunded.
+  - const: /problems/reused-password
+    description: >-
+      The new password equals the current one.
+  - const: /problems/rules.archived
+    description: >-
+      The categorization rule is archived.
+  - const: /problems/rules.execution_limit
+    description: >-
+      The categorization rule exceeds its execution limit.
+  - const: /problems/rules.forbidden
+    description: >-
+      The caller may not use categorization rules of this workspace.
+  - const: /problems/rules.invalid
+    description: >-
+      The categorization rule payload is invalid.
+  - const: /problems/rules.invalid_query
+    description: >-
+      The categorization rule query parameters are invalid.
+  - const: /problems/rules.invalid_reference
+    description: >-
+      The categorization rule references an unknown category or account.
+  - const: /problems/rules.not_found
+    description: >-
+      The categorization rule does not exist in the workspace.
+  - const: /problems/rules.preview_stale
+    description: >-
+      The preview of a categorization rule run no longer matches the data.
+  - const: /problems/rules.range_too_large
+    description: >-
+      The date range of a categorization rule run is too large.
+  - const: /problems/rules.unsafe_pattern
+    description: >-
+      The categorization rule pattern is refused as unsafe or too costly.
+  - const: /problems/schedule_negative_part
+    description: >-
+      The request is refused because of a business rule: schedule negative part.
+  - const: /problems/schedule_part_count
+    description: >-
+      The request is refused because of a business rule: schedule part count.
+  - const: /problems/schedule_precision_exceeded
+    description: >-
+      The request is refused because of a business rule: schedule precision exceeded.
+  - const: /problems/schedule_sum_mismatch
+    description: >-
+      The request is refused because of a business rule: schedule sum mismatch.
+  - const: /problems/split-fraction-unsupported
+    description: >-
+      The request is refused because of a business rule: split fraction unsupported.
+  - const: /problems/splits.duplicate_category
+    description: >-
+      Two splits of the transaction use the same category.
+  - const: /problems/splits.required
+    description: >-
+      The transaction requires at least one split.
+  - const: /problems/splits.sum_exceeds
+    description: >-
+      The splits sum to more than the transaction amount.
+  - const: /problems/splits.sum_missing
+    description: >-
+      The splits sum to less than the transaction amount.
+  - const: /problems/splits.too_many
+    description: >-
+      The transaction has more splits than allowed.
+  - const: /problems/stale-account-group-order
+    description: >-
+      The submitted account group order no longer matches the stored order.
+  - const: /problems/stale-account-order
+    description: >-
+      The submitted account order no longer matches the stored order.
+  - const: /problems/stale-active-policy
+    description: >-
+      The active metric policy changed since the client loaded it.
+  - const: /problems/stale-contract-version
+    description: >-
+      The submitted contract version is out of date and must be reloaded.
+  - const: /problems/stale-instrument-version
+    description: >-
+      The submitted instrument version is out of date and must be reloaded.
+  - const: /problems/stale-operation-order
+    description: >-
+      The submitted operation order is out of date and must be reloaded.
+  - const: /problems/stale-operation-version
+    description: >-
+      The submitted operation version is out of date and must be reloaded.
+  - const: /problems/stale-valuation-version
+    description: >-
+      The submitted valuation version is out of date and must be reloaded.
+  - const: /problems/stale-version
+    description: >-
+      The submitted version no longer matches the stored one, so the change is refused until the client reloads the resource.
+  - const: /problems/stale_goal_version
+    description: >-
+      The submitted goal version is out of date and must be reloaded.
+  - const: /problems/surrender-exceeds-available
+    description: >-
+      The request is refused because of a business rule: surrender exceeds available.
+  - const: /problems/switch-not-balanced
+    description: >-
+      The request is refused because of a business rule: switch not balanced.
+  - const: /problems/switch-same-support
+    description: >-
+      The request is refused because of a business rule: switch same support.
+  - const: /problems/too-many-operation-legs
+    description: >-
+      The request exceeds a size or count limit: too many operation legs.
+  - const: /problems/too_many_emergency_fund_categories
+    description: >-
+      The request exceeds a size or count limit: too many emergency fund categories.
+  - const: /problems/transaction-belongs-to-transfer
+    description: >-
+      The transaction is one leg of an internal transfer and must be changed through the transfer.
+  - const: /problems/transaction-conflict
+    description: >-
+      The transaction was modified concurrently or already exists in the requested state.
+  - const: /problems/transaction.belongs_to_refund
+    description: >-
+      The transaction is a refund of another transaction and cannot be split.
+  - const: /problems/transaction.has_refunds
+    description: >-
+      The transaction already has refunds and cannot be split.
+  - const: /problems/transactions.bulk-preview-required
+    description: >-
+      A bulk edit was submitted without a preview of its scope.
+  - const: /problems/transactions.bulk-preview-stale
+    description: >-
+      The preview of a bulk edit no longer matches the data and must be repeated.
+  - const: /problems/transactions.bulk-scope-changed
+    description: >-
+      The set of transactions selected by a bulk edit changed since its preview.
+  - const: /problems/transactions.bulk-scope-too-large
+    description: >-
+      A bulk edit selects more transactions than one operation may change.
+  - const: /problems/transactions.cursor_stale
+    description: >-
+      The pagination cursor no longer matches the data, so the list must be reloaded from its first page.
+  - const: /problems/transfer.amount_mismatch
+    description: >-
+      The two legs of a transfer do not carry matching amounts.
+  - const: /problems/transfer.same_account
+    description: >-
+      The two legs of a transfer name the same account.
+  - const: /problems/unknown-instrument
+    description: >-
+      The request names an unknown instrument.
+  - const: /problems/unknown-leg-instrument
+    description: >-
+      The request names an unknown leg instrument.
+  - const: /problems/unknown-policy-version
+    description: >-
+      The metric policy version does not exist.
+  - const: /problems/unknown-valuation-instrument
+    description: >-
+      The request names an unknown valuation instrument.
+  - const: /problems/unknown_goal_reference
+    description: >-
+      The request names an unknown goal reference.
+  - const: /problems/unsupported-instrument-currency
+    description: >-
+      The request uses an unsupported instrument currency.
+  - const: /problems/unsupported-operation-type
+    description: >-
+      The request uses an unsupported operation type.
+  - const: /problems/unsupported_goal_currency
+    description: >-
+      The request uses an unsupported goal currency.
+  - const: /problems/valuation-conflict
+    description: >-
+      The valuation of the portfolio account was changed concurrently.
+  - const: /problems/valuation-exists
+    description: >-
+      The request is refused because of a business rule: valuation exists.
+  - const: /problems/valuation-field-not-allowed
+    description: >-
+      The request is refused because of a business rule: valuation field not allowed.
+  - const: /problems/valuation-limit-reached
+    description: >-
+      The request exceeds a size or count limit: valuation limit reached.
+  - const: /problems/valuation-price-entry-missing
+    description: >-
+      The request is refused because of a business rule: valuation price entry missing.
+  - const: /problems/weak-password
+    description: >-
+      The new password is outside the accepted length.

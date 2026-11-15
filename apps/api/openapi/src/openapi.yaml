@@ -1262,6 +1262,8 @@ components:
       $ref: components/schemas/ActivateMetricPolicyRequest.yaml
     MetricPolicyProblem:
       $ref: components/schemas/MetricPolicyProblem.yaml
+    ProblemType:
+      $ref: components/schemas/ProblemType.yaml
     Problem:
       $ref: components/schemas/Problem.yaml
     AccountGroupInputProblem:

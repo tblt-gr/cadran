@@ -9,8 +9,7 @@ required:
   - detail
 properties:
   type:
-    type: string
-    format: uri-reference
+    $ref: ./ProblemType.yaml
   title:
     type: string
   status:

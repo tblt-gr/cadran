@@ -22,5 +22,5 @@ return (new Configuration())
     // polyfill-iconv replacement in composer.json relies on the native extension.
     ->ignoreErrorsOnExtension('ext-bcmath', [ErrorType::UNUSED_DEPENDENCY])
     ->ignoreErrorsOnExtension('ext-iconv', [ErrorType::UNUSED_DEPENDENCY])
-    // Always compiled into the PHP image; only the migration convention test tokenizes PHP source.
+    // Always compiled into the PHP image; only the contract and convention tests tokenize PHP source.
     ->ignoreErrorsOnExtension('ext-tokenizer', [ErrorType::SHADOW_DEPENDENCY]);

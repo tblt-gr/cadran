@@ -6,7 +6,7 @@ import {
   categorizationRuleRequestError,
 } from './categorizationRuleError';
 
-function problem(type: string, status = 422): Problem {
+function problem(type: Problem['type'], status = 422): Problem {
   return { detail: 'Rejected.', status, title: 'Rejected', type };
 }
 
@@ -21,7 +21,7 @@ describe('categorizationRuleRequestError', () => {
   });
 
   it('still maps a generic 422 problem to invalid', () => {
-    const error = new CategorizationRuleRequestError(422, problem('/problems/validation'));
+    const error = new CategorizationRuleRequestError(422, problem('about:blank'));
 
     expect(error.kind).toBe('invalid');
   });
