@@ -1,0 +1,38 @@
+# Files allowed above their size threshold (PHP 300 lines, React component 250 lines).
+# Format: <ceiling> <path> <reason>. Sorted by path. A file may not grow past its ceiling
+# and must be removed from this list once it is back under the threshold.
+465 apps/api/src/Module/Accounts/Domain/Account.php entity invariants kept together
+338 apps/api/src/Module/Accounts/Domain/AccountRules.php rule set kept together, one responsibility
+303 apps/api/src/Module/Accounts/Domain/ProductModel.php entity invariants kept together
+431 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalAccountRepository.php exhaustive row mapping, one responsibility
+369 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalProductModelRepository.php exhaustive row mapping, one responsibility
+329 apps/api/src/Module/Accounts/UI/Http/AccountController.php split pending
+339 apps/api/src/Module/Accounts/UI/Http/ProductModelController.php split pending
+335 apps/api/src/Module/Budget/Application/Goals/ListGoalEvaluations.php split pending
+376 apps/api/src/Module/Budget/UI/Http/GoalController.php split pending
+316 apps/api/src/Module/Categories/Application/AssessCategoryImpact.php split pending
+324 apps/api/src/Module/Categories/Infrastructure/Persistence/DbalCategoryRepository.php exhaustive row mapping, one responsibility
+465 apps/api/src/Module/Demo/Application/SeedDemoData.php demo fixture data, one responsibility
+338 apps/api/src/Module/Identity/UI/Console/SetupIdentityCommand.php split pending
+370 apps/api/src/Module/Portfolio/Application/HoldingsAggregator.php split pending
+308 apps/api/src/Module/Portfolio/Infrastructure/Persistence/DbalPortfolioOperationRepository.php exhaustive row mapping, one responsibility
+380 apps/api/src/Module/Transactions/Domain/Transaction.php entity invariants kept together
+481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
+337 apps/api/src/Module/Transactions/UI/Http/RecurrenceController.php split pending
+343 apps/web/src/AuthenticatedApp.routes.tsx route table
+321 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility
+293 apps/web/src/features/accounts/account-form/AccountForm.tsx split pending
+274 apps/web/src/features/accounts/account-list/AccountList.tsx split pending
+299 apps/web/src/features/accounts/groups/AccountGroupsPage.tsx split pending
+278 apps/web/src/features/accounts/record-balance-form/RecordBalanceForm.tsx split pending
+302 apps/web/src/features/budget/monthly-budget/monthly-recap/totals-card/TotalsCard.tsx split pending
+263 apps/web/src/features/categories/CategoryPage.tsx split pending
+264 apps/web/src/features/dashboard/allocation-charts/AllocationCharts.tsx split pending
+271 apps/web/src/features/goals/emergency-fund/EmergencyFundPolicyForm.tsx split pending
+339 apps/web/src/features/product-models/ProductModelsPage.tsx split pending
+298 apps/web/src/features/recurrences/recurrence-form/RecurrenceForm.tsx split pending
+262 apps/web/src/features/reports/annual/ColumnPickerModal.tsx split pending
+457 apps/web/src/features/reports/multi-year/ContinuousDetailedReport.tsx split pending
+260 apps/web/src/features/transactions/transaction-filters/filter-panel/FilterPanel.tsx split pending
+264 apps/web/src/features/transactions/transaction-form/main-fields/TransactionMainFields.tsx split pending
+280 apps/web/src/features/transactions/transfer-editor/TransferForm.tsx split pending
