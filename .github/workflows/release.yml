@@ -12,10 +12,25 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     permissions:
       checks: read
       contents: write
+    services:
+      # Same image as docker/postgres/Dockerfile (and compose.yaml), pinned by digest.
+      postgres:
+        image: postgres:18.6-alpine3.23@sha256:885cf05d376c7cf27afef02073e6bdac3841252537f16e244fd1c1e6a7c99fb1
+        env:
+          POSTGRES_USER: cadran
+          POSTGRES_PASSWORD: cadran
+          POSTGRES_DB: cadran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cadran -d cadran"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -49,8 +64,53 @@ jobs:
             echo "CI gate did not succeed for the release commit" >&2
             exit 1
           fi
+      # The SBOM is generated before any install so it lists the lockfiles, not node_modules.
+      - name: Generate the SBOM
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: cadran-${{ github.ref_name }}-sbom.cdx.json
+          exit-code: '0'
+      - uses: pnpm/action-setup@8912a9102ac27614460f54aedde9e1e7f9aec20d # v6
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, pdo_pgsql
+          coverage: none
+          tools: composer:2.9.8
+      - name: Install production dependencies
+        run: |
+          pnpm install --frozen-lockfile --ignore-scripts
+          composer install --working-dir=apps/api --no-dev --no-interaction --no-progress --prefer-dist --no-scripts
+      - name: Check and export the license report
+        env:
+          TAG: ${{ github.ref_name }}
+        run: sh scripts/ci/check-licenses.sh "cadran-$TAG-licenses.json"
+      - name: Dump the schema of a database migrated from empty
+        env:
+          TAG: ${{ github.ref_name }}
+          APP_RUNTIME_OPTIONS: '{"disable_dotenv":true}'
+          APP_ENV: prod
+          APP_SECRET: release-schema-only
+          DATABASE_URL: postgresql://cadran:cadran@127.0.0.1:5432/cadran?serverVersion=18&charset=utf8
+        run: |
+          php apps/api/bin/console doctrine:migrations:migrate --no-interaction
+          # pg_dump from the same server image so the dump matches the migrated version.
+          docker run --rm --network host --env PGPASSWORD=cadran \
+            postgres:18.6-alpine3.23@sha256:885cf05d376c7cf27afef02073e6bdac3841252537f16e244fd1c1e6a7c99fb1 \
+            pg_dump --schema-only --no-owner --no-privileges --host 127.0.0.1 --username cadran cadran \
+            > "cadran-$TAG-schema.sql"
+          test -s "cadran-$TAG-schema.sql"
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ github.ref_name }}
-        run: gh release create "$TAG" --title "$TAG" --generate-notes
+        run: |
+          gh release create "$TAG" --title "$TAG" --generate-notes \
+            "cadran-$TAG-sbom.cdx.json" "cadran-$TAG-licenses.json" "cadran-$TAG-schema.sql"
