@@ -139,13 +139,15 @@ warning to enter your password.
 Initialization copies [.env.example](./.env.example) to the private `.env.local` once. Edit that
 local file for runtime settings; generated secrets stay in `var/docker-secrets/`.
 
-| Variable               | Default     | Purpose                                                                           |
-| ---------------------- | ----------- | --------------------------------------------------------------------------------- |
-| `COMPOSE_PROJECT_NAME` | `cadran`    | Keep the project name aligned with fixed container, network and volume names.     |
-| `CADRAN_HTTPS_BIND`    | `127.0.0.1` | Host bind address; expose only to a trusted private LAN or VPN after owner setup. |
-| `CADRAN_HTTPS_PORT`    | `8443`      | Published HTTPS port.                                                             |
-| `CADRAN_SERVER_NAME`   | `localhost` | Resolvable host name used by HTTPS and absolute URLs.                             |
-| `CADRAN_BACKUP_DIR`    | `./backups` | Optional external backup directory; create it first with private permissions.     |
+| Variable               | Default     | Purpose                                                                              |
+| ---------------------- | ----------- | ------------------------------------------------------------------------------------ |
+| `COMPOSE_PROJECT_NAME` | `cadran`    | Keep the project name aligned with fixed container, network and volume names.        |
+| `CADRAN_HTTPS_BIND`    | `127.0.0.1` | Host bind address; expose only to a trusted private LAN or VPN after owner setup.    |
+| `CADRAN_HTTPS_PORT`    | `8443`      | Published HTTPS port.                                                                |
+| `CADRAN_SERVER_NAME`   | `localhost` | Resolvable host name used by HTTPS and absolute URLs.                                |
+| `CADRAN_BACKUP_DIR`    | `./backups` | Optional external backup directory; create it first with private permissions.        |
+| `CADRAN_APP_MEMORY`    | `512m`      | Optional app container memory limit (Compose size, minimum recommended `384m`).      |
+| `CADRAN_DB_MEMORY`     | `1g`        | Optional database container memory limit (Compose size, minimum recommended `512m`). |
 
 `CADRAN_VERSION` is derived from the package version. The application and database secrets are
 generated, never copied from example values. `FILE`, `IDENTITY`, `LABEL`, `CONFIRM`, `VERSION`,
