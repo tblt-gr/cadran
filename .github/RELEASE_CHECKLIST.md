@@ -95,6 +95,8 @@ against a developer's live installation.
 - [ ] On the release page, check that `cadran-<tag>-sbom.cdx.json` (CycloneDX, Composer and pnpm
       lockfiles), `cadran-<tag>-licenses.json` (no violation) and `cadran-<tag>-schema.sql`
       (schema only, no data) are attached and not empty.
+- [ ] Review every `.trivyignore` entry whose `# review:` date has passed; delete the entries Debian
+      has fixed.
 - [ ] After merging and successful CI, create the signed annotated matching version tag using
       the CONTRIBUTING procedure, then record the successful release workflow and artifacts.
 
