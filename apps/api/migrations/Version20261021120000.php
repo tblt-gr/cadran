@@ -11,7 +11,7 @@ final class Version20261021120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Preserve existing active-root chart palette assignments and add optional group colors.';
+        return '[data] Preserve existing active-root chart palette assignments and add optional group colors.';
     }
 
     public function up(Schema $schema): void

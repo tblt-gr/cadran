@@ -11,7 +11,7 @@ final class Version20261022120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Persist the order of accounts inside each primary group, with one concurrency version per group.';
+        return '[data] Persist the order of accounts inside each primary group, with one concurrency version per group.';
     }
 
     public function up(Schema $schema): void

@@ -21,4 +21,6 @@ return (new Configuration())
     // PHP extensions required at runtime without a direct call: brick/math picks BCMath when present, and the
     // polyfill-iconv replacement in composer.json relies on the native extension.
     ->ignoreErrorsOnExtension('ext-bcmath', [ErrorType::UNUSED_DEPENDENCY])
-    ->ignoreErrorsOnExtension('ext-iconv', [ErrorType::UNUSED_DEPENDENCY]);
+    ->ignoreErrorsOnExtension('ext-iconv', [ErrorType::UNUSED_DEPENDENCY])
+    // Always compiled into the PHP image; only the migration convention test tokenizes PHP source.
+    ->ignoreErrorsOnExtension('ext-tokenizer', [ErrorType::SHADOW_DEPENDENCY]);

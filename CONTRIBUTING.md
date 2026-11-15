@@ -120,6 +120,12 @@ OpenAPI and generated-client drift check, a production build of both application
 and npm audits, and a Trivy scan of the runtime images. The aggregate `CI gate` status is the
 one branch protection requires.
 
+Migrations live in `apps/api/migrations`. A migration whose `up()` issues `INSERT`, `UPDATE` or
+`DELETE` statements (including `WITH ... UPDATE` and `WITH ... INSERT`) rewrites rows and must
+return a `getDescription()` starting with `[data]` followed by a space, so an operator can spot it before an
+upgrade. A schema-only migration never carries that prefix. `MigrationConventionTest` enforces
+both rules and names the offending file.
+
 ## Size thresholds
 
 A PHP class over 300 lines or a React component over 250 lines triggers a responsibility review.

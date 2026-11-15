@@ -11,7 +11,7 @@ final class Version20260916120000 extends AbstractMigration
 {
     public function getDescription(): string
     {
-        return 'Links refund movements to their original expense without rewriting either transaction.';
+        return '[data] Links refund movements to their original expense without rewriting either transaction.';
     }
 
     public function up(Schema $schema): void
