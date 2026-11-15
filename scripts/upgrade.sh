@@ -1,6 +1,6 @@
 #!/bin/sh
 # Safe upgrade and rollback of an installation (OPS-003). Called by make:
-#   upgrade   make upgrade VERSION=vX.Y.Z IDENTITY=<age identity> [FROM=vX.Y.Z]
+#   upgrade   make upgrade VERSION=vX.Y.Z IDENTITY=<age identity> [FROM=vX.Y.Z] [MAINTENANCE=1]
 #   rollback  make rollback IDENTITY=<age identity>
 #   precheck  the refusals of upgrade only; no change, no Docker beyond the
 #             read-only query of the running version
@@ -15,7 +15,7 @@
 #      after git pull on main), VERSION not newer than the running version
 #      (numeric X.Y.Z; the running version is the one reported by the running
 #      container when the stack is up and not "unknown", else package.json, and
-#      FROM when it is given);
+#      FROM when it is given); MAINTENANCE accepts only 1 or empty;
 #   2. make db-backup LABEL=pre-upgrade, check the three backup files, then
 #      make db-backup-verify (restore into an isolated database): no later step
 #      runs without a verified backup;
@@ -25,11 +25,19 @@
 #      image never runs on a newer schema. An interruption (INT, TERM, HUP)
 #      after step 3 prints the rollback command like any failure;
 #   5. record finishedAt.
-# The backup is taken while the application still serves requests: whatever is
-# written between the backup and the stop of the app in step 4 is not in the
-# pre-upgrade backup. A rollback keeps it: the restore first takes a pre-restore
-# backup of the live database and the replaced database stays as
-# cadran_previous_* until make db-restore-cleanup.
+# By default the backup is taken while the application still serves requests:
+# whatever is written between the backup and the stop of the app in step 4 is not
+# in the pre-upgrade backup. With MAINTENANCE=1 the order becomes: refusals, stop
+# the app, backup, verification, state file, checkout, build, migrate, start. The
+# backup is then the exact state before the upgrade, at the price of downtime from
+# the stop until the new version is healthy. If a step fails before the migration
+# (backup, verification, state file, checkout, build) or the run is interrupted,
+# the previous version is checked out again if needed and started, and the script
+# exits non-zero. From the migration on, the app is never restarted
+# automatically: the printed rollback command applies. A rollback keeps the
+# pre-upgrade backup: the restore first takes a pre-restore backup of the live
+# database and the replaced database stays as cadran_previous_* until make
+# db-restore-cleanup.
 # One upgrade or rollback at a time: var/upgrade/lock (a directory) is the lock;
 # remove it by hand only after a killed run.
 #
@@ -71,6 +79,28 @@ git() {
 }
 
 lock_held=0
+restart_on_exit=0
+
+# Maintenance mode only: the app was stopped on purpose and no migration has run
+# yet, so the previous version can safely serve again.
+restart_previous_version() {
+    restart_on_exit=0
+    printf 'upgrade: starting the previous version again\n' >&2
+    if [ "$(git rev-parse HEAD 2> /dev/null)" != "$from_commit" ]; then
+        git checkout --quiet --detach "$from_commit" ||
+            printf 'upgrade: could not check out the previous version; the application stays stopped\n' >&2
+    fi
+    export_version
+    compose up --detach --wait app > /dev/null ||
+        printf 'upgrade: the previous version did not start: run make up from this checkout\n' >&2
+}
+
+exit_cleanup() {
+    if [ "$restart_on_exit" -eq 1 ]; then
+        restart_previous_version
+    fi
+    release_lock
+}
 
 release_lock() {
     if [ "$lock_held" -eq 1 ]; then
@@ -88,7 +118,7 @@ acquire_lock() {
     mkdir "$state_dir/lock" 2> /dev/null ||
         die 'another upgrade or rollback is already running (after a killed run, remove var/upgrade/lock)'
     lock_held=1
-    trap release_lock EXIT
+    trap exit_cleanup EXIT
 }
 
 now() {
@@ -162,6 +192,10 @@ require_clean_tree() {
 
 # Sets target_commit, from, from_commit and running.
 precheck() {
+    case ${MAINTENANCE:-} in
+        1 | '') ;;
+        *) die 'MAINTENANCE accepts only 1 or empty' ;;
+    esac
     version=${VERSION:-}
     case $version in
         *"$newline"*) die 'VERSION must look like vX.Y.Z, for example v1.0.0' ;;
@@ -335,6 +369,12 @@ upgrade() {
     acquire_lock
     printf 'Upgrading from %s (version %s) to %s\n' "$from" "$running" "$version"
 
+    if [ "${MAINTENANCE:-}" = 1 ]; then
+        printf 'Maintenance: stopping the application before the backup\n'
+        restart_on_exit=1
+        trap 'die interrupted' INT TERM HUP
+        compose stop app || die 'could not stop the application: nothing was changed'
+    fi
     printf 'Step 1/4: pre-upgrade backup\n'
     take_pre_upgrade_backup
 
@@ -355,7 +395,11 @@ upgrade() {
     export_version
     printf 'Step 3/4: build and migration\n'
     guard 'image build' compose build
-    guard 'stopping the application' compose stop app
+    if [ "${MAINTENANCE:-}" = 1 ]; then
+        restart_on_exit=0
+    else
+        guard 'stopping the application' compose stop app
+    fi
     guard 'database migration' make --no-print-directory migrate
     printf 'Step 4/4: start and health check\n'
     guard 'starting the application' compose up --detach --wait
