@@ -178,4 +178,48 @@ describe('AuthGate', () => {
     expect(window.location.pathname).toBe('/connexion');
     expect(screen.queryByRole('button', { name: 'Se déconnecter' })).toBeNull();
   });
+
+  it('keeps the return URL and clears other queries when the session ends while open', async () => {
+    window.history.replaceState(null, '', '/transactions?month=2026-03#top');
+    let authenticated = true;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              provisioned: true,
+              authenticated,
+              setupRequired: false,
+              user: authenticated
+                ? { id: 'u1', email: 'owner@example.test', displayName: 'Owner' }
+                : null,
+              workspace: authenticated
+                ? { id: 'w1', role: 'OWNER', timeZone: 'Europe/Paris', baseCurrency: 'EUR' }
+                : null,
+            }),
+            { status: 200, headers: { 'Content-Type': 'application/json' } },
+          ),
+      ),
+    );
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AuthGate>
+          <p>Espace authentifié</p>
+        </AuthGate>
+      </QueryClientProvider>,
+    );
+    expect(await screen.findByText('Espace authentifié')).toBeTruthy();
+    queryClient.setQueryData(['transactions'], { items: [] });
+
+    authenticated = false;
+    await queryClient.invalidateQueries({ queryKey: ['session'] });
+
+    expect(await screen.findByRole('heading', { name: 'Connexion' })).toBeTruthy();
+    expect(window.location.pathname).toBe('/connexion');
+    expect(window.history.state).toEqual({ returnTo: '/transactions?month=2026-03#top' });
+    expect(queryClient.getQueryData(['transactions'])).toBeUndefined();
+    expect(queryClient.getQueryData(['session'])).toBeDefined();
+  });
 });

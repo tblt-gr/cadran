@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/generated/index.ts"
+    ".": "./src/generated/index.ts",
+    "./client": "./src/generated/client.gen.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
