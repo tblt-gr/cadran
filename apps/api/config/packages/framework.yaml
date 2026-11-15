@@ -20,6 +20,9 @@ framework:
     cookie_secure: true
     cookie_lifetime: 0 # cookie dies with the browser session
     gc_maxlifetime: 1209600 # 14-day idle ceiling on the server side
+    # Expired sessions are purged by this garbage collection (about 1 request in 100).
+    gc_probability: 1
+    gc_divisor: 100
     handler_id: Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
 
   #esi: true
