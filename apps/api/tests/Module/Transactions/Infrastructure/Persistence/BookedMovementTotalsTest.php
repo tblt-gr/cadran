@@ -7,7 +7,7 @@ namespace App\Tests\Module\Transactions\Infrastructure\Persistence;
 use App\Module\Accounts\Application\NetWorthScopeTooLarge;
 use App\Module\Accounts\Domain\MovementWindow;
 use App\Module\Foundation\Domain\AssetCode;
-use App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository;
+use App\Module\Transactions\Infrastructure\Persistence\DbalBookedMovementTotals;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -58,7 +58,7 @@ final class BookedMovementTotalsTest extends KernelTestCase
             $this->seedTransaction($id, WorkspaceFixture::OWN_WORKSPACE, self::OWN_ACCOUNT, $amount, 'ADJUSTMENT', $state, $day);
         }
         $this->seedTransaction('e1', WorkspaceFixture::OTHER_WORKSPACE, self::OTHER_ACCOUNT, '9000.00', 'INCOME', 'BOOKED', '2026-10-03');
-        $repo = new DbalTransactionRepository($this->connection);
+        $repo = new DbalBookedMovementTotals($this->connection);
         $window = $this->window();
         $foreignWindow = $this->window(self::OTHER_ACCOUNT);
         $totals = $repo->forWindows(WorkspaceFixture::own(), [$window, $foreignWindow]);
@@ -84,14 +84,14 @@ final class BookedMovementTotalsTest extends KernelTestCase
         $this->seedTransaction('03', WorkspaceFixture::OWN_WORKSPACE, self::OWN_ACCOUNT, '999.00', 'ADJUSTMENT', 'BOOKED', '2026-10-03');
         $this->connection->update('transaction_transactions', ['voided_at' => '2026-10-04', 'state' => 'VOIDED'], ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'id' => '00000000-0000-7000-8000-000000000a03']);
         $window = $this->window();
-        $total = (new DbalTransactionRepository($this->connection))->forWindows(WorkspaceFixture::own(), [$window])[$window->key()];
+        $total = (new DbalBookedMovementTotals($this->connection))->forWindows(WorkspaceFixture::own(), [$window])[$window->key()];
         self::assertSame('0.000000000000000000000003', $total->total?->toString());
         self::assertSame(2, $total->bookedCount);
     }
 
     public function testEmptyBatchAndWindowAreExplicitAndOversizedBatchIsRejected(): void
     {
-        $repo = new DbalTransactionRepository($this->connection);
+        $repo = new DbalBookedMovementTotals($this->connection);
         self::assertSame([], $repo->forWindows(WorkspaceFixture::own(), []));
         $window = $this->window();
         $empty = $repo->forWindows(WorkspaceFixture::own(), [$window])[$window->key()];

@@ -34,7 +34,7 @@ services:
     alias: App\Module\Foundation\Infrastructure\Persistence\DbalListRevisionRepository
 
   App\Module\Categories\Application\CategoryClassificationCounter:
-    alias: App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository
+    alias: App\Module\Transactions\Infrastructure\Persistence\DbalCategoryClassificationCounter
 
   App\Module\Demo\Application\DemoActor:
     alias: App\Module\Demo\Infrastructure\TokenDemoActor
@@ -79,4 +79,4 @@ services:
       - '%env(APP_SECRET)%'
 
   App\Module\Accounts\Application\BookedMovementTotals:
-    alias: App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository
+    alias: App\Module\Transactions\Infrastructure\Persistence\DbalBookedMovementTotals
