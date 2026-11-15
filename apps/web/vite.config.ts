@@ -23,5 +23,18 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],
+    // Only active with --coverage (CI); plain `vitest run` stays driver-free.
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'cobertura', 'html'],
+      reportsDirectory: 'coverage',
+      include: ['src/**'],
+      exclude: [
+        'src/**/*.spec.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/**/*[Ff]ixture*.{ts,tsx}',
+        'src/test-setup.ts',
+      ],
+    },
   },
 });
