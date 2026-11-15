@@ -53,7 +53,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm quality
-      - run: pnpm test
+      - run: pnpm generate:api
+      - name: Frontend tests with coverage
+        run: pnpm --filter @cadran/web exec vitest run --coverage
+      - name: Summarize the frontend line coverage
+        run: |
+          pct=$(grep -o 'line-rate="[0-9.]*"' apps/web/coverage/cobertura-coverage.xml | head -1 | grep -o '[0-9.]*')
+          awk -v r="$pct" 'BEGIN { printf "### Frontend coverage\n\nLine coverage: %.2f%%\n", r * 100 }' >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the frontend coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-web
+          path: apps/web/coverage/
+          if-no-files-found: error
+          retention-days: 14
+      - run: pnpm --filter @cadran/api-client --if-present test
       - run: pnpm lint:infrastructure
 
   backend:
@@ -97,7 +111,7 @@ jobs:
         with:
           php-version: '8.5'
           extensions: ctype, iconv, pdo_pgsql
-          coverage: none
+          coverage: pcov
           tools: composer:2.9.8
       - name: Install Composer dependencies
         run: composer install --working-dir=apps/api --no-interaction --no-progress --prefer-dist --no-scripts
@@ -119,8 +133,19 @@ jobs:
         run: |
           php apps/api/bin/console doctrine:database:create --env=test --if-not-exists --no-interaction
           php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
-      - name: Tests
-        run: composer test --working-dir=apps/api
+      - name: Tests with coverage
+        working-directory: apps/api
+        run: php bin/phpunit --coverage-cobertura=var/coverage/cobertura.xml --coverage-text=var/coverage/coverage.txt
+      - name: Summarize the backend line coverage
+        run: |
+          awk '/^ *Lines:/ { print "### Backend coverage\n\nLine coverage: " $2 }' apps/api/var/coverage/coverage.txt >> "$GITHUB_STEP_SUMMARY"
+      - name: Upload the backend coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-api
+          path: apps/api/var/coverage/
+          if-no-files-found: error
+          retention-days: 14
 
   backup-restore:
     name: Encrypted backup and retention
