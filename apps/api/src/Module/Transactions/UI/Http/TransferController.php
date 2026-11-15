@@ -4,22 +4,13 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\CreateTransfer;
 use App\Module\Transactions\Application\CreateTransferInput;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidTransferInput;
-use App\Module\Transactions\Application\InvalidTransferRule;
-use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\ReadTransfer;
-use App\Module\Transactions\Application\StaleTransferVersion;
-use App\Module\Transactions\Application\TransferConflict;
-use App\Module\Transactions\Application\TransferNotFound;
-use App\Module\Transactions\Application\TransferPortfolioSyncRefused;
 use App\Module\Transactions\Application\UpdateTransfer;
 use App\Module\Transactions\Application\UpdateTransferInput;
 use App\Module\Transactions\Application\VoidTransfer;
@@ -39,6 +30,7 @@ final readonly class TransferController
 
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private IdempotentExecution $idempotentExecution,
     ) {
     }
@@ -74,22 +66,8 @@ final readonly class TransferController
                     return new IdempotentResponse(TransferRepresentation::one($transfer), Response::HTTP_CREATED, $transfer->id, [$transfer->source->bookedOn]);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (InvalidTransferRule $exception) {
-            return $this->envelope->invalidTransferRuleProblem($exception);
-        } catch (PortfolioAccountRequiresOperations $exception) {
-            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
-        } catch (InvalidTransferInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transfer');
-        } catch (TransferNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
-        } catch (TransferPortfolioSyncRefused $exception) {
-            return $this->envelope->problemWithExtensions(Response::HTTP_CONFLICT, 'api.problem.transfer_portfolio_sync_refused', ['reason' => $exception->reason], TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (TransferConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transfer_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransferProblems::rules());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -104,10 +82,8 @@ final readonly class TransferController
 
         try {
             $transfer = $readTransfer($id);
-        } catch (TransferNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transfer_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransferProblems::rules());
         }
 
         return $this->envelope->json(TransferRepresentation::one($transfer));
@@ -137,22 +113,8 @@ final readonly class TransferController
                 fee: $payload->nullableAmount('fee'),
                 version: $payload->integer('version'),
             ));
-        } catch (InvalidTransferRule $exception) {
-            return $this->envelope->invalidTransferRuleProblem($exception);
-        } catch (PortfolioAccountRequiresOperations $exception) {
-            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
-        } catch (InvalidTransferInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transfer');
-        } catch (TransferNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
-        } catch (StaleTransferVersion) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (TransferPortfolioSyncRefused $exception) {
-            return $this->envelope->problemWithExtensions(Response::HTTP_CONFLICT, 'api.problem.transfer_portfolio_sync_refused', ['reason' => $exception->reason], TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (TransferConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transfer_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransferProblems::rules());
         }
 
         return $this->envelope->json(TransferRepresentation::one($transfer));
@@ -172,18 +134,8 @@ final readonly class TransferController
         try {
             $payload = TransferPayload::of($body, ['version']);
             $transfer = $voidTransfer($id, $payload->integer('version'));
-        } catch (InvalidTransferInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transfer');
-        } catch (TransferNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transfer_not_found');
-        } catch (StaleTransferVersion) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (TransferPortfolioSyncRefused $exception) {
-            return $this->envelope->problemWithExtensions(Response::HTTP_CONFLICT, 'api.problem.transfer_portfolio_sync_refused', ['reason' => $exception->reason], TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (TransferConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transfer_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transfer_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransferProblems::rules());
         }
 
         return $this->envelope->json(TransferRepresentation::one($transfer));

@@ -4,25 +4,17 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use App\Module\Portfolio\Application\CashRangeTooDense;
-use App\Module\Portfolio\Application\CashRangeTooLarge;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Portfolio\Application\InvalidCashQuery;
 use App\Module\Portfolio\Application\InvalidPositionQuery;
-use App\Module\Portfolio\Application\PortfolioAccountNotFound;
-use App\Module\Portfolio\Application\PortfolioInstrumentNotFound;
 use App\Module\Portfolio\Application\ReadPortfolioCash;
 use App\Module\Portfolio\Application\ReadPortfolioLots;
 use App\Module\Portfolio\Application\ReadPortfolioPositions;
 use App\Module\Portfolio\Application\ReorderPortfolioOperations;
-use App\Module\Portfolio\Application\StalePortfolioOperationOrder;
-use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
-use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
-use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -32,7 +24,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 final readonly class PortfolioPositionController
 {
     /** 10 000 UUIDs plus JSON structure, bounded with room for insignificant whitespace. */
-    public function __construct(private TranslatorInterface $translator, private JsonRequestEnvelope $requestEnvelope)
+    public function __construct(private TranslatorInterface $translator, private JsonRequestEnvelope $requestEnvelope, private ProblemMapper $problems)
     {
     }
 
@@ -52,7 +44,7 @@ final readonly class PortfolioPositionController
             };
             $view = $read($accountId, $asOf, $includeClosed);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
         return self::json(['asOf' => $view->asOf, 'valuedOn' => $view->valuedOn, 'items' => $view->items]);
@@ -68,7 +60,7 @@ final readonly class PortfolioPositionController
             $query = $request->query->all();
             $view = $read($accountId, self::cashScalar($query, 'from'), self::cashScalar($query, 'to'));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
         return self::json(PortfolioCashRepresentation::of($view));
@@ -86,7 +78,7 @@ final readonly class PortfolioPositionController
         try {
             $view = $read($accountId, $instrumentId, self::scalar($request->query->all(), 'asOf'));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
         return self::json([
@@ -122,28 +114,10 @@ final readonly class PortfolioPositionController
             }
             $view = $reorder($accountId, $fields['tradeDate'], $ids);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
         return self::json(['tradeDate' => $view->tradeDate, 'operationIds' => $view->operationIds]);
-    }
-
-    private function failure(\Throwable $exception): Response
-    {
-        return match (true) {
-            $exception instanceof PositionReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
-            $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
-            $exception instanceof InvalidCashQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_cash_query'),
-            $exception instanceof CashRangeTooLarge => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_range_too_large'),
-            $exception instanceof CashRangeTooDense => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_range_too_dense'),
-            $exception instanceof CashReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_amount_too_large'),
-            $exception instanceof InvalidPositionQuery => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_position_query'),
-            $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found'),
-            $exception instanceof PortfolioInstrumentNotFound => $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_instrument_not_found'),
-            $exception instanceof StalePortfolioOperationOrder => $this->problem(Response::HTTP_CONFLICT, 'stale_operation_order'),
-            $exception instanceof WorkspaceAccessDenied => $this->problem(Response::HTTP_FORBIDDEN, 'portfolio_forbidden'),
-            default => throw $exception,
-        };
     }
 
     /** @return array<mixed>|Response */

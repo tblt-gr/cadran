@@ -4,25 +4,15 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use App\Module\Portfolio\Application\PortfolioAccountNotFound;
-use App\Module\Portfolio\Application\PortfolioOperationConflict;
-use App\Module\Portfolio\Application\Takeover\InvalidPortfolioTakeover;
-use App\Module\Portfolio\Application\Takeover\PortfolioTakeoverRefused;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Portfolio\Application\Takeover\PreviewPortfolioTakeover;
 use App\Module\Portfolio\Application\Takeover\ReadPortfolioTakeover;
-use App\Module\Portfolio\Application\Takeover\TakeoverError;
 use App\Module\Portfolio\Application\Takeover\TakeoverInput;
 use App\Module\Portfolio\Application\Takeover\TakeOverPortfolioPositions;
-use App\Module\Portfolio\Application\ValuationConflict;
-use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
-use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
-use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
-use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverBlockReason;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -41,6 +31,7 @@ final readonly class PortfolioTakeoverController
     public function __construct(
         private TranslatorInterface $translator,
         private JsonRequestEnvelope $requestEnvelope,
+        private ProblemMapper $problems,
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -55,7 +46,7 @@ final readonly class PortfolioTakeoverController
         try {
             $state = $read($accountId);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::takeover());
         }
 
         return self::json(PortfolioTakeoverRepresentation::state($state));
@@ -74,7 +65,7 @@ final readonly class PortfolioTakeoverController
         try {
             $result = $preview($accountId, $this->input($body, $accountId, $read));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::takeover());
         }
 
         return self::json(PortfolioTakeoverRepresentation::preview($result));
@@ -104,7 +95,7 @@ final readonly class PortfolioTakeoverController
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->envelope->idempotencyProblem($exception);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::takeover());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -125,35 +116,6 @@ final readonly class PortfolioTakeoverController
 
             throw $exception;
         }
-    }
-
-    private function failure(\Throwable $exception): Response
-    {
-        return match (true) {
-            $exception instanceof InvalidPortfolioTakeover => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_portfolio_takeover', ['errors' => PortfolioTakeoverRepresentation::errors($exception->errors)]),
-            $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_portfolio_takeover', ['errors' => PortfolioTakeoverRepresentation::errors([new TakeoverError(null, 'body', 'invalid_payload')])]),
-            $exception instanceof PortfolioTakeoverRefused => $this->refusal($exception),
-            $exception instanceof PositionReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
-            $exception instanceof CashReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_amount_too_large'),
-            $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
-            $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
-            // A limit is a refusal of the request, any other conflict a concurrent change.
-            $exception instanceof PortfolioOperationConflict && PortfolioOperationConflict::LIMIT_REACHED === $exception->problemCode => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode),
-            $exception instanceof ValuationConflict && ValuationConflict::LIMIT_REACHED === $exception->problemCode => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode),
-            $exception instanceof PortfolioOperationConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),
-            $exception instanceof ValuationConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),
-            $exception instanceof WorkspaceAccessDenied => $this->problem(Response::HTTP_FORBIDDEN, 'portfolio_forbidden'),
-            default => throw $exception,
-        };
-    }
-
-    private function refusal(PortfolioTakeoverRefused $refusal): Response
-    {
-        return match ($refusal->reason) {
-            PortfolioTakeoverBlockReason::NOT_SUPPORTED => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'portfolio_takeover_not_supported'),
-            PortfolioTakeoverBlockReason::ALREADY_TAKEN_OVER => $this->problem(Response::HTTP_CONFLICT, 'portfolio_takeover_exists'),
-            default => $this->problem(Response::HTTP_CONFLICT, 'portfolio_takeover_not_empty', ['blockingReason' => $refusal->reason->value]),
-        };
     }
 
     /** @return array<mixed>|Response */

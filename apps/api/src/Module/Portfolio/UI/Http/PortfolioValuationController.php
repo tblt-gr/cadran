@@ -4,25 +4,19 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Portfolio\Application\BuildValuationDraft;
 use App\Module\Portfolio\Application\InvalidHistoryRange;
 use App\Module\Portfolio\Application\InvalidValuationQuery;
 use App\Module\Portfolio\Application\ListPortfolioValuations;
-use App\Module\Portfolio\Application\PortfolioAccountNotFound;
 use App\Module\Portfolio\Application\ReadPortfolioValuation;
 use App\Module\Portfolio\Application\ReadPortfolioValuationHistory;
 use App\Module\Portfolio\Application\RecordPortfolioValuation;
-use App\Module\Portfolio\Application\ValuationConflict;
-use App\Module\Portfolio\Application\ValuationNotFound;
 use App\Module\Portfolio\Application\WithdrawPortfolioValuation;
-use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
-use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
-use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -42,6 +36,7 @@ final readonly class PortfolioValuationController
     public function __construct(
         private TranslatorInterface $translator,
         private JsonRequestEnvelope $requestEnvelope,
+        private ProblemMapper $problems,
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -57,7 +52,7 @@ final readonly class PortfolioValuationController
             $query = $request->query->all();
             $page = $list($accountId, self::scalar($query, 'from'), self::scalar($query, 'to'), self::scalar($query, 'page'), self::scalar($query, 'pageSize'));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::valuation());
         }
 
         return self::json(ValuationRepresentation::page($page));
@@ -78,7 +73,7 @@ final readonly class PortfolioValuationController
             }
             $history = $read($accountId, self::scalar($query, 'from'), self::scalar($query, 'to'));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::valuation());
         }
 
         return self::json(ValuationRepresentation::history($history));
@@ -93,7 +88,7 @@ final readonly class PortfolioValuationController
         try {
             $draft = $build($accountId, self::scalar($request->query->all(), 'valuedOn'));
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::valuation());
         }
 
         return self::json(ValuationRepresentation::draft($draft));
@@ -123,7 +118,7 @@ final readonly class PortfolioValuationController
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->envelope->idempotencyProblem($exception);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::valuation());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -138,7 +133,7 @@ final readonly class PortfolioValuationController
         try {
             $view = $read($id);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::valuation());
         }
 
         return self::json(ValuationRepresentation::one($view));
@@ -161,27 +156,10 @@ final readonly class PortfolioValuationController
             }
             $view = $withdraw($id, $fields['version']);
         } catch (\Throwable $exception) {
-            return $this->failure($exception);
+            return $this->problems->respond($exception, PortfolioProblems::valuation());
         }
 
         return self::json(ValuationRepresentation::one($view));
-    }
-
-    private function failure(\Throwable $exception): Response
-    {
-        return match (true) {
-            $exception instanceof PositionReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
-            $exception instanceof CashReplayFailed => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'cash_amount_too_large'),
-            $exception instanceof InvalidPortfolioOperation => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode, $exception->extensions),
-            $exception instanceof \UnexpectedValueException => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_valuation_payload'),
-            $exception instanceof InvalidHistoryRange => $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_history_range'),
-            $exception instanceof InvalidValuationQuery => $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_valuation_query'),
-            $exception instanceof PortfolioAccountNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND),
-            $exception instanceof ValuationNotFound => $this->problem(Response::HTTP_NOT_FOUND, self::VALUATION_NOT_FOUND),
-            $exception instanceof ValuationConflict => $this->problem(Response::HTTP_CONFLICT, $exception->problemCode),
-            $exception instanceof WorkspaceAccessDenied => $this->problem(Response::HTTP_FORBIDDEN, 'portfolio_forbidden'),
-            default => throw $exception,
-        };
     }
 
     /** @return array<mixed>|Response */
