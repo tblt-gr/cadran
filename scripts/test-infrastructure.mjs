@@ -231,7 +231,7 @@ if (
   !/is_readable\(\$caFile\)\) \{\s*exit\(1\);/.test(healthcheck) ||
   /verify_peer(_name)?'\s*=>\s*false/.test(healthcheck)
 ) {
-  fail('The app health check must verify the peer against the Caddy local root and fail without it');
+  fail('The app health check must verify the peer against the Caddy local root, or fail');
 }
 
 if (
