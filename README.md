@@ -352,6 +352,18 @@ remains detached at the release commit. If your checkout is not exactly the inst
 tag, additionally pass `FROM=vX.Y.Z` naming the release actually running; the first upgrade from
 0.7.0 requires current upgrade tooling checked out and `FROM=v0.7.0`.
 
+By default the pre-upgrade backup is taken while the application still serves requests, so data
+written between the backup and the stop of the application is not in it. To make the backup the
+exact state before the upgrade, add `MAINTENANCE=1`: the application is stopped first, then backed
+up, restore-verified, migrated and restarted. The application is unavailable from the first step
+until the new version is healthy, typically several minutes. If a step fails before the migration,
+the previous version is started again and the command exits with the reason. `MAINTENANCE` accepts
+only `1` or an empty value.
+
+```bash
+make upgrade VERSION=vX.Y.Z IDENTITY=/secure/offline/backup-identity.txt MAINTENANCE=1
+```
+
 On failure, follow the printed recovery command:
 
 ```bash

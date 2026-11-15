@@ -102,7 +102,7 @@ git clone --quiet "$origin" "$clone"
 
 upgrade() {
     # upgrade <subcommand> [VERSION]: runs the clone's copy, output in $scratch/out
-    (cd "$clone" && VERSION=${2-} IDENTITY=$test_identity FROM=$test_from PATH="$stubs:$PATH" sh scripts/upgrade.sh "$1") > "$scratch/out" 2>&1
+    (cd "$clone" && VERSION=${2-} IDENTITY=$test_identity FROM=$test_from MAINTENANCE=${test_maintenance:-} PATH="$stubs:$PATH" sh scripts/upgrade.sh "$1") > "$scratch/out" 2>&1
 }
 
 at() {
@@ -249,7 +249,7 @@ flow() {
     # flow <subcommand> [VERSION]: runs the clone's copy with the succeeding stubs
     (
         cd "$clone"
-        VERSION=${2-} IDENTITY=$scratch/identity.txt FROM=${flow_from:-} STUB_RUNNING_VERSION=${stub_running:-} \
+        VERSION=${2-} IDENTITY=$scratch/identity.txt FROM=${flow_from:-} MAINTENANCE=${flow_maintenance:-} STUB_RUNNING_VERSION=${stub_running:-} \
             PATH="$flow_stubs:$PATH" STUB_LOG=$flow_log \
             CADRAN_BACKUP_DIR=$backups CADRAN_DB_PASSWORD_FILE=$scratch/db_password \
             sh scripts/upgrade.sh "$1"
@@ -396,6 +396,76 @@ fi
 if grep -qE 'migrate| build | stop app' "$flow_log"; then
     fail 'nothing may run after a backup that does not verify'
 fi
+
+# --- MAINTENANCE=1: the app is stopped first, then backed up, verified, migrated, restarted
+reset_flow
+flow_maintenance=1
+if ! flow upgrade v0.11.0; then
+    fail "a maintenance upgrade failed: $(cat "$scratch/out")"
+fi
+assert_no_leak 'maintenance upgrade'
+assert_before 'maintenance: the app must be stopped before the backup' ' stop app ' "make db-backup head=$previous_short"
+assert_before 'maintenance: the backup must be verified before the checkout' 'make db-backup-verify' ' build head='
+assert_before 'maintenance: the migration must follow the build' ' build ' 'make migrate'
+assert_before 'maintenance: the app must start after the migration' 'make migrate' ' up --detach --wait'
+if [ "$(grep -c ' stop app ' "$flow_log")" -ne 1 ]; then
+    fail 'maintenance: the app must be stopped exactly once'
+fi
+grep -q '"finishedAt": "' "$state" || fail 'a maintenance upgrade must record finishedAt'
+[ "$(git -C "$clone" rev-parse --short HEAD)" = "$target_short" ] || fail 'maintenance: HEAD must be on the installed tag'
+[ ! -d "$clone/var/upgrade/lock" ] || fail 'maintenance: the lock must be released'
+
+# A failure before the migration starts the previous version again.
+for failing in db-backup db-backup-verify; do
+    reset_flow
+    if STUB_FAIL=$failing flow upgrade v0.11.0; then
+        fail "maintenance: a failed $failing must stop the upgrade"
+    fi
+    if grep -qE 'migrate| build ' "$flow_log"; then
+        fail "maintenance: nothing may run after a failed $failing"
+    fi
+    assert_before "maintenance: the app must restart after a failed $failing" ' stop app ' ' up --detach --wait app'
+    [ "$(git -C "$clone" rev-parse --short HEAD)" = "$previous_short" ] || fail "maintenance: HEAD must stay on the previous version after $failing"
+done
+reset_flow
+if STUB_FAIL=build flow upgrade v0.11.0; then
+    fail 'maintenance: a failed build must stop the upgrade'
+fi
+grep -qF 'make rollback IDENTITY=' "$scratch/out" || fail 'maintenance: a failed build must print the rollback command'
+if grep -q 'make migrate' "$flow_log"; then
+    fail 'maintenance: the migration must not run after a failed build'
+fi
+if ! grep -q "docker .* up --detach --wait app head=$previous_short version=0.10.0" "$flow_log"; then
+    fail 'maintenance: after a failed build the previous version must be checked out and started again'
+fi
+[ ! -d "$clone/var/upgrade/lock" ] || fail 'maintenance: the lock must be released after a failure'
+
+# From the migration on the app is not restarted automatically.
+reset_flow
+if STUB_FAIL=migrate flow upgrade v0.11.0; then
+    fail 'maintenance: a failed migration must stop the upgrade'
+fi
+if grep -qE ' up --detach' "$flow_log"; then
+    fail 'maintenance: the app must not restart after a failed migration'
+fi
+grep -qF 'make rollback IDENTITY=' "$scratch/out" || fail 'maintenance: a failed migration must print the rollback command'
+flow_maintenance=
+
+# --- MAINTENANCE accepts only 1 or empty, refused before anything runs --------
+at v0.10.0
+for bad in 0 true yes ' 1' 11; do
+    : > "$calls"
+    test_maintenance=$bad
+    if upgrade precheck v0.11.0; then
+        fail "MAINTENANCE='$bad' was accepted"
+    elif ! grep -qF 'MAINTENANCE accepts only 1 or empty' "$scratch/out"; then
+        fail "MAINTENANCE='$bad': unexpected message: $(cat "$scratch/out")"
+    fi
+    [ ! -s "$calls" ] || fail "MAINTENANCE='$bad': docker or make ran before the refusal"
+done
+test_maintenance=1
+upgrade precheck v0.11.0 || fail "MAINTENANCE=1 must pass the precheck: $(cat "$scratch/out")"
+test_maintenance=
 
 # --- One upgrade or rollback at a time ----------------------------------------
 reset_flow
