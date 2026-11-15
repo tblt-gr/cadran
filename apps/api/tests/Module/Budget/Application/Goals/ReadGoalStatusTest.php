@@ -6,7 +6,9 @@ namespace App\Tests\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Application\ReadAccountReference;
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Budget\Application\Goals\GoalMetricReader;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
+use App\Module\Budget\Application\Goals\GoalPeriodEvaluator;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
@@ -629,15 +631,20 @@ final class ReadGoalStatusTest extends TestCase
         $repository->method('listByGoal')->willReturn($versions);
         $source = new GoalStatusMonthSource($months);
 
+        $metrics = new GoalMetricReader(
+            $source,
+            new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs($transfers ?? new EmptyTransferPairReader())),
+            null === $categories ? null : new ReadBudgetCategoryFacts($categories),
+        );
+
         return new ReadGoalStatus(
             $caller,
             $goals,
             $repository,
-            $source,
-            new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs($transfers ?? new EmptyTransferPairReader())),
+            $metrics,
+            new GoalPeriodEvaluator($metrics),
             self::calendar(),
             null === $categories ? null : new ResolveGoalScope(new ReadCategoryReference($categories), new ReadAccountReference(new InMemoryAccountRepository())),
-            null === $categories ? null : new ReadBudgetCategoryFacts($categories),
         );
     }
 

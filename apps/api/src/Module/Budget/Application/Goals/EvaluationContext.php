@@ -38,9 +38,9 @@ final class EvaluationContext
     }
 
     /** @return list<string> */
-    public function categoryIds(ReadGoalStatus $status, Goal $goal): array
+    public function categoryIds(GoalMetricReader $metrics, Goal $goal): array
     {
-        return $this->branches[$goal->id] ??= $status->categoryBranch($goal, $this->inputs);
+        return $this->branches[$goal->id] ??= $metrics->categoryBranch($goal, $this->inputs);
     }
 
     public function reference(CalendarMonth $month): ReferenceIncomeView

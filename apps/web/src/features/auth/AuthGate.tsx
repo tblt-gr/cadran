@@ -1,11 +1,12 @@
-import { useLayoutEffect, type ReactNode } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AuthLayout } from '@/features/auth/auth-layout/AuthLayout';
 import { loginPath, moveToLoginPath } from '@/features/auth/authPath';
 import { CreatePasswordForm } from '@/features/auth/create-password-form/CreatePasswordForm';
 import { LoginForm } from '@/features/auth/login-form/LoginForm';
 import { SessionProbeSkeleton } from '@/features/auth/session-probe-skeleton/SessionProbeSkeleton';
-import { useSession } from '@/features/auth/useSession';
+import { sessionQueryKey, useSession } from '@/features/auth/useSession';
 import styles from './AuthGate.module.css';
 
 /**
@@ -17,17 +18,27 @@ import styles from './AuthGate.module.css';
 export function AuthGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const session = useSession();
+  const queryClient = useQueryClient();
+  const wasAuthenticated = useRef(false);
   const refetch = () => void session.refetch();
 
   useLayoutEffect(() => {
     if (!session.data?.provisioned || session.data.setupRequired) return;
 
     if (!session.data.authenticated) {
+      if (wasAuthenticated.current) {
+        // The session ended while the app was open: no previous data may stay cached.
+        queryClient.removeQueries({
+          predicate: (query) => query.queryKey[0] !== sessionQueryKey[0],
+        });
+      }
+      wasAuthenticated.current = false;
       moveToLoginPath();
-    } else if (window.location.pathname === loginPath) {
-      window.history.replaceState(null, '', '/');
+    } else {
+      wasAuthenticated.current = true;
+      if (window.location.pathname === loginPath) window.history.replaceState(null, '', '/');
     }
-  }, [session.data]);
+  }, [session.data, queryClient]);
 
   if (session.isPending) {
     if (window.location.pathname === loginPath) {
