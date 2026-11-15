@@ -7,6 +7,8 @@ namespace App\Tests\Module\Identity\Infrastructure\Security\Http;
 use App\Module\Identity\Application\IdentityAuditEvents;
 use App\Module\Identity\Application\SessionAuditIntent;
 use App\Module\Identity\Infrastructure\Security\Http\LoginFailureHandler;
+use Monolog\Handler\TestHandler;
+use Monolog\Logger;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Security\Core\Exception\BadCredentialsException;
@@ -106,8 +108,68 @@ final class LoginFailureHandlerTest extends TestCase
         );
     }
 
+    public function testAThrottledAttemptLogsOneNoticeWithRetryAfterAndAnAnonymizedAddress(): void
+    {
+        $request = self::loginRequest(self::EMAIL);
+        $request->server->set('REMOTE_ADDR', '203.0.113.77');
+
+        $this->handler()->onAuthenticationFailure($request, new TooManyLoginAttemptsAuthenticationException(12));
+
+        self::assertSame([['login_throttled', ['client_ip' => '203.0.113.0', 'retry_after_seconds' => 720]]], $this->logged());
+    }
+
+    public function testADisabledAccountLogsOneNoticeWithOnlyTheAnonymizedAddress(): void
+    {
+        $request = self::loginRequest(self::EMAIL);
+        $request->server->set('REMOTE_ADDR', '2001:db8:1234:5678:9abc:def0:1234:5678');
+
+        $this->handler()->onAuthenticationFailure($request, new CustomUserMessageAccountStatusException('disabled'));
+
+        self::assertSame([['login_refused_disabled', ['client_ip' => '2001:db8:1234::']]], $this->logged());
+    }
+
+    public function testAnyOtherFailureLogsTheSameShapeWhateverTheEmail(): void
+    {
+        $handler = $this->handler();
+        foreach ([self::EMAIL, 'ghost@example.test'] as $email) {
+            $request = self::loginRequest($email);
+            $request->server->set('REMOTE_ADDR', '198.51.100.9');
+            $handler->onAuthenticationFailure($request, new BadCredentialsException());
+        }
+
+        $expected = ['login_failed', ['client_ip' => '198.51.100.0']];
+        self::assertSame([$expected, $expected], $this->logged());
+        self::assertStringNotContainsString('example.test', json_encode($this->logged(), JSON_THROW_ON_ERROR));
+    }
+
+    public function testAnUnknownClientAddressIsLoggedAsNull(): void
+    {
+        $request = new Request();
+        $request->server->remove('REMOTE_ADDR');
+
+        $this->handler()->onAuthenticationFailure($request, new BadCredentialsException());
+
+        self::assertSame([['login_failed', ['client_ip' => null]]], $this->logged());
+    }
+
+    private ?TestHandler $logs = null;
+
+    /** @return list<array{string, array<mixed>}> */
+    private function logged(): array
+    {
+        $records = [];
+        foreach ($this->logs?->getRecords() ?? [] as $record) {
+            self::assertSame('NOTICE', $record->level->getName());
+            $records[] = [$record->message, $record->context];
+        }
+
+        return $records;
+    }
+
     private function handler(): LoginFailureHandler
     {
-        return new LoginFailureHandler(new IdentityTranslator());
+        $this->logs = new TestHandler();
+
+        return new LoginFailureHandler(new IdentityTranslator(), new Logger('security', [$this->logs]));
     }
 }

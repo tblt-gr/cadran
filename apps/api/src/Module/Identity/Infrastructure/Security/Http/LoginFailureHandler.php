@@ -6,6 +6,9 @@ namespace App\Module\Identity\Infrastructure\Security\Http;
 
 use App\Module\Identity\Application\IdentityAuditEvents;
 use App\Module\Identity\Application\SessionAuditIntent;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Target;
+use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Core\Exception\AccountStatusException;
@@ -19,7 +22,9 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  * (403) because reaching that branch already required the correct password; any
  * other failure is the single generic 401, so a wrong password and an unknown
  * email cannot be told apart. Throttling answers 429 the same way regardless of
- * whether the submitted email exists. No credential or identifier is logged here.
+ * whether the submitted email exists. No credential or identifier is logged here;
+ * the one-line security notice carries only the client address, anonymized, so a
+ * known and an unknown email leave the same message and the same context keys.
  *
  * A failure against a known account is appended to that workspace's audit
  * trail; an attempt on an unknown email records nothing, because it belongs to
@@ -33,8 +38,14 @@ final readonly class LoginFailureHandler implements AuthenticationFailureHandler
     /** Used only if the exception carries no usable threshold. */
     private const int RETRY_AFTER_FALLBACK = 900;
 
-    public function __construct(private TranslatorInterface $translator)
-    {
+    /** Zeroes the last 80 bits of an IPv6 address; IPv4 keeps the default of one zeroed octet. */
+    private const int IPV6_ZEROED_BYTES = 10;
+
+    public function __construct(
+        private TranslatorInterface $translator,
+        #[Target('security')]
+        private LoggerInterface $logger,
+    ) {
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response
@@ -42,17 +53,25 @@ final readonly class LoginFailureHandler implements AuthenticationFailureHandler
         if ($exception instanceof TooManyLoginAttemptsAuthenticationException) {
             // A throttled attempt never reached the credential check, and the
             // burst that triggered the throttle is already in the trail.
+            $retryAfter = self::retryAfter($exception);
+            $this->logger->notice('login_throttled', [
+                'client_ip' => self::anonymizedClientIp($request),
+                'retry_after_seconds' => $retryAfter,
+            ]);
+
             return ApiProblemResponse::build(
                 Response::HTTP_TOO_MANY_REQUESTS,
                 $this->translator->trans('api.problem.too_many_attempts.title'),
                 $this->translator->trans('api.problem.too_many_attempts.detail'),
-                ['Retry-After' => (string) self::retryAfter($exception)],
+                ['Retry-After' => (string) $retryAfter],
             );
         }
 
         self::deferAudit($request);
 
         if ($exception instanceof AccountStatusException) {
+            $this->logger->notice('login_refused_disabled', ['client_ip' => self::anonymizedClientIp($request)]);
+
             return ApiProblemResponse::build(
                 Response::HTTP_FORBIDDEN,
                 $this->translator->trans('api.problem.account_disabled.title'),
@@ -60,11 +79,20 @@ final readonly class LoginFailureHandler implements AuthenticationFailureHandler
             );
         }
 
+        $this->logger->notice('login_failed', ['client_ip' => self::anonymizedClientIp($request)]);
+
         return ApiProblemResponse::build(
             Response::HTTP_UNAUTHORIZED,
             $this->translator->trans('api.problem.invalid_credentials.title'),
             $this->translator->trans('api.problem.invalid_credentials.detail'),
         );
+    }
+
+    private static function anonymizedClientIp(Request $request): ?string
+    {
+        $ip = $request->getClientIp();
+
+        return null === $ip ? null : IpUtils::anonymize($ip, 1, self::IPV6_ZEROED_BYTES);
     }
 
     private static function deferAudit(Request $request): void
