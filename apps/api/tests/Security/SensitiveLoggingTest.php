@@ -216,6 +216,7 @@ final class SensitiveLoggingTest extends WebTestCase
     /** @param list<string> $secrets */
     private function assertNothingSensitiveWasLogged(array $secrets): void
     {
+        $this->assertEveryRecordIsStructured();
         foreach ($secrets as $secret) {
             self::assertFalse($this->logger->contains($secret), 'A submitted value reached the logs: '.$secret);
         }
@@ -234,6 +235,17 @@ final class SensitiveLoggingTest extends WebTestCase
     {
         foreach ($secrets as $secret) {
             self::assertFalse($this->logger->contains($secret, 'warning'), 'A submitted value reached the deployed logs: '.$secret);
+        }
+    }
+
+    /** Every captured record, at debug level, is a JSON object with the fields operators rely on. */
+    private function assertEveryRecordIsStructured(): void
+    {
+        foreach ($this->logger->records() as $record) {
+            foreach (['datetime', 'level_name', 'channel', 'message'] as $field) {
+                self::assertArrayHasKey($field, $record['data']);
+            }
+            self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?[+-]\d{2}:\d{2}$/', is_string($record['data']['datetime']) ? $record['data']['datetime'] : '');
         }
     }
 

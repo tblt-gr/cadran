@@ -304,6 +304,13 @@ rollback process remains active.
 | Disk full                      | Stop further writes, free unrelated files or expand storage, then retry. Keep the last verified backup and recovery databases. Preview pruning before removing eligible backups; do not delete Docker volumes.                                                                                                                                                 |
 | No recent backup               | Check cron output, Docker permissions, the public recipient and backup directory space. Create a backup and verify it with the offline identity.                                                                                                                                                                                                               |
 
+Application logs are written by the `app` container as one JSON object per line: read them with
+`docker compose --env-file .env.local logs app`. Every response carries an `X-Request-Id` header
+(browser network tab or `curl -i`); search the logs for that value to find every line of a failed
+request. `LOG_LEVEL` in `.env.local` sets the minimum level (`debug`, `info`, `notice`, `warning` or
+`error`, default `notice`) and applies after `make up`; use `debug` for short diagnostics only.
+No amount, label or secret is logged at any level.
+
 Logs may contain operational details: sanitize them before sharing and never post backup contents,
 financial data or secrets. See [support](./SUPPORT.md) and [private security reporting](./SECURITY.md).
 

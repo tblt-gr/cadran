@@ -9,6 +9,8 @@
 parameters:
   # Set by the image build; absent when running from sources or in tests.
   env(CADRAN_VERSION): unknown
+  # Minimum log level: debug, info, notice, warning or error (validated by LogLevelEnvProcessor).
+  env(LOG_LEVEL): notice
 
 services:
   _defaults:

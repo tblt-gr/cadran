@@ -132,6 +132,13 @@ else
     fail "/api/v1/status Cache-Control no-store"
 fi
 
+# Every API response carries a server-generated UUID v7 request id, the key to the log lines of that request.
+if header_value "$status_headers" X-Request-Id | grep -Eqx '[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}'; then
+    pass "/api/v1/status X-Request-Id (UUID v7)"
+else
+    fail "/api/v1/status X-Request-Id (missing or not a UUID v7)"
+fi
+
 # A Host header that names no configured site is refused and leaks no server banner.
 if curl_run "$work_dir/misdirected" --header 'Host: unknown.invalid' "$base_url/"; then
     if [ "$(status_of "$work_dir/misdirected.headers")" = 421 ]; then pass "unknown Host answered 421"; else fail "unknown Host must answer 421"; fi

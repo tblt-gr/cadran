@@ -4,53 +4,45 @@ declare(strict_types=1);
 
 namespace App\Tests\Support;
 
-use Symfony\Component\HttpKernel\Log\Logger;
+use Monolog\Formatter\JsonFormatter;
+use Monolog\Handler\TestHandler;
+use Monolog\Level;
+use Monolog\Logger;
 
 /**
- * Redirects the kernel logger's output into memory so a test can assert that a secret never reached a log record.
- * The service is already built when a test runs, hence the stream swap rather than a replacement.
+ * Reads back what the application logs so a test can assert that a secret never reached a log record. The test
+ * environment swaps the stderr handler for a TestHandler; each record is rendered by the JSON formatter the
+ * deployed handler uses, so the assertions see exactly the line Docker would collect.
  */
 final class LogCapture
 {
     private const array LEVELS = ['debug', 'info', 'notice', 'warning', 'error', 'critical', 'alert', 'emergency'];
 
-    /** @param resource $stream */
-    private function __construct(private $stream)
+    private function __construct(private readonly TestHandler $handler)
     {
     }
 
     public static function attach(object $logger): self
     {
-        self::assertLogger($logger);
-        $stream = fopen('php://memory', 'w+');
-        if (false === $stream) {
-            throw new \RuntimeException('The in-memory log stream cannot be opened.');
+        if (!$logger instanceof Logger) {
+            throw new \LogicException('The test kernel is expected to use the Monolog logger.');
         }
-        $property = new \ReflectionProperty(Logger::class, 'handle');
-        $property->setValue($logger, $stream);
+        foreach ($logger->getHandlers() as $handler) {
+            if ($handler instanceof TestHandler) {
+                // Debug on purpose: the deployed level (notice) would hide the records a lowered LOG_LEVEL exposes.
+                $handler->setLevel(Level::Debug);
+                $handler->clear();
 
-        return new self($stream);
+                return new self($handler);
+            }
+        }
+
+        throw new \LogicException('The test logger has no TestHandler.');
     }
 
-    /**
-     * Captures every level and, unlike the default formatter, the whole context of each record:
-     * the default one only prints the message, which would hide a secret passed as context.
-     */
     public static function attachEveryRecord(object $logger): self
     {
-        $capture = self::attach($logger);
-        (new \ReflectionProperty(Logger::class, 'minLevelIndex'))->setValue($logger, 0);
-        (new \ReflectionProperty(Logger::class, 'formatter'))->setValue(
-            $logger,
-            static fn (string $level, string $message, array $context): string => sprintf(
-                '[%s] %s %s',
-                $level,
-                $message,
-                json_encode(self::normalize($context), JSON_PARTIAL_OUTPUT_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-            ),
-        );
-
-        return $capture;
+        return self::attach($logger);
     }
 
     /**
@@ -58,16 +50,10 @@ final class LogCapture
      */
     public function contains(string $needle, ?string $atLeast = null): bool
     {
-        rewind($this->stream);
-        $content = (string) stream_get_contents($this->stream);
-        if (null === $atLeast) {
-            return str_contains($content, $needle);
-        }
-
-        $threshold = array_search($atLeast, self::LEVELS, true);
-        foreach (explode(\PHP_EOL, $content) as $record) {
-            $level = 1 === preg_match('/^\[([a-z]+)\]/', $record, $matches) ? array_search($matches[1], self::LEVELS, true) : false;
-            if (false !== $threshold && false !== $level && $level >= $threshold && str_contains($record, $needle)) {
+        $threshold = null === $atLeast ? 0 : array_search($atLeast, self::LEVELS, true);
+        foreach ($this->records() as $record) {
+            $level = array_search(strtolower($record['level_name']), self::LEVELS, true);
+            if (false !== $threshold && false !== $level && $level >= $threshold && (str_contains($record['line'], $needle) || str_contains(str_replace('\\\\', '\\', $record['line']), $needle))) {
                 return true;
             }
         }
@@ -75,21 +61,28 @@ final class LogCapture
         return false;
     }
 
-    private static function normalize(mixed $value): mixed
+    /**
+     * Every captured record as the JSON object the stderr handler writes, one per element.
+     *
+     * @return list<array{line: string, level_name: string, data: array<string, mixed>}>
+     */
+    public function records(): array
     {
-        return match (true) {
-            is_array($value) => array_map(self::normalize(...), $value),
-            $value instanceof \Throwable => [$value::class, $value->getMessage(), $value->getFile(), $value->getLine(), $value->getTraceAsString(), self::normalize($value->getPrevious())],
-            $value instanceof \Stringable => (string) $value,
-            is_object($value) => $value::class,
-            default => $value,
-        };
-    }
-
-    private static function assertLogger(object $logger): void
-    {
-        if (!$logger instanceof Logger) {
-            throw new \LogicException('The test kernel is expected to use the framework logger.');
+        $formatter = new JsonFormatter(JsonFormatter::BATCH_MODE_NEWLINES, true);
+        $records = [];
+        foreach ($this->handler->getRecords() as $record) {
+            $line = trim($formatter->format($record));
+            $data = json_decode($line, true, flags: JSON_THROW_ON_ERROR);
+            if (!is_array($data)) {
+                throw new \UnexpectedValueException('A log line is not a JSON object.');
+            }
+            $typed = [];
+            foreach ($data as $key => $value) {
+                $typed[(string) $key] = $value;
+            }
+            $records[] = ['line' => $line, 'level_name' => $record->level->getName(), 'data' => $typed];
         }
+
+        return $records;
     }
 }
