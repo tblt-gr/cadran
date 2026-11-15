@@ -1,5 +1,7 @@
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = fileURLToPath(new URL('..', import.meta.url));
@@ -14,6 +16,41 @@ const composeConfiguration = process.env.COMPOSE_CONFIG_PATH
       },
     );
 const configuration = JSON.parse(composeConfiguration);
+
+// Memory limits come from the installation with unchanged defaults. An empty
+// value must fall back to the default rather than leave a container unbounded.
+if (!process.env.COMPOSE_CONFIG_PATH) {
+  const renderMemory = (lines) => {
+    const directory = mkdtempSync(join(tmpdir(), 'cadran-memory-'));
+    const envFile = join(directory, 'env');
+    writeFileSync(envFile, `${readFileSync(join(repositoryRoot, '.env.example'), 'utf8')}${lines}`);
+    try {
+      const rendered = JSON.parse(
+        execFileSync('docker', ['compose', '--env-file', envFile, 'config', '--format', 'json'], {
+          cwd: repositoryRoot,
+          encoding: 'utf8',
+        }),
+      );
+      return [rendered.services.app.mem_limit, rendered.services.db.mem_limit].map(String);
+    } finally {
+      rmSync(directory, { recursive: true });
+    }
+  };
+  const expectMemory = (lines, expected) => {
+    if (JSON.stringify(renderMemory(lines)) !== JSON.stringify(expected)) {
+      fail(`Unexpected memory limits for "${lines.trim()}"`);
+    }
+  };
+  expectMemory('', [String(512 * 1024 ** 2), String(1024 ** 3)]);
+  expectMemory('CADRAN_APP_MEMORY=768m\nCADRAN_DB_MEMORY=2g\n', [
+    String(768 * 1024 ** 2),
+    String(2 * 1024 ** 3),
+  ]);
+  expectMemory('CADRAN_APP_MEMORY=\nCADRAN_DB_MEMORY=\n', [
+    String(512 * 1024 ** 2),
+    String(1024 ** 3),
+  ]);
+}
 
 const fail = (message) => {
   throw new Error(message);
