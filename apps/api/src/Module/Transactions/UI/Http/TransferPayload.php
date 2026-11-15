@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
+use App\Module\Foundation\UI\Http\Identifier;
+
 /** A transfer body narrowed to its exact, non-coercing public field set. */
 final readonly class TransferPayload
 {
@@ -56,10 +58,10 @@ final readonly class TransferPayload
         return $value;
     }
 
-    public function identifier(string $field): string
+    public function uuid(string $field): string
     {
         $value = $this->string($field);
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (!Identifier::isValid($value)) {
             throw new \UnexpectedValueException(sprintf('%s must be a canonical UUID.', $field));
         }
 

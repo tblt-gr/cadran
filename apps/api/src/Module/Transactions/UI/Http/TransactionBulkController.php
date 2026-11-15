@@ -39,7 +39,7 @@ final readonly class TransactionBulkController
     #[Route('/api/v1/transactions/bulk-edit', name: 'api_v1_transactions_bulk_edit', methods: ['POST'])]
     public function edit(Request $request, BulkEditTransactions $bulkEdit, PreviewBulkEdit $previewBulk): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }

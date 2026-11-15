@@ -14,6 +14,8 @@ use App\Module\Budget\Application\EmergencyFund\ReadEmergencyFundCoverage;
 use App\Module\Budget\Application\EmergencyFund\ReadEmergencyFundPolicy;
 use App\Module\Budget\Application\EmergencyFund\UpdateEmergencyFundPolicy;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -24,7 +26,7 @@ final readonly class EmergencyFundController
     /** A months target needs none of these: a body that omits them keeps the months mode. */
     private const array TARGET_FIELDS = ['targetMode', 'targetAmount', 'targetRatio'];
 
-    public function __construct(private BudgetHttpEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -56,7 +58,7 @@ final readonly class EmergencyFundController
     #[Route('/api/v1/goals/emergency-fund/policy', name: 'api_v1_goals_emergency_fund_policy_update', methods: ['PUT'], priority: 10)]
     public function updatePolicy(Request $request, UpdateEmergencyFundPolicy $update): Response
     {
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.budget_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }

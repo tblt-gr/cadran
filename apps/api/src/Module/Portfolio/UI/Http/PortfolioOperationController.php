@@ -6,6 +6,9 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Portfolio\Application\CorrectPortfolioOperation;
 use App\Module\Portfolio\Application\InvalidOperationQuery;
 use App\Module\Portfolio\Application\LinkedTransferTaken;
@@ -36,13 +39,12 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class PortfolioOperationController
 {
-    private const int MAX_BODY_BYTES = 16_384;
     private const string ACCOUNT_NOT_FOUND = 'portfolio_account_not_found';
     private const string OPERATION_NOT_FOUND = 'portfolio_operation_not_found';
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
     public function __construct(
         private TranslatorInterface $translator,
+        private JsonRequestEnvelope $requestEnvelope,
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
     ) {
@@ -51,7 +53,7 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-operations', name: 'api_v1_portfolio_operations_list', methods: ['GET'])]
     public function list(string $accountId, Request $request, ListPortfolioOperations $list): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
         $query = $request->query;
@@ -75,16 +77,16 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-operations/preview', name: 'api_v1_portfolio_operations_preview', methods: ['POST'])]
     public function preview(string $accountId, Request $request, PreviewPortfolioOperation $preview): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
         try {
             $correctingOperationId = $request->query->get('correctingOperationId');
-            if (null !== $correctingOperationId && !self::identifier($correctingOperationId)) {
+            if (null !== $correctingOperationId && !Identifier::isValid($correctingOperationId)) {
                 throw new PortfolioOperationNotFound();
             }
             $result = $preview($accountId, OperationPayload::operation($body), $correctingOperationId);
@@ -98,10 +100,10 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-operations', name: 'api_v1_portfolio_operations_create', methods: ['POST'])]
     public function create(string $accountId, Request $request, RecordPortfolioOperation $record): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -128,7 +130,7 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/portfolio-operations/{id}', name: 'api_v1_portfolio_operations_show', methods: ['GET'])]
     public function show(string $id, ReadPortfolioOperation $read): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::OPERATION_NOT_FOUND);
         }
         try {
@@ -143,10 +145,10 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/portfolio-operations/{id}/void', name: 'api_v1_portfolio_operations_void', methods: ['POST'])]
     public function void(string $id, Request $request, VoidPortfolioOperation $void): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::OPERATION_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -167,10 +169,10 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/portfolio-operations/{id}/correct', name: 'api_v1_portfolio_operations_correct', methods: ['POST'])]
     public function correct(string $id, Request $request, CorrectPortfolioOperation $correct): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::OPERATION_NOT_FOUND);
         }
-        $body = $this->body($request);
+        $body = $this->readBody($request);
         if ($body instanceof Response) {
             return $body;
         }
@@ -204,7 +206,7 @@ final readonly class PortfolioOperationController
     #[Route('/api/v1/accounts/{accountId}/portfolio-transfer-candidates', name: 'api_v1_portfolio_transfer_candidates', methods: ['GET'])]
     public function candidates(string $accountId, Request $request, ListTransferCandidates $list): Response
     {
-        if (!self::identifier($accountId)) {
+        if (!Identifier::isValid($accountId)) {
             return $this->problem(Response::HTTP_NOT_FOUND, self::ACCOUNT_NOT_FOUND);
         }
         try {
@@ -244,19 +246,14 @@ final readonly class PortfolioOperationController
     }
 
     /** @return array<mixed>|Response */
-    private function body(Request $request): array|Response
+    private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'portfolio_payload_too_large');
-        }
-        try {
-            return $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_request');
-        }
+        return $this->requestEnvelope->body(
+            $request,
+            BodyLimit::Standard,
+            'api.problem.portfolio_payload_too_large',
+            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
+        );
     }
 
     /** @param array<string, mixed> $extensions */
@@ -275,11 +272,6 @@ final readonly class PortfolioOperationController
     private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
     {
         return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match(self::UUID_PATTERN, $value);
     }
 
     /** @param array<string, mixed> $query */

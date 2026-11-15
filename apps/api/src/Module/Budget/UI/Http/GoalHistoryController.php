@@ -10,23 +10,26 @@ use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Budget\Application\Goals\ListGoalVersions;
 use App\Module\Budget\Application\Goals\PreviewGoalCorrection;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalHistoryController
 {
-    public function __construct(private BudgetHttpEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
     #[Route('/api/v1/goals/{id}/correction-preview', name: 'api_v1_goals_correction_preview', methods: ['POST'])]
     public function correctionPreview(string $id, Request $request, PreviewGoalCorrection $preview): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.budget_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -50,7 +53,7 @@ final readonly class GoalHistoryController
     #[Route('/api/v1/goals/{id}/versions', name: 'api_v1_goals_versions', methods: ['GET'])]
     public function versions(string $id, ListGoalVersions $list): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->notFound();
         }
         try {

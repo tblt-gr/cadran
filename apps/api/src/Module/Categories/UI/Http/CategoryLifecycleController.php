@@ -14,6 +14,9 @@ use App\Module\Categories\Application\MoveCategory;
 use App\Module\Categories\Application\PreviewCategoryImpact;
 use App\Module\Categories\Application\ReplaceCategory;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Doctrine\DBAL\Exception\RetryableException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,19 +33,21 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final readonly class CategoryLifecycleController
 {
+    public const string TYPE_OPERATION_REFUSED = '/problems/category-operation-refused';
+
     private const array MOVE_FIELDS = ['parentId', 'version'];
     private const array MERGE_FIELDS = ['targetId', 'version'];
     private const array ARCHIVE_FIELDS = ['version'];
     private const array REPLACE_FIELDS = ['targetId', 'effectiveFrom', 'version'];
 
-    public function __construct(private CategoryHttpEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
     #[Route('/api/v1/categories/{id}/impact', name: 'api_v1_categories_impact', methods: ['GET'])]
     public function impact(string $id, Request $request, PreviewCategoryImpact $previewImpact): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
         }
 
@@ -113,11 +118,11 @@ final readonly class CategoryLifecycleController
      */
     private function operate(string $id, Request $request, array $fields, callable $operation): Response
     {
-        if (!$this->envelope->isIdentifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
         }
 
-        $body = $this->envelope->body($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.category_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -128,7 +133,7 @@ final readonly class CategoryLifecycleController
             return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,
                 'api.problem.category_operation_refused',
-                CategoryHttpEnvelope::TYPE_OPERATION_REFUSED,
+                self::TYPE_OPERATION_REFUSED,
                 ['blockers' => array_map(static fn ($blocker): string => $blocker->value, $refusal->blockers)],
             );
         } catch (InvalidCategoryInput|\UnexpectedValueException) {

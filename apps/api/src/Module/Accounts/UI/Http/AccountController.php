@@ -20,6 +20,9 @@ use App\Module\Accounts\Application\UpdateAccount;
 use App\Module\Accounts\Application\UpdateAccountInput;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -43,14 +46,13 @@ final readonly class AccountController
     public const string TYPE_ARCHIVED = '/problems/account-archived';
 
     private const string REMOVED_TAGS_FIELD = 'tagGroupIds';
-    private const int MAX_BODY_BYTES = 16_384;
     private const array WRITE_FIELDS = [
         'label', 'kind', 'productCode', 'productModelId', 'institution', 'maskedIdentifier', 'valuationMode',
         'liquidityLevel', 'includeInNetWorth', 'includeInEmergencyFund', 'openedOn', 'closedOn',
         'primaryGroupId',
     ];
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
     {
     }
 
@@ -140,7 +142,7 @@ final readonly class AccountController
     #[Route('/api/v1/accounts/{id}', name: 'api_v1_accounts_show', methods: ['GET'])]
     public function show(string $id, ReadAccount $readAccount): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
@@ -158,7 +160,7 @@ final readonly class AccountController
     #[Route('/api/v1/accounts/{id}', name: 'api_v1_accounts_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateAccount $updateAccount): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
@@ -216,7 +218,7 @@ final readonly class AccountController
         ReadAccountRules $readAccountRules,
         PresentAccountRules $presentAccountRules,
     ): Response {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
@@ -243,7 +245,7 @@ final readonly class AccountController
     #[Route('/api/v1/accounts/{id}/archive', name: 'api_v1_accounts_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveAccount $archiveAccount): Response
     {
-        if (!self::identifier($id)) {
+        if (!Identifier::isValid($id)) {
             return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
@@ -280,17 +282,9 @@ final readonly class AccountController
      */
     private function readBody(Request $request): array|Response
     {
-        if ('json' !== $request->getContentTypeFormat()) {
-            return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
-        }
-        if (mb_strlen($request->getContent(), '8bit') > self::MAX_BODY_BYTES) {
-            return $this->problem(Response::HTTP_REQUEST_ENTITY_TOO_LARGE, 'api.problem.account_payload_too_large');
-        }
-
-        try {
-            $body = $request->toArray();
-        } catch (\Throwable) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_payload_too_large');
+        if ($body instanceof Response) {
+            return $body;
         }
 
         // Tags were removed: a stale client must learn its write was not saved
@@ -315,11 +309,6 @@ final readonly class AccountController
     private static function unsignedIntegerOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
-    }
-
-    private static function identifier(string $value): bool
-    {
-        return 1 === preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value);
     }
 
     /** @param array<string, mixed> $data */
