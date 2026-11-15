@@ -29,7 +29,12 @@ export default defineConfig({
       reporter: ['text-summary', 'cobertura', 'html'],
       reportsDirectory: 'coverage',
       include: ['src/**'],
-      exclude: ['src/**/*.spec.{ts,tsx}', 'src/**/*.d.ts', 'src/**/*[Ff]ixture*.{ts,tsx}', 'src/test-setup.ts'],
+      exclude: [
+        'src/**/*.spec.{ts,tsx}',
+        'src/**/*.d.ts',
+        'src/**/*[Ff]ixture*.{ts,tsx}',
+        'src/test-setup.ts',
+      ],
     },
   },
 });
