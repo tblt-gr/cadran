@@ -168,6 +168,9 @@ make down
 ```
 
 Stopping preserves database and certificate volumes. Never remove volumes to fix a startup problem.
+After a historical import, run `make snapshots-capture` once so the first multi-year report does
+not capture the closed months on the spot.
+
 Status reports application health, its built version and backup freshness; a backup warning does
 not mean a backup has been verified.
 
