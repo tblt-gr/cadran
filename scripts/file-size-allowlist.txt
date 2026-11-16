@@ -15,7 +15,6 @@
 308 apps/api/src/Module/Portfolio/Infrastructure/Persistence/DbalPortfolioOperationRepository.php exhaustive row mapping, one responsibility
 380 apps/api/src/Module/Transactions/Domain/Transaction.php entity invariants kept together
 481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
-337 apps/api/src/Module/Transactions/UI/Http/RecurrenceController.php split pending
 343 apps/web/src/AuthenticatedApp.routes.tsx route table
 321 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility
 293 apps/web/src/features/accounts/account-form/AccountForm.tsx split pending
