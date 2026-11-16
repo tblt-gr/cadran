@@ -79,6 +79,8 @@
   --touch-target-min: 2.75rem;
   --control-height: 2rem;
   --control-height-compact: 1.75rem;
+  /* Unlike the compact height, a coarse pointer never grows it: a hit area carries the 44 px target. */
+  --control-height-dense: 1.75rem;
   --form-control-height: 2.25rem;
   --choice-control-size: 0.875rem;
   --report-column-label-width: 11rem;

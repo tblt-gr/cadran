@@ -28,6 +28,7 @@ export function ChartPeriodControl<P extends ChartPeriod>({
   }));
   return (
     <SegmentedControl
+      compact
       disabled={disabled}
       label={label}
       onChange={onChange}
