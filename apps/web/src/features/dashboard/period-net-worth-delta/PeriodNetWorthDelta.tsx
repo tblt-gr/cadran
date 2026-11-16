@@ -15,7 +15,7 @@ interface Props {
 export function PeriodNetWorthDelta({ delta, pending, fetching }: Props) {
   const { t } = useTranslation();
   return (
-    <div aria-busy={fetching}>
+    <div aria-busy={fetching} className={styles.container}>
       {delta !== null ? (
         <NetWorthDelta delta={delta} />
       ) : (

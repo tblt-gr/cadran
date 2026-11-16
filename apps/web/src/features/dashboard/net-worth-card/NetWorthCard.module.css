@@ -15,6 +15,18 @@
   gap: var(--spacing-4);
 }
 
+.titleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.stale {
+  display: inline-flex;
+  flex: 0 0 auto;
+  color: var(--warning);
+}
+
 .amount {
   display: block;
   margin-top: var(--spacing-3);

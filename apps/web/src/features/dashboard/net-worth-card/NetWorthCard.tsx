@@ -1,5 +1,6 @@
 import type { NetWorth, NetWorthPoint, NetWorthDelta } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { FreshnessBadge } from '@/features/dashboard/freshness-badge/FreshnessBadge';
 import { PeriodNetWorthDelta } from '@/features/dashboard/period-net-worth-delta/PeriodNetWorthDelta';
@@ -41,7 +42,24 @@ export function NetWorthCard({
   return (
     <section className={`card ${styles.card}`} aria-labelledby="net-worth-title">
       <div className={styles.header}>
-        <h2 id="net-worth-title">{t('dashboard.netWorth.title')}</h2>
+        <div className={styles.titleGroup}>
+          <h2 id="net-worth-title">{t('dashboard.netWorth.title')}</h2>
+          {netWorth.quality === 'STALE' ? (
+            <span
+              aria-label={t('dashboard.netWorth.freshness.stale', {
+                count: netWorth.stalestAgeDays ?? 0,
+              })}
+              className={styles.stale}
+              role="img"
+              title={t('dashboard.netWorth.freshness.stale', {
+                count: netWorth.stalestAgeDays ?? 0,
+              })}
+              data-visual-mask
+            >
+              <Icon name="clock" size={14} />
+            </span>
+          ) : null}
+        </div>
         <div className={styles.period}>
           <NetWorthPeriodControl
             period={period}
@@ -76,7 +94,7 @@ export function NetWorthCard({
           <WealthChart points={historyPoints} />
         )}
         <p className={styles.metadata}>
-          <FreshnessBadge netWorth={netWorth} />
+          {netWorth.quality === 'STALE' ? null : <FreshnessBadge netWorth={netWorth} />}
         </p>
         <p className={styles.notice}>{truncated ? t('dashboard.chart.truncated') : null}</p>
       </div>

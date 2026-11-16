@@ -36,7 +36,6 @@ export function AllocationPanel({ netWorth }: AllocationPanelProps) {
       <div className={styles.heading}>
         <div>
           <h2 id="allocation-title">{t('dashboard.allocation.title')}</h2>
-          <p>{t('dashboard.allocation.description')}</p>
         </div>
         <a className={styles.link} href="/accounts/groups">
           {t('dashboard.allocation.viewGroups')}

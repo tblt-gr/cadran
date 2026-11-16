@@ -2013,7 +2013,6 @@
     "currentMonth": "Mois en cours : {{month}}",
     "withUpcoming": "{{period}} (à venir inclus)",
     "allocation": {
-      "description": "Répartition exclusive par groupe de comptes",
       "empty": "Aucun groupe de comptes de premier niveau. Créez-en un pour répartir votre patrimoine.",
       "title": "Allocation",
       "viewGroups": "Voir les groupes",
