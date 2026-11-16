@@ -12,8 +12,11 @@ test.describe('dashboard', () => {
 
     const netWorth = page.getByRole('region', { name: 'Patrimoine net' });
     await expect(netWorth).toContainText('€');
-    // Valuation quality remains visible as supporting metadata.
-    await expect(netWorth).toContainText(/Valorisation|à jour|Valorisations/);
+    // Stale valuations use a named clock; current and missing valuations retain a text badge.
+    const quality = netWorth
+      .getByRole('img', { name: /Valorisation la plus ancienne/ })
+      .or(netWorth.getByText(/valorisation|à jour/i));
+    await expect(quality.first()).toBeVisible();
     await expect(netWorth).not.toContainText(/Au \d{1,2} \p{L}+ \d{4}/u);
 
     await expect(page.getByRole('region', { name: 'Allocation' })).toBeVisible();
