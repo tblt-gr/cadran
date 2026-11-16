@@ -72,7 +72,7 @@ final readonly class GoalController
     }
 
     #[Route('/api/v1/goals/evaluations', name: 'api_v1_goals_evaluations', methods: ['GET'])]
-    public function evaluations(Request $request, ListGoalEvaluations $evaluate): Response
+    public function evaluations(Request $request, ListGoalEvaluations $evaluate, \App\Module\Identity\Application\ReadInterfacePreferences $preferences): Response
     {
         try {
             $from = $request->query->get('from');
@@ -86,7 +86,7 @@ final readonly class GoalController
                 throw new GoalInputError('invalid_goal_query', 'A granularity is MONTH, YEAR or BOTH.');
             }
 
-            return $this->envelope->json(GoalRepresentation::evaluations($evaluate($from, $to, $granularity)));
+            return $this->envelope->json(GoalRepresentation::evaluations($evaluate($from, $to, $granularity, $preferences()->includeUpcoming)));
         } catch (GoalInputError $error) {
             return $this->problem(Response::HTTP_BAD_REQUEST, $error->errorCode);
         } catch (WorkspaceAccessDenied) {

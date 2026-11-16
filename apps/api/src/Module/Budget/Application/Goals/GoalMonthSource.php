@@ -11,5 +11,5 @@ use App\Module\Reporting\Application\AnnualMonth;
 interface GoalMonthSource
 {
     /** @return list<AnnualMonth> */
-    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end): array;
+    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array;
 }

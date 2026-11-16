@@ -13,6 +13,7 @@ const interfacePreferencesQueryKey = ['interface-preferences'] as const;
 
 /** Every read family whose figures change when planned transactions start or stop counting. */
 const UPCOMING_QUERY_FAMILIES = [
+  'goal-evaluations',
   'monthly-report',
   'monthly-recap',
   'monthly-ledger',

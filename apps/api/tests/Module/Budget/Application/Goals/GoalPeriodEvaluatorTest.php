@@ -122,7 +122,7 @@ final class GoalPeriodEvaluatorTest extends TestCase
     private function evaluator(): GoalPeriodEvaluator
     {
         $source = new class implements GoalMonthSource {
-            public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end): array
+            public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
             {
                 return [];
             }

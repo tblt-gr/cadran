@@ -352,7 +352,7 @@ final class CountingGoalMonthSource implements GoalMonthSource
     {
     }
 
-    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end): array
+    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
     {
         ++$this->calls;
 

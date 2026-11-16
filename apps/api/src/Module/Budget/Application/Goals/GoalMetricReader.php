@@ -48,7 +48,7 @@ final readonly class GoalMetricReader
      *
      * @param list<Goal> $goals
      */
-    public function inputsBetween(WorkspaceScope $workspace, CalendarMonth $first, CalendarMonth $last, array $goals): GoalStatusInputs
+    public function inputsBetween(WorkspaceScope $workspace, CalendarMonth $first, CalendarMonth $last, array $goals, bool $includeUpcoming = false): GoalStatusInputs
     {
         if ([] === $goals) {
             return new GoalStatusInputs([], null);
@@ -58,7 +58,7 @@ final readonly class GoalMetricReader
         // A monthly goal compares every month of the year with its own target, and a rolling share
         // reads the twelve months before each of them: the window opens before January.
         $start = $monthly ? ReadReferenceIncome::windowStart($first) : $first;
-        $loaded = $this->months->between($workspace, $start, $last);
+        $loaded = $this->months->between($workspace, $start, $last, $includeUpcoming);
         $indexed = [];
         foreach ($loaded as $item) {
             $indexed[$item->month->key()] = $item;

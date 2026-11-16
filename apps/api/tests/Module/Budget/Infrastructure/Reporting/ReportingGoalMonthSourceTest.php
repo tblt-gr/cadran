@@ -37,6 +37,18 @@ use Symfony\Component\Clock\MockClock;
  */
 final class ReportingGoalMonthSourceTest extends TestCase
 {
+    public function testOpenMonthRespectsUpcomingSelection(): void
+    {
+        $source = $this->source(['2026-09' => '2500.00'], '3500.00');
+        $month = new CalendarMonth(2026, 9);
+
+        $without = $source->between(WorkspaceFixture::own(), $month, $month, false);
+        $with = $source->between(WorkspaceFixture::own(), $month, $month, true);
+
+        self::assertSame('2500.00', $without[0]->figures?->cells['cashIncome']->value);
+        self::assertSame('3500.00', $with[0]->figures?->cells['cashIncome']->value);
+    }
+
     public function testReferenceIncomeAcrossTwoYearsCountsTheRecordedZeroAndExcludesMonthsBeforeFirstData(): void
     {
         $incomes = [
@@ -74,7 +86,7 @@ final class ReportingGoalMonthSourceTest extends TestCase
     }
 
     /** @param array<string, string|null> $incomes month key => cash income, null for a complete month without value */
-    private function source(array $incomes): ReportingGoalMonthSource
+    private function source(array $incomes, ?string $incomeWithUpcoming = null): ReportingGoalMonthSource
     {
         $first = $this->createStub(FirstNetWorthDataDayReader::class);
         $first->method('onOrBefore')->willReturn(new \DateTimeImmutable('2025-11-03'));
@@ -82,7 +94,7 @@ final class ReportingGoalMonthSourceTest extends TestCase
         $timezones->method('timezone')->willReturn('UTC');
 
         $load = new LoadAnnualMonths(
-            new FixedIncomeProjector($incomes),
+            new FixedIncomeProjector($incomes, $incomeWithUpcoming),
             new InMemoryPeriodClosureRepository(),
             new InMemoryMonthSnapshotStore(),
             $this->calendar(),
@@ -110,13 +122,16 @@ final class ReportingGoalMonthSourceTest extends TestCase
 final readonly class FixedIncomeProjector implements MonthlyProjector
 {
     /** @param array<string, string|null> $incomes */
-    public function __construct(private array $incomes)
+    public function __construct(private array $incomes, private ?string $incomeWithUpcoming = null)
     {
     }
 
     public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView
     {
         $income = array_key_exists($month->key(), $this->incomes) ? $this->incomes[$month->key()] : '2500.00';
+        if ($includeUpcoming && null !== $this->incomeWithUpcoming) {
+            $income = $this->incomeWithUpcoming;
+        }
         if (null === $income) {
             $view = MonthlyProjectionFixture::view($month->key());
             $none = new MonthlyMetricView(null, null, 'NO_ACCOUNT');
