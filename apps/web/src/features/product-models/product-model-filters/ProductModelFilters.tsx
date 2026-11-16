@@ -22,13 +22,14 @@ export function ProductModelFilters({
   return (
     <>
       <button
-        className={`secondary-action ${styles.trigger}`}
+        aria-label={t('productModels.filters.open')}
+        className={`icon-button ${styles.trigger}`}
         onClick={() => setOpen(true)}
         ref={trigger}
+        title={t('productModels.filters.open')}
         type="button"
       >
-        <Icon name="filter" size={18} />
-        {t('productModels.filters.open')}
+        <Icon name="filter" />
         {includeArchived ? (
           <span className={styles.badge} data-testid="product-model-filters-count">
             1

@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
+import styles from './GroupPageActions.module.css';
 
 interface GroupPageActionsProps {
   includeArchived: boolean;
@@ -28,22 +29,27 @@ export function GroupPageActions({
         {t('accountGroups.add')}
       </button>
       <button
+        aria-label={t('accountGroups.includeArchived')}
         aria-pressed={includeArchived}
-        className="secondary-action"
+        className="icon-button"
         onClick={onToggleArchived}
+        title={t('accountGroups.includeArchived')}
         type="button"
       >
-        <Icon name="archive" size={18} />
-        {t('accountGroups.includeArchived')}
+        <Icon name="archive" />
       </button>
       <button
+        aria-label={reorderLabel}
         aria-pressed={reordering}
-        className="secondary-action"
+        className={`secondary-action ${styles.secondary}`}
         onClick={onToggleReordering}
+        title={reorderLabel}
         type="button"
       >
-        <Icon name={reordering ? 'check-circle' : 'reorder'} size={18} />
-        {reorderLabel}
+        <Icon name={reordering ? 'check-circle' : 'reorder'} />
+        <span className={styles.secondaryLabel}>
+          {t(reordering ? 'accountGroups.reorder.stop_short' : 'accountGroups.reorder.start_short')}
+        </span>
       </button>
     </HeaderActions>
   );

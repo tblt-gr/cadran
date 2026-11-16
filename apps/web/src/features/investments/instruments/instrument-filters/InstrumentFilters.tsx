@@ -25,13 +25,14 @@ export function InstrumentFilters({ onStatusChange, status }: InstrumentFiltersP
     <>
       <HeaderActions>
         <button
-          className={`secondary-action ${styles.trigger}`}
+          aria-label={t('portfolio.instruments.filters.open')}
+          className={`icon-button ${styles.trigger}`}
           onClick={() => setOpen(true)}
           ref={trigger}
+          title={t('portfolio.instruments.filters.open')}
           type="button"
         >
-          <Icon name="filter" size={18} />
-          {t('portfolio.instruments.filters.open')}
+          <Icon name="filter" />
           {status !== 'active' ? (
             <span className={styles.badge} data-testid="instrument-filters-count">
               1

@@ -46,12 +46,13 @@ export function CategorizationRulesPage() {
           {t('categorizationRules.add')}
         </button>
         <button
-          className="secondary-action"
+          aria-label={t('categorizationRules.preview.action')}
+          className="icon-button"
           onClick={() => previewWorkflow.open(null)}
+          title={t('categorizationRules.preview.action')}
           type="button"
         >
           <Icon name="eye" size={18} />
-          {t('categorizationRules.preview.action')}
         </button>
       </HeaderActions>
 

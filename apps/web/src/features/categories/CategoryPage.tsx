@@ -116,13 +116,14 @@ export function CategoryPage() {
           {t('categories.manageRules')}
         </a>
         <button
+          aria-label={t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
           aria-pressed={includeArchived}
-          className="secondary-action"
+          className="icon-button"
           onClick={() => setIncludeArchived((current) => !current)}
+          title={t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
           type="button"
         >
           <Icon name="archive" size={18} />
-          {t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
         </button>
       </HeaderActions>
 

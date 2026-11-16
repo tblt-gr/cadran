@@ -63,13 +63,14 @@ export function AccountDetailActions({
             </button>
             {balanceTab ? null : (
               <button
-                className="secondary-action"
+                aria-label={t('accounts.detail.actionsMenu.transfer')}
+                className="icon-button"
                 disabled={!writable}
                 onClick={onAddTransfer}
+                title={t('accounts.detail.actionsMenu.transfer')}
                 type="button"
               >
-                <Icon name="transfer" size={18} />
-                {t('accounts.detail.actionsMenu.transfer')}
+                <Icon name="transactions" size={18} />
               </button>
             )}
           </>
@@ -106,9 +107,14 @@ export function AccountDetailActionsSkeleton({ tab }: { tab: AccountTab }) {
         </span>
       </button>
       {balanceTab ? null : (
-        <button className="secondary-action" disabled type="button">
-          <Icon name="transfer" size={18} />
-          {t('accounts.detail.actionsMenu.transfer')}
+        <button
+          aria-label={t('accounts.detail.actionsMenu.transfer')}
+          className="icon-button"
+          disabled
+          title={t('accounts.detail.actionsMenu.transfer')}
+          type="button"
+        >
+          <Icon name="transactions" size={18} />
         </button>
       )}
       {tab === 'account' ? <AccountActionsMenu onRules={() => undefined} /> : null}

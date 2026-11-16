@@ -49,7 +49,6 @@ export function InstrumentSheetHeader({
       <HeaderActions>
         <ActionMenu
           disabled={!instrument}
-          triggerText="Actions"
           triggerVariant="framed"
           label={
             instrument ? `Actions de l’instrument ${instrument.name}` : 'Actions de l’instrument'

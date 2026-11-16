@@ -93,7 +93,12 @@ export function HoldingsAllocationCard({
         )}
         {/* Nothing to list: the status above says so, an empty table would only repeat its head. */}
         {holdings && slices.length === 0 ? null : (
-          <div className={styles.tableScroll}>
+          <div
+            className={styles.tableScroll}
+            role="region"
+            aria-label={t('investments.allocation.caption')}
+            tabIndex={0}
+          >
             <table>
               <caption className="sr-only">{t('investments.allocation.caption')}</caption>
               <thead>

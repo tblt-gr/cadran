@@ -71,7 +71,7 @@
 
   /* Layout dimensions */
   --sidebar-width: 15rem;
-  --sidebar-width-collapsed: 3.75rem;
+  --sidebar-width-collapsed: 3rem;
   --header-height: 3.5rem;
   /* Rows stay readable on wide screens: the page column stops here and the extra width becomes side margins. */
   --content-max-width: 90rem;

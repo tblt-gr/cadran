@@ -9,7 +9,6 @@
   justify-content: space-between;
   min-height: var(--header-height);
   padding: var(--spacing-none) var(--content-gutter);
-  border-bottom: var(--border-line-subtle);
   background: var(--bg-shell);
   gap: var(--spacing-6);
 }

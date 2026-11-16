@@ -75,17 +75,22 @@ export function RecurrencesPage() {
         </button>
         <button
           aria-controls={showArchived ? 'archived-recurrences' : undefined}
-          aria-pressed={showArchived}
-          className="secondary-action"
-          onClick={() => setShowArchived((visible) => !visible)}
-          type="button"
-        >
-          <Icon name="archive" size={18} />
-          {t(
+          aria-label={t(
             showArchived
               ? 'recurrences.confirmed.hideArchived'
               : 'recurrences.confirmed.showArchived',
           )}
+          aria-pressed={showArchived}
+          className="icon-button"
+          onClick={() => setShowArchived((visible) => !visible)}
+          title={t(
+            showArchived
+              ? 'recurrences.confirmed.hideArchived'
+              : 'recurrences.confirmed.showArchived',
+          )}
+          type="button"
+        >
+          <Icon name="archive" size={18} />
         </button>
       </HeaderActions>
       {notice ? <Toast onDismiss={() => setNotice(null)}>{notice}</Toast> : null}

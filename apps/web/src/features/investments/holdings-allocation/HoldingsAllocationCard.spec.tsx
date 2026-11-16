@@ -32,6 +32,13 @@ describe('HoldingsAllocationCard', () => {
     expect(within(table).getByText('60,16 %')).toBeTruthy();
   });
 
+  it('keeps the scrollable table keyboard reachable', () => {
+    render(<HoldingsAllocationCard holdings={holdingsFixture()} />);
+    const table = screen.getByRole('table', { name: 'Répartition des titres' });
+    expect(table.parentElement?.getAttribute('role')).toBe('region');
+    expect(table.parentElement?.tabIndex).toBe(0);
+  });
+
   it('offers a fourth criterion by account', () => {
     render(<HoldingsAllocationCard holdings={holdingsFixture()} />);
     expect(

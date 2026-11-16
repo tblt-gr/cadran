@@ -25,13 +25,14 @@ export function MonthlyBudgetActions({
     <>
       <button
         ref={button}
-        className="secondary-action"
+        aria-label={t('budget.monthly.closeMonth')}
+        className="icon-button"
         disabled={disabled}
         onClick={() => setClosureOpen(true)}
+        title={t('budget.monthly.closeMonth')}
         type="button"
       >
         <Icon name="lock" size={18} />
-        {t('budget.monthly.closeMonth')}
       </button>
       {closureOpen ? (
         <PeriodClosurePanel
