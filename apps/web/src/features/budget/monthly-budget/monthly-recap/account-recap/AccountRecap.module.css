@@ -196,6 +196,18 @@
     min-width: 0;
     max-width: 100%;
   }
+
+  /* A group row is one band: painted once on the row, its cells transparent and stretched to the
+     row height so the name and the total join without a seam. */
+  .panel tbody .groupRow {
+    background: var(--bg-surface-2);
+  }
+
+  .groupRow th,
+  .groupRow td {
+    align-self: stretch;
+    background: var(--color-transparent);
+  }
 }
 
 .skeletonDate {
