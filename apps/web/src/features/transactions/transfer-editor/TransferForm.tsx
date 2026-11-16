@@ -4,10 +4,11 @@ import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
 import { useId, useState } from 'react';
 import { TransferAdditionalFields } from './TransferAdditionalFields';
+import { TransferAccountField } from './TransferAccountField';
+import { balancesAfterTransfer } from './balancesAfterTransfer';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
-import { addDecimals, formatAmount, subtractDecimals } from '@/lib/decimal';
 import { workspaceToday } from '@/lib/workspaceTime';
 import {
   isCrossAssetTransfer,
@@ -18,7 +19,6 @@ import type { TransferFormDefaults } from './initialTransferFormValues';
 import { useTransferFormValues } from './useTransferFormValues';
 import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import formStyles from '@/features/transactions/transaction-form/TransactionForm.module.css';
-import styles from './TransferForm.module.css';
 
 export type { TransferFormDefaults } from './initialTransferFormValues';
 
@@ -42,7 +42,7 @@ export function TransferForm({
   pending,
   submitError,
 }: TransferFormProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation();
   const errorId = useId();
   const workspaceTimeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), workspaceTimeZone);
@@ -58,39 +58,13 @@ export function TransferForm({
   const [showErrors, setShowErrors] = useState(false);
   const errors = validateTransferValues(values, accounts, today);
   const crossAsset = isCrossAssetTransfer(values, accounts);
-  const money = (amount: { value: string; assetCode: string }) =>
-    formatAmount(amount.value, amount.assetCode, i18n.language);
-  // The exact balance the server reports for an account, when it can be calculated.
-  const balanceOf = (account: Account | undefined) => account?.valuation?.amount ?? null;
-  const optionLabel = (account: Account) => {
-    const balance = balanceOf(account);
-    return balance === null ? account.label : `${account.label} · ${money(balance)}`;
-  };
-  // Once the amount is valid, each account shows what its balance becomes: the same exact decimals.
-  const amountReady = values.sourceAmountValue !== '' && !errors.sourceAmountValue;
-  const targetAmountReady = values.targetAmountValue !== '' && !errors.targetAmountValue;
-  const sourceBalance = balanceOf(source);
-  const targetBalance = balanceOf(destination);
-  const sourceAfter =
-    amountReady && sourceBalance !== null && sourceBalance.assetCode === source?.assetCode
-      ? {
-          value: subtractDecimals(sourceBalance.value, values.sourceAmountValue),
-          assetCode: sourceBalance.assetCode,
-        }
-      : null;
-  const targetMoved = crossAsset
-    ? targetAmountReady
-      ? values.targetAmountValue
-      : null
-    : amountReady
-      ? values.sourceAmountValue
-      : null;
-  const targetAfter =
-    targetMoved !== null &&
-    targetBalance !== null &&
-    targetBalance.assetCode === destination?.assetCode
-      ? { value: addDecimals(targetBalance.value, targetMoved), assetCode: targetBalance.assetCode }
-      : null;
+  const { sourceAfter, targetAfter } = balancesAfterTransfer({
+    crossAsset,
+    destination,
+    errors,
+    source,
+    values,
+  });
   const sourceAsset = accounts.find((account) => account.id === values.sourceAccountId)?.assetCode;
   const targetAsset = accounts.find((account) => account.id === values.targetAccountId)?.assetCode;
 
@@ -116,67 +90,31 @@ export function TransferForm({
       ) : null}
 
       <FormGrid>
-        <label>
-          <span>{t('transactions.transfer.fields.sourceAccount')}</span>
-          <select
-            disabled={pending || Boolean(lockedSourceAccountId)}
-            aria-describedby={
-              showErrors && errors.sourceAccountId ? `${errorId}-sourceAccountId` : undefined
-            }
-            aria-invalid={showErrors && errors.sourceAccountId ? true : undefined}
-            data-autofocus={lockedSourceAccountId ? undefined : true}
-            onChange={(event) => set('sourceAccountId', event.target.value)}
-            value={values.sourceAccountId}
-          >
-            <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {optionLabel(account)}
-              </option>
-            ))}
-          </select>
-          {sourceAfter ? (
-            <small className={styles.after}>
-              {t('transactions.transfer.balanceAfter', { amount: money(sourceAfter) })}
-            </small>
-          ) : null}
-          {showErrors && errors.sourceAccountId ? (
-            <small id={`${errorId}-sourceAccountId`}>
-              {t('transactions.transfer.validation.sourceAccount')}
-            </small>
-          ) : null}
-        </label>
+        <TransferAccountField
+          accounts={accounts}
+          after={sourceAfter}
+          autoFocus={!lockedSourceAccountId}
+          disabled={pending || Boolean(lockedSourceAccountId)}
+          error={showErrors && errors.sourceAccountId}
+          errorId={`${errorId}-sourceAccountId`}
+          errorLabel={t('transactions.transfer.validation.sourceAccount')}
+          label={t('transactions.transfer.fields.sourceAccount')}
+          onChange={(id) => set('sourceAccountId', id)}
+          value={values.sourceAccountId}
+        />
 
-        <label>
-          <span>{t('transactions.transfer.fields.targetAccount')}</span>
-          <select
-            disabled={pending}
-            aria-describedby={
-              showErrors && errors.targetAccountId ? `${errorId}-targetAccountId` : undefined
-            }
-            aria-invalid={showErrors && errors.targetAccountId ? true : undefined}
-            data-autofocus={lockedSourceAccountId ? true : undefined}
-            onChange={(event) => set('targetAccountId', event.target.value)}
-            value={values.targetAccountId}
-          >
-            <option value="">{t('transactions.transfer.fields.selectAccount')}</option>
-            {destinationAccounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {optionLabel(account)}
-              </option>
-            ))}
-          </select>
-          {targetAfter ? (
-            <small className={styles.after}>
-              {t('transactions.transfer.balanceAfter', { amount: money(targetAfter) })}
-            </small>
-          ) : null}
-          {showErrors && errors.targetAccountId ? (
-            <small id={`${errorId}-targetAccountId`}>
-              {t('transactions.transfer.validation.targetAccount')}
-            </small>
-          ) : null}
-        </label>
+        <TransferAccountField
+          accounts={destinationAccounts}
+          after={targetAfter}
+          autoFocus={Boolean(lockedSourceAccountId)}
+          disabled={pending}
+          error={showErrors && errors.targetAccountId}
+          errorId={`${errorId}-targetAccountId`}
+          errorLabel={t('transactions.transfer.validation.targetAccount')}
+          label={t('transactions.transfer.fields.targetAccount')}
+          onChange={(id) => set('targetAccountId', id)}
+          value={values.targetAccountId}
+        />
 
         <label>
           <span>{t('transactions.transfer.fields.label')}</span>
