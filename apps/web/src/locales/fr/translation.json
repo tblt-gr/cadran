@@ -88,6 +88,11 @@
     "scrollLeft": "Défiler vers la gauche",
     "scrollRight": "Défiler vers la droite"
   },
+  "privacy": {
+    "hide": "Masquer les montants",
+    "show": "Afficher les montants",
+    "hidden": "Montant masqué"
+  },
   "foundation": {
     "readyWithVersion": "API {{version}}. Le socle de l’application est prêt.",
     "retry": "Réessayer"

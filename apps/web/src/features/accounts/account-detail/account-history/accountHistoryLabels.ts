@@ -1,10 +1,11 @@
 import type { Account, AccountValuationHistoryPoint } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
+import { maskAmountText } from '@/lib/amountPrivacy';
 export function historyAmount(point: AccountValuationHistoryPoint, locale: string): string {
   return point.amount === null
     ? '-'
-    : `${formatDecimal(point.amount, locale)}\u00a0${point.assetCode ?? ''}`;
+    : maskAmountText(`${formatDecimal(point.amount, locale)}\u00a0${point.assetCode ?? ''}`);
 }
 export function historyQuality(point: AccountValuationHistoryPoint, t: TFunction): string {
   return t(`accounts.balances.qualities.${point.quality}`);

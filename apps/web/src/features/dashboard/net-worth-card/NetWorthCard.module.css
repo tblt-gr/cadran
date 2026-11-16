@@ -98,3 +98,14 @@
   color: var(--text-secondary);
   font-size: var(--font-size-sm);
 }
+
+.figureRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-3);
+}
+
+.figureRow .amount {
+  margin-top: var(--spacing-none);
+}

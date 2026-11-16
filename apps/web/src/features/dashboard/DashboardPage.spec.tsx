@@ -381,7 +381,9 @@ describe('DashboardPage', () => {
     api.readNetWorth.mockImplementation(() => new Promise(() => undefined));
     api.readNetWorthHistory.mockImplementation(() => new Promise(() => undefined));
     renderDashboard();
-    const radios = within(screen.getByTestId('dashboard-skeleton')).getAllByRole('button');
+    const radios = within(screen.getByTestId('dashboard-skeleton')).getAllByRole('button', {
+      name: (name) => name !== 'Masquer les montants',
+    });
     expect(radios.map((radio) => radio.textContent)).toEqual(['Tout', '12 mois', 'Depuis janvier']);
     expect(radios.every((radio) => (radio as HTMLButtonElement).disabled)).toBe(true);
     expect(screen.getByRole('button', { name: 'Depuis janvier', pressed: true })).toBeTruthy();
