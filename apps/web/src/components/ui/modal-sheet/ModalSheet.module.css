@@ -23,3 +23,20 @@
 .sheet h2 {
   margin: var(--spacing-none);
 }
+
+@media (max-width: 42rem) {
+  .backdrop {
+    padding: var(--spacing-none);
+  }
+
+  .sheet {
+    width: 100dvw;
+    height: 100dvh;
+    max-height: none;
+    padding: var(--spacing-4);
+    padding-top: calc(var(--spacing-4) + env(safe-area-inset-top));
+    padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
+    border: var(--border-none);
+    border-radius: var(--radius-none);
+  }
+}

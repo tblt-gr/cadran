@@ -154,21 +154,31 @@
   font-size: var(--font-size-label);
 }
 
+.modal.wide {
+  max-width: var(--modal-width-wide);
+}
+
 @media (max-width: 42rem) {
   .backdrop {
-    align-items: flex-end;
     padding: var(--spacing-none);
   }
 
   .modal {
-    max-height: 92svh;
-    border-right: var(--border-none);
-    border-bottom: var(--border-none);
-    border-left: var(--border-none);
-    border-radius: var(--radius-card) var(--radius-card) var(--radius-none) var(--radius-none);
+    width: 100dvw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: var(--border-none);
+    border-radius: var(--radius-none);
+    box-shadow: none;
   }
 
-  .heading,
+  .heading {
+    padding-top: calc(var(--spacing-4) + env(safe-area-inset-top));
+    padding-right: calc(var(--spacing-4) + env(safe-area-inset-right));
+    padding-left: calc(var(--spacing-4) + env(safe-area-inset-left));
+  }
+
   .body {
     padding: var(--spacing-4);
   }
@@ -189,8 +199,4 @@
   .body > [data-modal-form-host] form[data-modal-form] > [data-form-content] {
     padding: var(--spacing-4);
   }
-}
-
-.modal.wide {
-  max-width: var(--modal-width-wide);
 }
