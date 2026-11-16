@@ -112,7 +112,9 @@ for (const [mode, search] of [
       const sources = await page.getByRole('table').first().getByRole('link').count();
       expect(sources).toBeGreaterThan(0);
 
+      await expect(toggle(page)).toBeEnabled();
       await toggle(page).focus();
+      await expect(toggle(page)).toBeFocused();
       await page.keyboard.press('Space');
       await expect(toggle(page)).toHaveAttribute('aria-pressed', 'true');
       await expect.poll(() => marks(page).count()).toBeGreaterThan(0);

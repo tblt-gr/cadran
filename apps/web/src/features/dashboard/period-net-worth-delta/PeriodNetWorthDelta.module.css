@@ -1,3 +1,7 @@
+.container {
+  margin-top: var(--spacing-2);
+}
+
 .placeholder {
   width: calc(var(--spacing-12) * 4);
   max-width: 100%;

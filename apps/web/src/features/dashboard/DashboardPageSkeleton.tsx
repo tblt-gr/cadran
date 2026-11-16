@@ -32,7 +32,9 @@ export function DashboardPageSkeleton({
       >
         <SkeletonStatus>{status}</SkeletonStatus>
         <div className={cardStyles.header}>
-          <h2 id="net-worth-skeleton-title">{t('dashboard.netWorth.title')}</h2>
+          <div className={cardStyles.titleGroup}>
+            <h2 id="net-worth-skeleton-title">{t('dashboard.netWorth.title')}</h2>
+          </div>
           <div className={cardStyles.period}>
             <NetWorthPeriodControl period={period} disabled />
           </div>
@@ -57,7 +59,6 @@ export function DashboardPageSkeleton({
         <div className={allocationStyles.heading}>
           <div>
             <h2 id="allocation-skeleton-title">{t('dashboard.allocation.title')}</h2>
-            <p>{t('dashboard.allocation.description')}</p>
           </div>
           <a className={allocationStyles.link} href="/accounts/groups">
             {t('dashboard.allocation.viewGroups')}

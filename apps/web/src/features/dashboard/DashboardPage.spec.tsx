@@ -192,6 +192,21 @@ describe('DashboardPage', () => {
     window.localStorage.clear();
   });
 
+  it('places the stale valuation clock beside the net worth title', async () => {
+    api.readNetWorth.mockReturnValue(
+      success({ ...netWorth, quality: 'STALE', stalestAgeDays: 14 }),
+    );
+    api.readNetWorthHistory.mockReturnValue(success(history));
+    renderDashboard();
+    await loaded();
+
+    const title = screen.getByRole('heading', { name: 'Patrimoine net' });
+    const clock = screen.getByRole('img', { name: 'Valorisation la plus ancienne : 14 jours' });
+    expect(clock.parentElement).toBe(title.parentElement);
+    expect(clock.getAttribute('title')).toBe('Valorisation la plus ancienne : 14 jours');
+    expect(screen.queryByText('Valorisation la plus ancienne : 14 jours')).toBeNull();
+  });
+
   it('shows the emergency fund card after the metric cards, with its policy action', async () => {
     renderDashboard();
     const fund = await screen.findByRole('heading', { name: 'Fonds d’urgence' });
