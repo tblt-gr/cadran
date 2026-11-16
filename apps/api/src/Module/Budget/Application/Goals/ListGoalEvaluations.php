@@ -8,7 +8,6 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\InvalidCalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalEvaluationRules;
-use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalPrecedence;
@@ -44,15 +43,18 @@ final readonly class ListGoalEvaluations
     /** Bounds the goals read for a range; it counts ended goals still covering the range, not only the 100 current ones. */
     public const int MAX_GOALS = 500;
 
+    private GoalEvaluationItems $items;
+
     public function __construct(
         private CallerWorkspace $caller,
         private GoalRepository $goals,
         private GoalVersionRepository $versions,
         private GoalMetricReader $metrics,
-        private ResolveGoalScope $scope,
+        ResolveGoalScope $scope,
         private WorkspaceCalendar $calendar,
         private ?EvaluateStockGoal $stocks = null,
     ) {
+        $this->items = new GoalEvaluationItems($scope);
     }
 
     public function __invoke(string $from, string $to, GoalEvaluationGranularity $granularity = GoalEvaluationGranularity::BOTH, bool $includeUpcoming = false): GoalEvaluationsView
@@ -143,7 +145,7 @@ final readonly class ListGoalEvaluations
                 break;
             case GoalValueType::INCOME_SHARE:
                 $incomeValue = $income?->value;
-                [$target, $targetReason] = $this->share($version, $incomeValue, $income->reason ?? null);
+                [$target, $targetReason] = GoalEvaluationItems::share($version, $incomeValue, $income->reason ?? null);
                 break;
             case GoalValueType::ROLLING_INCOME_SHARE:
                 $reference = $context->reference($month);
@@ -154,7 +156,7 @@ final readonly class ListGoalEvaluations
         }
         $complete = MonthState::COMPLETE === $item->state;
 
-        return $this->item($context, $goal, $version, $overrides, $target, $targetReason, $figure['value'], $figure['reason'], $incomeValue, $complete, null, $asset);
+        return $this->items->build($context, $goal, $version, $overrides, $target, $targetReason, $figure['value'], $figure['reason'], $incomeValue, $complete, null, $asset);
     }
 
     /** @param list<string> $overrides */
@@ -191,7 +193,7 @@ final readonly class ListGoalEvaluations
             default:
                 $income = ReportAggregator::flow(AnnualColumnSeries::values('cashIncome', true, $months), IncompleteMonths::INCLUDE);
                 $incomeValue = $income->total?->toString();
-                [$target, $targetReason] = $this->share($version, $incomeValue, null === $income->total ? 'NO_DATA' : null);
+                [$target, $targetReason] = GoalEvaluationItems::share($version, $incomeValue, null === $income->total ? 'NO_DATA' : null);
         }
         $pace = null;
         $schedule = $version->schedule;
@@ -203,54 +205,7 @@ final readonly class ListGoalEvaluations
             $pace = ['expected' => $expected, 'status' => GoalEvaluationRules::pace($goal->direction(), $achieved['value'], $expected)];
         }
 
-        return $this->item($context, $goal, $version, $overrides, $target, $targetReason, $achieved['value'], $achieved['reason'], $incomeValue, $complete, $pace, $goal->assetCode->toString());
-    }
-
-    /**
-     * @param list<string>                             $overrides
-     * @param ?array{expected: string, status: string} $pace
-     */
-    private function item(EvaluationContext $context, Goal $goal, GoalVersion $version, array $overrides, ?string $target, ?string $targetReason, ?string $achieved, ?string $achievedReason, ?string $income, bool $complete, ?array $pace, string $asset): GoalEvaluationView
-    {
-        $tolerance = null === $target ? null : $version->toleranceAmount($income);
-        $status = GoalEvaluationRules::status($goal->direction(), $achieved, $target, $complete, $tolerance);
-        $reason = GoalEvaluationStatus::NOT_CALCULABLE === $status ? ($achievedReason ?? $targetReason ?? 'NO_DATA') : null;
-        if (null === $reason && true === $context->scope($this->scope, $goal)->archived) {
-            $reason = 'REFERENCE_ARCHIVED';
-        }
-        $amount = static fn (?string $value): ?GoalEvaluationFigure => null === $value ? null : GoalEvaluationFigure::amount($value, $asset);
-        $rate = static fn (?string $value): ?GoalEvaluationFigure => null === $value ? null : GoalEvaluationFigure::rate($value);
-        $targetFigure = GoalValueType::RATE === $version->valueType ? $rate($target) : $amount($target);
-        $achievedFigure = $goal->metric->isRate() ? $rate($achieved) : $amount($achieved);
-        $ratio = $version->ratio?->toString();
-        $toleranceFigure = GoalValueType::RATE === $version->valueType ? $rate($tolerance) : $amount($tolerance);
-
-        return new GoalEvaluationView(
-            $goal->id, $goal->label, $goal->periodicity->value, $goal->metric->value, $goal->scopeType->value, $goal->scopeRef, $goal->direction()->value,
-            $version->valueType->value, self::columnKey($goal), $targetFigure, $achievedFigure,
-            GoalEvaluationRules::gap($goal->direction(), $achieved, $target), $status->value, $reason,
-            match ($version->valueType) {
-                GoalValueType::AMOUNT => 'goals.formula.amount',
-                GoalValueType::INCOME_SHARE => 'goals.formula.incomeShare',
-                GoalValueType::ROLLING_INCOME_SHARE => 'goals.formula.rollingIncomeShare',
-                GoalValueType::RATE => 'goals.formula.rate',
-            },
-            ['target' => $target, 'achieved' => $achieved, 'income' => $income, 'ratio' => $ratio, 'tolerance' => $tolerance],
-            $version->versionNo, $overrides, $pace, $toleranceFigure, GoalEvaluationRules::withinTolerance($goal->direction(), $achieved, $target, $tolerance),
-        );
-    }
-
-    /** @return array{0: ?string, 1: ?string} the target of a share of income and the reason it has none */
-    private function share(GoalVersion $version, ?string $income, ?string $incomeReason): array
-    {
-        if (null === $income || null === $version->ratio) {
-            return [null, 'ZERO_CASH_INCOME' === $incomeReason ? 'ZERO_CASH_INCOME' : 'NO_DATA'];
-        }
-        if (ExactDecimal::isZeroForResponse($income)) {
-            return [null, 'ZERO_CASH_INCOME'];
-        }
-
-        return [ExactDecimal::multiplyForResponse(DecimalValue::fromString($income), $version->ratio), null];
+        return $this->items->build($context, $goal, $version, $overrides, $target, $targetReason, $achieved['value'], $achieved['reason'], $incomeValue, $complete, $pace, $goal->assetCode->toString());
     }
 
     /** @return array{value: ?string, reason: ?string} */
@@ -305,21 +260,6 @@ final readonly class ListGoalEvaluations
     private static function publicReason(?string $reason): string
     {
         return in_array($reason, ['MIXED_ASSETS', 'ZERO_CASH_INCOME'], true) ? $reason : 'NO_DATA';
-    }
-
-    private static function columnKey(Goal $goal): ?string
-    {
-        return match ($goal->metric) {
-            GoalMetric::CATEGORY_SPENDING => 'category:'.$goal->scopeRef,
-            GoalMetric::AXIS_SPENDING => 'axis:'.$goal->scopeRef,
-            GoalMetric::TOTAL_INCOME => 'cashIncome',
-            GoalMetric::TOTAL_SPENDING => 'budgetExpenses',
-            GoalMetric::NET_SAVINGS_TRANSFERS => 'netSavingsTransfers',
-            GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
-            GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
-            GoalMetric::NET_SAVINGS_RATE => 'netSavingsRate',
-            GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalMetric::ACCOUNT_BALANCE, GoalMetric::NET_WORTH => null,
-        };
     }
 
     /** @return list<GoalVersion> */
