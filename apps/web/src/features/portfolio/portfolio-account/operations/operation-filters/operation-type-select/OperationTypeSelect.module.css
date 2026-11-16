@@ -1,0 +1,11 @@
+/* The generic control fills its container: here it only takes what its label needs. */
+.types {
+  width: auto;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.types > * {
+  width: auto;
+  max-width: 100%;
+}

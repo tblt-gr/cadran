@@ -63,8 +63,18 @@
 }
 
 @media (max-width: 47.999rem) {
+  /* One line: the group name and its total; the share of net worth stays on desktop. */
+  .heading {
+    flex-wrap: nowrap;
+    gap: var(--spacing-3);
+  }
+
   .figures {
-    width: 100%;
-    justify-content: space-between;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+  }
+
+  .figures > div:nth-child(n + 2) {
+    display: none;
   }
 }

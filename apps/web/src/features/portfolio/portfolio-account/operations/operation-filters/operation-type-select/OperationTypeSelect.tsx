@@ -5,6 +5,7 @@ import {
   operationTypes,
   allowedOperationTypes,
 } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
+import styles from './OperationTypeSelect.module.css';
 
 export function OperationTypeSelect({
   onChange,
@@ -16,14 +17,18 @@ export function OperationTypeSelect({
   value: readonly PortfolioOperationType[];
 }) {
   return (
-    <MultiSelect
-      label="Types d’opération"
-      value={value}
-      onChange={onChange}
-      options={(accountKind ? allowedOperationTypes(accountKind) : operationTypes).map((type) => ({
-        value: type,
-        label: operationTypeLabel(type),
-      }))}
-    />
+    <div className={styles.types}>
+      <MultiSelect
+        label="Types d’opération"
+        value={value}
+        onChange={onChange}
+        options={(accountKind ? allowedOperationTypes(accountKind) : operationTypes).map(
+          (type) => ({
+            value: type,
+            label: operationTypeLabel(type),
+          }),
+        )}
+      />
+    </div>
   );
 }

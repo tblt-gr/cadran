@@ -130,9 +130,15 @@
     padding: var(--spacing-4);
   }
 
+  /* One line per account: the name, the balance right-aligned, then the action menu. The other
+     figures stay on the account page. */
   .panel tbody tr {
-    padding: var(--spacing-3) var(--spacing-none);
+    display: grid;
+    padding: var(--spacing-2) var(--spacing-none);
     border-bottom: var(--border-line-subtle);
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: var(--spacing-3);
   }
 
   .panel tbody tr:first-child {
@@ -146,41 +152,37 @@
 
   .panel tbody th,
   .panel tbody td {
-    display: grid;
+    display: block;
     min-width: 0;
-    padding: var(--spacing-2) var(--spacing-none);
+    padding: var(--spacing-none);
     border-bottom: var(--border-none);
-    grid-template-columns: minmax(7rem, 40%) minmax(0, 1fr);
-    column-gap: var(--spacing-3);
-    row-gap: var(--spacing-1);
-  }
-
-  .panel tbody td > small {
-    grid-column: 2;
-    margin-top: var(--spacing-none);
   }
 
   .panel tbody th::before,
   .panel tbody td::before {
-    content: attr(data-label);
-    color: var(--text-secondary);
-    font-size: var(--font-size-label);
-    font-weight: var(--font-weight-medium);
-  }
-
-  /* Inside a group card the heading names the group: row cells drop their column labels. */
-  .bare tbody th,
-  .bare tbody td {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .bare tbody th::before,
-  .bare tbody td::before {
     display: none;
   }
 
-  .bare tbody td > small {
-    grid-column: 1;
+  .panel tbody th small,
+  .panel tbody td small,
+  .panel tbody td:not([data-actions]) [aria-hidden='true']:not([data-skeleton]) {
+    display: none;
+  }
+
+  .panel tbody td:not([data-actions]) {
+    display: flex;
+    justify-content: flex-end;
+    font-family: var(--font-family-mono);
+  }
+
+  /* The menu closes the line instead of floating over the balance (the reorder controls make it
+     wider than the shared corner slot). */
+  .panel tbody tr > th:first-child:not([data-actions]) {
+    padding-right: var(--spacing-none);
+  }
+
+  .panel tbody tr > td[data-actions] {
+    position: static;
   }
 }
 
