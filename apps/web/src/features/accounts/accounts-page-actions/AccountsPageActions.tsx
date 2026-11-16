@@ -6,7 +6,6 @@ import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingMo
 import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import type { AccountsView } from '@/features/accounts/accounts-view/accountsView';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import styles from './AccountsPageActions.module.css';
 
 interface AccountsPageActionsProps {
   grouping: GroupingMode;
