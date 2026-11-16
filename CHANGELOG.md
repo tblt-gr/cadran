@@ -12,8 +12,6 @@ goals, portfolios and multi-support life insurance features are described in the
 
 ### Added
 
-- One-time console migration of supported historical annual workbooks, with validation and
-  reconciliation. This is a controlled migration, not a generic import assistant.
 - Encrypted PostgreSQL backups, daily/weekly/monthly retention, isolated restore verification,
   guarded restoration and retained recovery databases.
 - Each release attaches a CycloneDX SBOM, a production license report and a schema-only database

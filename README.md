@@ -37,9 +37,9 @@ quality; unavailable results stay explicitly unavailable.
 Latest published release: **0.7.0**. Releases 0.1.0 to 0.7.0 delivered the application foundation,
 accounts, transactions, budgets and closing, reports, goals, manual portfolios and multi-support
 life insurance. The 1.0.0 MVP is not published yet: it completes the operational side with
-encrypted backups, guarded restoration, safe upgrades and an installable PWA, plus the one-time
-migration of supported annual workbooks. The migration command is not on `main` yet. Check the
-[changelog](./CHANGELOG.md) and select a published release before using personal data. `main`
+encrypted backups, guarded restoration, safe upgrades and an installable PWA. Importing
+historical data is not part of 1.0.0; a generic import assistant is planned for a later release.
+Check the [changelog](./CHANGELOG.md) and select a published release before using personal data. `main`
 contains unreleased work; the package version remains the last release until release preparation
 is complete.
 
