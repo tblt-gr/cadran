@@ -22,16 +22,22 @@ for (const width of [1280, 360]) {
       'color',
       await page.locator('body').evaluate((el) => getComputedStyle(el).color),
     );
-    // The current page is a raised plate (desktop) or a plate behind the icon (phone): a surface
-    // and an even frame, never a one-sided rail or a glow.
-    const plate = width === 360 ? active.locator('svg') : active;
-    await expect(plate).not.toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-    await expect(plate).toHaveCSS('box-shadow', 'none');
-    const sides = await plate.evaluate((el) => {
-      const style = getComputedStyle(el);
-      return [style.borderLeftWidth, style.borderTopWidth, style.borderRightWidth];
-    });
-    expect(new Set(sides).size).toBe(1);
+    // The current page carries a white rule over its whole entry: the left edge on the sidebar, the
+    // bottom edge of the cell on the phone bar. Every other entry reserves the same transparent
+    // border so nothing shifts.
+    const side = width === 360 ? 'Bottom' : 'Left';
+    const bodyColor = await page.locator('body').evaluate((el) => getComputedStyle(el).color);
+    await expect(active).toHaveCSS(`border-${side.toLowerCase()}-width`, '2px');
+    await expect(active).toHaveCSS(`border-${side.toLowerCase()}-color`, bodyColor);
+    await expect(active).toHaveCSS('box-shadow', 'none');
+    await expect(navigation.getByRole('link', { name: 'Budget' })).toHaveCSS(
+      `border-${side.toLowerCase()}-width`,
+      '2px',
+    );
+    await expect(navigation.getByRole('link', { name: 'Budget' })).toHaveCSS(
+      `border-${side.toLowerCase()}-color`,
+      'rgba(0, 0, 0, 0)',
+    );
     await expect(navigation.getByRole('link', { name: 'Budget' })).toHaveCSS('box-shadow', 'none');
     await navigation.getByRole('link', { name: 'Synthèse' }).focus();
     await page.keyboard.press('Tab');
