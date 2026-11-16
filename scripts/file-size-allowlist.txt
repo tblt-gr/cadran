@@ -13,6 +13,5 @@
 481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
 343 apps/web/src/AuthenticatedApp.routes.tsx route table
 321 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility
-260 apps/web/src/features/transactions/transaction-filters/filter-panel/FilterPanel.tsx split pending
 264 apps/web/src/features/transactions/transaction-form/main-fields/TransactionMainFields.tsx split pending
 280 apps/web/src/features/transactions/transfer-editor/TransferForm.tsx split pending
