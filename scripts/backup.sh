@@ -16,8 +16,11 @@
 # LABEL, CADRAN_BACKUP_RECIPIENT_FILE, CADRAN_DB_PASSWORD_FILE, CADRAN_DB_NAME,
 # FILE and CONFIRM (restore), CADRAN_BACKUP_NOW with
 # CADRAN_BACKUP_ALLOW_TEST_CLOCK=1 (retention tests only).
-# One restore at a time is supported: the containers share one name
-# (cadran_backup_run) and the isolated databases have fixed names.
+# CADRAN_STACK (default cadran, else cadran_<suffix>) and CADRAN_SECRETS_DIR (default
+# ./var/docker-secrets) point the script at a disposable stack: network <stack>_internal, container
+# <stack>_backup_run and the secrets of that stack (make restore-drill, OPS-012).
+# One restore at a time is supported per stack: the containers share one name
+# (<stack>_backup_run) and the isolated databases have fixed names.
 # Test-only switches, never needed in normal use:
 #   CADRAN_RESTORE_SKIP_APP=1  do not stop or restart the app service during a
 #                              restore (the CI check restores a throwaway
@@ -33,8 +36,31 @@ set -eu
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd -P)
 image=cadran_backup:local
-recipient_file=${CADRAN_BACKUP_RECIPIENT_FILE:-$repo_root/var/docker-secrets/backup_recipient}
-password_file=${CADRAN_DB_PASSWORD_FILE:-$repo_root/var/docker-secrets/db_password}
+
+stack=${CADRAN_STACK:-cadran}
+# Same rule as ^cadran(_[a-z0-9]+)?$, without a regular expression that a line break could fool.
+stack_valid=0
+case $stack in
+    cadran) stack_valid=1 ;;
+    cadran_*)
+        case ${stack#cadran_} in
+            '' | *[!a-z0-9]*) ;;
+            *) stack_valid=1 ;;
+        esac
+        ;;
+esac
+if [ "$stack_valid" -ne 1 ]; then
+    printf 'backup: CADRAN_STACK must match ^cadran(_[a-z0-9]+)?$\n' >&2
+    exit 2
+fi
+secrets_dir=${CADRAN_SECRETS_DIR:-./var/docker-secrets}
+case $secrets_dir in
+    /*) ;;
+    ./*) secrets_dir=$repo_root/${secrets_dir#./} ;;
+    *) secrets_dir=$repo_root/$secrets_dir ;;
+esac
+recipient_file=${CADRAN_BACKUP_RECIPIENT_FILE:-$secrets_dir/backup_recipient}
+password_file=${CADRAN_DB_PASSWORD_FILE:-$secrets_dir/db_password}
 
 die() {
     printf 'backup: %s\n' "$1" >&2
@@ -83,7 +109,7 @@ resolve_backup_dir() {
 
 run_container() {
     # Reads no secret from the environment or the command line; mounts come from the caller.
-    docker run --rm --init --name cadran_backup_run --read-only --tmpfs /tmp \
+    docker run --rm --init --name "${stack}_backup_run" --read-only --tmpfs /tmp \
         --cap-drop ALL --security-opt no-new-privileges \
         --user "$(id -u):$(id -g)" "$@"
 }
@@ -146,7 +172,7 @@ create() {
     [ -s "$password_file" ] || die 'the database password file is missing; run make init first'
     resolve_backup_dir
     app_version=$(sed -n 's/^  "version": "\([0-9A-Za-z.+-]*\)",$/\1/p' "$repo_root/package.json" | head -n 1)
-    run_container --network cadran_internal \
+    run_container --network "${stack}_internal" \
         --env "CADRAN_APP_VERSION=${app_version:-unknown}" --env "CADRAN_DB_NAME=${CADRAN_DB_NAME:-cadran}" \
         --mount "type=bind,source=$password_file,target=/run/db_password,readonly" \
         --mount "type=bind,source=$recipient_file,target=/run/backup_recipient,readonly" \
@@ -277,14 +303,14 @@ resolve_restore_inputs() {
 
 # Database administration container: password only, no backup material.
 admin_container() {
-    run_container --network cadran_internal --env "CADRAN_DB_NAME=${CADRAN_DB_NAME:-cadran}" \
+    run_container --network "${stack}_internal" --env "CADRAN_DB_NAME=${CADRAN_DB_NAME:-cadran}" \
         --mount "type=bind,source=$password_file,target=/run/db_password,readonly" \
         "$image" "$@"
 }
 
 # Same plus the three backup files and the identity, mounted one by one, read-only.
 restore_container() {
-    run_container --network cadran_internal \
+    run_container --network "${stack}_internal" \
         --env "CADRAN_DB_NAME=${CADRAN_DB_NAME:-cadran}" --env "CADRAN_LATEST_SCHEMA=$latest_schema" \
         --mount "type=bind,source=$password_file,target=/run/db_password,readonly" \
         --mount "type=bind,source=$restore_dump,target=/restore/backup.dump.age,readonly" \
@@ -296,10 +322,14 @@ restore_container() {
 
 compose() {
     compose_env=$repo_root/.env.example
-    if [ -f "$repo_root/.env.local" ]; then
+    if [ -f "$repo_root/.env.local" ] && [ "$stack" = cadran ]; then
         compose_env=$repo_root/.env.local
     fi
-    docker compose --project-directory "$repo_root" --env-file "$compose_env" "$@"
+    if [ "$stack" = cadran ]; then
+        docker compose --project-directory "$repo_root" --env-file "$compose_env" "$@"
+    else
+        docker compose --project-name "$stack" --project-directory "$repo_root" --env-file "$compose_env" "$@"
+    fi
 }
 
 restore_precheck() {
@@ -342,7 +372,7 @@ restore_exit() {
     restore_status=$?
     trap - EXIT INT TERM HUP
     if [ "$restore_status" -ne 0 ]; then
-        docker rm --force cadran_backup_run > /dev/null 2>&1 || true
+        docker rm --force "${stack}_backup_run" > /dev/null 2>&1 || true
     fi
     if [ "$swapped" -eq 0 ] && [ "$fresh_started" -eq 1 ]; then
         admin_container drop-new > /dev/null 2>&1 || true

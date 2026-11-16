@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate shell test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup restore-drill restore-drill-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate shell test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -173,6 +173,15 @@ db-restore-cleanup: backup-image
 	sh scripts/check-local-runtime.sh
 	$(COMPOSE) up --detach --wait db
 	sh scripts/backup.sh restore-cleanup
+
+# Rehearses a cold restore of FILE with the offline IDENTITY on the disposable stack cadran_drill
+# (https://localhost:8445): own secrets in var/drill-secrets, never the personal stack.
+restore-drill: backup-image
+	sh scripts/restore-drill.sh run
+
+# Removes the cadran_drill containers, network, volumes and files after an interactive yes.
+restore-drill-cleanup:
+	sh scripts/restore-drill.sh cleanup
 
 tls-certificate:
 	sh scripts/check-local-runtime.sh

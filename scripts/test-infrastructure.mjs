@@ -480,7 +480,7 @@ const backupTool = readFileSync(
 );
 
 if (
-  !backupHost.includes('--name cadran_backup_run') ||
+  !backupHost.includes('--name "${stack}_backup_run"') ||
   !backupHost.includes('--read-only') ||
   !backupHost.includes('--cap-drop ALL') ||
   !backupHost.includes('--security-opt no-new-privileges')

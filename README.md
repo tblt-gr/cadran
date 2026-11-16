@@ -278,6 +278,20 @@ backup with a schema newer than the checked-out code supports; use compatible co
 The application version alone is not a compatibility gate. Re-export and trust
 the replacement machine's HTTPS authority on each device.
 
+#### Rehearse a cold restore
+
+To prove a backup restores on a blank installation without touching the personal one, rehearse on
+the disposable stack `cadran_drill` (own containers, volumes and secrets, `https://localhost:8445`):
+
+```bash
+make restore-drill FILE=/backup/cadran-YYYYMMDD-HHMMSS-manual.dump.age IDENTITY=/secure/offline/backup-identity.txt
+make restore-drill-cleanup
+```
+
+The drill derives its recipient from the offline identity, restores, migrates, starts the app and
+prints the doctor result. It refuses the stack `cadran` and port 8443. Cleanup asks for `yes`, then
+removes only the drill containers, network, volumes and `var/drill-secrets/`.
+
 ## Your data
 
 Everything Cadran stores lives in three places on the host:
