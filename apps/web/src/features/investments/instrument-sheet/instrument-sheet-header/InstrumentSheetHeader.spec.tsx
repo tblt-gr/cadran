@@ -31,7 +31,7 @@ describe('InstrumentSheetHeader', () => {
   it('portals the three-dot trigger into the shell header and removes the standalone list link', () => {
     const { onEdit } = mount();
     const trigger = within(screen.getByTestId('shell-header')).getByRole('button', {
-      name: 'Actions',
+      name: `Actions de l’instrument ${instrument.name}`,
     });
     expect(within(screen.getByTestId('sheet-header')).queryByRole('button')).toBeNull();
     expect(screen.queryByRole('link', { name: 'Voir tous les instruments' })).toBeNull();
@@ -45,21 +45,21 @@ describe('InstrumentSheetHeader', () => {
     ['INACTIVE', 'Réactiver'],
   ] as const)('offers %s status action through the shared menu', (status, label) => {
     const { onStatus } = mount(status);
-    fireEvent.click(screen.getByRole('button', { name: 'Actions' }));
+    fireEvent.click(screen.getByRole('button', { name: /^Actions de l’instrument/ }));
     fireEvent.click(screen.getByRole('button', { name: label }));
     expect(onStatus).toHaveBeenCalledTimes(1);
   });
   it('keeps one disabled trigger in the real header slot while loading', () => {
     mount(null);
     const trigger = within(screen.getByTestId('shell-header')).getByRole('button', {
-      name: 'Actions',
+      name: 'Actions de l’instrument',
     });
     expect((trigger as HTMLButtonElement).disabled).toBe(true);
     expect(screen.queryByRole('button', { name: 'Modifier' })).toBeNull();
   });
   it('keeps the shared arrow navigation and Escape focus return', () => {
     mount();
-    const trigger = screen.getByRole('button', { name: 'Actions' });
+    const trigger = screen.getByRole('button', { name: /^Actions de l’instrument/ });
     trigger.focus();
     fireEvent.click(trigger);
     fireEvent.keyDown(window, { key: 'ArrowDown' });

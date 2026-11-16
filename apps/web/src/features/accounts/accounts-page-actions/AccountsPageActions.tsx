@@ -52,22 +52,18 @@ export function AccountsPageActions({
           {t('accounts.manageGroups')}
         </a>
         {view === 'grouped' ? (
-          <GroupingModeToggle
-            className="secondary-action"
-            labelled
-            mode={grouping}
-            onChange={onGroupingChange}
-          />
+          <GroupingModeToggle className="icon-button" mode={grouping} onChange={onGroupingChange} />
         ) : null}
         {view === 'grouped' ? (
           <button
+            aria-label={reorderLabel}
             aria-pressed={reordering}
-            className="secondary-action"
+            className="icon-button"
             onClick={onToggleReordering}
+            title={reorderLabel}
             type="button"
           >
-            <Icon name={reordering ? 'check-circle' : 'reorder'} size={18} />
-            {reorderLabel}
+            <Icon name={reordering ? 'check-circle' : 'reorder'} />
           </button>
         ) : null}
       </HeaderActions>

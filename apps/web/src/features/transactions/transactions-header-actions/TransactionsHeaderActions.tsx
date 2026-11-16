@@ -16,9 +16,14 @@ export function TransactionsHeaderActions({
         <Icon name="add" size={18} />
         {t('transactions.add')}
       </button>
-      <button className="secondary-action" onClick={onTransfer} type="button">
-        <Icon name="transfer" size={18} />
-        {t('transactions.addTransfer')}
+      <button
+        aria-label={t('transactions.addTransfer')}
+        className="icon-button"
+        onClick={onTransfer}
+        title={t('transactions.addTransfer')}
+        type="button"
+      >
+        <Icon name="transactions" size={18} />
       </button>
     </HeaderActions>
   );

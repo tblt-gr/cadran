@@ -572,7 +572,7 @@ describe('MonthlyBudgetPage', () => {
   });
 
   describe('monthly closure button', () => {
-    it('offers the closure as a labelled button after the goals button, with no overflow menu', async () => {
+    it('offers the closure as an icon button after the goals button, with no overflow menu', async () => {
       renderPage();
       await loaded();
 
@@ -581,7 +581,7 @@ describe('MonthlyBudgetPage', () => {
       expect(
         header.compareDocumentPosition(trigger) & Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
-      expect(trigger.textContent).toBe('Clôturer ce mois');
+      expect(trigger.textContent).toBe('');
       expect(screen.queryByRole('button', { name: 'Autres actions' })).toBeNull();
     });
 

@@ -102,24 +102,26 @@ export function PortfolioAccountHeader({
         ) : null}
         {voided && tab === 'operations' ? (
           <button
+            aria-label="Afficher les opérations annulées"
             aria-pressed={voided.active}
-            className="secondary-action"
+            className="icon-button"
             onClick={voided.onToggle}
+            title="Afficher les opérations annulées"
             type="button"
           >
             <Icon name={voided.active ? 'eye' : 'eye-off'} size={18} />
-            Afficher les opérations annulées
           </button>
         ) : null}
         {closed && tab === 'positions' && account?.kind !== 'INSURANCE_CONTRACT' ? (
           <button
+            aria-label="Afficher les positions soldées"
             aria-pressed={closed.active}
-            className="secondary-action"
+            className="icon-button"
             onClick={closed.onToggle}
+            title="Afficher les positions soldées"
             type="button"
           >
             <Icon name={closed.active ? 'eye' : 'eye-off'} size={18} />
-            Afficher les positions soldées
           </button>
         ) : null}
         {tab === 'account' ? (

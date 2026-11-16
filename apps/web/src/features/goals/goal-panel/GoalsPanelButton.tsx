@@ -49,13 +49,14 @@ export function GoalsPanelButton({ scope, onOpen, buttonRef, ready }: Props) {
   if (data.pending && data.evaluations === undefined) {
     return (
       <button
+        aria-label={label}
         className={`secondary-action ${styles.button}`}
         disabled
         ref={buttonRef}
+        title={label}
         type="button"
       >
         <Icon name="goals" size={18} />
-        {label}
         <SkeletonBlock className={styles.barBlock} />
         <SkeletonBlock className={styles.countBlock} />
       </button>
@@ -65,13 +66,14 @@ export function GoalsPanelButton({ scope, onOpen, buttonRef, ready }: Props) {
   if (counts === null || counts.total === 0) {
     return (
       <button
-        className={`secondary-action ${styles.button}`}
+        aria-label={label}
+        className={`icon-button ${styles.bare}`}
         onClick={onOpen}
         ref={buttonRef}
+        title={label}
         type="button"
       >
         <Icon name="goals" size={18} />
-        {label}
       </button>
     );
   }
@@ -88,7 +90,6 @@ export function GoalsPanelButton({ scope, onOpen, buttonRef, ready }: Props) {
       type="button"
     >
       <Icon name="goals" size={18} />
-      {label}
       <span aria-hidden="true" className={styles.bar}>
         <span className={styles.fill} style={{ width: `${percent}%` }} />
       </span>

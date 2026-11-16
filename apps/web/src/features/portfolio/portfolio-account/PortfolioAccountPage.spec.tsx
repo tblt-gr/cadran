@@ -945,7 +945,7 @@ describe('PortfolioAccountPage', () => {
     renderPage();
     await loadedOperationsTable();
     expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.includeVoided).toBe(false);
-    fireEvent.click(screen.getByRole('button', { name: 'Afficher les opérations annulées' }));
+    fireEvent.click(screen.getByLabelText('Afficher les opérations annulées'));
     await waitFor(() =>
       expect(api.listPortfolioOperations.mock.calls.at(-1)![0].query.includeVoided).toBe(true),
     );
@@ -1085,9 +1085,7 @@ describe('PortfolioAccountPage', () => {
       ),
     );
     renderPage();
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Afficher les opérations annulées' }),
-    );
+    fireEvent.click(await screen.findByLabelText('Afficher les opérations annulées'));
     await screen.findByText('Remplacée');
     openAction('Détail');
     expect(
@@ -1283,9 +1281,7 @@ it.each(['positions', 'valuations'] as const)(
     renderPage();
     await accountLoaded();
     if (tab === 'positions') {
-      expect(
-        await screen.findByRole('button', { name: 'Afficher les positions soldées' }),
-      ).toBeTruthy();
+      expect(await screen.findByLabelText('Afficher les positions soldées')).toBeTruthy();
       expect(await screen.findByRole('button', { name: 'Classe d’actifs' })).toBeTruthy();
     }
     if (tab === 'valuations')

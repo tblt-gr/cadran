@@ -126,7 +126,7 @@ describe('GoalsPanelButton', () => {
       ),
     );
     const button = screen.getByRole('button', { name: 'Objectifs' });
-    expect(button.textContent).toBe('Objectifs');
+    expect(button.textContent).toBe('');
     expect(button.querySelector('[aria-hidden="true"]:not(svg)')).toBeNull();
   });
 

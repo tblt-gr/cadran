@@ -36,13 +36,13 @@ export function AccountFilters({
           aria-expanded={open}
           aria-haspopup="dialog"
           aria-label={t('accounts.filters.open')}
-          className={`secondary-action ${styles.trigger}`}
+          className={`icon-button ${styles.trigger}`}
           onClick={() => setOpen(true)}
           ref={trigger}
+          title={t('accounts.filters.open')}
           type="button"
         >
-          <Icon name="filter" size={18} />
-          {t('accounts.filters.open')}
+          <Icon name="filter" />
           {activeCount > 0 ? (
             <>
               <span aria-hidden="true" className={styles.badge} data-testid="account-filters-count">
