@@ -454,6 +454,15 @@ test.describe('responsive audit of modals', () => {
           await action.scrollIntoViewIfNeeded();
           const box = (await action.boundingBox())!;
           const panel = (await dialog.boundingBox())!;
+          if (viewport.touch) {
+            // Below 42rem every modal fills the viewport.
+            expect(panel).toMatchObject({
+              x: 0,
+              y: 0,
+              width: viewport.width,
+              height: viewport.height,
+            });
+          }
           expect(box.y).toBeGreaterThanOrEqual(panel.y - 1);
           expect(box.y + box.height).toBeLessThanOrEqual(viewport.height + 1);
           expect(box.x + box.width).toBeLessThanOrEqual(viewport.width + 1);
