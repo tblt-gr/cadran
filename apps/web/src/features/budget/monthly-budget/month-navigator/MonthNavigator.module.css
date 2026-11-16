@@ -20,12 +20,15 @@
   align-items: center;
   gap: var(--spacing-4);
   overflow-x: auto;
+  /* The strip scrolls inside itself; tabs never shrink into each other. */
+  overscroll-behavior-x: contain;
 }
 
 .tabs a,
 .tabs button {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   min-width: max-content;
   min-height: var(--control-height-compact);
   border-bottom: var(--border-width-focus) solid var(--color-transparent);
@@ -68,8 +71,17 @@
     gap: var(--spacing-2);
   }
 
+  .navigator {
+    min-width: 0;
+  }
+
   .year {
     max-width: 5rem;
+  }
+
+  /* Keep the desktop spacing between tabs: long months (septembre, novembre) stay apart. */
+  .tabs {
+    gap: var(--spacing-4);
   }
 }
 

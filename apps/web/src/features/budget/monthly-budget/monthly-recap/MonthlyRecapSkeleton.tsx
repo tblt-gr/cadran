@@ -153,6 +153,7 @@ function MonthlyRecapPlaceholder({
                   {Array.from({ length: 3 }, (_, index) => (
                     <tr key={index}>
                       <th data-label={accountColumns[0]} scope="row">
+                        <span className={accountStyles.dot} />
                         <a>
                           <SkeletonBlock />
                         </a>

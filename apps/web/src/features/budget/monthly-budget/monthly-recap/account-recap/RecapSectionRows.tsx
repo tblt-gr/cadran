@@ -77,13 +77,15 @@ export function RecapSectionRows({
             >
               <Icon name="chevron-down" size={14} />
             </span>
-            {section.label}
-            {section.parentLabel === null ? null : (
-              <>
-                {' '}
-                <span className={styles.parentLabel}>({section.parentLabel})</span>
-              </>
-            )}
+            <span className={styles.label}>
+              {section.label}
+              {section.parentLabel === null ? null : (
+                <>
+                  {' '}
+                  <span className={styles.parentLabel}>({section.parentLabel})</span>
+                </>
+              )}
+            </span>
           </button>
         </th>
         <td data-label={t('budget.monthly.recap.accounts.previousShort')}>
@@ -102,6 +104,7 @@ export function RecapSectionRows({
           id={`${membersId}-${index}`}
           key={member.account.accountId}
           member={member}
+          color={color ?? null}
         />
       ))}
     </tbody>

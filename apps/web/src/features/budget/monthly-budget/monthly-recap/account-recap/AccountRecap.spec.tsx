@@ -77,6 +77,13 @@ describe('AccountRecap', () => {
     expect(institution.previousElementSibling?.tagName).toBe('A');
   });
 
+  it('draws the group colour dot beside the account name for the phone layout', () => {
+    renderRecap([account('a', 'Compte courant', null)]);
+
+    const cell = screen.getByRole('link', { name: 'Compte courant' }).closest('th')!;
+    expect(cell.querySelector('[data-color-dot]')).not.toBeNull();
+  });
+
   it('renders no institution line for an account without one', () => {
     renderRecap([account('a', 'Compte courant', null)]);
 
@@ -93,9 +100,9 @@ describe('AccountRecap', () => {
 
     const shape = (cell: Element) =>
       [...cell.children].map((child) => `${child.tagName}.${child.className}`);
-    expect(shape(row)).toHaveLength(2);
-    expect(row.children[1]?.tagName).toBe('SMALL');
-    expect(row.children[1]?.querySelector('[data-skeleton]')).toBeTruthy();
+    expect(shape(row)).toHaveLength(3);
+    expect(row.children[2]?.tagName).toBe('SMALL');
+    expect(row.children[2]?.querySelector('[data-skeleton]')).toBeTruthy();
     expect(shape(row)).toEqual(shape(loaded));
   });
 
