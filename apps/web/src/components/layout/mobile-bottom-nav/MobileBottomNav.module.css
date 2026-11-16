@@ -29,6 +29,8 @@
     min-height: var(--mobile-navigation-height);
     padding: var(--spacing-1) var(--spacing-none);
     border: var(--border-none);
+    border-bottom: var(--border-width-focus) solid var(--color-transparent);
+    border-radius: var(--radius-none);
     color: var(--text-secondary);
     background: var(--color-transparent);
     font-size: var(--font-size-2xs);
@@ -44,17 +46,10 @@
     text-decoration: none;
   }
 
-  /* The current destination gets the same selected plate as the desktop row, behind its icon. */
+  /* The current destination gets a white rule across the bottom of its whole cell; the transparent
+     border on every link keeps the cells from shifting. */
   .navigation .link[aria-current='page'] {
+    border-bottom-color: var(--text-primary);
     color: var(--text-primary);
-  }
-
-  .navigation .link[aria-current='page'] svg {
-    padding: var(--spacing-0-5) var(--spacing-3);
-    border: var(--border-line-subtle);
-    border-radius: var(--radius-control);
-    background: var(--bg-selected);
-    box-shadow: none;
-    box-sizing: content-box;
   }
 }

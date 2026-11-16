@@ -5,7 +5,8 @@
   min-height: var(--navigation-link-height);
   padding: var(--spacing-1) var(--spacing-2);
   border: var(--border-line-transparent);
-  border-radius: var(--radius-control);
+  border-left-width: var(--border-width-focus);
+  border-radius: var(--radius-none) var(--radius-control) var(--radius-control) var(--radius-none);
   color: var(--text-secondary);
   background: var(--color-transparent);
   font-size: var(--font-size-body);
@@ -29,10 +30,11 @@
   background: var(--bg-surface-1);
 }
 
-/* The current page is one surface step up with a hairline; its label turns white. The shape,
-   not a colour, says where you are. */
+/* The current page keeps the selected surface and gets a white rule along its whole left edge;
+   every link reserves that transparent border so nothing shifts. */
 .link[aria-current='page'] {
   border-color: var(--border-subtle);
+  border-left-color: var(--text-primary);
   color: var(--text-primary);
   background: var(--bg-selected);
   box-shadow: none;
