@@ -4,6 +4,8 @@ import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateRefundRequest, RefundableTransaction } from '@cadran/api-client';
 import { useState } from 'react';
+import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
+import { workspaceToday } from '@/lib/workspaceTime';
 import { useTranslation } from 'react-i18next';
 import {
   compareDecimals,
@@ -36,6 +38,7 @@ export function RefundForm({
   submitErrorDetail,
 }: RefundFormProps) {
   const { i18n, t } = useTranslation();
+  const workspaceTimeZone = useWorkspaceTimeZone();
   const eligibleAccounts = accounts.filter(
     (account) => account.assetCode === proposal.refundable.assetCode,
   );
@@ -45,7 +48,7 @@ export function RefundForm({
       '',
   );
   const [amount, setAmount] = useState(proposal.refundable.value);
-  const [bookedOn, setBookedOn] = useState('');
+  const [bookedOn, setBookedOn] = useState(() => workspaceToday(new Date(), workspaceTimeZone));
   const [rawLabel, setRawLabel] = useState('');
   const [counterparty, setCounterparty] = useState('');
   const [note, setNote] = useState('');

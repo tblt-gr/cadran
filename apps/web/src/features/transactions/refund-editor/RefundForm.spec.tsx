@@ -12,6 +12,11 @@ const api = vi.hoisted(() => ({
   listCategories: vi.fn(),
 }));
 
+const workspace = vi.hoisted(() => ({ timeZone: 'UTC' }));
+vi.mock('@/features/auth/useWorkspaceTimeZone', () => ({
+  useWorkspaceTimeZone: () => workspace.timeZone,
+}));
+
 vi.mock('@cadran/api-client', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@cadran/api-client')>()),
   ...api,
@@ -40,6 +45,8 @@ const proposal: RefundableTransaction = {
 describe('RefundForm', () => {
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
+    workspace.timeZone = 'UTC';
     vi.clearAllMocks();
   });
 
@@ -71,6 +78,33 @@ describe('RefundForm', () => {
     expect(select.value).toBe(expected);
     fireEvent.change(select, { target: { value: account.id } });
     expect(select.value).toBe(account.id);
+  });
+
+  it("starts on the workspace's today, not the UTC day, and submits it", () => {
+    // 2026-11-09T23:30Z is already 2026-11-10 12:30 in Auckland.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-11-09T23:30:00Z'));
+    workspace.timeZone = 'Pacific/Auckland';
+    const submit = vi.fn();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <RefundForm
+          accounts={[account]}
+          onSubmit={submit}
+          pending={false}
+          proposal={proposal}
+          submitError={null}
+          submitErrorDetail={null}
+        />
+      </QueryClientProvider>,
+    );
+    expect((screen.getByLabelText('Date comptable') as HTMLInputElement).value).toBe('2026-11-10');
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Remboursement' } });
+    const save = screen.getByRole('button', { name: 'Créer le remboursement' });
+    expect((save as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.click(save);
+    expect(submit).toHaveBeenCalledWith(expect.objectContaining({ bookedOn: '2026-11-10' }));
   });
 
   it('keeps the essential fields and folded advanced section in the loading grid', () => {
