@@ -1709,13 +1709,13 @@ describe('MonthlyBudgetPage', () => {
       true,
     );
     fireEvent.click(liquidity);
-    // The accounts sit under their group row, which alone carries the group's colour.
+    // The account dot is drawn for the one-line phone layout only; CSS keeps it hidden on desktop.
     expect(
       screen
         .getByRole('link', { name: 'Compte courant' })
         .closest('tr')
         ?.querySelector('[data-color-dot]'),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(screen.getByRole('link', { name: 'Compte courant' }).getAttribute('href')).toBe(
       `/accounts/${accountId}`,
     );
