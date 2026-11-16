@@ -44,6 +44,35 @@ for (const width of [360, 768, 1440]) {
       await expectFlushTable(page.getByRole('table', { name: /Valeurs des comptes/ }));
     });
 
+    test('paints a monthly recap group row as one band on mobile', async ({ page }) => {
+      test.skip(width > 672, 'The one-line card rows only exist below 42rem.');
+      await page.goto('/budget');
+      await settled(page);
+      const table = page.getByRole('table', { name: /Valeurs des comptes/ });
+      const rows = await table.locator('tbody tr:has(> th[scope="rowgroup"])').evaluateAll((trs) =>
+        trs.map((tr) => ({
+          background: getComputedStyle(tr).backgroundColor,
+          height: Math.round(tr.getBoundingClientRect().height),
+          cells: [...tr.children]
+            .filter((cell) => cell.getBoundingClientRect().height > 0)
+            .map((cell) => ({
+              background: getComputedStyle(cell).backgroundColor,
+              height: Math.round(cell.getBoundingClientRect().height),
+            })),
+        })),
+      );
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        expect(row.background, 'the band is painted on the row').not.toBe('rgba(0, 0, 0, 0)');
+        expect(new Set(row.cells.map((cell) => cell.background)).size).toBe(1);
+        for (const cell of row.cells) {
+          expect(cell.height, 'cells stretch to the row height').toBeGreaterThanOrEqual(
+            row.height - 1,
+          );
+        }
+      }
+    });
+
     test('keeps instrument links usable for short names and keyboard navigation', async ({
       page,
     }) => {
