@@ -7,7 +7,6 @@
 431 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalAccountRepository.php exhaustive row mapping, one responsibility
 369 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalProductModelRepository.php exhaustive row mapping, one responsibility
 335 apps/api/src/Module/Budget/Application/Goals/ListGoalEvaluations.php split pending
-376 apps/api/src/Module/Budget/UI/Http/GoalController.php split pending
 316 apps/api/src/Module/Categories/Application/AssessCategoryImpact.php split pending
 324 apps/api/src/Module/Categories/Infrastructure/Persistence/DbalCategoryRepository.php exhaustive row mapping, one responsibility
 465 apps/api/src/Module/Demo/Application/SeedDemoData.php demo fixture data, one responsibility
