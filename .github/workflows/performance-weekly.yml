@@ -23,7 +23,7 @@ jobs:
   budgets:
     name: Backend performance budgets
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: postgres:18
