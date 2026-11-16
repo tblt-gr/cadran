@@ -109,6 +109,12 @@ final readonly class DbalTransactionFilterReader
                 .' WHERE t.workspace_id = :workspace_id'
                 .$clauses
                 .' GROUP BY fs.category_id, CAST(fs.analytic_axes AS text)',
+            FilteredRead::FACET_TALLY => 'SELECT t.account_id AS account_id, t.nature AS nature, t.source AS source, t.state AS state, fs.category_id AS category_id,'
+                .' CAST(fs.analytic_axes AS text) AS axes, count(*) AS split_matches, count(*) FILTER (WHERE fs.position = 0 OR fs.id IS NULL) AS matches'
+                .' FROM transaction_transactions t LEFT JOIN transaction_splits fs ON fs.workspace_id = :workspace_id AND fs.transaction_id = t.id'
+                .' WHERE t.workspace_id = :workspace_id'
+                .$clauses
+                .' GROUP BY t.account_id, t.nature, t.source, t.state, fs.category_id, CAST(fs.analytic_axes AS text)',
             FilteredRead::REPEATED_AXES => 'SELECT ax.value AS facet_value, count(DISTINCT fs.id) AS matches FROM transaction_splits fs'
                 .' JOIN transaction_splits earlier ON earlier.workspace_id = :workspace_id AND earlier.transaction_id = fs.transaction_id AND earlier.position < fs.position'
                 .' JOIN unnest(CAST(:facet_axes AS text[])) AS ax(value) ON jsonb_exists(fs.analytic_axes, ax.value) AND jsonb_exists(earlier.analytic_axes, ax.value)'

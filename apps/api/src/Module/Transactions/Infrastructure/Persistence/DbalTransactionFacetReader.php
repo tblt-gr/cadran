@@ -12,8 +12,7 @@ use App\Module\Transactions\Domain\TransactionFacetScope;
 use App\Module\Transactions\Domain\TransactionFilters;
 
 /**
- * The facet counts of the filter column, from the tallies {@see DbalTransactionFilterReader}
- * reads, which holds all the SQL.
+ * The facet counts of the filter column, from the tallies {@see DbalTransactionFilterReader} reads.
  *
  * They stay cheap on a ledger of 100 000 transactions: the four columns of a transaction are
  * tallied by one scan, and each section adds up the combinations its own filters admit; the
@@ -36,6 +35,10 @@ final readonly class DbalTransactionFacetReader
      */
     public function facetCounts(WorkspaceScope $workspace, array $scopes, ?CategorySubtrees $subtrees = null): array
     {
+        if ([] !== $scopes && TransactionFacetTally::withoutSplitFilter($scopes)) {
+            return self::sorted($this->countTogether($workspace, $scopes, $subtrees));
+        }
+
         $columns = array_values(array_filter($scopes, static fn (TransactionFacetScope $scope): bool => null !== TransactionFacetTally::column($scope->facet)));
         $splits = array_values(array_filter($scopes, static fn (TransactionFacetScope $scope): bool => null === TransactionFacetTally::column($scope->facet)));
 
@@ -62,12 +65,66 @@ final readonly class DbalTransactionFacetReader
         foreach ($splitGroups as $group) {
             $counts = [...$counts, ...$this->countSplits($workspace, $group, $subtrees)];
         }
+
+        return self::sorted($counts);
+    }
+
+    /**
+     * @param array<string, array<string, int>> $counts
+     *
+     * @return array<string, array<string, int>>
+     */
+    private static function sorted(array $counts): array
+    {
         foreach ($counts as $facet => $values) {
             ksort($values, SORT_STRING);
             $counts[$facet] = $values;
         }
 
         return $counts;
+    }
+
+    /**
+     * With no filter on the splits every section reads the same transactions: one scan tallies them
+     * all. A split filter keeps the statements of {@see facetCounts()}: their semi-joins only visit
+     * the transactions it keeps, where flagging each transaction in one scan read every split and
+     * measured slower.
+     *
+     * @param non-empty-list<TransactionFacetScope> $scopes
+     *
+     * @return array<string, array<string, int>>
+     */
+    private function countTogether(WorkspaceScope $workspace, array $scopes, ?CategorySubtrees $subtrees): array
+    {
+        $tally = $this->reader->read(FilteredRead::FACET_TALLY, $workspace, $scopes[0]->filters->withoutColumnFilters());
+
+        $counts = [];
+        foreach ($scopes as $scope) {
+            $counts[$scope->facet->value] = match (true) {
+                TransactionFacet::AXIS === $scope->facet => $this->withoutRepeats($workspace, TransactionFacetTally::axes($tally, $scope), $scope->filters),
+                TransactionFacet::CATEGORY === $scope->facet && null !== $subtrees => $this->countRolledUp($workspace, $scope->filters, $subtrees),
+                default => TransactionFacetTally::admitted($tally, $scope),
+            };
+        }
+
+        return $counts;
+    }
+
+    /**
+     * The spelled-out axis counts less the splits whose axis an earlier split of the same
+     * transaction already carries, so that a transaction counts once per axis.
+     *
+     * @param array<string, int> $byAxis
+     *
+     * @return array<string, int>
+     */
+    private function withoutRepeats(WorkspaceScope $workspace, array $byAxis, TransactionFilters $filters): array
+    {
+        foreach ($this->countRepeatedAxes($workspace, $filters) as $axis => $repeated) {
+            $byAxis[$axis] = ($byAxis[$axis] ?? 0) - $repeated;
+        }
+
+        return array_filter($byAxis, static fn (int $count): bool => $count > 0);
     }
 
     /**
@@ -169,7 +226,7 @@ final readonly class DbalTransactionFacetReader
                 $byCategory[$category] = ($byCategory[$category] ?? 0) + $matches;
             }
             if ($axes) {
-                foreach (self::axisList(TransactionRow::text($combination['axes'] ?? null)) as $axis) {
+                foreach (TransactionFacetTally::axisList(TransactionRow::text($combination['axes'] ?? null)) as $axis) {
                     $byAxis[$axis] = ($byAxis[$axis] ?? 0) + $matches;
                 }
             }
@@ -180,10 +237,7 @@ final readonly class DbalTransactionFacetReader
             $counts[TransactionFacet::CATEGORY->value] = $byCategory;
         }
         if ($axes) {
-            foreach ($this->countRepeatedAxes($workspace, $filters) as $axis => $repeated) {
-                $byAxis[$axis] = ($byAxis[$axis] ?? 0) - $repeated;
-            }
-            $counts[TransactionFacet::AXIS->value] = array_filter($byAxis, static fn (int $count): bool => $count > 0);
+            $counts[TransactionFacet::AXIS->value] = $this->withoutRepeats($workspace, $byAxis, $filters);
         }
 
         return $counts;
@@ -224,22 +278,6 @@ final readonly class DbalTransactionFacetReader
             $filters,
             ['ancestor_ids' => TransactionRow::postgresArray($ancestors), 'descendant_ids' => TransactionRow::postgresArray($descendants)],
         ));
-    }
-
-    /**
-     * The axes of a split, each once: the table only requires them to be among the six, so a row
-     * written around the domain may list one twice, which still makes one split carrying it.
-     *
-     * @return list<string>
-     */
-    private static function axisList(string $json): array
-    {
-        $axes = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
-        if (!is_array($axes)) {
-            throw new \UnexpectedValueException('Expected a list of analytic axes.');
-        }
-
-        return array_values(array_unique(array_filter($axes, is_string(...))));
     }
 
     /**

@@ -73,6 +73,9 @@ final class TransactionFacetParityTest extends KernelTestCase
         yield 'amount bounds' => [new ListTransactionsQuery(minAmount: '10', maxAmount: '100', assetCode: 'EUR')];
         yield 'an amount below a cent bound' => [new ListTransactionsQuery(minAmount: '0', maxAmount: '0.01', assetCode: 'EUR')];
         yield 'a text query' => [new ListTransactionsQuery(q: 'cb e00')];
+        yield 'an account and a text query' => [new ListTransactionsQuery(accountIds: [F::CURRENT], q: 'cb e00')];
+        yield 'an axis and a text query' => [new ListTransactionsQuery(axes: ['FIXED'], q: 'cb e00')];
+        yield 'an axis, a category and a text query' => [new ListTransactionsQuery(axes: ['ESSENTIAL'], categoryIds: [F::GROCERIES], q: 'cb e00')];
         yield 'an accented text query' => [new ListTransactionsQuery(q: 'CAFÉ')];
         yield 'a query read as an amount' => [new ListTransactionsQuery(q: '50')];
         yield 'to categorise' => [new ListTransactionsQuery(categorizationNone: true)];
@@ -121,6 +124,29 @@ final class TransactionFacetParityTest extends KernelTestCase
                 );
             }
         }
+    }
+
+    public function testAnAxisAndATextCountATransactionWithTwoSplitsOfDifferentAxesOnce(): void
+    {
+        // e009 has two splits: FIXED on Organic, and ESSENTIAL with FIXED on Groceries.
+        $both = ($this->facets)(new ListTransactionsQuery(axes: ['ESSENTIAL'], q: 'cb e009'));
+        self::assertSame([F::CURRENT => 1], $both->of(TransactionFacet::ACCOUNT));
+        self::assertSame(['EXPENSE' => 1], $both->of(TransactionFacet::NATURE));
+        self::assertSame([F::GROCERIES => 1, self::ORGANIC => 1], $both->of(TransactionFacet::CATEGORY));
+        // The axis section lifts its own filter and counts the transaction once for each axis it carries.
+        self::assertSame(['ESSENTIAL' => 1, 'FIXED' => 1], $both->of(TransactionFacet::AXIS));
+
+        // With no split filter the one-scan path counts the same: FIXED sits on both splits, the transaction counts once.
+        $scan = ($this->facets)(new ListTransactionsQuery(q: 'cb e009'));
+        self::assertSame([F::CURRENT => 1], $scan->of(TransactionFacet::ACCOUNT));
+        self::assertSame([F::GROCERIES => 1, self::ORGANIC => 1], $scan->of(TransactionFacet::CATEGORY));
+        self::assertSame(['ESSENTIAL' => 1, 'FIXED' => 1], $scan->of(TransactionFacet::AXIS));
+
+        // An axis the transaction does not carry empties every section but the axis one.
+        $other = ($this->facets)(new ListTransactionsQuery(axes: ['DISCRETIONARY'], q: 'cb e009'));
+        self::assertSame([], $other->of(TransactionFacet::ACCOUNT));
+        self::assertSame([], $other->of(TransactionFacet::CATEGORY));
+        self::assertSame(['ESSENTIAL' => 1, 'FIXED' => 1], $other->of(TransactionFacet::AXIS));
     }
 
     public function testTheOracleItselfFindsSomethingForMostOptions(): void
