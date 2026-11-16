@@ -34,7 +34,7 @@ final readonly class LoadAnnualMonths
     }
 
     /** @return list<AnnualMonth> January to December */
-    public function __invoke(WorkspaceScope $workspace, int $year, ?CalendarMonth $firstDataMonth): array
+    public function __invoke(WorkspaceScope $workspace, int $year, ?CalendarMonth $firstDataMonth, bool $includeUpcoming = false): array
     {
         $today = $this->calendar->today();
         $states = ReportAggregator::monthStates(new CalendarMonth($year, 1), new CalendarMonth($year, 12), $firstDataMonth, $today);
@@ -48,7 +48,7 @@ final readonly class LoadAnnualMonths
             }
             $closure = $this->closures->findActive($workspace, $month);
             if (null === $closure) {
-                $months[] = new AnnualMonth($month, $state, false, false, MonthFigures::fromProjection(($this->projector)($workspace, $month, $today)));
+                $months[] = new AnnualMonth($month, $state, false, false, MonthFigures::fromProjection(($this->projector)($workspace, $month, $today, $includeUpcoming)));
                 continue;
             }
             $figures = $this->snapshots->find($workspace, $month, $closure->id);

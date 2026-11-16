@@ -89,7 +89,7 @@ final readonly class FixedGoalMonthSource implements GoalMonthSource
     {
     }
 
-    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end): array
+    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
     {
         return $this->months;
     }

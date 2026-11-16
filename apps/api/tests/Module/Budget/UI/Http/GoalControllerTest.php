@@ -66,6 +66,31 @@ final class GoalControllerTest extends WebTestCase
         parent::tearDown();
     }
 
+    public function testEvaluationsRespectUpcomingPreference(): void
+    {
+        $account = '00000000-0000-7000-8000-0000000000d1';
+        $this->insertAccount($account, null);
+        foreach ([['1000.00', 'BOOKED', '2026-09-01', false], ['500.00', 'PENDING', '2026-09-20', true]] as $index => [$amount, $state, $date, $autoBook]) {
+            $this->connection->insert('transaction_transactions', [
+                'id' => '00000000-0000-7000-8000-00000000010'.$index, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'account_id' => $account, 'asset_code' => 'EUR', 'amount_value' => $amount, 'amount_scale' => 2,
+                'state' => $state, 'nature' => 'INCOME', 'source' => 'MANUAL', 'booked_on' => $date,
+                'auto_book' => $autoBook, 'raw_label' => 'Income', 'version' => 1,
+                'created_at' => '2026-09-01 12:00:00+00', 'updated_at' => '2026-09-01 12:00:00+00',
+            ], ['auto_book' => \Doctrine\DBAL\ParameterType::BOOLEAN]);
+        }
+        $this->requestJson('POST', '/api/v1/goals', ['label' => 'Income', 'periodicity' => 'MONTHLY', 'metric' => 'TOTAL_INCOME', 'scope' => ['type' => 'WORKSPACE', 'ref' => null], 'startPeriod' => '2026-09', 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '2000.00', 'assetCode' => 'EUR']]);
+        self::assertResponseStatusCodeSame(201);
+        foreach ([[true, 0, '1500.00'], [false, 1, '1000.00'], [true, 2, '1500.00']] as [$include, $version, $expected]) {
+            $this->requestJson('PUT', '/api/v1/interface-preferences', ['includeUpcoming' => $include, 'version' => $version]);
+            self::assertResponseIsSuccessful();
+            $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-09&to=2026-09&granularity=MONTH');
+            self::assertResponseIsSuccessful();
+            $items = self::items(self::arr(self::items($this->decode()['months'])[0])['items']);
+            self::assertSame($expected, self::arr(self::arr($items[0])['achieved'])['value']);
+        }
+    }
+
     public function testTotalSpendingAcceptsAnIncomeShareMonthlyAndYearly(): void
     {
         foreach (['MONTHLY' => '2026-09', 'YEARLY' => '2026'] as $periodicity => $start) {

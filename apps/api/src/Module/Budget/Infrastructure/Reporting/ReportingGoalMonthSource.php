@@ -20,13 +20,13 @@ final readonly class ReportingGoalMonthSource implements GoalMonthSource
     ) {
     }
 
-    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end): array
+    public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
     {
         $first = ($this->firstData)($workspace);
         $firstDataMonth = null === $first ? null : CalendarMonth::fromString($first);
         $result = [];
         for ($year = $start->year; $year <= $end->year; ++$year) {
-            foreach (($this->months)($workspace, $year, $firstDataMonth) as $month) {
+            foreach (($this->months)($workspace, $year, $firstDataMonth, $includeUpcoming) as $month) {
                 if (self::ordinal($month->month) >= self::ordinal($start) && self::ordinal($month->month) <= self::ordinal($end)) {
                     $result[] = $month;
                 }

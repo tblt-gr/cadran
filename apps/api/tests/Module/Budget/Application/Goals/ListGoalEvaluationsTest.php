@@ -465,7 +465,7 @@ final class ListGoalEvaluationsTest extends TestCase
             {
             }
 
-            public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end): array
+            public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
             {
                 return array_values(array_filter($this->months, static fn (AnnualMonth $month): bool => $month->month->key() >= $start->key() && $month->month->key() <= $end->key()));
             }

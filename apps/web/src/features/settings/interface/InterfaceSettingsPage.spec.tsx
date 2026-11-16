@@ -97,6 +97,7 @@ describe('InterfaceSettingsPage', () => {
     );
     expect(isChecked()).toBe(false);
     expect(invalidate).toHaveBeenCalledWith({ queryKey: ['monthly-report'] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ['goal-evaluations'] });
   });
 
   it('refetches and explains a stale version', async () => {

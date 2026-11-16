@@ -33,8 +33,8 @@ use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
 
 /**
  * Which goal applies to every month (or year) of a range, its target, the achieved value, the
- * gap and the status. The months are loaded once and evaluated in memory; the figures are the
- * ones the reports show, so a year equals the annual report total of the same column.
+ * gap and the status. The months are loaded once and evaluated in memory; open months can include
+ * planned transactions, while closed months use their reporting snapshot.
  */
 final readonly class ListGoalEvaluations
 {
@@ -55,7 +55,7 @@ final readonly class ListGoalEvaluations
     ) {
     }
 
-    public function __invoke(string $from, string $to, GoalEvaluationGranularity $granularity = GoalEvaluationGranularity::BOTH): GoalEvaluationsView
+    public function __invoke(string $from, string $to, GoalEvaluationGranularity $granularity = GoalEvaluationGranularity::BOTH, bool $includeUpcoming = false): GoalEvaluationsView
     {
         try {
             $first = CalendarMonth::fromString($from);
@@ -86,7 +86,7 @@ final readonly class ListGoalEvaluations
         }
         $monthly = $granularity->months() ? array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::MONTHLY === $goal->periodicity)) : [];
         $yearly = $granularity->years() ? array_values(array_filter($goals, static fn (Goal $goal): bool => GoalPeriodicity::YEARLY === $goal->periodicity)) : [];
-        $inputs = $this->metrics->inputsBetween($workspace, [] === $yearly ? $first : new CalendarMonth($first->year, 1), $end, [...$monthly, ...$yearly]);
+        $inputs = $this->metrics->inputsBetween($workspace, [] === $yearly ? $first : new CalendarMonth($first->year, 1), $end, [...$monthly, ...$yearly], $includeUpcoming);
         $context = new EvaluationContext($today, $inputs);
         $context->versions = $this->versions->listByGoals($workspace, array_map(static fn (Goal $goal): string => $goal->id, $goals));
 
