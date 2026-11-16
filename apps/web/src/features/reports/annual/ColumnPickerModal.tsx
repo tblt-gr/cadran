@@ -5,20 +5,13 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Tabs } from '@/components/ui/tabs/Tabs';
-import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import { CategoryColumnOptions } from './category-column-options/CategoryColumnOptions';
-import { ColumnHeader } from './ColumnHeader';
+import { CatalogueColumnOptions, type CatalogueData } from './CatalogueColumnOptions';
+import { ColumnOptions } from './ColumnOptions';
 import { SelectedColumns, type SelectedColumn } from './SelectedColumns';
 import { AXIS_IDS, INDICATOR_COLUMN_IDS, MAX_ANNUAL_COLUMNS } from './annualColumns';
 import { AnnualRequestError, useSaveAnnualReportPreferences } from './useAnnualReport';
 import { useColumnCatalogue, type CatalogueEntry } from './useColumnCatalogue';
 import styles from './ColumnPickerModal.module.css';
-
-interface CatalogueData {
-  accounts: CatalogueEntry[];
-  categories: CatalogueEntry[];
-  groups: CatalogueEntry[];
-}
 
 interface ColumnPickerModalProps {
   close: () => void;
@@ -93,94 +86,30 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
       },
     );
   }
-  function options(prefix: string, entries: CatalogueEntry[]) {
-    return (
-      <>
-        {entries.length === 0 ? <p>{t('reports.annual.picker.none')}</p> : null}
-        <div className={styles.options}>
-          {entries.map((entry) => {
-            const id = `${prefix}${entry.id}`;
-            const checked = selected.includes(id);
-            return (
-              <label key={id}>
-                <input
-                  aria-label={entry.path}
-                  checked={checked}
-                  disabled={!checked && full}
-                  onChange={() => toggle(id)}
-                  type="checkbox"
-                />
-                <span>
-                  <ColumnHeader
-                    inlineParent
-                    column={{
-                      id,
-                      institution: entry.institution,
-                      label: entry.label,
-                      parentLabel: entry.parentLabel,
-                    }}
-                  />
-                </span>
-              </label>
-            );
-          })}
-        </div>
-      </>
-    );
-  }
-
-  /** The workspace's own entries: placeholders while they load, a retry when they failed. */
-  function catalogueOptions(
+  const columnOptions = (prefix: string, entries: CatalogueEntry[]) => (
+    <ColumnOptions
+      entries={entries}
+      full={full}
+      onToggle={toggle}
+      prefix={prefix}
+      selected={selected}
+    />
+  );
+  const catalogueOptions = (
     prefix: string,
     pick: (data: CatalogueData) => CatalogueEntry[],
     tree = false,
-  ) {
-    if (catalogue.isPending && tree) {
-      return (
-        <div aria-busy="true">
-          <SkeletonStatus>{t('reports.annual.picker.loading')}</SkeletonStatus>
-          <CategoryColumnOptions entries={null} full={full} onToggle={toggle} selected={selected} />
-        </div>
-      );
-    }
-    if (catalogue.isPending) {
-      return (
-        <div aria-busy="true">
-          <SkeletonStatus>{t('reports.annual.picker.loading')}</SkeletonStatus>
-          <div aria-hidden="true" className={styles.options}>
-            {Array.from({ length: 4 }, (_, index) => (
-              <SkeletonBlock className={styles.skeletonOption} key={index} />
-            ))}
-          </div>
-        </div>
-      );
-    }
-    if (catalogue.isError) {
-      return (
-        <div role="alert">
-          <p>{t('reports.annual.picker.catalogueError')}</p>
-          <button
-            className="secondary-action"
-            onClick={() => void catalogue.refetch()}
-            type="button"
-          >
-            {t('reports.retry')}
-          </button>
-        </div>
-      );
-    }
-    if (tree) {
-      return (
-        <CategoryColumnOptions
-          entries={pick(catalogue.data)}
-          full={full}
-          onToggle={toggle}
-          selected={selected}
-        />
-      );
-    }
-    return options(prefix, pick(catalogue.data));
-  }
+  ) => (
+    <CatalogueColumnOptions
+      catalogue={catalogue}
+      full={full}
+      onToggle={toggle}
+      pick={pick}
+      prefix={prefix}
+      selected={selected}
+      tree={tree}
+    />
+  );
 
   return (
     <Modal close={close} intent="settings" title={t('reports.annual.picker.title')} wide>
@@ -195,7 +124,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
                 {
                   id: 'indicators',
                   label: t('reports.annual.picker.indicators'),
-                  content: options(
+                  content: columnOptions(
                     '',
                     INDICATOR_COLUMN_IDS.map((id) => ({
                       id,
@@ -206,7 +135,7 @@ export function ColumnPickerModal({ close, onConflict, preferences }: ColumnPick
                 {
                   id: 'axes',
                   label: t('reports.annual.picker.axes'),
-                  content: options(
+                  content: columnOptions(
                     'axis:',
                     AXIS_IDS.map((id) => ({ id, label: t(`categories.axes.${id}`) })),
                   ),
