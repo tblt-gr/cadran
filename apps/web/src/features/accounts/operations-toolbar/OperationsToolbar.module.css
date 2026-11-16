@@ -46,12 +46,42 @@
   font-size: var(--font-size-label);
   min-height: var(--control-height);
 }
-@media (max-width: 42rem) {
-  .instrument {
-    flex-basis: 100%;
-  }
-}
-
 .actions {
   display: contents;
+}
+@media (max-width: 42rem) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .period {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .date input {
+    width: 100%;
+  }
+
+  .instrument {
+    flex: none;
+    min-width: 0;
+  }
+
+  .actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-4);
+  }
+
+  .actions > * {
+    width: 100%;
+  }
 }
