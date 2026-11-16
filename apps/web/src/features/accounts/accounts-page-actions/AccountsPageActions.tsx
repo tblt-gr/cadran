@@ -40,39 +40,35 @@ export function AccountsPageActions({
   return (
     <>
       <HeaderActions>
-        <button
-          aria-label={t('accounts.add')}
-          className={`primary-action`}
-          onClick={onCreate}
-          title={t('accounts.add')}
-          type="button"
-        >
+        <button className="primary-action" onClick={onCreate} type="button">
           <Icon name="add" size={18} />
-          <span>{t('accounts.add')}</span>
+          {t('accounts.add')}
         </button>
         <a
-          aria-label={t('accounts.manageGroups')}
-          className={`secondary-action ${styles.secondary}`}
+          className="secondary-action"
           href="/accounts/groups"
           onClick={(event) => handleClientNavigation(event, '/accounts/groups')}
-          title={t('accounts.manageGroups')}
         >
-          <Icon name="folder" />
-          <span className={styles.secondaryLabel}>{t('accounts.actions.groups')}</span>
+          <Icon name="folder" size={18} />
+          {t('accounts.manageGroups')}
         </a>
         {view === 'grouped' ? (
-          <GroupingModeToggle className="icon-button" mode={grouping} onChange={onGroupingChange} />
+          <GroupingModeToggle
+            className="secondary-action"
+            labelled
+            mode={grouping}
+            onChange={onGroupingChange}
+          />
         ) : null}
         {view === 'grouped' ? (
           <button
-            aria-label={reorderLabel}
             aria-pressed={reordering}
-            className="icon-button"
+            className="secondary-action"
             onClick={onToggleReordering}
-            title={reorderLabel}
             type="button"
           >
-            <Icon name={reordering ? 'check-circle' : 'reorder'} />
+            <Icon name={reordering ? 'check-circle' : 'reorder'} size={18} />
+            {reorderLabel}
           </button>
         ) : null}
       </HeaderActions>

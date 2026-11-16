@@ -90,6 +90,37 @@
   display: none;
 }
 
+/* Every header action is an icon then its label at the same compact size, whatever the page. The
+   drawn height never grows: a coarse pointer gets its 44 px hit area from the pseudo-element. */
+.pageActions :global(.primary-action),
+.pageActions :global(.secondary-action) {
+  position: relative;
+  height: var(--control-height-dense);
+  min-height: var(--control-height-dense);
+  padding: var(--spacing-none) var(--spacing-3);
+  white-space: nowrap;
+}
+
+.pageActions :global(.primary-action) svg,
+.pageActions :global(.secondary-action) svg {
+  width: var(--icon-glyph-sm);
+  height: var(--icon-glyph-sm);
+}
+
+@media (pointer: coarse) {
+  .pageActions :global(.primary-action)::after,
+  .pageActions :global(.secondary-action)::after {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    min-width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    content: '';
+    transform: translate(-50%, -50%);
+  }
+}
+
 /* Freshness is meta, not an action: mono, muted, a single status dot. */
 .freshness {
   min-height: var(--control-height);

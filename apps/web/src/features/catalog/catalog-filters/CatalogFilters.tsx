@@ -25,15 +25,14 @@ export function CatalogFilters({ asOf, disabled = false, onChange, today }: Cata
     <>
       <HeaderActions>
         <button
-          aria-label={t('catalog.filters.open')}
-          className={`icon-button ${styles.trigger}`}
+          className={`secondary-action ${styles.trigger}`}
           disabled={disabled}
           onClick={() => setOpen(true)}
           ref={trigger}
-          title={t('catalog.filters.open')}
           type="button"
         >
-          <Icon name="filter" />
+          <Icon name="filter" size={18} />
+          {t('catalog.filters.open')}
           {activeCount > 0 ? (
             <span className={styles.badge} data-testid="catalog-filters-count">
               {activeCount}

@@ -55,7 +55,15 @@ export function AccountActionsMenu({
   });
 
   if (account === undefined) {
-    return <ActionMenu disabled items={[]} label={t('accounts.detail.actionsMenu.openPending')} />;
+    return (
+      <ActionMenu
+        disabled
+        items={[]}
+        label={t('accounts.detail.actionsMenu.openPending')}
+        triggerText={t('accounts.detail.actionsMenu.openPending')}
+        triggerVariant="framed"
+      />
+    );
   }
 
   const items = accountMenuItems({
@@ -81,6 +89,7 @@ export function AccountActionsMenu({
         <ActionMenu
           items={items}
           label={t('accounts.detail.actionsMenu.open', { label: account.label })}
+          triggerText={t('accounts.detail.actionsMenu.openPending')}
           triggerVariant="framed"
         />
       ) : null}

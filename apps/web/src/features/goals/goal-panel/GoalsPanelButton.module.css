@@ -48,13 +48,3 @@ button.button:hover:not(:disabled) {
     display: none;
   }
 }
-
-/* The icon-only fallback is as borderless and transparent as the progress button. */
-button.bare {
-  border: var(--border-none);
-  background: none;
-}
-
-button.bare:hover:not(:disabled) {
-  background: var(--bg-surface-hover);
-}

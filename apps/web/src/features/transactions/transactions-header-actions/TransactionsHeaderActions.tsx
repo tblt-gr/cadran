@@ -12,23 +12,13 @@ export function TransactionsHeaderActions({
   const { t } = useTranslation();
   return (
     <HeaderActions>
-      <button
-        aria-label={t('transactions.add')}
-        className={`primary-action`}
-        onClick={onCreate}
-        type="button"
-      >
+      <button className="primary-action" onClick={onCreate} type="button">
         <Icon name="add" size={18} />
-        <span>{t('transactions.add')}</span>
+        {t('transactions.add')}
       </button>
-      <button
-        aria-label={t('transactions.addTransfer')}
-        className="icon-button"
-        onClick={onTransfer}
-        title={t('transactions.addTransfer')}
-        type="button"
-      >
-        <Icon name="transactions" size={18} />
+      <button className="secondary-action" onClick={onTransfer} type="button">
+        <Icon name="transfer" size={18} />
+        {t('transactions.addTransfer')}
       </button>
     </HeaderActions>
   );

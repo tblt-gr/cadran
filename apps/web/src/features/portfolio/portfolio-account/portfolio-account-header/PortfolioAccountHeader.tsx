@@ -75,7 +75,7 @@ export function PortfolioAccountHeader({
         {showsPrimary ? (
           <button
             aria-label={primaryLabel}
-            className={`primary-action`}
+            className="primary-action"
             disabled={
               valuationPrimary ? !writable : !writable || contractRequired || operationBlocked
             }
@@ -102,26 +102,24 @@ export function PortfolioAccountHeader({
         ) : null}
         {voided && tab === 'operations' ? (
           <button
-            aria-label="Afficher les opérations annulées"
             aria-pressed={voided.active}
-            className="icon-button"
+            className="secondary-action"
             onClick={voided.onToggle}
-            title="Afficher les opérations annulées"
             type="button"
           >
             <Icon name={voided.active ? 'eye' : 'eye-off'} size={18} />
+            Afficher les opérations annulées
           </button>
         ) : null}
         {closed && tab === 'positions' && account?.kind !== 'INSURANCE_CONTRACT' ? (
           <button
-            aria-label="Afficher les positions soldées"
             aria-pressed={closed.active}
-            className="icon-button"
+            className="secondary-action"
             onClick={closed.onToggle}
-            title="Afficher les positions soldées"
             type="button"
           >
             <Icon name={closed.active ? 'eye' : 'eye-off'} size={18} />
+            Afficher les positions soldées
           </button>
         ) : null}
         {tab === 'account' ? (

@@ -56,7 +56,7 @@ afterEach(cleanup);
 describe('AccountActionsMenu', () => {
   it('lists the balance account actions in order, without the primary operation', () => {
     setup(balanceAccount);
-    openMenu('Actions du compte Compte courant');
+    openMenu('Actions du compte');
 
     expect(itemTexts()).toEqual([
       'Nouveau virement',
@@ -70,7 +70,7 @@ describe('AccountActionsMenu', () => {
 
   it('lists the portfolio account actions and omits the balance-only ones', () => {
     setup(portfolioAccount);
-    openMenu('Actions du compte PEA');
+    openMenu('Actions du compte');
 
     expect(itemTexts()).toEqual([
       'Nouvelle valorisation',
@@ -134,9 +134,7 @@ describe('AccountActionsMenu', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(screen.queryByRole('button', { name: 'Voir les règles' })).toBeNull();
-    expect(document.activeElement).toBe(
-      screen.getByRole('button', { name: 'Actions du compte Compte courant' }),
-    );
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Actions du compte' }));
   });
 
   it('opens the shared edit and archive modals', () => {

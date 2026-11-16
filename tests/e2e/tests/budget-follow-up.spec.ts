@@ -30,7 +30,7 @@ for (const width of [360, 390, 768, 1280, 1440]) {
     await expect(months).toBeVisible();
     await expect(closure).toBeVisible();
     await expect(page.getByRole('button', { name: 'Clôturer ce mois', exact: true })).toHaveText(
-      '',
+      'Clôturer ce mois',
     );
     await expect(page.getByRole('button', { name: 'Autres actions' })).toHaveCount(0);
     const tabsBox = (await navigation.boundingBox())!;

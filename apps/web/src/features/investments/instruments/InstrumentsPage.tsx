@@ -79,7 +79,7 @@ export function InstrumentsPage() {
       <HeaderActions>
         <button
           aria-label={t('portfolio.instruments.add')}
-          className={`primary-action`}
+          className="primary-action"
           onClick={() => setEditor('create')}
           type="button"
         >
