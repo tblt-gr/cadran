@@ -1,4 +1,4 @@
-/* The generic control fills its container: here it only takes what its label needs. */
+/* The generic control fills its container: on desktop it only takes what its label needs. */
 .types {
   width: auto;
   max-width: 100%;
@@ -8,4 +8,11 @@
 .types > * {
   width: auto;
   max-width: 100%;
+}
+
+@media (max-width: 42rem) {
+  .types,
+  .types > * {
+    width: 100%;
+  }
 }

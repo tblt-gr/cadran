@@ -281,6 +281,49 @@ test.describe('accounts overview with investments', () => {
   }
 });
 
+test.describe('portfolio operations filters', () => {
+  for (const viewport of [WIDTHS[0], WIDTHS[2]]) {
+    test(`size their controls to the width at ${viewport.width}`, async ({ browser }) => {
+      const context = await browser.newContext({
+        baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+        ignoreHTTPSErrors: true,
+        storageState: ownerStorageState,
+        viewport: { width: viewport.width, height: viewport.height },
+        hasTouch: viewport.touch,
+        isMobile: viewport.touch,
+        locale: 'fr-FR',
+        timezoneId: 'Europe/Paris',
+      });
+      try {
+        const page = await context.newPage();
+        await page.goto(`/portfolios/${ids.portfolioId}?tab=operations`);
+        await settled(page);
+        const toolbar = page.getByRole('group', { name: 'Filtres des opérations' });
+        const box = await toolbar.boundingBox();
+        const types = await toolbar
+          .getByRole('button', { name: /Types d’opération/ })
+          .boundingBox();
+        const from = await toolbar.getByLabel('Du').boundingBox();
+        const instrument = await toolbar
+          .getByRole('combobox', { name: 'Instrument' })
+          .boundingBox();
+        if (!box || !types || !from || !instrument) throw new Error('filters are not rendered');
+        if (viewport.touch) {
+          for (const control of [types, from, instrument]) {
+            expect(control.width).toBeGreaterThanOrEqual(box.width - 1);
+          }
+        } else {
+          expect(types.width, 'desktop keeps the content sized type filter').toBeLessThan(
+            box.width / 2,
+          );
+        }
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
+
 /**
  * Every creation or edition modal in scope, opened at 360 by 740 px: the dialog passes the same
  * layout rules as a page (no horizontal overflow, amounts intact, 44 px targets) and its submit
