@@ -2,6 +2,7 @@ import type { AccountValuation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { AMOUNT_MASK } from '@/lib/amountPrivacy';
 import { ceilingFillPercent } from '@/lib/depositCeiling';
 import { formatAmount, formatCalendarDay } from '@/lib/decimal';
 import styles from './AccountValuationCell.module.css';
@@ -39,7 +40,12 @@ export function AccountValuationCell({
       <div className={cellClassName}>
         {ceiling !== null ? (
           <div className={styles.ceiling}>
-            <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />
+            <span className={styles.figures}>
+              <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />{' '}
+              <span data-ceiling-part>
+                <MoneyValue value={null} skeletonClassName={styles.skeletonFigure} />
+              </span>
+            </span>
             <span className={styles.track} aria-hidden="true">
               <span className={styles.fill} style={{ visibility: 'hidden' }} />
             </span>
@@ -117,12 +123,19 @@ export function AccountValuationCell({
         )
       ) : (
         <div className={styles.ceiling}>
-          <MoneyValue
-            value={t('accounts.balances.againstCeiling', {
-              ceiling: ceilingLabel,
-              current: figure,
-            })}
-          />
+          {/* The ceiling part carries data-ceiling-part so the mobile accounts list can drop it. */}
+          <span className={styles.figures}>
+            <MoneyValue value={figure} />{' '}
+            <span data-ceiling-part>
+              <MoneyValue
+                value={
+                  ceilingLabel === AMOUNT_MASK
+                    ? AMOUNT_MASK
+                    : t('accounts.balances.ceilingPart', { ceiling: ceilingLabel })
+                }
+              />
+            </span>
+          </span>
           {ratio === null ? null : (
             <span className={styles.track} aria-hidden="true">
               <span className={styles.fill} style={{ width: `${ratio}%` }} />
