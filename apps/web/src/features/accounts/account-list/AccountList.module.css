@@ -162,6 +162,11 @@
     display: none;
   }
 
+  /* A capped account shows its balance alone: the ceiling stays on the account page. */
+  .panel tbody td [data-ceiling-part] {
+    display: none;
+  }
+
   .panel tbody td:not([data-actions]) {
     display: flex;
     justify-content: flex-end;

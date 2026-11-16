@@ -44,6 +44,10 @@
   gap: var(--spacing-1);
 }
 
+.figures {
+  display: block;
+}
+
 .track {
   display: block;
   width: 100%;

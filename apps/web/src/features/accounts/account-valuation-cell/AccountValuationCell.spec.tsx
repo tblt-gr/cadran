@@ -2,6 +2,7 @@ import type { AccountValuation } from '@cadran/api-client';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
+import { AMOUNT_MASK, setAmountsHidden } from '@/lib/amountPrivacy';
 import { AccountValuationCell } from './AccountValuationCell';
 
 afterEach(cleanup);
@@ -79,6 +80,48 @@ describe('AccountValuationCell', () => {
     expect(container.textContent).toContain('231,10');
     expect(container.textContent).toContain('22');
     expect(container.querySelector('[style*="width"]')).toBeTruthy();
+  });
+
+  it('renders the balance and the ceiling part as separate elements with one wording', () => {
+    const { container } = render(
+      <AccountValuationCell
+        ceiling={{ assetCode: 'EUR', value: '22950' }}
+        valuation={valuation({ quality: 'CURRENT', ageDays: 0 })}
+      />,
+    );
+
+    const part = container.querySelector('[data-ceiling-part]');
+    expect(part?.textContent).toMatch(/^\/\s*22\s950/);
+    expect(part?.textContent).not.toContain('231,10');
+    expect(container.textContent).toMatch(/231,10.*\/.*22\s950/);
+  });
+
+  it('masks both the balance and the ceiling part while amounts are hidden', () => {
+    setAmountsHidden(true);
+    try {
+      const { container } = render(
+        <AccountValuationCell
+          ceiling={{ assetCode: 'EUR', value: '22950' }}
+          valuation={valuation({ quality: 'CURRENT', ageDays: 0 })}
+        />,
+      );
+
+      expect(container.querySelector('[class*="figures"]')?.textContent).not.toMatch(/\d/);
+      expect(container.querySelector('[data-ceiling-part]')?.textContent).toContain(AMOUNT_MASK);
+    } finally {
+      setAmountsHidden(false);
+    }
+  });
+
+  it('keeps the dash and no ceiling part for a missing balance', () => {
+    const { container } = render(
+      <AccountValuationCell
+        ceiling={{ assetCode: 'EUR', value: '22950' }}
+        valuation={valuation({ quality: 'MISSING', display: null, amount: null })}
+      />,
+    );
+
+    expect(container.querySelector('[data-ceiling-part]')).toBeNull();
   });
 
   it('does not display a rounded zero for a figure below the step', () => {
