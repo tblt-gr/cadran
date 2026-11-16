@@ -227,7 +227,7 @@ pending migrations, newest backup, cron block, database size) and exits 1 when t
 is unhealthy, a migration is pending, or no backup exists or the newest is older than 48 hours.
 A missing cron block is only a warning. The cron block also runs `scripts/doctor-scheduled.sh` every
 day at 06:15: when the doctor exits 1 it appends one line (UTC timestamp, `FAIL`, check names only)
-to `var/log/doctor.log` and raises a desktop notification titled `Cadran: make doctor failed`
+to `var/log/doctor.log` and raises a desktop notification titled "Cadran: make doctor failed"
 (Windows toast from WSL, otherwise `notify-send`, otherwise the log line only). Nothing is notified
 or logged on success.
 
