@@ -1,5 +1,6 @@
 import { expect, test, type Locator } from '@playwright/test';
 import { settled } from './support/page';
+import { ownerStorageState } from './support/session';
 
 /** A table owns its cell spacing; its plate must not add another inset around it. */
 async function expectFlushTable(table: Locator) {
@@ -108,5 +109,38 @@ for (const width of [360, 768, 1440]) {
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByRole('table', { name: /^Règles datées de / })).toBeVisible();
     });
+  });
+}
+
+/** Colours are compared as computed rgb: a token may be minified to hex in the production build. */
+async function rowAndCellBackgrounds(row: Locator) {
+  return row.evaluate((element) => ({
+    row: getComputedStyle(element).backgroundColor,
+    cells: [...element.children].map((cell) => getComputedStyle(cell).backgroundColor),
+  }));
+}
+
+for (const width of [360, 390]) {
+  test(`a stacked row highlights as one card at ${width}px`, async ({ browser }) => {
+    const context = await browser.newContext({
+      baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+      ignoreHTTPSErrors: true,
+      storageState: ownerStorageState,
+      viewport: { width, height: 800 },
+    });
+    const page = await context.newPage();
+    try {
+      await page.goto('/accounts');
+      await settled(page);
+      const row = page.locator('tbody tr').first();
+      await expect(row).toBeVisible();
+      const resting = await rowAndCellBackgrounds(row);
+      await row.hover();
+      await expect.poll(async () => (await rowAndCellBackgrounds(row)).row).not.toBe(resting.row);
+      const hovered = await rowAndCellBackgrounds(row);
+      for (const cell of hovered.cells) expect(cell).toBe('rgba(0, 0, 0, 0)');
+    } finally {
+      await context.close();
+    }
   });
 }

@@ -352,6 +352,31 @@ table caption {
 }
 
 /*
+ * Below the width where rows stack as cards the highlight is painted once, on the row itself, so
+ * it covers the card's padding and gaps instead of leaving a box inside it. Hover only applies
+ * where a pointer can hover, so a tap leaves no sticky highlight; the press uses :active.
+ */
+@media (max-width: 47.999rem) {
+  :where(tbody tr:hover, tbody tr:focus-within) > :where(th, td) {
+    background: var(--color-transparent);
+  }
+
+  :where(tbody tr) {
+    border-radius: var(--radius-card);
+  }
+
+  :where(tbody tr:focus-within, tbody tr:active) {
+    background: var(--bg-surface-hover);
+  }
+}
+
+@media (max-width: 47.999rem) and (hover: hover) {
+  :where(tbody tr:hover) {
+    background: var(--bg-surface-hover);
+  }
+}
+
+/*
  * Row action menu of a stacked card. Below the width where tables and rows turn into cards, the
  * cell marked `data-actions` leaves the flow and sits at the card's top right corner instead of
  * taking a line of its own; the first line of the card keeps the button's width free.
