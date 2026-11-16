@@ -57,6 +57,7 @@ export function AccountList({
   onRecordBalance,
   onRules,
 }: AccountListProps) {
+  const pinned = reordering ? undefined : '';
   const { t } = useTranslation();
   const asOf = accounts?.find((account) => account.valuation.requestedOn)?.valuation.requestedOn;
   const products = useProductOptions(asOf ?? '');
@@ -64,8 +65,7 @@ export function AccountList({
   const pendingFocus = useRef<{ id: string; direction: 'up' | 'down' } | null>(null);
   const order = accounts?.map((account) => account.id).join('|');
 
-  // Once the write settles (saved or refused), hand the focus back to the control that was used: it
-  // was disabled during the request and a moved row is re-inserted by the refetch.
+  // Once the write settles, hand the focus back to the control used: the refetch re-inserts the row.
   useEffect(() => {
     const target = pendingFocus.current;
     if (target === null || moveDisabled) {
@@ -127,7 +127,7 @@ export function AccountList({
                     <td data-label={t('accounts.fields.balance')}>
                       <AccountValuationCell provenance={false} valuation={null} />
                     </td>
-                    <td data-label={t('accounts.list.actions')}>
+                    <td data-actions={pinned} data-label={t('accounts.list.actions')}>
                       <div className={styles.rowActions}>
                         <SkeletonBlock />
                       </div>
@@ -178,7 +178,7 @@ export function AccountList({
                           valuation={account.valuation}
                         />
                       </td>
-                      <td data-label={t('accounts.list.actions')}>
+                      <td data-actions={pinned} data-label={t('accounts.list.actions')}>
                         <div className={styles.rowActions}>
                           {reordering ? (
                             <>

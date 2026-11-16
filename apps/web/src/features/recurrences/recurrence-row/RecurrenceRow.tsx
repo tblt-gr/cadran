@@ -22,7 +22,9 @@ export function RecurrenceRow({ actions, aside, meta, note, title }: RecurrenceR
         {note ? <p className={styles.note}>{note}</p> : null}
       </div>
       {aside ? <div className={styles.aside}>{aside}</div> : null}
-      <div className={styles.actions}>{actions}</div>
+      <div className={styles.actions} data-actions>
+        {actions}
+      </div>
     </li>
   );
 }

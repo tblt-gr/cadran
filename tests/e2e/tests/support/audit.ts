@@ -21,7 +21,13 @@ export async function expectFormActionLayout(action: Locator): Promise<void> {
 
 export interface AuditFinding {
   /** The rule that failed: document-scroll, amount-overflow, touch-target or primary-cta. */
-  rule: 'document-scroll' | 'amount-overflow' | 'touch-target' | 'primary-cta' | 'table-alignment';
+  rule:
+    | 'document-scroll'
+    | 'amount-overflow'
+    | 'touch-target'
+    | 'primary-cta'
+    | 'table-alignment'
+    | 'actions-own-line';
   /** A short description of the offending element (tag, accessible name or text, size). */
   element: string;
 }
@@ -159,6 +165,31 @@ export async function auditLayout(
           rule: 'primary-cta',
           element: `${primaries.length} primary actions: ${primaries.map(describe).join(' | ')}`,
         });
+      }
+
+      // 5. The row menu of a stacked card never takes a line of its own: some text of the same row
+      // shares its vertical band (the menu is pinned to the card's top right corner).
+      for (const trigger of root.querySelectorAll(
+        'tr button[data-action-menu], li button[data-action-menu]',
+      )) {
+        if (!visible(trigger) || trigger.querySelector(':scope > span') !== null) continue;
+        const row = trigger.closest('tr, li')!;
+        const box = trigger.getBoundingClientRect();
+        const texts = [...row.querySelectorAll('*')].filter(
+          (el) =>
+            el.children.length === 0 &&
+            !el.contains(trigger) &&
+            !trigger.contains(el) &&
+            (el.textContent ?? '').trim() !== '' &&
+            visible(el),
+        );
+        const shared = texts.some((el) => {
+          const rect = el.getBoundingClientRect();
+          return rect.top < box.bottom && rect.bottom > box.top;
+        });
+        if (texts.length > 0 && !shared) {
+          found.push({ rule: 'actions-own-line', element: describe(trigger) });
+        }
       }
 
       return found as { rule: AuditFinding['rule']; element: string }[];

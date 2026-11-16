@@ -28,6 +28,19 @@ test('touch audit ignores fully clipped controls but checks them when revealed',
   ]);
 });
 
+test('audit fails a row menu that sits on a line of its own and passes a pinned one', async ({
+  page,
+}) => {
+  const card = (style: string) =>
+    `<ul><li style="position: relative"><p>Label</p><div style="${style}"><button data-action-menu aria-label="Actions" style="width: 44px; height: 44px"></button></div></li></ul>`;
+  await page.setContent(card(''));
+  expect(await auditLayout(page, true)).toEqual([
+    expect.objectContaining({ rule: 'actions-own-line' }),
+  ]);
+  await page.setContent(card('position: absolute; top: 0; right: 0'));
+  expect(await auditLayout(page, true)).toEqual([]);
+});
+
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
  * 360 px must have no horizontal page scroll, no amount cut off or pushed out of its box, touch

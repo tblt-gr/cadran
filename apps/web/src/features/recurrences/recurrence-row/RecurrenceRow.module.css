@@ -66,17 +66,17 @@
   align-items: center;
 }
 
-@media (max-width: 42rem) {
+/* The row menu is pinned to the card's top right corner by the shared data-actions rule. */
+@media (max-width: 47.999rem) {
   .row {
     flex-wrap: wrap;
   }
 
   .main {
-    flex-basis: calc(100% - var(--icon-size-lg) - var(--spacing-3));
+    flex-basis: 100%;
   }
 
   .aside {
-    order: 3;
     flex-basis: 100%;
     justify-content: flex-start;
   }
