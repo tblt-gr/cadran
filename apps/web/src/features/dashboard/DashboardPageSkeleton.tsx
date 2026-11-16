@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { AmountVisibilityToggle } from '@/components/ui/amount-visibility-toggle/AmountVisibilityToggle';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { AllocationChartsSkeleton } from './allocation-charts/AllocationChartsSkeleton';
 import allocationStyles from './allocation-panel/AllocationPanel.module.css';
@@ -40,7 +41,10 @@ export function DashboardPageSkeleton({
           </div>
         </div>
         <div>
-          <SkeletonBlock className={styles.amount} />
+          <div className={cardStyles.figureRow}>
+            <SkeletonBlock className={styles.amount} />
+            <AmountVisibilityToggle disabled />
+          </div>
           <PeriodNetWorthDelta delta={null} pending fetching />
         </div>
         <div className={cardStyles.history} aria-busy="true">

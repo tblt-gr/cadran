@@ -15,6 +15,8 @@
  * carry, so no quantity is ever invented or dropped.
  */
 
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
+
 /** ECMA-402 NumberFormat v3 accepts up to 100 fraction digits. */
 const MAX_INTL_FRACTION_DIGITS = 100;
 
@@ -70,6 +72,7 @@ const NO_NEGATIVE_ZERO = { signDisplay: 'negative' } as Intl.NumberFormatOptions
  * figure followed by its code, which still names the unit.
  */
 export function formatAmount(value: string, assetCode: string, locale: string): string {
+  if (areAmountsHidden()) return AMOUNT_MASK;
   // An exact zero reads as a plain hyphen-minus rather than "0,00 €".
   if (/^[+-]?0*\.?0*$/.test(value) && /\d/.test(value)) return EMPTY_AMOUNT;
   let digits: number;

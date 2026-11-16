@@ -1,5 +1,6 @@
 import type { NetWorth, NetWorthPoint, NetWorthDelta } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { AmountVisibilityToggle } from '@/components/ui/amount-visibility-toggle/AmountVisibilityToggle';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { FreshnessBadge } from '@/features/dashboard/freshness-badge/FreshnessBadge';
@@ -69,11 +70,14 @@ export function NetWorthCard({
         </div>
       </div>
       <div>
-        <NetWorthFigure
-          amount={netWorth.total}
-          className={`money ${styles.amount}`}
-          reason={netWorth.reason}
-        />
+        <div className={styles.figureRow}>
+          <NetWorthFigure
+            amount={netWorth.total}
+            className={`money ${styles.amount}`}
+            reason={netWorth.reason}
+          />
+          <AmountVisibilityToggle />
+        </div>
         <PeriodNetWorthDelta
           delta={historyDelta}
           pending={historyPending}

@@ -12,6 +12,7 @@ import { useValuation } from '@/features/portfolio/valuations/useValuations';
 import { flagSentence } from '@/features/portfolio/valuations/valuationLabels';
 import { ValuationPositionsTable } from './ValuationPositionsTable';
 import styles from './ValuationDetailModal.module.css';
+import { maskAmountText } from '@/lib/amountPrivacy';
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
   return (
@@ -40,7 +41,7 @@ export function ValuationDetailModal({
   const valuation = query.data;
   const exact = (amount: DecimalAmount | null, reason = 'Non calculable') =>
     amount ? (
-      `${formatDecimal(amount.value, i18n.language)} ${amount.assetCode}`
+      maskAmountText(`${formatDecimal(amount.value, i18n.language)} ${amount.assetCode}`)
     ) : (
       <EmptyValue label={reason} />
     );

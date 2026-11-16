@@ -4,13 +4,14 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatDecimal } from '@/lib/decimal';
 import { OperationLegsTable } from '@/features/portfolio/portfolio-account/operations/operation-detail-modal/OperationLegsTable';
 import styles from '@/features/portfolio/portfolio-account/operations/operation-detail-modal/OperationDetailModal.module.css';
+import { maskAmountText } from '@/lib/amountPrivacy';
 
 export function SwitchOperationDetail({ operation }: { operation: PortfolioOperation }) {
   const { i18n } = useTranslation();
   const rate = operation.applicableSwitchFeeRate;
   const fixed = operation.applicableSwitchFeeFixed;
   const amount = (value: { value: string; assetCode: string }) =>
-    `${formatDecimal(value.value, i18n.language)} ${value.assetCode}`;
+    maskAmountText(`${formatDecimal(value.value, i18n.language)} ${value.assetCode}`);
   return (
     <>
       <OperationLegsTable

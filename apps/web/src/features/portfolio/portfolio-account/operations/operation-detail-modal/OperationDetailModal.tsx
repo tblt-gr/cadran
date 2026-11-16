@@ -19,6 +19,7 @@ import { operationTypeLabel } from '@/features/portfolio/portfolio-account/opera
 import { useOperation } from '@/features/portfolio/portfolio-account/operations/useOperation';
 import { OperationLegsTable } from './OperationLegsTable';
 import styles from './OperationDetailModal.module.css';
+import { maskAmountText } from '@/lib/amountPrivacy';
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
   return (
@@ -48,7 +49,9 @@ export function OperationDetailModal({
   const transferHref = portfolioAccountHref(operation.accountId, operation.tradeDate.slice(0, 7));
   const decimal = (value: string | null) => (value === null ? null : formatDecimal(value, locale));
   const amount = (value: { value: string; assetCode: string } | null) =>
-    value === null ? null : `${formatDecimal(value.value, locale)} ${value.assetCode}`;
+    value === null
+      ? null
+      : maskAmountText(`${formatDecimal(value.value, locale)} ${value.assetCode}`);
   const instrumentText = (item: PortfolioOperation['instrument']) =>
     item ? (
       <>
