@@ -6,7 +6,6 @@ import type {
   CreateRecurrenceRequest,
   Recurrence,
   RecurrenceCandidate,
-  RecurrenceIntervalKind,
   UpdateRecurrenceRequest,
 } from '@cadran/api-client';
 import { useId, useState } from 'react';
@@ -21,11 +20,13 @@ import { toSignedAmount } from '@/lib/signedAmount';
 import {
   categoryTypeFor,
   initialValues,
-  INTERVALS,
   validDay,
   withDirection,
   type FormValues,
 } from './recurrenceFormValues';
+import { RecurrenceAdvancedFields } from './RecurrenceAdvancedFields';
+import { recurrenceRequest } from './recurrenceRequest';
+import { RecurrenceScheduleFields } from './RecurrenceScheduleFields';
 import { RecurrenceTransactionFields } from './RecurrenceTransactionFields';
 import styles from './RecurrenceForm.module.css';
 
@@ -95,23 +96,7 @@ export function RecurrenceForm({
       return;
     }
 
-    const shared = {
-      amountTolerance: values.amountTolerance,
-      autoCreate: values.autoCreate,
-      categoryId: values.categoryId === '' ? null : values.categoryId,
-      counterparty: values.counterparty.trim() || null,
-      dayOfPeriod: Number(values.dayOfPeriod),
-      expectedAmount,
-      intervalKind: values.intervalKind,
-      label: values.label.trim(),
-      note: values.note.trim() === '' ? null : values.note.trim(),
-      paymentMethod: values.paymentMethod === '' ? null : values.paymentMethod,
-    };
-    onSubmit(
-      editing
-        ? { ...shared, firstExpectedOn: values.firstExpectedOn, version: recurrence.version }
-        : { ...shared, accountId: values.accountId, firstExpectedOn: values.firstExpectedOn },
-    );
+    onSubmit(recurrenceRequest(values, expectedAmount, recurrence));
   }
 
   return (
@@ -226,38 +211,12 @@ export function RecurrenceForm({
           onChange={set}
           paymentMethod={values.paymentMethod}
           schedule={
-            <>
-              <label>
-                <span>{t('recurrences.fields.interval')}</span>
-                <select
-                  onChange={(event) =>
-                    set('intervalKind', event.target.value as RecurrenceIntervalKind)
-                  }
-                  value={values.intervalKind}
-                >
-                  {INTERVALS.map((interval) => (
-                    <option key={interval} value={interval}>
-                      {t(`recurrences.intervals.${interval}`)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>{t('recurrences.fields.day')}</span>
-                <input
-                  aria-invalid={showErrors && errors.dayOfPeriod ? true : undefined}
-                  inputMode="numeric"
-                  max={values.intervalKind === 'WEEKLY' ? 7 : 31}
-                  min={1}
-                  onChange={(event) => set('dayOfPeriod', event.target.value)}
-                  type="number"
-                  value={values.dayOfPeriod}
-                />
-                {showErrors && errors.dayOfPeriod ? (
-                  <small>{t('recurrences.validation.day')}</small>
-                ) : null}
-              </label>
-            </>
+            <RecurrenceScheduleFields
+              dayInvalid={showErrors && errors.dayOfPeriod}
+              dayOfPeriod={values.dayOfPeriod}
+              intervalKind={values.intervalKind}
+              onChange={set}
+            />
           }
           selected={{
             color: saved?.effectiveColor,
@@ -265,27 +224,12 @@ export function RecurrenceForm({
             label: values.categoryLabel ?? saved?.label,
           }}
         >
-          <label>
-            <span>{t('recurrences.fields.counterparty')}</span>
-            <input
-              onChange={(event) => set('counterparty', event.target.value)}
-              value={values.counterparty}
-            />
-          </label>
-          <label>
-            <span>{t('recurrences.fields.tolerance')}</span>
-            <input
-              aria-invalid={showErrors && errors.amountTolerance ? true : undefined}
-              autoComplete="off"
-              inputMode="decimal"
-              onChange={(event) => set('amountTolerance', event.target.value)}
-              spellCheck={false}
-              value={values.amountTolerance}
-            />
-            {showErrors && errors.amountTolerance ? (
-              <small>{t('recurrences.validation.tolerance')}</small>
-            ) : null}
-          </label>
+          <RecurrenceAdvancedFields
+            amountTolerance={values.amountTolerance}
+            counterparty={values.counterparty}
+            onChange={set}
+            toleranceInvalid={showErrors && errors.amountTolerance}
+          />
         </RecurrenceTransactionFields>
       </FormGrid>
       <ModalActions>
