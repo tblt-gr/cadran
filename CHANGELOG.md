@@ -12,6 +12,8 @@ goals, portfolios and multi-support life insurance features are described in the
 
 ### Added
 
+- Weekly mutation testing (Infection with PCOV, `make mutation`) of the decimal, split, refund and
+  transfer invariants, with a failing-run issue and a seven-day HTML report.
 - Encrypted PostgreSQL backups, daily/weekly/monthly retention, isolated restore verification,
   guarded restoration and retained recovery databases.
 - Each release attaches a CycloneDX SBOM, a production license report and a schema-only database

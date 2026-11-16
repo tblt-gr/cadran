@@ -1,0 +1,71 @@
+{
+  "$schema": "vendor/infection/infection/resources/schema.json",
+  "timeout": 30,
+  "source": {
+    "directories": ["src/Module/Foundation/Domain", "src/Module/Transactions/Domain"],
+    "excludes": [
+      "AccountTransferNetReason.php",
+      "BulkCategorizationFacts.php",
+      "BulkCategorizationPolicy.php",
+      "BulkCategorizationSkipReason.php",
+      "BulkEditPolicy.php",
+      "BulkEditSkipReason.php",
+      "BulkMovePolicy.php",
+      "BulkMoveTarget.php",
+      "Categorization",
+      "CategorizationOrigin.php",
+      "CategorySubtrees.php",
+      "DuplicateSourceReference.php",
+      "IdempotencyKey.php",
+      "IdempotencyKeyRepository.php",
+      "InvalidTransaction.php",
+      "InvalidTransfer.php",
+      "PaymentMethod.php",
+      "Reconciliation",
+      "Recurrence",
+      "RefundRepository.php",
+      "TransactionDirection.php",
+      "TransactionFacet.php",
+      "TransactionFacetScope.php",
+      "TransactionFilters.php",
+      "TransactionNature.php",
+      "TransactionPosition.php",
+      "TransactionRepository.php",
+      "TransactionSource.php",
+      "TransactionState.php",
+      "TransactionWatermark.php",
+      "TransferRepository.php"
+    ]
+  },
+  "phpUnit": { "configDir": "infection" },
+  "logs": {
+    "html": "var/infection/infection.html",
+    "text": "var/infection/infection.log"
+  },
+  "mutators": {
+    "@default": true,
+    // Equivalent mutant: a decimal scale is never negative, so max(0, ...) and max(-1, ...) agree.
+    "DecrementInteger": {
+      "ignoreSourceCodeByRegex": ["\\$scale = max\\(0, min\\(\\$left->scale\\(\\).*"]
+    },
+    // Transaction.php is mutated for its split-sum and sign checks only.
+    "global-ignore": [
+      "App\\Module\\Transactions\\Domain\\Transaction::__construct",
+      "App\\Module\\Transactions\\Domain\\Transaction::edit",
+      "App\\Module\\Transactions\\Domain\\Transaction::moved",
+      "App\\Module\\Transactions\\Domain\\Transaction::withUserLabel",
+      "App\\Module\\Transactions\\Domain\\Transaction::displayLabel",
+      "App\\Module\\Transactions\\Domain\\Transaction::resolveReview",
+      "App\\Module\\Transactions\\Domain\\Transaction::adoptSourceRef",
+      "App\\Module\\Transactions\\Domain\\Transaction::releaseSourceRef",
+      "App\\Module\\Transactions\\Domain\\Transaction::void",
+      "App\\Module\\Transactions\\Domain\\Transaction::categorize",
+      "App\\Module\\Transactions\\Domain\\Transaction::identifier",
+      "App\\Module\\Transactions\\Domain\\Transaction::requiredText",
+      "App\\Module\\Transactions\\Domain\\Transaction::optionalText",
+      "App\\Module\\Transactions\\Domain\\Transaction::digits"
+    ]
+  },
+  "minMsi": 100,
+  "minCoveredMsi": 100
+}

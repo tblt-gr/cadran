@@ -122,6 +122,9 @@ one branch protection requires.
 
 The backend performance budgets (`make perf`) do not run on pull requests: the `Performance (weekly)`
 workflow runs them every Monday on `main` and opens an issue when a budget fails.
+Mutation testing of the financial invariants (`make mutation`) is likewise weekly only: the
+`Mutation testing (weekly)` workflow fails and opens an issue when the score drops below the
+thresholds of `apps/api/infection.json5`, and attaches the HTML report for seven days.
 
 Migrations live in `apps/api/migrations`. A migration whose `up()` issues `INSERT`, `UPDATE` or
 `DELETE` statements (including `WITH ... UPDATE` and `WITH ... INSERT`) rewrites rows and must

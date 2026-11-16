@@ -1,4 +1,4 @@
-.PHONY: e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup restore-drill restore-drill-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate shell test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
+.PHONY: mutation e2e-stack headers-owner upgrade rollback backup-image backup-key db-backup db-backup-prune db-backup-verify db-export-sql db-restore db-restore-cleanup restore-drill restore-drill-cleanup recurrences-materialize snapshots-capture idempotency-purge doctor demo-seed demo-extend init install tools up down migrate setup reset-password status tls-certificate generate shell test test-database test-api test-web test-infrastructure perf architecture quality build audit outdated e2e e2e-image e2e-owner e2e-provision e2e-update-snapshots check-http-headers
 
 COMPOSE_ENV := $(if $(wildcard .env.local),.env.local,.env.example)
 # Release baked into the app image (GET /api/v1/status); read without Node from the root package.json.
@@ -202,6 +202,12 @@ test-database: tools
 # FILTER is a PHPUnit --filter expression (class, method or Class::method), passed as one quoted argument.
 test-api: test-database
 	$(TOOLS_RUN_WITH_DB) composer test --working-dir=apps/api $(if $(FILTER),-- --filter '$(subst ','\'',$(FILTER))')
+
+# Weekly mutation testing of the financial invariants (decimals, splits, transfers, refunds). Needs the PCOV driver of
+# the tools image and the test database; slower than the test suite, so it is neither in `make quality` nor in the PR
+# workflow. Extra Infection options go through INFECTION_ARGS, for example INFECTION_ARGS=--filter=ExactDecimal.php.
+mutation: test-database
+	$(TOOLS_RUN_WITH_DB) sh -c 'cd apps/api && php vendor/bin/infection --threads=$(or $(INFECTION_THREADS),1) --show-mutations --no-interaction --no-progress $(INFECTION_ARGS)'
 
 # Interactive shell in the tooling container (host user, repository mounted, database network).
 shell: tools
