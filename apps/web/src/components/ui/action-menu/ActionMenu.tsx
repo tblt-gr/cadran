@@ -42,6 +42,8 @@ export function ActionMenu({
   triggerIcon = 'more',
   triggerVariant = 'ghost',
 }: ActionMenuProps) {
+  // A framed trigger with a text is a header action: icon then visible label, named by that text.
+  const headerAction = triggerVariant === 'framed' && triggerText !== undefined;
   const checkable = items.some((item) => item.checked !== undefined);
   const menuId = useId();
   const trigger = useRef<HTMLButtonElement>(null);
@@ -148,16 +150,18 @@ export function ActionMenu({
         aria-controls={open ? menuId : undefined}
         aria-expanded={open}
         aria-haspopup={checkable ? 'menu' : true}
-        aria-label={label}
-        title={label}
+        aria-label={headerAction ? undefined : label}
+        title={headerAction ? undefined : label}
         className={
-          triggerText
-            ? `text-action ${styles.textTrigger}`
-            : triggerVariant === 'framed'
-              ? 'icon-button'
-              : triggerIcon === 'more'
-                ? `icon-ghost ${styles.trigger}`
-                : 'icon-ghost'
+          headerAction
+            ? 'secondary-action'
+            : triggerText
+              ? `text-action ${styles.textTrigger}`
+              : triggerVariant === 'framed'
+                ? 'icon-button'
+                : triggerIcon === 'more'
+                  ? `icon-ghost ${styles.trigger}`
+                  : 'icon-ghost'
         }
         data-action-menu=""
         data-autofocus={autoFocus || undefined}
@@ -165,7 +169,7 @@ export function ActionMenu({
         ref={trigger}
         type="button"
       >
-        <Icon name={triggerIcon} size={20} />
+        <Icon name={triggerIcon} size={headerAction ? 18 : 20} />
         {triggerText ? <span>{triggerText}</span> : null}
       </button>
       {open

@@ -4,7 +4,6 @@ import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { AccountActionsMenu } from '@/features/accounts/account-actions-menu/AccountActionsMenu';
 import type { AccountTab } from '@/features/accounts/account-detail/AccountNavigation';
-import styles from './AccountDetailActions.module.css';
 
 /**
  * Account-level actions, rendered in the shell header, by tab: the Solde tab only records a
@@ -48,13 +47,13 @@ export function AccountDetailActions({
                   ? 'accounts.detail.actionsMenu.recordBalance'
                   : 'accounts.detail.actions.addTransaction',
               )}
-              className={`primary-action ${styles.add}`}
+              className="primary-action"
               disabled={balanceTab ? !writable : !creatable}
               onClick={balanceTab ? recordBalance : onAddTransaction}
               type="button"
             >
               <Icon name={balanceTab ? 'balance' : 'add'} size={18} />
-              <span className={styles.addLabel}>
+              <span>
                 {t(
                   balanceTab
                     ? 'accounts.detail.actionsMenu.recordBalance'
@@ -64,14 +63,13 @@ export function AccountDetailActions({
             </button>
             {balanceTab ? null : (
               <button
-                aria-label={t('accounts.detail.actionsMenu.transfer')}
-                className="icon-button"
+                className="secondary-action"
                 disabled={!writable}
                 onClick={onAddTransfer}
-                title={t('accounts.detail.actionsMenu.transfer')}
                 type="button"
               >
-                <Icon name="transactions" size={18} />
+                <Icon name="transfer" size={18} />
+                {t('accounts.detail.actionsMenu.transfer')}
               </button>
             )}
           </>
@@ -94,12 +92,12 @@ export function AccountDetailActionsSkeleton({ tab }: { tab: AccountTab }) {
             ? 'accounts.detail.actionsMenu.recordBalance'
             : 'accounts.detail.actions.addTransaction',
         )}
-        className={`primary-action ${styles.add}`}
+        className="primary-action"
         disabled
         type="button"
       >
         <Icon name={balanceTab ? 'balance' : 'add'} size={18} />
-        <span className={styles.addLabel}>
+        <span>
           {t(
             balanceTab
               ? 'accounts.detail.actionsMenu.recordBalance'
@@ -108,14 +106,9 @@ export function AccountDetailActionsSkeleton({ tab }: { tab: AccountTab }) {
         </span>
       </button>
       {balanceTab ? null : (
-        <button
-          aria-label={t('accounts.detail.actionsMenu.transfer')}
-          className="icon-button"
-          disabled
-          title={t('accounts.detail.actionsMenu.transfer')}
-          type="button"
-        >
-          <Icon name="transactions" size={18} />
+        <button className="secondary-action" disabled type="button">
+          <Icon name="transfer" size={18} />
+          {t('accounts.detail.actionsMenu.transfer')}
         </button>
       )}
       {tab === 'account' ? <AccountActionsMenu onRules={() => undefined} /> : null}

@@ -30,13 +30,14 @@ for (const width of [360, 390, 768, 1280, 1440]) {
     await expect(months).toBeVisible();
     await expect(closure).toBeVisible();
     await expect(page.getByRole('button', { name: 'Clôturer ce mois', exact: true })).toHaveText(
-      '',
+      'Clôturer ce mois',
     );
     await expect(page.getByRole('button', { name: 'Autres actions' })).toHaveCount(0);
     const tabsBox = (await navigation.boundingBox())!;
     expect((await months.boundingBox())!.y).toBeGreaterThanOrEqual(tabsBox.y + tabsBox.height);
     expect((await closure.boundingBox())!.y).toBeLessThan(tabsBox.y);
-    if (width >= 768) {
+    // With a label, the actions of a 768 px header wrap under the title; they share its line above.
+    if (width >= 1280) {
       const titleBox = (await title.boundingBox())!;
       const closureBox = (await closure.boundingBox())!;
       expect(

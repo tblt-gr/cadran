@@ -24,17 +24,3 @@
   color: var(--negative);
   background: var(--negative-soft);
 }
-
-@media (max-width: 47.999rem) {
-  .addLabel {
-    display: none;
-  }
-
-  /* Its label hidden, the action is icon-only and takes the square shape every icon-only control has. */
-  .add {
-    width: max(var(--icon-size-lg), var(--control-height));
-    height: max(var(--icon-size-lg), var(--control-height));
-    padding: var(--spacing-none);
-    border-radius: var(--radius-control);
-  }
-}

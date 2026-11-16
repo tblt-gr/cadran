@@ -79,12 +79,12 @@ export function InstrumentsPage() {
       <HeaderActions>
         <button
           aria-label={t('portfolio.instruments.add')}
-          className={`primary-action ${styles.add}`}
+          className="primary-action"
           onClick={() => setEditor('create')}
           type="button"
         >
           <Icon name="add" size={18} />
-          <span className={styles.addLabel}>{t('portfolio.instruments.add')}</span>
+          <span>{t('portfolio.instruments.add')}</span>
         </button>
       </HeaderActions>
       <InstrumentFilters

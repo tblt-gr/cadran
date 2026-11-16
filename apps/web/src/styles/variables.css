@@ -190,6 +190,8 @@
   --icon-size-sm: 2rem;
   --icon-size-md: 2rem;
   --icon-size-lg: 2rem;
+  /* Drawn size of the icon of a header action, the same for every one. */
+  --icon-glyph-sm: 1rem;
   /* Width of the `Objectif` column of the flows summary: a value to reach and its `i` button. */
   --goal-column-width: calc(var(--icon-size-sm) * 3.5);
 

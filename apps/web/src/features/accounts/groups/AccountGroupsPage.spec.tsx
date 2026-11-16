@@ -386,7 +386,7 @@ describe('AccountGroupsPage', () => {
       fireEvent.click(toggle);
 
       expect(toggle.getAttribute('aria-pressed')).toBe('true');
-      expect(toggle.getAttribute('aria-label')).toBe('Terminer la réorganisation');
+      expect(toggle.textContent).toBe('Terminer la réorganisation');
       expect(screen.getByRole('button', { name: 'Monter Alpha' }).hasAttribute('disabled')).toBe(
         true,
       );
