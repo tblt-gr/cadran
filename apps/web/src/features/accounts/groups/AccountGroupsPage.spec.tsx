@@ -499,3 +499,181 @@ describe('AccountGroupsPage', () => {
     });
   });
 });
+
+describe('AccountGroupsPage mutations and failures', () => {
+  afterEach(() => {
+    cleanup();
+    vi.clearAllMocks();
+  });
+
+  function serveOne() {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [group], page: 1, pageSize: 50, total: 1 }),
+    );
+  }
+
+  async function openEdit() {
+    await loadedGroupsTree();
+    openGroupActions('Épargne');
+    fireEvent.click(screen.getByRole('button', { name: 'Modifier le groupe Épargne' }));
+  }
+
+  async function openArchive() {
+    await loadedGroupsTree();
+    openGroupActions('Épargne');
+    fireEvent.click(screen.getByRole('button', { name: 'Archiver le groupe Épargne' }));
+  }
+
+  it('explains a failed load and reloads the groups on retry', async () => {
+    api.listAccountGroups.mockRejectedValueOnce(new TypeError('offline'));
+    renderPage();
+
+    const alert = await screen.findByRole('alert');
+    expect(within(alert).getByRole('heading', { name: 'Groupes indisponibles' })).toBeTruthy();
+    expect(alert.textContent).toContain('Impossible de charger les groupes.');
+    expect(screen.queryByTestId('account-groups-skeleton')).toBeNull();
+
+    serveOne();
+    fireEvent.click(within(alert).getByRole('button', { name: 'Réessayer' }));
+    expect(await screen.findByText('Épargne')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('explains an empty archive and offers no creation there', async () => {
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    renderPage();
+    await screen.findByRole('heading', { name: 'Aucun groupe' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Afficher les groupes archivés' }));
+
+    expect(await screen.findByRole('heading', { name: 'Aucun groupe archivé' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Créer le premier groupe' })).toBeNull();
+  });
+
+  it('renames a group, closes the modal, confirms and reloads the list', async () => {
+    serveOne();
+    api.updateAccountGroup.mockImplementation(({ body }) =>
+      success({ ...group, ...body, version: 2 }),
+    );
+    renderPage();
+    await openEdit();
+
+    expect(screen.getByRole('dialog', { name: 'Modifier le groupe' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Réserve' } });
+    api.listAccountGroups.mockImplementation(() =>
+      success({
+        items: [{ ...group, label: 'Réserve', version: 2 }],
+        page: 1,
+        pageSize: 50,
+        total: 1,
+      }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect(await screen.findByText('Le groupe a été enregistré.')).toBeTruthy();
+    expect(api.updateAccountGroup.mock.calls[0]?.[0]).toMatchObject({
+      path: { id: group.id },
+      body: { label: 'Réserve', version: 1 },
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await screen.findByText('Réserve')).toBeTruthy();
+  });
+
+  it('keeps the modal and the listed groups when a taken label answers 409 on creation', async () => {
+    serveOne();
+    api.createAccountGroup.mockImplementation(() =>
+      problem(409, '/problems/account-group-label-taken'),
+    );
+    renderPage();
+    await loadedGroupsTree();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau groupe' }));
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Épargne' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect(
+      await screen.findByText(
+        'Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.',
+      ),
+    ).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Nouveau groupe' })).toBeTruthy();
+    expect(screen.queryByText('Le groupe a été enregistré.')).toBeNull();
+    expect(
+      within(screen.getByRole('list', { name: 'Groupes de comptes' })).getByText('Épargne'),
+    ).toBeTruthy();
+  });
+
+  it('shows a network failure in the modal and clears it when the modal is reopened', async () => {
+    serveOne();
+    api.createAccountGroup.mockRejectedValue(new TypeError('offline'));
+    renderPage();
+    await loadedGroupsTree();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau groupe' }));
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Projets' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+
+    expect(await screen.findByText('L’enregistrement a échoué. Réessayez.')).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau groupe' }));
+    expect(screen.queryByText('L’enregistrement a échoué. Réessayez.')).toBeNull();
+  });
+
+  it('archives a group at its version after confirmation and announces it', async () => {
+    serveOne();
+    api.archiveAccountGroup.mockImplementation(() =>
+      success({ ...group, archivedAt: '2026-09-01T12:00:00+00:00' }),
+    );
+    renderPage();
+    await openArchive();
+
+    const dialog = screen.getByRole('dialog', { name: 'Archiver le groupe' });
+    expect(within(dialog).getByText(/Archiver « Épargne »/)).toBeTruthy();
+    api.listAccountGroups.mockImplementation(() =>
+      success({ items: [], page: 1, pageSize: 50, total: 0 }),
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Archiver' }));
+
+    expect(await screen.findByText('Le groupe a été archivé.')).toBeTruthy();
+    expect(api.archiveAccountGroup.mock.calls[0]?.[0]).toMatchObject({
+      path: { id: group.id },
+      body: { version: 1 },
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Aucun groupe' })).toBeTruthy();
+  });
+
+  it('cancels the archive dialog without calling the API', async () => {
+    serveOne();
+    renderPage();
+    await openArchive();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(api.archiveAccountGroup).not.toHaveBeenCalled();
+    expect(screen.getByText('Épargne')).toBeTruthy();
+  });
+
+  it('explains a refused archive, keeps the dialog and the group, and clears it on cancel', async () => {
+    serveOne();
+    api.archiveAccountGroup.mockImplementation(() => problem(409, '/problems/stale-version'));
+    renderPage();
+    await openArchive();
+
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Archiver' }));
+
+    expect(await screen.findByText(/Ce groupe a été modifié ailleurs/)).toBeTruthy();
+    expect(screen.getByRole('dialog', { name: 'Archiver le groupe' })).toBeTruthy();
+    expect(screen.queryByText('Le groupe a été archivé.')).toBeNull();
+    await waitFor(() => expect(api.listAccountGroups.mock.calls.length).toBeGreaterThan(1));
+    expect(screen.getAllByText('Épargne').length).toBeGreaterThan(0);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+    openGroupActions('Épargne');
+    fireEvent.click(screen.getByRole('button', { name: 'Archiver le groupe Épargne' }));
+    expect(screen.queryByText(/Ce groupe a été modifié ailleurs/)).toBeNull();
+  });
+});
