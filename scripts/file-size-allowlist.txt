@@ -8,8 +8,6 @@
 369 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalProductModelRepository.php exhaustive row mapping, one responsibility
 324 apps/api/src/Module/Categories/Infrastructure/Persistence/DbalCategoryRepository.php exhaustive row mapping, one responsibility
 465 apps/api/src/Module/Demo/Application/SeedDemoData.php demo fixture data, one responsibility
-338 apps/api/src/Module/Identity/UI/Console/SetupIdentityCommand.php split pending
-370 apps/api/src/Module/Portfolio/Application/HoldingsAggregator.php split pending
 308 apps/api/src/Module/Portfolio/Infrastructure/Persistence/DbalPortfolioOperationRepository.php exhaustive row mapping, one responsibility
 380 apps/api/src/Module/Transactions/Domain/Transaction.php entity invariants kept together
 481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
