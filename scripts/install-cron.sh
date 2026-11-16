@@ -34,6 +34,7 @@ block() {
     printf "5 0 * * * cd '%s' && make recurrences-materialize >/dev/null 2>&1\n" "$root"
     printf "0 3 * * * cd '%s' && make db-backup LABEL=daily >/dev/null 2>&1\n" "$root"
     printf "30 3 * * * cd '%s' && make db-backup-prune >/dev/null 2>&1\n" "$root"
+    printf "15 6 * * * cd '%s' && sh scripts/doctor-scheduled.sh >/dev/null 2>&1\n" "$root"
     printf "0 4 * * 0 cd '%s' && make idempotency-purge >/dev/null 2>&1\n" "$root"
     printf '%s\n' '# END cadran'
 }

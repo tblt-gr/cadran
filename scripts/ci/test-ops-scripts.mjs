@@ -3,7 +3,16 @@
 // No Docker, no real crontab: a fake `crontab` on PATH stores the table in a file.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -57,6 +66,13 @@ try {
   ]) {
     assert.ok(dry.stdout.includes(`cd '${repo}' && make ${target} >/dev/null 2>&1`), target);
   }
+
+  assert.ok(
+    dry.stdout.includes(
+      `15 6 * * * cd '${repo}' && sh scripts/doctor-scheduled.sh >/dev/null 2>&1\n`,
+    ),
+    'daily doctor',
+  );
 
   assert.equal(run(repo).status, 0);
   const installed = readTable();
@@ -194,6 +210,126 @@ esac
 
   const pending = doctor({ DOCTOR_MIGRATIONS_PENDING: '1' });
   assert.ok(pending.lines.some((line) => line.startsWith('FAIL migrations: ')));
+
+  // doctor-scheduled.sh: stubbed doctor.sh, powershell.exe and notify-send log their arguments.
+  const sched = join(base, 'sched');
+  mkdirSync(join(sched, 'scripts'), { recursive: true });
+  copyFileSync(join(scripts, 'doctor-scheduled.sh'), join(sched, 'scripts', 'doctor-scheduled.sh'));
+  const notifyLog = join(base, 'notify.log');
+  const stubTools = (dir, names) => {
+    mkdirSync(dir, { recursive: true });
+    for (const name of names) {
+      writeFileSync(join(dir, name), `#!/bin/sh\nprintf '%s\\036' "$0|$*" >> "${notifyLog}"\n`, {
+        mode: 0o755,
+      });
+    }
+  };
+  const plainBin = join(base, 'plain-bin');
+  mkdirSync(plainBin);
+  for (const tool of ['sh', 'date', 'mkdir', 'chmod', 'sed', 'tr', 'paste', 'cat', 'dirname']) {
+    const found = spawnSync('sh', ['-c', `command -v ${tool}`], { encoding: 'utf8' }).stdout.trim();
+    symlinkSync(found, join(plainBin, tool));
+  }
+  const withNotify = join(base, 'notify-bin');
+  stubTools(withNotify, ['notify-send']);
+  symlinkSync(join(withNotify, 'notify-send'), join(plainBin, 'notify-send'));
+  const fakePowershell = join(base, 'powershell.exe');
+  stubTools(base, ['powershell.exe']);
+
+  const scheduled = (doctorOutput, doctorStatus, { powershell, notifySend }) => {
+    writeFileSync(notifyLog, '');
+    rmSync(join(sched, 'var'), { recursive: true, force: true });
+    writeFileSync(
+      join(sched, 'scripts', 'doctor.sh'),
+      `#!/bin/sh\ncat <<'OUT'\n${doctorOutput}OUT\nexit ${doctorStatus}\n`,
+    );
+    const dir = join(base, `path-${notifySend}`);
+    mkdirSync(dir, { recursive: true });
+    for (const tool of ['sh', 'date', 'mkdir', 'chmod', 'sed', 'tr', 'paste', 'cat', 'dirname']) {
+      try {
+        symlinkSync(join(plainBin, tool), join(dir, tool));
+      } catch {
+        // already linked by a previous call
+      }
+    }
+    if (notifySend) {
+      try {
+        symlinkSync(join(withNotify, 'notify-send'), join(dir, 'notify-send'));
+      } catch {
+        // already linked
+      }
+    }
+    const out = spawnSync('sh', [join(sched, 'scripts', 'doctor-scheduled.sh')], {
+      encoding: 'utf8',
+      env: { PATH: dir, CADRAN_POWERSHELL: powershell ? fakePowershell : join(base, 'absent.exe') },
+    });
+    const logFile = join(sched, 'var', 'log', 'doctor.log');
+    let log = null;
+    try {
+      log = readFileSync(logFile, 'utf8');
+    } catch {
+      // no log written
+    }
+    return {
+      status: out.status,
+      log,
+      calls: readFileSync(notifyLog, 'utf8').split('\x1e').filter(Boolean),
+      logMode: log === null ? null : statSync(logFile).mode & 0o777,
+      dirMode: log === null ? null : statSync(join(sched, 'var', 'log')).mode & 0o777,
+    };
+  };
+  const both = { powershell: true, notifySend: true };
+  const stamp = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ FAIL /;
+
+  const okRun = scheduled('OK app health\nOK backup\n', 0, both);
+  assert.equal(okRun.status, 0);
+  assert.equal(okRun.log, null, 'success logs nothing');
+  assert.deepEqual(okRun.calls, [], 'success notifies nothing');
+
+  const warnRun = scheduled('OK app health\nWARN cron: no cadran block in /secret/path\n', 0, both);
+  assert.equal(warnRun.status, 0);
+  assert.equal(warnRun.log, null);
+  assert.deepEqual(warnRun.calls, []);
+
+  const one = scheduled(
+    'OK app health\nFAIL backup: backup older than 48h in /srv/backups/cadran-x.age\n',
+    1,
+    both,
+  );
+  assert.equal(one.status, 1);
+  assert.match(one.log, new RegExp(`${stamp.source}backup\\n$`));
+  assert.equal(one.logMode, 0o600);
+  assert.equal(one.dirMode, 0o700);
+  assert.equal(one.calls.length, 1);
+  assert.equal(
+    one.calls[0].startsWith(`${fakePowershell}|-NoProfile -NonInteractive -Command & { $x = `),
+    true,
+  );
+  assert.ok(one.calls[0].endsWith(`.Show($n) } 'backup'`), one.calls[0]);
+  assert.ok(!one.calls[0].includes('/srv'), 'no reason text');
+  assert.ok(!one.log.includes('/srv'), 'no reason text in the log');
+
+  const two = scheduled(
+    'FAIL app health: down\nOK migrations\nFAIL database size: could not query 1234 EUR\n',
+    1,
+    both,
+  );
+  assert.match(two.log, new RegExp(`${stamp.source}app health,database size\\n$`));
+  assert.ok(two.calls[0].endsWith(`.Show($n) } 'app health,database size'`));
+
+  const unix = scheduled('FAIL migrations: pending\n', 1, { powershell: false, notifySend: true });
+  assert.equal(unix.status, 1);
+  assert.equal(unix.calls.length, 1);
+  assert.ok(unix.calls[0].endsWith('/notify-send|Cadran: make doctor failed migrations'));
+  assert.match(unix.log, new RegExp(`${stamp.source}migrations\\n$`));
+
+  const none = scheduled('FAIL migrations: pending\nFAIL backup: x\n', 1, {
+    powershell: false,
+    notifySend: false,
+  });
+  assert.equal(none.status, 1);
+  assert.deepEqual(none.calls, []);
+  assert.match(none.log, new RegExp(`${stamp.source}migrations,backup\\n$`));
 
   console.log('Operations script tests passed.');
 } finally {
