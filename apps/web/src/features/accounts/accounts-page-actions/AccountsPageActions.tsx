@@ -42,13 +42,13 @@ export function AccountsPageActions({
       <HeaderActions>
         <button
           aria-label={t('accounts.add')}
-          className={`primary-action ${styles.add}`}
+          className={`primary-action`}
           onClick={onCreate}
           title={t('accounts.add')}
           type="button"
         >
           <Icon name="add" size={18} />
-          <span className={styles.addLabel}>{t('accounts.add')}</span>
+          <span>{t('accounts.add')}</span>
         </button>
         <a
           aria-label={t('accounts.manageGroups')}

@@ -26,12 +26,12 @@ export function GroupPageActions({
     <HeaderActions>
       <button
         aria-label={t('accountGroups.add')}
-        className={`primary-action ${styles.add}`}
+        className={`primary-action`}
         onClick={onAdd}
         type="button"
       >
         <Icon name="add" size={18} />
-        <span className={styles.addLabel}>{t('accountGroups.add')}</span>
+        <span>{t('accountGroups.add')}</span>
       </button>
       <button
         aria-label={t('accountGroups.includeArchived')}

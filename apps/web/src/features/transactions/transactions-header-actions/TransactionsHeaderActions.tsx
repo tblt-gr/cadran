@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
-import styles from '@/features/transactions/TransactionsPage.module.css';
 
 export function TransactionsHeaderActions({
   onCreate,
@@ -15,12 +14,12 @@ export function TransactionsHeaderActions({
     <HeaderActions>
       <button
         aria-label={t('transactions.add')}
-        className={`primary-action ${styles.add}`}
+        className={`primary-action`}
         onClick={onCreate}
         type="button"
       >
         <Icon name="add" size={18} />
-        <span className={styles.addLabel}>{t('transactions.add')}</span>
+        <span>{t('transactions.add')}</span>
       </button>
       <button
         aria-label={t('transactions.addTransfer')}

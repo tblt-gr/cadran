@@ -21,12 +21,6 @@
   .toolbar label {
     max-width: none;
   }
-  .addLabel {
-    display: none;
-  }
-  .add {
-    padding: var(--spacing-control-block) var(--spacing-3);
-  }
 }
 
 .notice {

@@ -20,16 +20,3 @@
     border-radius: var(--radius-control);
   }
 }
-
-@media (max-width: 47.999rem) {
-  .addLabel {
-    display: none;
-  }
-
-  .add {
-    width: max(var(--icon-size-lg), var(--control-height));
-    height: max(var(--icon-size-lg), var(--control-height));
-    padding: var(--spacing-none);
-    border-radius: var(--radius-control);
-  }
-}

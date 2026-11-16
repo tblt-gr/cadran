@@ -9,7 +9,6 @@ import { INSTRUMENTS_HREF } from '@/features/accounts/account-actions-menu/accou
 import type { PortfolioTab } from '@/features/portfolio/portfolio-account/portfolio-tabs/PortfolioTabs';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { handleClientNavigation, navigateFromPage } from '@/hooks/use-client-navigation';
-import styles from './PortfolioAccountHeader.module.css';
 
 /**
  * The header actions follow the tab, and only the Compte tab carries the three-dot menu:
@@ -76,7 +75,7 @@ export function PortfolioAccountHeader({
         {showsPrimary ? (
           <button
             aria-label={primaryLabel}
-            className={`primary-action ${styles.add}`}
+            className={`primary-action`}
             disabled={
               valuationPrimary ? !writable : !writable || contractRequired || operationBlocked
             }
@@ -84,13 +83,13 @@ export function PortfolioAccountHeader({
             type="button"
           >
             <Icon name={valuationPrimary ? 'balance' : 'add'} size={18} />
-            <span className={styles.addLabel}>{primaryLabel}</span>
+            <span>{primaryLabel}</span>
           </button>
         ) : null}
         {showsInstruments ? (
           <a
             aria-label={t('accounts.detail.actionsMenu.instruments')}
-            className={`secondary-action ${styles.add}`}
+            className={`secondary-action`}
             href={INSTRUMENTS_HREF}
             onClick={(event) => {
               event.preventDefault();
@@ -98,7 +97,7 @@ export function PortfolioAccountHeader({
             }}
           >
             <Icon name="chart-line" size={18} />
-            <span className={styles.addLabel}>{t('accounts.detail.actionsMenu.instruments')}</span>
+            <span>{t('accounts.detail.actionsMenu.instruments')}</span>
           </a>
         ) : null}
         {voided && tab === 'operations' ? (
