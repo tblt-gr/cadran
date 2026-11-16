@@ -49,6 +49,26 @@
   cursor: not-allowed;
 }
 
+/* Narrow screens: the drawn segment stays small so four presets fit a 360 px line, while an invisible
+   pseudo-element keeps the 44 px touch target. */
+@media (max-width: 42rem) {
+  .compact .segment {
+    position: relative;
+    min-height: var(--control-height-dense);
+    padding-inline: var(--spacing-2);
+  }
+
+  .compact .segment::after {
+    position: absolute;
+    top: 50%;
+    right: var(--spacing-none);
+    left: var(--spacing-none);
+    height: var(--touch-target-min);
+    transform: translateY(-50%);
+    content: '';
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .segment {
     transition-duration: var(--duration-reduced-motion);

@@ -100,7 +100,7 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
             </Disclosure>
           </li>
         ))}
-        <li className={`card ${cardStyles.card}`}>
+        <li className={`card ${cardStyles.card} ${cardStyles.summary}`}>
           <h3>{t('reports.annual.summaryTitle')}</h3>
           {PLACEHOLDER_COLUMNS.slice(0, 2).map((column) => (
             <section key={column}>

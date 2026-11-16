@@ -43,7 +43,7 @@ export function AnnualMonthCards({ onExplain, report }: AnnualMonthCardsProps) {
             row={row}
           />
         ))}
-        <li className={`card ${styles.card}`}>
+        <li className={`card ${styles.card} ${styles.summary}`}>
           <h3>{t('reports.annual.summaryTitle')}</h3>
           {report.columns.map((column) => {
             const aggregate = report.aggregates[column.id];

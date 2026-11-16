@@ -35,4 +35,13 @@ describe('SegmentedControl', () => {
     );
     expect(screen.getByRole('button', { name: 'Second' }).matches(':disabled')).toBe(true);
   });
+
+  it('marks the group compact without changing its behaviour', () => {
+    const change = vi.fn();
+    render(<SegmentedControl compact label="Vue" onChange={change} options={options} value="a" />);
+    const group = screen.getByRole('group', { name: 'Vue' });
+    expect(group.className).toContain('compact');
+    fireEvent.click(screen.getByRole('button', { name: 'Second' }));
+    expect(change).toHaveBeenCalledWith('b');
+  });
 });

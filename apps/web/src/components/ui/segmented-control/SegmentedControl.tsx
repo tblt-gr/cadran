@@ -4,6 +4,8 @@ import styles from './SegmentedControl.module.css';
 interface SegmentedControlProps<T extends string> {
   /** Accessible name of the group, for instance "Période". */
   label: string;
+  /** Shrinks the drawn segments on narrow screens; the touch target keeps its minimum. */
+  compact?: boolean;
   disabled?: boolean;
   onChange: (value: T) => void;
   options: readonly { value: T; label: string; description?: string; disabled?: boolean }[];
@@ -13,6 +15,7 @@ interface SegmentedControlProps<T extends string> {
 /** One-of-n toggle on a single track: a view switch, never a form submission. */
 export function SegmentedControl<T extends string>({
   label,
+  compact = false,
   disabled = false,
   onChange,
   options,
@@ -20,7 +23,11 @@ export function SegmentedControl<T extends string>({
 }: SegmentedControlProps<T>) {
   const id = useId();
   return (
-    <div aria-label={label} className={styles.track} role="group">
+    <div
+      aria-label={label}
+      className={compact ? `${styles.track} ${styles.compact}` : styles.track}
+      role="group"
+    >
       {options.map((option, index) => {
         const descriptionId = `${id}-${index}`;
         return (

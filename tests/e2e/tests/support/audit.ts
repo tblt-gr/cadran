@@ -141,7 +141,10 @@ export async function auditLayout(
           // A native control wrapped in its own label is measured through the label.
           const label = el.closest('label');
           const box = (label ?? el).getBoundingClientRect();
-          if (box.width < min - 0.5 || box.height < min - 0.5) {
+          // A control drawn small can carry its 44 px target on an absolutely positioned ::after.
+          const hit = getComputedStyle(el, '::after');
+          const hitHeight = hit.position === 'absolute' ? parseFloat(hit.height) || 0 : 0;
+          if (box.width < min - 0.5 || Math.max(box.height, hitHeight) < min - 0.5) {
             found.push({ rule: 'touch-target', element: describe(label ?? el) });
           }
         }
