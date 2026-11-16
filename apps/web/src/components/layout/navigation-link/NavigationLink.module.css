@@ -30,12 +30,14 @@
   background: var(--bg-surface-1);
 }
 
-/* The current page keeps the selected surface and gets a white rule along its whole left edge;
-   every link reserves that transparent border so nothing shifts. */
+/* The current page is marked by the white rule alone, flush with the sidebar edge; every link
+   reserves that transparent border so nothing shifts. */
 .link[aria-current='page'] {
-  border-color: var(--border-subtle);
+  border-top-color: var(--color-transparent);
+  border-right-color: var(--color-transparent);
+  border-bottom-color: var(--color-transparent);
   border-left-color: var(--text-primary);
   color: var(--text-primary);
-  background: var(--bg-selected);
+  background: var(--color-transparent);
   box-shadow: none;
 }
