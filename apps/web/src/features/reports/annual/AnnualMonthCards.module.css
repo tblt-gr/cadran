@@ -3,7 +3,7 @@
   grid-template-columns: minmax(0, 1fr);
   gap: var(--spacing-3);
   margin: var(--spacing-none);
-  padding: var(--spacing-4);
+  padding: var(--spacing-none);
   list-style: none;
 }
 /* The summary card holds one section per column: they get their own breathing room. */
