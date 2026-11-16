@@ -115,7 +115,11 @@ export function BalanceTable({ items, withdrawal, onEdit, loadingStatus }: Props
                   <td data-label={label('state')}>
                     {snapshot ? label(snapshot.active ? 'active' : 'withdrawn') : <SkeletonBlock />}
                   </td>
-                  <td>
+                  <td
+                    data-actions={
+                      snapshot && withdrawal?.confirmingId === snapshot.id ? undefined : ''
+                    }
+                  >
                     {snapshot && withdrawal ? (
                       <BalanceRowActions
                         onEdit={onEdit}

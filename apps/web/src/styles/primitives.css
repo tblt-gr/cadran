@@ -350,3 +350,33 @@ table caption {
 :where(tbody tr:hover, tbody tr:focus-within) > :where(th, td) {
   background: var(--bg-surface-hover);
 }
+
+/*
+ * Row action menu of a stacked card. Below the width where tables and rows turn into cards, the
+ * cell marked `data-actions` leaves the flow and sits at the card's top right corner instead of
+ * taking a line of its own; the first line of the card keeps the button's width free.
+ */
+@media (max-width: 47.999rem) {
+  :is(tr, li, article, div):has(> [data-actions]) {
+    position: relative;
+  }
+
+  :is(tr, li, article, div):has(> [data-actions]) > :first-child:not([data-actions]) {
+    padding-right: calc(var(--touch-target-min) + var(--spacing-1));
+  }
+
+  :is(tr, li, article, div):has(> [data-actions]) > [data-actions] {
+    position: absolute;
+    top: var(--spacing-1);
+    right: var(--spacing-1);
+    display: block;
+    width: auto;
+    min-width: 0;
+    padding: var(--spacing-none);
+    border: var(--border-none);
+  }
+
+  :is(tr, li, article, div):has(> [data-actions]) > [data-actions]::before {
+    display: none;
+  }
+}

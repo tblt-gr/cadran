@@ -159,6 +159,7 @@ export function ActionMenu({
                 ? `icon-ghost ${styles.trigger}`
                 : 'icon-ghost'
         }
+        data-action-menu=""
         data-autofocus={autoFocus || undefined}
         onClick={() => setOpen((current) => !current)}
         ref={trigger}

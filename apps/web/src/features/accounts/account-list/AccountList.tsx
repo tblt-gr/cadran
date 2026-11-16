@@ -127,7 +127,10 @@ export function AccountList({
                     <td data-label={t('accounts.fields.balance')}>
                       <AccountValuationCell provenance={false} valuation={null} />
                     </td>
-                    <td data-label={t('accounts.list.actions')}>
+                    <td
+                      data-actions={reordering ? undefined : ''}
+                      data-label={t('accounts.list.actions')}
+                    >
                       <div className={styles.rowActions}>
                         <SkeletonBlock />
                       </div>
@@ -178,7 +181,10 @@ export function AccountList({
                           valuation={account.valuation}
                         />
                       </td>
-                      <td data-label={t('accounts.list.actions')}>
+                      <td
+                        data-actions={reordering ? undefined : ''}
+                        data-label={t('accounts.list.actions')}
+                      >
                         <div className={styles.rowActions}>
                           {reordering ? (
                             <>
