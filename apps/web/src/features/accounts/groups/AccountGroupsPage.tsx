@@ -1,32 +1,20 @@
-import {
-  archiveAccountGroup,
-  createAccountGroup,
-  updateAccountGroup,
-  type AccountGroup,
-  type CreateAccountGroupRequest,
-  type UpdateAccountGroupRequest,
-} from '@cadran/api-client';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { AccountGroup } from '@cadran/api-client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
-import { authApiOptions } from '@/features/auth/apiOptions';
-import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { ArchiveGroupDialog } from '@/features/accounts/groups/archive-group-dialog/ArchiveGroupDialog';
 import { GroupMoveStatus } from '@/features/accounts/groups/group-move-status/GroupMoveStatus';
 import { GroupForm } from '@/features/accounts/groups/group-form/GroupForm';
+import { GroupPageActions } from '@/features/accounts/groups/group-page-actions/GroupPageActions';
 import { GroupTree } from '@/features/accounts/groups/group-tree/GroupTree';
 import { GroupTreeSkeleton } from '@/features/accounts/groups/group-tree/GroupTreeSkeleton';
 import { listAllAccountGroups } from '@/features/accounts/groups/listAllAccountGroups';
-import {
-  groupErrorKind,
-  GroupRequestError,
-  groupRequestError,
-} from '@/features/accounts/groups/groupError';
+import { groupErrorKind, GroupRequestError } from '@/features/accounts/groups/groupError';
 import { GroupsState } from '@/features/accounts/groups/groups-state/GroupsState';
+import { useAccountGroupWrites } from '@/features/accounts/groups/useAccountGroupWrites';
 import {
   useMoveAccountGroup,
   type GroupMove,
@@ -63,71 +51,15 @@ export function AccountGroupsPage() {
     retry: false,
   });
 
-  async function refreshOnStaleState(error: unknown) {
-    if (error instanceof GroupRequestError && error.kind === 'stale') {
-      await queryClient.invalidateQueries({ queryKey: ['account-groups'] });
-    }
-  }
-
-  const save = useMutation({
-    mutationFn: async (body: CreateAccountGroupRequest | UpdateAccountGroupRequest) => {
-      const result =
-        editor && editor !== 'create'
-          ? await withCsrfRetry(() =>
-              updateAccountGroup({
-                ...authApiOptions(),
-                path: { id: editor.id },
-                body: body as UpdateAccountGroupRequest,
-              }),
-            )
-          : await withCsrfRetry(() =>
-              createAccountGroup({ ...authApiOptions(), body: body as CreateAccountGroupRequest }),
-            );
-
-      if (!result.response?.ok || !result.data) {
-        throw groupRequestError(result);
-      }
-      return result.data;
-    },
-    onSuccess: async () => {
+  const { save, archive } = useAccountGroupWrites({
+    editor,
+    onSaved: () => {
       setEditor(null);
       setSaved('saved');
-      await queryClient.invalidateQueries({ queryKey: ['account-groups'] });
-      await queryClient.invalidateQueries({ queryKey: ['net-worth'] });
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      await queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
-      await queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
     },
-    onError: (error) => {
-      void refreshOnStaleState(error);
-    },
-  });
-
-  const archive = useMutation({
-    mutationFn: async (group: AccountGroup) => {
-      const result = await withCsrfRetry(() =>
-        archiveAccountGroup({
-          ...authApiOptions(),
-          path: { id: group.id },
-          body: { version: group.version },
-        }),
-      );
-      if (!result.response?.ok || !result.data) {
-        throw groupRequestError(result);
-      }
-      return result.data;
-    },
-    onSuccess: async () => {
+    onArchived: () => {
       setArchiving(null);
       setSaved('archived');
-      await queryClient.invalidateQueries({ queryKey: ['account-groups'] });
-      await queryClient.invalidateQueries({ queryKey: ['net-worth'] });
-      await queryClient.invalidateQueries({ queryKey: ['accounts'] });
-      await queryClient.invalidateQueries({ queryKey: ['monthly-recap'] });
-      await queryClient.invalidateQueries({ queryKey: ['monthly-ledger'] });
-    },
-    onError: (error) => {
-      void refreshOnStaleState(error);
     },
   });
 
@@ -163,48 +95,18 @@ export function AccountGroupsPage() {
   const archiveError = groupErrorKind(archive.error, archive.isError);
   const unauthorized =
     groups.error instanceof GroupRequestError && groups.error.kind === 'unauthorized';
-  const reorderLabel = t(reordering ? 'accountGroups.reorder.stop' : 'accountGroups.reorder.start');
   const items = groups.data ?? [];
   const pagePending = groups.isPending && groups.data === undefined;
 
   return (
     <div className={styles.page}>
-      <HeaderActions>
-        <button
-          aria-label={t('accountGroups.add')}
-          className={`primary-action ${styles.add}`}
-          onClick={() => openEditor('create')}
-          type="button"
-        >
-          <Icon name="add" size={18} />
-          <span className={styles.addLabel}>{t('accountGroups.add')}</span>
-        </button>
-        <button
-          aria-label={t('accountGroups.includeArchived')}
-          aria-pressed={includeArchived}
-          className="icon-button"
-          onClick={() => setIncludeArchived((current) => !current)}
-          title={t('accountGroups.includeArchived')}
-          type="button"
-        >
-          <Icon name="archive" />
-        </button>
-        <button
-          aria-label={reorderLabel}
-          aria-pressed={reordering}
-          className={`secondary-action ${styles.secondary}`}
-          onClick={() => setReordering((current) => !current)}
-          title={reorderLabel}
-          type="button"
-        >
-          <Icon name={reordering ? 'check-circle' : 'reorder'} />
-          <span className={styles.secondaryLabel}>
-            {t(
-              reordering ? 'accountGroups.reorder.stop_short' : 'accountGroups.reorder.start_short',
-            )}
-          </span>
-        </button>
-      </HeaderActions>
+      <GroupPageActions
+        includeArchived={includeArchived}
+        onAdd={() => openEditor('create')}
+        onToggleArchived={() => setIncludeArchived((current) => !current)}
+        onToggleReordering={() => setReordering((current) => !current)}
+        reordering={reordering}
+      />
 
       {reordering ? (
         <p className={styles.reorderHint} role="status">

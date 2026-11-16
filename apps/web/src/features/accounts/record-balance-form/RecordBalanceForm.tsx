@@ -14,7 +14,9 @@ import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { FormField } from '@/features/accounts/account-form/form-field/FormField';
 import { accountErrorKind, type AccountErrorKind } from '@/features/accounts/accountError';
 import { formatCalendarNumericDay, isCanonicalDecimal } from '@/lib/decimal';
+import { BalanceCommentField } from './balance-comment-field/BalanceCommentField';
 import { BalanceSnapshotsList } from './balance-snapshots/BalanceSnapshotsList';
+import { latestBalanceDay, newSnapshotRequest } from './newSnapshotRequest';
 import { useCorrectBalance } from './balance-snapshots/useBalanceSnapshots';
 import styles from './RecordBalanceForm.module.css';
 
@@ -85,10 +87,7 @@ export function RecordBalanceForm({
   const trimmedComment = comment.trim();
   const amountInvalid = !isCanonicalDecimal(trimmedAmount);
   const commentInvalid = trimmedComment.length > MAX_COMMENT;
-  const latestAllowed =
-    account.closedOn !== null && account.closedOn < valuation.requestedOn
-      ? account.closedOn
-      : valuation.requestedOn;
+  const latestAllowed = latestBalanceDay(account, valuation);
   const asOfInvalid =
     editing === null && (asOf === '' || asOf < account.openedOn || asOf > latestAllowed);
 
@@ -136,22 +135,7 @@ export function RecordBalanceForm({
       return;
     }
 
-    // A derived balance reports today's date, but its version belongs to the
-    // anchor snapshot. Sending that version for a new day is a false conflict.
-    const snapshotDay = valuation.derivation?.anchorAsOf ?? valuation.asOf;
-    const replacingSameDay =
-      valuation.quality !== 'MISSING' &&
-      valuation.source === 'MANUAL' &&
-      snapshotDay === asOf &&
-      valuation.version !== null;
-
-    onSubmit({
-      asOf,
-      amount: trimmedAmount,
-      amountAssetCode: account.assetCode,
-      comment: trimmedComment === '' ? null : trimmedComment,
-      version: replacingSameDay ? valuation.version : null,
-    });
+    onSubmit(newSnapshotRequest(account, valuation, asOf, trimmedAmount, trimmedComment));
   }
 
   return (
@@ -231,25 +215,12 @@ export function RecordBalanceForm({
           open={advancedOpen || (showErrors && commentInvalid)}
           onToggle={setAdvancedOpen}
         >
-          <FormField
-            error={
-              showErrors && commentInvalid ? t('accounts.balances.validation.comment') : undefined
-            }
-            hint={t('accounts.balances.commentHint')}
-            label={t('accounts.balances.fields.comment')}
-            name="balance-comment"
-          >
-            {({ fieldId, describedBy }) => (
-              <input
-                aria-describedby={describedBy}
-                aria-invalid={showErrors && commentInvalid ? true : undefined}
-                id={fieldId}
-                maxLength={MAX_COMMENT}
-                onChange={(event) => setComment(event.target.value)}
-                value={comment}
-              />
-            )}
-          </FormField>
+          <BalanceCommentField
+            invalid={showErrors && commentInvalid}
+            maxLength={MAX_COMMENT}
+            onChange={setComment}
+            value={comment}
+          />
         </FormSection>
 
         <ModalActions>

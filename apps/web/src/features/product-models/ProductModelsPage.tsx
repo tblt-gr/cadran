@@ -1,15 +1,4 @@
-import {
-  addProductModelRule,
-  archiveProductModel,
-  createProductModel,
-  createProductModelFromProduct,
-  duplicateProductModel,
-  type CreateProductModelFromProductRequest,
-  type CreateProductModelRequest,
-  type ProductModel,
-  type ProductModelRuleInput,
-} from '@cadran/api-client';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ProductModel } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
@@ -17,8 +6,6 @@ import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
-import { authApiOptions } from '@/features/auth/apiOptions';
-import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { AddPeriodForm } from './add-period-form/AddPeriodForm';
 import { ArchiveModelDialog } from './archive-model-dialog/ArchiveModelDialog';
 import { DuplicateModelForm } from './duplicate-model-form/DuplicateModelForm';
@@ -30,12 +17,8 @@ import { IncrementalList } from '@/components/ui/incremental-list/IncrementalLis
 import { ProductModelPeriodTable } from './product-model-periods/ProductModelPeriodTable';
 import { ProductModelsState } from './product-models-state/ProductModelsState';
 import { ProductModelsPageSkeleton } from './ProductModelsPageSkeleton';
-import {
-  productModelErrorKind,
-  productModelRequestError,
-  ProductModelRequestError,
-  requestFailed,
-} from './productModelError';
+import { productModelErrorKind, ProductModelRequestError } from './productModelError';
+import { useProductModelWrites } from './useProductModelWrites';
 import { useProductModels } from './useProductModels';
 import styles from './ProductModelsPage.module.css';
 
@@ -43,7 +26,6 @@ type Editor = 'create' | 'from-product' | null;
 
 export function ProductModelsPage() {
   const { t } = useTranslation();
-  const queryClient = useQueryClient();
   const [includeArchived, setIncludeArchived] = useState(false);
   const [editor, setEditor] = useState<Editor>(null);
   const [duplicating, setDuplicating] = useState<ProductModel | null>(null);
@@ -54,106 +36,12 @@ export function ProductModelsPage() {
 
   const models = useProductModels(includeArchived);
 
-  async function refreshOnStaleState(error: unknown) {
-    if (
-      error instanceof ProductModelRequestError &&
-      (error.kind === 'stale' || error.kind === 'archived')
-    ) {
-      await queryClient.invalidateQueries({ queryKey: ['product-models'] });
-    }
-  }
-
-  async function onSaved(kind: 'saved' | 'archived') {
+  const { create, fromProduct, duplicate, addPeriod, archive } = useProductModelWrites((kind) => {
     setEditor(null);
     setDuplicating(null);
     setArchiving(null);
     setAddingPeriod(null);
     setSaved(kind);
-    await queryClient.invalidateQueries({ queryKey: ['product-models'] });
-  }
-
-  const create = useMutation({
-    mutationFn: async (body: CreateProductModelRequest) => {
-      const result = await withCsrfRetry(() => createProductModel({ ...authApiOptions(), body }));
-      if (requestFailed(result)) {
-        throw productModelRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: () => onSaved('saved'),
-  });
-
-  const fromProduct = useMutation({
-    mutationFn: async (body: CreateProductModelFromProductRequest) => {
-      const result = await withCsrfRetry(() =>
-        createProductModelFromProduct({ ...authApiOptions(), body }),
-      );
-      if (requestFailed(result)) {
-        throw productModelRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: () => onSaved('saved'),
-  });
-
-  const duplicate = useMutation({
-    mutationFn: async ({ model, name }: { model: ProductModel; name: string }) => {
-      const result = await withCsrfRetry(() =>
-        duplicateProductModel({ ...authApiOptions(), path: { id: model.id }, body: { name } }),
-      );
-      if (requestFailed(result)) {
-        throw productModelRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: () => onSaved('saved'),
-  });
-
-  const addPeriod = useMutation({
-    mutationFn: async ({
-      model,
-      rule,
-      version,
-    }: {
-      model: ProductModel;
-      rule: ProductModelRuleInput;
-      version: number;
-    }) => {
-      const result = await withCsrfRetry(() =>
-        addProductModelRule({
-          ...authApiOptions(),
-          path: { id: model.id },
-          body: { ...rule, version },
-        }),
-      );
-      if (requestFailed(result)) {
-        throw productModelRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: () => onSaved('saved'),
-  });
-
-  const archive = useMutation({
-    mutationFn: async (model: ProductModel) => {
-      const result = await withCsrfRetry(() =>
-        archiveProductModel({
-          ...authApiOptions(),
-          path: { id: model.id },
-          body: { version: model.version },
-        }),
-      );
-      if (requestFailed(result)) {
-        throw productModelRequestError(result);
-      }
-      return result.data;
-    },
-    onError: refreshOnStaleState,
-    onSuccess: () => onSaved('archived'),
   });
 
   function openEditor(target: Exclude<Editor, null>) {

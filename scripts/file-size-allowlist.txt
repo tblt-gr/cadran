@@ -13,18 +13,3 @@
 481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
 343 apps/web/src/AuthenticatedApp.routes.tsx route table
 321 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility
-293 apps/web/src/features/accounts/account-form/AccountForm.tsx split pending
-274 apps/web/src/features/accounts/account-list/AccountList.tsx split pending
-299 apps/web/src/features/accounts/groups/AccountGroupsPage.tsx split pending
-278 apps/web/src/features/accounts/record-balance-form/RecordBalanceForm.tsx split pending
-302 apps/web/src/features/budget/monthly-budget/monthly-recap/totals-card/TotalsCard.tsx split pending
-263 apps/web/src/features/categories/CategoryPage.tsx split pending
-264 apps/web/src/features/dashboard/allocation-charts/AllocationCharts.tsx split pending
-271 apps/web/src/features/goals/emergency-fund/EmergencyFundPolicyForm.tsx split pending
-339 apps/web/src/features/product-models/ProductModelsPage.tsx split pending
-298 apps/web/src/features/recurrences/recurrence-form/RecurrenceForm.tsx split pending
-262 apps/web/src/features/reports/annual/ColumnPickerModal.tsx split pending
-457 apps/web/src/features/reports/multi-year/ContinuousDetailedReport.tsx split pending
-260 apps/web/src/features/transactions/transaction-filters/filter-panel/FilterPanel.tsx split pending
-264 apps/web/src/features/transactions/transaction-form/main-fields/TransactionMainFields.tsx split pending
-280 apps/web/src/features/transactions/transfer-editor/TransferForm.tsx split pending

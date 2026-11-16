@@ -188,25 +188,6 @@
 .radios input {
   accent-color: var(--accent);
 }
-.categories {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-3);
-}
-.categories ul {
-  display: flex;
-  flex-direction: column;
-  margin: var(--spacing-none);
-  padding: var(--spacing-none);
-  gap: var(--spacing-2);
-  list-style: none;
-}
-.categories li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-3);
-}
 .alert,
 .fieldError {
   color: var(--negative);

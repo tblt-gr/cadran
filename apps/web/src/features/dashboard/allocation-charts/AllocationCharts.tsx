@@ -1,15 +1,6 @@
-import { groupColor } from '@/features/accounts/group-color';
-import type {
-  NetWorthAllocationEntry,
-  NetWorthAmount,
-  NetWorthReason,
-  NetWorthShare,
-} from '@cadran/api-client';
+import type { NetWorthAllocationEntry, NetWorthAmount, NetWorthReason } from '@cadran/api-client';
 import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
-import {
-  allocationEntries,
-  type AllocationItem,
-} from '@/features/accounts/grouping-mode/allocationEntries';
+import { allocationEntries } from '@/features/accounts/grouping-mode/allocationEntries';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Treemap } from 'recharts';
@@ -17,25 +8,12 @@ import { DonutChart, type DonutSlice } from '@/components/ui/charts/donut-chart/
 import { Icon } from '@/components/ui/icon/Icon';
 import { useBoxSize } from '@/hooks/use-box-size';
 import { formatAmount } from '@/lib/decimal';
-import { formatSharePercent } from '@/lib/formatSharePercent';
-import { allocationSize } from './allocationSize';
+import { sliceFromEntry, type AllocationSlice } from './allocationSlice';
 import { sliceCaption } from './sliceCaption';
+import { TreemapTile } from './treemap-tile/TreemapTile';
 import styles from './AllocationCharts.module.css';
 
 type ChartView = 'pie' | 'treemap';
-
-interface AllocationSlice {
-  [key: string]: unknown;
-  fill: string;
-  groupId: string;
-  label: string;
-  name: string;
-  parentLabel: string | null;
-  path: string;
-  percentDisplay: string | null;
-  size: number;
-  value: NetWorthAmount | null;
-}
 
 interface AllocationChartsProps {
   allocation: NetWorthAllocationEntry[];
@@ -47,114 +25,12 @@ interface AllocationChartsProps {
   total?: NetWorthAmount | null;
 }
 
-function sliceFromEntry(
-  entry: AllocationItem<NetWorthAmount, NetWorthShare>,
-): AllocationSlice | null {
-  if (entry.share.percent === null) {
-    return null;
-  }
-
-  const size = allocationSize(entry.share.percent);
-  if (size === null) {
-    return null;
-  }
-
-  return {
-    fill: groupColor(entry.color),
-    groupId: entry.groupId,
-    label: entry.label,
-    name: entry.label,
-    parentLabel: entry.parentLabel,
-    path: entry.path,
-    percentDisplay: entry.share.percentDisplay,
-    size,
-    value: entry.value,
-  };
-}
-
-function isSlice(value: unknown): value is AllocationSlice {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'percentDisplay' in value &&
-    'label' in value &&
-    'value' in value
-  );
-}
-
 function amountLabel(amount: NetWorthAmount | null, fallback: string, locale: string): string {
   if (amount === null || amount.display === null) {
     return fallback;
   }
 
   return formatAmount(amount.display.value, amount.display.assetCode, locale);
-}
-
-function TreemapTile(node: {
-  depth: number;
-  height: number;
-  index: number;
-  name?: string;
-  payload?: unknown;
-  width: number;
-  x: number;
-  y: number;
-}) {
-  if (node.depth !== 1 || node.width <= 0 || node.height <= 0) {
-    return (
-      <rect
-        fill="var(--color-transparent)"
-        height={Math.max(0, node.height)}
-        stroke="var(--color-transparent)"
-        width={Math.max(0, node.width)}
-        x={node.x}
-        y={node.y}
-      />
-    );
-  }
-
-  const slice = isSlice(node.payload) ? node.payload : isSlice(node) ? node : null;
-  const percent =
-    slice !== null && slice.percentDisplay !== null
-      ? formatSharePercent(slice.percentDisplay, { fractionDigits: 2 })
-      : null;
-
-  return (
-    <g>
-      {slice !== null ? <title>{slice.path}</title> : null}
-      {/* The group colour tints the tile and draws its top edge; the label stays in the text ramp,
-          so a saturated group never outshouts the wealth curve and every label keeps AA. */}
-      <rect
-        className={styles.tile}
-        fill={groupColor(slice?.fill)}
-        height={node.height}
-        width={node.width}
-        x={node.x}
-        y={node.y}
-      />
-      <line
-        className={styles.tileEdge}
-        stroke={groupColor(slice?.fill)}
-        x1={node.x}
-        x2={node.x + node.width}
-        y1={node.y + 1}
-        y2={node.y + 1}
-      />
-      {node.width > 48 && node.height > 24 ? (
-        // A nested viewport clips the label to its own tile: tiles are translucent, so a long
-        // label would otherwise show through its neighbour.
-        <svg height={node.height} overflow="hidden" width={node.width} x={node.x} y={node.y}>
-          <text fill="var(--text-primary)" className={styles.tileLabel} x={8} y={18}>
-            {node.name}
-            {slice?.parentLabel ? (
-              <tspan className={styles.tileParent}>{` (${slice.parentLabel})`}</tspan>
-            ) : null}
-            {percent ? ` · ${percent}` : ''}
-          </text>
-        </svg>
-      ) : null}
-    </g>
-  );
 }
 
 /**

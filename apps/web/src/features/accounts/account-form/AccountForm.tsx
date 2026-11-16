@@ -20,14 +20,14 @@ import {
   emptyAccountFormValues,
   type AccountFormValues,
 } from './accountFormValues';
-import { type AccountOrigin, originProductCode, originProductModelId } from './accountOrigin';
+import type { AccountOrigin } from './accountOrigin';
+import { buildAccountRequest } from './buildAccountRequest';
 import { IdentityFields } from './identity-fields/IdentityFields';
 import { InclusionFieldset } from './inclusion-fieldset/InclusionFieldset';
 import { LifecycleFields } from './lifecycle-fields/LifecycleFields';
 import { PrimaryAccountField } from './primary-account-field/PrimaryAccountField';
 import { useAssetOptions } from './useAssetOptions';
-import { POSITION_KINDS } from './positionKinds';
-import { productFeedsValuationMode } from './valuationModes';
+import { accountFormValidity } from './accountFormValidity';
 import { GroupingFields } from './grouping-fields/GroupingFields';
 import { ValuationFields } from './valuation-fields/ValuationFields';
 import styles from './AccountForm.module.css';
@@ -81,24 +81,22 @@ export function AccountForm({
 
   const assets = useAssetOptions(assetSelection);
   const today = todayInBrowser();
-  const cleanLabel = label.trim();
-  const cleanInstitution = institution.trim();
-  const identifier = maskedIdentifier.trim().toUpperCase();
-  const labelInvalid = cleanLabel.length < 1 || [...cleanLabel].length > 80;
-  const institutionInvalid = [...cleanInstitution].length > 80;
-  const identifierInvalid = identifier !== '' && !/^[A-Z0-9]{2,8}$/.test(identifier);
-  // The denomination is fixed at creation, so an unavailable reference blocks
-  // the form instead of letting a default currency through.
-  const assetInvalid = !account && assets.selected === '';
-  const openedInvalid = openedOn === '' || openedOn > today;
-  // The backend owns the final ruling; refusing here keeps the user from losing
-  // a filled form to a rejection they can see coming.
-  const closedInvalid =
-    closedOn !== '' && ((openedOn !== '' && closedOn < openedOn) || closedOn > today);
-  const valuationInvalid =
-    (valuationMode === 'PORTFOLIO' && !POSITION_KINDS.includes(kind)) ||
-    !productFeedsValuationMode(origin, valuationMode);
-  const groupingInvalid = includeInNetWorth && primaryGroupId === '';
+  const validity = accountFormValidity({
+    label,
+    institution,
+    maskedIdentifier,
+    kind,
+    valuationMode,
+    origin,
+    // The denomination is fixed at creation, so an unavailable reference blocks
+    // the form instead of letting a default currency through.
+    assetMissing: !account && assets.selected === '',
+    openedOn,
+    closedOn,
+    includeInNetWorth,
+    primaryGroupId,
+    today,
+  });
   const primaryEligible =
     kind === 'CURRENT' &&
     valuationMode === 'TRANSACTIONS' &&
@@ -122,52 +120,12 @@ export function AccountForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (
-      labelInvalid ||
-      institutionInvalid ||
-      identifierInvalid ||
-      assetInvalid ||
-      openedInvalid ||
-      closedInvalid ||
-      valuationInvalid ||
-      groupingInvalid
-    ) {
+    if (validity.anyInvalid) {
       setShowErrors(true);
       return;
     }
 
-    const common = {
-      label: cleanLabel,
-      kind,
-      // Only the reference travels. Ceilings, rates and methods stay on the
-      // product or the template, read on the business date they are needed.
-      productCode: originProductCode(origin) ?? account?.productCode ?? null,
-      productModelId: originProductModelId(origin) ?? account?.productModelId ?? null,
-      institution: cleanInstitution === '' ? null : cleanInstitution,
-      maskedIdentifier: identifier === '' ? null : identifier,
-      valuationMode,
-      liquidityLevel,
-      includeInNetWorth,
-      includeInEmergencyFund: includeInNetWorth && includeInEmergencyFund,
-      openedOn,
-      closedOn: closedOn === '' ? null : closedOn,
-    };
-
-    const grouping = {
-      primaryGroupId: primaryGroupId === '' ? null : primaryGroupId,
-    };
-
-    onSubmit(
-      account
-        ? {
-            ...common,
-            ...grouping,
-            version: account.version,
-            isPrimary: primaryEligible && isPrimary,
-          }
-        : { ...common, ...grouping, assetCode: assets.selected },
-      values,
-    );
+    onSubmit(buildAccountRequest({ account, origin, values, isPrimary, primaryEligible }), values);
   }
 
   const [advancedOpen, setAdvancedOpen] = useState(
@@ -185,11 +143,11 @@ export function AccountForm({
       <FormGrid className={styles.fields}>
         <IdentityFields
           account={account}
-          assetInvalid={showErrors && assetInvalid}
+          assetInvalid={showErrors && validity.assetInvalid}
           assets={assets}
           kind={kind}
           label={label}
-          labelInvalid={showErrors && labelInvalid}
+          labelInvalid={showErrors && validity.labelInvalid}
           onAssetChange={setAssetSelection}
           onKindChange={setKind}
           onLabelChange={setLabel}
@@ -197,7 +155,7 @@ export function AccountForm({
         />
 
         <ValuationFields
-          invalid={showErrors && valuationInvalid}
+          invalid={showErrors && validity.valuationInvalid}
           kind={kind}
           liquidityLevel={liquidityLevel}
           onLiquidityLevelChange={setLiquidityLevel}
@@ -208,25 +166,22 @@ export function AccountForm({
 
         <LifecycleFields
           closedOn={closedOn}
-          closedOnInvalid={showErrors && closedInvalid}
+          closedOnInvalid={showErrors && validity.closedInvalid}
           onClosedOnChange={setClosedOn}
           onOpenedOnChange={setOpenedOn}
           openedOn={openedOn}
-          openedOnInvalid={showErrors && openedInvalid}
+          openedOnInvalid={showErrors && validity.openedInvalid}
           today={today}
         />
         <FormSection
           title={t('transactions.form.advanced')}
-          open={
-            advancedOpen ||
-            (showErrors && (institutionInvalid || identifierInvalid || closedInvalid))
-          }
+          open={advancedOpen || (showErrors && validity.advancedInvalid)}
           onToggle={setAdvancedOpen}
         >
           <AccountDescriptiveFields
-            identifierInvalid={showErrors && identifierInvalid}
+            identifierInvalid={showErrors && validity.identifierInvalid}
             institution={institution}
-            institutionInvalid={showErrors && institutionInvalid}
+            institutionInvalid={showErrors && validity.institutionInvalid}
             maskedIdentifier={maskedIdentifier}
             onInstitutionChange={setInstitution}
             onMaskedIdentifierChange={setMaskedIdentifier}
@@ -234,11 +189,11 @@ export function AccountForm({
           <LifecycleFields
             advanced
             closedOn={closedOn}
-            closedOnInvalid={showErrors && closedInvalid}
+            closedOnInvalid={showErrors && validity.closedInvalid}
             onClosedOnChange={setClosedOn}
             onOpenedOnChange={setOpenedOn}
             openedOn={openedOn}
-            openedOnInvalid={showErrors && openedInvalid}
+            openedOnInvalid={showErrors && validity.openedInvalid}
             today={today}
           />
         </FormSection>
@@ -254,7 +209,7 @@ export function AccountForm({
 
       <GroupingFields
         includeInNetWorth={includeInNetWorth}
-        invalid={showErrors && groupingInvalid}
+        invalid={showErrors && validity.groupingInvalid}
         onPrimaryChange={setPrimaryGroupId}
         primaryGroupId={primaryGroupId}
         share={account?.share}

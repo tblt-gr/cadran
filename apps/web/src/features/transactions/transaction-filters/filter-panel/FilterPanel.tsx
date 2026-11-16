@@ -1,44 +1,19 @@
-import type {
-  Account,
-  TransactionNature,
-  TransactionSource,
-  TransactionState,
-} from '@cadran/api-client';
+import type { Account } from '@cadran/api-client';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon } from '@/components/ui/icon/Icon';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { AmountRangeFilter } from '@/features/transactions/transaction-filters/amount-range-filter/AmountRangeFilter';
 import { CategoryCheckboxTree } from '@/features/transactions/transaction-filters/category-checkbox-tree/CategoryCheckboxTree';
 import { CheckboxList } from '@/features/transactions/transaction-filters/checkbox-list/CheckboxList';
 import { DirectionFilter } from '@/features/transactions/transaction-filters/direction-filter/DirectionFilter';
 import { sectionCounts } from '@/features/transactions/transaction-filters/facet-count/optionCount';
-import type {
-  TransactionAxis,
-  TransactionFilterState,
-} from '@/features/transactions/transaction-filters/filterState';
+import type { TransactionFilterState } from '@/features/transactions/transaction-filters/filterState';
 import { PeriodFilter } from '@/features/transactions/transaction-filters/period-filter/PeriodFilter';
 import type { TransactionFacetsState } from '@/features/transactions/transaction-filters/useTransactionFacets';
+import { AXES, NATURES, SOURCES, STATES } from './filterPanelOptions';
+import { FilterPanelHeading } from './filter-panel-heading/FilterPanelHeading';
 import styles from './FilterPanel.module.css';
 
-const STATES: TransactionState[] = ['PENDING', 'BOOKED', 'VOIDED', 'REJECTED'];
-const NATURES: TransactionNature[] = [
-  'INCOME',
-  'EXPENSE',
-  'TRANSFER',
-  'REFUND',
-  'FEE',
-  'ADJUSTMENT',
-];
-const AXES: TransactionAxis[] = [
-  'DISCRETIONARY',
-  'ESSENTIAL',
-  'FIXED',
-  'PERSONAL',
-  'PROFESSIONAL',
-  'VARIABLE',
-];
-const SOURCES: TransactionSource[] = ['MANUAL', 'IMPORT', 'PROVIDER'];
 /** Accounts listed before `Afficher plus`. */
 const ACCOUNT_LIMIT = 6;
 
@@ -115,22 +90,12 @@ export function FilterPanel({
 
   return (
     <div className={styles.panel}>
-      <div className={styles.heading}>
-        <h2 id={titleId}>{t('transactions.filters.panelTitle')}</h2>
-        {onReset && activeCount > 0 ? (
-          <button
-            aria-label={t('transactions.filters.reset')}
-            className="icon-button"
-            disabled={disabled}
-            onClick={onReset}
-            title={t('transactions.filters.reset')}
-            type="button"
-          >
-            <Icon name="delete" size={16} />
-          </button>
-        ) : null}
-        {actions}
-      </div>
+      <FilterPanelHeading
+        actions={actions}
+        disabled={disabled}
+        onReset={activeCount > 0 ? onReset : undefined}
+        titleId={titleId}
+      />
 
       <fieldset className={styles.sections} disabled={disabled}>
         <legend className="sr-only">{t('transactions.filters.panelTitle')}</legend>
