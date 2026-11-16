@@ -1,19 +1,12 @@
 import type { Account, AccountOverviewRow } from '@cadran/api-client';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
-import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { AccountValuationCell } from '@/features/accounts/account-valuation-cell/AccountValuationCell';
 import { useProductOptions } from '@/features/accounts/account-wizard/useProductOptions';
 import { useTemplateOptions } from '@/features/accounts/account-wizard/useTemplateOptions';
-import {
-  accountActionHref,
-  accountMenuItems,
-  INSTRUMENTS_HREF,
-} from '@/features/accounts/account-actions-menu/accountMenuItems';
-import { navigateFromPage } from '@/hooks/use-client-navigation';
-import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
+import { AccountMoveButtons } from './account-move-buttons/AccountMoveButtons';
+import { AccountRowMenu } from './account-row-menu/AccountRowMenu';
 import { depositCeilingOf } from '@/lib/depositCeiling';
 import { AccountNameCell } from '@/features/accounts/account-list/account-name-cell/AccountNameCell';
 import styles from './AccountList.module.css';
@@ -181,85 +174,25 @@ export function AccountList({
                       <td data-actions={pinned} data-label={t('accounts.list.actions')}>
                         <div className={styles.rowActions}>
                           {reordering ? (
-                            <>
-                              <button
-                                aria-label={t('accounts.overview.moveUp', { label: account.label })}
-                                className={`icon-ghost ${styles.moveButton}`}
-                                data-move={`${account.id}:up`}
-                                disabled={moveDisabled || !canMoveUp}
-                                onClick={() => move(account, 'up', previous!.id)}
-                                title={t('accounts.overview.moveUp', { label: account.label })}
-                                type="button"
-                              >
-                                <Icon name="arrow-up" />
-                              </button>
-                              <button
-                                aria-label={t('accounts.overview.moveDown', {
-                                  label: account.label,
-                                })}
-                                className={`icon-ghost ${styles.moveButton}`}
-                                data-move={`${account.id}:down`}
-                                disabled={moveDisabled || !canMoveDown}
-                                onClick={() =>
-                                  move(account, 'down', sameGroup(after) ? after!.id : null)
-                                }
-                                title={t('accounts.overview.moveDown', { label: account.label })}
-                                type="button"
-                              >
-                                <Icon name="arrow-down" />
-                              </button>
-                            </>
+                            <AccountMoveButtons
+                              accountId={account.id}
+                              canMoveDown={canMoveDown}
+                              canMoveUp={canMoveUp}
+                              disabled={moveDisabled}
+                              label={account.label}
+                              onMoveDown={() =>
+                                move(account, 'down', sameGroup(after) ? after!.id : null)
+                              }
+                              onMoveUp={() => move(account, 'up', previous!.id)}
+                            />
                           ) : null}
-                          <ActionMenu
-                            items={accountMenuItems({
-                              account,
-                              handlers: {
-                                onAddOperation: () =>
-                                  navigateFromPage(
-                                    accountActionHref(
-                                      account,
-                                      valuedByPortfolio(account) ? 'operation' : 'transaction',
-                                    ),
-                                  ),
-                                onAddTransfer: () =>
-                                  navigateFromPage(accountActionHref(account, 'transfer')),
-                                onArchive: () => onArchive(account),
-                                onEdit: () => onEdit(account),
-                                onInstruments: () => navigateFromPage(INSTRUMENTS_HREF),
-                                onReconcile: () => onReconcile(account),
-                                onRecordBalance: () => onRecordBalance(account),
-                                onRecordValuation: () =>
-                                  navigateFromPage(accountActionHref(account, 'valuation')),
-                                onRules: () => onRules(account),
-                              },
-                              names: {
-                                archive: t('accounts.list.archiveAccount', {
-                                  label: account.label,
-                                }),
-                                edit: t('accounts.list.editAccount', { label: account.label }),
-                                instruments: t('accounts.list.instrumentsOfAccount', {
-                                  label: account.label,
-                                }),
-                                reconcile: t('accounts.list.reconcileOfAccount', {
-                                  label: account.label,
-                                }),
-                                operation: t('accounts.list.operationOfAccount', {
-                                  label: account.label,
-                                }),
-                                recordBalance: t('accounts.list.recordBalanceOfAccount', {
-                                  label: account.label,
-                                }),
-                                rules: t('accounts.list.rulesOfAccount', { label: account.label }),
-                                transfer: t('accounts.list.transferOfAccount', {
-                                  label: account.label,
-                                }),
-                                valuation: t('accounts.list.valuationOfAccount', {
-                                  label: account.label,
-                                }),
-                              },
-                              t,
-                            })}
-                            label={t('accounts.list.openActions', { label: account.label })}
+                          <AccountRowMenu
+                            account={account}
+                            onArchive={onArchive}
+                            onEdit={onEdit}
+                            onReconcile={onReconcile}
+                            onRecordBalance={onRecordBalance}
+                            onRules={onRules}
                           />
                         </div>
                       </td>

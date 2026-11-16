@@ -81,13 +81,6 @@
   font-size: var(--font-size-xs);
 }
 
-.moveButton {
-  width: var(--icon-size-md);
-  height: var(--icon-size-md);
-  min-height: var(--icon-size-md);
-  color: var(--text-primary);
-}
-
 .rowActions {
   display: flex;
   align-items: center;
