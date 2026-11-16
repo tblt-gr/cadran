@@ -27,6 +27,8 @@ enum FilteredRead
     case AXES_TALLY;
     /** The splits of the matching transactions by category and axis list together. */
     case CATEGORY_AXES_TALLY;
+    /** Without any split filter: the column, category and axis tallies of every facet section, in one pass. */
+    case FACET_TALLY;
     /** The splits whose axis an earlier split of their transaction already carries, by axis. */
     case REPEATED_AXES;
     /** Each category with the transactions that have a split anywhere below it, once. */

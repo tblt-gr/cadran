@@ -28,11 +28,13 @@ final readonly class TransactionFacetTally
     }
 
     /**
+     * The groups of the tally that the account, nature, source and state filters of $scope admit.
+     *
      * @param list<array<string, mixed>> $tally
      *
-     * @return array<string, int>
+     * @return list<array<string, mixed>>
      */
-    public static function admitted(array $tally, TransactionFacetScope $scope): array
+    public static function matching(array $tally, TransactionFacetScope $scope): array
     {
         $filters = $scope->filters;
         $allowed = [
@@ -42,10 +44,8 @@ final readonly class TransactionFacetTally
             'source' => array_map(static fn (TransactionSource $source): string => $source->value, $filters->sources),
             'state' => array_map(static fn (TransactionState $state): string => $state->value, $filters->states),
         ];
-        $category = TransactionFacet::CATEGORY === $scope->facet;
-        $column = $category ? 'category_id' : (self::column($scope->facet) ?? throw new \LogicException('An axis is not a transaction column.'));
 
-        $counts = [];
+        $rows = [];
         foreach ($tally as $combination) {
             foreach ($allowed as $key => $values) {
                 // An empty list does not restrict; a filtered column keeps the combinations whose value is listed.
@@ -53,6 +53,24 @@ final readonly class TransactionFacetTally
                     continue 2;
                 }
             }
+            $rows[] = $combination;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $tally
+     *
+     * @return array<string, int>
+     */
+    public static function admitted(array $tally, TransactionFacetScope $scope): array
+    {
+        $category = TransactionFacet::CATEGORY === $scope->facet;
+        $column = $category ? 'category_id' : (self::column($scope->facet) ?? throw new \LogicException('An axis is not a transaction column.'));
+
+        $counts = [];
+        foreach (self::matching($tally, $scope) as $combination) {
             if (null === ($combination[$column] ?? null)) {
                 continue;
             }
@@ -64,5 +82,62 @@ final readonly class TransactionFacetTally
         }
 
         return $counts;
+    }
+
+    /**
+     * The axes of the splits the scope admits, spelled out axis by axis: a split carrying two
+     * axes counts for each. Several splits of a transaction may carry one axis, so this counts
+     * splits; the caller takes the repeats back.
+     *
+     * @param list<array<string, mixed>> $tally
+     *
+     * @return array<string, int>
+     */
+    public static function axes(array $tally, TransactionFacetScope $scope): array
+    {
+        $byAxis = [];
+        foreach (self::matching($tally, $scope) as $combination) {
+            if (null === ($combination['axes'] ?? null)) {
+                continue;
+            }
+            $matches = (int) TransactionRow::text($combination['split_matches'] ?? null);
+            foreach (self::axisList(TransactionRow::text($combination['axes'])) as $axis) {
+                $byAxis[$axis] = ($byAxis[$axis] ?? 0) + $matches;
+            }
+        }
+
+        return $byAxis;
+    }
+
+    /**
+     * The axes of a split, each once: the table only requires them to be among the six, so a row
+     * written around the domain may list one twice, which still makes one split carrying it.
+     *
+     * @return list<string>
+     */
+    public static function axisList(string $json): array
+    {
+        $axes = json_decode($json, true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($axes)) {
+            throw new \UnexpectedValueException('Expected a list of analytic axes.');
+        }
+
+        return array_values(array_unique(array_filter($axes, is_string(...))));
+    }
+
+    /**
+     * Whether no section is narrowed by a category, an axis or the to-categorise queue.
+     *
+     * @param list<TransactionFacetScope> $scopes
+     */
+    public static function withoutSplitFilter(array $scopes): bool
+    {
+        foreach ($scopes as $scope) {
+            if ([] !== $scope->filters->categoryIds || [] !== $scope->filters->axes || $scope->filters->categorizationNone) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
