@@ -430,6 +430,7 @@ make shell     # interactive shell in the tooling container
 make build     # SPA and API client
 make audit     # Composer and pnpm dependency audits
 make perf      # performance suite on synthetic transactions (also run weekly in CI)
+make mutation  # Infection on the financial invariants (decimals, splits, transfers; also run weekly in CI)
 make e2e       # optional Playwright suite on its own disposable stack
 ```
 

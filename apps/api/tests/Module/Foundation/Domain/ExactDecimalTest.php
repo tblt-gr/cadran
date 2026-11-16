@@ -125,6 +125,12 @@ final class ExactDecimalTest extends TestCase
         );
     }
 
+    public function testResponseDivisionNeverRoundsBelowTheUnit(): void
+    {
+        self::assertSame('125', ExactDecimal::divideForResponse('125', '1', -1));
+        self::assertSame('3', ExactDecimal::divideForResponse('10', '3', 0));
+    }
+
     /**
      * @return array{
      *   add: list<array{a: string, b: string, result: string}>,

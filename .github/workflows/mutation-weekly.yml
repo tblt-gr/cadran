@@ -1,0 +1,90 @@
+name: Mutation testing (weekly)
+
+# Runs Infection on the financial invariants (decimals, splits, transfers, refunds; scope in
+# apps/api/infection.json5) once a week. It is too slow for pull requests, so it never gates them:
+# the minMsi and minCoveredMsi thresholds only fail this scheduled run. A failed scheduled run opens
+# (or updates) the issue "Scheduled run failing: Mutation testing (weekly)" through the `report`
+# job, and the next passing run closes it. GitHub runs `schedule` only from the default branch and
+# disables it after 60 days without repository activity; a `workflow_dispatch` run re-arms it.
+
+on:
+  schedule:
+    - cron: '17 4 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mutation-weekly
+  cancel-in-progress: false
+
+jobs:
+  mutation:
+    name: Infection on the financial invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: cadran
+          POSTGRES_PASSWORD: cadran
+          POSTGRES_DB: cadran
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cadran -d cadran"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_RUNTIME_OPTIONS: '{"disable_dotenv":true}'
+      APP_SECRET: ci-backend-only
+      DATABASE_URL: postgresql://cadran:cadran@127.0.0.1:5432/cadran?serverVersion=18&charset=utf8
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.5'
+          extensions: ctype, iconv, pdo_pgsql, bcmath
+          coverage: pcov
+          tools: composer:2.9.8
+      - name: Install Composer dependencies
+        run: composer install --working-dir=apps/api --no-interaction --no-progress --prefer-dist --no-scripts
+      - name: Prepare the PHPUnit database
+        run: |
+          php apps/api/bin/console doctrine:database:create --env=test --if-not-exists --no-interaction
+          php apps/api/bin/console doctrine:migrations:migrate --env=test --no-interaction --allow-no-migration
+      - name: Infection
+        working-directory: apps/api
+        run: php vendor/bin/infection --threads=1 --no-interaction --no-progress
+      - name: Upload the HTML report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: infection-report
+          path: apps/api/var/infection/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  report:
+    name: Report the scheduled result
+    needs: [mutation]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Open, update or close the failure issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RESULT: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}
+          FAILED_JOBS: ${{ needs.mutation.result != 'success' && 'mutation' || '' }}
+        run: sh scripts/ci/report-scheduled-run.sh "Mutation testing (weekly)" "$([ "$RESULT" = true ] && echo failure || echo success)"
