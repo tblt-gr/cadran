@@ -1,10 +1,12 @@
 // Infrastructure tests for scripts/install-cron.sh and `backup.sh health --strict` (OPS-006), and
-// scripts/ci/report-scheduled-run.sh (OPS-009), and the migration check of scripts/doctor.sh (OPS-010).
+// scripts/ci/report-scheduled-run.sh (OPS-009), the migration check of scripts/doctor.sh (OPS-010),
+// and the disposable restore drill stack (OPS-012).
 // No Docker, no real crontab: a fake `crontab` on PATH stores the table in a file.
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import {
   copyFileSync,
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -330,6 +332,192 @@ esac
   assert.equal(none.status, 1);
   assert.deepEqual(none.calls, []);
   assert.match(none.log, new RegExp(`${stamp.source}migrations,backup\\n$`));
+
+  // OPS-012: the backup scripts follow CADRAN_STACK and CADRAN_SECRETS_DIR. A stubbed `docker` logs
+  // each command line and the stack environment it was given; it answers the few calls the restore
+  // reads (public recipient, swap result).
+  const drillBin = join(base, 'drill-bin');
+  const drillLog = join(base, 'drill-docker.log');
+  const drillEnvLog = join(base, 'drill-docker-env.log');
+  mkdirSync(drillBin);
+  writeFileSync(
+    join(drillBin, 'docker'),
+    `#!/bin/sh
+printf '%s\\n' "$*" >> "${drillLog}"
+printf '%s|%s|%s\\n' "$CADRAN_STACK" "$CADRAN_SECRETS_DIR" "$CADRAN_HTTPS_PORT" >> "${drillEnvLog}"
+case "$*" in
+  *age-keygen*) echo age1drillrecipient ;;
+  *"cadran_backup:local swap") printf 'previous=cadran_previous_20260101000000\\nfailed=cadran_failed_20260101000000\\n' ;;
+  *"cadran_backup:local list-previous") echo cadran_previous_20260101000000 ;;
+esac
+exit 0
+`,
+    { mode: 0o755 },
+  );
+  const drillPath = `${drillBin}:${bin}:${process.env.PATH}`;
+  const backupRepo = makeRepo('drill-repo');
+  copyFileSync(join(scripts, 'restore-drill.sh'), join(backupRepo, 'scripts', 'restore-drill.sh'));
+  copyFileSync(join(scripts, 'init-local.sh'), join(backupRepo, 'scripts', 'init-local.sh'));
+  copyFileSync(join(scripts, 'doctor.sh'), join(backupRepo, 'scripts', 'doctor.sh'));
+  writeFileSync(join(backupRepo, '.env.example'), 'CADRAN_HTTPS_PORT=8443\n');
+  mkdirSync(join(backupRepo, 'var', 'docker-secrets'), { recursive: true });
+  for (const name of ['db_password', 'backup_recipient']) {
+    writeFileSync(join(backupRepo, 'var', 'docker-secrets', name), 'x\n');
+  }
+  mkdirSync(join(backupRepo, 'apps', 'api', 'migrations'), { recursive: true });
+  writeFileSync(join(backupRepo, 'apps', 'api', 'migrations', 'Version20260101000000.php'), '');
+  const backupDir = join(base, 'drill-backups-dir');
+  mkdirSync(backupDir, { mode: 0o700 });
+  const dumpName = 'cadran-20260101-000000-manual.dump.age';
+  for (const suffix of ['', '.sha256']) writeFileSync(join(backupDir, dumpName + suffix), 'x');
+  writeFileSync(join(backupDir, 'cadran-20260101-000000-manual.manifest.json'), '{}');
+  const identityFile = join(base, 'identity.txt');
+  writeFileSync(identityFile, 'AGE-SECRET-KEY-TEST\n', { mode: 0o600 });
+  const drillEnv = { ...process.env, PATH: drillPath };
+  delete drillEnv.CADRAN_STACK;
+  delete drillEnv.CADRAN_SECRETS_DIR;
+  delete drillEnv.CADRAN_HTTPS_PORT;
+  const sh = (script, args, extra = {}, input = undefined) => {
+    writeFileSync(drillLog, '');
+    writeFileSync(drillEnvLog, '');
+    const out = spawnSync('sh', [join(backupRepo, 'scripts', script), ...args], {
+      encoding: 'utf8',
+      env: {
+        ...drillEnv,
+        CADRAN_BACKUP_DIR: backupDir,
+        FILE: join(backupDir, dumpName),
+        IDENTITY: identityFile,
+        CONFIRM: 'restore-cadran',
+        ...extra,
+      },
+      input,
+    });
+    const calls = readFileSync(drillLog, 'utf8').split('\n').filter(Boolean);
+    return { ...out, calls, envs: readFileSync(drillEnvLog, 'utf8').split('\n').filter(Boolean) };
+  };
+  const owner = `${process.getuid()}:${process.getgid()}`;
+  const hardened = `--rm --init --name NAME --read-only --tmpfs /tmp --cap-drop ALL --security-opt no-new-privileges --user ${owner}`;
+  const bind = (source, target) => `--mount type=bind,source=${source},target=${target},readonly`;
+  const secrets = join(backupRepo, 'var', 'docker-secrets');
+
+  // Default stack: byte for byte the command lines of the personal installation.
+  const defaultName = hardened.replace('NAME', 'cadran_backup_run');
+  const personalCreate = sh('backup.sh', ['create'], { LABEL: 'manual' });
+  assert.equal(personalCreate.status, 0, personalCreate.stderr);
+  assert.deepEqual(personalCreate.calls, [
+    `run ${defaultName} --network cadran_internal --env CADRAN_APP_VERSION=unknown --env CADRAN_DB_NAME=cadran ` +
+      `${bind(join(secrets, 'db_password'), '/run/db_password')} ` +
+      `${bind(join(secrets, 'backup_recipient'), '/run/backup_recipient')} ` +
+      `--mount type=bind,source=${backupDir},target=/backups cadran_backup:local create manual`,
+  ]);
+  const personalVerify = sh('backup.sh', ['verify']);
+  assert.deepEqual(personalVerify.calls, [
+    `run ${defaultName} --network cadran_internal --env CADRAN_DB_NAME=cadran --env CADRAN_LATEST_SCHEMA=DoctrineMigrations\\Version20260101000000 ` +
+      `${bind(join(secrets, 'db_password'), '/run/db_password')} ` +
+      `${bind(join(backupDir, dumpName), '/restore/backup.dump.age')} ` +
+      `${bind(join(backupDir, `${dumpName}.sha256`), '/restore/backup.dump.age.sha256')} ` +
+      `${bind(join(backupDir, 'cadran-20260101-000000-manual.manifest.json'), '/restore/backup.manifest.json')} ` +
+      `${bind(identityFile, '/run/backup_identity')} cadran_backup:local verify`,
+  ]);
+  const personalRestore = sh('backup.sh', ['restore'], { CADRAN_RESTORE_SKIP_APP: '1' });
+  assert.equal(personalRestore.status, 0, personalRestore.stderr);
+  assert.ok(personalRestore.calls.every((call) => call.includes('--network cadran_internal')));
+  assert.equal(personalRestore.calls.length, 4, 'verify, pre-restore backup, restore-new, swap');
+  const listPrevious = sh('backup.sh', ['restore-cleanup'], { CADRAN_BACKUP_ALLOW_TEST_STDIN: '1' }, 'no\n');
+  assert.equal(
+    listPrevious.calls[0],
+    `run ${defaultName} --network cadran_internal --env CADRAN_DB_NAME=cadran ` +
+      `${bind(join(secrets, 'db_password'), '/run/db_password')} cadran_backup:local list-previous`,
+  );
+
+  // A disposable stack: its own network, container name and secrets, nothing of the personal stack.
+  const drillSecrets = join(backupRepo, 'var', 'drill-secrets');
+  mkdirSync(drillSecrets, { recursive: true });
+  writeFileSync(join(drillSecrets, 'db_password'), 'x\n');
+  writeFileSync(join(drillSecrets, 'backup_recipient'), 'age1drillrecipient\n');
+  const drillStack = { CADRAN_STACK: 'cadran_drill', CADRAN_SECRETS_DIR: './var/drill-secrets' };
+  const drillRestore = sh('backup.sh', ['restore'], { ...drillStack, CADRAN_RESTORE_SKIP_APP: '1' });
+  assert.equal(drillRestore.status, 0, drillRestore.stderr);
+  assert.equal(drillRestore.calls.length, 4);
+  for (const call of drillRestore.calls) {
+    assert.ok(call.startsWith(`run ${hardened.replace('NAME', 'cadran_drill_backup_run')} --network cadran_drill_internal `), call);
+    assert.ok(call.includes(bind(join(drillSecrets, 'db_password'), '/run/db_password')), call);
+    assert.ok(!/cadran_(?!drill|backup:local)/.test(call), call);
+  }
+  assert.ok(
+    drillRestore.calls.some((call) => call.includes(bind(join(drillSecrets, 'backup_recipient'), '/run/backup_recipient'))),
+  );
+  const drillCompose = sh('backup.sh', ['restore'], drillStack);
+  assert.ok(
+    drillCompose.calls.some((call) => call.startsWith('compose --project-name cadran_drill ') && call.includes('--env-file ') && call.endsWith('.env.example stop app')),
+    drillCompose.calls.join('\n'),
+  );
+
+  // An invalid stack name exits 2 before any Docker call.
+  for (const stack of ['x', 'cadran_', 'cadran-drill', 'cadran_Drill', 'cadran_a_b', 'cadran_a\ncadran']) {
+    const bad = sh('backup.sh', ['create'], { CADRAN_STACK: stack });
+    assert.equal(bad.status, 2, JSON.stringify(stack));
+    assert.deepEqual(bad.calls, []);
+  }
+
+  // make restore-drill: the whole sequence stays on the cadran_drill project, port 8445.
+  const drill = sh('restore-drill.sh', ['run']);
+  assert.match(drill.stdout, /https:\/\/localhost:8445/);
+  assert.equal(statSync(drillSecrets).mode & 0o777, 0o700);
+  assert.equal(
+    readFileSync(join(drillSecrets, 'backup_recipient'), 'utf8'),
+    'age1drillrecipient\n',
+    'the recipient comes from the identity, not from the personal secrets',
+  );
+  assert.equal(statSync(join(drillSecrets, 'backup_recipient')).mode & 0o777, 0o600);
+  assert.equal(drill.calls.filter((call) => call.includes('age-keygen')).length, 1);
+  for (const call of drill.calls) {
+    assert.ok(!/cadran_(internal|db|app|edge|caddy|backup_run)/.test(call), call);
+    assert.ok(!/cadran_(?!drill|backup:local|previous|failed)/.test(call), call);
+    assert.ok(!call.includes('var/docker-secrets'), call);
+  }
+  const composeCalls = drill.calls.filter((call) => call.startsWith('compose ') && call !== 'compose version');
+  assert.ok(composeCalls.length >= 4);
+  for (const call of composeCalls) assert.match(call, /^compose --project-name cadran_drill .*--env-file .*\.env\.example /);
+  assert.ok(drill.calls.some((call) => / run --rm --no-deps app php apps\/api\/bin\/console doctrine:migrations:migrate/.test(call)));
+  assert.ok(drill.calls.some((call) => call.endsWith(' up --detach --wait app')));
+  drill.calls.forEach((call, index) => {
+    if (call.startsWith('compose --project-name')) {
+      const [stack, secretsDir, port] = drill.envs[index].split('|');
+      assert.equal(`${stack}|${secretsDir}`, 'cadran_drill|./var/drill-secrets', call);
+      if (/ (build|up --detach --wait app|up --detach --wait db) /.test(` ${call} `) || call.endsWith(' build app db')) {
+        assert.equal(port, '8445', call);
+      }
+    }
+  });
+  assert.ok(drill.stdout.includes('OK app health'), 'doctor result of the drill stack');
+
+  // Refusals happen before any Docker call.
+  const refusals = [
+    { CADRAN_STACK: 'cadran' },
+    { CADRAN_HTTPS_PORT: '8443' },
+    { CADRAN_DRILL_STACK: 'cadran' },
+    { CADRAN_DRILL_STACK: 'other' },
+    { CADRAN_DRILL_PORT: '8443' },
+  ];
+  for (const extra of refusals) {
+    const refused = sh('restore-drill.sh', ['run'], extra);
+    assert.equal(refused.status, 1, JSON.stringify(extra));
+    assert.deepEqual(refused.calls, []);
+  }
+
+  // Cleanup: nothing without a yes; with a yes only the drill project and files go.
+  const declined = sh('restore-drill.sh', ['cleanup'], { CADRAN_BACKUP_ALLOW_TEST_STDIN: '1' }, 'no\n');
+  assert.deepEqual(declined.calls, []);
+  assert.ok(existsSync(drillSecrets));
+  const cleaned = sh('restore-drill.sh', ['cleanup'], { CADRAN_BACKUP_ALLOW_TEST_STDIN: '1' }, 'yes\n');
+  assert.equal(cleaned.status, 0, cleaned.stderr);
+  assert.equal(cleaned.calls.length, 2);
+  assert.equal(cleaned.calls[0], 'rm --force cadran_drill_backup_run');
+  assert.match(cleaned.calls[1], /^compose --project-name cadran_drill .* down --volumes --remove-orphans$/);
+  assert.ok(!existsSync(drillSecrets));
+  assert.ok(!existsSync(join(backupRepo, 'var', 'drill-backups')));
+  assert.ok(existsSync(secrets), 'the personal secrets are untouched');
 
   console.log('Operations script tests passed.');
 } finally {

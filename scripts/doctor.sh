@@ -6,7 +6,13 @@ set -u
 cd -- "$(dirname -- "$0")/.." || exit 1
 env_file=.env.example
 [ -f .env.local ] && env_file=.env.local
-compose() { docker compose --env-file "$env_file" "$@"; }
+# CADRAN_STACK points the checks at a disposable stack such as the restore drill (OPS-012).
+stack=${CADRAN_STACK:-cadran}
+case $stack in
+    cadran) compose() { docker compose --env-file "$env_file" "$@"; } ;;
+    cadran_?*) compose() { docker compose --project-name "$stack" --env-file .env.example "$@"; } ;;
+    *) printf 'doctor: CADRAN_STACK must be cadran or cadran_<suffix>\n' >&2; exit 2 ;;
+esac
 
 failed=0
 ok() { printf 'OK %s\n' "$1"; }
