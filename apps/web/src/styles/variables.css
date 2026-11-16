@@ -73,6 +73,10 @@
   --sidebar-width: 15rem;
   --sidebar-width-collapsed: 3.75rem;
   --header-height: 3.5rem;
+  /* Rows stay readable on wide screens: the page column stops here and the extra width becomes side margins. */
+  --content-max-width: 90rem;
+  /* Side padding that centres a column capped at the maximum width; percentages resolve on the element using it. */
+  --content-gutter: max(var(--spacing-8), calc((100% - var(--content-max-width)) / 2));
   --header-height-mobile: 3.5rem;
   --z-header: 20;
   --z-toast: 100;
