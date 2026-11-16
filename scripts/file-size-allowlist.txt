@@ -6,7 +6,6 @@
 303 apps/api/src/Module/Accounts/Domain/ProductModel.php entity invariants kept together
 431 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalAccountRepository.php exhaustive row mapping, one responsibility
 369 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalProductModelRepository.php exhaustive row mapping, one responsibility
-339 apps/api/src/Module/Accounts/UI/Http/ProductModelController.php split pending
 335 apps/api/src/Module/Budget/Application/Goals/ListGoalEvaluations.php split pending
 376 apps/api/src/Module/Budget/UI/Http/GoalController.php split pending
 316 apps/api/src/Module/Categories/Application/AssessCategoryImpact.php split pending
