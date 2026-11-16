@@ -57,7 +57,7 @@ export function Header({
         </div>
       </header>
       <div className={styles.titleBlock}>
-        <div className={styles.titleText}>
+        <div className={styles.titleText} data-page-title>
           {headerDate ? (
             <p className={styles.date} data-visual-mask>
               {headerDate}
@@ -68,7 +68,7 @@ export function Header({
           </h1>
           {subtitle ? <p className={styles.subtitle}>{subtitle}</p> : null}
         </div>
-        <div className={styles.pageActions} ref={setActionsSlot} />
+        <div className={styles.pageActions} data-page-actions ref={setActionsSlot} />
       </div>
     </>
   );

@@ -27,7 +27,8 @@ export interface AuditFinding {
     | 'touch-target'
     | 'primary-cta'
     | 'table-alignment'
-    | 'actions-own-line';
+    | 'actions-own-line'
+    | 'header-actions-share-line';
   /** A short description of the offending element (tag, accessible name or text, size). */
   element: string;
 }
@@ -190,6 +191,20 @@ export async function auditLayout(
         if (texts.length > 0 && !shared) {
           found.push({ rule: 'actions-own-line', element: describe(trigger) });
         }
+      }
+
+      // Below 42rem a page header puts its actions on a line under the title, never beside it.
+      const title = document.querySelector('[data-page-title]');
+      const actions = document.querySelector('[data-page-actions]');
+      if (
+        !rootSelector &&
+        window.innerWidth <= 672 &&
+        title &&
+        actions &&
+        visible(actions) &&
+        actions.getBoundingClientRect().top < title.getBoundingClientRect().bottom - 1
+      ) {
+        found.push({ rule: 'header-actions-share-line', element: describe(actions) });
       }
 
       return found as { rule: AuditFinding['rule']; element: string }[];

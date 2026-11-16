@@ -151,3 +151,20 @@
     padding: var(--spacing-4) var(--spacing-4) var(--spacing-none);
   }
 }
+
+/* Below 42rem the title keeps its line and the actions always take the next one, whatever the title
+   length, so every page header reads the same. */
+@media (max-width: 42rem) {
+  .titleBlock {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: var(--spacing-3);
+  }
+
+  .titleText,
+  .pageActions {
+    max-width: 100%;
+  }
+}
