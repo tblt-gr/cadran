@@ -29,8 +29,7 @@ CVE-2026-78409
 CVE-2026-78410
 
 # review: 2026-12-31
-# libxml2: used by PHP only to read XML the operator provides through console
-# commands (workbook migration). No web route parses untrusted XML, request
+# libxml2: used by PHP only as a bundled dependency. No web route parses untrusted XML, request
 # bodies are JSON capped at 1 MB, and the process makes no outbound internet request.
 CVE-2026-6653
 CVE-2026-74860
