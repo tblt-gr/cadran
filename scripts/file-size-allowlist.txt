@@ -6,19 +6,11 @@
 303 apps/api/src/Module/Accounts/Domain/ProductModel.php entity invariants kept together
 431 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalAccountRepository.php exhaustive row mapping, one responsibility
 369 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalProductModelRepository.php exhaustive row mapping, one responsibility
-329 apps/api/src/Module/Accounts/UI/Http/AccountController.php split pending
-339 apps/api/src/Module/Accounts/UI/Http/ProductModelController.php split pending
-335 apps/api/src/Module/Budget/Application/Goals/ListGoalEvaluations.php split pending
-376 apps/api/src/Module/Budget/UI/Http/GoalController.php split pending
-316 apps/api/src/Module/Categories/Application/AssessCategoryImpact.php split pending
 324 apps/api/src/Module/Categories/Infrastructure/Persistence/DbalCategoryRepository.php exhaustive row mapping, one responsibility
 465 apps/api/src/Module/Demo/Application/SeedDemoData.php demo fixture data, one responsibility
-338 apps/api/src/Module/Identity/UI/Console/SetupIdentityCommand.php split pending
-370 apps/api/src/Module/Portfolio/Application/HoldingsAggregator.php split pending
 308 apps/api/src/Module/Portfolio/Infrastructure/Persistence/DbalPortfolioOperationRepository.php exhaustive row mapping, one responsibility
 380 apps/api/src/Module/Transactions/Domain/Transaction.php entity invariants kept together
 481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
-337 apps/api/src/Module/Transactions/UI/Http/RecurrenceController.php split pending
 343 apps/web/src/AuthenticatedApp.routes.tsx route table
 321 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility
 293 apps/web/src/features/accounts/account-form/AccountForm.tsx split pending

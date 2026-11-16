@@ -95,7 +95,7 @@ final class HoldingsAggregator
             $items = array_map(static fn (HoldingRow $item): HoldingRow => $item->withoutAmounts(), $items);
         }
         $figures = HoldingsAccountSummaries::figures($accounts, $mixed);
-        $totals = self::totals($items, $unsplit, $figures, $cash, $cashMissing, $mixed, [] === $accounts);
+        $totals = HoldingsTotals::of($items, $unsplit, $figures, $cash, $cashMissing, $mixed, [] === $accounts);
         $items = self::share($items, $totals['securitiesValue'], $mixed);
         $summaries = HoldingsAccountSummaries::withShares($figures, $totals['securitiesValue'], $mixed);
         usort($items, static fn (HoldingRow $left, HoldingRow $right): int => self::compare($left, $right, $sort));
@@ -124,7 +124,7 @@ final class HoldingsAggregator
             },
             'warnings' => $warningList, 'totals' => $totals,
             'items' => array_map(static fn (HoldingRow $item): array => $item->toArray(), $items),
-            'allocation' => self::allocation($items, $totals['securitiesValue'], $unsplit, $summaries),
+            'allocation' => HoldingsAllocation::of($items, $totals['securitiesValue'], $unsplit, $summaries),
             'unsplitAccounts' => $unsplit, 'accounts' => $summaries, 'truncated' => $truncated];
     }
 
@@ -202,60 +202,6 @@ final class HoldingsAggregator
     }
 
     /**
-     * @param list<HoldingRow>                                                                        $items
-     * @param list<array{accountId: string, label: string, reason: string, securitiesValue: ?string}> $unsplit
-     * @param list<Summary>                                                                           $figures
-     *
-     * @return array{securitiesValue: ?string, costBasis: ?string, unrealizedGain: ?string, performance: ?string, cash: ?string, totalValue: ?string, reason: ?string, knownCost: ?array<string, mixed>}
-     */
-    private static function totals(array $items, array $unsplit, array $figures, string $cash, bool $cashMissing, bool $mixed, bool $noAccount): array
-    {
-        if ($mixed || $noAccount) {
-            return ['securitiesValue' => null, 'costBasis' => null, 'unrealizedGain' => null, 'performance' => null, 'cash' => null,
-                'totalValue' => null, 'reason' => $mixed ? 'MIXED_ASSETS' : 'NO_VALUATION', 'knownCost' => null];
-        }
-        $costs = [];
-        foreach ($figures as $figure) {
-            $costs[$figure['accountId']] = $figure['costBasis'];
-        }
-        $itemsSecurities = self::sum(array_map(static fn (HoldingRow $item): ?string => $item->value, $items));
-        $unsplitSecurities = self::sum(array_map(static fn (array $account): ?string => $account['securitiesValue'], $unsplit));
-        // The frozen cost of a total-valued account is the one the accounts overview exposes; unknown stays unknown.
-        $cost = self::sum([...array_map(static fn (HoldingRow $item): ?string => $item->costBasis, $items),
-            ...array_map(static fn (array $account): ?string => $costs[$account['accountId']] ?? null, $unsplit)]);
-        $securities = null === $itemsSecurities || null === $unsplitSecurities ? null : ExactDecimal::addForResponse($itemsSecurities, $unsplitSecurities);
-        $gain = null !== $securities && null !== $cost ? ExactDecimal::subtractForResponse($securities, $cost) : null;
-        $total = null === $securities || $cashMissing ? null : ExactDecimal::addForResponse($securities, $cash);
-        $reason = match (true) {
-            null === $itemsSecurities => 'MISSING_PRICE',
-            null === $unsplitSecurities => 'NO_VALUATION',
-            null === $cost => 'UNKNOWN_LOT_COST',
-            $cashMissing => 'NO_VALUATION',
-            default => null,
-        };
-
-        $known = null;
-        if ('UNKNOWN_LOT_COST' === $reason) {
-            $entries = [];
-            foreach ($figures as $figure) {
-                if ('LINES' === $figure['detail']) {
-                    array_push($entries, ...array_map(static fn (array $line): array => ['value' => $line['value'], 'cost' => $line['costBasis']], $figure['lines']));
-                } elseif ('TOTAL' === $figure['detail']) {
-                    $entries[] = ['value' => $figure['securitiesValue'], 'cost' => $figure['costBasis']];
-                } elseif ('PARTIAL' === $figure['detail'] && null !== $figure['securitiesValue']) {
-                    // Counted in the securities total, but nothing says what it cost: one excluded block.
-                    $entries[] = ['value' => $figure['securitiesValue'], 'cost' => null];
-                }
-            }
-            $known = HoldingsKnownCost::of($entries);
-        }
-
-        return ['securitiesValue' => $securities, 'costBasis' => $cost, 'unrealizedGain' => $gain,
-            'performance' => PortfolioUnrealizedGain::performance($gain, $cost), 'cash' => $cashMissing ? null : $cash,
-            'totalValue' => $total, 'reason' => $reason, 'knownCost' => $known];
-    }
-
-    /**
      * @param list<HoldingRow> $items
      *
      * @return list<HoldingRow>
@@ -263,62 +209,6 @@ final class HoldingsAggregator
     private static function share(array $items, ?string $securities, bool $mixed): array
     {
         return array_map(static fn (HoldingRow $item): HoldingRow => $item->withShare(HoldingsShares::of($item->value, $securities, $mixed)), $items);
-    }
-
-    /**
-     * @param list<HoldingRow>                                                                        $items
-     * @param list<array{accountId: string, label: string, reason: string, securitiesValue: ?string}> $unsplit
-     * @param list<Summary>                                                                           $summaries
-     *
-     * @return array{byInstrument: list<array{key: string, label: string, value: string, share: ?string}>, byAssetClass: list<array{key: string, label: string, value: string, share: ?string}>, byRegion: list<array{key: string, label: string, value: string, share: ?string}>, byAccount: list<array{key: string, label: string, value: string, share: ?string}>}
-     */
-    private static function allocation(array $items, ?string $securities, array $unsplit, array $summaries): array
-    {
-        if (null === $securities) {
-            return ['byInstrument' => [], 'byAssetClass' => [], 'byRegion' => [], 'byAccount' => []];
-        }
-        $ordered = $items;
-        usort($ordered, static fn (HoldingRow $left, HoldingRow $right): int => self::compare($left, $right, 'VALUE_DESC'));
-        $instrument = [];
-        foreach ($ordered as $item) {
-            $instrument[] = ['key' => $item->instrument['id'], 'label' => $item->instrument['name'], 'value' => $item->value ?? throw new \LogicException('A known securities value has known lines.')];
-        }
-        $unsplitSlice = [];
-        $unsplitSecurities = self::sum(array_map(static fn (array $account): ?string => $account['securitiesValue'], $unsplit));
-        if (null !== $unsplitSecurities && ExactDecimal::compareForResponse($unsplitSecurities, '0') > 0) {
-            $unsplitSlice = [['key' => 'UNSPLIT', 'label' => 'Comptes valorisés en total', 'value' => $unsplitSecurities]];
-        }
-        $byAccount = [];
-        foreach ($summaries as $summary) {
-            if (null !== $summary['securitiesValue'] && ExactDecimal::compareForResponse($summary['securitiesValue'], '0') > 0) {
-                $byAccount[] = ['key' => $summary['accountId'], 'label' => $summary['label'], 'value' => $summary['securitiesValue']];
-            }
-        }
-
-        return ['byInstrument' => HoldingsShares::slices([...$instrument, ...$unsplitSlice], $securities),
-            'byAssetClass' => HoldingsShares::slices([...self::group($ordered, static fn (HoldingRow $item): ?string => $item->assetClass), ...$unsplitSlice], $securities),
-            'byRegion' => HoldingsShares::slices([...self::group($ordered, static fn (HoldingRow $item): ?string => $item->region), ...$unsplitSlice], $securities),
-            'byAccount' => HoldingsShares::slices($byAccount, $securities)];
-    }
-
-    /**
-     * @param list<HoldingRow>              $items
-     * @param \Closure(HoldingRow): ?string $by
-     *
-     * @return list<array{key: string, label: string, value: string}>
-     */
-    private static function group(array $items, \Closure $by): array
-    {
-        $buckets = [];
-        foreach ($items as $item) {
-            $key = $by($item) ?? 'UNSPECIFIED';
-            $buckets[$key] = ['key' => $key, 'label' => 'UNSPECIFIED' === $key ? 'Non renseignée' : $key,
-                'value' => ExactDecimal::addForResponse($buckets[$key]['value'] ?? '0', $item->value ?? throw new \LogicException('A known securities value has known lines.'))];
-        }
-        $groups = array_values($buckets);
-        usort($groups, static fn (array $left, array $right): int => ExactDecimal::compareForResponse($right['value'], $left['value']) ?: strcmp($left['key'], $right['key']));
-
-        return $groups;
     }
 
     /** @param list<?string> $values null when one is null: a missing figure is never a silent partial sum */
@@ -335,7 +225,7 @@ final class HoldingsAggregator
         return $sum;
     }
 
-    private static function compare(HoldingRow $left, HoldingRow $right, string $sort): int
+    public static function compare(HoldingRow $left, HoldingRow $right, string $sort): int
     {
         $order = match ($sort) {
             'GAIN_DESC' => self::nullsLast($left->unrealizedGain, $right->unrealizedGain),
