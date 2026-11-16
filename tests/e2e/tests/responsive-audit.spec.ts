@@ -718,3 +718,63 @@ test('mobile navigation shows its five named icon destinations at 360 px', async
     await context.close();
   }
 });
+
+/**
+ * On a very wide screen the page column stops at the content maximum width (the
+ * `--content-max-width` token, 90 rem) and sits centred in the space right of the sidebar, so the
+ * extra width becomes equal side margins and the header title row keeps the same left edge.
+ */
+test.describe('content column on a wide screen', () => {
+  for (const path of ['/', '/accounts', '/transactions']) {
+    test(`caps and centres the column at 2560 px on ${path}`, async ({ browser }) => {
+      const context = await browser.newContext({
+        baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+        ignoreHTTPSErrors: true,
+        storageState: ownerStorageState,
+        viewport: { width: 2560, height: 1200 },
+        locale: 'fr-FR',
+        timezoneId: 'Europe/Paris',
+      });
+      try {
+        const page = await context.newPage();
+        await page.goto(path);
+        await settled(page);
+
+        const column = await page.evaluate(() => {
+          const body = document.querySelector('main')!.parentElement!;
+          const workspace = body.parentElement!.getBoundingClientRect();
+          const style = getComputedStyle(body);
+          const inner = {
+            left: body.getBoundingClientRect().left + parseFloat(style.paddingLeft),
+            right: body.getBoundingClientRect().right - parseFloat(style.paddingRight),
+          };
+          const title = document.querySelector('h1')!.getBoundingClientRect();
+          const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+          return {
+            width: inner.right - inner.left,
+            left: inner.left - workspace.left,
+            right: workspace.right - inner.right,
+            titleOffset: title.left - inner.left,
+            max: 90 * rem,
+          };
+        });
+
+        expect(column.width, 'the column stops at the maximum width').toBeLessThanOrEqual(
+          column.max + 1,
+        );
+        expect(Math.abs(column.left - column.right), 'equal side margins').toBeLessThanOrEqual(1);
+        expect(column.left, 'a real margin appears on each side').toBeGreaterThan(32);
+        expect(
+          Math.abs(column.titleOffset),
+          'the title shares the content left edge',
+        ).toBeLessThanOrEqual(1);
+        const overflow = await page.evaluate(
+          () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        );
+        expect(overflow, 'no horizontal page scroll').toBeLessThanOrEqual(0);
+      } finally {
+        await context.close();
+      }
+    });
+  }
+});
