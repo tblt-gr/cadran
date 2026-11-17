@@ -72,3 +72,8 @@
     transition-duration: var(--duration-reduced-motion);
   }
 }
+.report {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--spacing-4);
+}

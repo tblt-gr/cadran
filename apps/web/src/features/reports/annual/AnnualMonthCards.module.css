@@ -26,14 +26,14 @@
   letter-spacing: var(--letter-spacing-card);
 }
 .card h4 {
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-semibold);
 }
 .card dl {
   display: grid;
   gap: var(--spacing-2);
   margin: var(--spacing-none);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
 }
 .card dl div {
   display: flex;
@@ -92,9 +92,17 @@ button.explain:hover:not(:disabled) {
   justify-content: flex-end;
   gap: var(--spacing-2);
 }
-/* The closed month is one line: the disclosure carries its own spacing. */
-.collapsible {
+/* The closed month is one line: the card holds no padding, the disclosure carries it so that the
+   whole card, edge to edge, is the target of a click. */
+.card.collapsible {
   gap: var(--spacing-none);
+  padding: var(--spacing-none);
+}
+.collapsible details > summary {
+  padding: var(--spacing-4);
+}
+.collapsible details > div {
+  padding: var(--spacing-none) var(--spacing-4) var(--spacing-4);
 }
 /* Heading of a run of cards that has no card of its own. */
 .listHeading {
@@ -103,4 +111,29 @@ button.explain:hover:not(:disabled) {
   font-size: var(--font-size-card-title);
   font-weight: var(--font-weight-semibold);
   letter-spacing: var(--letter-spacing-card);
+}
+
+/* The cards of a list read as one: no gap, one border between two rows, and only the first and the
+   last row keep the rounded corners of the card. */
+.list {
+  gap: var(--spacing-none);
+}
+.list > li {
+  border-radius: var(--radius-none);
+}
+.list > li:not(:first-child) {
+  border-top: var(--border-none);
+}
+.list > li:first-child {
+  border-top-left-radius: var(--radius-card);
+  border-top-right-radius: var(--radius-card);
+}
+.list > li:last-child {
+  border-bottom-right-radius: var(--radius-card);
+  border-bottom-left-radius: var(--radius-card);
+}
+/* A folded figure that carries no tone of its own reads in the primary ink. */
+.plainMeta,
+.plainMeta * {
+  color: var(--text-primary);
 }

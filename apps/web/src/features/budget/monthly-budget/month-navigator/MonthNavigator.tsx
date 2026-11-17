@@ -83,7 +83,7 @@ export function MonthNavigator({
         </GhostSelect>
       </label>
 
-      <nav aria-label={t('budget.monthly.months')} className={styles.tabs}>
+      <nav aria-label={t('budget.monthly.months')} className={styles.tabs} data-no-swipe>
         {Array.from({ length: 12 }, (_, index) => {
           const monthNumber = String(index + 1).padStart(2, '0');
           const candidate = `${selectedYear}-${monthNumber}`;

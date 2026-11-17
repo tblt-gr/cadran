@@ -9,10 +9,16 @@
 }
 
 .tileLabel {
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-xs);
+  font-family: var(--font-family-sans);
+  font-size: var(--font-size-label);
 }
 
 .tileParent {
   fill: var(--text-secondary);
+}
+
+.tilePercent {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-normal);
 }

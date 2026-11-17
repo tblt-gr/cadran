@@ -12,4 +12,4 @@
 380 apps/api/src/Module/Transactions/Domain/Transaction.php entity invariants kept together
 481 apps/api/src/Module/Transactions/Infrastructure/Persistence/DbalTransactionRepository.php exhaustive row mapping, one responsibility
 343 apps/web/src/AuthenticatedApp.routes.tsx route table
-321 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility
+296 apps/web/src/components/ui/charts/curve-chart/CurveChart.tsx single chart rendering responsibility

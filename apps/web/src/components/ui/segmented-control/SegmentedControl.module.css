@@ -74,3 +74,35 @@
     transition-duration: var(--duration-reduced-motion);
   }
 }
+
+/* Quiet: no track and a small label, so the selector reads as a footnote of its chart. */
+.quiet {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  background: var(--color-transparent);
+}
+
+.quiet .segment {
+  min-height: var(--control-height-dense);
+  padding-inline: var(--spacing-2);
+  font-size: var(--font-size-xs);
+  font-family: var(--font-family-mono);
+}
+
+/* A touch screen keeps the small drawn label of a quiet selector but gets the 44 px target. */
+@media (pointer: coarse) {
+  .quiet .segment {
+    position: relative;
+    min-width: var(--touch-target-min);
+  }
+
+  .quiet .segment::after {
+    position: absolute;
+    top: 50%;
+    right: var(--spacing-none);
+    left: var(--spacing-none);
+    height: var(--touch-target-min);
+    transform: translateY(-50%);
+    content: '';
+  }
+}

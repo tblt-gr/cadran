@@ -1709,13 +1709,13 @@ describe('MonthlyBudgetPage', () => {
       true,
     );
     fireEvent.click(liquidity);
-    // The account dot is drawn for the one-line phone layout only; CSS keeps it hidden on desktop.
+    // An account row carries no colour dot: the group colour stays on its chevron.
     expect(
       screen
         .getByRole('link', { name: 'Compte courant' })
         .closest('tr')
         ?.querySelector('[data-color-dot]'),
-    ).not.toBeNull();
+    ).toBeNull();
     expect(screen.getByRole('link', { name: 'Compte courant' }).getAttribute('href')).toBe(
       `/accounts/${accountId}`,
     );
@@ -1787,7 +1787,7 @@ describe('MonthlyBudgetPage', () => {
     await loaded();
     const totals = await screen.findByRole('region', { name: 'Synthèse des flux' });
     const row = (
-      await within(totals).findByRole('button', { name: 'Expliquer : Voyages' })
+      await within(totals).findByRole('link', { name: 'Afficher les transactions de Voyages' })
     ).closest('li')!;
     expect(row.textContent).toMatch(/dont avantages :\s*12,00/);
     // The total itself is untouched.
@@ -1798,8 +1798,8 @@ describe('MonthlyBudgetPage', () => {
     await loaded();
     const plain = (
       await within(await screen.findByRole('region', { name: 'Synthèse des flux' })).findByRole(
-        'button',
-        { name: 'Expliquer : Voyages' },
+        'link',
+        { name: 'Afficher les transactions de Voyages' },
       )
     ).closest('li')!;
     expect(plain.textContent).not.toMatch(/avantages/);
@@ -2079,62 +2079,27 @@ describe('MonthlyBudgetPage', () => {
     );
   });
 
-  it('opens source transactions by label and amount for configured axes and categories', async () => {
-    api.readMonthlyRecap.mockReturnValue(
-      ok({
-        ...recap,
-        totals: {
-          ...recap.totals,
-          expensesByAxis: [
-            {
-              ...recap.totals.expensesByAxis[0],
-              sourceTransactionIds: ['axis-transaction'],
-              sourceTransactions: [
-                {
-                  id: 'axis-transaction',
-                  bookedOn: '2026-03-01',
-                  label: 'Loyer',
-                  amount: { value: '-400.00', assetCode: 'EUR' },
-                  state: 'BOOKED',
-                },
-              ],
-            },
-          ],
-          categories: [
-            {
-              ...recap.totals.categories[0],
-              sourceTransactionIds: ['category-transaction'],
-              sourceTransactions: [
-                {
-                  id: 'category-transaction',
-                  bookedOn: '2026-03-02',
-                  label: 'Courses',
-                  amount: { value: '-42.50', assetCode: 'EUR' },
-                  state: 'BOOKED',
-                },
-              ],
-            },
-          ],
-        },
-      }),
-    );
+  it('sends an axis and a category of the flows summary to the filtered transactions', async () => {
     renderPage();
 
     await loaded();
     await waitFor(() => expect(screen.queryByTestId('monthly-recap-skeleton')).toBeNull());
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Expliquer : Essentiel' }, { timeout: 5000 }),
+    const axis = await screen.findByRole(
+      'link',
+      { name: 'Afficher les transactions de Essentiel' },
+      { timeout: 5000 },
     );
-    const axisDialog = await screen.findByRole('dialog', { name: 'Expliquer : Essentiel' });
-    expect(within(axisDialog).getByText('Loyer')).toBeTruthy();
-    expect(axisDialog.textContent).toContain('-400,00 €');
-    expect(within(axisDialog).queryByText('axis-transaction')).toBeNull();
-    fireEvent.click(within(axisDialog).getByRole('button', { name: 'Fermer' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Expliquer : Voyages' }));
-    const categoryDialog = await screen.findByRole('dialog', { name: 'Expliquer : Voyages' });
-    expect(within(categoryDialog).getByText('Courses')).toBeTruthy();
-    expect(categoryDialog.textContent).toContain('-42,50 €');
-    expect(within(categoryDialog).queryByText('category-transaction')).toBeNull();
+    const axisUrl = new URL(axis.getAttribute('href')!, 'https://cadran.test');
+    expect(axisUrl.pathname).toBe('/transactions');
+    expect(axisUrl.searchParams.getAll('axis')).toEqual(['ESSENTIAL']);
+    expect(axisUrl.searchParams.get('from')).toMatch(/^\d{4}-\d{2}-01$/);
+
+    const category = screen.getByRole('link', { name: 'Afficher les transactions de Voyages' });
+    const categoryUrl = new URL(category.getAttribute('href')!, 'https://cadran.test');
+    expect(categoryUrl.pathname).toBe('/transactions');
+    expect(categoryUrl.searchParams.getAll('categoryId')).toHaveLength(1);
+    // A leaf category has no sub-category to include.
+    expect(categoryUrl.searchParams.get('includeDescendants')).toBeNull();
   });
 
   it('retries loading recap preferences and preference categories after errors', async () => {

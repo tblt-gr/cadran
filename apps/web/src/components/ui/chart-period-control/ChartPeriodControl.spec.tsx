@@ -21,9 +21,9 @@ describe('ChartPeriodControl', () => {
     );
     expect(labels(screen.getByRole('group', { name: 'Période A' }))).toEqual([
       'Tout',
-      '24 mois',
-      '12 mois',
-      'Depuis janvier',
+      '24M',
+      '12M',
+      'YTD',
     ]);
     cleanup();
     render(
@@ -34,10 +34,7 @@ describe('ChartPeriodControl', () => {
         value="YTD"
       />,
     );
-    expect(labels(screen.getByRole('group', { name: 'Période B' }))).toEqual([
-      '12 mois',
-      'Depuis janvier',
-    ]);
+    expect(labels(screen.getByRole('group', { name: 'Période B' }))).toEqual(['12M', 'YTD']);
   });
 
   it('marks a single selected option and reports changes', () => {

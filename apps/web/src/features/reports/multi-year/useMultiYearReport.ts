@@ -1,10 +1,7 @@
 import { readMultiYearReport } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { authApiOptions } from '@/features/auth/apiOptions';
-import {
-  AnnualRequestError,
-  INCOMPLETE_MONTHS_INCLUDED,
-} from '@/features/reports/annual/useAnnualReport';
+import { AnnualRequestError } from '@/features/reports/annual/useAnnualReport';
 
 export { AnnualRequestError as MultiYearRequestError } from '@/features/reports/annual/useAnnualReport';
 
@@ -22,8 +19,9 @@ export function useMultiYearReport(from?: number, to?: number, enabled = true) {
     enabled,
     queryKey: ['multi-year-report', from ?? null, to ?? null],
     queryFn: async ({ signal }) => {
-      const query: { from?: number; to?: number; incompleteMonths: 'include' } = {
-        ...INCOMPLETE_MONTHS_INCLUDED,
+      // The running month stays in totals but cannot set a misleading minimum or median.
+      const query: { from?: number; to?: number; incompleteMonths: 'exclude' } = {
+        incompleteMonths: 'exclude',
       };
       if (from !== undefined) query.from = from;
       if (to !== undefined) query.to = to;

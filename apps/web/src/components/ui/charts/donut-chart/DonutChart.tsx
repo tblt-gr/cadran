@@ -37,6 +37,10 @@ interface DonutChartProps {
   width: number;
 }
 
+/** A touch screen has no hover: a tap would leave its slice highlighted until the next tap. */
+const hasHover = () =>
+  typeof window.matchMedia !== 'function' || !window.matchMedia('(hover: none)').matches;
+
 /** Donut whose centre shows the hovered slice's amount and caption. Motion is always off. */
 export function DonutChart({ height, label, slices, totalText, width }: DonutChartProps) {
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -68,20 +72,30 @@ export function DonutChart({ height, label, slices, totalText, width }: DonutCha
         innerRadius={radius * 0.62}
         isAnimationActive={false}
         nameKey="caption"
-        onMouseEnter={(_, index) => setActiveIndex(index)}
+        onMouseEnter={(_, index) => (hasHover() ? setActiveIndex(index) : undefined)}
         onMouseLeave={() => setActiveIndex(null)}
         outerRadius={radius}
         paddingAngle={0}
       >
-        {slices.map((slice, index) => (
-          <Cell
-            fill={slice.fill ?? DONUT_COLORS[index % DONUT_COLORS.length]}
-            fillOpacity={activeIndex === index ? 0.72 : 1}
-            key={slice.key}
-            stroke="var(--color-transparent)"
-            strokeWidth={0}
-          />
-        ))}
+        {slices.map((slice, index) => {
+          const color = slice.fill ?? DONUT_COLORS[index % DONUT_COLORS.length];
+          // The treemap's treatment: a translucent colour with no edge, strong enough to stay
+          // clearly visible, soft enough not to outshout the curve.
+          return (
+            <Cell
+              fill={color}
+              key={slice.key}
+              stroke="var(--color-transparent)"
+              strokeWidth={0}
+              style={{
+                fillOpacity:
+                  activeIndex === index
+                    ? 'var(--chart-slice-fill-opacity-active)'
+                    : 'var(--chart-slice-fill-opacity)',
+              }}
+            />
+          );
+        })}
       </Pie>
       {centre === null ? null : (
         <text

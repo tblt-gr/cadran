@@ -161,7 +161,9 @@ describe('TotalsCard goals', () => {
       response: { ok: false, status: 500 },
     });
     renderCard();
-    expect(screen.getByRole('button', { name: 'Expliquer : Essentiel' })).toBeTruthy();
+    expect(
+      screen.getByRole('link', { name: 'Afficher les transactions de Essentiel' }),
+    ).toBeTruthy();
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toContain('Les objectifs n’ont pas pu être vérifiés.');
     api.listGoalEvaluations.mockResolvedValue(ok({ months: [], years: [] }));
@@ -257,7 +259,7 @@ describe('TotalsCard goals', () => {
     await screen.findAllByRole('button', { name: /^Objectif :/ });
     expect(screen.queryByRole('button', { name: 'Expliquer : Essentiel' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Expliquer : Taux d’épargne net' })).toBeNull();
-    expect(screen.getByRole('button', { name: 'Expliquer : Loisirs' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Afficher les transactions de Loisirs' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Expliquer : Revenus' })).toBeTruthy();
   });
 

@@ -13,6 +13,7 @@ import { DetailedAggregateModal } from './DetailedAggregateModal';
 import { DetailedCards } from './DetailedCards';
 import { DetailedTable } from './DetailedTable';
 import type { MarksOf } from './detailedReportProps';
+import styles from './ContinuousDetailedReport.module.css';
 
 interface ContinuousDetailedReportProps {
   /** Every year starts open when set; the parent re-keys the report when its toolbar button changes. */
@@ -82,7 +83,7 @@ export function ContinuousDetailedReport({
     report.years.some((year) => year.metricPolicy.state === 'MIXED') || versions.size > 1;
 
   return (
-    <div>
+    <div className={styles.report}>
       <DetailedTable
         annualReports={annualReports}
         columns={columns}

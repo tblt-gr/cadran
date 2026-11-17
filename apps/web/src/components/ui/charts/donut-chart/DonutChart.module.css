@@ -19,5 +19,4 @@
 .donut :global(.recharts-sector),
 .donut :global(.recharts-pie-sector) {
   cursor: pointer;
-  stroke: none;
 }

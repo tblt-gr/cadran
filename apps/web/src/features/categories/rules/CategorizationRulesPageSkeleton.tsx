@@ -19,10 +19,18 @@ export function CategorizationRulesPageSkeleton({ status }: { status: string }) 
             <tr>
               <th scope="col">{t('categorizationRules.list.priority')}</th>
               <th scope="col">{t('categorizationRules.list.label')}</th>
-              <th scope="col">{t('categorizationRules.list.period')}</th>
-              <th scope="col">{t('categorizationRules.list.scope')}</th>
-              <th scope="col">{t('categorizationRules.list.applied')}</th>
-              <th scope="col">{t('categorizationRules.list.status')}</th>
+              <th className={styles.optional} scope="col">
+                {t('categorizationRules.list.period')}
+              </th>
+              <th className={styles.optional} scope="col">
+                {t('categorizationRules.list.scope')}
+              </th>
+              <th className={styles.optional} scope="col">
+                {t('categorizationRules.list.applied')}
+              </th>
+              <th className={styles.optional} scope="col">
+                {t('categorizationRules.list.status')}
+              </th>
               <th scope="col">
                 <span className="sr-only">{t('categorizationRules.list.actions')}</span>
               </th>

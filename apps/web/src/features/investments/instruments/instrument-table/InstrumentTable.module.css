@@ -49,3 +49,18 @@
     background: var(--bg-surface-1);
   }
 }
+
+/* A phone shows the name with its ISIN and the row menu only, so the table never scrolls sideways. */
+@media (max-width: 47.999rem) {
+  .panel .detail {
+    display: none;
+  }
+
+  .panel table {
+    min-width: 0;
+  }
+
+  .panel tbody th {
+    min-width: 0;
+  }
+}

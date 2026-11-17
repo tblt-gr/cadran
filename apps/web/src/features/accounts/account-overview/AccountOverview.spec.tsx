@@ -69,6 +69,7 @@ function renderOverview(
     includeArchived?: boolean;
     reordering?: boolean;
     grouping?: 'PARENT' | 'PRIMARY';
+    view?: 'grouped' | 'all';
   } = {},
 ) {
   const queryClient = new QueryClient({
@@ -97,7 +98,7 @@ function renderOverview(
         includeArchived={props.includeArchived ?? false}
         includeClosed={props.includeClosed ?? false}
         reordering={props.reordering ?? true}
-        view="grouped"
+        view={props.view ?? 'grouped'}
         {...handlers}
       />
     </QueryClientProvider>,
@@ -528,12 +529,12 @@ describe('AccountOverview', () => {
     );
   });
 
-  it('closes the page with the net worth pie, after every group table', async () => {
+  it('closes the all accounts view with the net worth pie, after the table', async () => {
     api.readAccountOverview.mockImplementation(() =>
       success(buildOverview([buildHeading({ memberCount: 1 })], 1)),
     );
     api.readAccountOverviewRows.mockImplementation(() => rows([inGroup(A, 'Compte A')]));
-    renderOverview();
+    renderOverview({ view: 'all' });
     // Set after render: the helper installs an empty default, read once the overview has loaded.
     api.readAccountOverviewComposition.mockImplementation(() =>
       success({
@@ -555,9 +556,39 @@ describe('AccountOverview', () => {
       }),
     );
 
-    const group = await screen.findByRole('heading', { name: /Épargne/ });
-    await screen.findByText('Compte A');
+    const accountRow = (await screen.findAllByText('Compte A'))[0]!;
     const pie = screen.getByRole('heading', { name: 'Répartition par compte' });
-    expect(group.compareDocumentPosition(pie) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(accountRow.compareDocumentPosition(pie) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('splits the net worth by group, not by account, when the accounts are grouped', async () => {
+    api.readAccountOverview.mockImplementation(() =>
+      success(buildOverview([buildHeading({ memberCount: 1 })], 1)),
+    );
+    api.readAccountOverviewRows.mockImplementation(() => rows([inGroup(A, 'Compte A')]));
+    renderOverview();
+    api.readAccountOverviewComposition.mockImplementation(() =>
+      success({
+        asOf: '2026-09-05',
+        total: null,
+        totalReason: 'MISSING_VALUATION',
+        chartReason: null,
+        accounts: [
+          {
+            id: A,
+            label: 'Compte A',
+            institution: null,
+            primaryGroupId: GROUP_G,
+            color: null,
+            value: null,
+            share: share('100.00'),
+          },
+        ],
+      }),
+    );
+
+    await screen.findByRole('heading', { name: /Épargne/ });
+    expect(await screen.findByRole('heading', { name: 'Répartition par groupe' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Répartition par compte' })).toBeNull();
   });
 });

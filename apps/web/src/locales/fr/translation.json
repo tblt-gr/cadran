@@ -85,6 +85,7 @@
     "close": "Fermer",
     "collapse": "Réduire",
     "expand": "Déployer",
+    "morePageActions": "Autres actions de la page",
     "scrollLeft": "Défiler vers la gauche",
     "scrollRight": "Défiler vers la droite"
   },
@@ -223,7 +224,7 @@
   "navigation": {
     "accounts": "Comptes",
     "budget": "Budget",
-    "accountGroups": "Groupes de comptes",
+    "accountGroups": "Groupes",
     "collapse": "Réduire la navigation",
     "expand": "Déployer la navigation",
     "goals": "Objectifs",
@@ -510,9 +511,17 @@
         "NON_POSITIVE_GROWTH_FACTOR": "Rendement 12 mois non calculable : perte totale en {{month}}"
       }
     },
+    "tabs": {
+      "label": "Comptes et groupes",
+      "accounts": "Comptes",
+      "groups": "Groupes"
+    },
     "overviewComposition": {
       "title": "Répartition par compte",
       "chart": "Répartition du patrimoine par compte",
+      "groupsTitle": "Répartition par groupe",
+      "groupsChart": "Répartition du patrimoine par groupe",
+      "groupColumn": "Groupe",
       "error": "Répartition indisponible.",
       "retry": "Réessayer",
       "columns": {
@@ -1183,8 +1192,6 @@
     "reorder": {
       "start": "Réorganiser les groupes",
       "stop": "Terminer la réorganisation",
-      "start_short": "Réorganiser",
-      "stop_short": "Terminer",
       "hint": "Utilisez les flèches pour déplacer les groupes parmi leurs voisins. Les changements sont enregistrés au fur et à mesure.",
       "moveUp": "Monter {{label}}",
       "moveDown": "Descendre {{label}}",
@@ -1245,7 +1252,7 @@
       "description": "Reconnectez-vous pour accéder aux groupes de votre espace."
     },
     "list": {
-      "caption": "Groupes de comptes",
+      "caption": "Groupes",
       "actions": "Actions",
       "archived": "Archivé",
       "edit": "Modifier",
@@ -2015,6 +2022,12 @@
       "LAST_24_MONTHS": "24 mois",
       "YTD": "Depuis janvier"
     },
+    "short": {
+      "ALL": "Tout",
+      "LAST_12_MONTHS": "12M",
+      "LAST_24_MONTHS": "24M",
+      "YTD": "YTD"
+    },
     "descriptions": {
       "YTD": "Depuis la clôture du 31 décembre précédent jusqu’au jour de référence de l’espace de travail"
     }
@@ -2421,6 +2434,8 @@
       "openActions": "Actions de la transaction « {{label}} »",
       "categorised": "Catégorisée",
       "toCategorise": "À catégoriser",
+      "today": "Aujourd’hui",
+      "yesterday": "Hier",
       "noCounterparty": "-",
       "unknownAccount": "Compte indisponible",
       "splitCount_one": "Répartie en {{count}} catégorie",
@@ -2679,17 +2694,16 @@
       "selectPage": "Sélectionner les mouvements chargés",
       "selectRow": "Sélectionner {{label}}",
       "selectRowLoading": "Sélectionner un mouvement",
-      "none": "Aucune sélection",
-      "selected_one": "{{count}} mouvement sélectionné",
-      "selected_other": "{{count}} mouvements sélectionnés",
+      "count": {
+        "transactions_one": "{{count}} transaction",
+        "transactions_other": "{{count}} transactions",
+        "operations_one": "{{count}} opération",
+        "operations_other": "{{count}} opérations"
+      },
       "editAction": "Modifier",
       "enter": "Édition groupée",
-      "pageSelected_one": "Le mouvement chargé est sélectionné.",
-      "pageSelected_other": "Les {{count}} mouvements chargés sont sélectionnés.",
       "selectFilterScope_one": "Sélectionner le mouvement correspondant aux filtres",
       "selectFilterScope_other": "Sélectionner les {{count}} mouvements correspondant aux filtres",
-      "filterScopeSelected_one": "Le mouvement correspondant aux filtres est sélectionné",
-      "filterScopeSelected_other": "Les {{count}} mouvements correspondant aux filtres sont sélectionnés",
       "note": "Les transactions qui ne peuvent pas être modifiées sont ignorées et listées avec leur raison. Les autres sont modifiées ensemble.",
       "applying": "Application…",
       "done": "Terminer",
@@ -2774,7 +2788,6 @@
       "apply": "Appliquer",
       "selectMode": "Sélectionner",
       "exit": "Quitter la sélection",
-      "loadedScope": "Sélection sur les {{count}} mouvements chargés.",
       "selectShort": "Sélection",
       "exitShort": "Terminer"
     },
@@ -3361,6 +3374,7 @@
       "empty": "Aucun compte n’est inclus dans le fonds d’urgence. Cochez cette option sur un compte pour l’y compter.",
       "manageAccounts": "Gérer les comptes",
       "months": "{{value}} mois",
+      "monthsOfTarget": "{{value}} / {{target}} mois",
       "meterLabel": "{{value}} mois couverts sur {{target}}",
       "notCalculable": "Non calculable",
       "stale": "Ancienne valorisation",
@@ -3432,7 +3446,7 @@
         "invalid_emergency_fund_category": "Une catégorie choisie n’est pas éligible : seules les catégories de dépense actives et incluses au budget peuvent être retenues.",
         "emergency_fund_scope_too_large": "L’espace contient trop de comptes ou de catégories pour calculer le fonds d’urgence."
       },
-      "coverageOf": "de dépenses essentielles couverts, pour {{target}} mois visés",
+      "coverageOf": "pour {{target}} mois visés",
       "positionLabel": "Montant mis de côté, puis montant requis",
       "targetMode": "Montant à atteindre",
       "targetModes": {

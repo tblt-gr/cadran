@@ -36,7 +36,7 @@ export function TabsNav({ items, label, variant = 'primary' }: TabsNavProps) {
   const strip = useStripOverflow<HTMLElement>(activeKey);
 
   return (
-    <div className={`${styles.strip} ${styles[variant]}`}>
+    <div className={`${styles.strip} ${styles[variant]}`} data-no-swipe>
       {strip.overflows ? (
         <button
           aria-label={t('actions.scrollLeft')}

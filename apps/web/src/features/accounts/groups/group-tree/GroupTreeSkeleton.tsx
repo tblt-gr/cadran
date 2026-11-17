@@ -11,7 +11,10 @@ export function GroupTreeSkeleton({ status }: { status: string }) {
   return (
     <div aria-busy="true" data-testid="account-groups-skeleton">
       <SkeletonStatus>{status}</SkeletonStatus>
-      <ul aria-label={t('accountGroups.list.caption')} className={styles.branch}>
+      <ul
+        aria-label={t('accountGroups.list.caption')}
+        className={`${styles.tree} ${styles.branch}`}
+      >
         {Array.from({ length: ROWS }, (_, row) => (
           <li className={styles.node} key={row}>
             <div className={styles.row}>

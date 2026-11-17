@@ -22,8 +22,3 @@
   color: var(--accent);
   flex-shrink: 0;
 }
-
-/* The page lays its children out as a stretched column: the switch keeps its own width. */
-.view {
-  align-self: flex-start;
-}

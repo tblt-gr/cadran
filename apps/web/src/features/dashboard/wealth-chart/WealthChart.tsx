@@ -14,6 +14,11 @@ import styles from './WealthChart.module.css';
 
 interface WealthChartProps {
   points: NetWorthPoint[] | null;
+  /** The point under the pointer or the focus, null once it leaves: the card shows it, not a tooltip. */
+  onActivePoint?: (point: NetWorthPoint | null) => void;
+  /** The day a tap pinned on a screen that cannot hover, kept until a tap outside the card. */
+  selectedOn?: string | null;
+  onSelect?: (point: NetWorthPoint) => void;
 }
 
 function pointValueLabel(point: NetWorthPoint, locale: string): string | null {
@@ -36,7 +41,12 @@ function pointValueLabel(point: NetWorthPoint, locale: string): string | null {
  * behind it stays readable in the table, where a month without a computable
  * value states its reason instead of dropping to zero.
  */
-export function WealthChart({ points }: WealthChartProps) {
+export function WealthChart({
+  points,
+  onActivePoint,
+  onSelect,
+  selectedOn = null,
+}: WealthChartProps) {
   const { i18n, t } = useTranslation();
   const curvePoints: CurvePoint[] = (points ?? []).map((point) => {
     const value = pointValueLabel(point, i18n.language);
@@ -64,6 +74,21 @@ export function WealthChart({ points }: WealthChartProps) {
         <p className={styles.emptyPlot}>{t('dashboard.chart.empty')}</p>
       ) : (
         <CurveChart
+          hideTooltip={onActivePoint !== undefined}
+          onSelect={
+            onSelect
+              ? (key) => {
+                  const point = points.find((candidate) => candidate.on === key);
+                  if (point) onSelect(point);
+                }
+              : undefined
+          }
+          selectedKey={selectedOn}
+          onActivePointChange={
+            onActivePoint
+              ? (key) => onActivePoint(points.find((point) => point.on === key) ?? null)
+              : undefined
+          }
           label={t('dashboard.chart.summary', {
             endPeriod: formatCalendarMonth(points[points.length - 1].on, i18n.language),
             startPeriod: formatCalendarMonth(points[0].on, i18n.language),
@@ -73,36 +98,40 @@ export function WealthChart({ points }: WealthChartProps) {
           valueAxisLabel={t('dashboard.chart.valueColumn')}
         />
       )}
-      <table className="sr-only">
-        <caption>{t('dashboard.chart.title')}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{t('dashboard.chart.dateColumn')}</th>
-            <th scope="col">{t('dashboard.chart.valueColumn')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {points === null ? (
+      {/* The block clips the table: a `display: table` box ignores overflow, so a long history would
+          stretch the page far below its content. */}
+      <div className="sr-only">
+        <table>
+          <caption>{t('dashboard.chart.title')}</caption>
+          <thead>
             <tr>
-              <th scope="row">
-                <SkeletonBlock />
-              </th>
-              <td>
-                <SkeletonBlock />
-              </td>
+              <th scope="col">{t('dashboard.chart.dateColumn')}</th>
+              <th scope="col">{t('dashboard.chart.valueColumn')}</th>
             </tr>
-          ) : (
-            points.map((point) => (
-              <tr key={point.on}>
-                <th scope="row">{formatCalendarDay(point.on, i18n.language)}</th>
+          </thead>
+          <tbody>
+            {points === null ? (
+              <tr>
+                <th scope="row">
+                  <SkeletonBlock />
+                </th>
                 <td>
-                  <NetWorthFigure amount={point.total} reason={point.reason} />
+                  <SkeletonBlock />
                 </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+            ) : (
+              points.map((point) => (
+                <tr key={point.on}>
+                  <th scope="row">{formatCalendarDay(point.on, i18n.language)}</th>
+                  <td>
+                    <NetWorthFigure amount={point.total} reason={point.reason} />
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
     </figure>
   );
 }

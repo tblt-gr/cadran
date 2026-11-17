@@ -26,7 +26,7 @@ export function DetailedReportSkeleton({ report }: { report: MultiYearReport }) 
   return (
     <div aria-busy="true" className={styles.reports} data-testid="detailed-reports-skeleton">
       <SkeletonStatus>{t('reports.loading')}</SkeletonStatus>
-      <div>
+      <div className={localStyles.report}>
         <section
           aria-labelledby="detailed-multi-year-skeleton-title"
           className={`card ${tableStyles.wrap}`}
@@ -112,8 +112,10 @@ export function DetailedReportSkeleton({ report }: { report: MultiYearReport }) 
               </Disclosure>
             </li>
           ))}
-          <li>
-            <h3 className={cardStyles.listHeading}>{t('reports.multiYear.detailedSummaryCard')}</h3>
+        </ul>
+        <ul aria-hidden="true" className={cardStyles.list}>
+          <li className={`card ${cardStyles.card}`}>
+            <h3>{t('reports.multiYear.detailedSummaryCard')}</h3>
           </li>
           {MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS.map((rowId) => (
             <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={rowId}>

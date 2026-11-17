@@ -58,7 +58,7 @@ export function GroupTree({
   const roots = buildTree(groups);
 
   return (
-    <ul aria-label={t('accountGroups.list.caption')} className={styles.branch}>
+    <ul aria-label={t('accountGroups.list.caption')} className={`${styles.tree} ${styles.branch}`}>
       {roots.map((node) => (
         <GroupTreeNode
           key={node.item.id}

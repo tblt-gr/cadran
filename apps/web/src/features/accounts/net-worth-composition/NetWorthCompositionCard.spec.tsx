@@ -109,12 +109,13 @@ describe('NetWorthCompositionCard', () => {
     const rows = within(screen.getByRole('table', { name: 'Répartition par compte' })).getAllByRole(
       'row',
     );
+    // The colour is the left edge of the row, carried by a custom property of its label cell.
     const fill = (row: HTMLElement) =>
-      row.querySelector('[data-swatch] circle')!.getAttribute('fill');
+      (row.querySelector('th') as HTMLElement).style.getPropertyValue('--mark-color');
     expect(fill(rows[1]!)).toMatch(/^#[0-9A-F]{6}$/);
     expect(fill(rows[1]!)).not.toBe(fill(rows[2]!));
     expect(within(rows[1]!).getByText('PEA Bourse')).toBeTruthy();
-    expect(rows[1]!.querySelector('[data-swatch]')!.getAttribute('aria-hidden')).toBe('true');
+    expect(rows[1]!.querySelector('[data-swatch]')).toBeNull();
   });
 
   it.each([

@@ -66,7 +66,7 @@ export function GoalTarget({
     return (
       <button
         aria-label={name}
-        className={`icon-button ${styles.create}`}
+        className={`icon-ghost ${styles.create}`}
         onClick={onCreate}
         title={name}
         type="button"

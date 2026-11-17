@@ -2,6 +2,7 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { TransactionActionsContext } from '@/features/transactions/transaction-workflow/transactionActions';
 import { TransactionDayList } from './TransactionDayList';
 
 const accounts = [{ id: 'acc-1', label: 'Compte courant' }] as Account[];
@@ -147,7 +148,7 @@ describe('TransactionDayList', () => {
 
     expect(screen.getByText('Libellé a', { selector: 'button' })).toBeTruthy();
     expect(screen.getByText('Compte courant')).toBeTruthy();
-    expect(screen.getByText('En attente')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'En attente' })).toBeTruthy();
     for (const amount of screen.getAllByLabelText('Sortie de 12,00 €')) {
       expect(amount.textContent).toContain('-');
     }
@@ -246,18 +247,18 @@ describe('TransactionDayList', () => {
     const booked = screen.getByText('Libellé b').closest('li')!;
     expect(pending.getAttribute('data-state')).toBe('PENDING');
     expect(pending.className).toContain('pending');
-    expect(within(pending).getByText('En attente')).toBeTruthy();
-    // The badge sits under the label with its own tone; the amount and context cells never hold it.
+    expect(within(pending).getByRole('img', { name: 'En attente' })).toBeTruthy();
+    // The clock sits beside the label; the amount and context cells never hold it.
     for (const dimmed of ['amount', 'category', 'account']) {
       const cell = pending.querySelector(`[class*="${dimmed}"]`);
       expect(cell, dimmed).toBeTruthy();
-      expect(cell?.contains(within(pending).getByText('En attente'))).toBe(false);
+      expect(cell?.contains(within(pending).getByRole('img', { name: 'En attente' }))).toBe(false);
     }
     expect(booked.className).not.toContain('pending');
-    expect(within(booked).queryByText('En attente')).toBeNull();
+    expect(within(booked).queryByRole('img', { name: 'En attente' })).toBeNull();
   });
 
-  it('says "Prévue le jj/mm" for a planned pending row and keeps "En attente" for the others', () => {
+  it('names a planned row by its date and the others as pending, on a clock beside the label', () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -268,14 +269,16 @@ describe('TransactionDayList', () => {
       />,
     );
 
-    expect(screen.getByText('Prévue le 20/11')).toBeTruthy();
-    expect(screen.getAllByText('En attente')).toHaveLength(1);
-    const planned = screen.getByText('Prévue le 20/11').closest('[data-state]');
+    const plannedClock = screen.getByRole('img', { name: 'Prévue le 20/11' });
+    expect(screen.getAllByRole('img', { name: 'En attente' })).toHaveLength(1);
+    // The old text badge is gone: the clock is the only mark.
+    expect(screen.queryByText('Prévue le 20/11')).toBeNull();
+    const planned = plannedClock.closest('[data-state]');
     expect(planned?.getAttribute('data-state')).toBe('PENDING');
     expect(planned?.className).toMatch(/planned/);
-    expect(screen.getByText('En attente').closest('[data-state]')?.className).not.toMatch(
-      /planned/,
-    );
+    expect(
+      screen.getByRole('img', { name: 'En attente' }).closest('[data-state]')?.className,
+    ).not.toMatch(/planned/);
   });
 
   it('drops the mention once the row is booked', () => {
@@ -286,6 +289,25 @@ describe('TransactionDayList', () => {
       />,
     );
 
-    expect(screen.queryByText(/Prévue le/)).toBeNull();
+    expect(screen.queryByRole('img', { name: /Prévue le/ })).toBeNull();
+  });
+
+  it('opens the detail dialog from anywhere on the row, except from its own controls', () => {
+    const open = vi.fn();
+    render(
+      <TransactionActionsContext.Provider
+        value={{ accounts, closedMonths: new Set(), duplicatingIds: new Set(), open }}
+      >
+        <TransactionDayList accounts={accounts} transactions={[tx('a', '2026-09-11', '-12.00')]} />
+      </TransactionActionsContext.Provider>,
+    );
+
+    const row = screen.getByText('Compte courant').closest('li')!;
+    expect(row.getAttribute('data-clickable')).toBe('true');
+    fireEvent.click(screen.getByText('Compte courant'));
+    expect(open).toHaveBeenCalledWith('inspect', expect.objectContaining({ id: 'a' }));
+    open.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: /^Actions de la transaction/ }));
+    expect(open).not.toHaveBeenCalled();
   });
 });

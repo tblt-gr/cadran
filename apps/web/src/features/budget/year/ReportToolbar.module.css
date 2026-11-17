@@ -14,3 +14,16 @@
   justify-content: flex-end;
   gap: var(--spacing-1);
 }
+
+/* The cards of a phone carry no evolution: its toggle has nothing to switch. */
+@media (max-width: 639px) {
+  .changes {
+    display: none;
+  }
+}
+
+@media (max-width: 47.999rem) {
+  .toolbar {
+    column-gap: var(--spacing-2);
+  }
+}

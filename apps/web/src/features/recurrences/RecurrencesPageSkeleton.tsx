@@ -6,7 +6,7 @@ import styles from './RecurrencesPage.module.css';
 /** Mirrors RecurrenceRow: title, meta, one figure block and the row menu trigger. */
 export function ScheduleCardSkeleton() {
   return (
-    <li aria-hidden="true" className={rowStyles.row}>
+    <li aria-hidden="true" className={rowStyles.row} data-has-amount>
       <div className={rowStyles.main}>
         <h4 className={rowStyles.title}>
           <SkeletonTitle />
@@ -15,6 +15,9 @@ export function ScheduleCardSkeleton() {
           <SkeletonBlock className={styles.skeletonLine} />
         </p>
       </div>
+      <span className={rowStyles.amountCell}>
+        <SkeletonBlock className={styles.skeletonLine} />
+      </span>
       <div className={rowStyles.aside}>
         <SkeletonBlock className={styles.skeletonBadge} />
       </div>

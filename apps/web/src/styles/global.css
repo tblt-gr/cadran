@@ -18,6 +18,8 @@
 }
 
 html {
+  /* A tap leaves no flash on any element, interactive or not (the property is inherited). */
+  -webkit-tap-highlight-color: transparent;
   min-width: 20rem;
   background: var(--bg-page);
 }

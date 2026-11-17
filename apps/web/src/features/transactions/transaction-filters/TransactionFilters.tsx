@@ -168,7 +168,7 @@ export function TransactionFilters({
                   ? t('transactions.filters.toggleWithCount', { count: activeCount })
                   : t('transactions.filters.toggle')
               }
-              className={`icon-button ${styles.toggle}`}
+              className={`icon-ghost ${styles.toggle}`}
               data-active={activeCount > 0}
               disabled={disabled}
               onClick={() => (compact ? setSheetOpen(true) : setHidden(!hidden))}

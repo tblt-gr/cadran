@@ -1,8 +1,8 @@
 import type { Recurrence } from '@cadran/api-client';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { CategoryIdentity } from '@/features/categories/category-identity/CategoryIdentity';
+import { Icon } from '@/components/ui/icon/Icon';
+import { CategoryGlyph } from '@/features/categories/category-glyph/CategoryGlyph';
 import { RecurrenceAmount } from '@/features/recurrences/recurrence-row/RecurrenceAmount';
 import styles from '@/features/recurrences/recurrence-row/RecurrenceRow.module.css';
 import { RecurrenceRow } from '@/features/recurrences/recurrence-row/RecurrenceRow';
@@ -23,38 +23,46 @@ export function RecurrenceCard({ actions, recurrence }: RecurrenceCardProps) {
   return (
     <RecurrenceRow
       actions={actions}
-      aside={
-        recurrence.autoCreate ? (
-          <>
-            {category ? (
-              <CategoryIdentity
-                color={category.effectiveColor}
-                icon={category.effectiveIcon}
-                label={category.label}
-              />
-            ) : null}
-            <StatusBadge icon="repeat" tone="info">
-              {t('recurrences.confirmed.automatic')}
-            </StatusBadge>
-          </>
+      lead={
+        category ? (
+          <span className={styles.glyph}>
+            <CategoryGlyph
+              color={category.effectiveColor}
+              icon={category.effectiveIcon}
+              label={category.label}
+            />
+          </span>
         ) : null
       }
+      amount={
+        <RecurrenceAmount
+          assetCode={recurrence.expectedAmount.assetCode}
+          value={recurrence.expectedAmount.value}
+        />
+      }
       meta={
-        <>
-          {t(`recurrences.intervals.${recurrence.intervalKind}`)} ·{' '}
-          <RecurrenceAmount
-            assetCode={recurrence.expectedAmount.assetCode}
-            value={recurrence.expectedAmount.value}
-          />{' '}
-          ·{' '}
+        <span className={styles.facts}>
+          <span>{t(`recurrences.intervals.${recurrence.intervalKind}`)}</span>
           <span className={styles.next}>
             {t('recurrences.confirmed.next', {
               date: formatCalendarDay(recurrence.nextExpectedOn, i18n.language),
             })}
           </span>
-        </>
+        </span>
       }
       title={recurrence.label}
+      titleEnd={
+        recurrence.autoCreate ? (
+          <span
+            aria-label={t('recurrences.confirmed.automatic')}
+            className={styles.glyph}
+            role="img"
+            title={t('recurrences.confirmed.automatic')}
+          >
+            <Icon name="repeat" size={14} />
+          </span>
+        ) : null
+      }
     />
   );
 }

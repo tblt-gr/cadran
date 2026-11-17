@@ -2,18 +2,26 @@
   display: grid;
   gap: var(--spacing-4);
   min-width: 0;
+  padding: var(--spacing-none);
 }
 
 .title {
   margin: var(--spacing-none);
+  padding: var(--spacing-5) var(--spacing-5) var(--spacing-none);
   font-size: var(--font-size-card-title);
 }
 
 .body {
   display: grid;
   align-items: start;
-  gap: var(--spacing-6);
+  gap: var(--spacing-4);
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* The chart keeps the card's inner space; the legend runs edge to edge for its figures. */
+.body > :first-child {
+  width: auto;
+  margin-inline: var(--spacing-5);
 }
 
 .error {
@@ -38,11 +46,35 @@
 
 .table th,
 .table td {
-  padding: var(--spacing-4);
+  padding: var(--spacing-3) var(--spacing-2);
   border-bottom: var(--border-line-subtle);
+  font-size: var(--font-size-label);
   text-align: left;
   vertical-align: middle;
+}
+
+/* A label may wrap; an amount and a share stay on one line each. */
+.table th {
   overflow-wrap: anywhere;
+}
+
+.table td {
+  white-space: nowrap;
+}
+
+/* The colour of the group or account is the left edge of its row, in place of a dot. */
+.table tbody th.mark {
+  border-inline-start: var(--spacing-1) solid var(--mark-color, var(--color-transparent));
+  padding-inline-start: var(--spacing-3);
+}
+
+.table thead th:first-child,
+.table tfoot th {
+  padding-inline-start: var(--spacing-4);
+}
+
+.table td:last-child {
+  padding-inline-end: var(--spacing-4);
 }
 
 .table thead th {
@@ -54,14 +86,21 @@
 .table tbody th,
 .table tfoot th {
   color: var(--text-primary);
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-label);
   font-weight: var(--font-weight-normal);
+}
+
+/* One hairline, across every column, tells the last group or account from the total: the body
+   rows carry no bottom edge of their own on the last row, the total row carries the top one. */
+.table tbody tr:last-child > * {
+  border-bottom: var(--border-none);
 }
 
 .table tfoot th,
 .table tfoot td {
-  font-weight: var(--font-weight-bold);
+  border-top: var(--border-line-subtle);
   border-bottom: var(--border-none);
+  font-weight: var(--font-weight-bold);
 }
 
 .table th > span,
@@ -75,15 +114,7 @@
   gap: var(--spacing-2);
 }
 
-.swatch {
-  display: block;
-  flex: none;
-  width: var(--spacing-3);
-  height: var(--spacing-3);
-}
-
 .table th small {
-  margin-left: calc(var(--spacing-3) + var(--spacing-2));
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }

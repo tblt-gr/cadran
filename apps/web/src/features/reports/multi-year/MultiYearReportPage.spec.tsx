@@ -109,6 +109,17 @@ describe('MultiYearReportPage', () => {
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport pluriannuel 2024-2026');
   });
 
+  it('excludes the running month from both multi-year and detailed annual statistics', async () => {
+    renderPage();
+    await screen.findByRole('table', { name: /rapport détaillé/i });
+    expect(api.readMultiYearReport).toHaveBeenCalledWith(
+      expect.objectContaining({ query: expect.objectContaining({ incompleteMonths: 'exclude' }) }),
+    );
+    expect(api.readAnnualReport).toHaveBeenCalledWith(
+      expect.objectContaining({ query: { incompleteMonths: 'exclude' } }),
+    );
+  });
+
   it('shows exactly one skeleton row per requested year while a narrowed range is fetching', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport détaillé/i });

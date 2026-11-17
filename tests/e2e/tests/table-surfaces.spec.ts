@@ -49,6 +49,9 @@ for (const width of [360, 768, 1440]) {
       await page.goto('/budget');
       await settled(page);
       const table = page.getByRole('table', { name: /Valeurs des comptes/ });
+      // A folded group keeps the plain surface: only an open group paints its band.
+      const folded = table.locator('tbody tr[data-expanded="false"] button');
+      while ((await folded.count()) > 0) await folded.first().click();
       const rows = await table.locator('tbody tr:has(> th[scope="rowgroup"])').evaluateAll((trs) =>
         trs.map((tr) => ({
           background: getComputedStyle(tr).backgroundColor,

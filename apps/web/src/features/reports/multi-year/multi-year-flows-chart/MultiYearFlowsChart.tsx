@@ -164,6 +164,7 @@ export function MultiYearFlowsChart({ annualReports, byYear, report }: MultiYear
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
           {FLOW_BAR_SERIES.map((series) => (
             <Bar
+              className={`flow-bar-${series.dataKey}`}
               dataKey={series.dataKey}
               fill={series.fill}
               isAnimationActive={!prefersReducedMotion()}

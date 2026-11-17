@@ -4,7 +4,8 @@ import { AllocationLegend } from '@/components/ui/charts/allocation-legend/Alloc
 import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
 import { CategoryLabel } from '@/features/categories/category-label/CategoryLabel';
 import type { DonutSlice } from '@/components/ui/charts/donut-chart/DonutChart';
-import { decimalRatioForGeometry, formatAmount } from '@/lib/decimal';
+import { decimalRatioForGeometry, formatAmount, sumDecimals } from '@/lib/decimal';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import styles from './AnnualDonut.module.css';
 
@@ -23,6 +24,8 @@ export interface AnnualDonutItem {
 export interface AnnualLegendRow {
   amount: string | null;
   color?: string;
+  /** Where the row's figure lives (its transactions); the label is a plain text without it. */
+  href?: string | null;
   /** A category row's icon (null when it has none); absent on rows that are not categories. */
   icon?: string | null;
   key: string;
@@ -54,9 +57,42 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
     size: decimalRatioForGeometry(item.share, '1'),
   }));
 
+  // The centre rests on the total of what the chart measures: the exact sum of every row, or
+  // nothing when one row cannot be calculated.
+  const amounts = legend.map((row) => row.amount);
+  const total =
+    amounts.includes(null) || amounts.length === 0 ? null : sumDecimals(amounts as string[]);
+
+  const rowLabel = (row: AnnualLegendRow) => {
+    const text =
+      row.icon === undefined ? (
+        row.label
+      ) : (
+        <CategoryLabel color={row.color} icon={row.icon}>
+          {row.label}
+        </CategoryLabel>
+      );
+    const href = row.href;
+    if (!href) return text;
+    return (
+      <a
+        aria-label={t('budget.monthly.expenseDonut.showTransactions', { label: row.label })}
+        className={styles.link}
+        href={href}
+        onClick={(event) => handleClientNavigation(event, href)}
+      >
+        {text}
+      </a>
+    );
+  };
+
   return (
     <div className={styles.donut}>
-      <DonutPlot label={t('reports.annual.charts.donut')} slices={donutSlices} totalText={null} />
+      <DonutPlot
+        label={t('reports.annual.charts.donut')}
+        slices={donutSlices}
+        totalText={total === null ? null : formatAmount(total, assetCode, i18n.language)}
+      />
       <AllocationLegend
         collapse={
           visibleRows === undefined
@@ -85,14 +121,7 @@ export function AnnualDonut({ assetCode, legend, label, slices, visibleRows }: A
           color: row.color,
           barPercent: row.share === null ? null : ratioToPercent(row.share),
           key: row.key,
-          label:
-            row.icon === undefined ? (
-              row.label
-            ) : (
-              <CategoryLabel color={row.color} icon={row.icon}>
-                {row.label}
-              </CategoryLabel>
-            ),
+          label: rowLabel(row),
           share:
             row.share === null ? (
               <EmptyValue quiet label={notCalculable} />

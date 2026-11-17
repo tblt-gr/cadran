@@ -10,7 +10,7 @@ describe('GroupTreeSkeleton', () => {
     render(<GroupTreeSkeleton status="Chargement des groupes…" />);
 
     expect(screen.getAllByRole('status')).toHaveLength(1);
-    const tree = screen.getByRole('list', { name: 'Groupes de comptes' });
+    const tree = screen.getByRole('list', { name: 'Groupes' });
     expect(tree.querySelectorAll(':scope > li')).toHaveLength(6);
     expect(tree.querySelector('table, th, td')).toBeNull();
     expect(tree.textContent).toBe('');

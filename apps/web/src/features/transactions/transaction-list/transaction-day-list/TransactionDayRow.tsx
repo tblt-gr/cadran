@@ -1,4 +1,5 @@
 import type { Account, Transaction } from '@cadran/api-client';
+import { useContext, type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -12,11 +13,11 @@ import { TransactionAmount } from '@/features/transactions/transaction-list/tran
 import { TransactionCategories } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategories';
 import { TransactionCategoryMark } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategoryMark';
 import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
+import { TransactionActionsContext } from '@/features/transactions/transaction-workflow/transactionActions';
 import { formatCalendarShortDay } from '@/lib/decimal';
 import styles from './TransactionDayList.module.css';
 
 const STATE_TONE = {
-  PENDING: 'info',
   VOIDED: 'warning',
   REJECTED: 'negative',
 } as const;
@@ -38,14 +39,25 @@ export function TransactionDayRow({
   counterpartAccount,
 }: TransactionDayRowProps) {
   const { i18n, t } = useTranslation();
+  const actions = useContext(TransactionActionsContext);
   // Muted, never hidden: the state badge keeps the cue that colour alone would not carry.
   const pending = transaction?.state === 'PENDING';
   // A planned row is booked by the server on its date: say so in words, not by the grey alone.
   const planned = pending && transaction.autoBook;
   const account = accounts?.find((candidate) => candidate.id === transaction?.accountId);
 
+  // The whole row opens the detail dialog; a control inside it keeps its own action. The label
+  // button stays the keyboard and screen reader way in.
+  const inspect = (event: MouseEvent<HTMLLIElement>) => {
+    if (!transaction || !actions) return;
+    if ((event.target as HTMLElement).closest('button, a, input, label, select, [data-actions]'))
+      return;
+    actions.open('inspect', transaction);
+  };
+
   return (
     <li
+      onClick={inspect}
       className={[
         styles.row,
         selection ? styles.selectable : '',
@@ -54,6 +66,7 @@ export function TransactionDayRow({
       ]
         .filter(Boolean)
         .join(' ')}
+      data-clickable={transaction !== null && actions !== null ? true : undefined}
       data-transfer-id={transaction?.transferId ?? undefined}
       data-state={transaction?.state}
       data-accounts={accounts !== undefined}
@@ -93,8 +106,15 @@ export function TransactionDayRow({
                     })
                   : t('transactions.states.PENDING')
               }
-              className={`${styles.phoneOnly} ${styles.clock}`}
+              className={styles.clock}
               role="img"
+              title={
+                planned
+                  ? t('transactions.states.planned', {
+                      date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
+                    })
+                  : t('transactions.states.PENDING')
+              }
             >
               <Icon name="clock" size={14} />
             </span>
@@ -126,15 +146,12 @@ export function TransactionDayRow({
           </small>
         ) : null}
         {transaction ? <RefundBadge transaction={transaction} /> : null}
-        {/* Booked is the normal case: only a state that departs from it is shown. */}
-        {transaction && transaction.state !== 'BOOKED' ? (
-          <span className={`${styles.state} ${pending ? styles.pendingState : ''}`}>
+        {/* Booked is the normal case, pending is the clock next to the label: only the other
+            states that depart from it get a badge. */}
+        {transaction && (transaction.state === 'VOIDED' || transaction.state === 'REJECTED') ? (
+          <span className={styles.state}>
             <StatusBadge tone={STATE_TONE[transaction.state]}>
-              {planned
-                ? t('transactions.states.planned', {
-                    date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
-                  })
-                : t(`transactions.states.${transaction.state}`)}
+              {t(`transactions.states.${transaction.state}`)}
             </StatusBadge>
           </span>
         ) : null}

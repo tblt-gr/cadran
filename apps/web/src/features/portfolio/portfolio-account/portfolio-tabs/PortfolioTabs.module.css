@@ -22,3 +22,16 @@
     margin-left: var(--spacing-auto);
   }
 }
+
+/* On a phone the wrappers give their boxes to the page so the sticky tab strip follows the whole
+   page; the tools line stays under it, at the end. */
+@media (max-width: 767px) {
+  .bar,
+  .nav {
+    display: contents;
+  }
+
+  .tools {
+    align-self: flex-end;
+  }
+}

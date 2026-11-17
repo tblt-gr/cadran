@@ -10,6 +10,11 @@ import { goalDefaultsFor, marksFor } from '@/features/goals/goal-mark/goalMarks'
 import { useGoalMarks } from '@/features/reports/useGoalMarks';
 import { UpcomingNotice } from '@/features/settings/interface/UpcomingNotice';
 import { useMonthlyReport } from '@/features/reports/useMonthlyReport';
+import {
+  axisTransactionsHref,
+  monthBounds,
+} from '@/features/budget/monthly-budget/expense-donut/expenseTransactionsHref';
+import { useCategoryIdentities } from '@/features/categories/useCategoryIdentities';
 import { CategoryRow, MetricRow } from './MetricRow';
 import { asRecapMetric, UNAVAILABLE, type RecapMetric } from './recapMetric';
 import { RATE_KPIS, RECAP_KPIS } from './recapKpis';
@@ -35,6 +40,7 @@ export function TotalsCard({
   visibleCategoryIds,
 }: TotalsCardProps) {
   const { t } = useTranslation();
+  const identities = useCategoryIdentities();
   // The recap carries six of the indicators; the month's other flows come from the monthly projection.
   const projection = useMonthlyReport(month);
   // A month's goals mark the rows that carry their figure; the rows stay as they are while the
@@ -98,6 +104,7 @@ export function TotalsCard({
           {axes.map((axis) => (
             <MetricRow
               axis={axis.axis}
+              href={axisTransactionsHref(axis.axis, monthBounds(month))}
               key={axis.axis}
               goalColumn={goals.shown}
               marks={marksOf(`axis:${axis.axis}`)}
@@ -114,6 +121,12 @@ export function TotalsCard({
           {categories.map((category) => (
             <CategoryRow
               category={category}
+              identity={identities.data?.get(category.id)}
+              parent={
+                identities.data === undefined
+                  ? true
+                  : [...identities.data.values()].some((other) => other.parentId === category.id)
+              }
               key={category.id}
               goalColumn={goals.shown}
               marks={marksOf(`category:${category.id}`)}

@@ -47,6 +47,52 @@ async function dragIncomeToEnd(page: Page) {
   await expect.poll(() => ids(page)).toEqual(moved);
 }
 
+test('phone report keeps month tabs and report view buttons', async ({ browser, page }) => {
+  const context = await browser.newContext({
+    baseURL: test.info().project.use.baseURL,
+    ignoreHTTPSErrors: true,
+    storageState: await page.context().storageState(),
+    viewport: { width: 360, height: 740 },
+    hasTouch: true,
+    isMobile: true,
+    locale: 'fr-FR',
+  });
+  const phone = await context.newPage();
+  try {
+    await phone.goto('/budget/2026');
+    await settled(phone);
+    await expect(phone.getByRole('combobox', { name: 'Année' })).toBeVisible();
+    await expect(phone.getByRole('combobox', { name: 'Mois' })).toHaveCount(0);
+    const months = phone.getByRole('navigation', { name: 'Mois du budget' });
+    await expect(months).toBeVisible();
+    await expect(months.getByRole('link', { name: 'Janvier' })).toHaveAttribute(
+      'href',
+      '/budget/2026/01',
+    );
+    await expect(phone.getByRole('combobox', { name: 'Type de rapport' })).toHaveCount(0);
+    await phone.getByRole('button', { name: 'Pluriannuel' }).click();
+    await expect(phone).toHaveURL(/\/budget\/2026\?view=multi$/);
+    await settled(phone);
+    const yearCards = phone.getByRole('list', { name: /mois de .* à .*/i });
+    const detailedSummary = phone.getByRole('list', { name: 'Synthèse de la période détaillée' });
+    await expect(detailedSummary).toBeVisible();
+    const yearBox = await yearCards.boundingBox();
+    const summaryBox = await detailedSummary.boundingBox();
+    expect(summaryBox!.y - (yearBox!.y + yearBox!.height)).toBeGreaterThanOrEqual(12);
+    await phone.getByRole('button', { name: 'Annuel', exact: true }).click();
+    await expect(phone).toHaveURL(/\/budget\/2026$/);
+    await settled(phone);
+    expect(await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+    await auditAccessibility(phone);
+    await phone.getByRole('link', { name: 'Suivi du budget' }).click();
+    await expect(phone).toHaveURL(/\/budget\/2026\/\d{2}$/);
+  } finally {
+    await context.close();
+  }
+});
+
 test('reorders report columns by mouse, cancels, recovers save failure and persists in both reports', async ({
   page,
 }) => {

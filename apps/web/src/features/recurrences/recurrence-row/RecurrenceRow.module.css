@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-3);
-  padding: var(--spacing-2) var(--spacing-4);
+  padding: var(--spacing-4);
   border-bottom: var(--border-line-subtle);
   transition: background-color var(--duration-fast) var(--ease-out);
 }
@@ -20,7 +20,7 @@
   display: grid;
   min-width: 0;
   flex: 1 1 auto;
-  gap: var(--spacing-0-5);
+  gap: var(--spacing-2);
 }
 
 .title,
@@ -72,6 +72,21 @@
     flex-wrap: wrap;
   }
 
+  /* With an amount the row stays on one line: the label and the facts, then the amount, which
+     leaves room at the end for the menu pinned to the corner. */
+  .row[data-has-amount] {
+    flex-wrap: nowrap;
+  }
+
+  .row[data-has-amount] > .main.main {
+    flex: 1 1 0;
+    padding-right: var(--spacing-none);
+  }
+
+  .row[data-has-amount] > .amountCell {
+    padding-right: calc(var(--touch-target-min) + var(--spacing-1));
+  }
+
   .main {
     flex-basis: 100%;
   }
@@ -90,8 +105,45 @@
   color: var(--positive);
 }
 
-/* The next date is a secondary fact of the line: smaller and muted. */
+/* The rhythm and the next date read at the size and in the ink of a category's meta line, so the
+   label above and the period below keep the same two steps as on the categories page. */
 .next {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+  font-size: var(--font-size-label);
+}
+
+/* A glyph on either side of the title: bare, on the title's baseline, with no surface. */
+.glyph {
+  display: inline-flex;
+  margin-inline: var(--spacing-1);
+  color: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.glyph:first-child {
+  margin-inline-start: var(--spacing-none);
+}
+
+/* The amount is its own column, centred on the height of the row between the label and the facts. */
+.amountCell {
+  display: flex;
+  align-items: center;
+  flex: none;
+  align-self: center;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The facts of a schedule sit on their own lines under the title, with room between them. */
+.facts {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+/* A phone line keeps the rhythm and the amount: the next date is left to the detail. */
+@media (max-width: 47.999rem) {
+  .next {
+    display: none;
+  }
 }

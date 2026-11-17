@@ -320,15 +320,15 @@ describe('DashboardPage', () => {
     const card = screen.getByRole('region', { name: 'Patrimoine net' });
     await waitFor(() => expect(within(card).getByText('50,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 400,00${NBSP}€` })).toBeTruthy();
-    expect(card.textContent).toContain('depuis le 5 septembre 2025');
+    expect(card.textContent).not.toContain('depuis le');
     fireEvent.click(screen.getByRole('button', { name: 'Tout' }));
     await waitFor(() => expect(within(card).getByText('100,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 600,00${NBSP}€` })).toBeTruthy();
-    expect(card.textContent).toContain('depuis le 12 mars 2020');
+    expect(card.textContent).not.toContain('depuis le');
     fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
     await waitFor(() => expect(within(card).getByText('20,00 %')).toBeTruthy());
     expect(within(card).getByRole('img', { name: `Hausse de 200,00${NBSP}€` })).toBeTruthy();
-    expect(card.textContent).toContain('depuis le 31 décembre 2025');
+    expect(card.textContent).not.toContain('depuis le');
     expect(card.textContent).not.toContain('1,42 %');
   });
 
@@ -384,7 +384,7 @@ describe('DashboardPage', () => {
     const radios = within(screen.getByTestId('dashboard-skeleton')).getAllByRole('button', {
       name: (name) => name !== 'Masquer les montants',
     });
-    expect(radios.map((radio) => radio.textContent)).toEqual(['Tout', '12 mois', 'Depuis janvier']);
+    expect(radios.map((radio) => radio.textContent)).toEqual(['Tout', '12M', 'YTD']);
     expect(radios.every((radio) => (radio as HTMLButtonElement).disabled)).toBe(true);
     expect(screen.getByRole('button', { name: 'Depuis janvier', pressed: true })).toBeTruthy();
     const table = within(screen.getByTestId('dashboard-skeleton')).getByRole('table', {
@@ -514,7 +514,7 @@ describe('DashboardPage', () => {
     expect(within(allocation).getByRole('button', { name: 'Camembert' })).toBeTruthy();
   });
 
-  it('labels the wealth chart axes and shows date plus primary value on hover', async () => {
+  it('labels the wealth chart axes and previews the hovered point in the card, with no tooltip', async () => {
     api.readNetWorth.mockReturnValue(success(netWorth));
     api.readNetWorthHistory.mockReturnValue(success(history));
 
@@ -531,10 +531,15 @@ describe('DashboardPage', () => {
     expect(xAxis.textContent).toContain('31/07/2026');
     expect(xAxis.textContent).toContain('05/09/2026');
 
+    const card = screen.getByRole('region', { name: 'Patrimoine net' });
+    const headline = card.textContent;
     fireEvent.mouseEnter(screen.getByRole('button', { name: /31\/08\/2026/ }));
-    const tooltip = screen.getByRole('tooltip');
-    expect(tooltip.textContent).toContain('31/08/2026');
-    expect(tooltip.textContent).toContain(`122${NARROW}940,00${NBSP}€`);
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    // The hovered day, its value and the movement since the compared day replace the headline.
+    expect(card.textContent).toContain('31 août 2026');
+    expect(card.textContent).toContain(`122${NARROW}940,00${NBSP}€`);
+    fireEvent.mouseLeave(screen.getByRole('button', { name: /31\/08\/2026/ }).parentElement!);
+    expect(card.textContent).toBe(headline);
   });
 
   it('offers a tabular alternative that names an uncomputable month instead of showing zero', async () => {

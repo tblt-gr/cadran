@@ -42,7 +42,9 @@ export function YearRangeSelector({
 
   return (
     <div className={styles.selector}>
-      <label htmlFor="multi-year-range-from">{t('reports.multiYear.from')}</label>
+      <label className={styles.fromLabel} htmlFor="multi-year-range-from">
+        {t('reports.multiYear.from')}
+      </label>
       <GhostSelect
         id="multi-year-range-from"
         onChange={(event) => changeFrom(Number(event.target.value))}
@@ -54,7 +56,12 @@ export function YearRangeSelector({
           </option>
         ))}
       </GhostSelect>
-      <label htmlFor="multi-year-range-to">{t('reports.multiYear.to')}</label>
+      <span aria-hidden="true" className={styles.dash}>
+        -
+      </span>
+      <label className={styles.toLabel} htmlFor="multi-year-range-to">
+        {t('reports.multiYear.to')}
+      </label>
       <GhostSelect
         id="multi-year-range-to"
         onChange={(event) => changeTo(Number(event.target.value))}

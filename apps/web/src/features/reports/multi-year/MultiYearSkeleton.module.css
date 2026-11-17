@@ -3,5 +3,5 @@
   /* Wide enough that a column keeps the width of its figures: a narrower column would wrap its
      header label into a tall block that collapses when the data arrives. */
   min-width: calc(var(--spacing-12) * 2);
-  height: var(--font-size-body);
+  height: var(--font-size-label);
 }

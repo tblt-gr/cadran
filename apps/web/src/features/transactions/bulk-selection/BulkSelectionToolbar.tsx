@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { BulkEditModal } from './bulk-edit-modal/BulkEditModal';
 import type { BulkSelection } from './useBulkSelection';
 import styles from './BulkSelectionToolbar.module.css';
@@ -16,6 +17,8 @@ interface BulkSelectionToolbarProps {
    * only renders the selection controls, wherever the host puts them.
    */
   inline?: boolean;
+  /** What a row is called on this page: a ledger of transactions, or an account's operations. */
+  noun?: 'transactions' | 'operations';
 }
 
 /** The mode switch: "Sélectionner" to enter, "Quitter" to leave. */
@@ -30,17 +33,16 @@ export function BulkSelectionPen({
     <button
       aria-label={t(active ? 'transactions.bulk.exit' : 'transactions.bulk.selectMode')}
       aria-pressed={active}
-      className={
-        inline
-          ? `secondary-action ${styles.pen} ${styles.penInline}`
-          : `secondary-action ${styles.pen}`
-      }
+      className={inline ? `${styles.pen} ${styles.penInline}` : styles.pen}
       disabled={!active && bulk === null}
       onClick={onToggleActive}
       title={t(active ? 'transactions.bulk.exit' : 'transactions.bulk.selectMode')}
       type="button"
     >
-      <span>{t(active ? 'transactions.bulk.exitShort' : 'transactions.bulk.selectShort')}</span>
+      <Icon name={active ? 'close' : 'check-circle'} size={16} />
+      <span className={styles.penLabel}>
+        {t(active ? 'transactions.bulk.exitShort' : 'transactions.bulk.selectShort')}
+      </span>
     </button>
   );
 }
@@ -54,6 +56,7 @@ export function BulkSelectionToolbar({
   bulk,
   onToggleActive,
   inline = false,
+  noun = 'transactions',
 }: BulkSelectionToolbarProps) {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
@@ -74,16 +77,6 @@ export function BulkSelectionToolbar({
         />
         <span className="sr-only">{t('transactions.bulk.selectPage')}</span>
       </label>
-      {!bulk.filterScopeSelected ? (
-        <span className={styles.scope}>
-          {t('transactions.bulk.loadedScope', { count: bulk.pageCount })}
-        </span>
-      ) : null}
-      <p aria-live="polite" className={styles.counter}>
-        {bulk.selectedCount === 0
-          ? t('transactions.bulk.none')
-          : t('transactions.bulk.selected', { count: bulk.selectedCount })}
-      </p>
       <button
         className={styles.action}
         disabled={bulk.selectedCount === 0}
@@ -92,16 +85,18 @@ export function BulkSelectionToolbar({
       >
         {t('transactions.bulk.editAction')}
       </button>
+      {/* What the box above selects: the loaded rows, or every row of the filters once chosen. */}
+      <p aria-live="polite" className={styles.counter}>
+        {t(`transactions.bulk.count.${noun}`, {
+          count: bulk.filterScopeSelected ? bulk.selectedCount : bulk.pageCount,
+        })}
+      </p>
     </>
   ) : null;
+  // Only the way to widen the selection to every row of the filters is offered.
   const banner =
-    editing && bulk.filterScopeSelected ? (
-      <p className={styles.banner} role="status">
-        {t('transactions.bulk.filterScopeSelected', { count: bulk.selectedCount })}
-      </p>
-    ) : editing && bulk.offerFilterScope && bulk.matchingCount !== null ? (
+    editing && !bulk.filterScopeSelected && bulk.offerFilterScope && bulk.matchingCount !== null ? (
       <p className={styles.banner}>
-        <span>{t('transactions.bulk.pageSelected', { count: bulk.pageCount })}</span>
         <button className="secondary-action" onClick={bulk.selectFilterScope} type="button">
           {t('transactions.bulk.selectFilterScope', { count: bulk.matchingCount })}
         </button>

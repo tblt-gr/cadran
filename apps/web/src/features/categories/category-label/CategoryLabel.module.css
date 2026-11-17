@@ -9,7 +9,16 @@
 
 .text {
   min-width: 0;
+  /* The ellipsis clips the box: room under the text keeps a link's underline from being cut off. */
+  padding-block-end: var(--spacing-0-5);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A label inside a link underlines its text on hover or focus: the link's own decoration does not
+   reach through the inline-flex box. */
+a:hover .text,
+a:focus-visible .text {
+  text-decoration: underline;
 }

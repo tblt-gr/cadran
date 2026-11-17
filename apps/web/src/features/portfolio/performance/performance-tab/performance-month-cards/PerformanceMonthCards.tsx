@@ -1,4 +1,6 @@
 import type { PortfolioAnnualPerformance, PortfolioAnnualPeriodLine } from '@cadran/api-client';
+import { useState } from 'react';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { FigureCell } from '@/features/portfolio/performance/performance-tab/figure-cell/FigureCell';
@@ -13,6 +15,9 @@ import {
   monthName,
 } from '@/features/portfolio/performance/performance-tab/monthLabels';
 import styles from './PerformanceMonthCards.module.css';
+
+/** What a folded card keeps visible: the closing value and the unrealised change. */
+const FOLDED_FIGURES = ['endValue', 'unrealizedChange'];
 
 function Card({
   id,
@@ -37,41 +42,82 @@ function Card({
   selected?: string[];
   emptyLabel?: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const heading = (
+    <h3 id={id} title={titleHint}>
+      {title}
+    </h3>
+  );
+
+  if (emptyLabel) {
+    return (
+      <article
+        aria-labelledby={id}
+        className={`card ${styles.card} ${styles.greyed}`}
+        data-status={status}
+      >
+        {heading}
+        <p className={styles.empty}>
+          <EmptyValue label={emptyLabel} />
+        </p>
+      </article>
+    );
+  }
+
+  const value = (column: (typeof lineColumns)[number]) =>
+    !line ? (
+      <SkeletonBlock className={styles.skeleton} />
+    ) : column.figure ? (
+      <FigureCell
+        figure={column.figure}
+        onExplain={() => onExplain(target(column.figure!))}
+        scope={title}
+      >
+        {column.render(line, context)}
+      </FigureCell>
+    ) : (
+      column.render(line, context)
+    );
+
   return (
     <article
       aria-labelledby={id}
-      className={`card ${styles.card} ${emptyLabel ? styles.greyed : ''}`}
+      className={`card ${styles.card} ${styles.collapsible}`}
       data-status={status}
     >
-      <h3 id={id} title={titleHint}>
-        {title}
-      </h3>
-      <dl className={styles.figures}>
-        {lineColumns
-          .filter((column) => !selected || selected.includes(column.id))
-          .map((column) => (
-            <div className={styles.figure} key={column.id}>
-              <dt>{column.label}</dt>
-              <dd>
-                {emptyLabel ? (
-                  <EmptyValue label={emptyLabel} />
-                ) : !line ? (
-                  <SkeletonBlock className={styles.skeleton} />
-                ) : column.figure ? (
-                  <FigureCell
-                    figure={column.figure}
-                    onExplain={() => onExplain(target(column.figure!))}
-                    scope={title}
-                  >
-                    {column.render(line, context)}
-                  </FigureCell>
-                ) : (
-                  column.render(line, context)
-                )}
-              </dd>
-            </div>
-          ))}
-      </dl>
+      <Disclosure
+        meta={
+          <span className={styles.folded}>
+            {lineColumns
+              .filter((column) => FOLDED_FIGURES.includes(column.id))
+              .map((column) => (
+                <span className={styles.foldedFigure} key={column.id}>
+                  <span className={styles.foldedLabel}>{column.label}</span>
+                  {!line ? (
+                    <SkeletonBlock className={styles.skeleton} />
+                  ) : (
+                    column.render(line, context)
+                  )}
+                </span>
+              ))}
+          </span>
+        }
+        onToggle={setOpen}
+        open={open}
+        spread
+        title={heading}
+      >
+        <dl className={styles.figures}>
+          {lineColumns
+            .filter((column) => !selected || selected.includes(column.id))
+            .map((column) => (
+              <div className={styles.figure} key={column.id}>
+                <dt>{column.label}</dt>
+                <dd>{value(column)}</dd>
+              </div>
+            ))}
+        </dl>
+      </Disclosure>
     </article>
   );
 }

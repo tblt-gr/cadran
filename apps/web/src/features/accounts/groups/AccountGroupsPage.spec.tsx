@@ -61,7 +61,7 @@ function openGroupActions(label: string) {
 /** The skeleton draws the same tree: wait for it to leave before reading rows. */
 async function loadedGroupsTree() {
   await waitFor(() => expect(screen.queryByTestId('account-groups-skeleton')).toBeNull());
-  return screen.getByRole('list', { name: 'Groupes de comptes' });
+  return screen.getByRole('list', { name: 'Groupes' });
 }
 
 function renderPage() {
@@ -423,7 +423,7 @@ describe('AccountGroupsPage', () => {
           screen.getByRole('button', { name: 'Descendre Alpha' }),
         ),
       );
-      const labels = within(screen.getByRole('list', { name: 'Groupes de comptes' }))
+      const labels = within(screen.getByRole('list', { name: 'Groupes' }))
         .getAllByText(/^(Alpha|Bravo|Charlie)$/)
         .map((node) => node.textContent);
       expect(labels).toEqual(['Bravo', 'Alpha', 'Charlie']);
@@ -599,9 +599,7 @@ describe('AccountGroupsPage mutations and failures', () => {
     ).toBeTruthy();
     expect(screen.getByRole('dialog', { name: 'Nouveau groupe' })).toBeTruthy();
     expect(screen.queryByText('Le groupe a été enregistré.')).toBeNull();
-    expect(
-      within(screen.getByRole('list', { name: 'Groupes de comptes' })).getByText('Épargne'),
-    ).toBeTruthy();
+    expect(within(screen.getByRole('list', { name: 'Groupes' })).getByText('Épargne')).toBeTruthy();
   });
 
   it('shows a network failure in the modal and clears it when the modal is reopened', async () => {

@@ -109,3 +109,45 @@
     font-weight: var(--font-weight-medium);
   }
 }
+
+/* A phone row is compact: the date, the amount and the row menu. Source, reconciliation and state
+   stay in the table from tablet width up. */
+@media (max-width: 47.999rem) {
+  .panel .detail {
+    display: none;
+  }
+
+  .panel tbody tr {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+  }
+
+  .panel.panel tbody tr > th:first-child,
+  .panel tbody tr > th {
+    display: block;
+    flex: 1 1 auto;
+    padding: var(--spacing-none);
+  }
+
+  .panel tbody tr > th::before,
+  .panel tbody tr > td[data-label]::before {
+    display: none;
+  }
+
+  .panel tbody tr > td.number {
+    display: block;
+    flex: none;
+    padding: var(--spacing-none);
+    color: var(--text-primary);
+    font-size: var(--font-size-body);
+  }
+
+  .panel tbody tr > td[data-actions] {
+    position: static;
+    display: block;
+    flex: none;
+    padding: var(--spacing-none);
+  }
+}

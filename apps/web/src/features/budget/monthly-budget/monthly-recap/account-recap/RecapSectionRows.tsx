@@ -53,7 +53,11 @@ export function RecapSectionRows({
 
   return (
     <tbody>
-      <tr className={`${styles.groupRow} ${styles.foldable}`} onClick={toggle}>
+      <tr
+        className={`${styles.groupRow} ${styles.foldable}`}
+        data-expanded={expanded}
+        onClick={toggle}
+      >
         <th data-label={t('budget.monthly.recap.accounts.account')} scope="rowgroup">
           <button
             aria-controls={
@@ -104,7 +108,6 @@ export function RecapSectionRows({
           id={`${membersId}-${index}`}
           key={member.account.accountId}
           member={member}
-          color={color ?? null}
         />
       ))}
     </tbody>

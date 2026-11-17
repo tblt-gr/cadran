@@ -1,4 +1,3 @@
-import { MonthLink } from '@/features/reports/annual/month-link/MonthLink';
 import type { AnnualReport, GoalEvaluation, GoalPeriodEvaluation } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +22,8 @@ interface AnnualMonthCardProps {
   row: AnnualReport['rows'][number];
 }
 
+function noop() {}
+
 /**
  * One month of the mobile report. A month with figures is closed on its income and expenses, whose
  * values come from the server as is; a future or empty month has nothing to open.
@@ -31,25 +32,25 @@ export function AnnualMonthCard({ columns, label, marksOf, months, row }: Annual
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const name = label ?? monthLabel(row.month, i18n.language);
-  // A month with no figures links to its budget. With figures the title is the disclosure toggle,
-  // which cannot hold a link: the figures below link to the month themselves.
-  const title = (
-    <h3>
-      <MonthLink month={row.month}>{name}</MonthLink>
-    </h3>
-  );
   const className = `card ${styles.card} ${isEmptyState(row.state) ? styles.dimmed : ''}`;
 
   if (row.state === 'FUTURE' || row.state === 'NO_DATA') {
+    const reason = t(row.state === 'FUTURE' ? 'reports.annual.future' : 'reports.annual.noData');
     return (
-      <li className={className}>
-        {title}
-        <p>
-          <EmptyValue
-            quiet
-            label={t(row.state === 'FUTURE' ? 'reports.annual.future' : 'reports.annual.noData')}
-          />
-        </p>
+      <li className={`${className} ${styles.collapsible}`}>
+        {/* Same line as a folded month, with nothing to open: a hyphen for each figure. */}
+        <Disclosure
+          disabled
+          meta={flowSummaryOf(columns, () => (
+            <EmptyValue label={reason} quiet />
+          ))}
+          onToggle={noop}
+          open={false}
+          spread
+          title={<h3>{name}</h3>}
+        >
+          {null}
+        </Disclosure>
       </li>
     );
   }

@@ -40,7 +40,7 @@ export function ActiveFilterChips({ chips, onReset }: ActiveFilterChipsProps) {
       ))}
       <button
         aria-label={t('transactions.filters.reset')}
-        className="icon-button"
+        className="icon-ghost"
         onClick={onReset}
         title={t('transactions.filters.reset')}
         type="button"

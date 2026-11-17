@@ -90,10 +90,7 @@
 }
 
 .toggle[data-active='true'] {
-  border-color: var(--border-strong);
   color: var(--text-primary);
-  background: var(--bg-selected);
-  box-shadow: none;
 }
 
 .badge {

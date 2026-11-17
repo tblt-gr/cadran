@@ -31,7 +31,7 @@ export function AmountVisibilityToggle({
       aria-label={label}
       aria-pressed={hidden}
       disabled={disabled}
-      className={className ? `icon-button ${className}` : 'icon-button'}
+      className={className ? `icon-ghost ${className}` : 'icon-ghost'}
       onClick={() => {
         restoreFocus = true;
         setAmountsHidden(!areAmountsHidden());

@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useGroupingMode } from './grouping-mode/useGroupingMode';
 import { useAccountsView } from './accounts-view/accountsView';
-import { AccountsViewSwitch } from './accounts-view/AccountsViewSwitch';
+import { AccountsViewBar } from './accounts-view-bar/AccountsViewBar';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Toast } from '@/components/ui/toast/Toast';
 import { AccountsPageModals } from './accounts-page-modals/AccountsPageModals';
+import { AccountsTabs } from './accounts-tabs/AccountsTabs';
 import { AccountsPageActions } from './accounts-page-actions/AccountsPageActions';
 import { AccountOverview } from './account-overview/AccountOverview';
 import { useLiveAccount } from './useLiveAccount';
@@ -84,17 +85,13 @@ export function AccountsPage() {
 
   return (
     <div className={styles.page}>
+      <AccountsTabs path="/accounts" />
       <AccountsPageActions
-        grouping={grouping}
         includeArchived={includeArchived}
         includeClosed={includeClosed}
         onCreate={() => openEditor('create')}
-        onGroupingChange={setGrouping}
         onIncludeArchivedChange={setIncludeArchived}
         onIncludeClosedChange={setIncludeClosed}
-        onToggleReordering={() => setReordering((current) => !current)}
-        reordering={reordering}
-        view={view}
       />
 
       {saved ? (
@@ -135,9 +132,14 @@ export function AccountsPage() {
         </p>
       ) : null}
 
-      <div className={styles.view}>
-        <AccountsViewSwitch onChange={setView} value={view} />
-      </div>
+      <AccountsViewBar
+        grouping={grouping}
+        onGroupingChange={setGrouping}
+        onToggleReordering={() => setReordering((current) => !current)}
+        onViewChange={setView}
+        reordering={reordering}
+        view={view}
+      />
 
       <AccountOverview
         grouping={grouping}

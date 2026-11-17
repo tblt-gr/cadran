@@ -8,6 +8,7 @@ import { canonicalGroupColor } from '@/features/accounts/group-color';
 import { canonicalCategoryColor } from '@/features/categories/category-color';
 import { useCategoryIdentities } from '@/features/categories/useCategoryIdentities';
 import { SkeletonChartArea } from '@/components/ui/skeleton/Skeleton';
+import { expenseTransactionsHref } from '@/features/budget/monthly-budget/expense-donut/expenseTransactionsHref';
 import { lazyComponent } from '@/lib/lazyComponent';
 import { firstDataMonth, fromFirstDataMonth } from './annualColumns';
 import { FlowsDataTable, NetWorthDataTable } from './ChartDataTables';
@@ -25,10 +26,12 @@ const TOP_VISIBLE_ROWS = 6;
 function toRow(
   item: AnnualCategoryShare,
   identities: ReadonlyMap<string, Category> | undefined,
+  period: { from: string; to: string },
 ): AnnualDonutItem & AnnualLegendRow {
   return {
     amount: item.total,
     color: canonicalCategoryColor(item.color) ?? undefined,
+    href: item.categoryId ? expenseTransactionsHref([item.categoryId], period, null) : null,
     icon: item.categoryId ? (identities?.get(item.categoryId)?.effectiveIcon ?? null) : null,
     key: item.categoryId ?? item.label ?? '',
     label: item.label ?? '',
@@ -39,9 +42,12 @@ function toRow(
 /** The four datasets come from the backend and do not depend on the selected columns. */
 export function AnnualCharts({
   includeTrends = true,
+  period,
   report,
 }: {
   includeTrends?: boolean;
+  /** The days the figures cover, for the links to their transactions; the report's year when absent. */
+  period?: { from: string; to: string };
   report: AnnualReport;
 }) {
   const { t } = useTranslation();
@@ -68,7 +74,11 @@ export function AnnualCharts({
    * bucket's individual items, exact amount and share each, no summed
    * "Autres" slice. */
   const topCategoryRows = [...top.items, ...(top.other?.items ?? [])].map((item) =>
-    toRow(item, identities.data),
+    toRow(
+      item,
+      identities.data,
+      period ?? { from: `${report.year}-01-01`, to: `${report.year}-12-31` },
+    ),
   );
 
   const itemsById = new Map(allocation.items.map((item) => [item.groupId, item]));

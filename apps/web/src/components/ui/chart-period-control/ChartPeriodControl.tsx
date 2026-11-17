@@ -23,12 +23,14 @@ export function ChartPeriodControl<P extends ChartPeriod>({
   const { t } = useTranslation();
   const options = (sortChartPeriods(periods) as P[]).map((period) => ({
     value: period,
-    label: t(`chartPeriod.periods.${period}`),
+    label: t(`chartPeriod.short.${period}`),
+    ariaLabel: t(`chartPeriod.periods.${period}`),
     description: period === 'YTD' ? t('chartPeriod.descriptions.YTD') : undefined,
   }));
   return (
     <SegmentedControl
       compact
+      quiet
       disabled={disabled}
       label={label}
       onChange={onChange}

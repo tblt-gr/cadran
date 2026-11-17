@@ -21,7 +21,7 @@ for (const width of [360, 390, 768, 1280, 1440]) {
       'aria-current',
       'page',
     );
-    // The month's actions share the title line; the month bar belongs to the budget tab.
+    // The month's actions share the title line; the budget period control follows the tabs.
     const months = page.getByRole('navigation', { name: 'Mois du budget', exact: true });
     // Movements are added from the panels: the header keeps goals and closure only.
     await expect(page.getByRole('button', { name: 'Ajouter une transaction' })).toHaveCount(0);
@@ -93,6 +93,22 @@ for (const width of [360, 390, 768, 1280, 1440]) {
     expect(new URL(page.url()).pathname).toBe('/transactions');
   });
 }
+
+test('the budget follow-up tab returns from an older month to the current month', async ({
+  page,
+}) => {
+  await page.goto('/budget');
+  await settled(page);
+  const currentMonthPath = new URL(page.url()).pathname;
+  await page.goto('/budget/2025/01');
+  await settled(page);
+  await page
+    .getByRole('navigation', { name: 'Budget et transactions' })
+    .getByRole('link', { name: 'Suivi du budget' })
+    .click();
+  await settled(page);
+  expect(new URL(page.url()).pathname).toBe(currentMonthPath);
+});
 
 test('direct register URLs keep all-history search and show a filter-specific empty state', async ({
   page,

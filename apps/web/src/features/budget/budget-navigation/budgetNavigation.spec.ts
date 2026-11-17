@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  budgetContextHref,
-  budgetRegisterHref,
-  budgetReturnHref,
-  readBudgetContext,
-} from './budgetNavigation';
+import { budgetContextHref, budgetRegisterHref, readBudgetContext } from './budgetNavigation';
 import { decodeFilters } from '@/features/transactions/transaction-filters/filterState';
 
 describe('budget register context', () => {
@@ -23,24 +18,6 @@ describe('budget register context', () => {
       state: ['BOOKED'],
       axis: [],
     });
-    expect(budgetReturnHref(search, filters.month, '2026-11')).toBe(
-      '/budget/2026/09?axis=ESSENTIAL',
-    );
-  });
-  it('returns to the stepped month, and ignores register category/selection as budget criteria', () => {
-    expect(
-      budgetReturnHref(
-        '?budgetMonth=2026-09&budgetAxis=FIXED&categorization=NONE',
-        '2026-10',
-        '2026-11',
-      ),
-    ).toBe('/budget/2026/10?axis=FIXED');
-  });
-  it('keeps an unbounded direct register unbounded and uses the current month only for its budget link', () => {
-    expect(decodeFilters(new URLSearchParams('q=rent')).period).toBe('all');
-    expect(
-      budgetReturnHref('?q=rent&budgetMonth=invalid&budgetAxis=invalid', null, '2026-11'),
-    ).toBe('/budget/2026/11');
   });
   it('reads a valid budget context back and drops an invalid one', () => {
     expect(readBudgetContext('?budgetMonth=2026-09&budgetAxis=FIXED')).toEqual({

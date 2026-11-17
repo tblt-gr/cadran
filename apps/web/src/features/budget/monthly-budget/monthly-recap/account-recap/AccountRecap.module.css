@@ -48,6 +48,12 @@
   font-weight: var(--font-weight-bold);
 }
 
+/* The group band only shows while the group is open: folded, the row keeps the plain surface. */
+.groupRow[data-expanded='false'] th,
+.groupRow[data-expanded='false'] td {
+  background: var(--color-transparent);
+}
+
 .amount {
   display: inline-flex;
   align-items: center;
@@ -116,10 +122,6 @@
   color: var(--text-muted);
 }
 
-.dot {
-  display: none;
-}
-
 @media (max-width: 42rem) {
   .tableScroll {
     overflow: visible;
@@ -173,11 +175,6 @@
     display: none;
   }
 
-  .dot {
-    display: inline-flex;
-    flex: 0 0 auto;
-  }
-
   .panel tbody th a,
   .panel tbody th .label {
     display: block;
@@ -203,6 +200,10 @@
      row height so the name and the total join without a seam. */
   .panel tbody .groupRow {
     background: var(--bg-surface-2);
+  }
+
+  .panel tbody .groupRow[data-expanded='false'] {
+    background: var(--color-transparent);
   }
 
   .groupRow th,

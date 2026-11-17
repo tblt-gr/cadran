@@ -1,6 +1,4 @@
 .panel {
-  /* `clip`, not `hidden`: a scroll container would stop the day headers from sticking. */
-  overflow: clip;
   padding: var(--spacing-none);
 }
 
@@ -11,22 +9,24 @@
   list-style: none;
 }
 
-.dayHeader {
-  position: sticky;
-  z-index: 1;
-  top: var(--header-height);
+/* A day is a plain title over its own card of transactions. */
+.dayTitle {
   margin: var(--spacing-none);
-  padding: var(--spacing-2) var(--spacing-4);
-  border-bottom: var(--border-line-subtle);
-  color: var(--text-secondary);
-  background: var(--bg-surface-2);
-  font-family: var(--font-family-mono);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-normal);
+  padding: var(--spacing-5) var(--spacing-none) var(--spacing-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-card);
 }
 
-.day + .day .dayHeader {
-  border-top: var(--border-line-subtle);
+/* A day still to come reads greyed, like the planned rows it holds. */
+.dayTitle[data-future='true'] {
+  color: var(--text-muted);
+}
+
+.dayCard {
+  padding: var(--spacing-none);
+  overflow: clip;
 }
 
 /* French dates keep the month in lower case; only the weekday opening the line is capitalised. */
@@ -36,13 +36,6 @@
 
 .date::first-letter {
   text-transform: uppercase;
-}
-
-/* The phone bar is not pinned, so the day headers stick to the top of the viewport there. */
-@media (max-width: 767px) {
-  .dayHeader {
-    top: 0;
-  }
 }
 
 .windowControl {
@@ -82,6 +75,10 @@
   .row {
     min-height: var(--touch-target-min);
   }
+}
+
+.row[data-clickable='true'] {
+  cursor: pointer;
 }
 
 .row:hover,
@@ -132,7 +129,7 @@
   min-height: var(--touch-target-min);
 }
 
-.day:last-child .row:last-child {
+.dayCard > :last-child .row:last-child {
   border-bottom: var(--border-none);
 }
 
@@ -144,17 +141,27 @@
   overflow-wrap: anywhere;
 }
 
-/* The label is the row's main tap target on a touch screen: it fills the touch height instead of padding the row. */
+/* The label is the row's main tap target on a touch screen: it fills the touch height instead of padding the row.
+   A note under it (transfer route, refund) is pulled up into the empty half of that target, so it
+   reads as the label's own second line. */
 @media (pointer: coarse) {
   .titleLine > button {
     min-width: var(--touch-target-min);
     min-height: var(--touch-target-min);
+  }
+
+  .primary .titleLine + small {
+    margin-top: var(--spacing-pull);
   }
 }
 
 .state {
   display: block;
   margin-top: var(--spacing-1);
+}
+
+.primary small:last-child {
+  padding-bottom: var(--spacing-2);
 }
 
 .primary small {
@@ -185,7 +192,8 @@
   font-size: var(--font-size-sm);
 }
 
-/* Category glyph before the label and clock after it: phone only, the desktop has columns. */
+/* The category glyph shows on phones only, the desktop has a column; the clock of a pending or
+   planned row sits after the label everywhere, in the colour its tag had. */
 .titleLine {
   display: flex;
   align-items: center;
@@ -199,7 +207,8 @@
 
 .clock {
   display: inline-flex;
-  color: inherit;
+  flex: none;
+  color: var(--info);
 }
 
 .phoneOnly {
@@ -225,56 +234,33 @@
   }
 
   .meta,
-  .actions,
-  .pendingState {
+  .actions {
     display: none;
   }
 }
 
-/* The headings and every day use one column grid; the metadata wrapper stays in the DOM. */
-.registerHeading {
-  display: none;
-}
+/* Every day uses one column grid; the metadata wrapper stays in the DOM. */
 @media (min-width: 64rem) {
-  .row,
-  .registerHeading {
+  .row {
     grid-template-areas: 'primary category account amount actions';
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 0.75fr) minmax(0, 1fr) auto;
     padding-block: var(--spacing-2);
   }
-  .row[data-accounts='false'],
-  .registerHeading[data-accounts='false'] {
+  .row[data-accounts='false'] {
     grid-template-areas: 'primary category amount actions';
     grid-template-columns: minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr) auto;
   }
-  .row.selectable,
-  .registerHeading.selectable {
+  .row.selectable {
     grid-template-areas: 'select primary category account amount actions';
     grid-template-columns:
       var(--touch-target-min) minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 0.75fr)
       minmax(0, 1fr) auto;
   }
-  .row.selectable[data-accounts='false'],
-  .registerHeading.selectable[data-accounts='false'] {
+  .row.selectable[data-accounts='false'] {
     grid-template-areas: 'select primary category amount actions';
     grid-template-columns:
       var(--touch-target-min) minmax(0, 2fr) minmax(0, 1.5fr) minmax(0, 1fr)
       auto;
-  }
-  .registerHeading {
-    display: grid;
-    align-items: center;
-    gap: var(--spacing-3);
-    padding-inline: var(--spacing-4) var(--spacing-2);
-    border-bottom: var(--border-line-subtle);
-    background: var(--bg-surface-2);
-    color: var(--text-muted);
-    font-size: var(--font-size-meta);
-  }
-  .registerHeading .primary,
-  .registerHeading .amount {
-    color: inherit;
-    font-size: inherit;
   }
   .meta {
     display: contents;
@@ -311,11 +297,6 @@
 }
 
 @media (min-width: 48rem) {
-  .dayHeader {
-    top: var(--header-height);
-    padding-inline: var(--spacing-4);
-  }
-
   .row {
     padding-inline: var(--spacing-4) var(--spacing-2);
   }

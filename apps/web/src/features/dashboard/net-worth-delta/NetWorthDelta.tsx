@@ -1,7 +1,7 @@
 import type { NetWorthDelta as Delta } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
-import { formatAmount, formatCalendarDay } from '@/lib/decimal';
+import { formatAmount } from '@/lib/decimal';
 import { formatSharePercent } from '@/lib/formatSharePercent';
 import { deltaDirection } from './deltaDirection';
 import styles from './NetWorthDelta.module.css';
@@ -27,9 +27,6 @@ interface NetWorthDeltaProps {
  */
 export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
   const { i18n, t } = useTranslation();
-  const since = t('dashboard.netWorth.deltaPeriod', {
-    period: formatCalendarDay(delta.comparedOn, i18n.language),
-  });
 
   if (delta.amount === null) {
     return (
@@ -38,7 +35,6 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
           label={t('states.notCalculable.label')}
           reason={delta.amountReason ? t(`dashboard.netWorth.reasons.${delta.amountReason}`) : null}
         />
-        <span>{since}</span>
       </p>
     );
   }
@@ -75,7 +71,6 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
           {formatSharePercent(delta.ratePercentDisplay)}
         </span>
       )}
-      <span>{since}</span>
     </p>
   );
 }

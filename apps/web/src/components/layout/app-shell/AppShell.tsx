@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSwipeNavigation } from '@/hooks/use-swipe-navigation';
 import { useClientNavigation } from '@/hooks/use-client-navigation';
 import { getRouteTitleKey } from '@/lib/navigation';
 import { Header } from '@/components/layout/header/Header';
@@ -68,7 +69,8 @@ function AppShellContent({
   const headerSubtitle = useHeaderSubtitleValue(path);
   const headerOverride = useHeaderTitleValue(path);
   const title = headerOverride ?? t(getRouteTitleKey(path));
-  const { handleNavigate } = useClientNavigation(setPath);
+  const { handleNavigate, navigate } = useClientNavigation(setPath);
+  useSwipeNavigation(path, navigate);
 
   useEffect(() => {
     document.title = path === '/' ? t('app.name') : `${title} · ${t('app.name')}`;

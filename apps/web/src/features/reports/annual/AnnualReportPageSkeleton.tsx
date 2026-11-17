@@ -106,13 +106,24 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
             </Disclosure>
           </li>
         ))}
-        <li className={`card ${cardStyles.card} ${cardStyles.summary}`}>
+      </ul>
+      <ul aria-hidden="true" className={cardStyles.list}>
+        <li className={`card ${cardStyles.card}`}>
           <h3>{t('reports.annual.summaryTitle')}</h3>
-          {PLACEHOLDER_COLUMNS.slice(0, 2).map((column) => (
-            <section key={column}>
-              <h4>
-                <SkeletonBlock className={styles.skeletonCell} />
-              </h4>
+        </li>
+        {PLACEHOLDER_COLUMNS.slice(0, 2).map((column) => (
+          <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={column}>
+            <Disclosure
+              meta={<SkeletonBlock className={styles.skeletonCell} />}
+              onToggle={noop}
+              open={false}
+              spread
+              title={
+                <h4>
+                  <SkeletonBlock className={styles.skeletonCell} />
+                </h4>
+              }
+            >
               <dl>
                 {SUMMARY_ROW_IDS.map((rowId) => (
                   <div key={rowId}>
@@ -123,9 +134,9 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
                   </div>
                 ))}
               </dl>
-            </section>
-          ))}
-        </li>
+            </Disclosure>
+          </li>
+        ))}
       </ul>
       <div className={chartStyles.grid}>
         <ChartFrame data={<SkeletonText lines={2} />} title={t('reports.annual.charts.flows')}>

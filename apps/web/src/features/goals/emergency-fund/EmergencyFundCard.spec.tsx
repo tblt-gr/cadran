@@ -56,21 +56,21 @@ describe('EmergencyFundCard', () => {
       screen.getByTestId('emergency-fund-skeleton').querySelectorAll('[role="status"]'),
     ).toHaveLength(1);
     resolveCoverage?.(await ok(coverageShortfall));
-    expect(await screen.findByText('4,9 mois')).toBeTruthy();
+    expect(await screen.findByText('4,9 / 6 mois')).toBeTruthy();
     expect(screen.queryByTestId('emergency-fund-skeleton')).toBeNull();
 
     api.readEmergencyFundCoverage.mockImplementation(() => new Promise(() => undefined));
     void queryClient.invalidateQueries({ queryKey: ['emergency-fund'] });
     await waitFor(() => expect(api.readEmergencyFundCoverage).toHaveBeenCalledTimes(2));
-    expect(screen.getByText('4,9 mois')).toBeTruthy();
+    expect(screen.getByText('4,9 / 6 mois')).toBeTruthy();
     expect(screen.queryByTestId('emergency-fund-skeleton')).toBeNull();
   });
 
   it('shows the covered months, target, required amount and the shortfall in words', async () => {
     api.readEmergencyFundCoverage.mockImplementation(() => ok(coverageShortfall));
     renderCard();
-    expect(await screen.findByText('4,9 mois')).toBeTruthy();
-    expect(screen.getByText(/pour 6 mois visés/i)).toBeTruthy();
+    expect(await screen.findByText('4,9 / 6 mois')).toBeTruthy();
+    expect(screen.getByText(/de dépenses essentielles couverts/i)).toBeTruthy();
     expect(screen.getByText(/10\s260,00\s€/)).toBeTruthy();
     expect(screen.getByText(/12\s600\s€/)).toBeTruthy();
     expect(screen.getByText(/Il manque 2\s340,00\s€/)).toBeTruthy();
@@ -237,7 +237,7 @@ describe('EmergencyFundCard', () => {
       }),
     );
     renderCard();
-    await screen.findByText('4,9 mois');
+    await screen.findByText('4,9 / 6 mois');
     expect(screen.getByText(/12\s600\s€/)).toBeTruthy();
     expect(screen.getByText(/Il manque 2\s340,00\s€/)).toBeTruthy();
     expect(screen.getByText(/10\s260,00\s\$US/)).toBeTruthy();
@@ -272,13 +272,13 @@ describe('EmergencyFundCard', () => {
     expect(await screen.findByRole('alert')).toBeTruthy();
     api.readEmergencyFundCoverage.mockImplementation(() => ok(coverageShortfall));
     fireEvent.click(screen.getByRole('button', { name: /réessayer/i }));
-    expect(await screen.findByText('4,9 mois')).toBeTruthy();
+    expect(await screen.findByText('4,9 / 6 mois')).toBeTruthy();
   });
 
   it('opens the explanation and the policy modals from keyboard-reachable buttons', async () => {
     api.readEmergencyFundCoverage.mockImplementation(() => ok(coverageShortfall));
     renderCard();
-    await screen.findByText('4,9 mois');
+    await screen.findByText('4,9 / 6 mois');
     fireEvent.click(screen.getByRole('button', { name: /voir le calcul/i }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByRole('link', { name: 'Livret A' }).getAttribute('href')).toBe(

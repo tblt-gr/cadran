@@ -23,6 +23,7 @@ export function AccountHistoryChart({
     return <p role="status">{t('accounts.history.nonCalculable')}</p>;
   return (
     <CurveChart
+      hideValueAxis
       interpolation="step-after"
       interaction="series"
       label={t(keys.title)}
