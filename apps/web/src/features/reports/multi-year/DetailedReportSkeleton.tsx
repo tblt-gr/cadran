@@ -1,7 +1,9 @@
 import type { MultiYearReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { Icon } from '@/components/ui/icon/Icon';
+import { FlowSummary } from '@/features/reports/annual/flow-summary/FlowSummary';
 import { MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS } from './multiYearDetailedAggregate';
 import { ColumnHeader } from '@/features/reports/annual/ColumnHeader';
 import cardStyles from '@/features/reports/annual/AnnualMonthCards.module.css';
@@ -9,6 +11,8 @@ import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css'
 import localStyles from './ContinuousDetailedReport.module.css';
 import styles from './DetailedAnnualReports.module.css';
 import skeletonStyles from './MultiYearSkeleton.module.css';
+
+const noop = () => undefined;
 
 /**
  * Mirrors ContinuousDetailedReport element for element while the annual
@@ -80,27 +84,53 @@ export function DetailedReportSkeleton({ report }: { report: MultiYearReport }) 
         </section>
         <ul aria-hidden="true" className={cardStyles.list}>
           {report.years.map((year) => (
-            <li className={`card ${cardStyles.card}`} key={year.year}>
-              <h3>
-                <span className={localStyles.yearToggle}>
-                  <span aria-hidden="true" className={localStyles.chevron}>
-                    <Icon name="chevron-right" size={14} />
-                  </span>
-                  {year.year}
-                </span>
-              </h3>
-              <dl>
-                {report.columns.map((column) => (
-                  <div key={column.id}>
-                    <dt>
-                      <ColumnHeader column={column} />
-                    </dt>
-                    <dd>
-                      <SkeletonBlock className={skeletonStyles.cell} />
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+            <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={year.year}>
+              <Disclosure
+                meta={
+                  <FlowSummary
+                    expenses={<SkeletonBlock className={skeletonStyles.cell} />}
+                    income={<SkeletonBlock className={skeletonStyles.cell} />}
+                  />
+                }
+                onToggle={noop}
+                open={false}
+                spread
+                title={<h3>{year.year}</h3>}
+              >
+                <dl>
+                  {report.columns.map((column) => (
+                    <div key={column.id}>
+                      <dt>
+                        <ColumnHeader column={column} />
+                      </dt>
+                      <dd>
+                        <SkeletonBlock className={skeletonStyles.cell} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </Disclosure>
+            </li>
+          ))}
+          <li>
+            <h3 className={cardStyles.listHeading}>{t('reports.multiYear.detailedSummaryCard')}</h3>
+          </li>
+          {MULTI_YEAR_DETAILED_AGGREGATE_ROW_IDS.map((rowId) => (
+            <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={rowId}>
+              <Disclosure
+                meta={
+                  <FlowSummary
+                    expenses={<SkeletonBlock className={skeletonStyles.cell} />}
+                    income={<SkeletonBlock className={skeletonStyles.cell} />}
+                  />
+                }
+                onToggle={noop}
+                open={false}
+                spread
+                title={<h3>{t(`reports.annual.summary.${rowId}`)}</h3>}
+              >
+                <dl />
+              </Disclosure>
             </li>
           ))}
         </ul>

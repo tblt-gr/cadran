@@ -1,0 +1,14 @@
+.summary {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.income {
+  color: var(--positive);
+}
+.expenses {
+  color: var(--negative);
+}

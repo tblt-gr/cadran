@@ -1,4 +1,4 @@
-import { expect, type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { movementRows, settled, uniqueLabel, selectAccount } from './page';
 
 /** Own fixtures keep editing audits independent of the shared ledger's current row order. */
@@ -34,10 +34,7 @@ export async function openMovementEditModal(
   await settled(page);
   const rows = movementRows(page, label);
   await expect(rows).toHaveCount(isTransfer ? 2 : 1);
-  await rows
-    .first()
-    .getByRole('button', { name: /^Actions de la transaction/ })
-    .click();
+  await openActions(rows.first());
   if (kind === 'refund') {
     await page.getByRole('button', { name: /^Créer un remboursement/ }).click();
     await settled(page);
@@ -65,13 +62,21 @@ export async function openMovementEditModal(
     await refund.getByRole('button', { name: 'Créer le remboursement', exact: true }).click();
     await expect(refund).toBeHidden();
     await settled(page);
-    await movementRows(page, label)
-      .getByRole('button', { name: /^Actions de la transaction/ })
-      .click();
+    await openActions(movementRows(page, label));
   }
   await page.getByRole('button', { name: /^Modifier/ }).click();
   await settled(page);
   return page.getByRole('dialog', {
     name: isTransfer ? 'Modifier le virement' : 'Modifier la transaction',
   });
+}
+
+/** A phone row carries no action menu: its detail dialog holds the same actions as buttons. */
+async function openActions(row: Locator) {
+  const menu = row.getByRole('button', { name: /^Actions de la transaction/ });
+  if (await menu.isVisible()) {
+    await menu.click();
+    return;
+  }
+  await row.getByRole('button', { name: /^Consulter la transaction/ }).click();
 }

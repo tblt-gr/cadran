@@ -146,4 +146,27 @@ describe('AnnualMonthCards collapsible months', () => {
     const summary = screen.getByRole('heading', { name: 'Synthèse de l’année' }).closest('li')!;
     expect(summary.querySelector('details')).toBeNull();
   });
+
+  it('folds a month on its income in green and its expenses in red, with text labels', () => {
+    const report: AnnualReport = {
+      ...annualReport,
+      columns: [
+        { id: 'cashIncome', label: 'Revenus', kind: 'FLOW', assetCode: 'EUR' },
+        { id: 'budgetExpenses', label: 'Dépenses', kind: 'FLOW', assetCode: 'EUR' },
+      ],
+      rows: annualReport.rows.map((row) => ({
+        ...row,
+        cells: {
+          cashIncome: { value: '3000', reason: null },
+          budgetExpenses: { value: '-1200', reason: null },
+        },
+      })) as unknown as AnnualReport['rows'],
+    };
+    renderCards(report);
+    const card = screen.getAllByRole('listitem')[0]!;
+    const summary = card.querySelector('summary')!;
+    expect(within(summary).getByText(/revenus/i).parentElement!.textContent).toMatch(/3\s?000,00/);
+    expect(within(summary).getByText(/dépenses/i).parentElement!.textContent).toMatch(/1\s?200,00/);
+    expect(card.querySelector('details')!.open).toBe(false);
+  });
 });

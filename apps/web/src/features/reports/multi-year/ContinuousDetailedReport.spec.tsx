@@ -171,7 +171,7 @@ describe('ContinuousDetailedReport', () => {
     expect(totalRow.textContent).not.toMatch(/aucun mois comptabilisé/i);
   });
 
-  it('shows the same aggregate values in the mobile summary card', () => {
+  it('shows the same aggregate values in the mobile summary cards, one folded card per statistic', () => {
     render(
       <ContinuousDetailedReport
         annualReports={[annualReportForYear(2024), annualReportForYear(2025)]}
@@ -180,8 +180,35 @@ describe('ContinuousDetailedReport', () => {
     );
     const cards = screen.getByRole('list', { name: /mois de/i });
     const items = within(cards).getAllByRole('listitem');
-    const summaryCard = items[items.length - 1]!;
-    expect(summaryCard.textContent).toMatch(/190\s?000,00\s?€/);
+    const totalCard = items.find(
+      (item) => within(item).queryByRole('heading', { name: 'Total' }) !== null,
+    )!;
+    expect(totalCard.textContent).toMatch(/190\s?000,00\s?€/);
+    for (const name of ['Total', 'Moyenne', 'Médiane', 'Minimum', 'Maximum']) {
+      const card = items.find((item) => within(item).queryByRole('heading', { name }) !== null)!;
+      expect(card.querySelector('details')!.open).toBe(false);
+    }
+  });
+
+  it('folds each year card on its income and expenses and unfolds it into label and value rows', () => {
+    render(
+      <ContinuousDetailedReport
+        annualReports={[annualReportForYear(2024), annualReportForYear(2025)]}
+        report={multiYearReport}
+      />,
+    );
+    const cards = screen.getByRole('list', { name: /mois de/i });
+    const yearCard = within(cards)
+      .getAllByRole('listitem')
+      .find((item) => within(item).queryByRole('heading', { name: '2024' }) !== null)!;
+    const details = yearCard.querySelector('details')!;
+    expect(details.open).toBe(false);
+    expect(within(details.querySelector('summary')!).getByText(/revenus/i)).toBeTruthy();
+    fireEvent.click(details.querySelector('summary')!);
+    expect(details.open).toBe(true);
+    expect(details.querySelectorAll('dl > div > dt').length).toBeGreaterThan(0);
+    // The change against the previous year does not fit a phone card.
+    expect(yearCard.textContent).not.toMatch(/\+2\s?000,00\s?€/);
   });
 });
 

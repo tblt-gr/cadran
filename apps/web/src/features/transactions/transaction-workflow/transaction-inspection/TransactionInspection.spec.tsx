@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { TransactionActionsContext } from '@/features/transactions/transaction-workflow/transactionActions';
 import { TransactionInspection } from './TransactionInspection';
 
 const api = vi.hoisted(() => ({ getTransaction: vi.fn() }));
@@ -25,6 +26,11 @@ const loaded = (rawLabel: string, displayLabel: string) => ({
     amount: { value: '-42.90', assetCode: 'EUR' },
     nature: 'EXPENSE',
     state: 'BOOKED',
+    splits: [],
+    transferId: null,
+    reviewReason: null,
+    accountId: 'acc-1',
+    refundedAmount: null,
     counterparty: null,
     note: null,
     bankReference: null,
@@ -55,4 +61,46 @@ it('omits the source label row when it matches the display label', async () => {
 
   expect(await screen.findByText('CB CARREFOUR 1234')).toBeTruthy();
   expect(screen.queryByText('Libellé d’origine')).toBeNull();
+});
+
+it('shows the category of the transaction and the actions of the row menu', async () => {
+  const result = loaded('CB CARREFOUR 1234', 'Courses');
+  api.getTransaction.mockResolvedValue({
+    ...result,
+    data: {
+      ...result.data,
+      splits: [
+        {
+          id: 's1',
+          amount: { value: '-42.90', assetCode: 'EUR' },
+          categoryId: 'c1',
+          categoryLabel: 'Alimentation',
+          categoryColor: null,
+          categoryIcon: null,
+        },
+      ],
+    },
+  });
+  const open = vi.fn();
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <TransactionActionsContext.Provider
+        value={{
+          accounts: [],
+          closedMonths: new Set(),
+          duplicatingIds: new Set(),
+          open,
+        }}
+      >
+        <TransactionInspection transactionId="t1" close={vi.fn()} />
+      </TransactionActionsContext.Provider>
+    </QueryClientProvider>,
+  );
+
+  expect(await screen.findByText('Alimentation')).toBeTruthy();
+  expect(screen.getByText('Catégorie')).toBeTruthy();
+  fireEvent.click(screen.getByRole('button', { name: 'Modifier' }));
+  expect(open).toHaveBeenCalledWith('edit', expect.objectContaining({ id: 't1' }));
+  expect(screen.getByRole('button', { name: 'Dupliquer' })).toBeTruthy();
+  expect(screen.getByRole('button', { name: 'Annuler' })).toBeTruthy();
 });

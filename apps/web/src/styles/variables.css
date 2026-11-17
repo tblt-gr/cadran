@@ -123,11 +123,12 @@
   /* The meta layer is set in Geist Mono, which runs wider than Inter: 12 px reads as 13 px. */
   --font-size-meta: 0.75rem;
   --font-size-kpi: 1.375rem;
+  --font-size-kpi-mobile: 1.125rem;
   --font-size-panel-total: 1.125rem;
   --font-size-metric: 1.75rem;
   --font-size-page-title: 1.5rem;
   --font-size-display: clamp(2rem, 2.6vw, 2.5rem);
-  --font-size-display-mobile: clamp(2rem, 10vw, 2.5rem);
+  --font-size-display-mobile: clamp(1.625rem, 8vw, 2rem);
   --font-size-empty-title: clamp(1.5rem, 3vw, 2.25rem);
   /* Two working weights and one for emphasis: hierarchy comes from size and colour, not from weight. */
   --font-weight-normal: 400;

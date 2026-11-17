@@ -3,6 +3,12 @@
   height: var(--font-size-kpi);
 }
 
+@media (max-width: 767px) {
+  .amount {
+    height: var(--font-size-kpi-mobile);
+  }
+}
+
 .meter {
   width: 100%;
   height: var(--spacing-2);

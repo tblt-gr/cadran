@@ -1,5 +1,5 @@
 import { MonthLink } from '@/features/reports/annual/month-link/MonthLink';
-import type { AnnualReport, GoalPeriodEvaluation } from '@cadran/api-client';
+import type { AnnualReport, GoalEvaluation, GoalPeriodEvaluation } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
@@ -8,24 +8,29 @@ import { GoalMark, GoalMarkedValue } from '@/features/goals/goal-mark/GoalMark';
 import { marksFor } from '@/features/goals/goal-mark/goalMarks';
 import { AnnualCellValue } from './AnnualCellValue';
 import { annualCellHref } from './annualColumns';
+import { flowSummaryOf } from './flow-summary/flowSummaryOf';
 import { ColumnHeader } from './ColumnHeader';
 import { isEmptyState, monthLabel } from './annualRowLabels';
 import styles from './AnnualMonthCards.module.css';
 
 interface AnnualMonthCardProps {
   columns: AnnualReport['columns'];
-  months: readonly GoalPeriodEvaluation[] | undefined;
+  /** Replaces the month name, e.g. to carry the year in a multi-year chronology. */
+  label?: string;
+  months?: readonly GoalPeriodEvaluation[] | undefined;
+  /** Overrides the goal marks of a figure when they do not come from `months`. */
+  marksOf?: (columnId: string) => readonly GoalEvaluation[];
   row: AnnualReport['rows'][number];
 }
 
 /**
- * One month of the mobile report. A month with figures is closed on its first column, whose
- * value comes from the server as is; a future or empty month has nothing to open.
+ * One month of the mobile report. A month with figures is closed on its income and expenses, whose
+ * values come from the server as is; a future or empty month has nothing to open.
  */
-export function AnnualMonthCard({ columns, months, row }: AnnualMonthCardProps) {
+export function AnnualMonthCard({ columns, label, marksOf, months, row }: AnnualMonthCardProps) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
-  const name = monthLabel(row.month, i18n.language);
+  const name = label ?? monthLabel(row.month, i18n.language);
   // A month with no figures links to its budget. With figures the title is the disclosure toggle,
   // which cannot hold a link: the figures below link to the month themselves.
   const title = (
@@ -49,21 +54,20 @@ export function AnnualMonthCard({ columns, months, row }: AnnualMonthCardProps) 
     );
   }
 
-  const lead = columns[0];
-  const leadCell = lead ? row.cells[lead.id] : undefined;
   return (
     <li className={`${className} ${styles.collapsible}`}>
       <Disclosure
-        meta={
-          lead ? (
+        meta={flowSummaryOf(columns, (column) => {
+          const cell = row.cells[column.id];
+          return (
             <AnnualCellValue
-              assetCode={lead.assetCode}
-              kind={lead.kind}
-              reason={leadCell?.reason ?? null}
-              value={leadCell?.value ?? null}
+              assetCode={column.assetCode}
+              kind={column.kind}
+              reason={cell?.reason ?? null}
+              value={cell?.value ?? null}
             />
-          ) : null
-        }
+          );
+        })}
         onToggle={setOpen}
         open={open}
         spread
@@ -71,7 +75,7 @@ export function AnnualMonthCard({ columns, months, row }: AnnualMonthCardProps) 
       >
         <dl>
           {columns.map((column) => {
-            const marks = marksFor(months, row.month, column.id);
+            const marks = marksOf ? marksOf(column.id) : marksFor(months, row.month, column.id);
             return (
               <div key={column.id}>
                 <dt>

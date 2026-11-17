@@ -11,6 +11,24 @@ export interface TransactionActionsContextValue {
 }
 export const TransactionActionsContext = createContext<TransactionActionsContextValue | null>(null);
 
+export type TransactionActionIcon = 'search' | 'replace' | 'edit' | 'copy' | 'archive';
+
+/** The actions a transaction offers, in menu order; the row menu and the detail dialog share it. */
+export function transactionActionList(
+  transaction: Transaction,
+): Array<[TransactionAction, TransactionActionIcon]> {
+  return [
+    ['inspect', 'search'],
+    ['refund', 'replace'],
+    ['edit', 'edit'],
+    ['duplicate', 'copy'],
+    ['void', 'archive'],
+    ...(transaction.reviewReason !== null
+      ? [['reconcile', 'replace'] as [TransactionAction, TransactionActionIcon]]
+      : []),
+  ];
+}
+
 /** Shared by both entry points; the server remains authoritative on every write. */
 export function transactionEligibility(
   transaction: Transaction,

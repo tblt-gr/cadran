@@ -7,8 +7,8 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import {
   TransactionActionsContext,
+  transactionActionList,
   transactionEligibility,
-  type TransactionAction,
 } from '@/features/transactions/transaction-workflow/transactionActions';
 
 export function TransactionRowActions({ transaction }: { transaction: Transaction | null }) {
@@ -33,16 +33,7 @@ function LoadedTransactionActions({
     context?.accounts.find((a) => a.id === transaction.accountId),
   );
   const portfolioOperationsHref = `/portfolios/${transaction.accountId}?tab=operations`;
-  const actions: Array<[TransactionAction, 'search' | 'replace' | 'edit' | 'copy' | 'archive']> = [
-    ['inspect', 'search'],
-    ['refund', 'replace'],
-    ['edit', 'edit'],
-    ['duplicate', 'copy'],
-    ['void', 'archive'],
-    ...(transaction.reviewReason !== null
-      ? [['reconcile', 'replace'] as ['reconcile', 'replace']]
-      : []),
-  ];
+  const actions = transactionActionList(transaction);
   return (
     <>
       <ActionMenu

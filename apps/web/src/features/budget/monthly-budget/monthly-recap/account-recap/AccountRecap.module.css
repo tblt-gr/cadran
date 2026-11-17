@@ -144,7 +144,9 @@
   .panel tbody tr {
     display: grid;
     align-items: center;
+    /* Square: the rule runs the full width of the panel, a rounded row would curl its ends. */
     border-bottom: var(--border-line-subtle);
+    border-radius: var(--radius-none);
     grid-template-columns: minmax(0, 1fr) max-content;
     gap: var(--spacing-3);
     padding-inline: var(--spacing-3);

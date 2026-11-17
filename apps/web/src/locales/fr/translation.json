@@ -334,6 +334,10 @@
         "previousYearAverage": "Moyenne N-1"
       },
       "summaryTitle": "Synthèse de l’année",
+      "flowSummary": {
+        "income": "Revenus",
+        "expenses": "Dépenses"
+      },
       "cardsLabel": "Mois de {{year}}",
       "explainColumn": "Expliquer les agrégats : {{column}}",
       "columns": "Colonnes",
