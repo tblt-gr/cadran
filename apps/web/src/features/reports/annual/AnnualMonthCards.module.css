@@ -46,6 +46,7 @@
 }
 .card dd {
   margin: var(--spacing-none);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums;
   text-align: left;
 }
@@ -94,4 +95,12 @@ button.explain:hover:not(:disabled) {
 /* The closed month is one line: the disclosure carries its own spacing. */
 .collapsible {
   gap: var(--spacing-none);
+}
+/* Heading of a run of cards that has no card of its own. */
+.listHeading {
+  margin: var(--spacing-none);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-card);
 }

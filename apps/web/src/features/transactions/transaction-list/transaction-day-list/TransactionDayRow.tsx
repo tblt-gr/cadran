@@ -1,5 +1,6 @@
 import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { RefundBadge } from '@/features/transactions/refund-editor/refund-badge/RefundBadge';
@@ -9,6 +10,7 @@ import {
 } from '@/features/transactions/transaction-workflow/transaction-row-actions/TransactionRowActions';
 import { TransactionAmount } from '@/features/transactions/transaction-list/transaction-amount/TransactionAmount';
 import { TransactionCategories } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategories';
+import { TransactionCategoryMark } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategoryMark';
 import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { formatCalendarShortDay } from '@/lib/decimal';
 import styles from './TransactionDayList.module.css';
@@ -72,7 +74,32 @@ export function TransactionDayRow({
         </label>
       ) : null}
       <div className={styles.primary}>
-        <TransactionInspectButton transaction={transaction} />
+        <div className={styles.titleLine}>
+          <span className={styles.phoneOnly}>
+            {transaction ? (
+              <TransactionCategoryMark
+                splits={transaction.splits}
+                transfer={transaction.transferId != null}
+              />
+            ) : null}
+          </span>
+          <TransactionInspectButton transaction={transaction} />
+          {pending ? (
+            <span
+              aria-label={
+                planned
+                  ? t('transactions.states.planned', {
+                      date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
+                    })
+                  : t('transactions.states.PENDING')
+              }
+              className={`${styles.phoneOnly} ${styles.clock}`}
+              role="img"
+            >
+              <Icon name="clock" size={14} />
+            </span>
+          ) : null}
+        </div>
         {transaction?.transferId != null ? (
           <small>
             {transaction.nature === 'FEE' ? (
@@ -101,7 +128,7 @@ export function TransactionDayRow({
         {transaction ? <RefundBadge transaction={transaction} /> : null}
         {/* Booked is the normal case: only a state that departs from it is shown. */}
         {transaction && transaction.state !== 'BOOKED' ? (
-          <span className={styles.state}>
+          <span className={`${styles.state} ${pending ? styles.pendingState : ''}`}>
             <StatusBadge tone={STATE_TONE[transaction.state]}>
               {planned
                 ? t('transactions.states.planned', {

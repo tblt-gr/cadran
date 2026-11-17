@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { Icon } from '@/components/ui/icon/Icon';
+import { FlowSummary } from '@/features/reports/annual/flow-summary/FlowSummary';
 import { CurveChartSkeleton } from '@/components/ui/charts/curve-chart/CurveChartSkeleton';
 import {
   SkeletonBlock,
@@ -15,6 +17,8 @@ import pageStyles from './MultiYearReportPage.module.css';
 import styles from './MultiYearSkeleton.module.css';
 import tableStyles from '@/features/reports/annual/AnnualReportTable.module.css';
 import cardStyles from '@/features/reports/annual/AnnualMonthCards.module.css';
+
+const noop = () => undefined;
 
 /** The column set is the user's own choice: four placeholders stand for it until it is known. */
 const PLACEHOLDER_COLUMNS = [0, 1, 2, 3];
@@ -111,31 +115,27 @@ export function MultiYearSkeleton({ range }: MultiYearSkeletonProps) {
       </section>
       <ul aria-hidden="true" className={cardStyles.list}>
         {rows.map((year, index) => (
-          <li className={`card ${cardStyles.card}`} key={year ?? index}>
-            <h3>
-              {year === null ? (
-                <Cell />
-              ) : (
-                <span className={localStyles.yearToggle}>
-                  <span aria-hidden="true" className={localStyles.chevron}>
-                    <Icon name="chevron-right" size={14} />
-                  </span>
-                  {year}
-                </span>
-              )}
-            </h3>
-            <dl>
-              {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
-                <div key={column}>
-                  <dt>
-                    <Cell />
-                  </dt>
-                  <dd>
-                    <Cell />
-                  </dd>
-                </div>
-              ))}
-            </dl>
+          <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={year ?? index}>
+            <Disclosure
+              meta={<FlowSummary expenses={<Cell />} income={<Cell />} />}
+              onToggle={noop}
+              open={false}
+              spread
+              title={<h3>{year === null ? <Cell /> : year}</h3>}
+            >
+              <dl>
+                {PLACEHOLDER_COLUMNS.slice(0, 3).map((column) => (
+                  <div key={column}>
+                    <dt>
+                      <Cell />
+                    </dt>
+                    <dd>
+                      <Cell />
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Disclosure>
           </li>
         ))}
       </ul>

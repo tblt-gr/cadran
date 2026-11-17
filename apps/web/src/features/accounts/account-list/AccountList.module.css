@@ -129,6 +129,7 @@
     display: grid;
     padding: var(--spacing-2) var(--spacing-none);
     border-bottom: var(--border-line-subtle);
+    border-radius: var(--radius-none);
     grid-template-columns: minmax(0, 1fr) auto auto;
     align-items: center;
     column-gap: var(--spacing-3);

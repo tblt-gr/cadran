@@ -54,6 +54,13 @@
   color: var(--text-secondary);
   font-size: var(--font-size-kpi);
 }
+@media (max-width: 767px) {
+  .amounts strong,
+  .separator,
+  .required {
+    font-size: var(--font-size-kpi-mobile);
+  }
+}
 .gap,
 .coverage span,
 .hint,

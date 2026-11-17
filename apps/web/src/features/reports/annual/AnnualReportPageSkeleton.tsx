@@ -13,6 +13,7 @@ import { SUMMARY_ROW_IDS } from './annualColumns';
 import { monthLabel } from './annualRowLabels';
 import styles from './AnnualReportPage.module.css';
 import cardStyles from './AnnualMonthCards.module.css';
+import { FlowSummary } from './flow-summary/FlowSummary';
 import chartStyles from './AnnualCharts.module.css';
 import tableStyles from './AnnualReportTable.module.css';
 
@@ -79,7 +80,12 @@ export function AnnualReportPageSkeleton({ status, year }: { status: string; yea
         {MONTHS.map((month) => (
           <li className={`card ${cardStyles.card} ${cardStyles.collapsible}`} key={month}>
             <Disclosure
-              meta={<SkeletonBlock className={styles.skeletonCell} />}
+              meta={
+                <FlowSummary
+                  expenses={<SkeletonBlock className={styles.skeletonCell} />}
+                  income={<SkeletonBlock className={styles.skeletonCell} />}
+                />
+              }
               onToggle={noop}
               open={false}
               spread

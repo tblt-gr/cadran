@@ -88,11 +88,11 @@
   }
 
   .value {
-    font-size: var(--font-size-kpi);
+    font-size: var(--font-size-kpi-mobile);
   }
 
   .valueSkeleton {
-    height: var(--font-size-kpi);
+    height: var(--font-size-kpi-mobile);
   }
 
   .description {
