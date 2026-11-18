@@ -1,8 +1,14 @@
-import { Fragment } from 'react';
+import { Fragment, lazy, Suspense, type ReactNode } from 'react';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import type { DatedListLayout, DatedRowSelection, RenderDatedRow } from './datedListTypes';
 import styles from './DatedList.module.css';
-import { VirtualDatedDays } from './VirtualDatedDays';
+import type { VirtualDatedDaysProps } from './VirtualDatedDays';
+
+/** The windowing and its virtualizer load on demand, so a screen showing no list never pays for them. */
+const VirtualDatedDays = lazy(
+  () => import('./VirtualDatedDays').then((module) => ({ default: module.VirtualDatedDays })),
+  // `lazy` drops the generic of the list: put it back for the caller's item type.
+) as unknown as <T>(props: VirtualDatedDaysProps<T>) => ReactNode;
 
 interface DatedListProps<T> extends Omit<DatedListLayout<T>, 'headingLevel' | 'renderRow'> {
   /** Announced once while loading, unless `announce` is false. */
@@ -43,8 +49,22 @@ export function DatedList<T>({
   skeletonDays = SKELETON_DAYS,
   skeletonTestId = 'dated-list-skeleton',
 }: DatedListProps<T>) {
-  if (items !== null)
-    return (
+  const skeleton = (
+    <DatedListSkeleton
+      announce={announce}
+      headingLevel={headingLevel}
+      label={label}
+      loadingLabel={loadingLabel}
+      renderRow={renderRow}
+      selection={selection}
+      skeletonDays={skeletonDays}
+      skeletonTestId={skeletonTestId}
+    />
+  );
+  if (items === null) return skeleton;
+
+  return (
+    <Suspense fallback={skeleton}>
       <VirtualDatedDays
         dayLabel={dayLabel}
         getDay={getDay}
@@ -57,8 +77,32 @@ export function DatedList<T>({
         renderRow={renderRow}
         selection={selection}
       />
-    );
+    </Suspense>
+  );
+}
 
+interface DatedListSkeletonProps<T> {
+  announce: boolean;
+  headingLevel: 2 | 3 | 4;
+  label: string;
+  loadingLabel: string;
+  renderRow: RenderDatedRow<T>;
+  selection: DatedListLayout<T>['selection'];
+  skeletonDays: readonly number[];
+  skeletonTestId: string;
+}
+
+/** The final markup with placeholder rows: the loading list and the fallback of the windowed one. */
+function DatedListSkeleton<T>({
+  announce,
+  headingLevel,
+  label,
+  loadingLabel,
+  renderRow,
+  selection,
+  skeletonDays,
+  skeletonTestId,
+}: DatedListSkeletonProps<T>) {
   const Heading = `h${headingLevel}` as const;
   const placeholder: DatedRowSelection | undefined = selection
     ? { disabled: true, selected: false, toggle: () => {} }

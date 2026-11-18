@@ -24,7 +24,7 @@ function itemBlocks<T>(items: readonly T[], getDay: (item: T) => string) {
   });
 }
 
-interface VirtualDatedDaysProps<T> extends DatedListLayout<T> {
+export interface VirtualDatedDaysProps<T> extends DatedListLayout<T> {
   items: readonly T[];
   nextLoadedLabel: string;
   previousLoadedLabel: string;

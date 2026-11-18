@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, within } from '@testing-librar
 import { useState, type ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { datedListLoaded } from '@/components/ui/dated-list/datedListLoaded';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { DatedCell } from './DatedCell';
 import { DatedList } from './DatedList';
@@ -79,8 +80,20 @@ function defaultRow(
 describe('DatedList', () => {
   afterEach(cleanup);
 
-  it('groups rows under one heading per day, in order, one card per day', () => {
+  // Keep this test first: the windowing loads once per file, so only the first render shows the fallback.
+  it('shows the placeholder rows while the windowing loads, then the real rows', async () => {
     render(<DatedList {...listProps()} items={entries} />);
+
+    expect(screen.getByTestId('dated-list-skeleton').getAttribute('aria-busy')).toBe('true');
+    expect(screen.queryByText('Alpha')).toBeNull();
+    await datedListLoaded();
+    expect(screen.getByText('Alpha')).toBeTruthy();
+    expect(screen.queryByTestId('dated-list-skeleton')).toBeNull();
+  });
+
+  it('groups rows under one heading per day, in order, one card per day', async () => {
+    render(<DatedList {...listProps()} items={entries} />);
+    await datedListLoaded();
 
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent);
     expect(headings).toEqual(['Jour 2026-09-11', 'Jour 2026-09-10']);
@@ -91,19 +104,21 @@ describe('DatedList', () => {
     expect(within(first).queryByText('Charlie')).toBeNull();
   });
 
-  it('uses the requested heading level', () => {
+  it('uses the requested heading level', async () => {
     render(<DatedList {...listProps()} headingLevel={4} items={entries} />);
+    await datedListLoaded();
 
     expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(2);
   });
 
-  it('shows title, meta, value, cells and menu of a row, and the aside slot', () => {
+  it('shows title, meta, value, cells and menu of a row, and the aside slot', async () => {
     render(
       <DatedList
         {...listProps({ renderRow: defaultRow(undefined, () => ({ aside: 'Extra 5' })) })}
         items={entries}
       />,
     );
+    await datedListLoaded();
 
     const row = screen.getByText('Alpha').closest('li')!;
     expect(within(row).getByText('Note a')).toBeTruthy();
@@ -113,15 +128,16 @@ describe('DatedList', () => {
     expect(within(row).getByRole('button', { name: 'Menu Alpha' })).toBeTruthy();
   });
 
-  it('shows the shared empty value, never zero, for a value that cannot be computed', () => {
+  it('shows the shared empty value, never zero, for a value that cannot be computed', async () => {
     render(<DatedList {...listProps()} items={entries} />);
+    await datedListLoaded();
 
     const row = screen.getByText('Bravo').closest('li')!;
     expect(within(row).getByText('Non calculable')).toBeTruthy();
     expect(row.textContent).not.toMatch(/0,00/);
   });
 
-  it('flags a row that keeps its menu on a phone', () => {
+  it('flags a row that keeps its menu on a phone', async () => {
     render(
       <DatedList
         {...listProps({
@@ -137,13 +153,15 @@ describe('DatedList', () => {
         items={entries}
       />,
     );
+    await datedListLoaded();
 
     expect(screen.getByText('Alpha').closest('li')!.getAttribute('data-menu-phone')).toBe('true');
   });
 
-  it('opens the detail from anywhere on the row but not from its own controls', () => {
+  it('opens the detail from anywhere on the row but not from its own controls', async () => {
     const open = vi.fn();
     render(<DatedList {...listProps({ renderRow: defaultRow(open) })} items={entries} />);
+    await datedListLoaded();
 
     fireEvent.click(screen.getByText('Compte a'));
     expect(open).toHaveBeenCalledTimes(1);
@@ -154,7 +172,7 @@ describe('DatedList', () => {
     expect(screen.getByText('Compte a').closest('li')!.getAttribute('data-clickable')).toBe('true');
   });
 
-  it('opens the detail from the label button and puts focus back on it after the dialog closes', () => {
+  it('opens the detail from the label button and puts focus back on it after the dialog closes', async () => {
     function Harness() {
       const [open, setOpen] = useState(false);
       return (
@@ -174,6 +192,7 @@ describe('DatedList', () => {
       );
     }
     render(<Harness />);
+    await datedListLoaded();
 
     const label = screen.getByRole('button', { name: 'Alpha' });
     act(() => label.focus());
@@ -183,10 +202,11 @@ describe('DatedList', () => {
     expect(screen.getByRole('button', { name: 'Alpha' })).toBe(label);
   });
 
-  it('orders the tab stops checkbox, label, menu when the list has a selection', () => {
+  it('orders the tab stops checkbox, label, menu when the list has a selection', async () => {
     const toggle = vi.fn();
     const selection: DatedListSelection = { onToggle: toggle, selectedIds: new Set(['b']) };
     render(<DatedList {...listProps()} items={entries} selection={selection} />);
+    await datedListLoaded();
 
     const row = screen.getByText('Alpha').closest('li')!;
     const stops = within(row)
@@ -203,8 +223,9 @@ describe('DatedList', () => {
     ).toBe(true);
   });
 
-  it('greys a muted row by colour class and keeps its text cue, never an opacity', () => {
+  it('greys a muted row by colour class and keeps its text cue, never an opacity', async () => {
     render(<DatedList {...listProps()} items={entries} />);
+    await datedListLoaded();
 
     const muted = screen.getByText('Charlie').closest('li')!;
     const normal = screen.getByText('Alpha').closest('li')!;
@@ -214,8 +235,9 @@ describe('DatedList', () => {
     expect(normal.className).not.toContain('muted');
   });
 
-  it('mirrors the loaded markup while loading, with no value and one announcement', () => {
+  it('mirrors the loaded markup while loading, with no value and one announcement', async () => {
     const { container, rerender } = render(<DatedList {...listProps()} items={entries} />);
+    await datedListLoaded();
     const signature = (element: Element): string => {
       const own = `${element.tagName.toLowerCase()}.${element.getAttribute('class') ?? ''}`;
       const children = Array.from(element.children)
@@ -253,7 +275,7 @@ describe('DatedList', () => {
     expect(screen.queryByText('Chargement')).toBeNull();
   });
 
-  it('bounds the mounted rows of a long day and reveals the rest by keyboard controls', () => {
+  it('bounds the mounted rows of a long day and reveals the rest by keyboard controls', async () => {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     const many = Array.from({ length: 1000 }, (_, index) => ({
       id: `n-${index}`,
@@ -262,6 +284,7 @@ describe('DatedList', () => {
       value: '1,00 €',
     }));
     const { container } = render(<DatedList {...listProps()} items={many} />);
+    await datedListLoaded();
 
     expect(container.querySelectorAll('li[data-clickable], li[class*="row"]').length).toBeLessThan(
       200,
