@@ -1337,6 +1337,7 @@ it('keeps lot and day-order dialogs available alongside observed insurance suppo
   renderPage();
   await waitFor(() => expect(screen.queryByTestId('life-insurance-overview-skeleton')).toBeNull());
   expect(await screen.findByRole('heading', { name: 'Supports du contrat' })).toBeTruthy();
+  fireEvent.click(await screen.findByRole('button', { name: 'ETF registre' }));
   fireEvent.click(await screen.findByRole('button', { name: 'Voir les lots' }));
   const lots = await screen.findByRole('dialog', { name: 'Lots : ETF registre' });
   await waitFor(() =>

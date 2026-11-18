@@ -1,4 +1,4 @@
-import { PositionsTableSkeleton } from './positions-table/PositionsTableSkeleton';
+import { PositionsList } from './positions-list/PositionsList';
 import styles from './PositionsTab.module.css';
 
 /** Faithful cold-load layout used before the account or positions response is available. */
@@ -9,7 +9,7 @@ export function PositionsTabSkeleton({
 }) {
   return (
     <div className={styles.tab}>
-      <PositionsTableSkeleton status={status} />
+      <PositionsList items={null} loadingLabel={status} onOpen={() => {}} onReorder={() => {}} />
     </div>
   );
 }

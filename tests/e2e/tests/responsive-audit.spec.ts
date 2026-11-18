@@ -825,3 +825,37 @@ test.describe('content column on a wide screen', () => {
     });
   }
 });
+
+/** The positions are compact rows: the detail and the lots dialogs never scroll sideways at 360 px. */
+test('portfolio positions, detail and lots dialogs fit 360 px', async ({ browser }) => {
+  const context = await browser.newContext({
+    baseURL: process.env.E2E_BASE_URL ?? 'https://localhost:8443',
+    ignoreHTTPSErrors: true,
+    storageState: ownerStorageState,
+    viewport: { width: 360, height: 800 },
+    hasTouch: true,
+    isMobile: true,
+    locale: 'fr-FR',
+    timezoneId: 'Europe/Paris',
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(`/portfolios/${ids.portfolioId}?tab=positions`);
+    await settled(page);
+    const list = page.getByRole('list', { name: 'Positions du portefeuille' });
+    await expect(list).toBeVisible();
+    await list.getByRole('button').first().click();
+    await page.getByRole('button', { name: 'Voir les lots' }).click();
+    await expect(page.getByRole('list', { name: 'Lots ouverts' })).toBeVisible();
+    await settled(page);
+    const overflow = await page.evaluate(() =>
+      [document.documentElement, ...document.querySelectorAll('[role="dialog"]')].some(
+        (element) => element.scrollWidth > element.clientWidth + 1,
+      ),
+    );
+    expect(overflow, 'no horizontal scroll on the page or the dialog').toBe(false);
+    expect(await auditLayout(page, true)).toEqual([]);
+  } finally {
+    await context.close();
+  }
+});

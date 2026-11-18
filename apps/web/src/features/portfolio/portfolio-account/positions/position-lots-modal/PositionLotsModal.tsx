@@ -1,19 +1,13 @@
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
-import {
-  readPortfolioPositionLots,
-  type PortfolioPosition,
-  type PortfolioPositionLots,
-} from '@cadran/api-client';
+import { readPortfolioPositionLots, type PortfolioPosition } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { operationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
-import { operationTypeLabel } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { formatAmount, formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
+import { formatAmount, formatDecimal } from '@/lib/decimal';
 import styles from './PositionLotsModal.module.css';
-import { PositionLotsModalSkeleton } from './PositionLotsModalSkeleton';
+import { PositionLotsLists } from './PositionLotsLists';
 
 interface Props {
   accountId: string;
@@ -66,7 +60,7 @@ export function PositionLotsModal({ accountId, asOf, position, onClose }: Props)
           </div>
         </dl>
         {lots.isPending ? (
-          <PositionLotsModalSkeleton />
+          <PositionLotsLists accountId={accountId} lots={null} />
         ) : lots.isError ? (
           <div className={styles.errorState}>
             <p role="alert">Les lots sont indisponibles.</p>
@@ -75,113 +69,12 @@ export function PositionLotsModal({ accountId, asOf, position, onClose }: Props)
             </button>
           </div>
         ) : (
-          <PositionLotsTables accountId={accountId} lots={lots.data} />
+          <PositionLotsLists accountId={accountId} lots={lots.data} />
         )}
         <p className={styles.note}>
           Lots consommés dans l’ordre d’acquisition (FIFO). Ce n’est pas un calcul fiscal.
         </p>
       </div>
     </Modal>
-  );
-}
-
-function PositionLotsTables({
-  accountId,
-  lots,
-}: {
-  accountId: string;
-  lots: PortfolioPositionLots;
-}) {
-  const operationLink = (id: string) => `/portfolios/${accountId}?tab=operations&operation=${id}`;
-
-  return (
-    <>
-      <h3>Lots ouverts</h3>
-      <div className={styles.scroll}>
-        <table aria-label="Lots ouverts" className={styles.table}>
-          <thead>
-            <tr>
-              <th scope="col">Acquis le</th>
-              <th scope="col">Origine</th>
-              <th scope="col">Quantité initiale</th>
-              <th scope="col">Quantité restante</th>
-              <th scope="col">Coût restant</th>
-              <th scope="col">Coût unitaire</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lots.openLots.map((lot) => (
-              <tr key={lot.lotId}>
-                <td>{formatCalendarNumericDay(lot.acquiredOn)}</td>
-                <td>
-                  <a
-                    href={operationLink(lot.originOperationId)}
-                    onClick={(event) =>
-                      handleClientNavigation(event, operationLink(lot.originOperationId))
-                    }
-                  >
-                    {operationTypeLabel(lot.originType)}
-                  </a>
-                </td>
-                <td>{formatDecimal(lot.originalQuantity, 'fr-FR')}</td>
-                <td>{formatDecimal(lot.openQuantity, 'fr-FR')}</td>
-                <td>
-                  {lot.costBasis ? (
-                    formatAmount(lot.costBasis.value, lot.costBasis.assetCode, 'fr-FR')
-                  ) : (
-                    <EmptyValue label="Coût inconnu" />
-                  )}
-                </td>
-                <td>
-                  {lot.unitCost ? (
-                    formatAmount(lot.unitCost.value, lot.unitCost.assetCode, 'fr-FR')
-                  ) : (
-                    <EmptyValue label="Coût inconnu" />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <h3>Historique</h3>
-      <div className={styles.scroll}>
-        <table aria-label="Mouvements des lots" className={styles.table}>
-          <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Opération</th>
-              <th scope="col">Δ quantité</th>
-              <th scope="col">Δ coût</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lots.movements.map((movement) => (
-              <tr key={`${movement.operationId}-${movement.lotId}-${movement.sequence}`}>
-                <td>{formatCalendarNumericDay(movement.tradeDate)}</td>
-                <td>
-                  <a
-                    href={operationLink(movement.operationId)}
-                    onClick={(event) =>
-                      handleClientNavigation(event, operationLink(movement.operationId))
-                    }
-                  >
-                    {operationTypeLabel(movement.type)}
-                  </a>
-                </td>
-                <td>{formatDecimal(movement.quantityDelta, 'fr-FR')}</td>
-                <td>
-                  {movement.costDelta ? (
-                    formatAmount(movement.costDelta.value, movement.costDelta.assetCode, 'fr-FR')
-                  ) : (
-                    <EmptyValue label="Coût inconnu" />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </>
   );
 }
