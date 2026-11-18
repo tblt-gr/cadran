@@ -1,3 +1,4 @@
+import { datedListLoaded } from '@/components/ui/dated-list/datedListLoaded';
 import type { Category, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -143,8 +144,9 @@ describe('bulk selection', () => {
     vi.clearAllMocks();
   });
 
-  it('offers a labelled checkbox per row and a select-all with a counter', () => {
+  it('offers a labelled checkbox per row and a select-all with a counter', async () => {
     renderHarness();
+    await datedListLoaded();
 
     expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
@@ -164,8 +166,9 @@ describe('bulk selection', () => {
     expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
   });
 
-  it('keeps selected ids when more rows are appended', () => {
+  it('keeps selected ids when more rows are appended', async () => {
     const { update } = renderHarness({ hasMore: true });
+    await datedListLoaded();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
     update({ hasMore: true, extended: true });
     expect(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' })).toHaveProperty(
@@ -179,8 +182,9 @@ describe('bulk selection', () => {
     expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', false);
   });
 
-  it('leaves the mode with the pen, dropping checkboxes and the selection', () => {
+  it('leaves the mode with the pen, dropping checkboxes and the selection', async () => {
     renderHarness();
+    await datedListLoaded();
     const pen = screen.getByRole('button', { name: 'Quitter la sélection' });
     expect(pen.getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
@@ -194,8 +198,9 @@ describe('bulk selection', () => {
     expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
   });
 
-  it('clears the selection when the result set changes', () => {
+  it('clears the selection when the result set changes', async () => {
     const { update } = renderHarness();
+    await datedListLoaded();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
 
     update({ resetKey: 'b' });
@@ -226,8 +231,9 @@ describe('bulk selection', () => {
     expect(onToggle).toHaveBeenCalledOnce();
   });
 
-  it('keeps the edit action disabled until something is selected', () => {
+  it('keeps the edit action disabled until something is selected', async () => {
     renderHarness();
+    await datedListLoaded();
     const action = screen.getByRole('button', { name: 'Modifier' });
     expect((action as HTMLButtonElement).disabled).toBe(true);
 
@@ -237,6 +243,7 @@ describe('bulk selection', () => {
 
   it('offers every transaction matching the filters with the exact count', async () => {
     const { update } = renderHarness({ hasMore: true });
+    await datedListLoaded();
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
 
     fireEvent.click(

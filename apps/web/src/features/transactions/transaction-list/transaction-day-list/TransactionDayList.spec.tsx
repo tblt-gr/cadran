@@ -2,6 +2,7 @@ import type { Account, Transaction } from '@cadran/api-client';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
+import { datedListLoaded } from '@/components/ui/dated-list/datedListLoaded';
 import { TransactionActionsContext } from '@/features/transactions/transaction-workflow/transactionActions';
 import { TransactionDayList } from './TransactionDayList';
 
@@ -41,12 +42,13 @@ describe('TransactionDayList', () => {
     vi.restoreAllMocks();
   });
 
-  it('bounds mounted rows for a long single day and reveals loaded rows by keyboard controls', () => {
+  it('bounds mounted rows for a long single day and reveals loaded rows by keyboard controls', async () => {
     vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
     const transactions = Array.from({ length: 1000 }, (_, index) =>
       tx(`long-${index}`, '2026-09-11', '-1.00'),
     );
     const { container } = render(<TransactionDayList transactions={transactions} />);
+    await datedListLoaded();
     expect(container.querySelectorAll('[data-state]').length).toBeLessThan(200);
     expect(screen.getByText('Libellé long-0')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Mouvements suivants déjà chargés' }));
@@ -64,6 +66,7 @@ describe('TransactionDayList', () => {
         )}
       />,
     );
+    await datedListLoaded();
     scroll.mockReturnValue(8000);
     fireEvent.scroll(window);
     await waitFor(() => expect(screen.queryByText('Libellé scroll-0')).toBeNull());
@@ -80,6 +83,7 @@ describe('TransactionDayList', () => {
         )}
       />,
     );
+    await datedListLoaded();
     const pinned = screen.getByRole('button', {
       name: 'Actions de la transaction « Libellé focus-0 »',
     });
@@ -97,9 +101,10 @@ describe('TransactionDayList', () => {
     expect(document.activeElement).toBe(target);
   });
 
-  it('appends to a day without remounting existing rows or repeating its heading', () => {
+  it('appends to a day without remounting existing rows or repeating its heading', async () => {
     const first = tx('first', '2026-09-11', '-1.00');
     const { rerender } = render(<TransactionDayList transactions={[first]} />);
+    await datedListLoaded();
     const original = screen.getByRole('button', {
       name: 'Actions de la transaction « Libellé first »',
     });
@@ -112,7 +117,7 @@ describe('TransactionDayList', () => {
     expect(screen.getAllByRole('heading', { name: /vendredi 11 septembre 2026/ })).toHaveLength(1);
   });
 
-  it('shows one heading per day with the weekday and the date, and no day total', () => {
+  it('shows one heading per day with the weekday and the date, and no day total', async () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -124,6 +129,7 @@ describe('TransactionDayList', () => {
         ]}
       />,
     );
+    await datedListLoaded();
 
     const friday = screen.getByRole('heading', { name: /vendredi 11 septembre 2026/ });
     const thursday = screen.getByRole('heading', { name: /jeudi 10 septembre 2026/ });
@@ -137,7 +143,7 @@ describe('TransactionDayList', () => {
     expect(screen.getAllByRole('listitem').length).toBeGreaterThanOrEqual(5);
   });
 
-  it('shows label, account, state and a sign that does not rely on colour', () => {
+  it('shows label, account, state and a sign that does not rely on colour', async () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -145,6 +151,7 @@ describe('TransactionDayList', () => {
         transactions={[tx('a', '2026-09-11', '-12.00', { state: 'PENDING' })]}
       />,
     );
+    await datedListLoaded();
 
     expect(screen.getByText('Libellé a', { selector: 'button' })).toBeTruthy();
     expect(screen.getByText('Compte courant')).toBeTruthy();
@@ -160,7 +167,7 @@ describe('TransactionDayList', () => {
     expect(screen.queryByText('Compte indisponible')).toBeNull();
   });
 
-  it('renders a loading list that mirrors the loaded markup element for element', () => {
+  it('renders a loading list that mirrors the loaded markup element for element', async () => {
     const { container, rerender } = render(
       <TransactionDayList
         accounts={accounts}
@@ -172,6 +179,7 @@ describe('TransactionDayList', () => {
         ]}
       />,
     );
+    await datedListLoaded();
     const loaded = signature(container.querySelector('ol > li') as Element);
     rerender(<TransactionDayList accounts={accounts} transactions={null} />);
     const loading = signature(container.querySelector('ol > li') as Element);
@@ -183,7 +191,7 @@ describe('TransactionDayList', () => {
     expect(container.querySelectorAll('[data-skeleton]').length).toBeGreaterThan(0);
   });
 
-  it('marks a linked transfer leg without a category prompt', () => {
+  it('marks a linked transfer leg without a category prompt', async () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -194,6 +202,7 @@ describe('TransactionDayList', () => {
         ]}
       />,
     );
+    await datedListLoaded();
 
     expect(screen.getAllByText('Virement', { selector: 'small' })).toHaveLength(1);
     expect(
@@ -202,7 +211,7 @@ describe('TransactionDayList', () => {
     expect(screen.getAllByText('À catégoriser')).toHaveLength(1);
   });
 
-  it('writes a transfer as source to destination on both of its legs', () => {
+  it('writes a transfer as source to destination on both of its legs', async () => {
     const two = [...accounts, { id: 'acc-2', label: 'Livret A' }] as Account[];
     render(
       <TransactionDayList
@@ -217,22 +226,24 @@ describe('TransactionDayList', () => {
         ]}
       />,
     );
+    await datedListLoaded();
 
     expect(screen.getAllByText('Compte courant → Livret A', { selector: 'small' })).toHaveLength(2);
   });
 
-  it('keeps a voided movement visible and flagged', () => {
+  it('keeps a voided movement visible and flagged', async () => {
     render(
       <TransactionDayList
         accounts={accounts}
         transactions={[tx('b', '2026-09-11', '-90.00', { state: 'VOIDED' })]}
       />,
     );
+    await datedListLoaded();
 
     expect(screen.getByText('Annulée')).toBeTruthy();
   });
 
-  it('mutes a pending row and keeps its state badge, leaving booked rows unchanged', () => {
+  it('mutes a pending row and keeps its state badge, leaving booked rows unchanged', async () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -242,6 +253,7 @@ describe('TransactionDayList', () => {
         ]}
       />,
     );
+    await datedListLoaded();
 
     const pending = screen.getByText('Libellé p').closest('li')!;
     const booked = screen.getByText('Libellé b').closest('li')!;
@@ -258,7 +270,7 @@ describe('TransactionDayList', () => {
     expect(within(booked).queryByRole('img', { name: 'En attente' })).toBeNull();
   });
 
-  it('names a planned row by its date and the others as pending, on a clock beside the label', () => {
+  it('names a planned row by its date and the others as pending, on a clock beside the label', async () => {
     render(
       <TransactionDayList
         accounts={accounts}
@@ -268,6 +280,7 @@ describe('TransactionDayList', () => {
         ]}
       />,
     );
+    await datedListLoaded();
 
     const plannedClock = screen.getByRole('img', { name: 'Prévue le 20/11' });
     expect(screen.getAllByRole('img', { name: 'En attente' })).toHaveLength(1);
@@ -292,7 +305,7 @@ describe('TransactionDayList', () => {
     expect(screen.queryByRole('img', { name: /Prévue le/ })).toBeNull();
   });
 
-  it('opens the detail dialog from anywhere on the row, except from its own controls', () => {
+  it('opens the detail dialog from anywhere on the row, except from its own controls', async () => {
     const open = vi.fn();
     render(
       <TransactionActionsContext.Provider
@@ -301,6 +314,7 @@ describe('TransactionDayList', () => {
         <TransactionDayList accounts={accounts} transactions={[tx('a', '2026-09-11', '-12.00')]} />
       </TransactionActionsContext.Provider>,
     );
+    await datedListLoaded();
 
     const row = screen.getByText('Compte courant').closest('li')!;
     expect(row.getAttribute('data-clickable')).toBe('true');

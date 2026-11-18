@@ -148,7 +148,9 @@ test.describe('portfolio operation', () => {
 
     await settled(page);
     await expect(
-      page.getByRole('row').filter({ hasText: new RegExp(`Versement.*${euros},${cents}\\s€`) }),
+      page
+        .getByRole('listitem')
+        .filter({ hasText: new RegExp(`Versement.*${euros},${cents}\\s€`) }),
     ).not.toHaveCount(0);
   });
 });

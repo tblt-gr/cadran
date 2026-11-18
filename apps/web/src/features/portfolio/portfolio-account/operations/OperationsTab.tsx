@@ -10,9 +10,8 @@ import { noFilters, type OperationFilterValues } from './operation-filters/opera
 import { OperationFormModal } from './operation-form/OperationFormModal';
 import { OperationsState } from './OperationsState';
 import { NotPortfolioState } from './NotPortfolioState';
-import { OperationsTableSkeleton } from './OperationsTableSkeleton';
 import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
-import { OperationsTable } from './operations-table/OperationsTable';
+import { OperationDayList } from './operation-day-list/OperationDayList';
 import { useOperation } from './useOperation';
 import { useOperations } from './useOperations';
 import { OperationRequestError } from './operationError';
@@ -21,7 +20,7 @@ import { ReorderDayModal } from './reorder-day-modal/ReorderDayModal';
 import { todayInBrowser } from '@/lib/businessDay';
 import styles from './OperationsTab.module.css';
 
-/** The Opérations tab: filters, table and the modify, detail and void modals. */
+/** The Opérations tab: filters, dated rows and the modify, detail and void modals. */
 export function OperationsTab({
   account,
   sourceReturnFocus,
@@ -71,6 +70,13 @@ export function OperationsTab({
     filters.from !== '' ||
     filters.to !== '';
 
+  const rowActions = {
+    onDetail: (item: PortfolioOperation) => setDetailId(item.id),
+    onEdit: setEditing,
+    onVoid: setVoiding,
+    onReorder: setReordering,
+  };
+
   function changeFilters(next: OperationFilterValues) {
     setStale(false);
     setFilters(next);
@@ -90,7 +96,7 @@ export function OperationsTab({
         </p>
       ) : null}
       {operations.isPending ? (
-        <OperationsTableSkeleton status="Chargement des opérations…" />
+        <OperationDayList actions={rowActions} operations={null} />
       ) : refusal?.code === 'account_not_portfolio' ? (
         <NotPortfolioState accountId={account.id} />
       ) : operations.isError && !operations.data ? (
@@ -122,15 +128,7 @@ export function OperationsTab({
         </OperationsState>
       ) : (
         <IncrementalList items={items} query={operations}>
-          {(visibleItems) => (
-            <OperationsTable
-              items={visibleItems}
-              onDetail={(item) => setDetailId(item.id)}
-              onEdit={setEditing}
-              onVoid={setVoiding}
-              onReorder={setReordering}
-            />
-          )}
+          {(visibleItems) => <OperationDayList actions={rowActions} operations={visibleItems} />}
         </IncrementalList>
       )}
       {creating ? (

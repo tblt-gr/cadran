@@ -1,8 +1,28 @@
-import { Fragment } from 'react';
+import { Fragment, Suspense, use, type ReactNode } from 'react';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import type { DatedListLayout, DatedRowSelection, RenderDatedRow } from './datedListTypes';
 import styles from './DatedList.module.css';
-import { VirtualDatedDays } from './VirtualDatedDays';
+import type { VirtualDatedDaysProps } from './VirtualDatedDays';
+
+type Windowing = <T>(props: VirtualDatedDaysProps<T>) => ReactNode;
+
+/**
+ * The windowing and its virtualizer load on demand, so a screen showing no list never pays for
+ * them. The request starts when this module loads, long before the first rows arrive: once it is
+ * done the list renders at once, and the placeholder rows are only a fallback for a slow load.
+ */
+let windowing: Windowing | null = null;
+const loadingWindowing = import('./VirtualDatedDays').then((module) => {
+  windowing = module.VirtualDatedDays;
+});
+// A failed load reaches the error boundary through `use`; this only keeps it from going unhandled.
+loadingWindowing.catch(() => undefined);
+
+function LoadedWindowing<T>(props: VirtualDatedDaysProps<T>) {
+  if (windowing === null) use(loadingWindowing);
+  const Days = windowing as Windowing;
+  return <Days {...props} />;
+}
 
 interface DatedListProps<T> extends Omit<DatedListLayout<T>, 'headingLevel' | 'renderRow'> {
   /** Announced once while loading, unless `announce` is false. */
@@ -43,9 +63,23 @@ export function DatedList<T>({
   skeletonDays = SKELETON_DAYS,
   skeletonTestId = 'dated-list-skeleton',
 }: DatedListProps<T>) {
-  if (items !== null)
-    return (
-      <VirtualDatedDays
+  const skeleton = (
+    <DatedListSkeleton
+      announce={announce}
+      headingLevel={headingLevel}
+      label={label}
+      loadingLabel={loadingLabel}
+      renderRow={renderRow}
+      selection={selection}
+      skeletonDays={skeletonDays}
+      skeletonTestId={skeletonTestId}
+    />
+  );
+  if (items === null) return skeleton;
+
+  return (
+    <Suspense fallback={skeleton}>
+      <LoadedWindowing
         dayLabel={dayLabel}
         getDay={getDay}
         getKey={getKey}
@@ -57,8 +91,32 @@ export function DatedList<T>({
         renderRow={renderRow}
         selection={selection}
       />
-    );
+    </Suspense>
+  );
+}
 
+interface DatedListSkeletonProps<T> {
+  announce: boolean;
+  headingLevel: 2 | 3 | 4;
+  label: string;
+  loadingLabel: string;
+  renderRow: RenderDatedRow<T>;
+  selection: DatedListLayout<T>['selection'];
+  skeletonDays: readonly number[];
+  skeletonTestId: string;
+}
+
+/** The final markup with placeholder rows: the loading list and the fallback of the windowed one. */
+function DatedListSkeleton<T>({
+  announce,
+  headingLevel,
+  label,
+  loadingLabel,
+  renderRow,
+  selection,
+  skeletonDays,
+  skeletonTestId,
+}: DatedListSkeletonProps<T>) {
   const Heading = `h${headingLevel}` as const;
   const placeholder: DatedRowSelection | undefined = selection
     ? { disabled: true, selected: false, toggle: () => {} }

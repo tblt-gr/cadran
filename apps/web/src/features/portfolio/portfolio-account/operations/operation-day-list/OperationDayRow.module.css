@@ -1,0 +1,58 @@
+/* The operation's own cells; the row anatomy and its muted tone come from the shared dated list. */
+
+.open {
+  display: block;
+  max-width: 100%;
+  padding: var(--spacing-none);
+  overflow: hidden;
+  border: var(--border-none);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.open:disabled {
+  cursor: default;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.meta > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.marks {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--text-muted);
+  gap: var(--spacing-1);
+}
+
+.mark {
+  display: inline-flex;
+}
+
+.figure {
+  white-space: nowrap;
+}
+
+.figure > span {
+  color: var(--text-muted);
+}
+
+/* The detail columns carry the fees and taxes in words from a tablet: the icons are for a phone. */
+@media (min-width: 48rem) {
+  .marks {
+    display: none;
+  }
+}

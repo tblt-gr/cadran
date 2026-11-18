@@ -89,6 +89,11 @@ for (const width of [1440, 360]) {
     await nav.getByRole('link', { name: 'Opérations' }).click();
     await settled(page);
     await expect(page.getByLabel('Situation au', { exact: true })).toHaveCount(0);
+    // Up to 767 px the inputs wait behind the Filtrer button, in a sheet.
+    if (width < 768) {
+      await expect(page.getByLabel('Du', { exact: true })).toHaveCount(0);
+      await page.getByRole('button', { name: /^Filtrer/ }).click();
+    }
     await expect(page.getByLabel('Du', { exact: true })).toHaveCount(1);
     await expect(page.getByLabel('Au', { exact: true })).toHaveCount(1);
     await expect(page.getByLabel('Instrument', { exact: true })).toHaveCount(1);
@@ -98,6 +103,7 @@ for (const width of [1440, 360]) {
     await expect(purchase).toHaveAttribute('aria-selected', 'true');
     await purchase.click();
     await purchase.press('Escape');
+    if (width < 768) await expect(page.getByRole('dialog', { name: 'Filtres' })).toHaveCount(0);
     await settled(page);
     await page.screenshot({
       path: `${process.env.E2E_OUTPUT_DIR ?? 'test-results'}/investment-operations-${width}.png`,

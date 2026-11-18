@@ -1,3 +1,4 @@
+import { datedListLoaded } from '@/components/ui/dated-list/datedListLoaded';
 import type { Category, Transaction } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -140,6 +141,7 @@ describe('category identity flow', () => {
         {rows([transaction])}
       </QueryClientProvider>,
     );
+    await datedListLoaded();
 
     const selected = screen.getByRole('combobox', { name: 'Catégorie choisie' });
     const row = screen.getByText(/Déjeuner/, { selector: 'button' }).closest('li') as HTMLElement;
@@ -188,12 +190,13 @@ describe('category identity flow', () => {
     ).toBeTruthy();
   });
 
-  it('keeps the label and a neutral pill for a category carrying no metadata', () => {
+  it('keeps the label and a neutral pill for a category carrying no metadata', async () => {
     const plain: Transaction = {
       ...transaction,
       splits: [{ ...transaction.splits[0], categoryIcon: null, categoryColor: null }],
     };
     render(rows([plain]));
+    await datedListLoaded();
 
     const row = screen.getByText(/Déjeuner/, { selector: 'button' }).closest('li') as HTMLElement;
     const pill = row.querySelector('[data-icon="none"]') as HTMLElement;
@@ -203,8 +206,9 @@ describe('category identity flow', () => {
     expect(pill.getAttribute('style')).toBeNull();
   });
 
-  it('shows no identity pill for an uncategorised transaction', () => {
+  it('shows no identity pill for an uncategorised transaction', async () => {
     render(rows([{ ...transaction, splits: [] }]));
+    await datedListLoaded();
 
     const row = screen.getByText(/Déjeuner/, { selector: 'button' }).closest('li') as HTMLElement;
     expect(within(row).getByText('À catégoriser')).toBeTruthy();

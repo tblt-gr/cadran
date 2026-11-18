@@ -128,10 +128,10 @@ function problem(status: number, body: object) {
 function page(items: PortfolioOperation[]) {
   return ok({ items, page: 1, pageSize: 50, total: items.length });
 }
-/** The skeleton draws the same table: wait for it to leave before reading rows. */
+/** The skeleton draws the same list: wait for it to leave before reading rows. */
 async function loadedOperationsTable() {
   await waitFor(() => expect(screen.queryByTestId('operations-skeleton')).toBeNull());
-  return screen.findByRole('table', { name: 'Opérations du portefeuille' });
+  return screen.findByRole('list', { name: 'Opérations du portefeuille' });
 }
 
 function renderPage(timeZone = 'Europe/Paris', shell = false, frozen = false) {
@@ -820,8 +820,8 @@ describe('PortfolioAccountPage', () => {
     // Only the Compte tab carries the three-dot menu.
     expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
     expect(
-      within(screen.getByTestId('operations-skeleton')).getAllByRole('columnheader', {
-        name: 'Date',
+      within(screen.getByTestId('operations-skeleton')).getAllByRole('list', {
+        name: 'Opérations du portefeuille',
       }),
     ).toHaveLength(1);
     expect(screen.queryByTestId('value-history-skeleton')).toBeNull();
@@ -1433,11 +1433,12 @@ it('appends portfolio operations and preserves rows while the next page is unava
     .mockImplementationOnce(() => ok({ items: [second], page: 2, pageSize: 50, total: 51 }));
   renderPage();
   const table = await loadedOperationsTable();
-  expect(within(table).getAllByRole('row')).toHaveLength(2);
+  const rows = () => table.querySelectorAll('li[data-state]');
+  expect(rows()).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
   await screen.findByText(/La suite de la liste est indisponible/);
-  expect(within(table).getAllByRole('row')).toHaveLength(2);
+  expect(rows()).toHaveLength(1);
   fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
-  await waitFor(() => expect(within(table).getAllByRole('row')).toHaveLength(3));
+  await waitFor(() => expect(rows()).toHaveLength(2));
   expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
 });

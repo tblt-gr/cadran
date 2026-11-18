@@ -3,7 +3,8 @@ import { ValueHistoryCardSkeleton } from './value-history-card/ValueHistoryCardS
 import { PortfolioOverview } from './portfolio-overview/PortfolioOverview';
 import { OperationFilters } from './operations/operation-filters/OperationFilters';
 import { noFilters } from './operations/operation-filters/operationFilterValues';
-import { OperationsTableSkeleton } from './operations/OperationsTableSkeleton';
+import { OperationDayList } from './operations/operation-day-list/OperationDayList';
+import { noRowActions } from './operations/operation-day-list/OperationRowMenu';
 import operationsStyles from './operations/OperationsTab.module.css';
 import { CashTabSkeleton } from '@/features/portfolio/cash/CashTabSkeleton';
 import { PerformanceTabSkeleton } from '@/features/portfolio/performance/performance-tab/PerformanceTabSkeleton';
@@ -54,7 +55,7 @@ export function PortfolioAccountPageSkeleton({
       ) : active === 'account' ? null : active === 'operations' ? (
         <div className={operationsStyles.tab}>
           <OperationFilters currencyCode="" disabled onChange={() => undefined} value={noFilters} />
-          <OperationsTableSkeleton status={status} />
+          <OperationDayList actions={noRowActions} operations={null} />
         </div>
       ) : active === 'cash' ? (
         <CashTabSkeleton asOf={asOf} />
