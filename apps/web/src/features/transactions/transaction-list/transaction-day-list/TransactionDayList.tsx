@@ -1,8 +1,10 @@
 import type { Account, Transaction } from '@cadran/api-client';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { DatedList } from '@/components/ui/dated-list/DatedList';
 import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { dayHeadingLabel } from './dayHeadingLabel';
+import { orderTransferLegs } from './orderTransferLegs';
 import { TransactionDayRow } from './TransactionDayRow';
 import { transferCounterparts } from './transferCounterparts';
 
@@ -33,6 +35,10 @@ export function TransactionDayList({
     today: t('transactions.list.today'),
     yesterday: t('transactions.list.yesterday'),
   };
+  const ordered = useMemo(
+    () => (transactions ? orderTransferLegs(transactions) : null),
+    [transactions],
+  );
   const counterparts = transactions ? transferCounterparts(transactions, accounts) : null;
 
   return (
@@ -42,7 +48,7 @@ export function TransactionDayList({
       getDay={(transaction) => transaction.bookedOn}
       getKey={(transaction) => transaction.id}
       headingLevel={headingLevel}
-      items={transactions}
+      items={ordered}
       label={label ?? t('transactions.list.caption')}
       loadingLabel={t('transactions.loading')}
       nextLoadedLabel={t('transactions.pagination.nextLoaded')}
