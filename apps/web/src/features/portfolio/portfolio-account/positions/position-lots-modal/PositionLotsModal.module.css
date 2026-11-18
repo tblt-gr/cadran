@@ -33,22 +33,6 @@
   font-variant-numeric: tabular-nums lining-nums;
   font-weight: var(--font-weight-strong);
 }
-.scroll {
-  overflow-x: auto;
-}
-.table {
-  width: 100%;
-  min-width: 680px;
-  border-collapse: collapse;
-}
-.table th,
-.table td {
-  padding: var(--spacing-2);
-  font-variant-numeric: tabular-nums lining-nums;
-  border-bottom: var(--border-line-subtle);
-  text-align: left;
-  white-space: nowrap;
-}
 .errorState {
   display: flex;
   align-items: flex-start;
@@ -57,9 +41,4 @@
 }
 .errorState p {
   color: var(--negative);
-}
-
-/* The skeleton's blocks sit directly in the modal body, like the loaded tables. */
-.skeletonContents {
-  display: contents;
 }

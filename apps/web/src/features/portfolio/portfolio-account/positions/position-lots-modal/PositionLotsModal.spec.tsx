@@ -102,13 +102,18 @@ describe('PositionLotsModal', () => {
 
     resolve?.({ data: lots, response: new Response('{}', { status: 200 }) });
     await screen.findAllByText('Achat');
-    const lotTable = screen.getByRole('table', { name: 'Lots ouverts' });
-    const origin = within(lotTable).getByText('Achat').closest('a');
+    const lotList = screen.getByRole('list', { name: 'Lots ouverts' });
+    const origin = within(lotList).getByText('Achat').closest('a');
     expect(origin?.getAttribute('href')).toBe(
       '/portfolios/account-1?tab=operations&operation=buy-2',
     );
-    expect(within(lotTable).getAllByText('Coût inconnu')).toHaveLength(2);
+    expect(within(lotList).getByText('10/02/2026')).toBeTruthy();
+    expect(within(lotList).getByText('Quantité restante : 3')).toBeTruthy();
+    expect(within(lotList).getAllByText('Coût inconnu')).toHaveLength(2);
+    const movements = screen.getByRole('list', { name: 'Mouvements des lots' });
+    expect(within(movements).getByText('Δ quantité : 5')).toBeTruthy();
     expect(screen.getAllByText('Coût inconnu')).toHaveLength(3);
+    expect(screen.queryByRole('table')).toBeNull();
     expect(screen.queryByTestId('position-lots-skeleton')).toBeNull();
   });
 });

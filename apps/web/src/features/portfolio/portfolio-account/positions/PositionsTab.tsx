@@ -4,8 +4,8 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { ReorderDayModal } from '@/features/portfolio/portfolio-account/operations/reorder-day-modal/ReorderDayModal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { PositionLotsModal } from './position-lots-modal/PositionLotsModal';
-import { PositionsTable } from './positions-table/PositionsTable';
-import { PositionsTableSkeleton } from './positions-table/PositionsTableSkeleton';
+import { PositionDetailModal } from './position-detail-modal/PositionDetailModal';
+import { PositionsList } from './positions-list/PositionsList';
 import { usePositions } from './usePositions';
 import styles from './PositionsTab.module.css';
 
@@ -22,6 +22,7 @@ export function PositionsTab({
   /** Supplied only while the account can still take over the positions it already holds. */
   onTakeover?: () => void;
 }) {
+  const [detail, setDetail] = useState<PortfolioPosition | null>(null);
   const [lots, setLots] = useState<PortfolioPosition | null>(null);
   const [reorderingDate, setReorderingDate] = useState<string | null>(null);
   const positions = usePositions(accountId, asOf, includeClosed);
@@ -29,7 +30,7 @@ export function PositionsTab({
   return (
     <div className={styles.tab}>
       {positions.isPending ? (
-        <PositionsTableSkeleton />
+        <PositionsList items={null} onOpen={setDetail} onReorder={() => {}} />
       ) : positions.isError ? (
         <OperationsState error title="Les positions sont indisponibles">
           <button
@@ -58,9 +59,9 @@ export function PositionsTab({
           ) : null}
         </OperationsState>
       ) : (
-        <PositionsTable
+        <PositionsList
           items={positions.data.items}
-          onLots={setLots}
+          onOpen={setDetail}
           onReorder={(position) =>
             setReorderingDate(
               position.flags.find((flag) => flag.code === 'ORDER_DEPENDENT_DAY')?.dates[0] ?? null,
@@ -68,6 +69,16 @@ export function PositionsTab({
           }
         />
       )}
+      {detail ? (
+        <PositionDetailModal
+          onClose={() => setDetail(null)}
+          onLots={(position) => {
+            setDetail(null);
+            setLots(position);
+          }}
+          position={detail}
+        />
+      ) : null}
       {lots ? (
         <PositionLotsModal
           accountId={accountId}

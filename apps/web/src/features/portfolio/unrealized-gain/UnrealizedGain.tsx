@@ -16,7 +16,7 @@ const REASON_LABEL: Record<NonNullable<GainReason>, string> = {
 };
 
 /** The sign is always written, so a gain and a loss differ without colour. */
-function signed(text: string, raw: string): string {
+export function signed(text: string, raw: string): string {
   if (!/[1-9]/.test(text)) return text;
   return raw.startsWith('-') ? text : `+${text}`;
 }
