@@ -110,25 +110,43 @@ describe('BalanceTab', () => {
     renderTab();
     // The tab has no title of its own and no record button: the page header records the balance.
     expect(screen.queryByRole('heading', { name: 'Solde' })).toBeNull();
-    expect(screen.getByRole('columnheader', { name: 'Rapprochement' })).toBeTruthy();
-    expect(screen.getByRole('table').closest('[aria-busy="true"]')).not.toBeNull();
+    expect(screen.getByTestId('balance-day-list-skeleton').getAttribute('aria-busy')).toBe('true');
     expect(screen.queryByText('100,00 €')).toBeNull();
     cleanup();
 
     api.listAccountBalances.mockImplementation(() => page([manual, reconciled, withdrawn]));
     renderTab();
     await loaded();
-    const rows = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    const rows = within(screen.getByRole('list', { name: 'Soldes enregistrés sur ce compte' }))
+      .getAllByRole('listitem')
+      .filter((item) => item.hasAttribute('data-clickable'));
     expect(rows).toHaveLength(3);
     expect(within(rows[0]!).getByText('Non rapproché')).toBeTruthy();
-    expect(within(rows[0]!).getByText('Actif')).toBeTruthy();
     expect(within(rows[0]!).getByText('Saisie')).toBeTruthy();
     expect(within(rows[1]!).getByText('Rapproché')).toBeTruthy();
     expect(rows[1]!.textContent).toMatch(/12\s345\s678\s901\s234\s567\s890,12/);
+    // A withdrawn balance says so in words, keeps a disabled menu and is greyed.
     expect(within(rows[2]!).getByText('Retiré')).toBeTruthy();
-    // A withdrawn balance keeps a disabled menu so the columns stay aligned, and is greyed.
-    expect((within(rows[2]!).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
-    expect(rows[2]!.className).toMatch(/greyed/);
+    expect(
+      (
+        within(rows[2]!).getByRole('button', {
+          name: /Actions pour le relevé/,
+        }) as HTMLButtonElement
+      ).disabled,
+    ).toBe(true);
+    expect(rows[2]!.className).toMatch(/muted/);
+  });
+
+  it('opens a detail dialog with source, reconciliation, state and recording date', async () => {
+    renderTab();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Détail du relevé du 15/02/2026' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Import')).toBeTruthy();
+    expect(within(dialog).getByText('Rapproché')).toBeTruthy();
+    expect(within(dialog).getByText('Actif')).toBeTruthy();
+    expect(within(dialog).getByText('Enregistré le')).toBeTruthy();
+    expect(within(dialog).getByText('Aucun commentaire')).toBeTruthy();
   });
 
   it('shows an explicit empty state', async () => {
@@ -144,7 +162,7 @@ describe('BalanceTab', () => {
     const alert = await screen.findByRole('alert');
     expect(alert.textContent).toMatch('Les soldes sont indisponibles');
     fireEvent.click(within(alert).getByRole('button', { name: 'Réessayer' }));
-    await screen.findByRole('table');
+    await screen.findByRole('list', { name: 'Soldes enregistrés sur ce compte' });
     expect(api.listAccountBalances).toHaveBeenCalledTimes(2);
   });
 
@@ -152,10 +170,12 @@ describe('BalanceTab', () => {
     api.listAccountBalances.mockImplementation(() => page([{ ...manual, amount: null }]));
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
+    const row = within(screen.getByRole('list', { name: 'Soldes enregistrés sur ce compte' }))
+      .getAllByRole('listitem')
+      .find((item) => item.hasAttribute('data-clickable'))!;
     expect(row.textContent).toMatch('Non calculable');
     expect(row.textContent).not.toMatch(/0[,.]00/);
-    expect(row.className).toMatch(/greyed/);
+    expect(row.className).toMatch(/muted/);
   });
 
   it('notes a truncated list', async () => {

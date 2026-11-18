@@ -1,8 +1,6 @@
 import type { AccountBalanceSnapshot } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
-import { BalanceRowActions } from './BalanceRowActions';
+import { BalanceDayList } from '@/features/accounts/balance-day-list/BalanceDayList';
 import { useBalanceSnapshots } from './useBalanceSnapshots';
 import { useBalanceWithdrawal } from './useBalanceWithdrawal';
 import styles from './BalanceSnapshotsList.module.css';
@@ -21,7 +19,7 @@ export function BalanceSnapshotsList({
   accountId: string;
   onEdit?: (snapshot: AccountBalanceSnapshot) => void;
 }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const snapshots = useBalanceSnapshots(accountId);
   const pending = snapshots.isPending;
   const items = snapshots.data?.items ?? null;
@@ -43,7 +41,6 @@ export function BalanceSnapshotsList({
 
   return (
     <div aria-busy={pending}>
-      {pending ? <SkeletonStatus>{t('accounts.snapshots.loading')}</SkeletonStatus> : null}
       <p className={styles.notice}>{t('accounts.snapshots.description')}</p>
       {total > (items?.length ?? 0) ? (
         <p className={styles.notice}>
@@ -61,74 +58,16 @@ export function BalanceSnapshotsList({
         </p>
       ) : null}
       {empty ? <p className={styles.notice}>{t('accounts.snapshots.empty')}</p> : null}
-      <div
-        hidden={empty}
-        aria-label={t('accounts.snapshots.caption')}
-        className={styles.scroll}
-        role="region"
-        tabIndex={0}
-      >
-        <table>
-          <caption className="sr-only">{t('accounts.snapshots.caption')}</caption>
-          <thead>
-            <tr>
-              <th scope="col">{t('accounts.snapshots.date')}</th>
-              <th scope="col">{t('accounts.snapshots.amount')}</th>
-              <th scope="col">{t('accounts.snapshots.source')}</th>
-              <th scope="col">{t('accounts.snapshots.state')}</th>
-              <th scope="col">
-                <span className="sr-only">{t('accounts.snapshots.withdraw')}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {(items ?? [null, null, null]).map((snapshot, index) => (
-              <tr
-                className={snapshot && !snapshot.active ? styles.withdrawn : undefined}
-                key={snapshot?.id ?? index}
-              >
-                <th data-label={t('accounts.snapshots.date')} scope="row">
-                  {snapshot ? (
-                    <time dateTime={snapshot.asOf}>{formatCalendarNumericDay(snapshot.asOf)}</time>
-                  ) : (
-                    <SkeletonBlock />
-                  )}
-                </th>
-                <td data-label={t('accounts.snapshots.amount')}>
-                  {snapshot ? (
-                    formatAmount(snapshot.amount.value, snapshot.amount.assetCode, i18n.language)
-                  ) : (
-                    <SkeletonBlock />
-                  )}
-                </td>
-                <td data-label={t('accounts.snapshots.source')}>
-                  {snapshot ? t(`accounts.balances.sources.${snapshot.source}`) : <SkeletonBlock />}
-                </td>
-                <td className={styles.state} data-label={t('accounts.snapshots.state')}>
-                  {snapshot ? (
-                    t(
-                      snapshot.active
-                        ? 'accounts.snapshots.active'
-                        : 'accounts.snapshots.withdrawn',
-                    )
-                  ) : (
-                    <SkeletonBlock />
-                  )}
-                </td>
-                <td>
-                  {snapshot ? (
-                    <BalanceRowActions
-                      onEdit={onEdit}
-                      snapshot={snapshot}
-                      withdrawal={withdrawal}
-                    />
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {empty ? null : (
+        <BalanceDayList
+          headingLevel={4}
+          items={items}
+          label={t('accounts.snapshots.caption')}
+          loadingLabel={t('accounts.snapshots.loading')}
+          onEdit={onEdit}
+          withdrawal={withdrawal}
+        />
+      )}
     </div>
   );
 }

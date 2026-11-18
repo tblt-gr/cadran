@@ -150,7 +150,7 @@ it('does not offer to correct a snapshot that is not manual or not active', asyn
   renderForm();
 
   await waitFor(() => expect(api.listAccountBalances).toHaveBeenCalled());
-  await screen.findAllByRole('row');
+  await screen.findAllByRole('listitem');
   // The inactive one keeps a disabled menu for alignment; the imported one only offers the withdrawal.
   const triggers = screen.getAllByRole('button', { name: /actions pour le relevé du/i });
   expect(triggers).toHaveLength(2);
