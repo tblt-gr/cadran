@@ -1,10 +1,10 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { movementRows, settled, uniqueLabel, accountOptionText } from './page';
 
-/** Reach the real sequential focus target, with a bound that also detects an unreachable control. */
+/** Reach the real sequential focus target, with a bound that also detects an unreachable control. Each page of loaded transactions adds its own tab stops before the page actions menu entries, so the bound covers several pages. */
 async function tabTo(page: Page, target: Locator, reverse = false) {
   await expect(target).toBeVisible();
-  for (let count = 0; count < 160; count++) {
+  for (let count = 0; count < 480; count++) {
     if (await target.evaluate((element) => element === document.activeElement)) return;
     await page.keyboard.press(reverse ? 'Shift+Tab' : 'Tab');
   }

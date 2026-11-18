@@ -1,0 +1,319 @@
+.panel {
+  padding: var(--spacing-none);
+}
+
+.days,
+.rows {
+  margin: var(--spacing-none);
+  padding: var(--spacing-none);
+  list-style: none;
+}
+
+/* A day is a plain title over its own card of rows. */
+.dayTitle {
+  margin: var(--spacing-none);
+  padding: var(--spacing-5) var(--spacing-none) var(--spacing-2);
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-card);
+}
+
+/* A day still to come reads greyed, like the planned rows it holds. */
+.dayTitle[data-future='true'] {
+  color: var(--text-muted);
+}
+
+.dayCard {
+  padding: var(--spacing-none);
+  overflow: clip;
+}
+
+/* French dates keep the month in lower case; only the weekday opening the line is capitalised. */
+.date {
+  display: inline-block;
+}
+
+.date::first-letter {
+  text-transform: uppercase;
+}
+
+.windowControl {
+  position: absolute;
+  width: var(--border-width-thin);
+  height: var(--border-width-thin);
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.windowControl:focus-visible {
+  position: fixed;
+  z-index: 2;
+  top: var(--header-height);
+  left: var(--spacing-3);
+  width: auto;
+  height: auto;
+  clip-path: none;
+}
+
+/* Phone: the label line and the value, one line high. Cells, aside and menu are hidden. */
+.row {
+  display: grid;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-bottom: var(--border-line-subtle);
+  grid-template-areas: 'primary value';
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--spacing-3);
+  row-gap: var(--spacing-none);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.row[data-leading] {
+  grid-template-areas: 'leading primary value';
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+@media (pointer: coarse) {
+  .row {
+    min-height: var(--touch-target-min);
+  }
+}
+
+.row[data-clickable='true'] {
+  cursor: pointer;
+}
+
+.row:hover,
+.row:focus-within {
+  background: var(--bg-surface-2);
+}
+
+.dayCard > :last-child .row:last-child {
+  border-bottom: var(--border-none);
+}
+
+.leading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  grid-area: leading;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+}
+
+.primary {
+  grid-area: primary;
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
+  overflow-wrap: anywhere;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: var(--spacing-2);
+}
+
+.titleLine > button {
+  min-width: 0;
+}
+
+/* The label is the row's main tap target on a touch screen: it fills the touch height instead of padding the row.
+   A note under it is pulled up into the empty half of that target, so it reads as the label's own
+   second line. */
+@media (pointer: coarse) {
+  .titleLine > button {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+
+  .primary .titleLine + small {
+    margin-top: var(--spacing-pull);
+  }
+}
+
+.primary small:last-child {
+  padding-bottom: var(--spacing-2);
+}
+
+.primary small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: var(--spacing-none);
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.value {
+  grid-area: value;
+  justify-self: end;
+  font-size: var(--font-size-body);
+  white-space: nowrap;
+}
+
+.aside,
+.cells,
+.actions {
+  display: none;
+}
+
+.actions {
+  grid-area: actions;
+  min-width: var(--touch-target-min);
+}
+
+.aside {
+  grid-area: aside;
+  justify-self: end;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  white-space: nowrap;
+}
+
+.cells {
+  flex-wrap: wrap;
+  align-items: center;
+  grid-area: cells;
+  min-width: 0;
+  gap: var(--spacing-1) var(--spacing-3);
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.row :global([data-skeleton]) {
+  min-width: var(--spacing-12);
+  min-height: var(--spacing-4);
+}
+
+/*
+ * Muted by colour, never by opacity, which would pull the text under AA contrast. The value is
+ * recoloured through its sign hook only: its text cue keeps its own colour.
+ */
+.pending .primary,
+.pending .primary button,
+.pending .primary small,
+.pending .value [data-sign],
+.pending .cells > * {
+  color: var(--text-pending);
+}
+
+.muted .primary,
+.muted .primary button,
+.muted .primary small,
+.muted .value [data-sign],
+.muted .cells > * {
+  color: var(--text-muted);
+}
+
+/* Tablet: the cells become the second line under the label, the menu closes the row. */
+@media (min-width: 48rem) {
+  .row {
+    padding-inline: var(--spacing-4) var(--spacing-2);
+    grid-template-areas:
+      'primary value actions'
+      'cells cells actions';
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .row[data-leading] {
+    grid-template-areas:
+      'leading primary value actions'
+      'leading cells cells actions';
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+  }
+
+  .row[data-aside] {
+    grid-template-areas:
+      'primary aside value actions'
+      'cells cells cells actions';
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+  }
+
+  .row[data-leading][data-aside] {
+    grid-template-areas:
+      'leading primary aside value actions'
+      'leading cells cells cells actions';
+    grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  }
+
+  .aside,
+  .actions {
+    display: block;
+  }
+
+  .cells {
+    display: flex;
+  }
+
+  .cell[data-empty] {
+    display: none;
+  }
+}
+
+/* Computer: one line, the columns are shared by every row, so the cells keep an empty slot. */
+@media (min-width: 64rem) {
+  .row {
+    display: flex;
+    padding-block: var(--spacing-2);
+  }
+
+  .leading {
+    flex: none;
+    order: 0;
+  }
+
+  .primary {
+    flex: 2 1 0;
+    order: 1;
+  }
+
+  .cells {
+    display: contents;
+  }
+
+  .cell,
+  .cell[data-empty] {
+    display: block;
+    min-width: 0;
+  }
+
+  .cell[data-cell='1'] {
+    flex: 1.5 1 0;
+    order: 2;
+  }
+
+  .cell[data-cell='2'] {
+    flex: 0.75 1 0;
+    order: 3;
+  }
+
+  .cell[data-cell='3'] {
+    flex: 1 1 0;
+    order: 4;
+  }
+
+  .aside {
+    flex: 1 1 0;
+    min-width: 0;
+    order: 5;
+    text-align: end;
+  }
+
+  .value {
+    flex: 1 1 0;
+    min-width: 0;
+    order: 6;
+    text-align: end;
+  }
+
+  .actions {
+    flex: none;
+    order: 7;
+  }
+}
