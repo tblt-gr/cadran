@@ -1,0 +1,31 @@
+.open {
+  display: block;
+  max-width: 100%;
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  border-radius: var(--radius-button);
+  overflow: hidden;
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.open:disabled {
+  cursor: default;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.alert {
+  display: inline-flex;
+  flex: none;
+  color: var(--warning);
+}

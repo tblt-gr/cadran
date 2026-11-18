@@ -529,7 +529,7 @@ describe('PortfolioAccountPage', () => {
       (screen.getByRole('button', { name: 'Nouvelle valorisation' }) as HTMLButtonElement).disabled,
     ).toBe(true);
     expect(screen.queryByRole('button', { name: /^Actions du compte/ })).toBeNull();
-    expect(screen.getByRole('columnheader', { name: 'Complétude' })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Valorisations du portefeuille' })).toBeTruthy();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 

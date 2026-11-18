@@ -86,6 +86,11 @@ function renderTab(overrides: Partial<Account> = {}) {
   return { ...view, client };
 }
 
+/** The nth valuation row of the dated list, newest first. */
+function valuationRow(index: number): HTMLElement {
+  return screen.getAllByRole('listitem').filter((item) => item.dataset.valuationId)[index]!;
+}
+
 async function loaded() {
   await waitFor(() => expect(screen.queryByTestId('valuations-skeleton')).toBeNull());
 }
@@ -223,23 +228,23 @@ describe('ValuationsTab month end', () => {
 });
 
 describe('ValuationsTab', () => {
-  it('shows the real chrome while loading, then one row per valuation with its state', async () => {
+  it('shows the real chrome while loading, then one dated row per valuation', async () => {
     renderTab();
     expect(screen.getByTestId('valuations-skeleton')).toBeTruthy();
-    expect(screen.getByRole('columnheader', { name: 'Valeur totale' })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Valorisations du portefeuille' })).toBeTruthy();
 
     await loaded();
-    const table = screen.getByRole('table', { name: 'Valorisations du portefeuille' });
-    const rows = within(table).getAllByRole('row');
-    expect(rows).toHaveLength(3);
-    expect(rows[1]?.textContent).toMatch(/Par ligne.*3\s664,70/);
-    expect(rows[1]?.textContent).toContain('Complète');
-    expect(rows[1]?.textContent).toContain('Actuels');
-    expect(rows[2]?.textContent).toContain('Total');
-    expect(rows[2]?.textContent).toContain('Non détaillé');
+    const rows = screen.getAllByRole('listitem').filter((item) => item.dataset.valuationId);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.textContent).toContain('Calculée');
+    expect(rows[0]?.textContent).toMatch(/3\s664,70/);
+    expect(rows[0]?.textContent).toContain('Complète');
+    expect(rows[0]?.textContent).toContain('Prix actuels');
+    expect(rows[1]?.textContent).toContain('Saisie manuelle');
+    expect(rows[1]?.textContent).not.toContain('Prix');
   });
 
-  it('shows Non calculable for a partial valuation and one badge per flag', async () => {
+  it('shows Non calculable for a partial valuation and one alert cue naming the flags', async () => {
     api.listPortfolioValuations.mockImplementation(() =>
       ok(
         valuationPageFixture([
@@ -260,17 +265,18 @@ describe('ValuationsTab', () => {
     );
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
-    expect(within(row).getAllByText('Non calculable').length).toBe(2);
+    const row = screen.getAllByRole('listitem').find((item) => item.dataset.valuationId)!;
+    expect(within(row).getAllByText('Non calculable').length).toBe(1);
     expect(row.textContent).toContain('Partielle');
-    expect(row.textContent).toContain('Manquants');
+    expect(row.textContent).toContain('Prix manquants');
+    const alert = within(row).getByRole('img', { name: /^Alertes/ });
     for (const text of [
       'Prix anciens',
       'Écart d’espèces',
       'Écart avec le relevé',
       'Positions modifiées depuis',
     ]) {
-      expect(within(row).getByText(text)).toBeTruthy();
+      expect(alert.getAttribute('aria-label')).toContain(text);
     }
   });
 
@@ -293,7 +299,7 @@ describe('ValuationsTab', () => {
     );
     fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
     await loaded();
-    expect(screen.getByRole('table')).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Valorisations du portefeuille' })).toBeTruthy();
   });
 
   it('prefills the draft with the last prices and shows their origin', async () => {
@@ -366,7 +372,7 @@ describe('ValuationsTab', () => {
     api.recordPortfolioValuation.mockImplementation(() => ok(totalValuationFixture(), 201));
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
+    const row = valuationRow(0);
     fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Remplacer la valorisation/ }));
     const dialog = await screen.findByRole('dialog', {
@@ -386,9 +392,8 @@ describe('ValuationsTab', () => {
     );
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
-    fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Détail de la valorisation/ }));
+    const row = valuationRow(0);
+    fireEvent.click(within(row).getByRole('button', { name: /Détail de la valorisation/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Valorisation du 10/03/2026' });
     await within(dialog).findByText('Tolérance');
     expect(within(dialog).getByText('Écart').nextElementSibling?.textContent).toMatch(/-0,001/);
@@ -404,9 +409,8 @@ describe('ValuationsTab', () => {
     api.readPortfolioValuation.mockImplementation(() => ok(totalValuationFixture()));
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[2]!;
-    fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Détail de la valorisation/ }));
+    const row = valuationRow(1);
+    fireEvent.click(within(row).getByRole('button', { name: /Détail de la valorisation/ }));
     const dialog = await screen.findByRole('dialog');
     const positions = await within(dialog).findByRole('table', { name: 'Positions valorisées' });
     expect(within(positions).getAllByText('Non détaillé').length).toBeGreaterThanOrEqual(2);
@@ -416,7 +420,7 @@ describe('ValuationsTab', () => {
     api.withdrawPortfolioValuation.mockImplementation(() => ok({}));
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
+    const row = valuationRow(0);
     fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Retirer la valorisation/ }));
     const dialog = await screen.findByRole('dialog', { name: 'Retirer la valorisation' });
@@ -434,7 +438,7 @@ describe('ValuationsTab', () => {
 
 describe('ValuationsTab robustness', () => {
   async function openReplace() {
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
+    const row = valuationRow(0);
     fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Remplacer la valorisation/ }));
     const dialog = await screen.findByRole('dialog', {
@@ -532,9 +536,8 @@ describe('ValuationsTab robustness', () => {
     api.readPortfolioValuation.mockImplementation(() => new Promise(() => undefined));
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
-    fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Détail de la valorisation/ }));
+    const row = valuationRow(0);
+    fireEvent.click(within(row).getByRole('button', { name: /Détail de la valorisation/ }));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Tolérance')).toBeTruthy();
     expect(within(dialog).getByRole('heading', { name: 'Positions' })).toBeTruthy();
@@ -547,9 +550,8 @@ describe('ValuationsTab robustness', () => {
     );
     renderTab();
     await loaded();
-    const row = within(screen.getByRole('table')).getAllByRole('row')[1]!;
-    fireEvent.click(within(row).getByRole('button', { name: /Actions pour la valorisation/ }));
-    fireEvent.click(await screen.findByRole('button', { name: /Détail de la valorisation/ }));
+    const row = valuationRow(0);
+    fireEvent.click(within(row).getByRole('button', { name: /Détail de la valorisation/ }));
     expect(await screen.findByText(/Remplacée ou retirée le 11\/03\/2026/)).toBeTruthy();
   });
 });
@@ -563,10 +565,14 @@ describe('360 px layout', () => {
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth });
   });
 
-  it('keeps the valuations table and the form fieldsets inside scrollers or single columns', async () => {
+  it('keeps the valuation rows in the list and the form fieldsets in single columns', async () => {
     renderTab();
     await loaded();
-    expect(screen.getByRole('table').parentElement?.className).toContain('scroll');
+    const row = valuationRow(0);
+    expect(
+      within(row).getByRole('button', { name: /Détail de la valorisation du 10\/03\/2026/ }),
+    ).toBeTruthy();
+    expect(row.textContent).toMatch(/3\s664,70/);
     const dialog = await openRecordModal();
     fireEvent.click(within(dialog).getByRole('radio', { name: 'Détail par ligne' }));
     const form = dialog.querySelector('form')!;
@@ -580,6 +586,16 @@ describe('360 px layout', () => {
   });
 });
 
+it('opens the detail from the row and keeps the row menu on a phone', async () => {
+  renderTab();
+  await loaded();
+  const row = valuationRow(0);
+  expect(row.getAttribute('data-menu-phone')).toBe('true');
+  fireEvent.click(row);
+  const dialog = await screen.findByRole('dialog');
+  expect(await within(dialog).findByText('Tolérance')).toBeTruthy();
+});
+
 it('appends valuations and retains a coherent history across retry', async () => {
   const first = totalValuationFixture({ id: 'first', valuedOn: '2026-03-10' });
   const second = totalValuationFixture({ id: 'second', valuedOn: '2026-03-09' });
@@ -589,11 +605,19 @@ it('appends valuations and retains a coherent history across retry', async () =>
     .mockImplementationOnce(() => ok({ items: [second], page: 2, pageSize: 24, total: 25 }));
   renderTab();
   await loaded();
-  expect(screen.getAllByRole('row')).toHaveLength(2);
+  expect(screen.getAllByRole('listitem').filter((item) => item.dataset.valuationId)).toHaveLength(
+    1,
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Afficher plus' }));
   await screen.findByRole('alert');
-  expect(screen.getAllByRole('row')).toHaveLength(2);
+  expect(screen.getAllByRole('listitem').filter((item) => item.dataset.valuationId)).toHaveLength(
+    1,
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Réessayer' }));
-  await waitFor(() => expect(screen.getAllByRole('row')).toHaveLength(3));
+  await waitFor(() =>
+    expect(screen.getAllByRole('listitem').filter((item) => item.dataset.valuationId)).toHaveLength(
+      2,
+    ),
+  );
   expect(screen.queryByRole('button', { name: 'Afficher plus' })).toBeNull();
 });
