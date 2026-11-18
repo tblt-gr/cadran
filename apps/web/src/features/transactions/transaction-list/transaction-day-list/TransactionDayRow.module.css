@@ -6,6 +6,11 @@
   filter: grayscale(1);
 }
 
+/* A transfer note closing the label cell keeps room below it; the other rows centre their meta line. */
+.note:last-child {
+  padding-bottom: var(--spacing-2);
+}
+
 .state {
   display: block;
   margin-top: var(--spacing-1);

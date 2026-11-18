@@ -151,10 +151,6 @@
   }
 }
 
-.primary small:last-child {
-  padding-bottom: var(--spacing-2);
-}
-
 .primary small {
   display: block;
   overflow: hidden;
