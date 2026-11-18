@@ -125,7 +125,9 @@ export function TransactionDayRow({
       }
       meta={
         <>
-          {transaction?.transferId != null ? <small>{transferNote(transaction)}</small> : null}
+          {transaction?.transferId != null ? (
+            <small className={styles.note}>{transferNote(transaction)}</small>
+          ) : null}
           {transaction ? <RefundBadge transaction={transaction} /> : null}
           {/* Booked is the normal case, pending is the clock next to the label: only the other
               states that depart from it get a badge. */}

@@ -5,7 +5,6 @@ import { DatedRow } from '@/components/ui/dated-list/DatedRow';
 import { Icon } from '@/components/ui/icon/Icon';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import {
   entryModeLabel,
@@ -37,8 +36,10 @@ export function ValuationDayRow({
     return (
       <DatedRow
         meta={
-          <small className={styles.badges}>
-            <SkeletonBlock />
+          <small>
+            <span className={styles.metaLine}>
+              <SkeletonBlock />
+            </span>
           </small>
         }
         menuOnPhone
@@ -55,6 +56,18 @@ export function ValuationDayRow({
   const date = formatCalendarNumericDay(valuation.valuedOn);
   const quality = summaryQualityLabel[valuation.priceQuality];
   const alerts = valuation.flags.map((flag) => flagLabel[flag]);
+  const completeness = valuation.completeness === 'COMPLETE' ? 'Complète' : 'Partielle';
+  const alertCue =
+    alerts.length > 0 ? (
+      <span
+        aria-label={`Alertes : ${alerts.join(', ')}`}
+        className={styles.alert}
+        role="img"
+        title={alerts.join(', ')}
+      >
+        <Icon name="alert" size={14} />
+      </span>
+    ) : null;
   return (
     <DatedRow
       dataAttributes={{ 'data-valuation-id': valuation.id }}
@@ -88,25 +101,18 @@ export function ValuationDayRow({
         />
       }
       meta={
-        <small className={styles.badges}>
-          {valuation.completeness === 'COMPLETE' ? (
-            <StatusBadge tone="positive">Complète</StatusBadge>
-          ) : (
-            <StatusBadge tone="warning">Partielle</StatusBadge>
-          )}
-          {quality ? (
-            <StatusBadge tone="neutral">{`Prix ${quality.toLowerCase()}`}</StatusBadge>
-          ) : null}
-          {alerts.length > 0 ? (
-            <span
-              aria-label={`Alertes : ${alerts.join(', ')}`}
-              className={styles.alert}
-              role="img"
-              title={alerts.join(', ')}
-            >
-              <Icon name="alert" size={14} />
-            </span>
-          ) : null}
+        <small>
+          <span className={styles.metaLine}>
+            {valuation.completeness === 'COMPLETE' ? null : (
+              <span className={styles.alert}>
+                <Icon name="alert" size={12} />
+              </span>
+            )}
+            {[completeness, quality ? `Prix ${quality.toLowerCase()}` : null]
+              .filter(Boolean)
+              .join(' · ')}
+            {alertCue}
+          </span>
         </small>
       }
       onOpen={() => onDetail(valuation)}

@@ -17,11 +17,11 @@
   cursor: default;
 }
 
-.badges {
+/* One short text line under the date: completeness and price quality in words, then the alert cue. */
+.metaLine {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
 }
 
 .alert {

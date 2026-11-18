@@ -31,3 +31,54 @@
   background: var(--color-transparent);
   cursor: pointer;
 }
+
+.figure {
+  white-space: nowrap;
+}
+
+.figure > span,
+.costFallback > span:first-child {
+  color: var(--text-muted);
+}
+
+.valueStack {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.result,
+.phoneResult {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-0-5);
+}
+
+.phoneResult {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+}
+
+.gain {
+  color: var(--positive);
+}
+
+.loss {
+  color: var(--negative);
+}
+
+/* Phone: no market value shows the total cost, labelled, instead of a bare dash. */
+@media (max-width: 47.999rem) {
+  .emptyValue {
+    display: none;
+  }
+}
+
+/* Tablet and computer: the figures have their own cells, the phone short forms step aside. */
+@media (min-width: 48rem) {
+  .phoneFigures,
+  .phoneResult,
+  .costFallback {
+    display: none;
+  }
+}

@@ -45,11 +45,14 @@ describe('PositionsList', () => {
     const list = screen.getByRole('list', { name: 'Positions du portefeuille' });
     const row = within(within(list).getAllByRole('listitem')[0]!);
     expect(row.getByText('ETF Monde')).toBeTruthy();
-    expect(row.getByText('3')).toBeTruthy();
-    expect(row.getByText(/\+29,40/)).toBeTruthy();
-    expect(row.getByText(/350,00/)).toBeTruthy();
+    expect(row.getByText('Quantité')).toBeTruthy();
+    expect(row.getByText('PRU')).toBeTruthy();
+    expect(row.getAllByText(/106,87/).length).toBeGreaterThan(0);
+    expect(row.getByText('Coût')).toBeTruthy();
+    expect(row.getAllByText(/320,60/).length).toBeGreaterThan(0);
+    expect(row.getAllByText(/\+29,40/).length).toBeGreaterThan(0);
+    expect(row.getAllByText(/350,00/).length).toBeGreaterThan(0);
     expect(screen.queryByRole('table')).toBeNull();
-    expect(screen.queryByText(/106,87/)).toBeNull();
     fireEvent.click(row.getByRole('button', { name: 'ETF Monde' }));
     expect(onOpen).toHaveBeenCalledWith(item);
   });
@@ -59,14 +62,14 @@ describe('PositionsList', () => {
     const item = position();
     renderList([item], { onOpen });
 
-    fireEvent.click(screen.getByText(/350,00/));
+    fireEvent.click(screen.getAllByText(/350,00/)[0]!);
     expect(onOpen).toHaveBeenCalledWith(item);
   });
 
   it('writes a loss with its sign', () => {
     renderList([position({ unrealizedGain: { value: '-12.50', assetCode: 'EUR' } })]);
 
-    expect(screen.getByText(/-12,50/)).toBeTruthy();
+    expect(screen.getAllByText(/-12,50/).length).toBeGreaterThan(0);
   });
 
   it('says why a value is missing instead of showing zero', () => {
@@ -78,9 +81,36 @@ describe('PositionsList', () => {
       }),
     ]);
 
-    expect(screen.getByText('Quantité modifiée depuis la valorisation')).toBeTruthy();
+    expect(screen.getAllByText('Quantité modifiée depuis la valorisation').length).toBeGreaterThan(
+      0,
+    );
     expect(screen.queryByText(/350,00/)).toBeNull();
-    expect(screen.queryByText(/0,00/)).toBeNull();
+    expect(screen.queryByText(/^0,00/)).toBeNull();
+  });
+
+  it('keeps the labelled total cost as the phone value when no market value can be computed', () => {
+    renderList([
+      position({ marketValue: null, unrealizedGain: null, valueReason: 'NO_VALUATION' }),
+    ]);
+
+    const fallback = document.querySelector('[class*="costFallback"]')!;
+    expect(fallback.textContent).toMatch(/Coût\s*320,60/);
+  });
+
+  it('shows no phone cost value when the cost is unknown', () => {
+    renderList([
+      position({
+        marketValue: null,
+        unrealizedGain: null,
+        averageCostBasis: null,
+        averageUnitCost: null,
+        costReason: 'UNKNOWN_LOT_COST',
+        valueReason: 'NO_VALUATION',
+      }),
+    ]);
+
+    expect(document.querySelector('[class*="costFallback"]')).toBeNull();
+    expect(screen.getAllByText('Coût inconnu').length).toBeGreaterThan(0);
   });
 
   it('marks a closed position in words and mutes the row', () => {
