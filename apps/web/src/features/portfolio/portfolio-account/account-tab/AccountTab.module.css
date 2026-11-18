@@ -4,6 +4,13 @@
   gap: var(--spacing-4);
 }
 
+/* On a phone the identity, the contributions and the indicators breathe: they were stuck together. */
+@media (max-width: 47.999rem) {
+  .tab {
+    gap: var(--spacing-6);
+  }
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

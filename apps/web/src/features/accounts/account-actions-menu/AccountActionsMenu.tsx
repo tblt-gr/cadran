@@ -19,6 +19,7 @@ export function AccountActionsMenu({
   account,
   onAddOperation,
   onAddTransfer,
+  onInstruments,
   onReconcile,
   onRecordValuation,
   onTakeover,
@@ -29,6 +30,7 @@ export function AccountActionsMenu({
   account?: Account;
   onAddOperation?: () => void;
   onAddTransfer?: () => void;
+  onInstruments?: () => void;
   onReconcile?: () => void;
   onRecordValuation?: () => void;
   onTakeover?: () => void;
@@ -65,6 +67,7 @@ export function AccountActionsMenu({
       onAddOperation,
       onArchive: () => setArchiving(account),
       onEdit: () => setEditing(account),
+      onInstruments,
       onReconcile,
       onRecordBalance: leading ? undefined : () => setRecording(account),
       onRecordValuation,

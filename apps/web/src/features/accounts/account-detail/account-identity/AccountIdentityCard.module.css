@@ -103,6 +103,21 @@
     flex: 1 1 auto;
     justify-content: flex-end;
   }
+
+  /* A portfolio shows only its contributions here: they take a row of their own, as wide as the
+     indicator strip below, instead of a lone figure beside the identity. */
+  .card.embedded .balancePanel {
+    flex-basis: 100%;
+    justify-content: stretch;
+  }
+
+  .card.embedded {
+    gap: var(--spacing-5);
+  }
+
+  .card.embedded .top {
+    gap: var(--spacing-4);
+  }
 }
 
 .card.embedded {

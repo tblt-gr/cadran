@@ -15,6 +15,7 @@ import { Sidebar } from '@/components/layout/sidebar/Sidebar';
 import { UpdateBanner } from '@/components/layout/update-banner/UpdateBanner';
 import styles from './AppShell.module.css';
 import { BreadcrumbProvider } from '@/components/layout/breadcrumb/BreadcrumbProvider';
+import { RouteBackLink } from '@/components/layout/back-link/RouteBackLink';
 import { RouteBreadcrumb } from '@/components/layout/breadcrumb/RouteBreadcrumb';
 
 interface AppShellProps {
@@ -93,6 +94,7 @@ function AppShellContent({
       <div className={styles.workspace}>
         <Header
           accountSlot={accountSlot}
+          backLink={<RouteBackLink path={path} onNavigate={handleNavigate} />}
           breadcrumb={<RouteBreadcrumb path={path} onNavigate={handleNavigate} />}
           freshnessLabel={freshnessLabel}
           onFreshnessClick={onFreshnessClick}

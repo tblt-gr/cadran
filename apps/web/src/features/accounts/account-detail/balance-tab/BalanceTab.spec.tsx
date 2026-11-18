@@ -126,7 +126,9 @@ describe('BalanceTab', () => {
     expect(within(rows[1]!).getByText('Rapproché')).toBeTruthy();
     expect(rows[1]!.textContent).toMatch(/12\s345\s678\s901\s234\s567\s890,12/);
     expect(within(rows[2]!).getByText('Retiré')).toBeTruthy();
-    expect(within(rows[2]!).queryByRole('button')).toBeNull();
+    // A withdrawn balance keeps a disabled menu so the columns stay aligned, and is greyed.
+    expect((within(rows[2]!).getByRole('button') as HTMLButtonElement).disabled).toBe(true);
+    expect(rows[2]!.className).toMatch(/greyed/);
   });
 
   it('shows an explicit empty state', async () => {

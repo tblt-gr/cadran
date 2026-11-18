@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
+import { readBudgetContext } from '@/features/budget/budget-navigation/budgetNavigation';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
@@ -24,6 +26,7 @@ export function CategorizationRulesPage() {
   const { t } = useTranslation();
   const [saved, setSaved] = useState<'applied' | 'saved' | null>(null);
 
+  const budgetContext = readBudgetContext(window.location.search);
   const accounts = useRuleAccounts();
   const rules = useCategorizationRules();
   const editorWorkflow = useRuleEditor(accounts.available, () => setSaved('saved'));
@@ -35,6 +38,7 @@ export function CategorizationRulesPage() {
 
   return (
     <div className={styles.page}>
+      <BudgetNavigation current="rules" {...budgetContext} />
       <HeaderActions>
         <button
           className="primary-action"

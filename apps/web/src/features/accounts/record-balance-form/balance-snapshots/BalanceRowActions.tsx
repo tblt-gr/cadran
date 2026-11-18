@@ -8,7 +8,8 @@ import styles from './BalanceRowActions.module.css';
 
 /**
  * Row actions of one balance snapshot: correct (manual only, when `onEdit` is given) and withdraw
- * with its inline confirmation. A withdrawn or calculated snapshot offers nothing.
+ * with its inline confirmation. A withdrawn or calculated snapshot offers nothing, but keeps a
+ * disabled menu so every row has the same shape and the columns stay aligned.
  */
 export function BalanceRowActions({
   snapshot,
@@ -22,10 +23,14 @@ export function BalanceRowActions({
   const { t } = useTranslation();
   // The button that opened the confirmation is replaced, so focus moves to the new one.
   const focusOnMount = useCallback((button: HTMLButtonElement | null) => button?.focus(), []);
-  if (!snapshot.active || snapshot.source === 'CALCULATED') {
-    return null;
-  }
   const date = formatCalendarNumericDay(snapshot.asOf);
+  if (!snapshot.active || snapshot.source === 'CALCULATED') {
+    return (
+      <div className={styles.actions}>
+        <ActionMenu disabled items={[]} label={t('accounts.snapshots.actionsOf', { date })} />
+      </div>
+    );
+  }
 
   if (withdrawal.confirmingId === snapshot.id) {
     return (

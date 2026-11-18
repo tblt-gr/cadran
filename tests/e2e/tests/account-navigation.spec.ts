@@ -10,9 +10,12 @@ for (const width of [1440, 360]) {
     const fixtures = await resolveFixtures(page);
     await page.goto(fixtures.account);
     await settled(page);
-    const titleLeft = await page
-      .getByRole('heading', { level: 1 })
-      .evaluate((element) => element.getBoundingClientRect().left);
+    // On a phone the detail page's back arrow starts the line; the title follows it.
+    const lineStart =
+      width < 768
+        ? page.getByRole('link', { name: /^Retour/ })
+        : page.getByRole('heading', { level: 1 });
+    const titleLeft = await lineStart.evaluate((element) => element.getBoundingClientRect().left);
     const contentLeft = await page
       .getByRole('main')
       .evaluate((element) => element.getBoundingClientRect().left);

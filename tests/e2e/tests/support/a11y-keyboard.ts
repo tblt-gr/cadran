@@ -35,17 +35,29 @@ export function keyboardJourneys() {
   for (const transfer of [false, true]) {
     test(`keyboard only ${transfer ? 'transfer' : 'transaction'} entry, trap and return`, async ({
       page,
-    }) => {
+    }, testInfo) => {
       await page.goto('/transactions');
       await settled(page);
-      const trigger = page.getByRole('button', {
+      const action = page.getByRole('button', {
         name: transfer ? 'Nouveau virement' : 'Nouvelle transaction',
         exact: true,
       });
+      // On a phone the transfer sits in the page actions menu: the menu button is the stop to reach.
+      const inMenu = transfer && testInfo.project.name === 'Mobile 360';
+      const trigger = inMenu
+        ? page.getByRole('button', { name: 'Autres actions de la page', exact: true })
+        : action;
+      const openEditor = async () => {
+        await page.keyboard.press('Enter');
+        if (inMenu) {
+          await tabTo(page, action);
+          await page.keyboard.press('Enter');
+        }
+        await settled(page);
+      };
       await tabTo(page, trigger);
       await visibleFocus(trigger);
-      await page.keyboard.press('Enter');
-      await settled(page);
+      await openEditor();
       const dialog = page.getByRole('dialog');
       const firstField = transfer
         ? dialog.getByLabel('Compte source')
@@ -64,8 +76,7 @@ export function keyboardJourneys() {
       await page.keyboard.press('Escape');
       await expect(dialog).toBeHidden();
       await expect(trigger).toBeFocused();
-      await page.keyboard.press('Enter');
-      await settled(page);
+      await openEditor();
       if (transfer) {
         await tabTo(page, dialog.getByLabel('Compte source'));
         await page.keyboard.press('Home');
@@ -130,7 +141,8 @@ export function keyboardJourneys() {
     });
     const breadcrumb = page.getByRole('navigation', { name: /ariane/i });
     const months = page.getByRole('navigation', { name: 'Mois du budget', exact: true });
-    const regions = mobile ? [breadcrumb, months, nav] : [nav, breadcrumb, months];
+    // A phone draws no breadcrumb: the back arrow replaces it on detail pages only.
+    const regions = mobile ? [months, nav] : [nav, breadcrumb, months];
     const targets: Locator[] = [];
     for (const region of regions) {
       const links = region.getByRole('link');

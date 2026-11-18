@@ -83,7 +83,10 @@ export function BalanceSnapshotsList({
           </thead>
           <tbody>
             {(items ?? [null, null, null]).map((snapshot, index) => (
-              <tr key={snapshot?.id ?? index}>
+              <tr
+                className={snapshot && !snapshot.active ? styles.withdrawn : undefined}
+                key={snapshot?.id ?? index}
+              >
                 <th data-label={t('accounts.snapshots.date')} scope="row">
                   {snapshot ? (
                     <time dateTime={snapshot.asOf}>{formatCalendarNumericDay(snapshot.asOf)}</time>

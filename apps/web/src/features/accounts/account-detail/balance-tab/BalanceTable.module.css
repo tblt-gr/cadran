@@ -58,7 +58,8 @@
   }
 }
 
-.greyed > * {
+/* A withdrawn or uncomputable row is greyed as a whole: date and amount too. */
+.panel tbody tr.greyed > * {
   color: var(--text-muted);
 }
 
@@ -78,13 +79,12 @@
     white-space: nowrap;
   }
 
-  .panel tbody {
-    padding: var(--spacing-4);
-  }
-
+  /* The rows carry the padding, so the hover and press highlight reaches the edges of the panel;
+     square corners, so the bottom hairline does not curve. */
   .panel tbody tr {
-    padding: var(--spacing-3) var(--spacing-none);
+    padding: var(--spacing-3) var(--spacing-4);
     border-bottom: var(--border-line-subtle);
+    border-radius: var(--radius-none);
   }
 
   .panel tbody tr:last-child {
@@ -142,6 +142,10 @@
     padding: var(--spacing-none);
     color: var(--text-primary);
     font-size: var(--font-size-body);
+  }
+
+  .panel tbody tr.greyed > td.number {
+    color: var(--text-muted);
   }
 
   .panel tbody tr > td[data-actions] {

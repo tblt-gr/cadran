@@ -3,7 +3,7 @@ import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 import type { BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import { budgetContextHref, budgetRegisterHref } from './budgetNavigation';
 
-export type BudgetTab = 'budget' | 'transactions' | 'categories' | 'recurrences';
+export type BudgetTab = 'budget' | 'transactions' | 'categories' | 'rules' | 'recurrences';
 
 /**
  * Tabs shared by the budget follow-up and the pages it relies on. `month` is the context carried
@@ -23,6 +23,7 @@ export function BudgetNavigation({
     budget: '/budget',
     transactions: month ? budgetRegisterHref(month, axis) : '/transactions',
     categories: budgetContextHref('/transactions/categories', month, axis),
+    rules: budgetContextHref('/transactions/categories/rules', month, axis),
     recurrences: budgetContextHref('/transactions/recurrences', month, axis),
   };
   // The budget tab always returns to the workspace's current month via /budget.
@@ -32,6 +33,7 @@ export function BudgetNavigation({
     budget: t('budget.followUp.navigation'),
     transactions: t('navigation.transactions'),
     categories: t('routes.categories'),
+    rules: t('budget.followUp.rules'),
     recurrences: t('routes.recurrences'),
   };
   return (

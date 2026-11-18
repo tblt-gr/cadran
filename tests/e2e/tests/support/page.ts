@@ -45,3 +45,15 @@ export async function selectAccount(select: Locator, name: string): Promise<void
 
 /** The text of an account option, which carries its balance after the name. */
 export const accountOptionText = (name: string): RegExp => new RegExp(`^${name}( · .*)?$`);
+
+/**
+ * Clicks a page action by its name. On a phone only the first action of a page stays on the title
+ * line; the others sit in the "Autres actions de la page" menu, opened first.
+ */
+export async function clickPageAction(page: Page, name: string): Promise<void> {
+  const action = page.getByRole('button', { name, exact: true });
+  if (!(await action.isVisible())) {
+    await page.getByRole('button', { name: 'Autres actions de la page', exact: true }).click();
+  }
+  await action.click();
+}

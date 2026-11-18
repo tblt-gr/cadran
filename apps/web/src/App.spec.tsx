@@ -296,7 +296,7 @@ describe('App', () => {
     const sidebar = screen.getByRole('navigation', { name: 'Navigation principale' });
     expect(within(sidebar).getByRole('link', { current: 'page' }).textContent).toBe('Budget');
 
-    fireEvent.click(await screen.findByRole('link', { name: 'Gérer les règles' }));
+    fireEvent.click(await screen.findByRole('link', { name: 'Règles' }));
 
     expect(window.location.pathname).toBe('/transactions/categories/rules');
     expect(

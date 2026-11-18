@@ -92,3 +92,31 @@ export function breadcrumbItems(
     index === trail.length ? { ...entry, href: undefined } : entry,
   );
 }
+
+/**
+ * Parent page of the current path: the last linked trail item that is not the page itself.
+ * The "Paramètres" item stands for the settings tabs as a whole, so on any `/parameters/*` page it
+ * is the page itself and the dashboard is the parent.
+ */
+export function backTarget(items: BreadcrumbItem[], path: string): BreadcrumbItem | null {
+  const inSettings = path.startsWith('/parameters/');
+  for (let index = items.length - 1; index >= 0; index -= 1) {
+    const item = items[index]!;
+    if (!item.href || item.href === path) continue;
+    if (inSettings && item.href.startsWith('/parameters/')) continue;
+    return item;
+  }
+  return null;
+}
+
+const DETAIL_PATH = new RegExp(
+  '^/(?:(?:accounts(?!/groups$)|portfolios(?!/instruments$))/[^/]+|investments/instruments/[^/]+)$',
+);
+
+/**
+ * Back target of a detail page (account, instrument). The monthly budget and the annual report
+ * have no arrow: the other months and years stay reachable from the page itself.
+ */
+export function detailBackTarget(items: BreadcrumbItem[], path: string): BreadcrumbItem | null {
+  return DETAIL_PATH.test(path) ? backTarget(items, path) : null;
+}

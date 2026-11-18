@@ -37,3 +37,15 @@ it('draws no history for an account valued by its portfolio', () => {
   mount({ kind: 'PORTFOLIO', valuationMode: 'PORTFOLIO' });
   expect(screen.queryByRole('heading', { name: /^Historique/ })).toBeNull();
 });
+
+it('puts the disabled selection switch on the filter row of the operations tab', () => {
+  window.history.replaceState({}, '', '/accounts/a?tab=operations');
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <AccountDetailPageSkeleton status="Chargement" />
+    </QueryClientProvider>,
+  );
+  expect((screen.getByRole('button', { name: 'Sélectionner' }) as HTMLButtonElement).disabled).toBe(
+    true,
+  );
+});

@@ -56,3 +56,8 @@
   color: var(--negative);
   background: var(--negative-soft);
 }
+
+/* A withdrawn balance stays listed for the record, greyed like a removed row. */
+.withdrawn > * {
+  color: var(--text-muted);
+}

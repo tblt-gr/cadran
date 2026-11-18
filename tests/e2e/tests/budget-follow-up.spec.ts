@@ -15,6 +15,7 @@ for (const width of [360, 390, 768, 1280, 1440]) {
       'Suivi du budget',
       'Transactions',
       'Catégories',
+      'Règles',
       'Récurrences',
     ]);
     await expect(navigation.getByRole('link', { name: 'Suivi du budget' })).toHaveAttribute(
@@ -32,7 +33,8 @@ for (const width of [360, 390, 768, 1280, 1440]) {
     await expect(page.getByRole('button', { name: 'Clôturer ce mois', exact: true })).toHaveText(
       '',
     );
-    await expect(page.getByRole('button', { name: 'Autres actions' })).toHaveCount(0);
+    // A phone keeps one action and folds the rest into the page actions menu.
+    await expect(page.getByRole('button', { name: 'Autres actions', exact: true })).toHaveCount(0);
     const tabsBox = (await navigation.boundingBox())!;
     expect((await months.boundingBox())!.y).toBeGreaterThanOrEqual(tabsBox.y + tabsBox.height);
     expect((await closure.boundingBox())!.y).toBeLessThan(tabsBox.y);
@@ -75,7 +77,7 @@ for (const width of [360, 390, 768, 1280, 1440]) {
     // Month and views are filters: no stepper and no duplicated quick views above the list.
     await expect(page.getByRole('button', { name: 'Mois précédent' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'En attente', exact: true })).toHaveCount(0);
-    await expect(page.getByRole('button', { name: 'Autres actions' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Autres actions', exact: true })).toHaveCount(0);
     expect(await auditLayout(page, false)).toEqual([]);
     await page.screenshot({
       path: testInfo.outputPath(`transactions-${width}.png`),

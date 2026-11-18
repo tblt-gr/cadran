@@ -39,8 +39,23 @@
   font-size: var(--font-size-xs);
 }
 
+/* On a phone the label and the amounts share one line and the gauge runs under them. */
 @media (max-width: 42rem) {
   .figure {
-    align-items: flex-start;
+    display: grid;
+    flex: 1 1 100%;
+    align-items: center;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--spacing-3);
+  }
+
+  .value {
+    font-size: var(--font-size-body);
+    text-align: right;
+  }
+
+  .track,
+  .alert {
+    grid-column: 1 / -1;
   }
 }

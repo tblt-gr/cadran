@@ -203,6 +203,12 @@
     display: none;
   }
 
+  /* Neither the trail nor the freshness label is drawn on a phone: without an account control the
+     bar would be an empty row. */
+  .bar[data-bare] {
+    display: none;
+  }
+
   .pageActions {
     flex-wrap: wrap;
   }
@@ -222,8 +228,31 @@
     gap: var(--spacing-3);
   }
 
+  /* The title block is always as tall as a touch target, so the title sits at the same height
+     whether the page has an arrow and actions (44 px controls) or none. */
   .titleText {
+    display: flex;
     flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: center;
+    min-block-size: var(--touch-target-min);
+  }
+
+  /* A long title stays on one line and ends with an ellipsis, so the bar keeps its height. */
+  .titleBlock h1 {
+    overflow: hidden;
+    font-size: var(--font-size-page-title-mobile);
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* A long title stays on one line and ends with an ellipsis, so the bar keeps its height. */
+  .titleBlock h1 {
+    overflow: hidden;
+    overflow-wrap: normal;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .pageActions {

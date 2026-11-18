@@ -45,7 +45,12 @@ export function KpiFigure({
       <div className={styles.heading}>
         <h3>{label}</h3>
         {explainLabel === undefined ? null : (
-          <InfoButton disabled={!onExplain} label={explainLabel} onClick={onExplain ?? undefined} />
+          <InfoButton
+            className={styles.explainOverlay}
+            disabled={!onExplain}
+            label={explainLabel}
+            onClick={onExplain ?? undefined}
+          />
         )}
       </div>
       <div className={`${styles.value} ${tone}`}>

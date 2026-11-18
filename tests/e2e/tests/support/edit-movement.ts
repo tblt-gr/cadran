@@ -1,5 +1,5 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { movementRows, settled, uniqueLabel, selectAccount } from './page';
+import { clickPageAction, movementRows, settled, uniqueLabel, selectAccount } from './page';
 
 /** Own fixtures keep editing audits independent of the shared ledger's current row order. */
 export async function openMovementEditModal(
@@ -10,12 +10,7 @@ export async function openMovementEditModal(
   await settled(page);
   let label = uniqueLabel(`Audit ${kind} modifiable`);
   const isTransfer = kind === 'transfer';
-  await page
-    .getByRole('button', {
-      name: isTransfer ? 'Nouveau virement' : 'Nouvelle transaction',
-      exact: true,
-    })
-    .click();
+  await clickPageAction(page, isTransfer ? 'Nouveau virement' : 'Nouvelle transaction');
   await settled(page);
   const creation = page.getByRole('dialog');
   if (isTransfer) {

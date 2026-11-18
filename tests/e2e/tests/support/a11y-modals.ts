@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import type { AuditFixtures } from './a11y';
-import { settled, uniqueLabel } from './page';
+import { clickPageAction, settled, uniqueLabel } from './page';
 import { openMovementEditModal } from './edit-movement';
 import { openTakeoverModal } from './takeover';
 import { openTransactionSplits } from './transaction-splits';
@@ -127,7 +127,7 @@ export async function openAuditModal(page: Page, name: ModalCase, fixtures: Audi
     }
     if (name === 'transaction error') await button('Enregistrer').click();
   } else if (name.startsWith('transfer')) {
-    await button('Nouveau virement').click();
+    await clickPageAction(page, 'Nouveau virement');
     if (name === 'transfer error') await button('Créer le virement').click();
   } else if (name.startsWith('account')) {
     await button('Nouveau compte').click();

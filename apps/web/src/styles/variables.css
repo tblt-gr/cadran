@@ -129,6 +129,7 @@
   --font-size-panel-total: 1.125rem;
   --font-size-metric: 1.75rem;
   --font-size-page-title: 1.5rem;
+  --font-size-page-title-mobile: 1.125rem;
   --font-size-display: clamp(1.75rem, 2.2vw, 2rem);
   --font-size-display-mobile: clamp(1.25rem, 6vw, 1.5rem);
   --font-size-empty-title: clamp(1.5rem, 3vw, 2.25rem);
