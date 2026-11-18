@@ -10,9 +10,8 @@ import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
 import { ValuationDetailModal } from './valuation-detail-modal/ValuationDetailModal';
 import { ValuationModal } from './valuation-modal/ValuationModal';
 import { IncrementalList } from '@/components/ui/incremental-list/IncrementalList';
-import { ValuationsTable } from './valuations-table/ValuationsTable';
+import { ValuationDayList } from './valuation-day-list/ValuationDayList';
 import { WithdrawValuationModal } from './withdraw-valuation-dialog/WithdrawValuationModal';
-import { ValuationsTableSkeleton } from './ValuationsTableSkeleton';
 import { useValuations } from './useValuations';
 import styles from './ValuationsTab.module.css';
 
@@ -111,7 +110,12 @@ export function ValuationsTab({
         </p>
       ) : null}
       {valuations.isPending ? (
-        <ValuationsTableSkeleton status="Chargement des valorisations…" />
+        <ValuationDayList
+          onDetail={() => undefined}
+          onReplace={() => undefined}
+          onWithdraw={() => undefined}
+          valuations={null}
+        />
       ) : valuations.isError && !valuations.data ? (
         <OperationsState error title="Les valorisations sont indisponibles">
           <button
@@ -129,8 +133,8 @@ export function ValuationsTab({
       ) : (
         <IncrementalList items={valuations.data!.items} query={valuations}>
           {(visibleItems) => (
-            <ValuationsTable
-              items={visibleItems}
+            <ValuationDayList
+              valuations={visibleItems}
               onDetail={(item) => setDetailId(item.id)}
               onReplace={(valuation) => setDialog({ kind: 'replace', valuation })}
               onWithdraw={(valuation) => setDialog({ kind: 'withdraw', valuation })}

@@ -42,3 +42,9 @@ export const lineQualityLabel: Record<PortfolioPriceQuality, string> = {
   MISSING: 'Manquant',
   NOT_DETAILED: 'Non détaillé',
 };
+
+/** How a valuation was entered: the total typed from a statement, or computed from its lines. */
+export const entryModeLabel: Record<PortfolioValuationDetail, string> = {
+  TOTAL: 'Saisie manuelle',
+  POSITIONS: 'Calculée',
+};
