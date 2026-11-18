@@ -1,6 +1,10 @@
 import type { Account, Transaction } from '@cadran/api-client';
-import { useContext, type MouseEvent } from 'react';
+import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
+import { DatedCell } from '@/components/ui/dated-list/DatedCell';
+import { DatedRow } from '@/components/ui/dated-list/DatedRow';
+import { DatedRowCheckbox } from '@/components/ui/dated-list/DatedRowCheckbox';
+import type { DatedRowSelection } from '@/components/ui/dated-list/datedListTypes';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -12,10 +16,9 @@ import {
 import { TransactionAmount } from '@/features/transactions/transaction-list/transaction-amount/TransactionAmount';
 import { TransactionCategories } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategories';
 import { TransactionCategoryMark } from '@/features/transactions/transaction-list/transaction-categories/TransactionCategoryMark';
-import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionActionsContext } from '@/features/transactions/transaction-workflow/transactionActions';
 import { formatCalendarShortDay } from '@/lib/decimal';
-import styles from './TransactionDayList.module.css';
+import styles from './TransactionDayRow.module.css';
 
 const STATE_TONE = {
   VOIDED: 'warning',
@@ -25,7 +28,7 @@ const STATE_TONE = {
 interface TransactionDayRowProps {
   accounts: Account[] | undefined;
   /** Adds the selection checkbox column; rows still loading show it disabled. */
-  selection?: RowSelection;
+  selection?: DatedRowSelection;
   /** Null while loading: the row keeps its final structure and shows blocks for the values. */
   transaction: Transaction | null;
   counterpartAccount?: string;
@@ -45,49 +48,70 @@ export function TransactionDayRow({
   // A planned row is booked by the server on its date: say so in words, not by the grey alone.
   const planned = pending && transaction.autoBook;
   const account = accounts?.find((candidate) => candidate.id === transaction?.accountId);
+  const stateText = planned
+    ? t('transactions.states.planned', {
+        date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
+      })
+    : t('transactions.states.PENDING');
 
-  // The whole row opens the detail dialog; a control inside it keeps its own action. The label
-  // button stays the keyboard and screen reader way in.
-  const inspect = (event: MouseEvent<HTMLLIElement>) => {
-    if (!transaction || !actions) return;
-    if ((event.target as HTMLElement).closest('button, a, input, label, select, [data-actions]'))
-      return;
-    actions.open('inspect', transaction);
-  };
+  function transferNote(leg: Transaction) {
+    if (leg.nature === 'FEE') {
+      return (
+        <>
+          {t('transactions.list.transferFeeMarker')}
+          {counterpartAccount ? ` · ${counterpartAccount}` : null}
+        </>
+      );
+    }
+    if (!counterpartAccount || !account) return t('transactions.list.transferMarker');
+    // The leg that leaves the account is the source; the one that enters is the destination.
+    return leg.amount.value.startsWith('-')
+      ? t('transactions.list.transferRoute', { from: account.label, to: counterpartAccount })
+      : t('transactions.list.transferRoute', { from: counterpartAccount, to: account.label });
+  }
 
   return (
-    <li
-      onClick={inspect}
-      className={[
-        styles.row,
-        selection ? styles.selectable : '',
-        pending ? styles.pending : '',
-        planned ? styles.planned : '',
-      ]
+    <DatedRow
+      className={[pending ? styles.pending : '', planned ? styles.planned : '']
         .filter(Boolean)
         .join(' ')}
-      data-clickable={transaction !== null && actions !== null ? true : undefined}
-      data-transfer-id={transaction?.transferId ?? undefined}
-      data-state={transaction?.state}
-      data-accounts={accounts !== undefined}
-    >
-      {selection ? (
-        <label className={styles.select}>
-          <input
-            aria-label={
+      dataAttributes={{
+        'data-accounts': accounts !== undefined,
+        'data-state': transaction?.state,
+        'data-transfer-id': transaction?.transferId ?? undefined,
+      }}
+      leading={
+        selection ? (
+          <DatedRowCheckbox
+            checked={selection.selected}
+            disabled={selection.disabled}
+            label={
               transaction
                 ? t('transactions.bulk.selectRow', { label: transaction.displayLabel })
                 : t('transactions.bulk.selectRowLoading')
             }
-            checked={transaction ? selection.selectedIds.has(transaction.id) : false}
-            disabled={transaction === null}
-            onChange={() => transaction && selection.onToggle(transaction.id)}
-            type="checkbox"
+            onToggle={selection.toggle}
           />
-        </label>
-      ) : null}
-      <div className={styles.primary}>
-        <div className={styles.titleLine}>
+        ) : undefined
+      }
+      // The whole row opens the detail dialog; the label button stays the keyboard and screen
+      // reader way in.
+      onOpen={transaction && actions ? () => actions.open('inspect', transaction) : undefined}
+      state={
+        pending
+          ? {
+              // A planned row is booked by the server on its date: say so in words, not by the grey alone.
+              tone: planned ? 'muted' : 'pending',
+              cue: (
+                <span aria-label={stateText} className={styles.clock} role="img" title={stateText}>
+                  <Icon name="clock" size={14} />
+                </span>
+              ),
+            }
+          : undefined
+      }
+      title={
+        <>
           <span className={styles.phoneOnly}>
             {transaction ? (
               <TransactionCategoryMark
@@ -97,92 +121,47 @@ export function TransactionDayRow({
             ) : null}
           </span>
           <TransactionInspectButton transaction={transaction} />
-          {pending ? (
-            <span
-              aria-label={
-                planned
-                  ? t('transactions.states.planned', {
-                      date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
-                    })
-                  : t('transactions.states.PENDING')
-              }
-              className={styles.clock}
-              role="img"
-              title={
-                planned
-                  ? t('transactions.states.planned', {
-                      date: formatCalendarShortDay(transaction.bookedOn, i18n.language),
-                    })
-                  : t('transactions.states.PENDING')
-              }
-            >
-              <Icon name="clock" size={14} />
+        </>
+      }
+      meta={
+        <>
+          {transaction?.transferId != null ? <small>{transferNote(transaction)}</small> : null}
+          {transaction ? <RefundBadge transaction={transaction} /> : null}
+          {/* Booked is the normal case, pending is the clock next to the label: only the other
+              states that depart from it get a badge. */}
+          {transaction && (transaction.state === 'VOIDED' || transaction.state === 'REJECTED') ? (
+            <span className={styles.state}>
+              <StatusBadge tone={STATE_TONE[transaction.state]}>
+                {t(`transactions.states.${transaction.state}`)}
+              </StatusBadge>
             </span>
           ) : null}
-        </div>
-        {transaction?.transferId != null ? (
-          <small>
-            {transaction.nature === 'FEE' ? (
-              <>
-                {t('transactions.list.transferFeeMarker')}
-                {counterpartAccount ? ` · ${counterpartAccount}` : null}
-              </>
-            ) : counterpartAccount && account ? (
-              // The leg that leaves the account is the source; the one that enters is the destination.
-              transaction.amount.value.startsWith('-') ? (
-                t('transactions.list.transferRoute', {
-                  from: account.label,
-                  to: counterpartAccount,
-                })
-              ) : (
-                t('transactions.list.transferRoute', {
-                  from: counterpartAccount,
-                  to: account.label,
-                })
-              )
-            ) : (
-              t('transactions.list.transferMarker')
-            )}
-          </small>
-        ) : null}
-        {transaction ? <RefundBadge transaction={transaction} /> : null}
-        {/* Booked is the normal case, pending is the clock next to the label: only the other
-            states that depart from it get a badge. */}
-        {transaction && (transaction.state === 'VOIDED' || transaction.state === 'REJECTED') ? (
-          <span className={styles.state}>
-            <StatusBadge tone={STATE_TONE[transaction.state]}>
-              {t(`transactions.states.${transaction.state}`)}
-            </StatusBadge>
-          </span>
-        ) : null}
-      </div>
-      <span className={styles.amount}>
-        {transaction ? <TransactionAmount amount={transaction.amount} /> : <SkeletonBlock />}
-      </span>
-      <div className={styles.meta}>
-        {/* A transfer is neutral: its category cell exists only when one was set. */}
-        {transaction?.transferId != null && transaction.splits.length === 0 ? null : (
-          <span className={styles.category}>
-            {transaction ? (
+        </>
+      }
+      cells={
+        <>
+          {/* A transfer is neutral: its category cell stays empty unless one was set. */}
+          <DatedCell className={styles.category} column={1}>
+            {transaction?.transferId != null &&
+            transaction.splits.length === 0 ? null : transaction ? (
               <TransactionCategories splits={transaction.splits} />
             ) : (
               <SkeletonBlock />
             )}
-          </span>
-        )}
-        {accounts ? (
-          <span className={styles.account} title={account?.label}>
-            {transaction ? (
-              (account?.label ?? t('transactions.list.unknownAccount'))
-            ) : (
-              <SkeletonBlock />
-            )}
-          </span>
-        ) : null}
-      </div>
-      <div className={styles.actions}>
-        <TransactionRowActions transaction={transaction} />
-      </div>
-    </li>
+          </DatedCell>
+          {accounts ? (
+            <DatedCell className={styles.account} column={2} title={account?.label}>
+              {transaction ? (
+                (account?.label ?? t('transactions.list.unknownAccount'))
+              ) : (
+                <SkeletonBlock />
+              )}
+            </DatedCell>
+          ) : null}
+        </>
+      }
+      value={transaction ? <TransactionAmount amount={transaction.amount} /> : <SkeletonBlock />}
+      menu={<TransactionRowActions transaction={transaction} />}
+    />
   );
 }

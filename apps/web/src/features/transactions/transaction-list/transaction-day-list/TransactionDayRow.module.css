@@ -1,0 +1,44 @@
+/* The register's own cells; the row anatomy and its muted tones come from the shared dated list. */
+
+/* Only the category fill, whose ink is computed from it, is greyed: the text is muted by colour. */
+.pending .category > *,
+.planned .category > * {
+  filter: grayscale(1);
+}
+
+.state {
+  display: block;
+  margin-top: var(--spacing-1);
+}
+
+/* The category glyph shows on phones only, the desktop has a column; the clock of a pending or
+   planned row sits after the label everywhere. */
+.phoneOnly {
+  display: none;
+}
+
+.clock {
+  display: inline-flex;
+  flex: none;
+  color: var(--info);
+}
+
+@media (max-width: 47.999rem) {
+  .phoneOnly {
+    display: inline-flex;
+  }
+}
+
+@media (min-width: 64rem) {
+  .category {
+    overflow-wrap: anywhere;
+  }
+
+  .account {
+    overflow: hidden;
+    color: var(--text-muted);
+    font-size: var(--font-size-sm);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

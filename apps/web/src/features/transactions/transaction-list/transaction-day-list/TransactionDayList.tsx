@@ -1,13 +1,10 @@
 import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
+import { DatedList } from '@/components/ui/dated-list/DatedList';
 import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
-import { todayInBrowser } from '@/lib/businessDay';
 import { dayHeadingLabel } from './dayHeadingLabel';
 import { TransactionDayRow } from './TransactionDayRow';
-import { groupTransactionsByDay, type DayGroup } from './groupTransactionsByDay';
-import styles from './TransactionDayList.module.css';
-import { VirtualTransactionDays } from './VirtualTransactionDays';
+import { transferCounterparts } from './transferCounterparts';
 
 interface TransactionDayListProps {
   /** Names each row's account. Left out on a list already scoped to one account. */
@@ -22,9 +19,7 @@ interface TransactionDayListProps {
   announce?: boolean;
 }
 
-/** Placeholder days: three, three and two rows, enough to fill a screen without inventing data. */
-const SKELETON_DAY_SIZES = [3, 3, 2];
-
+/** The transaction register: transactions grouped by booking day on the shared dated list. */
 export function TransactionDayList({
   accounts,
   announce = true,
@@ -34,63 +29,34 @@ export function TransactionDayList({
   transactions,
 }: TransactionDayListProps) {
   const { i18n, t } = useTranslation();
-  const today = todayInBrowser();
   const words = {
     today: t('transactions.list.today'),
     yesterday: t('transactions.list.yesterday'),
   };
-  const Heading = `h${headingLevel}` as const;
-  const loading = transactions === null;
-  const groups: Array<DayGroup | null[]> = loading
-    ? SKELETON_DAY_SIZES.map((size) => Array.from({ length: size }, () => null))
-    : groupTransactionsByDay(transactions);
-
-  if (transactions !== null)
-    return (
-      <VirtualTransactionDays
-        accounts={accounts}
-        headingLevel={headingLevel}
-        label={label ?? t('transactions.list.caption')}
-        selection={selection}
-        transactions={transactions}
-      />
-    );
+  const counterparts = transactions ? transferCounterparts(transactions, accounts) : null;
 
   return (
-    <div
-      className={styles.panel}
-      aria-busy={loading || undefined}
-      data-testid={loading ? 'transaction-day-list-skeleton' : undefined}
-    >
-      {loading && announce ? <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus> : null}
-      <ol aria-label={label ?? t('transactions.list.caption')} className={styles.days}>
-        {groups.map((group, index) => {
-          const day = Array.isArray(group) ? null : group;
-          const rows: Array<Transaction | null> = Array.isArray(group) ? group : group.transactions;
-
-          return (
-            <li className={styles.day} key={day?.day ?? index}>
-              <Heading className={styles.dayTitle} data-future={day ? day.day > today : undefined}>
-                <time className={styles.date} dateTime={day?.day}>
-                  {day ? dayHeadingLabel(day.day, i18n.language, words) : <SkeletonBlock />}
-                </time>
-              </Heading>
-              <div className={`card ${styles.dayCard}`}>
-                <ul className={styles.rows}>
-                  {rows.map((transaction, rowIndex) => (
-                    <TransactionDayRow
-                      accounts={accounts}
-                      key={transaction?.id ?? rowIndex}
-                      selection={selection}
-                      transaction={transaction}
-                    />
-                  ))}
-                </ul>
-              </div>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
+    <DatedList
+      announce={announce}
+      dayLabel={(day) => dayHeadingLabel(day, i18n.language, words)}
+      getDay={(transaction) => transaction.bookedOn}
+      getKey={(transaction) => transaction.id}
+      headingLevel={headingLevel}
+      items={transactions}
+      label={label ?? t('transactions.list.caption')}
+      loadingLabel={t('transactions.loading')}
+      nextLoadedLabel={t('transactions.pagination.nextLoaded')}
+      previousLoadedLabel={t('transactions.pagination.previousLoaded')}
+      renderRow={(transaction, context) => (
+        <TransactionDayRow
+          accounts={accounts}
+          counterpartAccount={transaction ? counterparts?.get(transaction.id) : undefined}
+          selection={context.selection}
+          transaction={transaction}
+        />
+      )}
+      selection={selection}
+      skeletonTestId="transaction-day-list-skeleton"
+    />
   );
 }

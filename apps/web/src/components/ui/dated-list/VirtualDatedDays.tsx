@@ -1,63 +1,62 @@
-import type { Account, Transaction } from '@cadran/api-client';
 import { defaultRangeExtractor, useWindowVirtualizer, windowScroll } from '@tanstack/react-virtual';
 import { Fragment, useLayoutEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { todayInBrowser } from '@/lib/businessDay';
-import { dayHeadingLabel } from './dayHeadingLabel';
-import { groupTransactionsByDay } from './groupTransactionsByDay';
-import { TransactionDayRow } from './TransactionDayRow';
-import { transferCounterparts } from './transferCounterparts';
-import styles from './TransactionDayList.module.css';
+import type { DatedListLayout, DatedRowSelection } from './datedListTypes';
+import { groupByDay } from './groupByDay';
+import styles from './DatedList.module.css';
+
+/** Rows of an average card: the estimate before a block is measured. */
+const ESTIMATED_ROW_HEIGHT = 76;
 
 /** Small measured blocks also bound the DOM when a single day contains thousands of rows. */
-function transactionBlocks(transactions: Transaction[]) {
-  return groupTransactionsByDay(transactions).flatMap((group, dayIndex) => {
+function itemBlocks<T>(items: readonly T[], getDay: (item: T) => string) {
+  return groupByDay(items, getDay).flatMap((group, dayIndex) => {
     const blocks = [];
-    for (let start = 0; start < group.transactions.length; start += 25) {
+    for (let start = 0; start < group.items.length; start += 25) {
       blocks.push({
         day: group.day,
         dayIndex,
         heading: start === 0,
-        transactions: group.transactions.slice(start, start + 25),
+        items: group.items.slice(start, start + 25),
       });
     }
     return blocks;
   });
 }
 
-export function VirtualTransactionDays({
-  accounts,
+interface VirtualDatedDaysProps<T> extends DatedListLayout<T> {
+  items: readonly T[];
+  nextLoadedLabel: string;
+  previousLoadedLabel: string;
+}
+
+/** The loaded list: only the blocks near the viewport (and the focused one) are mounted. */
+export function VirtualDatedDays<T>({
+  dayLabel,
+  getDay,
+  getKey,
   headingLevel,
+  items,
   label,
+  nextLoadedLabel,
+  previousLoadedLabel,
+  renderRow,
   selection,
-  transactions,
-}: {
-  accounts?: Account[];
-  headingLevel: 3 | 4;
-  label: string;
-  selection?: RowSelection;
-  transactions: Transaction[];
-}) {
-  const { i18n, t } = useTranslation();
+}: VirtualDatedDaysProps<T>) {
   const today = todayInBrowser();
-  const words = {
-    today: t('transactions.list.today'),
-    yesterday: t('transactions.list.yesterday'),
-  };
   const Heading = `h${headingLevel}` as const;
   const list = useRef<HTMLOListElement>(null);
   const pendingFocus = useRef<{ index: number; last: boolean } | null>(null);
   const [focused, setFocused] = useState<number | null>(null);
   const [margin, setMargin] = useState(0);
   const [headingHeight, setHeadingHeight] = useState(34);
-  const blocks = transactionBlocks(transactions);
-  const counterparts = transferCounterparts(transactions, accounts);
+  const blocks = itemBlocks(items, getDay);
   const estimateSize = (index: number) =>
-    blocks[index]!.transactions.length * 76 + (blocks[index]!.heading ? headingHeight : 0);
+    blocks[index]!.items.length * ESTIMATED_ROW_HEIGHT +
+    (blocks[index]!.heading ? headingHeight : 0);
   const virtualizer = useWindowVirtualizer<HTMLUListElement>({
     count: blocks.length,
-    getItemKey: (index) => blocks[index]!.transactions[0]!.id,
+    getItemKey: (index) => getKey(blocks[index]!.items[0]!),
     estimateSize,
     // A hidden/frozen surface has no layout yet: keep its estimate until it can be measured.
     measureElement: (element) => {
@@ -158,7 +157,7 @@ export function VirtualTransactionDays({
           onClick={() => reveal(first - 1, true)}
           type="button"
         >
-          {t('transactions.pagination.previousLoaded')}
+          {previousLoadedLabel}
         </button>
       ) : null}
       <ol aria-label={label} className={styles.days} ref={list}>
@@ -167,7 +166,7 @@ export function VirtualTransactionDays({
           const block = blocks[firstItem.index]!;
           const previousEnd = runs[runIndex - 1]?.at(-1)?.end ?? margin;
           // A continuation still needs its sticky date. Take its height out of the omitted
-          // rows above it so mounting that context does not move the visible transactions.
+          // rows above it so mounting that context does not move the visible rows.
           const gap = firstItem.start - previousEnd - (block.heading ? 0 : headingHeight);
           return (
             <Fragment key={block.day}>
@@ -179,7 +178,7 @@ export function VirtualTransactionDays({
                   data-day-heading
                 >
                   <time className={styles.date} dateTime={block.day}>
-                    {dayHeadingLabel(block.day, i18n.language, words)}
+                    {dayLabel(block.day)}
                   </time>
                 </Heading>
                 <div className={`card ${styles.dayCard}`}>
@@ -194,24 +193,24 @@ export function VirtualTransactionDays({
                         />
                       ) : null}
                       <ul
-                        aria-label={
-                          blocks[item.index]!.heading
-                            ? undefined
-                            : dayHeadingLabel(block.day, i18n.language, words)
-                        }
+                        aria-label={blocks[item.index]!.heading ? undefined : dayLabel(block.day)}
                         className={styles.rows}
                         data-index={item.index}
                         ref={virtualizer.measureElement}
                       >
-                        {blocks[item.index]!.transactions.map((transaction) => (
-                          <TransactionDayRow
-                            accounts={accounts}
-                            counterpartAccount={counterparts.get(transaction.id)}
-                            key={transaction.id}
-                            selection={selection}
-                            transaction={transaction}
-                          />
-                        ))}
+                        {blocks[item.index]!.items.map((entry) => {
+                          const id = getKey(entry);
+                          const rowSelection: DatedRowSelection | undefined = selection && {
+                            disabled: false,
+                            selected: selection.selectedIds.has(id),
+                            toggle: () => selection.onToggle(id),
+                          };
+                          return (
+                            <Fragment key={id}>
+                              {renderRow(entry, { selection: rowSelection })}
+                            </Fragment>
+                          );
+                        })}
                       </ul>
                     </Fragment>
                   ))}
@@ -233,7 +232,7 @@ export function VirtualTransactionDays({
           onClick={() => reveal(last + 1, false)}
           type="button"
         >
-          {t('transactions.pagination.nextLoaded')}
+          {nextLoadedLabel}
         </button>
       ) : null}
     </div>
