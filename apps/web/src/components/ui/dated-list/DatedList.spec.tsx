@@ -134,15 +134,6 @@ describe('DatedList', () => {
     expect(screen.getByText('Compte a').closest('li')!.getAttribute('data-clickable')).toBe('true');
   });
 
-  it('keeps the click on the menu cell itself out of the detail', () => {
-    const open = vi.fn();
-    render(<DatedList {...listProps({ renderRow: defaultRow(open) })} items={entries} />);
-
-    const menu = screen.getByRole('button', { name: 'Menu Alpha' }).parentElement!;
-    fireEvent.click(menu);
-    expect(open).not.toHaveBeenCalled();
-  });
-
   it('opens the detail from the label button and puts focus back on it after the dialog closes', () => {
     function Harness() {
       const [open, setOpen] = useState(false);

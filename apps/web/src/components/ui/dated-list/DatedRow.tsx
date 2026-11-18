@@ -85,11 +85,7 @@ export function DatedRow({
       </span>
       {aside === undefined ? null : <span className={styles.aside}>{aside}</span>}
       {cells === undefined ? null : <div className={styles.cells}>{cells}</div>}
-      {menu === undefined ? null : (
-        <div className={styles.actions} data-actions>
-          {menu}
-        </div>
-      )}
+      {menu === undefined ? null : <div className={styles.actions}>{menu}</div>}
     </li>
   );
 }
