@@ -13,6 +13,7 @@
   "breadcrumb": {
     "label": "Fil d’Ariane",
     "home": "Accueil",
+    "back": "Retour : {{label}}",
     "account": "Compte",
     "loadingAccount": "Chargement du compte"
   },
@@ -1301,7 +1302,6 @@
   },
   "categories": {
     "add": "Nouvelle catégorie",
-    "manageRules": "Gérer les règles",
     "addFirst": "Créer la première catégorie",
     "showArchived": "Voir les catégories archivées",
     "hideArchived": "Masquer les catégories archivées",
@@ -3836,6 +3836,7 @@
     "followUp": {
       "navigation": "Suivi du budget",
       "navigationLabel": "Budget et transactions",
+      "rules": "Règles",
       "actions": "Actions",
       "details": "Livre des mouvements et virements",
       "analysis": "Analyse du mois et récapitulatifs"

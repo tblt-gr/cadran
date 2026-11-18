@@ -9,6 +9,7 @@ import { INSTRUMENTS_HREF } from '@/features/accounts/account-actions-menu/accou
 import type { PortfolioTab } from '@/features/portfolio/portfolio-account/portfolio-tabs/PortfolioTabs';
 import { valuedByPortfolio } from '@/features/portfolio/portfolioAccountHref';
 import { handleClientNavigation, navigateFromPage } from '@/hooks/use-client-navigation';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 /**
  * The header actions follow the tab, and only the Compte tab carries the three-dot menu:
@@ -46,6 +47,7 @@ export function PortfolioAccountHeader({
   voided?: { active: boolean; onToggle: () => void };
 }) {
   const { t } = useTranslation();
+  const phone = useMediaQuery('(max-width: 767px)');
   const [rulesOpen, setRulesOpen] = useState(false);
   const writable =
     account !== undefined && account.status === 'ACTIVE' && valuedByPortfolio(account);
@@ -54,6 +56,8 @@ export function PortfolioAccountHeader({
   const showsPrimary = showsOperation || valuationPrimary;
   const showsInstruments =
     tab === 'account' || tab === 'operations' || tab === 'valuations' || tab === 'positions';
+  // On a phone the Compte tab has a single three-dot menu: it lists the instruments itself.
+  const instrumentsInMenu = phone && tab === 'account';
   const primaryLabel = t(
     valuationPrimary
       ? 'accounts.detail.actionsMenu.valuation'
@@ -86,7 +90,7 @@ export function PortfolioAccountHeader({
             <span>{primaryLabel}</span>
           </button>
         ) : null}
-        {showsInstruments ? (
+        {showsInstruments && !instrumentsInMenu ? (
           <a
             aria-label={t('accounts.detail.actionsMenu.instruments')}
             className={`secondary-action`}
@@ -127,6 +131,7 @@ export function PortfolioAccountHeader({
         {tab === 'account' ? (
           <AccountActionsMenu
             account={account}
+            onInstruments={instrumentsInMenu ? () => navigateFromPage(INSTRUMENTS_HREF) : undefined}
             onRecordValuation={onRecordValuation}
             onTakeover={onTakeover}
             onRules={() => setRulesOpen(true)}

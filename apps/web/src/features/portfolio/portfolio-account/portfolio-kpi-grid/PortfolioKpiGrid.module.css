@@ -98,3 +98,48 @@
 .reserveCorner {
   padding-right: var(--spacing-12);
 }
+
+/* On a phone the three indicators share one line at one size, so the summary reads as a single
+   compact band rather than a lead figure over two orphans. */
+@media (max-width: 47.999rem) {
+  .strip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spacing-3);
+  }
+
+  .strip > :first-child {
+    grid-column: auto;
+  }
+
+  .strip .value {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-strong);
+    letter-spacing: var(--letter-spacing-card);
+  }
+}
+
+/* On a phone the "i" button goes away: the whole label and value block opens the explanation, so
+   no icon takes room and the tap target is the figure itself. */
+@media (max-width: 47.999rem) {
+  .summary {
+    gap: var(--spacing-5);
+  }
+
+  button.explainOverlay.explainOverlay {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    border-radius: var(--radius-control);
+  }
+
+  button.explainOverlay.explainOverlay:active:not(:disabled) {
+    background: var(--bg-surface-hover);
+  }
+
+  button.explainOverlay svg {
+    display: none;
+  }
+}

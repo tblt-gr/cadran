@@ -4,6 +4,8 @@ import styles from './Header.module.css';
 
 interface HeaderProps {
   accountSlot?: ReactNode;
+  /** Phone back arrow of a detail page, drawn on the left of the title. */
+  backLink?: ReactNode;
   /** Where the page sits; rendered on the left of the bar, which stays pinned while the page scrolls. */
   breadcrumb?: ReactNode;
   freshnessLabel?: string;
@@ -22,6 +24,7 @@ interface HeaderProps {
  */
 export function Header({
   accountSlot,
+  backLink,
   breadcrumb,
   freshnessLabel,
   headerDate,
@@ -34,7 +37,7 @@ export function Header({
 
   return (
     <>
-      <header className={styles.bar}>
+      <header className={styles.bar} data-bare={accountSlot ? undefined : ''}>
         <div className={styles.trail}>{breadcrumb}</div>
         <div className={styles.actions}>
           {freshnessLabel && onFreshnessClick ? (
@@ -57,6 +60,7 @@ export function Header({
         </div>
       </header>
       <div className={styles.titleBlock}>
+        {backLink}
         <div className={styles.titleText} data-page-title>
           {headerDate ? (
             <p className={styles.date} data-visual-mask>

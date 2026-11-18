@@ -1,5 +1,6 @@
 import type { MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import type { BreadcrumbItem } from './breadcrumbRoutes';
 import styles from './Breadcrumb.module.css';
@@ -12,6 +13,9 @@ export function Breadcrumb({
   onNavigate: (event: MouseEvent<HTMLAnchorElement>, href: string) => void;
 }) {
   const { t } = useTranslation();
+  // On a phone the trail gives way to the back arrow beside the title of detail pages.
+  const phone = useMediaQuery('(max-width: 767px)');
+  if (phone) return null;
   return (
     <nav aria-label={t('breadcrumb.label')} className={styles.breadcrumb}>
       <ol className={styles.list}>

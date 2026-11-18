@@ -28,6 +28,7 @@ describe('BudgetNavigation', () => {
       'Suivi du budget': '/budget',
       Transactions: '/transactions?period=month&month=2026-09&budgetMonth=2026-09&budgetAxis=FIXED',
       Catégories: '/transactions/categories?budgetMonth=2026-09&budgetAxis=FIXED',
+      Règles: '/transactions/categories/rules?budgetMonth=2026-09&budgetAxis=FIXED',
       Récurrences: '/transactions/recurrences?budgetMonth=2026-09&budgetAxis=FIXED',
     });
   });
@@ -43,6 +44,7 @@ describe('BudgetNavigation', () => {
       'Suivi du budget': '/budget',
       Transactions: '/transactions',
       Catégories: '/transactions/categories',
+      Règles: '/transactions/categories/rules',
       Récurrences: '/transactions/recurrences',
     });
   });

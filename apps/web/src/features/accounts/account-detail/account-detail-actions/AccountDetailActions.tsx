@@ -1,9 +1,11 @@
 import type { Account } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
+import { MobileHeaderActions } from '@/components/layout/header/MobileHeaderActions';
 import { Icon } from '@/components/ui/icon/Icon';
 import { AccountActionsMenu } from '@/features/accounts/account-actions-menu/AccountActionsMenu';
 import type { AccountTab } from '@/features/accounts/account-detail/AccountNavigation';
+import { useMediaQuery } from '@/hooks/use-media-query';
 
 /**
  * Account-level actions, rendered in the shell header, by tab: the Solde tab only records a
@@ -31,16 +33,21 @@ export function AccountDetailActions({
   const { t } = useTranslation();
   const writable = creatable && account.editable;
   const balanceTab = tab === 'balance';
+  const phone = useMediaQuery('(max-width: 767px)');
+  // On a phone the primary action is an icon and the transfer moves into a menu: the account
+  // tab's own three-dot menu on the Compte tab, the page-actions menu on Opérations.
+  const transferInAccountMenu = phone && tab === 'account';
 
   return (
     <HeaderActions>
       <AccountActionsMenu
         account={account}
+        onAddTransfer={transferInAccountMenu ? onAddTransfer : undefined}
         onReconcile={onReconcile}
         onRules={onOpenRules}
         showMenu={tab === 'account'}
-        leading={({ recordBalance }) => (
-          <>
+        leading={({ recordBalance }) => {
+          const primary = (
             <button
               aria-label={t(
                 balanceTab
@@ -61,20 +68,35 @@ export function AccountDetailActions({
                 )}
               </span>
             </button>
-            {balanceTab ? null : (
-              <button
-                aria-label={t('accounts.detail.actionsMenu.transfer')}
-                className="icon-button"
-                disabled={!writable}
-                onClick={onAddTransfer}
-                title={t('accounts.detail.actionsMenu.transfer')}
-                type="button"
-              >
-                <Icon name="transactions" size={18} />
-              </button>
-            )}
-          </>
-        )}
+          );
+          const transfer = balanceTab ? null : (
+            <button
+              aria-label={t('accounts.detail.actionsMenu.transfer')}
+              className="icon-button"
+              disabled={!writable}
+              onClick={onAddTransfer}
+              title={t('accounts.detail.actionsMenu.transfer')}
+              type="button"
+            >
+              <Icon name="transactions" size={18} />
+            </button>
+          );
+          if (!phone)
+            return transfer ? (
+              <>
+                {primary}
+                {transfer}
+              </>
+            ) : (
+              primary
+            );
+          return (
+            <MobileHeaderActions>
+              {primary}
+              {transferInAccountMenu ? null : transfer}
+            </MobileHeaderActions>
+          );
+        }}
       />
     </HeaderActions>
   );
@@ -84,6 +106,9 @@ export function AccountDetailActions({
 export function AccountDetailActionsSkeleton({ tab }: { tab: AccountTab }) {
   const { t } = useTranslation();
   const balanceTab = tab === 'balance';
+  // Mirrors the loaded phone layout: on the Compte tab the transfer lives in the three-dot menu.
+  const phone = useMediaQuery('(max-width: 767px)');
+  const showTransfer = !balanceTab && !(phone && tab === 'account');
 
   return (
     <HeaderActions>
@@ -106,7 +131,7 @@ export function AccountDetailActionsSkeleton({ tab }: { tab: AccountTab }) {
           )}
         </span>
       </button>
-      {balanceTab ? null : (
+      {showTransfer ? (
         <button
           aria-label={t('accounts.detail.actionsMenu.transfer')}
           className="icon-button"
@@ -116,7 +141,7 @@ export function AccountDetailActionsSkeleton({ tab }: { tab: AccountTab }) {
         >
           <Icon name="transactions" size={18} />
         </button>
-      )}
+      ) : null}
       {tab === 'account' ? <AccountActionsMenu onRules={() => undefined} /> : null}
     </HeaderActions>
   );

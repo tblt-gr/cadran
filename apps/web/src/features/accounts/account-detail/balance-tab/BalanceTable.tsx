@@ -81,7 +81,9 @@ export function BalanceTable({ items, withdrawal, onEdit, loadingStatus }: Props
               const amount: DecimalAmount | null = snapshot?.amount ?? null;
               return (
                 <tr
-                  className={snapshot && amount === null ? styles.greyed : undefined}
+                  className={
+                    snapshot && (amount === null || !snapshot.active) ? styles.greyed : undefined
+                  }
                   key={snapshot?.id ?? index}
                 >
                   <th data-label={label('date')} scope="row">

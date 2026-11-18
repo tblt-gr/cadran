@@ -1,5 +1,9 @@
 import { MonthStepper } from '@/features/transactions/month-stepper/MonthStepper';
 import { decodeFilters } from '@/features/transactions/transaction-filters/filterState';
+import {
+  BulkSelectionPen,
+  BulkSelectionToolbar,
+} from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
 import { TransactionFilters } from '@/features/transactions/transaction-filters/TransactionFilters';
 import { AccountNavigation, activeAccountTab } from './AccountNavigation';
 import { BalanceTabSkeleton } from './balance-tab/BalanceTabSkeleton';
@@ -34,6 +38,17 @@ export function AccountDetailPageSkeleton({
         <TransactionFilters
           accountLocked
           accounts={account === null ? [] : [account]}
+          actions={
+            <BulkSelectionPen active={false} bulk={null} inline onToggleActive={() => undefined} />
+          }
+          afterChips={
+            <BulkSelectionToolbar
+              active={false}
+              bulk={null}
+              inline
+              onToggleActive={() => undefined}
+            />
+          }
           disabled
           filters={filters}
           onChange={() => undefined}

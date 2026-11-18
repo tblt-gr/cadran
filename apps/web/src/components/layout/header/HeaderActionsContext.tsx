@@ -27,7 +27,7 @@ export function useHeaderActionsSlot() {
  */
 export function HeaderActions({ children }: { children: ReactNode }) {
   const context = useContext(HeaderActionsContext);
-  // On a phone the actions are icons on the title line, two at most, the rest in a menu.
+  // On a phone the actions are one icon on the title line, the rest in a menu.
   const phone = useMediaQuery('(max-width: 767px)');
   if (context === null) return <>{children}</>;
   const shown = phone ? <MobileHeaderActions>{children}</MobileHeaderActions> : children;

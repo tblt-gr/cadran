@@ -2,7 +2,7 @@ import { appendFileSync } from 'node:fs';
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { auditLayout, expectFormActionLayout, type AuditFinding } from './support/audit';
 
-import { settled } from './support/page';
+import { clickPageAction, settled } from './support/page';
 import { ownerStorageState } from './support/session';
 import { openMovementEditModal } from './support/edit-movement';
 import { openTakeoverModal } from './support/takeover';
@@ -361,7 +361,7 @@ const MODALS: ModalCase[] = [
     open: async (page) => {
       await page.goto('/transactions');
       await settled(page);
-      await page.getByRole('button', { name: 'Nouveau virement' }).click();
+      await clickPageAction(page, 'Nouveau virement');
       return 'Créer le virement';
     },
   },
@@ -370,7 +370,7 @@ const MODALS: ModalCase[] = [
     open: async (page, ids) => {
       await page.goto(`/accounts/${ids.accountId}?tab=operations`);
       await settled(page);
-      await page.getByRole('button', { name: 'Nouveau virement', exact: true }).click();
+      await clickPageAction(page, 'Nouveau virement');
       await expect(page.getByLabel('Compte source')).toBeDisabled();
       await expect(page.getByLabel('Compte de destination')).toBeFocused();
       return 'Créer le virement';

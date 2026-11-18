@@ -1,0 +1,21 @@
+.back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: var(--touch-target-min);
+  block-size: var(--touch-target-min);
+  color: var(--text-muted);
+  border-radius: var(--radius-control);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.back:hover,
+.back:active {
+  color: var(--text-primary);
+}
+
+.back:focus-visible {
+  outline: var(--outline-focus);
+  outline-offset: var(--outline-offset-focus);
+}

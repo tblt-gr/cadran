@@ -144,3 +144,25 @@ describe('global breadcrumb', () => {
     expect(within(nav).queryByRole('status')).toBeNull();
   });
 });
+
+describe('breadcrumb on a phone', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('is not drawn: the back arrow beside the title replaces it', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn((query: string) => ({
+        matches: query === '(max-width: 767px)',
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    render(
+      <AppShell path="/budget/2026/03" setPath={vi.fn()}>
+        <p>Content</p>
+      </AppShell>,
+    );
+    expect(screen.queryByRole('navigation', { name: 'Fil d’Ariane' })).toBeNull();
+  });
+});

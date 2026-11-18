@@ -7,6 +7,10 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { accountRequestError, requestFailed } from '@/features/accounts/accountError';
+import {
+  BulkSelectionPen,
+  BulkSelectionToolbar,
+} from '@/features/transactions/bulk-selection/BulkSelectionToolbar';
 import { useBulkSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import { TransactionWorkflow } from '@/features/transactions/transaction-workflow/TransactionWorkflow';
@@ -70,6 +74,9 @@ export function AccountLedger({
     reloadAfterWrite,
     resetKey: JSON.stringify([resetKey, bulkMode]),
   });
+
+  // Like the transactions page: the switch is disabled chrome until there are rows to select.
+  const bulkControls = transactions.isPending || impossible || items.length === 0 ? null : bulk;
 
   const activeAccounts = useQuery({
     queryKey: ['accounts', 'account-detail-transfer'],
@@ -140,6 +147,23 @@ export function AccountLedger({
         <TransactionFilters
           accountLocked
           accounts={[account]}
+          actions={
+            <BulkSelectionPen
+              active={bulkMode}
+              bulk={bulkControls}
+              inline
+              onToggleActive={() => setBulkMode((active) => !active)}
+            />
+          }
+          afterChips={
+            <BulkSelectionToolbar
+              active={bulkMode}
+              bulk={bulkControls}
+              inline
+              noun="operations"
+              onToggleActive={() => setBulkMode((active) => !active)}
+            />
+          }
           disabled={transactions.isPending && !impossible}
           filters={filters}
           onChange={setFilters}
@@ -163,7 +187,6 @@ export function AccountLedger({
             <AccountMovementsSection
               bulk={bulk}
               bulkMode={bulkMode}
-              onBulkModeChange={setBulkMode}
               canCreate={creatable}
               displayedPageHasMore={Boolean(displayedPage?.nextCursor)}
               impossible={impossible}

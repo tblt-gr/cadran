@@ -13,12 +13,8 @@ import { Icon } from '@/components/ui/icon/Icon';
 import { navigateFromPage } from '@/hooks/use-client-navigation';
 import styles from './MobileHeaderActions.module.css';
 
-/**
- * Up to this many actions stay on the title line. Beyond it, two stay and every other action goes
- * into the "more" menu, which therefore always holds at least two items.
- */
-const MAX_INLINE = 3;
-const VISIBLE_WITH_MENU = 2;
+/** Only the first action, the page's main one, stays on the title line; the rest go in the menu. */
+const VISIBLE = 1;
 
 type ActionElement = ReactElement<{
   'aria-label'?: string;
@@ -89,15 +85,14 @@ function toItem(parsed: Parsed, index: number): ActionMenuItem {
 }
 
 /**
- * The page actions of a phone header: icons only, on the title line, two at most, the rest in a
- * "more" menu. The page keeps writing buttons with an icon and a label; this reads them.
+ * The page actions of a phone header: the main action as an icon on the title line, every other
+ * action in a "more" menu. The page keeps writing buttons with an icon and a label; this reads them.
  */
 export function MobileHeaderActions({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   const all = leaves(children);
-  const visible = all.length <= MAX_INLINE ? all.length : VISIBLE_WITH_MENU;
-  const shown = all.slice(0, visible);
-  const rest = all.slice(visible);
+  const shown = all.slice(0, VISIBLE);
+  const rest = all.slice(VISIBLE);
   const parsedRest = rest.map(parse);
   const menu = parsedRest.flatMap((parsed, index) => (parsed ? [toItem(parsed, index)] : []));
   // Controls the page wrote as components cannot go in a menu: they stay beside the icons.

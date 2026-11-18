@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { auditAccessibility } from './support/a11y';
 import {
+  clickPageAction,
   movementRows,
   settled,
   uniqueLabel,
@@ -15,7 +16,7 @@ test.describe('internal transfer', () => {
     await page.goto('/transactions');
     await settled(page);
 
-    await page.getByRole('button', { name: 'Nouveau virement' }).click();
+    await clickPageAction(page, 'Nouveau virement');
     const editor = page.getByRole('dialog', { name: 'Nouveau virement' });
     await selectAccount(editor.getByLabel('Compte source'), 'Compte courant');
     await selectAccount(editor.getByLabel('Compte de destination'), 'Livret A');
@@ -36,7 +37,7 @@ test.describe('internal transfer', () => {
     await page.goto('/transactions');
     await settled(page);
 
-    await page.getByRole('button', { name: 'Nouveau virement' }).click();
+    await clickPageAction(page, 'Nouveau virement');
     const editor = page.getByRole('dialog', { name: 'Nouveau virement' });
     await selectAccount(editor.getByLabel('Compte source'), 'Compte courant');
     await selectAccount(editor.getByLabel('Compte de destination'), 'Compte courant');

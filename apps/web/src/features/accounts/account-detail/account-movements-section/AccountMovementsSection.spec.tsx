@@ -30,34 +30,7 @@ describe('AccountMovementsSection loading', () => {
     );
     expect(screen.queryByRole('heading', { level: 2 })).toBeNull();
   });
-
-  it('shows the pen as disabled chrome and no checkbox while loading', () => {
-    renderSection({ isPending: true }, vi.fn());
-
-    expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(
-      (screen.getByRole('button', { name: 'Sélectionner' }) as HTMLButtonElement).disabled,
-    ).toBe(true);
-  });
 });
-
-function renderSection(state: { isPending: boolean }, onBulkModeChange?: () => void) {
-  render(
-    <AccountMovementsSection
-      canCreate
-      displayedPageHasMore={false}
-      items={[]}
-      loadingMore={false}
-      onBulkModeChange={onBulkModeChange}
-      onCreate={vi.fn()}
-      onLoadMore={vi.fn()}
-      onReloadFromFirstPage={vi.fn()}
-      staleCursorError={false}
-      transactions={{ ...state, isError: false, refetch: vi.fn() }}
-      unauthorized={false}
-    />,
-  );
-}
 
 describe('AccountMovementsSection states', () => {
   it('names contradictory filters and offers to reset them, without a list', () => {

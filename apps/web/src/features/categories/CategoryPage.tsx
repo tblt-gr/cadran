@@ -16,7 +16,6 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { Toast } from '@/components/ui/toast/Toast';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
-import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { CategoryForm } from './category-form/CategoryForm';
 import { CategoryLifecycleDialog } from './category-lifecycle/CategoryLifecycleDialog';
 import {
@@ -107,14 +106,6 @@ export function CategoryPage() {
           <Icon name="add" size={18} />
           {t('categories.add')}
         </button>
-        <a
-          className="secondary-action"
-          href="/transactions/categories/rules"
-          onClick={(event) => handleClientNavigation(event, '/transactions/categories/rules')}
-        >
-          <Icon name="sliders" size={18} />
-          {t('categories.manageRules')}
-        </a>
         <button
           aria-label={t(includeArchived ? 'categories.hideArchived' : 'categories.showArchived')}
           aria-pressed={includeArchived}
