@@ -1,14 +1,28 @@
-import { Fragment, lazy, Suspense, type ReactNode } from 'react';
+import { Fragment, Suspense, use, type ReactNode } from 'react';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import type { DatedListLayout, DatedRowSelection, RenderDatedRow } from './datedListTypes';
 import styles from './DatedList.module.css';
 import type { VirtualDatedDaysProps } from './VirtualDatedDays';
 
-/** The windowing and its virtualizer load on demand, so a screen showing no list never pays for them. */
-const VirtualDatedDays = lazy(
-  () => import('./VirtualDatedDays').then((module) => ({ default: module.VirtualDatedDays })),
-  // `lazy` drops the generic of the list: put it back for the caller's item type.
-) as unknown as <T>(props: VirtualDatedDaysProps<T>) => ReactNode;
+type Windowing = <T>(props: VirtualDatedDaysProps<T>) => ReactNode;
+
+/**
+ * The windowing and its virtualizer load on demand, so a screen showing no list never pays for
+ * them. The request starts when this module loads, long before the first rows arrive: once it is
+ * done the list renders at once, and the placeholder rows are only a fallback for a slow load.
+ */
+let windowing: Windowing | null = null;
+const loadingWindowing = import('./VirtualDatedDays').then((module) => {
+  windowing = module.VirtualDatedDays;
+});
+// A failed load reaches the error boundary through `use`; this only keeps it from going unhandled.
+loadingWindowing.catch(() => undefined);
+
+function LoadedWindowing<T>(props: VirtualDatedDaysProps<T>) {
+  if (windowing === null) use(loadingWindowing);
+  const Days = windowing as Windowing;
+  return <Days {...props} />;
+}
 
 interface DatedListProps<T> extends Omit<DatedListLayout<T>, 'headingLevel' | 'renderRow'> {
   /** Announced once while loading, unless `announce` is false. */
@@ -65,7 +79,7 @@ export function DatedList<T>({
 
   return (
     <Suspense fallback={skeleton}>
-      <VirtualDatedDays
+      <LoadedWindowing
         dayLabel={dayLabel}
         getDay={getDay}
         getKey={getKey}

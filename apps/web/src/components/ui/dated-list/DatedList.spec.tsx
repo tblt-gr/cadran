@@ -80,15 +80,30 @@ function defaultRow(
 describe('DatedList', () => {
   afterEach(cleanup);
 
-  // Keep this test first: the windowing loads once per file, so only the first render shows the fallback.
   it('shows the placeholder rows while the windowing loads, then the real rows', async () => {
-    render(<DatedList {...listProps()} items={entries} />);
+    // The windowing loads once per module instance: a fresh one, with a load held open.
+    let release = () => {};
+    let started = () => {};
+    const requested = new Promise<void>((resolve) => (started = resolve));
+    vi.resetModules();
+    vi.doMock('./VirtualDatedDays', async () => {
+      started();
+      await new Promise<void>((resolve) => (release = resolve));
+      return vi.importActual('./VirtualDatedDays');
+    });
+    const { DatedList: FreshDatedList } = await import('./DatedList');
+    await act(async () => {
+      render(<FreshDatedList {...listProps()} items={entries} />);
+    });
 
     expect(screen.getByTestId('dated-list-skeleton').getAttribute('aria-busy')).toBe('true');
     expect(screen.queryByText('Alpha')).toBeNull();
+    await requested;
+    await act(async () => release());
     await datedListLoaded();
     expect(screen.getByText('Alpha')).toBeTruthy();
     expect(screen.queryByTestId('dated-list-skeleton')).toBeNull();
+    vi.doUnmock('./VirtualDatedDays');
   });
 
   it('groups rows under one heading per day, in order, one card per day', async () => {
