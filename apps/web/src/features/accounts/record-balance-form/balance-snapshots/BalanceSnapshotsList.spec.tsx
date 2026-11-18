@@ -93,6 +93,24 @@ it('offers no withdrawal on a calculated relevé', async () => {
   expect(screen.queryByRole('button', { name: /Retirer/ })).toBeNull();
 });
 
+it('shows a loading skeleton, an empty message and a retry on error', async () => {
+  api.listAccountBalances.mockImplementation(() => new Promise(() => undefined));
+  renderList();
+  expect(screen.getByTestId('balance-day-list-skeleton')).toBeTruthy();
+  cleanup();
+
+  api.listAccountBalances.mockImplementation(() =>
+    ok({ items: [], page: 1, pageSize: 100, total: 0 }),
+  );
+  renderList();
+  expect(await screen.findByText('Aucun relevé enregistré.')).toBeTruthy();
+  cleanup();
+
+  api.listAccountBalances.mockImplementation(() => ok({}, 500));
+  renderList();
+  expect(await screen.findByRole('button', { name: 'Réessayer' })).toBeTruthy();
+});
+
 it('says when older relevés are not listed', async () => {
   api.listAccountBalances.mockImplementation(() =>
     ok({ items: [active], page: 1, pageSize: 100, total: 150 }),

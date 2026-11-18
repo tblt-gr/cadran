@@ -1678,7 +1678,9 @@ describe('AccountsPage', () => {
       screen.getByRole('button', { name: 'Enregistrer un solde sur Livret A Banque X' }),
     );
     fireEvent.click(screen.getByText('Relevés enregistrés'));
-    expect(await screen.findByText('01/10/2026')).toBeTruthy();
+    expect(
+      await screen.findByRole('button', { name: 'Détail du relevé du 01/10/2026' }),
+    ).toBeTruthy();
     fireEvent.change(screen.getByLabelText('Montant observé'), { target: { value: '138.19' } });
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer le solde' }));
 

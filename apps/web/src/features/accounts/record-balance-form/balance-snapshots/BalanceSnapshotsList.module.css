@@ -1,42 +1,3 @@
-.scroll {
-  overflow-x: auto;
-}
-
-.scroll table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.scroll th,
-.scroll td {
-  padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: var(--border-line-subtle);
-  text-align: left;
-  vertical-align: middle;
-}
-
-.scroll thead th {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-
-.scroll tbody th {
-  color: var(--text-primary);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-medium);
-  white-space: nowrap;
-}
-
-.scroll tbody td {
-  font-size: var(--font-size-body);
-  font-variant-numeric: tabular-nums;
-}
-
-.state {
-  color: var(--text-secondary);
-}
-
 .notice,
 .alert {
   margin: var(--spacing-none);
@@ -55,9 +16,4 @@
   border-radius: var(--radius-control);
   color: var(--negative);
   background: var(--negative-soft);
-}
-
-/* A withdrawn balance stays listed for the record, greyed like a removed row. */
-.withdrawn > * {
-  color: var(--text-muted);
 }

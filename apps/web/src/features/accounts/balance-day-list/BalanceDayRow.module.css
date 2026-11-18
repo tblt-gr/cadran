@@ -1,0 +1,19 @@
+/* The row anatomy and its muted tone come from the shared dated list. */
+.source {
+  padding: var(--spacing-none);
+  border: var(--border-none);
+  border-radius: var(--radius-button);
+  color: var(--text-primary);
+  background: var(--color-transparent);
+  text-align: left;
+  cursor: pointer;
+}
+
+.source:disabled {
+  cursor: default;
+}
+
+.state {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}

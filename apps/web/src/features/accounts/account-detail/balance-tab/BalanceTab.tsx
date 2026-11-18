@@ -1,11 +1,11 @@
 import type { Account, AccountBalanceSnapshot } from '@cadran/api-client';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BalanceDayList } from '@/features/accounts/balance-day-list/BalanceDayList';
 import { useArrivalAction } from '@/features/accounts/account-actions-menu/useArrivalAction';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { useBalanceSnapshots } from '@/features/accounts/record-balance-form/balance-snapshots/useBalanceSnapshots';
 import { useBalanceWithdrawal } from '@/features/accounts/record-balance-form/balance-snapshots/useBalanceWithdrawal';
-import { BalanceTable } from './BalanceTable';
 import { RecordBalanceModal } from './RecordBalanceModal';
 import styles from './BalanceTab.module.css';
 
@@ -48,7 +48,11 @@ export function BalanceTab({ account }: { account: Account }) {
         </p>
       ) : null}
       {snapshots.isPending ? (
-        <BalanceTable items={null} loadingStatus={t('accounts.balanceTab.loading')} />
+        <BalanceDayList
+          items={null}
+          label={t('accounts.balanceTab.caption')}
+          loadingLabel={t('accounts.balanceTab.loading')}
+        />
       ) : snapshots.isError ? (
         <OperationsState error title={t('accounts.balanceTab.errorTitle')}>
           <p>{t('accounts.snapshots.error')}</p>
@@ -66,8 +70,10 @@ export function BalanceTab({ account }: { account: Account }) {
         </OperationsState>
       ) : (
         <>
-          <BalanceTable
+          <BalanceDayList
             items={items}
+            label={t('accounts.balanceTab.caption')}
+            loadingLabel={t('accounts.balanceTab.loading')}
             onEdit={(snapshot) => setDialog({ correcting: snapshot })}
             withdrawal={withdrawal}
           />
