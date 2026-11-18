@@ -92,8 +92,10 @@ describe('AnnualReportPage', () => {
     const placeholders = screen
       .getByTestId('annual-report-skeleton')
       .querySelectorAll<HTMLDetailsElement>('li > details');
-    expect(placeholders).toHaveLength(12);
+    expect(placeholders).toHaveLength(14);
     expect([...placeholders].every((month) => !month.open)).toBe(true);
+    // Twelve months, then one card per summary column.
+    expect(placeholders[12]!.querySelector('summary h4')).toBeTruthy();
     expect(placeholders[0]!.querySelector('summary h3')?.textContent).toMatch(/janvier/i);
     resolveReport?.(ok(annualReport));
     expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
@@ -106,7 +108,7 @@ describe('AnnualReportPage', () => {
     expect(screen.queryByTestId('annual-report-skeleton')).toBeNull();
   });
 
-  it('keeps the budget navigation on the annual view, with the annual report as the current page', async () => {
+  it('keeps the budget navigation, year selector and month tabs on the annual view', async () => {
     renderPage();
     await screen.findByRole('table', { name: /rapport 2026/i });
     expect(screen.getByTestId('header-title').textContent).toBe('Rapport 2026');
@@ -117,14 +119,15 @@ describe('AnnualReportPage', () => {
       '2025',
       '2024',
     ]);
-    const nav = screen.getByRole('navigation', { name: 'Mois du budget' });
-    const annual = within(nav).getByRole('link', { name: 'Rapport' });
-    expect(annual.getAttribute('aria-current')).toBe('page');
-    expect(annual.getAttribute('href')).toBe('/budget/2026');
-    expect(within(nav).getByRole('link', { name: 'Janvier' }).getAttribute('href')).toBe(
+    expect(screen.getByRole('navigation', { name: 'Budget et transactions' })).toBeTruthy();
+    const months = screen.getByRole('navigation', { name: 'Mois du budget' });
+    expect(within(months).getByRole('link', { name: 'Janvier' }).getAttribute('href')).toBe(
       '/budget/2026/01',
     );
-    expect(within(nav).queryByRole('link', { current: 'page', name: 'Janvier' })).toBeNull();
+    expect(screen.queryByRole('combobox', { name: 'Mois' })).toBeNull();
+    expect(screen.getByRole('link', { name: 'Suivi du budget' }).getAttribute('href')).toBe(
+      '/budget',
+    );
   });
 
   it('keeps the selected past year on the annual view and navigates to another year', async () => {

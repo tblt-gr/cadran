@@ -1,5 +1,5 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CurveChart, type CurvePoint } from './CurveChart';
 
 afterEach(cleanup);
@@ -73,6 +73,50 @@ describe('CurveChart', () => {
     expect(screen.queryByText('note 3')).toBeNull();
     act(() => screen.getByRole('button', { name: 'mars, 300 €' }).focus());
     expect(screen.getByRole('tooltip').textContent).toContain('note 3');
+  });
+
+  it('pins the tapped point on a screen that cannot hover and ignores emulated hover', () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(hover: none)',
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      const onSelect = vi.fn();
+      const { container, rerender } = render(
+        <CurveChart
+          label="Courbe"
+          onSelect={onSelect}
+          points={points}
+          timeAxisLabel="Axe des mois"
+          valueAxisLabel="Valeurs"
+        />,
+      );
+      const plot = container.querySelector<HTMLElement>('[class*="plotBody"]')!;
+      Object.defineProperty(plot, 'clientWidth', { configurable: true, value: 620 });
+      plot.getBoundingClientRect = () => ({ left: 0 }) as DOMRect;
+
+      fireEvent.mouseMove(plot, { clientX: 620 });
+      expect(screen.queryByRole('tooltip')).toBeNull();
+      fireEvent.click(plot, { clientX: 620 });
+      expect(onSelect).toHaveBeenCalledWith('3');
+
+      rerender(
+        <CurveChart
+          label="Courbe"
+          onSelect={onSelect}
+          points={points}
+          selectedKey="3"
+          timeAxisLabel="Axe des mois"
+          valueAxisLabel="Valeurs"
+        />,
+      );
+      expect(screen.getByRole('tooltip').textContent).toContain('300 €');
+    } finally {
+      window.matchMedia = original;
+    }
   });
 });
 

@@ -284,3 +284,32 @@
     display: none;
   }
 }
+
+/* Without the vertical axis the plot and the dates take the whole width. */
+.frame[data-value-axis='hidden'] {
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--spacing-none);
+}
+
+.frame[data-value-axis='hidden'] .plotBody,
+.frame[data-value-axis='hidden'] .xAxis {
+  grid-column: 1;
+}
+
+/* A phone has no room for the figures of the vertical axis: the plot takes the width, the exact
+   values stay in the tooltip and in the data table of the chart. */
+@media (max-width: 47.999rem) {
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: var(--spacing-none);
+  }
+
+  .yAxis {
+    display: none;
+  }
+
+  .plotBody,
+  .xAxis {
+    grid-column: 1;
+  }
+}

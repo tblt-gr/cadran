@@ -99,13 +99,8 @@ test.describe('dashboard', () => {
       };
       await settled(page);
       const delta = history.delta;
-      const date = new Intl.DateTimeFormat('fr', {
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric',
-        timeZone: 'UTC',
-      }).format(new Date(`${delta.comparedOn}T00:00:00Z`));
-      await expect(card.getByText(`depuis le ${date}`, { exact: true })).toBeVisible();
+      // The compared day is no longer written: the chart axis already shows the period bounds.
+      await expect(card.getByText(/^depuis le /)).toHaveCount(0);
       if (delta.amount !== null) {
         const shown = delta.amount.display ?? delta.amount;
         const value = shown.value.replace(/^-/, '');

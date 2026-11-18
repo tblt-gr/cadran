@@ -42,8 +42,12 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
           <caption className="sr-only">Instruments</caption>
           <thead>
             <tr>
-              {['Nom', 'Type', 'Région', 'Statut', ''].map((text) => (
-                <th key={text} scope="col">
+              {['Nom', 'Type', 'Région', 'Statut', ''].map((text, index) => (
+                <th
+                  className={index >= 1 && index <= 3 ? styles.detail : undefined}
+                  key={text}
+                  scope="col"
+                >
                   {text}
                 </th>
               ))}
@@ -58,17 +62,17 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
                     {[item.isin, item.ticker].filter(Boolean).join(' · ') || 'Aucun identifiant'}
                   </small>
                 </th>
-                <td>
+                <td className={styles.detail}>
                   {typeLabels[item.instrumentType]}
                   <small className={styles.sub}>
                     {item.assetClass ? classLabels[item.assetClass] : 'Classe non renseignée'}
                   </small>
                 </td>
-                <td>
+                <td className={styles.detail}>
                   {item.region ? regionLabels[item.region] : 'Non renseignée'}
                   <small className={styles.sub}>{item.currencyCode}</small>
                 </td>
-                <td>
+                <td className={styles.detail}>
                   <StatusBadge tone={item.status === 'ACTIVE' ? 'positive' : 'info'}>
                     {item.status === 'ACTIVE' ? 'Actif' : 'Archivé'}
                   </StatusBadge>

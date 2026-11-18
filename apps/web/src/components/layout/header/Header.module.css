@@ -24,7 +24,7 @@
 .titleBlock {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   min-width: 0;
   padding: var(--spacing-6) var(--content-gutter) var(--spacing-none);
@@ -85,17 +85,24 @@
   gap: var(--spacing-2);
 }
 
+/* Icon controls of a page's actions carry no ring: they read as plain glyphs, as in the rest of the bar. */
+.pageActions :global(button.icon-button),
+.pageActions :global(a.icon-button) {
+  border: var(--border-none);
+}
+
 .pageActions:empty {
   display: none;
 }
 
-/* Every header action is an icon then its label at the same compact size, whatever the page. The
-   drawn height never grows: a coarse pointer gets its 44 px hit area from the pseudo-element. */
+/* Every header action is an icon then its label at the same compact size, whatever the page, and as
+   tall as the square icon controls beside it. The drawn height never grows: a coarse pointer gets
+   its 44 px hit area from the pseudo-element. */
 .pageActions :global(.primary-action),
 .pageActions :global(.secondary-action) {
   position: relative;
-  height: var(--control-height-dense);
-  min-height: var(--control-height-dense);
+  height: var(--icon-size-lg);
+  min-height: var(--icon-size-lg);
   padding: var(--spacing-none) var(--spacing-3);
   white-space: nowrap;
 }
@@ -106,7 +113,31 @@
   height: var(--icon-glyph-sm);
 }
 
+/* Reduced to its icon, an action is the same square as the other icon controls, not the dense
+   height of its labelled version. */
+.pageActions :global(.primary-action)[data-icon-only],
+.pageActions :global(.secondary-action)[data-icon-only] {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  min-width: var(--icon-size-lg);
+  min-height: var(--icon-size-lg);
+  padding: var(--spacing-none);
+}
+
 @media (pointer: coarse) {
+  .pageActions :global(.primary-action)[data-icon-only],
+  .pageActions :global(.secondary-action)[data-icon-only] {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+
+  .pageActions :global(.primary-action)[data-icon-only]::after,
+  .pageActions :global(.secondary-action)[data-icon-only]::after {
+    display: none;
+  }
+
   .pageActions :global(.primary-action)::after,
   .pageActions :global(.secondary-action)::after {
     position: absolute;
@@ -182,19 +213,21 @@
   }
 }
 
-/* Below 42rem the title keeps its line and the actions always take the next one, whatever the title
-   length, so every page header reads the same. */
-@media (max-width: 42rem) {
+/* On a phone the actions are icons on the title line: the title takes what they leave. */
+@media (max-width: 767px) {
+  /* The actions stay centred on the title block, whatever its height. */
   .titleBlock {
-    flex-direction: column;
     flex-wrap: nowrap;
-    align-items: flex-start;
-    justify-content: flex-start;
+    align-items: center;
     gap: var(--spacing-3);
   }
 
-  .titleText,
+  .titleText {
+    flex: 1 1 auto;
+  }
+
   .pageActions {
-    max-width: 100%;
+    flex: none;
+    flex-wrap: nowrap;
   }
 }

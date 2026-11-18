@@ -53,6 +53,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
+  vi.unstubAllGlobals();
   window.history.replaceState({}, '', '/');
 });
 
@@ -134,6 +135,9 @@ describe('BudgetYearPage', () => {
     renderPage();
     expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
     expect(url()).toBe('/budget/2026');
+    expect(screen.getByRole('link', { name: 'Suivi du budget' }).getAttribute('href')).toBe(
+      '/budget',
+    );
   });
 
   it('writes the multi-year mode to the query string and clears it on the way back', async () => {
@@ -147,6 +151,24 @@ describe('BudgetYearPage', () => {
     expect(await screen.findByRole('table', { name: /rapport 2026/i })).toBeTruthy();
   });
 
+  it('keeps month tabs and the report view buttons on phones', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(max-width: 47.999rem)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }));
+    renderPage();
+    await screen.findByRole('table', { name: /rapport 2026/i });
+    expect(screen.queryByRole('combobox', { name: 'Mois' })).toBeNull();
+    expect(screen.getByRole('navigation', { name: 'Mois du budget' })).toBeTruthy();
+    expect(screen.queryByRole('combobox', { name: 'Type de rapport' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Pluriannuel' }));
+    expect(url()).toBe('/budget/2026?view=multi');
+    expect(await screen.findByRole('table', { name: /rapport détaillé/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Annuel' }));
+    expect(url()).toBe('/budget/2026');
+  });
+
   it('writes the year range to the query string', async () => {
     renderPage('?view=multi');
     await screen.findByRole('table', { name: /rapport détaillé/i });
@@ -158,7 +180,7 @@ describe('BudgetYearPage', () => {
     renderPage('?view=multi&from=2025&to=2026');
     await screen.findByRole('table', { name: /rapport détaillé/i });
     expect(api.readMultiYearReport).toHaveBeenCalledWith(
-      expect.objectContaining({ query: { incompleteMonths: 'include', from: 2025, to: 2026 } }),
+      expect.objectContaining({ query: { incompleteMonths: 'exclude', from: 2025, to: 2026 } }),
     );
   });
 
@@ -166,7 +188,7 @@ describe('BudgetYearPage', () => {
     renderPage('?view=multi&from=2025');
     await screen.findByRole('table', { name: /rapport détaillé/i });
     for (const call of api.readMultiYearReport.mock.calls) {
-      expect(call[0].query).toEqual({ incompleteMonths: 'include' });
+      expect(call[0].query).toEqual({ incompleteMonths: 'exclude' });
     }
   });
 

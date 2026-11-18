@@ -10,9 +10,10 @@
 .card .label {
   display: flex;
   align-items: center;
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-  font-weight: var(--font-weight-normal);
+  color: var(--text-primary);
+  font-size: var(--font-size-card-title);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-card);
   gap: var(--spacing-2);
 }
 
@@ -37,7 +38,7 @@
 .value,
 .unavailable {
   color: var(--text-primary);
-  font-size: var(--font-size-metric);
+  font-size: var(--font-size-kpi);
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-kpi);
   line-height: var(--line-height-tight);
@@ -51,7 +52,7 @@
 
 .valueSkeleton {
   width: 60%;
-  height: var(--font-size-metric);
+  height: var(--font-size-kpi);
 }
 
 .descriptionSkeleton {
@@ -87,12 +88,14 @@
     text-align: right;
   }
 
+  /* The figure shrinks to the size of the title, as on the allocation panel. */
   .value {
-    font-size: var(--font-size-kpi-mobile);
+    font-size: var(--font-size-card-title);
+    letter-spacing: var(--letter-spacing-card);
   }
 
   .valueSkeleton {
-    height: var(--font-size-kpi-mobile);
+    height: var(--font-size-card-title);
   }
 
   .description {

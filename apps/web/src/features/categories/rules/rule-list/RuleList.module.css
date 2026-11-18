@@ -35,3 +35,31 @@
 .panel tbody tr:last-child td {
   border-bottom: var(--border-none);
 }
+
+/* A phone keeps the priority, the rule with its sentence and the row menu on one screen: the
+   period, the scope, the applied count and the status stay in the table from tablet width up and
+   in the rule dialog. */
+@media (max-width: 47.999rem) {
+  .optional,
+  .panel tbody td:nth-child(n + 3):not(:last-child) {
+    display: none;
+  }
+
+  /* The priority and the menu take their content's width, the rule label and its sentence the rest. */
+  .panel thead th:first-child,
+  .panel tbody td:first-child,
+  .panel thead th:last-child,
+  .panel tbody td:last-child {
+    width: 1%;
+    white-space: nowrap;
+  }
+
+  .panel table {
+    min-width: 0;
+  }
+
+  .panel th,
+  .panel td {
+    padding: var(--spacing-2) var(--spacing-3);
+  }
+}

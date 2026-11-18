@@ -4,6 +4,7 @@ import { AccountRequestError } from '@/features/accounts/accountError';
 import { AccountsPageSkeleton } from '@/features/accounts/AccountsPageSkeleton';
 import type { GroupingMode } from '@/features/accounts/grouping-mode/groupingMode';
 import { AccountsState } from '@/features/accounts/accounts-state/AccountsState';
+import { GroupsCompositionCard } from '@/features/accounts/net-worth-composition/GroupsCompositionCard';
 import { NetWorthCompositionCard } from '@/features/accounts/net-worth-composition/NetWorthCompositionCard';
 import type { AccountsView } from '@/features/accounts/accounts-view/accountsView';
 import { AllAccountsTable } from './AllAccountsTable';
@@ -106,7 +107,11 @@ export function AccountOverview({
           />
         ))
       )}
-      <NetWorthCompositionCard asOf={asOf} />
+      {view === 'all' ? (
+        <NetWorthCompositionCard asOf={asOf} />
+      ) : (
+        <GroupsCompositionCard asOf={asOf} groups={shown} />
+      )}
     </div>
   );
 }

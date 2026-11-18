@@ -176,17 +176,22 @@ export function EmergencyFundCard() {
                 <EmptyValue label={t('goals.emergencyFund.notCalculable')} />
               ) : (
                 <strong className="money">
-                  {t('goals.emergencyFund.months', {
-                    value: formatMonths(display, i18n.language),
-                  })}
+                  {coverage.target.impliedMonths === null
+                    ? t('goals.emergencyFund.months', {
+                        value: formatMonths(display, i18n.language),
+                      })
+                    : t('goals.emergencyFund.monthsOfTarget', {
+                        target: formatMonths(coverage.target.impliedMonths, i18n.language),
+                        value: formatMonths(display, i18n.language),
+                      })}
                 </strong>
               )}
               <span>
-                {coverage.target.impliedMonths === null
-                  ? t('goals.emergencyFund.coverageOnly')
-                  : t('goals.emergencyFund.coverageOf', {
+                {coverage.target.impliedMonths !== null && (display === null || notCalculable)
+                  ? t('goals.emergencyFund.coverageOf', {
                       target: formatMonths(coverage.target.impliedMonths, i18n.language),
-                    })}
+                    })
+                  : t('goals.emergencyFund.coverageOnly')}
               </span>
             </p>
           )}

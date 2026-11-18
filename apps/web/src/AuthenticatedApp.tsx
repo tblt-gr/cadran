@@ -14,7 +14,6 @@ import { FrozenQueries } from '@/components/layout/frozen-queries/FrozenQueries'
 import { LogoutButton } from '@/features/auth/logout-button/LogoutButton';
 import { RouteErrorBoundary } from '@/components/layout/route-error-boundary/RouteErrorBoundary';
 import { RouteSuspense } from '@/components/layout/route-suspense/RouteSuspense';
-import { useDashboardHeader } from '@/features/dashboard/net-worth/useDashboardHeader';
 import { FoundationErrorState } from '@/features/foundation/FoundationErrorState';
 import { RouteLoadErrorState } from '@/features/foundation/RouteLoadErrorState';
 import { PlaceholderPage } from '@/features/not-found/PlaceholderPage';
@@ -55,7 +54,6 @@ export function AuthenticatedApp() {
     retry: false,
   });
 
-  const dashboardHeader = useDashboardHeader(path === '/');
   const runningVersion = status.isError ? null : status.data?.version;
   const routes = useMemo(
     () => buildAuthenticatedRoutes(workspaceTimeZone, runningVersion),
@@ -120,7 +118,6 @@ export function AuthenticatedApp() {
   return (
     <AppShell
       accountSlot={path === '/parameters/profile' ? <LogoutButton /> : undefined}
-      headerDate={path === '/' ? dashboardHeader.headerDate : undefined}
       isNavigating={isNavigating}
       onNavigationIntent={preloadRoute}
       path={path}

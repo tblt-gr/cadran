@@ -254,4 +254,59 @@ describe('MonthNavigator', () => {
       expect(window.location.pathname).toBe('/budget/2024');
     });
   });
+
+  it('keeps month tabs and the report link on a phone report', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    render(
+      <MonthNavigator
+        axis={null}
+        currentMonth="2026-03"
+        firstDataMonth="2020-01"
+        month={null}
+        year={2026}
+      />,
+    );
+
+    const months = screen.getByRole('navigation', { name: 'Mois du budget' });
+    expect(within(months).getByRole('link', { name: 'Février' }).getAttribute('href')).toBe(
+      '/budget/2026/02',
+    );
+    expect(screen.queryByRole('combobox', { name: 'Mois' })).toBeNull();
+    expect(within(months).getByRole('link', { name: 'Rapport' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps the scrolling month tabs on a phone monthly budget', () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    render(
+      <MonthNavigator
+        axis={null}
+        currentMonth="2026-03"
+        firstDataMonth="2020-01"
+        month="2026-03"
+      />,
+    );
+
+    const months = screen.getByRole('navigation', { name: 'Mois du budget' });
+    expect(within(months).getByRole('link', { name: 'Mars' }).getAttribute('aria-current')).toBe(
+      'page',
+    );
+    expect(within(months).getByRole('link', { name: 'Rapport' }).getAttribute('href')).toBe(
+      '/budget/2026',
+    );
+    expect(screen.queryByRole('combobox', { name: 'Mois' })).toBeNull();
+    vi.unstubAllGlobals();
+  });
 });

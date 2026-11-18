@@ -77,11 +77,11 @@ describe('AccountRecap', () => {
     expect(institution.previousElementSibling?.tagName).toBe('A');
   });
 
-  it('draws the group colour dot beside the account name for the phone layout', () => {
+  it('draws no colour dot beside the account name', () => {
     renderRecap([account('a', 'Compte courant', null)]);
 
     const cell = screen.getByRole('link', { name: 'Compte courant' }).closest('th')!;
-    expect(cell.querySelector('[data-color-dot]')).not.toBeNull();
+    expect(cell.querySelector('[data-color-dot]')).toBeNull();
   });
 
   it('renders no institution line for an account without one', () => {
@@ -100,10 +100,28 @@ describe('AccountRecap', () => {
 
     const shape = (cell: Element) =>
       [...cell.children].map((child) => `${child.tagName}.${child.className}`);
-    expect(shape(row)).toHaveLength(3);
-    expect(row.children[2]?.tagName).toBe('SMALL');
-    expect(row.children[2]?.querySelector('[data-skeleton]')).toBeTruthy();
+    expect(shape(row)).toHaveLength(2);
+    expect(row.children[1]?.tagName).toBe('SMALL');
+    expect(row.children[1]?.querySelector('[data-skeleton]')).toBeTruthy();
     expect(shape(row)).toEqual(shape(loaded));
+  });
+
+  it('starts with its groups folded on a phone', () => {
+    const original = window.matchMedia;
+    window.matchMedia = ((query: string) => ({
+      matches: true,
+      media: query,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    })) as unknown as typeof window.matchMedia;
+    try {
+      renderRecap([account('a', 'Compte courant', null)]);
+      expect(
+        screen.getByRole('link', { name: 'Compte courant', hidden: true }).closest('tr')!.hidden,
+      ).toBe(true);
+    } finally {
+      window.matchMedia = original;
+    }
   });
 
   describe('grouping', () => {

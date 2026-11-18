@@ -71,13 +71,52 @@ button.penInline {
   font-size: var(--font-size-label);
 }
 
-.scope {
-  color: var(--text-secondary);
-  font-size: var(--font-size-sm);
-}
-
 @media (pointer: coarse) {
   button.pen {
     min-height: var(--touch-target-min);
+  }
+}
+
+/* The mode switch is a bare control, like the filter button: no surface, no border. */
+button.pen {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: var(--spacing-none) var(--spacing-2);
+  border: var(--border-none);
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  background: var(--color-transparent);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  gap: var(--spacing-2);
+  cursor: pointer;
+}
+
+button.pen:hover:not(:disabled),
+button.pen[aria-pressed='true'] {
+  color: var(--text-primary);
+  background: var(--color-transparent);
+}
+
+button.pen:disabled {
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+/* A phone keeps the icon alone; the name stays for assistive technology and the tooltip. */
+@media (max-width: 47.999rem) {
+  .penLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  button.pen {
+    min-width: var(--touch-target-min);
+    justify-content: center;
   }
 }

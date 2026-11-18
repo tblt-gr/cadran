@@ -57,12 +57,20 @@ export function BalanceTable({ items, withdrawal, onEdit, loadingStatus }: Props
           <thead>
             <tr>
               {columns.map((column) => (
-                <th key={column} scope="col">
+                <th
+                  className={column === 'source' ? styles.detail : undefined}
+                  key={column}
+                  scope="col"
+                >
                   {label(column)}
                 </th>
               ))}
-              <th scope="col">{t('accounts.balanceTab.reconciliation')}</th>
-              <th scope="col">{label('state')}</th>
+              <th className={styles.detail} scope="col">
+                {t('accounts.balanceTab.reconciliation')}
+              </th>
+              <th className={styles.detail} scope="col">
+                {label('state')}
+              </th>
               <th scope="col">
                 <span className="sr-only">{t('accounts.balanceTab.actions')}</span>
               </th>
@@ -88,14 +96,17 @@ export function BalanceTable({ items, withdrawal, onEdit, loadingStatus }: Props
                   <td className={styles.number} data-label={label('amount')}>
                     {snapshot ? money(amount) : <SkeletonBlock />}
                   </td>
-                  <td data-label={label('source')}>
+                  <td className={styles.detail} data-label={label('source')}>
                     {snapshot ? (
                       t(`accounts.balances.sources.${snapshot.source}`)
                     ) : (
                       <SkeletonBlock />
                     )}
                   </td>
-                  <td data-label={t('accounts.balanceTab.reconciliation')}>
+                  <td
+                    className={styles.detail}
+                    data-label={t('accounts.balanceTab.reconciliation')}
+                  >
                     {snapshot ? (
                       <StatusBadge
                         tone={
@@ -112,7 +123,7 @@ export function BalanceTable({ items, withdrawal, onEdit, loadingStatus }: Props
                       <SkeletonBlock />
                     )}
                   </td>
-                  <td data-label={label('state')}>
+                  <td className={styles.detail} data-label={label('state')}>
                     {snapshot ? label(snapshot.active ? 'active' : 'withdrawn') : <SkeletonBlock />}
                   </td>
                   <td

@@ -1,7 +1,6 @@
 import { TransactionAccountNotice } from './transaction-account-notice/TransactionAccountNotice';
 import { TransactionsHeaderActions } from './transactions-header-actions/TransactionsHeaderActions';
 import { BudgetNavigation } from '@/features/budget/budget-navigation/BudgetNavigation';
-import { budgetReturnHref } from '@/features/budget/budget-navigation/budgetNavigation';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { encodeFilters } from './transaction-filters/filterState';
@@ -150,11 +149,6 @@ export function TransactionsPage() {
         <BudgetNavigation
           current="transactions"
           month={searchFilters.period === 'month' ? searchFilters.month : today.slice(0, 7)}
-          budgetHref={budgetReturnHref(
-            window.location.search,
-            searchFilters.period === 'month' ? searchFilters.month : null,
-            today.slice(0, 7),
-          )}
         />
         {!unauthorized && items.length > 0 ? (
           <TransactionAccountNotice

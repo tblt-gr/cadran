@@ -54,3 +54,20 @@
 .panel tbody tr:last-child td {
   border-bottom: var(--border-none);
 }
+
+/* On a phone only what identifies the row stays: the name, the family and the last column (the
+   details or the actions menu). The other figures open in the details or the model. */
+@media (max-width: 42rem) {
+  .panel :is(th, td):not(:first-child, :nth-child(2), :last-child) {
+    display: none;
+  }
+
+  .panel th,
+  .panel td {
+    padding: var(--spacing-3);
+  }
+
+  .panel tbody th {
+    min-width: 0;
+  }
+}

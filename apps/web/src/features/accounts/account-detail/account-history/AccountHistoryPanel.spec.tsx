@@ -82,8 +82,8 @@ it('offers Tout, 12 mois and Depuis janvier in canonical order, defaulting to 12
   const group = screen.getByRole('group', { name: 'Période de l’historique' });
   expect(Array.from(group.querySelectorAll('button')).map((b) => b.textContent)).toEqual([
     'Tout',
-    '12 mois',
-    'Depuis janvier',
+    '12M',
+    'YTD',
   ]);
   expect(screen.getByRole('button', { name: '12 mois' }).getAttribute('aria-pressed')).toBe('true');
 });

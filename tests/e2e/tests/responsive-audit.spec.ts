@@ -41,20 +41,6 @@ test('audit fails a row menu that sits on a line of its own and passes a pinned 
   expect(await auditLayout(page, true)).toEqual([]);
 });
 
-test('audit fails page actions beside the title on a phone and passes them under it', async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 360, height: 740 });
-  const header = (style: string) =>
-    `<div style="display: flex; ${style}"><div data-page-title><h1>Title</h1></div><div data-page-actions><button style="width: 44px; height: 44px">Add</button></div></div>`;
-  await page.setContent(header('flex-direction: row'));
-  expect(await auditLayout(page, true)).toEqual([
-    expect.objectContaining({ rule: 'header-actions-share-line' }),
-  ]);
-  await page.setContent(header('flex-direction: column'));
-  expect(await auditLayout(page, true)).toEqual([]);
-});
-
 /**
  * The review grid of the responsive pass, as a gate: every authenticated route at 1280, 768 and
  * 360 px must have no horizontal page scroll, no amount cut off or pushed out of its box, touch
@@ -278,6 +264,10 @@ test.describe('accounts overview with investments', () => {
       try {
         const page = await context.newPage();
         await page.goto('/accounts');
+        await settled(page);
+        // The default view groups the accounts and splits the pie by group: the pie by account
+        // belongs to the all-accounts view.
+        await page.getByRole('button', { name: 'Tous les comptes', exact: true }).click();
         await settled(page);
 
         await expect(page.locator('a[href^="/portfolios/"]').first()).toBeVisible();

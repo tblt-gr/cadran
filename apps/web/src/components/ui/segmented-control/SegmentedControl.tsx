@@ -6,9 +6,18 @@ interface SegmentedControlProps<T extends string> {
   label: string;
   /** Shrinks the drawn segments on narrow screens; the touch target keeps its minimum. */
   compact?: boolean;
+  /** Smaller, with no track: for a selector that must stay discreet beside a chart. */
+  quiet?: boolean;
   disabled?: boolean;
   onChange: (value: T) => void;
-  options: readonly { value: T; label: string; description?: string; disabled?: boolean }[];
+  options: readonly {
+    value: T;
+    label: string;
+    /** Full name when the drawn label is an abbreviation. */
+    ariaLabel?: string;
+    description?: string;
+    disabled?: boolean;
+  }[];
   value: T;
 }
 
@@ -16,6 +25,7 @@ interface SegmentedControlProps<T extends string> {
 export function SegmentedControl<T extends string>({
   label,
   compact = false,
+  quiet = false,
   disabled = false,
   onChange,
   options,
@@ -25,7 +35,9 @@ export function SegmentedControl<T extends string>({
   return (
     <div
       aria-label={label}
-      className={compact ? `${styles.track} ${styles.compact}` : styles.track}
+      className={[styles.track, compact && styles.compact, quiet && styles.quiet]
+        .filter(Boolean)
+        .join(' ')}
       role="group"
     >
       {options.map((option, index) => {
@@ -33,12 +45,16 @@ export function SegmentedControl<T extends string>({
         return (
           <Fragment key={option.value}>
             <button
+              aria-label={option.ariaLabel}
               aria-describedby={option.description ? descriptionId : undefined}
               aria-pressed={value === option.value}
               className={styles.segment}
               disabled={disabled || option.disabled}
               onClick={() => onChange(option.value)}
-              title={option.description}
+              title={
+                option.description ??
+                (option.ariaLabel !== option.label ? option.ariaLabel : undefined)
+              }
               type="button"
             >
               {option.label}

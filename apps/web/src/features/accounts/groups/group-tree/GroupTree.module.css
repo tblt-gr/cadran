@@ -32,6 +32,8 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
+  /* The label reads at the body size used everywhere else, not at the inherited page size. */
+  font-size: var(--font-size-body);
   gap: var(--spacing-3);
   padding: var(--spacing-3) var(--spacing-2);
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -130,4 +132,15 @@
   height: var(--icon-size-md);
   min-height: var(--icon-size-md);
   color: var(--text-primary);
+}
+
+/* On a phone the tree leaves the page gutter: rows run edge to edge and keep their own inner space. */
+@media (max-width: 47.999rem) {
+  .tree {
+    margin-inline: var(--spacing-bleed-mobile);
+  }
+
+  .tree > .node > .row {
+    padding-inline: var(--spacing-4);
+  }
 }

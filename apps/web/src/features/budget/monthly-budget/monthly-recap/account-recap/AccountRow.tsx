@@ -1,6 +1,5 @@
 import type { MonthlyAccountValue } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
-import { ColorDot } from '@/components/ui/color-dot/ColorDot';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { ShareCell } from '@/features/accounts/groups/share-cell/ShareCell';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -33,14 +32,11 @@ export function AccountRow({
   member,
   hidden = false,
   id,
-  color = null,
 }: {
   member: RecapMember;
   /** Folded under its group subtotal row. */
   hidden?: boolean;
   id?: string;
-  /** Group colour, drawn as a dot beside the name on a phone. */
-  color?: string | null;
 }) {
   const { t } = useTranslation();
   const { account, subGroup } = member;
@@ -49,9 +45,6 @@ export function AccountRow({
   return (
     <tr hidden={hidden} id={id}>
       <th data-label={t('budget.monthly.recap.accounts.account')} scope="row">
-        <span className={styles.dot}>
-          <ColorDot color={color} />
-        </span>
         <a href={href} onClick={(event) => handleClientNavigation(event, href)}>
           {account.label}
         </a>

@@ -54,7 +54,8 @@
   justify-content: space-between;
   gap: var(--spacing-3);
 }
-.row > div > .label {
+.row > div > .label,
+.row > div > .labelCell > .label {
   min-width: 0;
   border: var(--border-none);
   padding: var(--spacing-none);
@@ -67,7 +68,8 @@
   cursor: pointer;
 }
 @media (pointer: coarse) {
-  .row > div > .label {
+  .row > div > .label,
+  .row > div > .labelCell > .label {
     min-inline-size: var(--touch-target-min);
     min-block-size: var(--touch-target-min);
   }
@@ -136,5 +138,47 @@
   min-height: var(--control-height-compact);
   color: var(--text-primary);
   font-size: var(--font-size-body);
+  gap: var(--spacing-2);
+}
+/* The card holds no padding of its own, as the accounts panel: the dividers of the accordions run
+   edge to edge and only the header, the notice and the rows keep their inner space. */
+.panel {
+  padding: var(--spacing-none);
+  padding-bottom: var(--spacing-2);
+}
+
+.panel > :not(.section) {
+  margin-inline: var(--spacing-5);
+}
+
+.heading {
+  margin-top: var(--spacing-5);
+}
+
+.section details > summary,
+.row {
+  padding-inline: var(--spacing-5);
+}
+
+@media (max-width: 47.999rem) {
+  .panel > :not(.section) {
+    margin-inline: var(--spacing-4);
+  }
+
+  .heading {
+    margin-top: var(--spacing-4);
+  }
+
+  .section details > summary,
+  .row {
+    padding-inline: var(--spacing-4);
+  }
+}
+
+/* A glyph and the label that names it, one cell of the row. */
+.labelCell {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
   gap: var(--spacing-2);
 }

@@ -620,7 +620,7 @@ describe('RecurrencesPage', () => {
     expect(api.updateRecurrence.mock.calls[0]?.[0].body.categoryId).toBeNull();
   });
 
-  it('shows the Automatique badge with the category on an automatic recurrence only', async () => {
+  it('shows the automatic icon and the category glyph on an automatic recurrence only', async () => {
     api.detectRecurrenceCandidates.mockImplementation(() => success({ items: [], partial: false }));
     api.listRecurrences.mockImplementation(({ query }) =>
       query.includeArchived
@@ -637,8 +637,8 @@ describe('RecurrencesPage', () => {
     );
     renderPage();
 
-    expect(await screen.findAllByText('Automatique')).toHaveLength(1);
-    expect(await screen.findByText('Logement')).toBeTruthy();
+    expect(await screen.findAllByRole('img', { name: 'Automatique' })).toHaveLength(1);
+    expect(await screen.findByRole('img', { name: 'Logement' })).toBeTruthy();
   });
 
   it('invalidates the ledger families after saving an automatic recurrence', async () => {

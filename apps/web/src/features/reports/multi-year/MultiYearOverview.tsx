@@ -30,6 +30,7 @@ export function MultiYearOverview({
       {reports && last ? (
         <AnnualCharts
           includeTrends={false}
+          period={{ from: `${from}-01-01`, to: `${to}-12-31` }}
           report={{
             ...last,
             charts: { ...last.charts, topExpenseCategories: overviewTopCategories(reports) },

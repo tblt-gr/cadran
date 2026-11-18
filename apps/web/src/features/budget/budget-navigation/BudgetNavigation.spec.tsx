@@ -17,7 +17,7 @@ describe('BudgetNavigation', () => {
     window.history.replaceState({}, '', '/');
   });
 
-  it('offers the four budget tabs and keeps the budget month on each of them', () => {
+  it('returns to the current month from an older budget while preserving context on sibling tabs', () => {
     window.history.replaceState({}, '', '/budget/2026/09?axis=FIXED');
     render(<BudgetNavigation current="budget" month="2026-09" axis="FIXED" />);
 
@@ -25,7 +25,7 @@ describe('BudgetNavigation', () => {
       'page',
     );
     expect(hrefs()).toEqual({
-      'Suivi du budget': '/budget/2026/09?axis=FIXED',
+      'Suivi du budget': '/budget',
       Transactions: '/transactions?period=month&month=2026-09&budgetMonth=2026-09&budgetAxis=FIXED',
       Catégories: '/transactions/categories?budgetMonth=2026-09&budgetAxis=FIXED',
       Récurrences: '/transactions/recurrences?budgetMonth=2026-09&budgetAxis=FIXED',
@@ -46,4 +46,14 @@ describe('BudgetNavigation', () => {
       Récurrences: '/transactions/recurrences',
     });
   });
+
+  for (const current of ['transactions', 'recurrences'] as const) {
+    it(`opens the current month from the ${current} tab even with an older month in context`, () => {
+      window.history.replaceState({}, '', `/transactions/${current}?budgetMonth=2025-02`);
+      render(<BudgetNavigation current={current} month="2025-02" />);
+      expect(screen.getByRole('link', { name: 'Suivi du budget' }).getAttribute('href')).toBe(
+        '/budget',
+      );
+    });
+  }
 });

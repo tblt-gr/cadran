@@ -19,19 +19,24 @@
 
 .name {
   min-width: 0;
+  color: var(--text-primary);
+  font-size: var(--font-size-body);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* The share leads the row: it is the figure a legend is read for, the amount comes second. */
 .share {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-normal);
   font-variant-numeric: tabular-nums;
 }
 
 .amount {
-  color: var(--text-primary);
+  color: var(--text-secondary);
   font-size: var(--font-size-label);
   font-weight: var(--font-weight-medium);
   letter-spacing: var(--letter-spacing-card);

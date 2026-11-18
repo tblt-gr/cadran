@@ -1021,7 +1021,7 @@ describe('TransactionsPage', () => {
 
     await waitFor(() => expect(screen.queryByTestId('transaction-day-list-skeleton')).toBeNull());
     const table = screen.getByRole('list', { name: /^Transactions de l/ });
-    expect(within(table).getByText('En attente')).toBeTruthy();
+    expect(within(table).getByRole('img', { name: 'En attente' })).toBeTruthy();
     // Booked is the normal case: the register states it nowhere.
     expect(within(table).queryByText('Comptabilisée')).toBeNull();
   });
@@ -1879,7 +1879,7 @@ describe('primary account creation defaults', () => {
     fireEvent.click(
       await screen.findByRole('checkbox', { name: 'Sélectionner CB CARREFOUR 1234' }),
     );
-    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', false);
     expect((screen.getByRole('button', { name: 'Modifier' }) as HTMLButtonElement).disabled).toBe(
       false,
     );
@@ -1887,7 +1887,7 @@ describe('primary account creation defaults', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Quitter la sélection' }));
     expect(screen.queryByRole('checkbox', { name: /^Sélectionner/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Sélectionner' }));
-    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
   });
 
   it('clears the bulk selection when a filter changes', async () => {
@@ -1909,7 +1909,9 @@ describe('primary account creation defaults', () => {
     );
     fireEvent.click(screen.getByRole('checkbox', { name: 'Comptabilisée' }));
 
-    await waitFor(() => expect(screen.getByText('Aucune sélection')).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true),
+    );
     window.history.replaceState({}, '', '/transactions');
   });
 });

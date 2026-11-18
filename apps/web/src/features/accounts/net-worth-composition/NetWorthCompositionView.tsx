@@ -8,7 +8,7 @@ import chartStyles from '@/features/accounts/group-composition/GroupComposition.
 import { NetWorthFigure } from '@/features/dashboard/net-worth-figure/NetWorthFigure';
 import { formatAmount } from '@/lib/decimal';
 import { lazyComponent } from '@/lib/lazyComponent';
-import { ColorSwatch } from './ColorSwatch';
+import { groupColor } from '@/features/accounts/group-color';
 import { shadeWithinGroups } from './sliceColors';
 import styles from './NetWorthCompositionCard.module.css';
 
@@ -21,12 +21,17 @@ const GroupCompositionChart = lazyComponent(
 interface NetWorthCompositionViewProps {
   /** Null while the composition is being read: the title and headers stay, only values are blocks. */
   composition: AccountOverviewComposition | null;
+  /** What a row is: an account, or a group when the overview is grouped. */
+  by?: 'account' | 'group';
 }
 
 const PLACEHOLDER_ROWS = 3;
 
 /** Donut (or why there is none) beside the table of every account: slices and rows share one source. */
-export function NetWorthCompositionView({ composition }: NetWorthCompositionViewProps) {
+export function NetWorthCompositionView({
+  by = 'account',
+  composition,
+}: NetWorthCompositionViewProps) {
   const { i18n, t } = useTranslation();
   const headingId = useId();
   const colors =
@@ -53,7 +58,11 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
   return (
     <section aria-labelledby={headingId} className={`card ${styles.card}`}>
       <h2 className={styles.title} id={headingId}>
-        {t('accounts.overviewComposition.title')}
+        {t(
+          by === 'group'
+            ? 'accounts.overviewComposition.groupsTitle'
+            : 'accounts.overviewComposition.title',
+        )}
       </h2>
       <div className={styles.body}>
         <Suspense
@@ -65,7 +74,11 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
         >
           <GroupCompositionChart
             entries={entries}
-            label={t('accounts.overviewComposition.chart')}
+            label={t(
+              by === 'group'
+                ? 'accounts.overviewComposition.groupsChart'
+                : 'accounts.overviewComposition.chart',
+            )}
             reasonText={
               composition?.chartReason
                 ? t(`accounts.overviewComposition.chartReasons.${composition.chartReason}`)
@@ -76,10 +89,22 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
         </Suspense>
         <div className={styles.tableScroll}>
           <table className={styles.table}>
-            <caption className="sr-only">{t('accounts.overviewComposition.title')}</caption>
+            <caption className="sr-only">
+              {t(
+                by === 'group'
+                  ? 'accounts.overviewComposition.groupsTitle'
+                  : 'accounts.overviewComposition.title',
+              )}
+            </caption>
             <thead>
               <tr>
-                <th scope="col">{t('accounts.overviewComposition.columns.account')}</th>
+                <th scope="col">
+                  {t(
+                    by === 'group'
+                      ? 'accounts.overviewComposition.groupColumn'
+                      : 'accounts.overviewComposition.columns.account',
+                  )}
+                </th>
                 <th scope="col">{t('accounts.overviewComposition.columns.amount')}</th>
                 <th scope="col">{t('accounts.overviewComposition.columns.share')}</th>
               </tr>
@@ -88,9 +113,8 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
               {composition === null
                 ? Array.from({ length: PLACEHOLDER_ROWS }, (_, row) => (
                     <tr key={row}>
-                      <th scope="row">
+                      <th className={styles.mark} scope="row">
                         <span className={styles.account}>
-                          <SkeletonBlock className={styles.swatch} />
                           <span>
                             <SkeletonBlock className={styles.labelSkeleton} />
                           </span>
@@ -109,9 +133,12 @@ export function NetWorthCompositionView({ composition }: NetWorthCompositionView
                       account.value === null ? null : (account.value.display ?? account.value);
                     return (
                       <tr key={account.id}>
-                        <th scope="row">
+                        <th
+                          className={styles.mark}
+                          scope="row"
+                          style={{ ['--mark-color' as string]: groupColor(colors[index] ?? null) }}
+                        >
                           <span className={styles.account}>
-                            <ColorSwatch color={colors[index] ?? null} />
                             <span>{account.label}</span>
                           </span>
                           {account.institution ? <small>{account.institution}</small> : null}

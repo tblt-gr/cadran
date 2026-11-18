@@ -62,6 +62,7 @@ export function FlowsChart({ flows }: { flows: AnnualFlows }) {
           <Tooltip content={<ExactTooltip linesFor={linesFor} />} />
           {FLOW_BAR_SERIES.map((series) => (
             <Bar
+              className={`flow-bar-${series.dataKey}`}
               dataKey={series.dataKey}
               fill={series.fill}
               isAnimationActive={!prefersReducedMotion()}

@@ -11,6 +11,11 @@ describe('PerformanceMonthCards', () => {
     render(<PerformanceMonthCards annual={annualFixture()} onExplain={() => undefined} />);
     expect(screen.getAllByRole('article')).toHaveLength(13);
     const january = screen.getByRole('article', { name: 'janvier' });
+    expect(january.querySelector('details')!.open).toBe(false);
+    const folded = january.querySelector('summary')!;
+    expect(folded.textContent).toContain('Valeur fin');
+    expect(folded.textContent).toContain('Var. latente');
+    expect(folded.textContent).not.toContain('Versements');
     expect(within(january).getByText('Valeur début').nextElementSibling?.textContent).toMatch(
       /10\s000,00/,
     );

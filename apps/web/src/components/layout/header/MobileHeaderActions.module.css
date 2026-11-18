@@ -1,0 +1,20 @@
+/* A labelled button reduced to its icon: the same square as the other icon controls (32 px for a
+   mouse, the touch minimum for a finger), whatever the height its text version had. */
+.iconOnly.iconOnly {
+  display: inline-grid;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  min-width: var(--icon-size-lg);
+  min-height: var(--icon-size-lg);
+  padding: var(--spacing-none);
+  place-items: center;
+}
+
+@media (pointer: coarse) {
+  .iconOnly.iconOnly {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+}

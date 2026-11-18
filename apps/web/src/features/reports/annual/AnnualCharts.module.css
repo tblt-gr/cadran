@@ -85,3 +85,13 @@
   min-width: 0;
   height: var(--chart-plot-height);
 }
+
+/* The bars take the same income and expense colours as every figure of the app, through the
+   stylesheet so the custom property always resolves. */
+.flows :global(.flow-bar-cashIncome) path {
+  fill: var(--positive);
+}
+
+.flows :global(.flow-bar-budgetExpenses) path {
+  fill: var(--negative);
+}

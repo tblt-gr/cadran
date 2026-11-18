@@ -6,3 +6,30 @@
   font-size: var(--font-size-label);
   gap: var(--spacing-1);
 }
+
+/* Only a phone draws the dash that stands for "jusqu'à". */
+.dash {
+  display: none;
+}
+
+/* A phone keeps the range beside the view switch: both words go out of sight for a dash, the labels staying
+   the names of their selects. */
+@media (max-width: 47.999rem) {
+  .selector {
+    flex-wrap: nowrap;
+  }
+
+  .fromLabel,
+  .toLabel {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .dash {
+    display: inline;
+  }
+}

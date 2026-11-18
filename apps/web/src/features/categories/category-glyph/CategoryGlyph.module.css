@@ -1,0 +1,14 @@
+.glyph {
+  display: inline-flex;
+  align-items: center;
+}
+
+.glyph svg {
+  width: var(--category-glyph-size);
+  height: var(--category-glyph-size);
+  fill: none;
+  stroke: var(--text-secondary);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}

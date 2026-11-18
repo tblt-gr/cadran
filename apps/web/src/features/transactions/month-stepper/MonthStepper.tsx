@@ -17,7 +17,7 @@ export function MonthStepper({ disabled = false, month, onStep }: MonthStepperPr
   const { i18n, t } = useTranslation();
 
   return (
-    <div className={styles.stepper}>
+    <div className={styles.stepper} data-no-swipe>
       <button
         aria-label={t('transactions.filters.previousMonth')}
         className="icon-button"

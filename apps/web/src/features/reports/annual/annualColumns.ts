@@ -50,6 +50,10 @@ export interface SummaryFigure {
 export function summaryFigure(aggregate: AnnualAggregate, row: SummaryRowId): SummaryFigure {
   switch (row) {
     case 'total':
+      // A balance has no total: the line reads its value at the end of the latest month with data.
+      if (aggregate.kind === 'STOCK' && aggregate.periodEnd !== null) {
+        return { value: aggregate.periodEnd.value, reason: null, month: null };
+      }
       return { value: aggregate.total, reason: aggregate.totalReason, month: null };
     case 'average':
       return { value: aggregate.average, reason: aggregate.averageReason, month: null };

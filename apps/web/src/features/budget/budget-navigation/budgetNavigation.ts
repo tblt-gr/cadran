@@ -1,8 +1,4 @@
-import {
-  monthHref,
-  readAxis,
-  type BudgetAxis,
-} from '@/features/budget/monthly-budget/budgetPeriod';
+import { readAxis, type BudgetAxis } from '@/features/budget/monthly-budget/budgetPeriod';
 import {
   DEFAULT_FILTERS,
   encodeFilters,
@@ -21,17 +17,6 @@ export function budgetRegisterHref(
   const params = encodeFilters({ ...DEFAULT_FILTERS, period: 'month', month, ...filters });
   appendBudgetContext(params, month, axis);
   return `/transactions?${params.toString()}`;
-}
-
-export function budgetReturnHref(
-  search: string,
-  selectedMonth: string | null,
-  fallbackMonth: string,
-) {
-  const params = new URLSearchParams(search);
-  const context = params.get('budgetMonth') ?? '';
-  const month = selectedMonth ?? (MONTH.test(context) ? context : fallbackMonth);
-  return monthHref(month, readAxis(`?axis=${params.get('budgetAxis') ?? ''}`));
 }
 
 /** Context does not narrow the movements: only explicit register filters do. */

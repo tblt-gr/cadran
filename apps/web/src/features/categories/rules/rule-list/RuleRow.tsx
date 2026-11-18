@@ -2,6 +2,7 @@ import type { CategorizationRule } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import styles from './RuleList.module.css';
 import { RuleSentence } from '@/features/categories/rules/rule-sentence/RuleSentence';
 
 interface RuleRowProps {
@@ -31,14 +32,14 @@ export function RuleRow({ canEdit, onArchive, onEdit, onPreview, onToggle, rule 
           targetCategoryLabel={rule.targetCategoryLabel ?? null}
         />
       </th>
-      <td>{period}</td>
-      <td>
+      <td className={styles.optional}>{period}</td>
+      <td className={styles.optional}>
         {rule.accountScope.length === 0
           ? t('categorizationRules.list.allAccounts')
           : t('categorizationRules.list.accountCount', { count: rule.accountScope.length })}
       </td>
-      <td>{rule.appliedCount}</td>
-      <td>
+      <td className={styles.optional}>{rule.appliedCount}</td>
+      <td className={styles.optional}>
         <StatusBadge tone={archived || inactive ? 'warning' : 'positive'}>
           {archived
             ? t('categorizationRules.status.archived')

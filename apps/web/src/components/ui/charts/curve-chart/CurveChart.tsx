@@ -1,17 +1,10 @@
 import { SeriesCursor } from './series-cursor/SeriesCursor';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import {
-  datePosition,
-  plotRuns,
-  smoothPath,
-  stepAfterPath,
-  type PlotArea,
-  type PlotPoint,
-} from './plotGeometry';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { datePosition, plotRuns, smoothPath, stepAfterPath, type PlotPoint } from './plotGeometry';
+import { AREA, nearestByX, plotX, tickIndices, tooltipEdge, yExtent } from './plotLayout';
 import styles from './CurveChart.module.css';
-
-const AREA: PlotArea = { height: 170, padding: 16, width: 620 };
 
 export interface CurvePoint {
   /** Text announced for the point's focus target, e.g. "12/03/2026, 1 000,00 €". */
@@ -44,71 +37,16 @@ interface CurveChartProps {
   points: CurvePoint[];
   interpolation?: 'smooth' | 'step-after';
   interaction?: 'points' | 'series';
-}
-
-function plotX(index: number, count: number): number {
-  return count > 1 ? (index * AREA.width) / (count - 1) : AREA.width / 2;
-}
-
-function tickIndices(count: number): number[] {
-  if (count <= 3) {
-    return Array.from({ length: count }, (_, index) => index);
-  }
-
-  return [0, Math.round((count - 1) / 2), count - 1];
-}
-
-function nearestByX(
-  placed: readonly PlotPoint[],
-  clientX: number,
-  width: number,
-  left: number,
-): number | null {
-  if (placed.length === 0 || width === 0) {
-    return null;
-  }
-
-  const x = ((clientX - left) / width) * AREA.width;
-  let best = placed[0];
-  let bestDistance = Math.abs(best.x - x);
-  for (const point of placed) {
-    const distance = Math.abs(point.x - x);
-    if (distance < bestDistance) {
-      best = point;
-      bestDistance = distance;
-    }
-  }
-
-  return best.index;
-}
-
-function tooltipEdge(
-  x: number,
-  y: number,
-): { edge: 'start' | 'mid' | 'end'; side: 'above' | 'below' } {
-  return {
-    edge: x / AREA.width < 0.18 ? 'start' : x / AREA.width > 0.82 ? 'end' : 'mid',
-    side: y / AREA.height < 0.28 ? 'below' : 'above',
-  };
-}
-
-function yExtent(placed: readonly PlotPoint[]): PlotPoint[] {
-  if (placed.length === 0) {
-    return [];
-  }
-
-  let lowest = placed[0];
-  let highest = placed[0];
-  for (const point of placed) {
-    if (point.y > lowest.y) {
-      lowest = point;
-    }
-    if (point.y < highest.y) {
-      highest = point;
-    }
-  }
-
-  return lowest.index === highest.index ? [highest] : [highest, lowest];
+  /** Drops the figures of the vertical axis, leaving the dates only; they stay in the tooltip. */
+  hideValueAxis?: boolean;
+  /** Reports the key of the hovered or focused point, null when the pointer or focus leaves. */
+  onActivePointChange?: (key: string | null) => void;
+  /** The host shows the active point itself: no tooltip, the guide and the marker stay. */
+  hideTooltip?: boolean;
+  /** The point a tap pinned, kept while the pointer is elsewhere; null when none is pinned. */
+  selectedKey?: string | null;
+  /** Called with the tapped point's key on a screen that cannot hover, where a tap pins a point. */
+  onSelect?: (key: string) => void;
 }
 
 /**
@@ -123,8 +61,19 @@ export function CurveChart({
   valueAxisLabel,
   interpolation = 'smooth',
   interaction = 'points',
+  hideValueAxis = false,
+  hideTooltip = false,
+  onActivePointChange,
+  onSelect,
+  selectedKey = null,
 }: CurveChartProps) {
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  // A touch screen has no hover: the emulated mouse events are ignored and a tap pins the point.
+  const noHover = useMediaQuery('(hover: none)');
+  const [activeIndex, setActiveIndexState] = useState<number | null>(null);
+  const setActiveIndex = (index: number | null) => {
+    setActiveIndexState(index);
+    onActivePointChange?.(index === null ? null : (points[index]?.key ?? null));
+  };
   const dates =
     interpolation === 'step-after' && points.every((point) => point.date !== undefined)
       ? points.map((point) => point.date!)
@@ -147,8 +96,10 @@ export function CurveChart({
   );
   const placed = runs.flat();
   const yTicks = yExtent(placed);
+  const selectedIndex = selectedKey === null ? -1 : points.findIndex((p) => p.key === selectedKey);
+  const shownIndex = activeIndex ?? (selectedIndex >= 0 ? selectedIndex : null);
   const active =
-    activeIndex === null ? null : (placed.find((point) => point.index === activeIndex) ?? null);
+    shownIndex === null ? null : (placed.find((point) => point.index === shownIndex) ?? null);
   const activePoint = active === null ? undefined : points[active.index];
   const hover =
     active === null || activePoint === undefined
@@ -158,34 +109,52 @@ export function CurveChart({
   return (
     <div
       className={styles.frame}
+      data-no-swipe
       data-visual-mask
+      data-value-axis={hideValueAxis ? 'hidden' : undefined}
       data-interpolation={interpolation === 'step-after' ? interpolation : undefined}
     >
-      <div className={styles.yAxis} role="group" aria-label={valueAxisLabel}>
-        <span aria-hidden="true" className={styles.ySizer}>
-          {yTicks.map((tick) => (
-            <span key={`y-size-${tick.index}`}>{points[tick.index].value}</span>
-          ))}
-        </span>
-        {yTicks.map((tick) => (
-          <span
-            className={styles.yTick}
-            title={
-              typeof points[tick.index].value === 'string'
-                ? (points[tick.index].value as string)
-                : undefined
-            }
-            key={`y-${tick.index}`}
-            style={{ top: `${(tick.y / AREA.height) * 100}%` }}
-          >
-            {points[tick.index].value}
+      {hideValueAxis ? null : (
+        <div className={styles.yAxis} role="group" aria-label={valueAxisLabel}>
+          <span aria-hidden="true" className={styles.ySizer}>
+            {yTicks.map((tick) => (
+              <span key={`y-size-${tick.index}`}>{points[tick.index].value}</span>
+            ))}
           </span>
-        ))}
-      </div>
+          {yTicks.map((tick) => (
+            <span
+              className={styles.yTick}
+              title={
+                typeof points[tick.index].value === 'string'
+                  ? (points[tick.index].value as string)
+                  : undefined
+              }
+              key={`y-${tick.index}`}
+              style={{ top: `${(tick.y / AREA.height) * 100}%` }}
+            >
+              {points[tick.index].value}
+            </span>
+          ))}
+        </div>
+      )}
       <div
         className={styles.plotBody}
-        onMouseLeave={() => setActiveIndex(null)}
+        onClick={(event) => {
+          if (!noHover || !onSelect) return;
+          const index = nearestByX(
+            placed,
+            event.clientX,
+            event.currentTarget.clientWidth,
+            event.currentTarget.getBoundingClientRect().left,
+          );
+          const key = index === null ? undefined : points[index]?.key;
+          if (key !== undefined) onSelect(key);
+        }}
+        onMouseLeave={() => {
+          if (!noHover) setActiveIndex(null);
+        }}
         onMouseMove={(event) => {
+          if (noHover) return;
           setActiveIndex(
             nearestByX(
               placed,
@@ -262,7 +231,9 @@ export function CurveChart({
               onBlur={() => setActiveIndex(null)}
               onFocus={() => setActiveIndex(point.index)}
               onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActiveIndex(point.index)}
+              onMouseEnter={() => {
+                if (!noHover) setActiveIndex(point.index);
+              }}
               style={{
                 left: `${(point.x / AREA.width) * 100}%`,
                 top: `${(point.y / AREA.height) * 100}%`,
@@ -285,22 +256,24 @@ export function CurveChart({
                 top: `${(hover.plot.y / AREA.height) * 100}%`,
               }}
             />
-            <div
-              className={styles.tooltip}
-              data-edge={hover.placement.edge}
-              data-side={hover.placement.side}
-              role="tooltip"
-              style={{
-                left: `${(hover.plot.x / AREA.width) * 100}%`,
-                top: `${(hover.plot.y / AREA.height) * 100}%`,
-              }}
-            >
-              <span className={styles.tooltipTitle}>{hover.point.tooltipTitle}</span>
-              <span className={styles.tooltipValue}>{hover.point.value}</span>
-              {hover.point.tooltipDetail ? (
-                <span className={styles.tooltipDetail}>{hover.point.tooltipDetail}</span>
-              ) : null}
-            </div>
+            {hideTooltip ? null : (
+              <div
+                className={styles.tooltip}
+                data-edge={hover.placement.edge}
+                data-side={hover.placement.side}
+                role="tooltip"
+                style={{
+                  left: `${(hover.plot.x / AREA.width) * 100}%`,
+                  top: `${(hover.plot.y / AREA.height) * 100}%`,
+                }}
+              >
+                <span className={styles.tooltipTitle}>{hover.point.tooltipTitle}</span>
+                <span className={styles.tooltipValue}>{hover.point.value}</span>
+                {hover.point.tooltipDetail ? (
+                  <span className={styles.tooltipDetail}>{hover.point.tooltipDetail}</span>
+                ) : null}
+              </div>
+            )}
           </>
         )}
       </div>

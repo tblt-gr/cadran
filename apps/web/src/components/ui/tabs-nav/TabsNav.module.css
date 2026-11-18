@@ -123,3 +123,23 @@
     transition-duration: var(--duration-reduced-motion);
   }
 }
+
+/* On a phone the strip leaves the page gutter so its rule runs edge to edge; the tabs keep the
+   gutter at their start. */
+@media (max-width: 767px) {
+  .strip {
+    margin-inline: var(--spacing-bleed-mobile);
+    padding-inline: var(--spacing-4);
+  }
+}
+
+/* The strip stays pinned to the top while the page scrolls under it (the phone bar above is not
+   pinned). Its own background hides the content passing behind it. */
+@media (max-width: 767px) {
+  .strip {
+    position: sticky;
+    z-index: var(--z-header);
+    top: 0;
+    background: var(--bg-shell);
+  }
+}

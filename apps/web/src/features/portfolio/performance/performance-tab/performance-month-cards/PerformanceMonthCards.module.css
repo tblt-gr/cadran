@@ -18,27 +18,72 @@
 }
 .figures {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: var(--spacing-none);
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
+  font-size: var(--font-size-body);
 }
+/* Same line as a month of the annual report: grey label, then the white value and its "i". */
 .figure {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
   min-width: 0;
-  gap: var(--spacing-1);
+  gap: var(--spacing-1) var(--spacing-3);
 }
 .figure dt {
   color: var(--text-secondary);
-  font-size: var(--font-size-label);
 }
 .figure dd {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   margin: var(--spacing-none);
+  color: var(--text-primary);
   font-variant-numeric: tabular-nums lining-nums;
+  gap: var(--spacing-2);
   overflow-wrap: anywhere;
 }
 .skeleton {
   display: block;
   width: calc(var(--spacing-12) * 1.5);
   height: var(--font-size-body);
+}
+/* The disclosure carries the padding, so the whole card is the target of a click. */
+.card.collapsible {
+  gap: var(--spacing-none);
+  padding: var(--spacing-none);
+}
+.collapsible details > summary {
+  padding: var(--spacing-4);
+}
+.collapsible details > div {
+  padding: var(--spacing-none) var(--spacing-4) var(--spacing-4);
+}
+.empty {
+  margin: var(--spacing-none);
+}
+/* The closed card is one block: the month on the left, two labelled figures stacked on the right. */
+.folded {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: var(--font-size-label);
+  font-variant-numeric: tabular-nums lining-nums;
+  gap: var(--spacing-0-5);
+}
+.foldedFigure {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-2);
+}
+.foldedLabel {
+  color: var(--text-muted);
+}
+/* White "i", as on every reports page, beating InfoButton's own colour. */
+.card dd button,
+.card dd button:hover:not(:disabled) {
+  border: var(--border-none);
+  color: var(--text-primary);
+  background: var(--color-transparent);
 }

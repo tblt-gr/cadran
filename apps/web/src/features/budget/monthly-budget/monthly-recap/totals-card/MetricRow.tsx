@@ -1,9 +1,20 @@
-import type { GoalEvaluation, MonthlyRecapAxis, MonthlyRecapCategory } from '@cadran/api-client';
-import { useState } from 'react';
+import type {
+  Category,
+  GoalEvaluation,
+  MonthlyRecapAxis,
+  MonthlyRecapCategory,
+} from '@cadran/api-client';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  expenseTransactionsHref,
+  monthBounds,
+} from '@/features/budget/monthly-budget/expense-donut/expenseTransactionsHref';
+import { CategoryGlyph } from '@/features/categories/category-glyph/CategoryGlyph';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { GoalMarkedValue, GoalTarget } from '@/features/goals/goal-mark/GoalMark';
+import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatAmount } from '@/lib/decimal';
 import { MetricExplanationModal } from './MetricExplanationModal';
 import { MetricLabelButton } from './MetricLabelButton';
@@ -22,7 +33,13 @@ export function MetricRow({
   rate = false,
   benefit = null,
   onCreateGoal,
+  lead,
+  href = null,
 }: {
+  /** Opens the filtered transactions instead of the calculation explanation. */
+  href?: string | null;
+  /** Glyph drawn before the label, such as a category's icon. */
+  lead?: ReactNode;
   /** Opens the goal form on this row's figure; absent when no goal can target it. */
   onCreateGoal?: () => void;
   /** The goals of the displayed month that carry this row's figure. */
@@ -47,14 +64,32 @@ export function MetricRow({
       : metric?.kpi
         ? t(`reports.metrics.${metric.kpi}`)
         : t('states.notCalculable.label'));
+  const labelNode =
+    href !== null ? (
+      <a
+        aria-label={t('budget.monthly.expenseDonut.showTransactions', { label })}
+        className={styles.label}
+        href={href}
+        onClick={(event) => handleClientNavigation(event, href)}
+      >
+        {label}
+      </a>
+    ) : marks.length > 0 ? (
+      // A goal's `i` replaces the calculation explanation of the row.
+      <span className={styles.labelText}>{label}</span>
+    ) : (
+      <MetricLabelButton label={label} onClick={() => setOpen(true)} />
+    );
   return (
     <li className={styles.row}>
       <div className={goalColumn ? styles.withGoals : undefined}>
-        {marks.length > 0 ? (
-          // A goal's `i` replaces the calculation explanation of the row.
-          <span className={styles.labelText}>{label}</span>
+        {lead ? (
+          <span className={styles.labelCell}>
+            {lead}
+            {labelNode}
+          </span>
         ) : (
-          <MetricLabelButton label={label} onClick={() => setOpen(true)} />
+          labelNode
         )}
         {metric === null ? (
           <SkeletonBlock className={styles.amountSkeleton} />
@@ -97,7 +132,13 @@ export function CategoryRow({
   month,
   goalPeriod,
   onCreateGoal,
+  identity,
+  parent = true,
 }: {
+  /** The workspace category behind the row, for its icon and colour. */
+  identity?: Category;
+  /** Whether the category has sub-categories, its figure then covering them; true while unknown. */
+  parent?: boolean;
   onCreateGoal?: () => void;
   category: MonthlyRecapCategory;
   goalColumn: boolean;
@@ -108,6 +149,17 @@ export function CategoryRow({
   return (
     <MetricRow
       goalColumn={goalColumn}
+      href={expenseTransactionsHref([category.id], monthBounds(month), null, parent)}
+      lead={
+        identity ? (
+          <CategoryGlyph
+            color={identity.effectiveColor}
+            decorative
+            icon={identity.effectiveIcon}
+            label={category.label}
+          />
+        ) : null
+      }
       marks={marks}
       goalPeriod={goalPeriod}
       onCreateGoal={onCreateGoal}

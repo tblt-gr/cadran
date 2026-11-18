@@ -178,7 +178,7 @@ describe('ContinuousDetailedReport', () => {
         report={multiYearReport}
       />,
     );
-    const cards = screen.getByRole('list', { name: /mois de/i });
+    const cards = screen.getByRole('list', { name: /synthèse de la période détaillée/i });
     const items = within(cards).getAllByRole('listitem');
     const totalCard = items.find(
       (item) => within(item).queryByRole('heading', { name: 'Total' }) !== null,

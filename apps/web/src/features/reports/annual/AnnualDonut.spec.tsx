@@ -10,7 +10,7 @@ afterEach(() => {
 
 function items(count: number) {
   return Array.from({ length: count }, (_, index) => ({
-    amount: `${index + 1}0,00`,
+    amount: `${index + 1}0.00`,
     key: `c${index}`,
     label: `Catégorie ${index}`,
     share: '0.1',
@@ -18,6 +18,18 @@ function items(count: number) {
 }
 
 describe('AnnualDonut', () => {
+  it('links a row to its transactions only when it carries a target', () => {
+    const rows = items(2).map((row, index) => ({
+      ...row,
+      href: index === 0 ? '/transactions?c=1' : null,
+    }));
+    render(<AnnualDonut assetCode="EUR" label="Diagramme" legend={rows} slices={rows} />);
+
+    const links = screen.getAllByRole('link');
+    expect(links).toHaveLength(1);
+    expect(links[0]!.getAttribute('href')).toBe('/transactions?c=1');
+  });
+
   it('lists every category with no summed "Autres" row', () => {
     render(<AnnualDonut assetCode="EUR" label="Diagramme" legend={items(3)} slices={items(3)} />);
 

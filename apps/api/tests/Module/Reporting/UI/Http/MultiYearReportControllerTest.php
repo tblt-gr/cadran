@@ -571,6 +571,32 @@ final class MultiYearReportControllerTest extends WebTestCase
         self::assertDecimal('1000', self::stringOf($includedCell['median']));
     }
 
+    public function testAnUnfinishedMonthWithoutIncomeDoesNotReplaceTheLastCompleteMinimum(): void
+    {
+        $this->signIn();
+        $this->account(self::ACCOUNT, WorkspaceFixture::OWN_WORKSPACE, 'Courant', 'CURRENT');
+        $today = new \DateTimeImmutable('now', new \DateTimeZone('Europe/Paris'));
+        $previousMonth = $today->modify('first day of last month');
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '1000.00', 'INCOME', $previousMonth->format('Y-m-d'));
+        $this->transaction($this->nextSuffix(), self::ACCOUNT, '-100.00', 'EXPENSE', $today->format('Y-m-01'));
+        $this->put(['cashIncome'], 'exclude', 0);
+        $year = (int) $today->format('Y');
+
+        $excluded = $this->get('/api/v1/reports/multi-year?from='.$year.'&to='.$year.'&incompleteMonths=exclude');
+        $included = $this->get('/api/v1/reports/multi-year?from='.$year.'&to='.$year.'&incompleteMonths=include');
+        $excludedIncome = self::fields(self::fields($excluded['detailedPeriod'])['cashIncome']);
+        $includedIncome = self::fields(self::fields($included['detailedPeriod'])['cashIncome']);
+
+        $excludedMinimum = self::fields($excludedIncome['minimum']);
+        $includedMinimum = self::fields($includedIncome['minimum']);
+
+        self::assertDecimal('1000', self::stringOf($excludedIncome['total']));
+        self::assertDecimal('1000', self::stringOf($excludedMinimum['value']));
+        self::assertSame($previousMonth->format('Y-m'), $excludedMinimum['month']);
+        self::assertDecimal('0', self::stringOf($includedMinimum['value']));
+        self::assertSame($today->format('Y-m'), $includedMinimum['month']);
+    }
+
     public function testTheWholePeriodRateAggregateIsNullWithZeroDenominatorWhenCashIncomeIsAlwaysZero(): void
     {
         $this->signIn();

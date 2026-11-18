@@ -146,22 +146,22 @@ describe('bulk selection', () => {
   it('offers a labelled checkbox per row and a select-all with a counter', () => {
     renderHarness();
 
-    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner Carrefour' }));
-    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', false);
 
-    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', false);
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
-    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
-    expect(screen.getByText('2 mouvements sélectionnés')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', false);
     expect(
       (screen.getByRole('checkbox', { name: 'Sélectionner Monoprix' }) as HTMLInputElement).checked,
     ).toBe(true);
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Sélectionner les mouvements chargés' }));
-    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
   });
 
   it('keeps selected ids when more rows are appended', () => {
@@ -176,7 +176,7 @@ describe('bulk selection', () => {
       'checked',
       false,
     );
-    expect(screen.getByText('1 mouvement sélectionné')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', false);
   });
 
   it('leaves the mode with the pen, dropping checkboxes and the selection', () => {
@@ -191,7 +191,7 @@ describe('bulk selection', () => {
     expect(screen.queryByRole('button', { name: 'Modifier' })).toBeNull();
 
     fireEvent.click(pen);
-    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
   });
 
   it('clears the selection when the result set changes', () => {
@@ -200,7 +200,7 @@ describe('bulk selection', () => {
 
     update({ resetKey: 'b' });
 
-    expect(screen.getByText('Aucune sélection')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Modifier' })).toHaveProperty('disabled', true);
   });
 
   it('keeps selection and the edit action apart from the pen the host places', () => {
@@ -248,17 +248,13 @@ describe('bulk selection', () => {
     expect(api.countTransactions).toHaveBeenCalledWith(
       expect.objectContaining({ query: { q: 'market' } }),
     );
-    expect(
-      screen.getByText('Les 120 mouvements correspondant aux filtres sont sélectionnés'),
-    ).toBeTruthy();
+    expect(screen.getByText('120 transactions')).toBeTruthy();
     update({ hasMore: false, extended: true });
     expect(screen.getByRole('checkbox', { name: 'Sélectionner Boulangerie' })).toHaveProperty(
       'checked',
       true,
     );
-    expect(
-      screen.getByText('Les 120 mouvements correspondant aux filtres sont sélectionnés'),
-    ).toBeTruthy();
+    expect(screen.getByText('120 transactions')).toBeTruthy();
   });
 
   it('applies a category to the selected ids and reports the skipped ones', async () => {

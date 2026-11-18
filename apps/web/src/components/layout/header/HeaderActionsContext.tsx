@@ -1,5 +1,7 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { MobileHeaderActions } from './MobileHeaderActions';
 
 interface HeaderActionsContextValue {
   slot: HTMLElement | null;
@@ -25,6 +27,9 @@ export function useHeaderActionsSlot() {
  */
 export function HeaderActions({ children }: { children: ReactNode }) {
   const context = useContext(HeaderActionsContext);
+  // On a phone the actions are icons on the title line, two at most, the rest in a menu.
+  const phone = useMediaQuery('(max-width: 767px)');
   if (context === null) return <>{children}</>;
-  return context.slot ? createPortal(children, context.slot) : null;
+  const shown = phone ? <MobileHeaderActions>{children}</MobileHeaderActions> : children;
+  return context.slot ? createPortal(shown, context.slot) : null;
 }

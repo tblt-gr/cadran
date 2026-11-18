@@ -118,9 +118,9 @@ describe('ValueHistoryCard', () => {
     const group = screen.getByRole('group', { name: 'Période' });
     expect(Array.from(group.querySelectorAll('button')).map((b) => b.textContent)).toEqual([
       'Tout',
-      '24 mois',
-      '12 mois',
-      'Depuis janvier',
+      '24M',
+      '12M',
+      'YTD',
     ]);
     fireEvent.click(screen.getByRole('button', { name: 'Depuis janvier' }));
     expect(window.location.search).toContain('history=ytd');

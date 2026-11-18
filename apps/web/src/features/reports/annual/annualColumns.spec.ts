@@ -3,6 +3,7 @@ import { axisTickLabel } from '@/lib/monthLabel';
 import {
   columnGroup,
   firstDataMonth,
+  summaryFigure,
   fromFirstDataMonth,
   groupStartIds,
   withoutLeadingEmptyMonths,
@@ -101,5 +102,33 @@ describe('time axis of the monthly charts', () => {
   it('writes a January as its year and any other month with its name', () => {
     expect(axisTickLabel('2025-01', 'fr')).toBe('2025');
     expect(axisTickLabel('2024-09', 'fr')).toBe('Septembre 2024');
+  });
+});
+
+describe('summaryFigure', () => {
+  const aggregate = {
+    kind: 'STOCK',
+    total: null,
+    totalReason: 'NOT_ADDITIVE',
+    periodEnd: { value: '1250.00', month: '2026-11' },
+  } as unknown as Parameters<typeof summaryFigure>[0];
+
+  it('reads the total of a balance as its latest month value, without naming the month', () => {
+    expect(summaryFigure(aggregate, 'total')).toEqual({
+      value: '1250.00',
+      reason: null,
+      month: null,
+    });
+  });
+
+  it('keeps the sum for a flow and the reason for a balance without a latest month', () => {
+    expect(
+      summaryFigure({ ...aggregate, kind: 'FLOW', total: '10.00', totalReason: null }, 'total'),
+    ).toEqual({ value: '10.00', reason: null, month: null });
+    expect(summaryFigure({ ...aggregate, periodEnd: null }, 'total')).toEqual({
+      value: null,
+      reason: 'NOT_ADDITIVE',
+      month: null,
+    });
   });
 });

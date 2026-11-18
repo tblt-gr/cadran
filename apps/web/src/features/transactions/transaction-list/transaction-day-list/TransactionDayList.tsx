@@ -1,9 +1,9 @@
-import { TransactionRegisterHeading } from './TransactionRegisterHeading';
 import type { Account, Transaction } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
-import { formatCalendarWeekdayDay } from '@/lib/decimal';
 import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
+import { todayInBrowser } from '@/lib/businessDay';
+import { dayHeadingLabel } from './dayHeadingLabel';
 import { TransactionDayRow } from './TransactionDayRow';
 import { groupTransactionsByDay, type DayGroup } from './groupTransactionsByDay';
 import styles from './TransactionDayList.module.css';
@@ -34,6 +34,11 @@ export function TransactionDayList({
   transactions,
 }: TransactionDayListProps) {
   const { i18n, t } = useTranslation();
+  const today = todayInBrowser();
+  const words = {
+    today: t('transactions.list.today'),
+    yesterday: t('transactions.list.yesterday'),
+  };
   const Heading = `h${headingLevel}` as const;
   const loading = transactions === null;
   const groups: Array<DayGroup | null[]> = loading
@@ -53,15 +58,11 @@ export function TransactionDayList({
 
   return (
     <div
-      className={`card ${styles.panel}`}
+      className={styles.panel}
       aria-busy={loading || undefined}
       data-testid={loading ? 'transaction-day-list-skeleton' : undefined}
     >
       {loading && announce ? <SkeletonStatus>{t('transactions.loading')}</SkeletonStatus> : null}
-      <TransactionRegisterHeading
-        accounts={accounts !== undefined}
-        selection={selection !== undefined}
-      />
       <ol aria-label={label ?? t('transactions.list.caption')} className={styles.days}>
         {groups.map((group, index) => {
           const day = Array.isArray(group) ? null : group;
@@ -69,21 +70,23 @@ export function TransactionDayList({
 
           return (
             <li className={styles.day} key={day?.day ?? index}>
-              <Heading className={styles.dayHeader}>
+              <Heading className={styles.dayTitle} data-future={day ? day.day > today : undefined}>
                 <time className={styles.date} dateTime={day?.day}>
-                  {day ? formatCalendarWeekdayDay(day.day, i18n.language) : <SkeletonBlock />}
+                  {day ? dayHeadingLabel(day.day, i18n.language, words) : <SkeletonBlock />}
                 </time>
               </Heading>
-              <ul className={styles.rows}>
-                {rows.map((transaction, rowIndex) => (
-                  <TransactionDayRow
-                    accounts={accounts}
-                    key={transaction?.id ?? rowIndex}
-                    selection={selection}
-                    transaction={transaction}
-                  />
-                ))}
-              </ul>
+              <div className={`card ${styles.dayCard}`}>
+                <ul className={styles.rows}>
+                  {rows.map((transaction, rowIndex) => (
+                    <TransactionDayRow
+                      accounts={accounts}
+                      key={transaction?.id ?? rowIndex}
+                      selection={selection}
+                      transaction={transaction}
+                    />
+                  ))}
+                </ul>
+              </div>
             </li>
           );
         })}

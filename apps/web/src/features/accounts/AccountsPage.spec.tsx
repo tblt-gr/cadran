@@ -1483,6 +1483,7 @@ describe('AccountsPage', () => {
         ],
       }),
     );
+    window.localStorage.setItem('cadran.accounts.view', 'all');
     renderPage();
 
     expect(await screen.findByText('48,20 %')).toBeTruthy();

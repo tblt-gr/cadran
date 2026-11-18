@@ -167,7 +167,7 @@ export function AllocationCard({
           <div className={styles.plot}>
             <DonutPlot
               label="Répartition du portefeuille"
-              totalText={null}
+              totalText={allocation.total === null ? null : money(allocation.total)}
               slices={allocation.slices.map((item) => ({
                 key: item.key,
                 caption: label(item.key, item.label),

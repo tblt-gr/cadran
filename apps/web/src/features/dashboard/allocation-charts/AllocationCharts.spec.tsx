@@ -70,9 +70,10 @@ describe('account group allocation colors', () => {
     expect(
       [...container.querySelectorAll('rect')].map((node) => node.getAttribute('fill')),
     ).toEqual(['#000000', '#FFFFFF']);
-    expect(
-      [...container.querySelectorAll('text')].map((node) => node.getAttribute('fill')),
-    ).toEqual(['var(--text-primary)', 'var(--text-primary)']);
+    // The name and, in a tall tile, the share under it: every line stays in the text ramp.
+    const fills = [...container.querySelectorAll('text')].map((node) => node.getAttribute('fill'));
+    expect(fills.length).toBeGreaterThanOrEqual(2);
+    expect(fills.every((fill) => fill === 'var(--text-primary)')).toBe(true);
     rerender(<AllocationCharts allocation={[light, dark]} reason={null} />);
     expect(
       [...container.querySelectorAll('rect')].map((node) => node.getAttribute('fill')),

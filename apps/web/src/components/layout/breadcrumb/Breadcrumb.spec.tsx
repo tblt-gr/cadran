@@ -23,7 +23,7 @@ describe('global breadcrumb', () => {
   it.each([
     ['/', ['Accueil']],
     ['/accounts', ['Accueil', 'Comptes']],
-    ['/accounts/groups', ['Accueil', 'Comptes', 'Groupes de comptes']],
+    ['/accounts/groups', ['Accueil', 'Comptes', 'Groupes']],
     ['/investments', ['Accueil', 'Investissements']],
     ['/investments/instruments', ['Accueil', 'Investissements', 'Instruments']],
     [

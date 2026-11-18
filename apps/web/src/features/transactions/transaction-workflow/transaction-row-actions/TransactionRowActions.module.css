@@ -14,10 +14,6 @@
   cursor: pointer;
 }
 
-.inspect:hover:not(:disabled) {
-  text-decoration: underline;
-}
-
 .inspect:disabled {
   cursor: default;
 }

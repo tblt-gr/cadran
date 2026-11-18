@@ -100,6 +100,7 @@ export function AccountMovementsSection({
             <BulkSelectionToolbar
               active={bulkMode}
               bulk={bulk}
+              noun="operations"
               onToggleActive={() => onBulkModeChange(!bulkMode)}
             />
           ) : null}

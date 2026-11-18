@@ -68,10 +68,7 @@ describe('AnnualMonthCards goals', () => {
     expect(july.querySelector('[data-tone]')?.getAttribute('data-tone')).toBe('negative');
     const august = screen.getByRole('heading', { name: /août/i }).closest('li')!;
     expect(within(august).queryByRole('button')).toBeNull();
-    const summary = screen.getByRole('heading', { name: 'Synthèse de l’année' }).closest('li')!;
-    expect(
-      within(summary).getAllByRole('button', { name: /^Objectif : Revenus annuels/ }),
-    ).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: /^Objectif : Revenus annuels/ })).toHaveLength(1);
   });
 
   it('opens the goals panel and shows one retry line when the goals fail', async () => {
@@ -121,10 +118,12 @@ describe('AnnualMonthCards collapsible months', () => {
     expect(within(july).getByText(/Taux d’épargne/)).toBeTruthy();
   });
 
-  it('does not collapse a future month', () => {
+  it('shows a future month on the folded line, with a hyphen for each figure and nothing to open', () => {
     renderCards();
     const december = screen.getByRole('heading', { name: /décembre/i }).closest('li')!;
-    expect(december.querySelector('details')).toBeNull();
+    const summary = december.querySelector('summary')!;
+    expect(summary.getAttribute('aria-disabled')).toBe('true');
+    expect(within(summary).getAllByRole('img', { name: /à venir/i }).length).toBeGreaterThan(0);
   });
 
   it('shows an empty value, never zero, when the first column is not computable', () => {
@@ -141,10 +140,14 @@ describe('AnnualMonthCards collapsible months', () => {
     expect(detailsOf(/juillet/i).querySelector('summary')).toBeTruthy();
   });
 
-  it('keeps the year summary as a plain card', () => {
+  it('folds the year summary into one card per column', () => {
     renderCards();
-    const summary = screen.getByRole('heading', { name: 'Synthèse de l’année' }).closest('li')!;
-    expect(summary.querySelector('details')).toBeNull();
+    const heading = screen.getByRole('heading', { name: 'Synthèse de l’année' });
+    const cards = [...heading.closest('ul')!.querySelectorAll('li')].filter(
+      (item) => item.querySelector('h4') !== null,
+    );
+    expect(cards).toHaveLength(annualReport.columns.length);
+    for (const card of cards) expect(card.querySelector('details')!.open).toBe(false);
   });
 
   it('folds a month on its income in green and its expenses in red, with text labels', () => {

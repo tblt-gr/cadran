@@ -16,7 +16,7 @@ import { classifyProblem, type CommonProblemKind } from '@/lib/apiProblem';
  * whatever this says (the backend excludes it). Sent on every read so the stored preference,
  * which only picks columns for the user, cannot drop the running month.
  */
-export const INCOMPLETE_MONTHS_INCLUDED = { incompleteMonths: 'include' } as const;
+const INCOMPLETE_MONTHS_INCLUDED = { incompleteMonths: 'include' } as const;
 
 const ANNUAL_PREFERENCES_QUERY_KEY = ['annual-report-preferences'];
 
@@ -35,14 +35,17 @@ function requestError(result: { response?: Response }) {
   return new AnnualRequestError(result.response?.status ?? 0);
 }
 
-export function annualReportQueryOptions(year: number) {
+export function annualReportQueryOptions(
+  year: number,
+  incompleteMonths: 'include' | 'exclude' = 'include',
+) {
   return {
-    queryKey: ['annual-report', year],
+    queryKey: ['annual-report', year, incompleteMonths],
     queryFn: async ({ signal }: { signal: AbortSignal }) => {
       const result = await readAnnualReport({
         ...authApiOptions(),
         path: { year },
-        query: INCOMPLETE_MONTHS_INCLUDED,
+        query: { incompleteMonths },
         signal,
       });
       if (!result.response?.ok || !result.data) throw requestError(result);

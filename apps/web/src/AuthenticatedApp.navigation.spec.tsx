@@ -49,9 +49,6 @@ vi.mock('@/features/recurrences/RecurrencesPage', () => {
 vi.mock('@/features/dashboard/DashboardPage', () => ({
   DashboardPage: () => <p>Contenu de la synthèse</p>,
 }));
-vi.mock('@/features/dashboard/net-worth/useDashboardHeader', () => ({
-  useDashboardHeader: () => ({}),
-}));
 vi.mock('@/features/auth/useWorkspaceTimeZone', () => ({
   useWorkspaceTimeZone: () => 'Europe/Paris',
 }));

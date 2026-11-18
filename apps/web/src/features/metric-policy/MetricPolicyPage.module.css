@@ -95,3 +95,17 @@
   width: 40%;
   height: var(--font-size-body);
 }
+
+/* On a phone the version, the label and the action stay so the history never scrolls sideways;
+   the exclusions and the creation date remain in the table from tablet width up. */
+@media (max-width: 42rem) {
+  .tableWrap :is(th, td):nth-child(3),
+  .tableWrap :is(th, td):nth-child(4) {
+    display: none;
+  }
+
+  .tableWrap th,
+  .tableWrap td {
+    padding: var(--spacing-3);
+  }
+}

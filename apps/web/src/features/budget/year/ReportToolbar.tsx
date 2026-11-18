@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
-import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { YearRangeSelector } from '@/features/reports/multi-year/YearRangeSelector';
 import { ReportPreferencesControls } from '@/features/budget/year/report-preferences-controls/ReportPreferencesControls';
+import { ReportViewSwitch } from './ReportViewSwitch';
 import type { YearView } from './yearViewSearch';
 import styles from './ReportToolbar.module.css';
 
@@ -42,19 +42,10 @@ export function ReportToolbar({
 
   return (
     <div className={styles.toolbar}>
-      <SegmentedControl
-        label={t('budget.year.view.label')}
-        onChange={onViewChange}
-        options={[
-          { value: 'annual', label: t('budget.year.view.annual') },
-          {
-            value: 'multi',
-            label: t('budget.year.view.multi'),
-            disabled: !multiYearAvailable && view !== 'multi',
-            description: multiYearAvailable ? undefined : t('budget.year.view.multiNeedsHistory'),
-          },
-        ]}
-        value={view}
+      <ReportViewSwitch
+        multiYearAvailable={multiYearAvailable}
+        onViewChange={onViewChange}
+        view={view}
       />
       {multi?.range ? (
         <YearRangeSelector
@@ -84,7 +75,7 @@ export function ReportToolbar({
             <button
               aria-label={t('reports.multiYear.changesToggle')}
               aria-pressed={multi.showChanges}
-              className="icon-ghost"
+              className={`icon-ghost ${styles.changes}`}
               onClick={() => multi.onShowChangesChange(!multi.showChanges)}
               title={t('reports.multiYear.changesToggle')}
               type="button"

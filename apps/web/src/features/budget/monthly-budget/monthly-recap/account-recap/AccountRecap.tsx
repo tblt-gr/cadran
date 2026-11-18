@@ -1,5 +1,6 @@
 import type { MonthlyRecapAccount, MonthlyRecapGroup } from '@cadran/api-client';
 import { useState } from 'react';
+import { useMediaQuery } from '@/hooks/use-media-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { GroupingModeToggle } from '@/features/accounts/grouping-mode/GroupingModeToggle';
@@ -39,8 +40,11 @@ export function AccountRecap({ accounts, currentAsOf, groups, previousAsOf }: Ac
     staleAge === null ? undefined : t('budget.monthly.recap.accounts.stale', { days: staleAge });
   const [mode, setMode] = useGroupingMode('cadran.budget.recap.grouping', 'PRIMARY');
   const { sections, ungrouped } = recapSections(groups, accounts, mode);
-  // Folded groups by id: every group starts open, one control opens or folds them all.
-  const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+  // Folded groups by id: every group starts open, or folded on a phone; one control opens or folds them all.
+  const phone = useMediaQuery('(max-width: 47.999rem)');
+  const [folded, setFolded] = useState<ReadonlySet<string>>(
+    () => new Set(phone ? sections.map((section) => section.groupId) : []),
+  );
   const allOpen = sections.every((section) => !folded.has(section.groupId));
   const toggleSection = (groupId: string) =>
     setFolded((current) => {

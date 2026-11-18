@@ -1,12 +1,13 @@
-import { TransactionRegisterHeading } from './TransactionRegisterHeading';
 import type { Account, Transaction } from '@cadran/api-client';
 import { defaultRangeExtractor, useWindowVirtualizer, windowScroll } from '@tanstack/react-virtual';
 import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RowSelection } from '@/features/transactions/bulk-selection/useBulkSelection';
-import { formatCalendarWeekdayDay } from '@/lib/decimal';
+import { todayInBrowser } from '@/lib/businessDay';
+import { dayHeadingLabel } from './dayHeadingLabel';
 import { groupTransactionsByDay } from './groupTransactionsByDay';
 import { TransactionDayRow } from './TransactionDayRow';
+import { transferCounterparts } from './transferCounterparts';
 import styles from './TransactionDayList.module.css';
 
 /** Small measured blocks also bound the DOM when a single day contains thousands of rows. */
@@ -39,6 +40,11 @@ export function VirtualTransactionDays({
   transactions: Transaction[];
 }) {
   const { i18n, t } = useTranslation();
+  const today = todayInBrowser();
+  const words = {
+    today: t('transactions.list.today'),
+    yesterday: t('transactions.list.yesterday'),
+  };
   const Heading = `h${headingLevel}` as const;
   const list = useRef<HTMLOListElement>(null);
   const pendingFocus = useRef<{ index: number; last: boolean } | null>(null);
@@ -46,16 +52,7 @@ export function VirtualTransactionDays({
   const [margin, setMargin] = useState(0);
   const [headingHeight, setHeadingHeight] = useState(34);
   const blocks = transactionBlocks(transactions);
-  const transferAccounts = new Map<string, Array<{ id: string; account: string | undefined }>>();
-  for (const transaction of transactions) {
-    if (!transaction.transferId || transaction.nature !== 'TRANSFER') continue;
-    const legs = transferAccounts.get(transaction.transferId) ?? [];
-    legs.push({
-      id: transaction.id,
-      account: accounts?.find((account) => account.id === transaction.accountId)?.label,
-    });
-    transferAccounts.set(transaction.transferId, legs);
-  }
+  const counterparts = transferCounterparts(transactions, accounts);
   const estimateSize = (index: number) =>
     blocks[index]!.transactions.length * 76 + (blocks[index]!.heading ? headingHeight : 0);
   const virtualizer = useWindowVirtualizer<HTMLUListElement>({
@@ -91,7 +88,8 @@ export function VirtualTransactionDays({
       const height = list.current
         ?.querySelector('[data-day-heading]')
         ?.getBoundingClientRect().height;
-      if (height) setHeadingHeight(height);
+      // The day card's own two borders belong to the first block of the day, with its title.
+      if (height) setHeadingHeight(height + 2);
     };
     update();
     window.addEventListener('resize', update);
@@ -145,7 +143,7 @@ export function VirtualTransactionDays({
 
   return (
     <div
-      className={`card ${styles.panel}`}
+      className={styles.panel}
       onFocusCapture={(event) => {
         const block = (event.target as HTMLElement).closest<HTMLElement>('[data-index]');
         setFocused(block ? Number(block.dataset.index) : null);
@@ -154,10 +152,6 @@ export function VirtualTransactionDays({
         if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setFocused(null);
       }}
     >
-      <TransactionRegisterHeading
-        accounts={accounts !== undefined}
-        selection={selection !== undefined}
-      />
       {first > 0 ? (
         <button
           className={`secondary-action ${styles.windowControl}`}
@@ -179,49 +173,49 @@ export function VirtualTransactionDays({
             <Fragment key={block.day}>
               {gap > 0 ? <li aria-hidden="true" style={{ height: gap }} /> : null}
               <li aria-posinset={block.dayIndex + 1} aria-setsize={dayCount} className={styles.day}>
-                <Heading className={styles.dayHeader} data-day-heading>
+                <Heading
+                  className={styles.dayTitle}
+                  data-future={block.day > today}
+                  data-day-heading
+                >
                   <time className={styles.date} dateTime={block.day}>
-                    {formatCalendarWeekdayDay(block.day, i18n.language)}
+                    {dayHeadingLabel(block.day, i18n.language, words)}
                   </time>
                 </Heading>
-                {run.map((item, index) => (
-                  <Fragment key={item.key}>
-                    {/* A focused block can stay mounted far from the viewport. Keeping it
+                <div className={`card ${styles.dayCard}`}>
+                  {run.map((item, index) => (
+                    <Fragment key={item.key}>
+                      {/* A focused block can stay mounted far from the viewport. Keeping it
                       under the same day parent preserves both rows when focus moves. */}
-                    {index > 0 && item.start > run[index - 1]!.end ? (
-                      <div
-                        aria-hidden="true"
-                        style={{ height: item.start - run[index - 1]!.end }}
-                      />
-                    ) : null}
-                    <ul
-                      aria-label={
-                        blocks[item.index]!.heading
-                          ? undefined
-                          : formatCalendarWeekdayDay(block.day, i18n.language)
-                      }
-                      className={styles.rows}
-                      data-index={item.index}
-                      ref={virtualizer.measureElement}
-                    >
-                      {blocks[item.index]!.transactions.map((transaction) => (
-                        <TransactionDayRow
-                          accounts={accounts}
-                          counterpartAccount={
-                            transaction.nature === 'TRANSFER' && transaction.transferId
-                              ? transferAccounts
-                                  .get(transaction.transferId)
-                                  ?.find((leg) => leg.id !== transaction.id)?.account
-                              : undefined
-                          }
-                          key={transaction.id}
-                          selection={selection}
-                          transaction={transaction}
+                      {index > 0 && item.start > run[index - 1]!.end ? (
+                        <div
+                          aria-hidden="true"
+                          style={{ height: item.start - run[index - 1]!.end }}
                         />
-                      ))}
-                    </ul>
-                  </Fragment>
-                ))}
+                      ) : null}
+                      <ul
+                        aria-label={
+                          blocks[item.index]!.heading
+                            ? undefined
+                            : dayHeadingLabel(block.day, i18n.language, words)
+                        }
+                        className={styles.rows}
+                        data-index={item.index}
+                        ref={virtualizer.measureElement}
+                      >
+                        {blocks[item.index]!.transactions.map((transaction) => (
+                          <TransactionDayRow
+                            accounts={accounts}
+                            counterpartAccount={counterparts.get(transaction.id)}
+                            key={transaction.id}
+                            selection={selection}
+                            transaction={transaction}
+                          />
+                        ))}
+                      </ul>
+                    </Fragment>
+                  ))}
+                </div>
               </li>
             </Fragment>
           );

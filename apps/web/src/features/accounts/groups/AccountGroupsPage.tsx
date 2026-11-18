@@ -19,6 +19,7 @@ import {
   useMoveAccountGroup,
   type GroupMove,
 } from '@/features/accounts/groups/useMoveAccountGroup';
+import { AccountsTabs } from '@/features/accounts/accounts-tabs/AccountsTabs';
 import styles from './AccountGroupsPage.module.css';
 
 type Editor = AccountGroup | 'create' | null;
@@ -100,6 +101,7 @@ export function AccountGroupsPage() {
 
   return (
     <div className={styles.page}>
+      <AccountsTabs path="/accounts/groups" />
       <GroupPageActions
         includeArchived={includeArchived}
         onAdd={() => openEditor('create')}

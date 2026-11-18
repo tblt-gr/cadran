@@ -24,7 +24,7 @@ export function DetailedAnnualReports({
 }: DetailedAnnualReportsProps) {
   const { t } = useTranslation();
   const results = useQueries({
-    queries: report.years.map((year) => annualReportQueryOptions(year.year)),
+    queries: report.years.map((year) => annualReportQueryOptions(year.year, 'exclude')),
   });
   const annualReports = results.flatMap((result) => (result.data ? [result.data] : []));
   const complete = annualReports.length === report.years.length;

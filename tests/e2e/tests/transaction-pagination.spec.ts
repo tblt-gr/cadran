@@ -104,7 +104,7 @@ for (const width of [1280, 360]) {
           exact: true,
         })
         .evaluate((element) => element.scrollIntoView({ block: 'center' }));
-      await expect(date).toBeInViewport();
+      // The day title is plain (no sticky header): it scrolls away but the day stays a single group.
       await expect(date).toHaveCount(1);
     }
     expect(
@@ -156,7 +156,6 @@ test('keeps a long single day bounded and keyboard accessible', async ({ page })
   await expect(page.getByText('TX024 mouvement 0', { exact: true })).toHaveCount(0);
   const date = page.getByRole('heading', { name: /dimanche 1 novembre 2026/ });
   await expect(date).toHaveCount(1);
-  await expect(date).toBeInViewport();
   const previous = page.getByRole('button', { name: 'Mouvements précédents déjà chargés' });
   await previous.focus();
   await page.keyboard.press('Enter');

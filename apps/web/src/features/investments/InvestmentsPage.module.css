@@ -33,3 +33,11 @@
   flex-wrap: wrap;
   justify-content: flex-start;
 }
+
+/* On a phone the header only holds the tab strip: it gives its box to the page so the sticky strip
+   can follow the whole page, not just this wrapper. */
+@media (max-width: 767px) {
+  .header {
+    display: contents;
+  }
+}
