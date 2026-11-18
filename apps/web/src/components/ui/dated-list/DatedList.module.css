@@ -75,6 +75,21 @@
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
+/* A row that keeps its menu on a phone: the menu closes the line, after the value. */
+.row[data-menu-phone] {
+  grid-template-areas: 'primary value actions';
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.row[data-menu-phone][data-leading] {
+  grid-template-areas: 'leading primary value actions';
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+}
+
+.row[data-menu-phone] .actions {
+  display: block;
+}
+
 @media (pointer: coarse) {
   .row {
     min-height: var(--touch-target-min);

@@ -1,0 +1,30 @@
+.bar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+
+.toggle {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.count {
+  display: inline-grid;
+  min-width: var(--badge-size);
+  height: var(--badge-size);
+  padding-inline: var(--spacing-1);
+  border-radius: var(--radius-small);
+  color: var(--text-on-primary);
+  background: var(--accent);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+  place-items: center;
+}
+
+.showResults {
+  width: 100%;
+  margin-top: var(--spacing-4);
+}

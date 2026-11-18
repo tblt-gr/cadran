@@ -302,6 +302,11 @@ test.describe('portfolio operations filters', () => {
         const page = await context.newPage();
         await page.goto(`/portfolios/${ids.portfolioId}?tab=operations`);
         await settled(page);
+        // Up to 767 px the inputs wait behind the Filtrer button, in a sheet.
+        if (viewport.width < 768) {
+          await expect(page.getByRole('group', { name: 'Filtres des opérations' })).toHaveCount(0);
+          await page.getByRole('button', { name: /^Filtrer/ }).click();
+        }
         const toolbar = page.getByRole('group', { name: 'Filtres des opérations' });
         const box = await toolbar.boundingBox();
         const types = await toolbar

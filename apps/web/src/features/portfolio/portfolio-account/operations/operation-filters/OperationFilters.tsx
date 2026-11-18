@@ -1,41 +1,11 @@
-import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
-import { type OperationFilterValues } from './operationFilterValues';
-import { OperationTypeSelect } from './operation-type-select/OperationTypeSelect';
-import { OperationsToolbar } from '@/features/accounts/operations-toolbar/OperationsToolbar';
+import { useMediaQuery } from '@/hooks/use-media-query';
+import { OperationFilterInputs, type OperationFiltersProps } from './OperationFilterInputs';
+import { CompactOperationFilters } from './compact-operation-filters/CompactOperationFilters';
 
-export function OperationFilters({
-  currencyCode,
-  accountKind,
-  disabled = false,
-  onChange,
-  value,
-}: {
-  currencyCode: string;
-  accountKind?: string;
-  disabled?: boolean;
-  onChange: (value: OperationFilterValues) => void;
-  value: OperationFilterValues;
-}) {
-  return (
-    <OperationsToolbar
-      value={value}
-      disabled={disabled}
-      voidedInHeader
-      onChange={(next) => onChange({ ...value, ...next })}
-      types={
-        <OperationTypeSelect
-          accountKind={accountKind}
-          onChange={(types) => onChange({ ...value, types })}
-          value={value.types}
-        />
-      }
-      instrument={
-        <InstrumentPicker
-          currencyCode={currencyCode}
-          label="Instrument"
-          onChange={(item) => onChange({ ...value, instrumentId: item?.id ?? null })}
-        />
-      }
-    />
-  );
+/** Up to 767 px the inputs hide behind the "Filtrer" button, like the transaction filters. */
+const COMPACT_QUERY = '(max-width: 47.999rem)';
+
+export function OperationFilters(props: OperationFiltersProps) {
+  const compact = useMediaQuery(COMPACT_QUERY);
+  return compact ? <CompactOperationFilters {...props} /> : <OperationFilterInputs {...props} />;
 }

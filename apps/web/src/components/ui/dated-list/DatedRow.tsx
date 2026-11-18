@@ -33,8 +33,10 @@ export interface DatedRowProps {
   value: ReactNode;
   /** One extra figure beside the value, shown from 768 px. */
   aside?: ReactNode;
-  /** Three-dot menu after the value. Hidden on a phone, where the detail dialog carries its actions. */
+  /** Three-dot menu after the value. Hidden on a phone unless `menuOnPhone` is set. */
   menu?: ReactNode;
+  /** Keeps the menu on a phone, for a row whose detail dialog does not carry its actions. */
+  menuOnPhone?: boolean;
   /** Opens the caller's detail dialog from anywhere on the row except its own controls. */
   onOpen?: () => void;
   className?: string;
@@ -50,6 +52,7 @@ export function DatedRow({
   dataAttributes,
   leading,
   menu,
+  menuOnPhone,
   meta,
   onOpen,
   state,
@@ -69,6 +72,7 @@ export function DatedRow({
       className={[styles.row, state ? styles[state.tone] : '', className].filter(Boolean).join(' ')}
       data-aside={aside === undefined ? undefined : true}
       data-clickable={onOpen ? true : undefined}
+      data-menu-phone={menuOnPhone ? true : undefined}
       data-leading={leading === undefined ? undefined : true}
       onClick={open}
     >

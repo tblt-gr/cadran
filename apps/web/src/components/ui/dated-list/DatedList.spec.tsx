@@ -121,6 +121,26 @@ describe('DatedList', () => {
     expect(row.textContent).not.toMatch(/0,00/);
   });
 
+  it('flags a row that keeps its menu on a phone', () => {
+    render(
+      <DatedList
+        {...listProps({
+          renderRow: (entry) => (
+            <DatedRow
+              menu={<button type="button">Menu</button>}
+              menuOnPhone
+              title={entry?.label}
+              value="1"
+            />
+          ),
+        })}
+        items={entries}
+      />,
+    );
+
+    expect(screen.getByText('Alpha').closest('li')!.getAttribute('data-menu-phone')).toBe('true');
+  });
+
   it('opens the detail from anywhere on the row but not from its own controls', () => {
     const open = vi.fn();
     render(<DatedList {...listProps({ renderRow: defaultRow(open) })} items={entries} />);
