@@ -72,6 +72,10 @@ The `commit-msg` hook enforces this locally, and CI validates every pull request
 - Use a Conventional Commit title.
 - Write the title, description, review comments, and testing instructions in English.
 - Complete the pull request template and provide reproducible verification steps.
+- Add one sentence to the `Unreleased` section of `CHANGELOG.md` under `Added`, `Changed`,
+  `Fixed` or `Security`, in the same pull request, whenever the change is visible to a user or an
+  operator. Skip it for tests, CI, tooling and internal refactors. Release preparation dates that
+  section; do not edit it any other way.
 - Include sanitized desktop and mobile screenshots for visual changes.
 - Do not include unrelated changes.
 - Use squash merges only and delete the branch after merging.
@@ -236,5 +240,7 @@ git tag -s v1.0.0 -m "cadran v1.0.0"
 git push origin v1.0.0
 ```
 
-Maintain the `Unreleased` section of `CHANGELOG.md` for new capabilities, migrations, breaking
-changes and operator actions. Do not claim unfinished or unverified work has shipped.
+`scripts/release.sh` (`pnpm release X.Y.Z`) bumps the root package version, dates the `Unreleased`
+section, opens and merges the release pull request, waits for the `CI gate` and pushes the signed
+tag. Each pull request already adds its own line to `Unreleased` (see Pull requests). Do not claim
+unfinished or unverified work has shipped.
