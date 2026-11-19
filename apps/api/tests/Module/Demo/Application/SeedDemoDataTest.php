@@ -48,6 +48,11 @@ final class SeedDemoDataTest extends KernelTestCase
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
         self::assertSame(5, $summary->accounts);
+        // Premiums and transfers are paid from the savings account: its recorded balance must stay positive.
+        self::assertSame(0, $this->rows(
+            "SELECT COUNT(*) FROM account_balance_snapshots s JOIN account_financial_accounts a ON a.id = s.account_id WHERE s.workspace_id = ? AND a.kind IN ('SAVINGS', 'CURRENT') AND s.amount_value < 0",
+            [WorkspaceFixture::OWN_WORKSPACE],
+        ));
         self::assertSame(20, $this->rows(
             'SELECT COUNT(*) FROM portfolio_instruments WHERE workspace_id = ?',
             [$workspace = WorkspaceFixture::OWN_WORKSPACE],

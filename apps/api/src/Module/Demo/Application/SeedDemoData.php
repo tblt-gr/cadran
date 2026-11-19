@@ -119,7 +119,7 @@ final readonly class SeedDemoData
 
         $random = new DemoRandom(self::RANDOM_SEED);
         $plan = new DemoLedgerPlan($random);
-        $balances = ['current' => 250000, 'savings' => 300000, 'invest' => 500000];
+        $balances = ['current' => 250000, 'savings' => 800000, 'invest' => 500000];
         foreach ($balances as $key => $cents) {
             // The portfolio account is valued by its valuations, never by a manual balance.
             if ('invest' !== $key) {
