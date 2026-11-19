@@ -35,7 +35,7 @@ describe('read-only instrument names', () => {
     fireEvent.click(screen.getAllByRole('button', { expanded: false })[0]!);
     expect(links().length).toBeGreaterThan(0);
   });
-  it('links an instrument allocation legend and its detailed table', () => {
+  it('links an instrument allocation table row', () => {
     const allocation = allocationFixture();
     allocation.by = 'INSTRUMENT';
     allocation.items = [
@@ -43,7 +43,7 @@ describe('read-only instrument names', () => {
     ];
     allocation.slices = allocation.items;
     render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
-    expect(links()).toHaveLength(2);
+    expect(links()).toHaveLength(1);
   });
   it('links the euro fund missing-rate warning', () => {
     render(

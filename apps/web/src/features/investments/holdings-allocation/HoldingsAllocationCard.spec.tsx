@@ -9,7 +9,7 @@ afterEach(cleanup);
 describe('HoldingsAllocationCard', () => {
   it('lists the asset classes in a captioned legend table and switches criterion', () => {
     render(<HoldingsAllocationCard holdings={holdingsFixture()} />);
-    const table = screen.getByRole('table', { name: 'Répartition des titres' });
+    const table = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(
       within(table)
         .getAllByRole('columnheader')
@@ -34,7 +34,7 @@ describe('HoldingsAllocationCard', () => {
 
   it('keeps the scrollable table keyboard reachable', () => {
     render(<HoldingsAllocationCard holdings={holdingsFixture()} />);
-    const table = screen.getByRole('table', { name: 'Répartition des titres' });
+    const table = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(table.parentElement?.getAttribute('role')).toBe('region');
     expect(table.parentElement?.tabIndex).toBe(0);
   });
@@ -45,7 +45,7 @@ describe('HoldingsAllocationCard', () => {
       screen.getByRole('group', { name: 'Critère de répartition' }).querySelectorAll('button'),
     ).toHaveLength(4);
     fireEvent.click(screen.getByRole('button', { name: 'Compte' }));
-    const table = screen.getByRole('table', { name: 'Répartition des titres' });
+    const table = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(within(table).getByText('CTO')).toBeTruthy();
     expect(within(table).getByText('PEA')).toBeTruthy();
     expect(within(table).getByText('39,84 %')).toBeTruthy();
@@ -56,7 +56,7 @@ describe('HoldingsAllocationCard', () => {
     expect(screen.getByRole('button', { name: 'Compte' }).getAttribute('aria-pressed')).toBe(
       'true',
     );
-    const table = screen.getByRole('table', { name: 'Répartition des titres' });
+    const table = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(within(table).getByText('Assurance vie')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Actif' }));
     expect(within(table).getByText('Comptes valorisés en total')).toBeTruthy();
@@ -91,7 +91,27 @@ describe('HoldingsAllocationCard', () => {
       />,
     );
     expect(screen.getByText('Répartition non calculable')).toBeTruthy();
-    expect(screen.getByRole('table', { name: 'Répartition des titres' })).toBeTruthy();
+    expect(screen.getByRole('table', { name: 'Détail de la répartition' })).toBeTruthy();
+  });
+
+  it('explains a signed allocation and still lists its values', () => {
+    const holdings = holdingsFixture();
+    render(
+      <HoldingsAllocationCard
+        holdings={{
+          ...holdings,
+          allocation: {
+            ...holdings.allocation,
+            byAssetClass: [
+              { key: 'EQUITY', label: 'EQUITY', value: '3000.00', share: '1.20' },
+              { key: 'CASH', label: 'CASH', value: '-500.00', share: '-0.20' },
+            ],
+          },
+        }}
+      />,
+    );
+    expect(screen.getByRole('status').textContent).toContain('parts négatives');
+    expect(screen.getByText('-20,00 %')).toBeTruthy();
   });
 
   it('keeps the title and the criteria real while loading', () => {

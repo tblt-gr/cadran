@@ -1,20 +1,17 @@
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioOverviewAllocation } from '@cadran/api-client';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Disclosure } from '@/components/ui/disclosure/Disclosure';
-import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
-import { AllocationLegend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
-import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
-import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import {
-  compareDecimals,
-  decimalRatioForGeometry,
-  formatAmount,
-  formatCalendarNumericDay,
-} from '@/lib/decimal';
+  AllocationBreakdown,
+  type AllocationBreakdownSlice,
+  type AllocationBreakdownStatus,
+} from '@/components/ui/charts/allocation-breakdown/AllocationBreakdown';
+import { isSignedRatio } from '@/components/ui/charts/allocation-breakdown/isSignedRatio';
+import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
+import { decimalRatioForGeometry, formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
+import { sliceCaption } from '@/features/dashboard/allocation-charts/sliceCaption';
 import type { AllocationBy } from '@/features/portfolio/usePortfolioOverview';
 import { reasonLabel } from '@/features/portfolio/portfolio-account/overviewLabels';
 import {
@@ -22,8 +19,10 @@ import {
   instrumentRegionOptions,
 } from '@/features/investments/instruments/instrument-form/instrumentOptions';
 import styles from './AllocationCard.module.css';
+
 const choices: AllocationBy[] = ['INSTRUMENT', 'ASSET_CLASS', 'REGION', 'CURRENCY'];
-/** The server groups by code; classes and regions read with the names used on the instruments. */
+
+/** The portfolio account allocation in the shared panel, with its valuation date and notices. */
 export function AllocationCard({
   allocation,
   title,
@@ -45,7 +44,7 @@ export function AllocationCard({
     value === null
       ? t('states.notCalculable.label')
       : formatAmount(value, allocation!.assetCode, i18n.language);
-  const [tableOpen, setTableOpen] = useState(false);
+  // The server groups by code; classes and regions read with the names used on the instruments.
   const groupNames: Partial<Record<AllocationBy, ReadonlyMap<string, string>>> = {
     ASSET_CLASS: new Map(instrumentClassOptions(t)),
     REGION: new Map(instrumentRegionOptions(t)),
@@ -54,70 +53,53 @@ export function AllocationCard({
     key === 'UNSPECIFIED'
       ? t('portfolio.allocation.unspecified')
       : ((allocation && groupNames[allocation.by]?.get(key)) ?? text);
-  // A signed allocation stays useful in the table but cannot be represented by a donut.
-  const signedShares =
-    allocation &&
-    [...allocation.items, ...allocation.slices].some(
-      (item) =>
-        item.share !== null &&
-        (compareDecimals(item.share, '0') < 0 || compareDecimals(item.share, '1') > 0),
-    );
+  const signed =
+    !!allocation &&
+    [...allocation.items, ...allocation.slices].some((item) => isSignedRatio(item.share));
   const atCost = allocation?.basis === 'COST';
-  // Without a chart the table is the only reading of the allocation, so it stays open.
-  const charted = !allocation || (allocation.slices.length > 0 && !signedShares);
-  const table = (
-    <div
-      className={styles.tableScroll}
-      role="region"
-      aria-label={t('portfolio.allocation.detailed')}
-      tabIndex={0}
-    >
-      <table>
-        <caption className="sr-only">{t('portfolio.allocation.tableCaption')}</caption>
-        <thead>
-          <tr>
-            <th scope="col">{t('portfolio.allocation.columns.label')}</th>
-            <th scope="col">{t('portfolio.allocation.columns.value')}</th>
-            <th scope="col">{t('portfolio.allocation.columns.share')}</th>
-          </tr>
-        </thead>
-        {!allocation ? (
-          <SkeletonTableRows columns={3} rows={3} />
-        ) : (
-          <tbody>
-            {allocation.items.map((item) => (
-              <tr key={item.key}>
-                <th scope="row">
-                  {allocation.by === 'INSTRUMENT' && /^[0-9a-f-]{36}$/i.test(item.key) ? (
-                    <InstrumentLink
-                      instrument={{ id: item.key, name: label(item.key, item.label) }}
-                    />
-                  ) : (
-                    label(item.key, item.label)
-                  )}
-                </th>
-                <td className="money">{money(item.value)}</td>
-                <td className="money">
-                  {item.share === null
-                    ? t('states.notCalculable.label')
-                    : formatRatioPercentage(item.share, i18n.language)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        )}
-      </table>
-    </div>
-  );
+  const charted = new Map((allocation?.slices ?? []).map((item) => [item.key, item.share]));
+
+  const slices: AllocationBreakdownSlice[] | null = allocation
+    ? allocation.items.map((item) => {
+        const text = label(item.key, item.label);
+        const share = charted.get(item.key) ?? null;
+        return {
+          key: item.key,
+          caption: sliceCaption(text, item.share === null ? null : ratioToPercent(item.share)),
+          label:
+            allocation.by === 'INSTRUMENT' && /^[0-9a-f-]{36}$/i.test(item.key) ? (
+              <InstrumentLink instrument={{ id: item.key, name: text }} />
+            ) : (
+              text
+            ),
+          amountText: money(item.value),
+          shareText: item.share === null ? null : formatRatioPercentage(item.share, i18n.language),
+          size: share === null || signed ? null : decimalRatioForGeometry(share, '1'),
+        };
+      })
+    : null;
+
+  let status: AllocationBreakdownStatus = { kind: 'ready' };
+  if (allocation && signed) {
+    status = { kind: 'signed' };
+  } else if (allocation && allocation.slices.length === 0) {
+    status = {
+      kind: 'notCalculable',
+      message:
+        allocation.reason === 'PARTIAL_VALUATION'
+          ? t('portfolio.allocation.partial')
+          : (reasonLabel(t, allocation.reason ?? 'NON_POSITIVE_TOTAL') ??
+            t('allocation.notCalculable')),
+    };
+  }
+
   return (
-    <section
-      className={`card ${styles.card}`}
-      aria-labelledby="portfolio-allocation-title"
-      aria-busy={!allocation}
-      data-testid={!allocation ? 'portfolio-allocation-skeleton' : undefined}
-    >
-      <div className={styles.header}>
-        <h3 id="portfolio-allocation-title">{title ?? t('portfolio.allocation.title')}</h3>
+    <AllocationBreakdown
+      criteria={choices.map((value) => ({ value, label: t(`portfolio.allocation.by.${value}`) }))}
+      criterion={by}
+      disabled={disabled}
+      donutLabel={t('portfolio.allocation.plotLabel')}
+      headerExtra={
         <div className={styles.valuationDate}>
           <span>{t('portfolio.allocation.valuationUsed')}</span>
           {!allocation ? (
@@ -131,82 +113,24 @@ export function AllocationCard({
           )}
           {atCost ? <span>{t('portfolio.allocation.atCost')}</span> : null}
         </div>
-      </div>
-      {showFallbackNotice && allocation ? (
-        <ValuationFallbackNotice
-          selected={allocation.valuation}
-          newerPartial={allocation.newerPartialValuation}
-        />
-      ) : null}
-      <SegmentedControl
-        disabled={disabled}
-        label={t('portfolio.allocation.groupBy')}
-        onChange={onByChange}
-        options={choices.map((value) => ({ value, label: t(`portfolio.allocation.by.${value}`) }))}
-        value={by}
-      />
-      {!allocation ? (
-        <SkeletonBlock className={styles.plotSkeleton} />
-      ) : allocation.slices.length === 0 && !signedShares ? (
-        <p className={styles.note} role="status">
-          {allocation.reason === 'PARTIAL_VALUATION'
-            ? t('portfolio.allocation.partial')
-            : reasonLabel(t, allocation.reason ?? 'NON_POSITIVE_TOTAL')}
-        </p>
-      ) : signedShares ? (
-        <p className={styles.note} role="status">
-          {t('portfolio.allocation.chartUnavailable')}
-        </p>
-      ) : (
+      }
+      notice={
         <>
+          {showFallbackNotice && allocation ? (
+            <ValuationFallbackNotice
+              selected={allocation.valuation}
+              newerPartial={allocation.newerPartialValuation}
+            />
+          ) : null}
           {atCost ? <p className={styles.note}>{t('portfolio.allocation.costNote')}</p> : null}
-          <div className={styles.plot}>
-            <DonutPlot
-              label={t('portfolio.allocation.plotLabel')}
-              totalText={allocation.total === null ? null : money(allocation.total)}
-              slices={allocation.slices.map((item) => ({
-                key: item.key,
-                caption: label(item.key, item.label),
-                amountText: money(item.value),
-                size: decimalRatioForGeometry(item.share!, '1'),
-              }))}
-            />
-            <AllocationLegend
-              label={t('portfolio.allocation.legend')}
-              items={allocation.slices.map((item) => ({
-                key: item.key,
-                label:
-                  allocation.by === 'INSTRUMENT' && /^[0-9a-f-]{36}$/i.test(item.key) ? (
-                    <InstrumentLink
-                      instrument={{ id: item.key, name: label(item.key, item.label) }}
-                    />
-                  ) : (
-                    label(item.key, item.label)
-                  ),
-                amount: money(item.value),
-                share: formatRatioPercentage(item.share!, i18n.language),
-                barPercent: ratioToPercent(item.share!),
-              }))}
-            />
-          </div>
         </>
-      )}
-      {allocation && allocation.items.length === 0 ? null : charted ? (
-        <Disclosure
-          meta={
-            allocation
-              ? t('portfolio.allocation.rows', { count: allocation.items.length })
-              : undefined
-          }
-          onToggle={setTableOpen}
-          open={tableOpen}
-          title={t('portfolio.allocation.allRows')}
-        >
-          {table}
-        </Disclosure>
-      ) : (
-        table
-      )}
-    </section>
+      }
+      onCriterionChange={onByChange}
+      slices={slices}
+      status={status}
+      title={title ?? t('allocation.title')}
+      titleId="portfolio-allocation-title"
+      totalText={allocation && allocation.total !== null ? money(allocation.total) : null}
+    />
   );
 }

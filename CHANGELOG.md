@@ -69,6 +69,8 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Changed
 
+- The Investments page and the portfolio account Positions tab now share one allocation panel: a
+  criterion control, a donut and an always-visible table of the slices.
 - Soften the shell: a warm light in the top-left corner of the background, no divider between
   the menu and the page, a menu as wide as its content and a glass hover on its links.
 - Unify the interface on the graphite and platinum registry: shared modal layouts (full screen on

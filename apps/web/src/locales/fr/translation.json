@@ -106,6 +106,18 @@
     "missingFreshness_other": "{{count}} valorisations manquantes",
     "staleFreshness": "Mis à jour il y a {{count}} jours"
   },
+  "allocation": {
+    "title": "Répartition",
+    "criterion": "Critère de répartition",
+    "caption": "Détail de la répartition",
+    "columns": {
+      "label": "Libellé",
+      "amount": "Montant",
+      "share": "Part"
+    },
+    "notCalculable": "Répartition non calculable",
+    "signed": "Graphique indisponible : la répartition contient des parts négatives ou supérieures à 100 %. Consultez les valeurs signées du tableau."
+  },
   "investments": {
     "loading": "Chargement des positions…",
     "tabs": {
@@ -125,8 +137,6 @@
       "notCalculable": "Non calculable"
     },
     "allocation": {
-      "title": "Répartition",
-      "criterion": "Critère de répartition",
       "assetClass": "Classe d'actifs",
       "region": "Région",
       "instrument": "Actif",
@@ -138,12 +148,7 @@
         "instrument": "actif",
         "account": "compte"
       },
-      "caption": "Répartition des titres",
-      "label": "Libellé",
-      "amount": "Montant",
-      "share": "Part",
-      "unspecified": "Non renseignée",
-      "notCalculable": "Répartition non calculable"
+      "unspecified": "Non renseignée"
     },
     "table": {
       "caption": "Positions par actif",
@@ -2550,27 +2555,13 @@
         "REGION": "Région",
         "CURRENCY": "Devise"
       },
-      "title": "Répartition",
       "unspecified": "Non renseignée",
-      "detailed": "Répartition détaillée",
-      "tableCaption": "Répartition détaillée, toutes les lignes",
-      "columns": {
-        "label": "Libellé",
-        "value": "Valeur",
-        "share": "Part"
-      },
       "valuationUsed": "Valorisation retenue :",
       "noValuation": "aucune à cette date",
       "atCost": "· au prix de revient",
-      "groupBy": "Regrouper la répartition",
       "partial": "Valorisation partielle : la répartition n’est pas calculable",
-      "chartUnavailable": "Graphique indisponible : la répartition contient des parts négatives ou supérieures à 100 %. Consultez les valeurs signées du tableau.",
       "costNote": "Valorisation saisie en total : la valeur de chaque ligne n’est pas connue, la répartition suit le prix de revient des titres détenus.",
-      "plotLabel": "Répartition du portefeuille",
-      "legend": "Légende de la répartition",
-      "rows_one": "{{count}} ligne",
-      "rows_other": "{{count}} lignes",
-      "allRows": "Toutes les lignes"
+      "plotLabel": "Répartition du portefeuille"
     },
     "positions": {
       "unknownCost": "Coût inconnu",

@@ -61,9 +61,10 @@ describe('AllocationCard', () => {
     expect(screen.getByRole('status').textContent).toContain(
       'parts négatives ou supérieures à 100 %',
     );
-    expect(screen.queryByRole('list', { name: 'Légende de la répartition' })).toBeNull();
     expect(screen.getByRole('rowheader', { name: 'Espèces' })).toBeTruthy();
-    expect(screen.getByRole('table', { name: /toutes les lignes/ }).closest('details')).toBeNull();
+    expect(
+      screen.getByRole('table', { name: 'Détail de la répartition' }).closest('details'),
+    ).toBeNull();
     expect(screen.getByText(values.percentage)).toBeTruthy();
     expect(screen.getByText(values.amount)).toBeTruthy();
   });
@@ -75,18 +76,15 @@ describe('AllocationCard', () => {
     ];
     render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
     expect(screen.getByRole('status')).toBeTruthy();
-    expect(screen.queryByRole('list', { name: 'Légende de la répartition' })).toBeNull();
   });
 
   it('uses server shares and retains a complete table alternative and grouping controls', () => {
     const change = vi.fn();
     render(<AllocationCard allocation={allocationFixture()} by="INSTRUMENT" onByChange={change} />);
-    const table = screen.getByRole('table', { name: /toutes les lignes/ });
+    const table = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(table.parentElement?.getAttribute('role')).toBe('region');
-    expect(table.parentElement?.getAttribute('aria-label')).toBe('Répartition détaillée');
+    expect(table.parentElement?.getAttribute('aria-label')).toBe('Détail de la répartition');
     expect(table.parentElement?.tabIndex).toBe(0);
-    expect((table.closest('details') as HTMLDetailsElement).open).toBe(false);
-    expect(screen.getByText('Toutes les lignes').closest('summary')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Non renseignée' })).toBeTruthy();
     expect(screen.getAllByText('75,00 %').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Région' }));
@@ -129,7 +127,6 @@ describe('AllocationCard', () => {
     );
     expect(screen.getByText('· au prix de revient')).toBeTruthy();
     expect(screen.getByText(/la répartition suit le prix de revient/)).toBeTruthy();
-    expect(screen.getByRole('list', { name: 'Légende de la répartition' })).toBeTruthy();
     expect(screen.queryByRole('status')).toBeNull();
   });
 });

@@ -1,21 +1,3 @@
-.card {
-  display: grid;
-  align-content: start;
-  gap: var(--spacing-4);
-  min-width: 0;
-  container-type: inline-size;
-}
-.card h3,
-.card p {
-  margin: var(--spacing-none);
-}
-.card h3 {
-  font-size: var(--font-size-card-title);
-}
-.header {
-  display: grid;
-  gap: var(--spacing-1);
-}
 .valuationDate {
   display: flex;
   align-items: center;
@@ -24,59 +6,14 @@
   font-size: var(--font-size-label);
   gap: var(--spacing-1);
 }
+
 .note {
+  margin: var(--spacing-none);
   color: var(--text-secondary);
   font-size: var(--font-size-label);
 }
+
 .dateSkeleton {
   height: var(--font-size-body);
   width: 8rem;
-}
-.plot {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--spacing-4);
-}
-.plotSkeleton {
-  height: var(--chart-plot-height-donut);
-}
-.tableScroll {
-  overflow-x: auto;
-}
-.tableScroll table {
-  width: 100%;
-  border-collapse: collapse;
-}
-.tableScroll th,
-.tableScroll td {
-  padding: var(--spacing-3);
-  border-bottom: var(--border-width-thin) solid var(--border-subtle);
-  text-align: left;
-  white-space: nowrap;
-}
-.tableScroll thead th {
-  color: var(--text-muted);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-}
-.tableScroll tbody th {
-  color: var(--text-primary);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-normal);
-}
-.tableScroll td {
-  color: var(--text-secondary);
-  font-size: var(--font-size-label);
-}
-.tableScroll th:first-child {
-  text-align: left;
-  position: sticky;
-  left: 0;
-  background: var(--bg-surface-1);
-}
-@container (min-width: 30rem) {
-  .plot {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: center;
-  }
 }
