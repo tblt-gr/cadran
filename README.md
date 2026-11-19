@@ -34,14 +34,12 @@ quality; unavailable results stay explicitly unavailable.
 
 ## Status
 
-Latest published release: **0.7.0**. Releases 0.1.0 to 0.7.0 delivered the application foundation,
-accounts, transactions, budgets and closing, reports, goals, manual portfolios and multi-support
-life insurance. The 1.0.0 MVP is not published yet: it completes the operational side with
-encrypted backups, guarded restoration, safe upgrades and an installable PWA. Importing
-historical data is not part of 1.0.0; a generic import assistant is planned for a later release.
-Check the [changelog](./CHANGELOG.md) and select a published release before using personal data. `main`
-contains unreleased work; the package version remains the last release until release preparation
-is complete.
+Version 1.0.0 is the first MVP release. Releases 0.1.0 to 0.7.0 delivered the application
+foundation, accounts, transactions, budgets and closing, reports, goals, manual portfolios and
+multi-support life insurance; 1.0.0 completes the operational side with encrypted backups, guarded
+restoration, safe upgrades and an installable PWA. Importing historical data is not part of 1.0.0;
+a generic import assistant is planned for a later release. Always install a published release
+rather than `main`, and read the [changelog](./CHANGELOG.md) before using personal data.
 
 This is a single-owner application. Generic imports, exports, tax tracking, bank synchronization,
 shared workspaces, live market prices, payment initiation and financial advice are outside the MVP.

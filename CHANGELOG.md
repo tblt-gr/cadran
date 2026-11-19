@@ -6,9 +6,9 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
-The upcoming release is **1.0.0 (MVP)**. It has not been published; the package version remains
-0.7.0 until release preparation. The existing accounts, transactions, budgets, closing, reports,
-goals, portfolios and multi-support life insurance features are described in the releases below.
+The first MVP release. It builds on the accounts, transactions, budgets, closing, reports, goals,
+portfolios and multi-support life insurance features of the releases below and adds the
+operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Added
 
