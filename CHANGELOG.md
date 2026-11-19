@@ -67,6 +67,8 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Changed
 
+- Soften the shell: a warm light in the top-left corner of the background, no divider between
+  the menu and the page, a menu as wide as its content and a glass hover on its links.
 - Unify the interface on the graphite and platinum registry: shared modal layouts (full screen on
   mobile), tabs, tables and controls, one dated row list across registers, balances, valuations
   and portfolio operations, an icon and a label on every page header action, a back arrow on

@@ -6,8 +6,7 @@
   height: 100vh;
   height: 100svh;
   overflow: hidden;
-  border-right: var(--border-line-subtle);
-  background: var(--bg-sidebar);
+  background: var(--color-transparent);
 }
 
 /* Same height as the page bar, so the window reads as one line across. */

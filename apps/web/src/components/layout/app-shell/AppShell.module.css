@@ -5,7 +5,7 @@
   min-height: 100svh;
   /* The sidebar only spans the viewport; the column keeps its colour under it
      when the page scrolls. */
-  background: var(--bg-sidebar);
+  background: var(--color-transparent);
 }
 
 .skipLink {
@@ -35,7 +35,7 @@
   min-width: 0;
   /* `clip` keeps the overflow cut without making the workspace a scroll container, which would break the sticky header. */
   overflow: clip;
-  background: var(--bg-shell);
+  background: var(--color-transparent);
 }
 
 .body {
@@ -77,7 +77,7 @@
   .shell {
     display: block;
     padding: var(--spacing-none);
-    background: var(--bg-shell);
+    background: var(--color-transparent);
   }
 
   .workspace {
