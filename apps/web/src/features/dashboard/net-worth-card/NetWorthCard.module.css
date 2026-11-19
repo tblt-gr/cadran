@@ -110,9 +110,9 @@
   margin-top: var(--spacing-none);
 }
 
-/* Under the movement: the day the figures above stand for, in the meta layer. */
+/* Under the title: the day the figures below stand for, in the meta layer. */
 .asOf {
-  margin: var(--spacing-1) var(--spacing-none) var(--spacing-none);
+  margin: var(--spacing-2) var(--spacing-none) var(--spacing-none);
   color: var(--text-muted);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-meta);

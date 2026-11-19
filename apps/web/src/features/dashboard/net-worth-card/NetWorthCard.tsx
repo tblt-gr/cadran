@@ -98,6 +98,12 @@ export function NetWorthCard({
         </div>
       </div>
       <div>
+        {/* The day the figures stand for: the hovered point's, or the reference day by default. */}
+        <p className={styles.asOf}>
+          <time dateTime={hovered ? hovered.on : netWorth.asOf}>
+            {formatCalendarDay(hovered ? hovered.on : netWorth.asOf, i18n.language)}
+          </time>
+        </p>
         <div className={styles.figureRow}>
           <NetWorthFigure
             amount={hovered ? hovered.total : netWorth.total}
@@ -111,12 +117,6 @@ export function NetWorthCard({
           pending={historyPending}
           fetching={historyFetching}
         />
-        {/* The day the figures stand for: the hovered point's, or the reference day by default. */}
-        <p className={styles.asOf}>
-          <time dateTime={hovered ? hovered.on : netWorth.asOf}>
-            {formatCalendarDay(hovered ? hovered.on : netWorth.asOf, i18n.language)}
-          </time>
-        </p>
       </div>
       <div className={styles.history} aria-busy={historyFetching}>
         {historyPoints === null && historyPending ? (

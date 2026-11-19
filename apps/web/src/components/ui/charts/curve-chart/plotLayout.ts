@@ -49,7 +49,15 @@ export function tooltipEdge(
   };
 }
 
-export function yExtent(placed: readonly PlotPoint[]): PlotPoint[] {
+/** Two points closer than this in plot units would print their labels on top of each other. */
+const MIN_LEVEL_GAP = 30;
+
+/**
+ * The levels of the vertical axis: the highest and lowest points plus up to two points of the
+ * series that sit near a third and two thirds of the range. Every level is a real point, so its
+ * label is the exact figure supplied by the caller and nothing is computed from it.
+ */
+export function yLevels(placed: readonly PlotPoint[]): PlotPoint[] {
   if (placed.length === 0) {
     return [];
   }
@@ -64,6 +72,20 @@ export function yExtent(placed: readonly PlotPoint[]): PlotPoint[] {
       highest = point;
     }
   }
+  if (lowest.index === highest.index) {
+    return [highest];
+  }
 
-  return lowest.index === highest.index ? [highest] : [highest, lowest];
+  const levels = [highest, lowest];
+  for (const fraction of [1 / 3, 2 / 3]) {
+    const target = highest.y + (lowest.y - highest.y) * fraction;
+    const candidate = placed.reduce((best, point) =>
+      Math.abs(point.y - target) < Math.abs(best.y - target) ? point : best,
+    );
+    if (levels.every((level) => Math.abs(level.y - candidate.y) >= MIN_LEVEL_GAP)) {
+      levels.push(candidate);
+    }
+  }
+
+  return levels.sort((a, b) => a.y - b.y);
 }
