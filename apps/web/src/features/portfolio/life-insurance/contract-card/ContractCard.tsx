@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import type { LifeInsuranceContract } from '@cadran/api-client';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -15,23 +16,33 @@ export function ContractCard({
   onEdit: () => void;
   writable?: boolean;
 }) {
+  const { t } = useTranslation();
   const fields = [
-    ['Assureur', contract?.insurer],
-    ['Distributeur', contract?.distributor],
-    ['Nom commercial', contract?.commercialName],
-    ['Numéro de contrat', contract?.contractNumberMasked],
-    ['Souscrit le', contract ? formatCalendarNumericDay(contract.subscribedOn) : null],
-    ['Date fiscale du contrat', contract ? formatCalendarNumericDay(contract.taxStartOn) : null],
-    ['Mode de gestion', contract ? managementLabels[contract.managementMode] : null],
+    [t('portfolio.lifeInsurance.contract.insurer'), contract?.insurer],
+    [t('portfolio.lifeInsurance.contract.distributor'), contract?.distributor],
+    [t('portfolio.lifeInsurance.contract.commercialName'), contract?.commercialName],
+    [t('portfolio.lifeInsurance.contract.number'), contract?.contractNumberMasked],
+    [
+      t('portfolio.lifeInsurance.contract.subscribedOn'),
+      contract ? formatCalendarNumericDay(contract.subscribedOn) : null,
+    ],
+    [
+      t('portfolio.lifeInsurance.contract.taxStart'),
+      contract ? formatCalendarNumericDay(contract.taxStartOn) : null,
+    ],
+    [
+      t('portfolio.lifeInsurance.contract.managementMode'),
+      contract ? managementLabels[contract.managementMode] : null,
+    ],
   ];
   return (
-    <section className={styles.card} aria-label="Informations du contrat">
+    <section className={styles.card} aria-label={t('portfolio.lifeInsurance.contract.cardLabel')}>
       <header className={styles.heading}>
-        <h3>Contrat</h3>
+        <h3>{t('portfolio.lifeInsurance.contract.title')}</h3>
         <button
           className="icon-ghost"
           type="button"
-          aria-label="Modifier le contrat"
+          aria-label={t('portfolio.lifeInsurance.contract.edit')}
           disabled={!contract || !writable}
           onClick={onEdit}
         >
@@ -46,22 +57,28 @@ export function ContractCard({
               {!contract ? (
                 <SkeletonBlock className={styles.valueSkeleton} />
               ) : (
-                (value ?? <EmptyValue label="Non renseigné" />)
+                (value ?? <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />)
               )}
             </dd>
           </div>
         ))}
         <div>
-          <dt>Statut</dt>
+          <dt>{t('portfolio.lifeInsurance.contract.status')}</dt>
           <dd>
             {contract ? (
               <StatusBadge tone={contract.status === 'OPEN' ? 'positive' : 'neutral'}>
-                {contract.status === 'OPEN' ? 'Ouvert' : 'Clos'}
+                {contract.status === 'OPEN'
+                  ? t('portfolio.lifeInsurance.contract.open')
+                  : t('portfolio.lifeInsurance.contract.closed')}
               </StatusBadge>
             ) : (
               <SkeletonBlock className={styles.valueSkeleton} />
             )}
-            {contract?.closedOn ? ` le ${formatCalendarNumericDay(contract.closedOn)}` : null}
+            {contract?.closedOn
+              ? t('portfolio.lifeInsurance.contract.closedOn', {
+                  date: formatCalendarNumericDay(contract.closedOn),
+                })
+              : null}
           </dd>
         </div>
       </dl>

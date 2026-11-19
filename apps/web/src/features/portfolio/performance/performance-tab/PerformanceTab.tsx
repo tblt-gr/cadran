@@ -1,6 +1,7 @@
 import { usePerformanceColumns } from './performance-columns/PerformanceColumns';
 import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
 import { openPerformanceSource } from '@/features/portfolio/performance/openPerformanceSource';
@@ -23,6 +24,7 @@ import styles from './PerformanceTab.module.css';
  * returns sit in the page summary and the value curve in the page's value history.
  */
 export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: string }) {
+  const { t } = useTranslation();
   const columns = usePerformanceColumns(accountId);
   const [year, setYear] = useState(() => performanceYear(asOf));
   const [explaining, setExplaining] = useState<ExplainTarget | null>(null);
@@ -69,8 +71,8 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
       annual.error.code === 'invalid_performance_period';
     return (
       <div className={styles.tab}>
-        <OperationsState error title="La performance est indisponible">
-          {outOfRange ? <p>Cette année n'est pas disponible pour ce compte.</p> : null}
+        <OperationsState error title={t('portfolio.performance.unavailable')}>
+          {outOfRange ? <p>{t('portfolio.performance.yearOutOfRange')}</p> : null}
           {outOfRange ? (
             <button
               className="secondary-action"
@@ -81,7 +83,7 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
               }}
               type="button"
             >
-              Revenir à l'année en cours
+              {t('portfolio.performance.backToCurrentYear')}
             </button>
           ) : (
             <button
@@ -89,7 +91,7 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
               onClick={() => void annual.refetch()}
               type="button"
             >
-              Réessayer
+              {t('actions.retry')}
             </button>
           )}
         </OperationsState>
@@ -119,7 +121,7 @@ export function PerformanceTab({ accountId, asOf }: { accountId: string; asOf: s
         yearPerformance={yearPerformance.data ?? null}
       />
       {withoutValuation ? (
-        <p className={`card ${styles.notice}`}>Aucune valorisation pour cette année</p>
+        <p className={`card ${styles.notice}`}>{t('portfolio.performance.noValuationYear')}</p>
       ) : null}
       {narrow ? (
         <PerformanceMonthCards

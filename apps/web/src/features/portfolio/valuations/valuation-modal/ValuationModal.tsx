@@ -7,6 +7,7 @@ import {
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -57,6 +58,7 @@ export function ValuationModal({
   replacing?: { valuedOn: string; version: number };
   today: string;
 }) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const [valuedOn, setValuedOn] = useState(
     replacing?.valuedOn ?? initialDate ?? defaultDate ?? today,
@@ -97,22 +99,24 @@ export function ValuationModal({
   });
 
   const title = replacing
-    ? `Remplacer la valorisation du ${formatCalendarNumericDay(replacing.valuedOn)}`
+    ? t('portfolio.valuations.modal.replace', {
+        date: formatCalendarNumericDay(replacing.valuedOn),
+      })
     : confirmed === null
-      ? 'Nouvelle valorisation'
-      : `Valorisation du ${formatCalendarNumericDay(confirmed)}`;
+      ? t('portfolio.valuations.modal.new')
+      : t('portfolio.explanation.source.VALUATION', { date: formatCalendarNumericDay(confirmed) });
 
   return (
     <Modal intent={replacing ? 'edit' : 'create'} close={onClose} title={title}>
       {confirmed !== null && draft.isError ? (
         <div role="alert">
-          <p>Le brouillon de valorisation est indisponible.</p>
+          <p>{t('portfolio.valuations.modal.draftUnavailable')}</p>
           <button className="secondary-action" onClick={() => void draft.refetch()} type="button">
-            Réessayer
+            {t('actions.retry')}
           </button>
           {replacing ? null : (
             <button className="secondary-action" onClick={() => setConfirmed(null)} type="button">
-              Changer la date
+              {t('portfolio.valuations.modal.changeDate')}
             </button>
           )}
         </div>

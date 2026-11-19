@@ -1,4 +1,5 @@
 import type { PortfolioOperation } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { operationTypeLabel } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
@@ -26,23 +27,30 @@ export function OperationRowMenu({
   actions: OperationRowActions;
   operation: PortfolioOperation | null;
 }) {
-  if (operation === null) return <ActionMenu disabled items={[]} label="Actions de l’opération" />;
+  const { t } = useTranslation();
+  if (operation === null)
+    return (
+      <ActionMenu disabled items={[]} label={t('portfolio.account.operations.menu.actions')} />
+    );
 
   const active = operation.state === 'ACTIVE';
   const day = formatCalendarNumericDay(operation.tradeDate);
-  const label = `${operationTypeLabel(operation.type)} du ${day}`;
+  const label = t('portfolio.account.operations.menu.operationLabel', {
+    type: operationTypeLabel(t, operation.type),
+    day,
+  });
 
   return (
     <ActionMenu
-      label={`Actions pour l’opération ${label}`}
+      label={t('portfolio.account.operations.menu.actionsFor', { label })}
       items={[
         ...(active && operation.activeDayOperationCount >= 2
           ? [
               {
                 id: 'reorder',
                 icon: 'move' as const,
-                label: `Réordonner la journée du ${day}`,
-                text: 'Réordonner la journée',
+                label: t('portfolio.account.operations.menu.reorderDay', { day }),
+                text: t('portfolio.account.operations.menu.reorder'),
                 onSelect: () => actions.onReorder(operation),
               },
             ]
@@ -50,23 +58,23 @@ export function OperationRowMenu({
         {
           id: 'detail',
           icon: 'info',
-          label: `Détail de l’opération ${label}`,
-          text: 'Détail',
+          label: t('portfolio.account.operations.menu.detailOf', { label }),
+          text: t('portfolio.account.operations.menu.detail'),
           onSelect: () => actions.onDetail(operation),
         },
         {
           id: 'edit',
           icon: 'edit',
-          label: `Modifier l’opération ${label}`,
-          text: 'Modifier',
+          label: t('portfolio.account.operations.menu.editOf', { label }),
+          text: t('portfolio.account.operations.menu.edit'),
           disabled: !active,
           onSelect: () => actions.onEdit(operation),
         },
         {
           id: 'void',
           icon: 'archive',
-          label: `Annuler l’opération ${label}`,
-          text: 'Annuler',
+          label: t('portfolio.account.operations.menu.voidOf', { label }),
+          text: t('actions.cancel'),
           disabled: !active,
           onSelect: () => actions.onVoid(operation),
         },

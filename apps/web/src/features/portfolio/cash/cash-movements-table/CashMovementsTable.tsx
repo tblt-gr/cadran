@@ -10,31 +10,31 @@ import styles from './CashMovementsTable.module.css';
 
 /** Running cash movements in `(tradeDate, sequence)` order; `null` renders the loading layout. */
 export function CashMovementsTable({ cash }: { cash: PortfolioCash | null }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   if (cash && cash.movements.length === 0) {
-    return <OperationsState title="Aucun mouvement d’espèces sur la période" />;
+    return <OperationsState title={t('portfolio.cash.movements.none')} />;
   }
 
   return (
     <section className={`card ${styles.panel}`}>
-      {cash ? null : <SkeletonStatus>Chargement des espèces…</SkeletonStatus>}
+      {cash ? null : <SkeletonStatus>{t('portfolio.cash.loading')}</SkeletonStatus>}
       <div
         className={styles.scroll}
         data-testid="cash-movements-scroll"
         role="region"
-        aria-label="Mouvements d’espèces"
+        aria-label={t('portfolio.cash.movements.label')}
         tabIndex={0}
       >
-        <table aria-label="Mouvements d’espèces" className={styles.table}>
+        <table aria-label={t('portfolio.cash.movements.label')} className={styles.table}>
           <thead>
             <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Type</th>
+              <th scope="col">{t('portfolio.account.history.columns.date')}</th>
+              <th scope="col">{t('portfolio.account.operationTypeField')}</th>
               <th className={styles.number} scope="col">
-                Effet espèces
+                {t('portfolio.cash.movements.effect')}
               </th>
               <th className={styles.number} scope="col">
-                Solde après
+                {t('portfolio.cash.movements.balanceAfter')}
               </th>
             </tr>
           </thead>
@@ -43,7 +43,7 @@ export function CashMovementsTable({ cash }: { cash: PortfolioCash | null }) {
               {cash.movements.map((movement) => (
                 <tr key={movement.operationId}>
                   <th scope="row">{formatCalendarNumericDay(movement.tradeDate)}</th>
-                  <td>{operationTypeLabel(movement.type)}</td>
+                  <td>{operationTypeLabel(t, movement.type)}</td>
                   <td className={styles.number}>
                     <CashAmount amount={movement.cashAmount} />
                   </td>

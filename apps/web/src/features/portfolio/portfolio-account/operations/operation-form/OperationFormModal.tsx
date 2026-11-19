@@ -6,6 +6,7 @@ import {
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -42,6 +43,7 @@ export function OperationFormModal({
   operation?: PortfolioOperation;
   today: string;
 }) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const attempt = useRef<{ body: string; key: string } | null>(null);
   const save = useMutation({
@@ -85,11 +87,13 @@ export function OperationFormModal({
     <Modal
       intent={operation ? 'edit' : 'create'}
       close={onClose}
-      title={operation ? 'Modifier l’opération' : 'Nouvelle opération'}
+      title={
+        operation ? t('portfolio.account.form.editTitle') : t('portfolio.account.form.newTitle')
+      }
     >
       <OperationForm
         account={account}
-        fieldErrors={operationFieldErrors(save.error)}
+        fieldErrors={operationFieldErrors(save.error, t)}
         onSubmit={(request, reason) => save.mutate({ request, reason })}
         operation={operation}
         pending={save.isPending}

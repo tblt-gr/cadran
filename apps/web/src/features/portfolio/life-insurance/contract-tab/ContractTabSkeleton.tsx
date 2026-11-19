@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { RecordedAmounts } from '@/features/portfolio/life-insurance/overview/recorded-amounts/RecordedAmounts';
 import { TaxTrackingCard } from './tax-tracking-card/TaxTrackingCard';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
@@ -7,9 +8,10 @@ import { EuroFundRatesCard } from '@/features/portfolio/life-insurance/euro-fund
 import styles from './ContractTab.module.css';
 const noop = () => undefined;
 export function ContractTabSkeleton() {
+  const { t } = useTranslation();
   return (
     <div className={styles.tab} aria-busy="true" data-testid="contract-skeleton">
-      <SkeletonStatus>Chargement du contrat…</SkeletonStatus>
+      <SkeletonStatus>{t('portfolio.lifeInsurance.contract.loading')}</SkeletonStatus>
       <ContractCard onEdit={noop} />
       <RecordedAmounts summary={null} accountId="" />
       <TaxTrackingCard summary={null} />

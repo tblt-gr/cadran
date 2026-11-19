@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   LifeInsuranceSummaryPanel,
   type InsuranceReportProps,
@@ -5,10 +6,11 @@ import {
 import { ContractFigures } from './contract-figures/ContractFigures';
 import { LifeInsuranceOverviewSkeleton } from './LifeInsuranceOverviewSkeleton';
 export function LifeInsuranceOverview(props: InsuranceReportProps & { embedded?: boolean }) {
+  const { t } = useTranslation();
   return (
     <LifeInsuranceSummaryPanel
       {...props}
-      title="La synthèse du contrat est indisponible"
+      title={t('portfolio.lifeInsurance.overview.unavailable')}
       announceLoading={false}
     >
       {(summary) =>

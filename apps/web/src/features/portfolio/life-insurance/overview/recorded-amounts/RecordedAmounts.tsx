@@ -1,7 +1,8 @@
 import type { RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import {
-  money,
+  useLifeInsuranceMoney,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
@@ -17,47 +18,78 @@ export function RecordedAmounts({
   accountId: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t } = useTranslation();
+  const money = useLifeInsuranceMoney();
   const cumulative = summary?.cumulative;
   const rows: [string, string | null][] = [
-    ['Versements bruts', cumulative?.premiums ?? null],
-    ['Rachats bruts', cumulative?.surrendersGross ?? null],
-    ['Rachats nets versés', cumulative?.surrendersNetPaid ?? null],
-    ['Frais d’entrée', cumulative?.fees.ENTRY ?? null],
-    ['Frais de gestion', cumulative?.fees.MANAGEMENT ?? null],
-    ['Frais d’arbitrage', cumulative?.fees.SWITCH ?? null],
-    ['Frais de rachat', cumulative?.fees.SURRENDER ?? null],
-    ['Autres frais', cumulative?.fees.OTHER ?? null],
-    ['Impôt retenu', cumulative?.withheldTaxes.INCOME_TAX ?? null],
-    ['Prélèvements sociaux', cumulative?.withheldTaxes.SOCIAL_CONTRIBUTIONS ?? null],
-    ['Autres retenues', cumulative?.withheldTaxes.OTHER ?? null],
-    ['Intérêts crédités bruts', cumulative?.interestCredited.gross ?? null],
-    ['Intérêts crédités nets', cumulative?.interestCredited.net ?? null],
-    ['Participation aux bénéfices brute', cumulative?.profitSharing.gross ?? null],
-    ['Participation aux bénéfices nette', cumulative?.profitSharing.net ?? null],
+    [t('portfolio.lifeInsurance.recorded.rows.premiums'), cumulative?.premiums ?? null],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.surrendersGross'),
+      cumulative?.surrendersGross ?? null,
+    ],
+    [t('portfolio.lifeInsurance.figures.labels.surrenders'), cumulative?.surrendersNetPaid ?? null],
+    [t('portfolio.lifeInsurance.recorded.rows.entryFees'), cumulative?.fees.ENTRY ?? null],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.managementFees'),
+      cumulative?.fees.MANAGEMENT ?? null,
+    ],
+    [t('portfolio.lifeInsurance.recorded.rows.switchFees'), cumulative?.fees.SWITCH ?? null],
+    [t('portfolio.lifeInsurance.recorded.rows.surrenderFees'), cumulative?.fees.SURRENDER ?? null],
+    [t('portfolio.lifeInsurance.recorded.rows.otherFees'), cumulative?.fees.OTHER ?? null],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.incomeTax'),
+      cumulative?.withheldTaxes.INCOME_TAX ?? null,
+    ],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.socialContributions'),
+      cumulative?.withheldTaxes.SOCIAL_CONTRIBUTIONS ?? null,
+    ],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.otherWithholdings'),
+      cumulative?.withheldTaxes.OTHER ?? null,
+    ],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.interestGross'),
+      cumulative?.interestCredited.gross ?? null,
+    ],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.interestNet'),
+      cumulative?.interestCredited.net ?? null,
+    ],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.profitSharingGross'),
+      cumulative?.profitSharing.gross ?? null,
+    ],
+    [
+      t('portfolio.lifeInsurance.recorded.rows.profitSharingNet'),
+      cumulative?.profitSharing.net ?? null,
+    ],
   ];
   return (
     <ContractSection
-      title="Montants cumulés enregistrés"
+      title={t('portfolio.lifeInsurance.recorded.title')}
       hint={
         summary ? (
-          `au ${formatCalendarNumericDay(summary.asOf)}`
+          t('portfolio.lifeInsurance.asOf', { date: formatCalendarNumericDay(summary.asOf) })
         ) : (
           <SkeletonBlock className={styles.hintSkeleton} />
         )
       }
       busy={!summary}
     >
-      <p>
-        Depuis la souscription jusqu’à la date sélectionnée. Montants observés, sans estimation ;
-        les arbitrages sont exclus des versements et des rachats.
-      </p>
-      <div className={styles.scroll} role="region" aria-label="Montants cumulés" tabIndex={0}>
+      <p>{t('portfolio.lifeInsurance.recorded.intro')}</p>
+      <div
+        className={styles.scroll}
+        role="region"
+        aria-label={t('portfolio.lifeInsurance.recorded.region')}
+        tabIndex={0}
+      >
         <table>
-          <caption className="sr-only">Montants cumulés enregistrés</caption>
+          <caption className="sr-only">{t('portfolio.lifeInsurance.recorded.title')}</caption>
           <thead>
             <tr>
-              <th scope="col">Nature</th>
-              <th scope="col">Montant</th>
+              <th scope="col">{t('portfolio.lifeInsurance.recorded.nature')}</th>
+              <th scope="col">{t('portfolio.lifeInsurance.recorded.amount')}</th>
             </tr>
           </thead>
           <tbody>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 
 export function InstrumentIsinField({
@@ -15,6 +16,7 @@ export function InstrumentIsinField({
   onChange: (value: string) => void;
   value: string;
 }) {
+  const { t } = useTranslation();
   const existingHref = `/investments/instruments?q=${encodeURIComponent(value.trim())}&status=all`;
   return (
     <label>
@@ -30,15 +32,15 @@ export function InstrumentIsinField({
       />
       {existingInstrumentId ? (
         <small id="existing-instrument">
-          Cet ISIN existe déjà.{' '}
+          {t('investments.instruments.form.isinExists')}{' '}
           <a href={existingHref} onClick={(event) => handleClientNavigation(event, existingHref)}>
-            Voir l’instrument existant
+            {t('investments.instruments.form.viewExisting')}
           </a>
         </small>
       ) : error ? (
         <small>{error}</small>
       ) : locked ? (
-        <small>Figé après la première utilisation</small>
+        <small>{t('investments.instruments.locked')}</small>
       ) : null}
     </label>
   );

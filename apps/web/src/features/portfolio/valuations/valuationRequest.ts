@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+import type { ParseKeys } from 'i18next';
 import type {
   DecimalAmount,
   PortfolioValuationDetail,
@@ -5,6 +7,7 @@ import type {
   PortfolioValuationRequest,
 } from '@cadran/api-client';
 import { isCanonicalDecimal, isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 
 export interface PriceRowValues {
   instrumentId: string;
@@ -32,7 +35,7 @@ type Result =
   | { request: null; errors: ValuationFormErrors };
 
 const CONTROL_CHARACTERS = /[\p{Cc}\p{Cf}]/u;
-const DECIMAL_MESSAGE = 'Saisissez un nombre décimal, sans exposant.';
+const vv = (key: string) => i18n.t(`portfolio.valuations.validation.${key}` as ParseKeys);
 
 export function valuesFromDraft(draft: PortfolioValuationDraft): ValuationFormValues {
   return {
@@ -50,7 +53,7 @@ export function valuesFromDraft(draft: PortfolioValuationDraft): ValuationFormVa
   };
 }
 
-const normalize = (raw: string) => raw.trim().replace(',', '.');
+const normalize = (raw: string) => normalizeDecimalInput(raw);
 const amount = (value: string, assetCode: string): DecimalAmount => ({ value, assetCode });
 
 /** Turns the typed values into a record body; the server computes every figure. */
@@ -71,7 +74,7 @@ export function buildValuationRequest(
     const value = normalize(raw);
     if (value === '') return undefined;
     if (!(signed ? isCanonicalDecimal(value) : isCanonicalUnsignedDecimal(value))) {
-      errors[pointer] = DECIMAL_MESSAGE;
+      errors[pointer] = vv('decimal');
       return undefined;
     }
     return amount(value, assetCode);
@@ -79,25 +82,24 @@ export function buildValuationRequest(
 
   if (values.detail === 'TOTAL') {
     const total = normalize(values.totalValue);
-    if (total === '') errors['/totalValue'] = 'Ce champ est obligatoire.';
-    else if (!isCanonicalUnsignedDecimal(total)) errors['/totalValue'] = DECIMAL_MESSAGE;
+    if (total === '') errors['/totalValue'] = vv('required');
+    else if (!isCanonicalUnsignedDecimal(total)) errors['/totalValue'] = vv('decimal');
     else request.totalValue = amount(total, assetCode);
   } else {
     request.prices = values.rows.map((row, index) => {
       if (row.unknown) return { instrumentId: row.instrumentId, price: null, priceDate: null };
       const price = normalize(row.price);
       if (price === '') {
-        errors[`/prices/${index}/price`] = 'Saisissez un prix ou cochez Prix inconnu.';
+        errors[`/prices/${index}/price`] = vv('priceMissing');
       } else if (!isCanonicalUnsignedDecimal(price)) {
-        errors[`/prices/${index}/price`] = DECIMAL_MESSAGE;
+        errors[`/prices/${index}/price`] = vv('decimal');
       } else if (isZeroDecimal(price)) {
-        errors[`/prices/${index}/price`] = 'Le prix doit être strictement positif.';
+        errors[`/prices/${index}/price`] = vv('pricePositive');
       }
       if (row.priceDate === '') {
-        errors[`/prices/${index}/priceDate`] = 'La date du prix est obligatoire.';
+        errors[`/prices/${index}/priceDate`] = vv('priceDateRequired');
       } else if (row.priceDate > valuedOn) {
-        errors[`/prices/${index}/priceDate`] =
-          'La date du prix doit être au plus la date de valorisation.';
+        errors[`/prices/${index}/priceDate`] = vv('priceDateAfter');
       }
       return { instrumentId: row.instrumentId, price, priceDate: row.priceDate };
     });
@@ -113,7 +115,7 @@ export function buildValuationRequest(
   const note = values.note.trim();
   if (note !== '') {
     if (note.length > 200 || CONTROL_CHARACTERS.test(note)) {
-      errors['/note'] = 'Au plus 200 caractères, sans caractère de contrôle.';
+      errors['/note'] = vv('noteLength');
     } else {
       request.note = note;
     }

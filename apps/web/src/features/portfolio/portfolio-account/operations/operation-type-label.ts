@@ -1,4 +1,5 @@
 import type { PortfolioOperationType } from '@cadran/api-client';
+import type { TFunction } from 'i18next';
 
 /** Frequent operations first, the yearly or rare ones after: this is the order of the pickers. */
 export const operationTypes: readonly PortfolioOperationType[] = [
@@ -25,32 +26,8 @@ export const operationTypes: readonly PortfolioOperationType[] = [
   'SPIN_OFF',
 ];
 
-const labels: Record<PortfolioOperationType, string> = {
-  EURO_FUND_INTEREST: 'Intérêts du fonds en euros',
-  PROFIT_SHARING: 'Participation aux bénéfices',
-  MANAGEMENT_FEE: 'Frais de gestion',
-  SOCIAL_CONTRIBUTION: 'Prélèvements sociaux',
-  SWITCH: 'Arbitrage',
-  PREMIUM: 'Versement',
-  PARTIAL_SURRENDER: 'Rachat partiel',
-  FULL_SURRENDER: 'Rachat total',
-  DEPOSIT: 'Versement',
-  WITHDRAWAL: 'Retrait',
-  BUY: 'Achat',
-  SELL: 'Vente',
-  DIVIDEND: 'Dividende',
-  INTEREST: 'Intérêts',
-  FEE: 'Frais',
-  TAX: 'Taxe',
-  SECURITY_TRANSFER_IN: 'Transfert de titres entrant',
-  SECURITY_TRANSFER_OUT: 'Transfert de titres sortant',
-  SPLIT: 'Division',
-  MERGER: 'Fusion',
-  SPIN_OFF: 'Scission',
-};
-
-export function operationTypeLabel(type: PortfolioOperationType): string {
-  return labels[type];
+export function operationTypeLabel(t: TFunction, type: PortfolioOperationType): string {
+  return t(`portfolio.account.operationType.${type}`);
 }
 
 /** Mirrors OperationTypePolicy for both creation and filtering. */

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   LifeInsuranceSummaryPanel,
   type InsuranceReportProps,
@@ -5,10 +6,11 @@ import {
 import { RecordedAmounts } from '@/features/portfolio/life-insurance/overview/recorded-amounts/RecordedAmounts';
 import { TaxTrackingCard } from './tax-tracking-card/TaxTrackingCard';
 export function ContractReportingPanel(props: InsuranceReportProps) {
+  const { t } = useTranslation();
   return (
     <LifeInsuranceSummaryPanel
       {...props}
-      title="Les montants du contrat sont indisponibles"
+      title={t('portfolio.lifeInsurance.contract.amountsUnavailable')}
       announceLoading={false}
     >
       {(summary) => (

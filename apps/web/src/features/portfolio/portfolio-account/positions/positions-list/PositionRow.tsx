@@ -1,5 +1,7 @@
 import type { PortfolioPosition } from '@cadran/api-client';
+import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DatedCell } from '@/components/ui/dated-list/DatedCell';
 import { Icon } from '@/components/ui/icon/Icon';
 import { DatedRow } from '@/components/ui/dated-list/DatedRow';
@@ -10,7 +12,7 @@ import { signed } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
 import { formatAmount, formatDecimal } from '@/lib/decimal';
 import {
   isClosedPosition,
-  valueReasonLabels,
+  valueReasonLabel,
 } from '@/features/portfolio/portfolio-account/positions/positionLabels';
 import styles from './PositionsList.module.css';
 
@@ -29,7 +31,8 @@ function ResultText({
   className: string;
   gain: NonNullable<PortfolioPosition['unrealizedGain']>;
 }) {
-  const text = signed(formatAmount(gain.value, gain.assetCode, 'fr-FR'), gain.value);
+  const { i18n } = useTranslation();
+  const text = signed(formatAmount(gain.value, gain.assetCode, i18n.language), gain.value);
   if (!/[1-9]/.test(gain.value)) return <span className={className}>{text}</span>;
   const loss = gain.value.startsWith('-');
 
@@ -49,13 +52,19 @@ function Figure({ amount, label }: { amount: ReactNode; label: string }) {
   );
 }
 
-function costOf(position: PortfolioPosition, amount: PortfolioPosition['averageCostBasis']) {
-  if (position.costReason === 'UNKNOWN_LOT_COST') return <EmptyValue label="Coût inconnu" />;
+function costOf(
+  position: PortfolioPosition,
+  amount: PortfolioPosition['averageCostBasis'],
+  t: TFunction,
+  locale: string,
+) {
+  if (position.costReason === 'UNKNOWN_LOT_COST')
+    return <EmptyValue label={t('portfolio.positions.unknownCost')} />;
 
   return amount ? (
-    formatAmount(amount.value, amount.assetCode, 'fr-FR')
+    formatAmount(amount.value, amount.assetCode, locale)
   ) : (
-    <EmptyValue label="Non calculable" />
+    <EmptyValue label={t('states.notCalculable.label')} />
   );
 }
 
@@ -65,13 +74,15 @@ function costOf(position: PortfolioPosition, amount: PortfolioPosition['averageC
  * when no value can be computed, on the right.
  */
 export function PositionRow({ onOpen, onReorder, position }: Props) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
   const closed = position ? isClosedPosition(position) : false;
   const orderDependent = position?.flags.some((flag) => flag.code === 'ORDER_DEPENDENT_DAY');
-  const unitCost = position ? costOf(position, position.averageUnitCost) : null;
-  const totalCost = position ? costOf(position, position.averageCostBasis) : null;
+  const unitCost = position ? costOf(position, position.averageUnitCost, t, locale) : null;
+  const totalCost = position ? costOf(position, position.averageCostBasis, t, locale) : null;
   const fallbackCost =
     position && position.costReason !== 'UNKNOWN_LOT_COST' ? position.averageCostBasis : null;
-  const reason = position ? valueReasonLabels[position.valueReason ?? 'NO_VALUATION'] : '';
+  const reason = position ? valueReasonLabel(t, position.valueReason ?? 'NO_VALUATION') : '';
 
   return (
     <DatedRow
@@ -80,7 +91,7 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
           position.unrealizedGain ? (
             <ResultText className={styles.result} gain={position.unrealizedGain} />
           ) : (
-            <EmptyValue label="Plus-value non calculable" />
+            <EmptyValue label={t('investments.table.gainNotCalculable')} />
           )
         ) : (
           <SkeletonBlock />
@@ -90,16 +101,27 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
         <>
           <DatedCell column={1}>
             {position ? (
-              <Figure amount={formatDecimal(position.quantity, 'fr-FR')} label="Quantité" />
+              <Figure
+                amount={formatDecimal(position.quantity, locale)}
+                label={t('portfolio.positions.quantity')}
+              />
             ) : (
               <SkeletonBlock />
             )}
           </DatedCell>
           <DatedCell column={2}>
-            {position ? <Figure amount={unitCost} label="PRU" /> : <SkeletonBlock />}
+            {position ? (
+              <Figure amount={unitCost} label={t('portfolio.positions.avgUnitCostShort')} />
+            ) : (
+              <SkeletonBlock />
+            )}
           </DatedCell>
           <DatedCell column={3}>
-            {position ? <Figure amount={totalCost} label="Coût" /> : <SkeletonBlock />}
+            {position ? (
+              <Figure amount={totalCost} label={t('portfolio.positions.cost')} />
+            ) : (
+              <SkeletonBlock />
+            )}
           </DatedCell>
         </>
       }
@@ -109,26 +131,27 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
           {position ? (
             <>
               <span className={styles.phoneFigures}>
-                {formatDecimal(position.quantity, 'fr-FR')}
-                {position.averageUnitCost ? (
-                  <>
-                    {' · PRU '}
-                    {formatAmount(
-                      position.averageUnitCost.value,
-                      position.averageUnitCost.assetCode,
-                      'fr-FR',
-                    )}
-                  </>
-                ) : null}
+                {formatDecimal(position.quantity, locale)}
+                {position.averageUnitCost
+                  ? t('portfolio.positions.phoneAvgCost', {
+                      amount: formatAmount(
+                        position.averageUnitCost.value,
+                        position.averageUnitCost.assetCode,
+                        locale,
+                      ),
+                    })
+                  : null}
               </span>
-              {closed ? <StatusBadge tone="neutral">Clôturée</StatusBadge> : null}
+              {closed ? (
+                <StatusBadge tone="neutral">{t('portfolio.positions.closed')}</StatusBadge>
+              ) : null}
               {orderDependent ? (
                 <button
                   className={styles.warning}
                   onClick={() => onReorder(position)}
                   type="button"
                 >
-                  <StatusBadge tone="warning">Ordre à vérifier</StatusBadge>
+                  <StatusBadge tone="warning">{t('portfolio.positions.checkOrder')}</StatusBadge>
                 </button>
               ) : null}
             </>
@@ -156,7 +179,7 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
         ) : position.marketValue ? (
           <span className={styles.valueStack}>
             <span>
-              {formatAmount(position.marketValue.value, position.marketValue.assetCode, 'fr-FR')}
+              {formatAmount(position.marketValue.value, position.marketValue.assetCode, locale)}
             </span>
             {position.unrealizedGain ? (
               <ResultText className={styles.phoneResult} gain={position.unrealizedGain} />
@@ -169,8 +192,8 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
             </span>
             {fallbackCost ? (
               <span className={styles.costFallback} title={reason}>
-                <span>Coût</span>{' '}
-                {formatAmount(fallbackCost.value, fallbackCost.assetCode, 'fr-FR')}
+                <span>{t('portfolio.positions.cost')}</span>{' '}
+                {formatAmount(fallbackCost.value, fallbackCost.assetCode, locale)}
                 <span className="sr-only">{reason}</span>
               </span>
             ) : null}

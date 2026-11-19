@@ -13,7 +13,7 @@ function normalize(value: string) {
     value
       .normalize('NFKD')
       .replace(/\p{M}/gu, '')
-      .toLocaleLowerCase('fr')
+      .toLowerCase()
       // NFKD leaves the French ligatures intact, so someone typing "coeur"
       // would never reach "Cœur".
       .replace(/œ/g, 'oe')

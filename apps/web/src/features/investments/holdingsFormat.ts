@@ -1,4 +1,4 @@
-import { instrumentTypes } from '@/features/investments/instruments/instrument-form/instrumentOptions';
+import type { TFunction } from 'i18next';
 import {
   formatAmount,
   formatCalendarDay,
@@ -6,20 +6,18 @@ import {
   formatPercentDecimal,
 } from '@/lib/decimal';
 
-const LOCALE = 'fr';
-
 /** An amount in its asset, or the bare figure when the accounts do not share one unit. */
-export function holdingsMoney(value: string, assetCode: string | null): string {
-  return assetCode === null ? formatDecimal(value, LOCALE) : formatAmount(value, assetCode, LOCALE);
+export function holdingsMoney(value: string, assetCode: string | null, locale: string): string {
+  return assetCode === null ? formatDecimal(value, locale) : formatAmount(value, assetCode, locale);
 }
 
 /** The server rounds the share to two decimals; the browser only appends the unit. */
-export function holdingsPercent(percentDisplay: string): string {
-  return `${formatPercentDecimal(percentDisplay, LOCALE)} %`;
+export function holdingsPercent(percentDisplay: string, locale: string): string {
+  return `${formatPercentDecimal(percentDisplay, locale)} %`;
 }
 
-export function holdingsDay(isoDay: string): string {
-  return formatCalendarDay(isoDay, LOCALE);
+export function holdingsDay(isoDay: string, locale: string): string {
+  return formatCalendarDay(isoDay, locale);
 }
 
 /** A holding or total that is only a missing figure is told in words, never as zero. */
@@ -38,11 +36,11 @@ export function isNoInvestmentAccount(holdings: {
 }
 
 /** A unit price keeps the precision of the instrument, so it is never rounded to cents. */
-export function holdingsUnitPrice(value: string, assetCode: string | null): string {
-  const figure = formatDecimal(value, LOCALE);
+export function holdingsUnitPrice(value: string, assetCode: string | null, locale: string): string {
+  const figure = formatDecimal(value, locale);
   if (assetCode === null) return figure;
   try {
-    const symbol = new Intl.NumberFormat(LOCALE, { style: 'currency', currency: assetCode })
+    const symbol = new Intl.NumberFormat(locale, { style: 'currency', currency: assetCode })
       .formatToParts(0)
       .find((part) => part.type === 'currency')?.value;
     return `${figure} ${symbol ?? assetCode}`;
@@ -51,14 +49,15 @@ export function holdingsUnitPrice(value: string, assetCode: string | null): stri
   }
 }
 
-const typeNames: ReadonlyMap<string, string> = new Map(instrumentTypes);
-
 /** The `{ISIN ou ticker} · {type}` line under an instrument name. */
 export function holdingsInstrumentLine(
   instrument: { isin: string | null; ticker: string | null },
   instrumentType: string,
+  t: TFunction,
 ): string {
-  const kind = typeNames.get(instrumentType) ?? instrumentType;
+  const kind = t(`investments.instruments.types.${instrumentType}`, {
+    defaultValue: instrumentType,
+  });
   const identifier = instrument.isin ?? instrument.ticker;
   return identifier === null ? kind : `${identifier} · ${kind}`;
 }

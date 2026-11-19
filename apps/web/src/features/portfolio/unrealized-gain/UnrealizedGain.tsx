@@ -1,4 +1,5 @@
 import type { PortfolioOverviewAccountCard } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
@@ -6,14 +7,6 @@ import styles from './UnrealizedGain.module.css';
 
 export type GainReason =
   PortfolioOverviewAccountCard['unrealizedGain']['reason'] | 'INCOMPLETE_GAIN' | 'MIXED_ASSETS';
-
-const REASON_LABEL: Record<NonNullable<GainReason>, string> = {
-  NO_VALUATION: 'Aucune valorisation',
-  PARTIAL_VALUATION: 'Valorisation partielle',
-  UNKNOWN_LOT_COST: 'Coût d’acquisition inconnu',
-  INCOMPLETE_GAIN: 'Plus-value incomplète',
-  MIXED_ASSETS: 'Actifs différents',
-};
 
 /** The sign is always written, so a gain and a loss differ without colour. */
 export function signed(text: string, raw: string): string {
@@ -34,20 +27,27 @@ export function UnrealizedGain({
   reason?: GainReason;
   value: string | null;
 }) {
+  const { t, i18n } = useTranslation();
   if (value === null) {
     return (
-      <EmptyValue label={reason === null ? 'Plus-value non calculable' : REASON_LABEL[reason]} />
+      <EmptyValue
+        label={
+          reason === null
+            ? t('investments.table.gainNotCalculable')
+            : t(`portfolio.unrealizedGain.reasons.${reason}`)
+        }
+      />
     );
   }
   const tone = value.startsWith('-') ? styles.loss : styles.gain;
 
   return (
     <span className={`${styles.figures} ${tone}`}>
-      <span>{signed(formatAmount(value, assetCode, 'fr'), value)}</span>
+      <span>{signed(formatAmount(value, assetCode, i18n.language), value)}</span>
       {performance === undefined ? null : performance === null ? (
-        <EmptyValue label="Performance non calculable" />
+        <EmptyValue label={t('portfolio.unrealizedGain.performanceNotCalculable')} />
       ) : (
-        <span>({signed(formatRatioPercentage(performance, 'fr'), performance)})</span>
+        <span>({signed(formatRatioPercentage(performance, i18n.language), performance)})</span>
       )}
     </span>
   );

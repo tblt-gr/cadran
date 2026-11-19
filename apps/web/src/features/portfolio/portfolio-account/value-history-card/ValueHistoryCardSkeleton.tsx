@@ -5,7 +5,7 @@ import { ChartPeriodControl } from '@/components/ui/chart-period-control/ChartPe
 import { useTranslation } from 'react-i18next';
 import type { ChartPeriod } from '@/lib/chartPeriodRange';
 import { DEFAULT_HISTORY_PERIOD, HISTORY_PERIODS } from './valueHistoryRange';
-import { VALUE_HISTORY_COLUMNS } from './ValueHistoryTable';
+import { VALUE_HISTORY_COLUMNS, valueHistoryColumnLabel } from './ValueHistoryTable';
 import tableStyles from './ValueHistoryTable.module.css';
 import styles from './ValueHistoryCard.module.css';
 
@@ -27,7 +27,7 @@ export function ValueHistoryCardSkeleton({
     >
       {status ? <SkeletonStatus>{status}</SkeletonStatus> : null}
       <div className={styles.header}>
-        <h3 id="portfolio-value-history-title">Évolution de la valeur</h3>
+        <h3 id="portfolio-value-history-title">{t('portfolio.account.history.title')}</h3>
         <ChartPeriodControl
           disabled
           label={t('chartPeriod.groupLabel')}
@@ -37,20 +37,24 @@ export function ValueHistoryCardSkeleton({
         />
       </div>
       <CurveChartSkeleton />
-      <Disclosure onToggle={() => undefined} open={false} title="Voir le tableau">
+      <Disclosure
+        onToggle={() => undefined}
+        open={false}
+        title={t('portfolio.account.history.viewTable')}
+      >
         <div
           className={tableStyles.scroll}
           role="region"
-          aria-label="Valorisations du portefeuille par date"
+          aria-label={t('portfolio.account.history.tableLabel')}
           tabIndex={0}
         >
           <table>
-            <caption className="sr-only">Valorisations du portefeuille par date</caption>
+            <caption className="sr-only">{t('portfolio.account.history.tableLabel')}</caption>
             <thead>
               <tr>
-                {VALUE_HISTORY_COLUMNS.map((text) => (
-                  <th key={text} scope="col">
-                    {text}
+                {VALUE_HISTORY_COLUMNS.map((column) => (
+                  <th key={column} scope="col">
+                    {valueHistoryColumnLabel(t, column)}
                   </th>
                 ))}
               </tr>

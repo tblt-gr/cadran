@@ -19,13 +19,13 @@ function showsPartial(exact: string | null | undefined, knownCost: unknown): boo
  * cannot be calculated. The valuation date closes the panel.
  */
 export function HoldingsSummary({ holdings }: { holdings: Holdings | null }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const assetCode = holdings?.assetCode ?? null;
   const money = (value: string | null) =>
     value === null ? (
       <EmptyValue label={t('investments.summary.notCalculable')} />
     ) : (
-      holdingsMoney(value, assetCode)
+      holdingsMoney(value, assetCode, i18n.language)
     );
   const totals = holdings?.totals;
   const knownCost = totals?.knownCost ?? null;
@@ -121,11 +121,11 @@ export function HoldingsSummary({ holdings }: { holdings: Holdings | null }) {
           <SkeletonBlock className={styles.dateBlock} />
         ) : holdings.valuedTo === null ? null : mixedDates ? (
           t('investments.summary.valuedBetween', {
-            from: holdingsDay(holdings.valuedFrom!),
-            to: holdingsDay(holdings.valuedTo),
+            from: holdingsDay(holdings.valuedFrom!, i18n.language),
+            to: holdingsDay(holdings.valuedTo, i18n.language),
           })
         ) : (
-          t('investments.summary.valuedOn', { date: holdingsDay(holdings.valuedTo) })
+          t('investments.summary.valuedOn', { date: holdingsDay(holdings.valuedTo, i18n.language) })
         )}
       </p>
     </section>

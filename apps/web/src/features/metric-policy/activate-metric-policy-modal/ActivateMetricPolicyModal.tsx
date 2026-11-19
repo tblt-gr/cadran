@@ -75,7 +75,11 @@ export function ActivateMetricPolicyModal({
         </div>
         <p className={styles.note}>{t('metricPolicy.activate.closedMonths')}</p>
         <FormGrid>
-          <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+          <FormSection
+            title={t('transactions.form.advanced')}
+            open={advancedOpen}
+            onToggle={setAdvancedOpen}
+          >
             <label>
               <span>{t('metricPolicy.activate.reason')}</span>
               <input

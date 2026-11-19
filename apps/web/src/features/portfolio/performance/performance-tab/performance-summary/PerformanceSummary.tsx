@@ -1,7 +1,8 @@
 import type { PortfolioPerformance } from '@cadran/api-client';
 import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PerformanceValue } from '@/features/portfolio/performance/performance-value/PerformanceValue';
-import { figureKeys, figureLabels } from '@/features/portfolio/performance/performanceFigures';
+import { figureKeys, figureLabelKeys } from '@/features/portfolio/performance/performanceFigures';
 import type { ExplainTarget } from '@/features/portfolio/performance/performance-tab/explainTarget';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import styles from './PerformanceSummary.module.css';
@@ -22,6 +23,7 @@ function Row({
   target: (figure: (typeof figureKeys)[number]) => ExplainTarget;
   onExplain: (target: ExplainTarget) => void;
 }) {
+  const { t } = useTranslation();
   const titleId = useId();
   const context = {
     accountId: performance?.accountId ?? '',
@@ -32,9 +34,9 @@ function Row({
     <section aria-labelledby={titleId} className={`card ${styles.row}`}>
       <h2 id={titleId}>{title}</h2>
       {failed ? (
-        <OperationsState error title="La performance est indisponible">
+        <OperationsState error title={t('portfolio.performance.unavailable')}>
           <button className="secondary-action" type="button" onClick={onRetry}>
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : (
@@ -45,7 +47,7 @@ function Row({
               figure={performance ? performance[key] : null}
               key={key}
               withQuality
-              label={figureLabels[key]}
+              label={t(figureLabelKeys[key])}
               onExplain={performance ? () => onExplain(target(key)) : null}
             />
           ))}
@@ -69,6 +71,7 @@ export function PerformanceSummary({
   onRetry?: () => void;
   onExplain: (target: ExplainTarget) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Row
       failed={failed}
@@ -76,7 +79,7 @@ export function PerformanceSummary({
       onRetry={onRetry}
       performance={yearPerformance}
       target={(figure) => ({ kind: 'year', figure })}
-      title={`Année ${year}`}
+      title={t('portfolio.performance.months.year', { year })}
     />
   );
 }

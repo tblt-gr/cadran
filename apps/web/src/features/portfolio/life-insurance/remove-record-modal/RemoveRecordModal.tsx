@@ -1,5 +1,6 @@
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { removeLifeInsuranceFeeTerms, removeEuroFundRate } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import {
@@ -18,6 +19,7 @@ export function RemoveRecordModal({
   kind: 'fee' | 'rate';
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const remove = useLifeInsuranceMutation(
     accountId,
     () =>
@@ -30,14 +32,11 @@ export function RemoveRecordModal({
   return (
     <Modal
       intent="delete"
-      title={kind === 'fee' ? 'Supprimer le barème' : 'Supprimer le taux'}
+      title={t(`portfolio.lifeInsurance.remove.title.${kind}`)}
       close={onClose}
     >
       <div className={styles.form}>
-        <p>
-          Confirmez la suppression de {kind === 'fee' ? 'ce barème de frais' : 'ce taux servi'}.
-          Vous pourrez le renseigner à nouveau.
-        </p>
+        <p>{t(`portfolio.lifeInsurance.remove.confirm.${kind}`)}</p>
         {remove.error ? (
           <p className={styles.error} role="alert">
             {lifeInsuranceError(remove.error)}
@@ -45,7 +44,7 @@ export function RemoveRecordModal({
         ) : null}
         <ModalActions>
           <button className="secondary-action" type="button" onClick={onClose}>
-            Conserver
+            {t('portfolio.lifeInsurance.remove.keep')}
           </button>
           <button
             className="primary-action"
@@ -53,7 +52,9 @@ export function RemoveRecordModal({
             disabled={remove.isPending}
             onClick={() => remove.mutate(undefined)}
           >
-            {remove.isPending ? 'Suppression…' : 'Supprimer'}
+            {remove.isPending
+              ? t('portfolio.lifeInsurance.remove.removing')
+              : t('portfolio.lifeInsurance.remove.action')}
           </button>
         </ModalActions>
       </div>

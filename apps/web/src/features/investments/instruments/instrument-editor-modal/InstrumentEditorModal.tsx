@@ -1,5 +1,6 @@
 import type { Instrument } from '@cadran/api-client';
 import { useEffect, useRef, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { DuplicateNotice } from '@/features/investments/instruments/duplicate-notice/DuplicateNotice';
 import { ExistingInstrumentChoice } from '@/features/investments/instruments/existing-instrument-choice/ExistingInstrumentChoice';
@@ -26,6 +27,7 @@ export function InstrumentEditorModal({
   onSaved?: (instrument: Instrument) => void;
   returnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t } = useTranslation();
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
@@ -57,9 +59,13 @@ export function InstrumentEditorModal({
       intent={instrument ? 'edit' : 'create'}
       close={close}
       returnFocus={returnFocus}
-      eyebrow={onSaved && !instrument ? 'Nouvel instrument' : undefined}
+      eyebrow={onSaved && !instrument ? t('investments.instruments.editor.eyebrowNew') : undefined}
       title={
-        instrument ? 'Modifier l’instrument' : onSaved ? 'Créer un instrument' : 'Nouvel instrument'
+        instrument
+          ? t('investments.instruments.editor.titleEdit')
+          : onSaved
+            ? t('investments.instruments.editor.titleCreate')
+            : t('investments.instruments.editor.titleNew')
       }
     >
       {editor.candidates ? (
@@ -96,9 +102,7 @@ export function InstrumentEditorModal({
         pending={pending}
       />
       {reuse.use.isError ? (
-        <p role="alert">
-          Impossible d’utiliser cet instrument. Vérifiez sa devise et son type, puis réessayez.
-        </p>
+        <p role="alert">{t('investments.instruments.editor.useFailed')}</p>
       ) : null}
     </Modal>
   );

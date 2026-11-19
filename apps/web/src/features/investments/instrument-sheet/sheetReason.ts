@@ -1,17 +1,15 @@
 import type { InstrumentHoldingReason } from '@cadran/api-client';
-export function sheetReason(reason: InstrumentHoldingReason): string {
+import type { TFunction } from 'i18next';
+
+export function sheetReason(reason: InstrumentHoldingReason, t: TFunction): string {
   switch (reason) {
     case 'UNKNOWN_LOT_COST':
-      return "Plus-value réalisée non calculable : coût d'origine inconnu";
     case 'HISTORY_TOO_LARGE':
-      return 'Historique trop volumineux pour ce compte';
     case 'NO_VALUATION':
-      return 'Aucune valorisation disponible';
     case 'MISSING_PRICE':
-      return 'Prix manquant';
     case 'MIXED_ASSETS':
-      return 'Devises différentes : gain total non calculable';
+      return t(`investments.sheet.reasons.${reason}`);
     default:
-      return 'Non calculable';
+      return t('investments.sheet.reasons.default');
   }
 }

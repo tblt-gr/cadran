@@ -1,4 +1,5 @@
 import type { PortfolioPosition } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { DatedRowList } from '@/components/ui/dated-list/DatedRowList';
 import { PositionRow } from './PositionRow';
 
@@ -12,20 +13,15 @@ interface Props {
 }
 
 /** The positions of a portfolio as compact rows on the shared dated list, without day headings. */
-export function PositionsList({
-  announce,
-  items,
-  loadingLabel = 'Chargement des positions…',
-  onOpen,
-  onReorder,
-}: Props) {
+export function PositionsList({ announce, items, loadingLabel, onOpen, onReorder }: Props) {
+  const { t } = useTranslation();
   return (
     <DatedRowList
       announce={announce}
       getKey={(position) => position.instrument.id}
       items={items}
-      label="Positions du portefeuille"
-      loadingLabel={loadingLabel}
+      label={t('portfolio.account.positions.listLabel')}
+      loadingLabel={loadingLabel ?? t('portfolio.account.positions.loading')}
       renderRow={(position) => (
         <PositionRow onOpen={onOpen} onReorder={onReorder} position={position} />
       )}

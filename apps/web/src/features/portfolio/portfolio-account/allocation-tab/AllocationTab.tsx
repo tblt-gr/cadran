@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   usePortfolioAllocation,
   usePortfolioSummary,
@@ -20,19 +21,20 @@ export function AllocationTab({
   frozen?: boolean;
   title?: string;
 }) {
+  const { t } = useTranslation();
   const [by, setBy] = useState<AllocationBy>('INSTRUMENT');
   const summary = usePortfolioSummary(accountId, asOf, !frozen);
   const allocation = usePortfolioAllocation(accountId, asOf, by, !frozen);
   return (
     <div className={styles.tab}>
       {allocation.isError ? (
-        <OperationsState error title="La répartition est indisponible">
+        <OperationsState error title={t('portfolio.account.allocationTab.unavailable')}>
           <button
             className="secondary-action"
             type="button"
             onClick={() => void allocation.refetch()}
           >
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : (

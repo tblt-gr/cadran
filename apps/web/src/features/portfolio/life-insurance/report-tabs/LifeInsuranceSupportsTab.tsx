@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import {
   LifeInsuranceSummaryPanel,
   type InsuranceReportProps,
@@ -12,11 +13,12 @@ import styles from './ReportTabs.module.css';
  * quantities and lots replayed from the operations stay one click away for checking.
  */
 export function LifeInsuranceSupportsTab(props: InsuranceReportProps) {
+  const { t } = useTranslation();
   return (
     <div className={styles.tab}>
       <LifeInsuranceSummaryPanel
         {...props}
-        title="Les supports du contrat sont indisponibles"
+        title={t('portfolio.lifeInsurance.supports.unavailable')}
         announceLoading={false}
       >
         {(summary) => (
@@ -27,7 +29,7 @@ export function LifeInsuranceSupportsTab(props: InsuranceReportProps) {
         )}
       </LifeInsuranceSummaryPanel>
       <details className={styles.ledger}>
-        <summary>Quantités et lots issus des opérations</summary>
+        <summary>{t('portfolio.lifeInsurance.supports.ledger')}</summary>
         <PositionsTab accountId={props.accountId} asOf={props.asOf} />
       </details>
     </div>

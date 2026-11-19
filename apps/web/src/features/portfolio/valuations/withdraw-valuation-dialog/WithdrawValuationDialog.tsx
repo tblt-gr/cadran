@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import styles from './WithdrawValuationDialog.module.css';
 
@@ -12,11 +13,10 @@ export function WithdrawValuationDialog({
   onConfirm: () => void;
   pending: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.dialog}>
-      <p>
-        La valeur publiée dans le patrimoine sera retirée ; la valorisation reste dans l’historique.
-      </p>
+      <p>{t('portfolio.valuations.withdraw.explain')}</p>
       {error ? (
         <p className={styles.error} role="alert">
           {error}
@@ -25,7 +25,7 @@ export function WithdrawValuationDialog({
       <ModalActions>
         {onCancel ? (
           <button className="secondary-action" type="button" onClick={onCancel}>
-            Annuler
+            {t('portfolio.valuations.withdraw.cancel')}
           </button>
         ) : null}
         <button
@@ -35,7 +35,9 @@ export function WithdrawValuationDialog({
           onClick={onConfirm}
           type="button"
         >
-          {pending ? 'Retrait…' : 'Retirer'}
+          {pending
+            ? t('portfolio.valuations.withdraw.pending')
+            : t('portfolio.valuations.row.withdraw')}
         </button>
       </ModalActions>
     </div>

@@ -1,10 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import type { InstrumentFieldErrors } from '@/features/investments/instruments/instrumentError';
 import { InstrumentPrecisionField } from '@/features/investments/instruments/instrument-form/precision-field/InstrumentPrecisionField';
 import { InstrumentSelectField } from '@/features/investments/instruments/instrument-form/select-field/InstrumentSelectField';
 import {
-  instrumentClasses,
-  instrumentRegions,
+  instrumentClassOptions,
+  instrumentRegionOptions,
   validPrecision,
 } from '@/features/investments/instruments/instrument-form/instrumentOptions';
 
@@ -48,9 +49,10 @@ export function InstrumentAdvancedFields({
   pricePrecision,
   setPricePrecision,
 }: Props) {
+  const { t } = useTranslation();
   return (
     <FormSection
-      title="Champs avancés"
+      title={t('transactions.form.advanced')}
       open={
         advancedOpen ||
         Boolean(fieldErrors.venueMic) ||
@@ -60,7 +62,7 @@ export function InstrumentAdvancedFields({
     >
       {!euroFund ? (
         <label>
-          <span>Place de cotation (MIC)</span>
+          <span>{t('investments.instruments.form.venue')}</span>
           <input
             maxLength={4}
             onChange={(e) => setVenue(e.target.value.toUpperCase())}
@@ -70,42 +72,42 @@ export function InstrumentAdvancedFields({
         </label>
       ) : null}
       <InstrumentSelectField
-        label="Classe d'actifs"
+        label={t('investments.instruments.form.assetClass')}
         nullable
-        options={instrumentClasses}
+        options={instrumentClassOptions(t)}
         onChange={setClass}
         value={assetClass}
       />
       <InstrumentSelectField
-        label="Région"
+        label={t('investments.instruments.form.region')}
         nullable
-        options={instrumentRegions}
+        options={instrumentRegionOptions(t)}
         onChange={setRegion}
         value={region}
       />
       {euroFund ? (
         <>
           <label>
-            Précision des quantités
+            {t('investments.instruments.form.quantityPrecision')}
             <input readOnly value={euroPrecision ?? ''} />
           </label>
           <label>
-            Précision des prix
+            {t('investments.instruments.form.pricePrecision')}
             <input readOnly value="0" />
           </label>
-          <p>Un fonds en euros vaut toujours 1 € par part.</p>
+          <p>{t('investments.instruments.form.euroFundPar')}</p>
         </>
       ) : (
         <>
           <InstrumentPrecisionField
-            label="Précision des quantités"
+            label={t('investments.instruments.form.quantityPrecision')}
             locked={locked}
             onChange={setQuantityPrecision}
             showErrors={showErrors}
             value={quantityPrecision}
           />
           <InstrumentPrecisionField
-            label="Précision des prix"
+            label={t('investments.instruments.form.pricePrecision')}
             locked={locked}
             onChange={setPricePrecision}
             showErrors={showErrors}

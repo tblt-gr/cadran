@@ -4,6 +4,7 @@ import type {
   PortfolioAnnualRateCell,
   PortfolioPerformanceReason,
 } from '@cadran/api-client';
+import type { ParseKeys } from 'i18next';
 import type { ReactNode } from 'react';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Rate, signed } from '@/features/portfolio/performance/performance-value/PerformanceValue';
@@ -21,7 +22,8 @@ export interface LineContext extends ReasonContext {
 
 export interface LineColumn {
   id: string;
-  label: string;
+  /** Translation key of the column heading. */
+  label: ParseKeys;
   /** Present when the cell opens a PERF-005 explanation. */
   figure?: FigureKey;
   render: (line: PortfolioAnnualPeriodLine, context: LineContext) => ReactNode;
@@ -30,7 +32,10 @@ export interface LineColumn {
 function missing(reasons: PortfolioPerformanceReason[], context: LineContext) {
   const reason = reasons[0];
   return (
-    <EmptyValue label="Non calculable" reason={reason ? summarizeReason(reason, context) : null} />
+    <EmptyValue
+      label={context.t('portfolio.performance.value.notCalculable')}
+      reason={reason ? summarizeReason(reason, context) : null}
+    />
   );
 }
 
@@ -41,7 +46,7 @@ function amount(
   return (line, context) => {
     const value = pick(line);
     if (value === null) return missing(line.gainReasons, context);
-    const text = formatAmount(value, context.assetCode, 'fr');
+    const text = formatAmount(value, context.assetCode, context.locale);
     if (!withSign) return text;
     const { text: shown, tone } = signed(text);
     return <span className={tone}>{shown}</span>;
@@ -63,7 +68,9 @@ function moneyWeighted(figure: PortfolioAnnualMoneyWeighted, context: LineContex
       {year ? (
         <>
           {' '}
-          <span title="Calculé sur les flux de l'année, pas à partir des mois.">non chaîné</span>
+          <span title={context.t('portfolio.performance.lines.notChainedHint')}>
+            {context.t('portfolio.performance.lines.notChained')}
+          </span>
         </>
       ) : null}
     </>
@@ -74,42 +81,75 @@ function moneyWeighted(figure: PortfolioAnnualMoneyWeighted, context: LineContex
 export const lineColumns: LineColumn[] = [
   {
     id: 'startValue',
-    label: 'Valeur début',
+    label: 'portfolio.performance.columns.startValue',
     render: amount((l) => l.startValue, { withSign: false }),
   },
-  { id: 'deposits', label: 'Versements', render: amount((l) => l.deposits, { withSign: false }) },
+  {
+    id: 'deposits',
+    label: 'portfolio.performance.columns.deposits',
+    render: amount((l) => l.deposits, { withSign: false }),
+  },
   {
     id: 'withdrawals',
-    label: 'Retraits',
+    label: 'portfolio.performance.columns.withdrawals',
     render: amount((l) => l.withdrawals, { withSign: false }),
   },
-  { id: 'endValue', label: 'Valeur fin', render: amount((l) => l.endValue, { withSign: false }) },
-  { id: 'gain', label: 'Gain', figure: 'gain', render: amount((l) => l.gain, { withSign: true }) },
-  { id: 'realized', label: 'Réalisé', render: amount((l) => l.realized, { withSign: true }) },
+  {
+    id: 'endValue',
+    label: 'portfolio.performance.columns.endValue',
+    render: amount((l) => l.endValue, { withSign: false }),
+  },
+  {
+    id: 'gain',
+    label: 'portfolio.performance.columns.gain',
+    figure: 'gain',
+    render: amount((l) => l.gain, { withSign: true }),
+  },
+  {
+    id: 'realized',
+    label: 'portfolio.performance.columns.realized',
+    render: amount((l) => l.realized, { withSign: true }),
+  },
   {
     id: 'unrealizedChange',
-    label: 'Var. latente',
+    label: 'portfolio.performance.columns.unrealizedChange',
     render: amount((l) => l.unrealizedChange, { withSign: true }),
   },
-  { id: 'income', label: 'Revenus', render: amount((l) => l.income, { withSign: true }) },
-  { id: 'fees', label: 'Frais', render: amount((l) => l.fees, { withSign: true }) },
-  { id: 'feesPaid', label: 'Frais payés', render: amount((l) => l.feesPaid, { withSign: true }) },
-  { id: 'taxes', label: 'Taxes', render: amount((l) => l.taxes, { withSign: true }) },
+  {
+    id: 'income',
+    label: 'portfolio.performance.columns.income',
+    render: amount((l) => l.income, { withSign: true }),
+  },
+  {
+    id: 'fees',
+    label: 'portfolio.performance.columns.fees',
+    render: amount((l) => l.fees, { withSign: true }),
+  },
+  {
+    id: 'feesPaid',
+    label: 'portfolio.performance.columns.feesPaid',
+    render: amount((l) => l.feesPaid, { withSign: true }),
+  },
+  {
+    id: 'taxes',
+    label: 'portfolio.performance.columns.taxes',
+    render: amount((l) => l.taxes, { withSign: true }),
+  },
   {
     id: 'modifiedDietz',
-    label: 'Rendement (MD)',
+    label: 'portfolio.performance.columns.modifiedDietz',
     figure: 'modifiedDietz',
     render: (line, context) => rateOf(line.modifiedDietz, context),
   },
   {
     id: 'timeWeighted',
-    label: 'TWR',
+    label: 'portfolio.performance.columns.timeWeighted',
     figure: 'timeWeighted',
     render: (line, context) => rateOf(line.timeWeighted, context),
   },
   {
     id: 'moneyWeighted',
-    label: 'MWR (mois)',
+    label: 'portfolio.performance.columns.moneyWeighted',
     figure: 'moneyWeighted',
     render: (line, context) => moneyWeighted(line.moneyWeighted, context),
   },

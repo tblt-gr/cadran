@@ -1,4 +1,5 @@
 import type { PortfolioOperation } from '@cadran/api-client';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { DatedCell } from '@/components/ui/dated-list/DatedCell';
 import { DatedRow } from '@/components/ui/dated-list/DatedRow';
@@ -13,19 +14,21 @@ import { OperationRowMenu, type OperationRowActions } from './OperationRowMenu';
 import styles from './OperationDayRow.module.css';
 
 /** The instrument name, "Virement" for a linked transfer, else the type label. */
-function operationTitle(operation: PortfolioOperation) {
+function operationTitle(t: TFunction, operation: PortfolioOperation) {
   if (operation.instrument) return operation.instrument.name;
-  if (operation.linkedTransactionId) return 'Virement';
-  return operationTypeLabel(operation.type);
+  if (operation.linkedTransactionId) return t('portfolio.account.operations.transfer');
+  return operationTypeLabel(t, operation.type);
 }
 
-function legSummary(operation: PortfolioOperation) {
+function legSummary(t: TFunction, operation: PortfolioOperation) {
   if (operation.type === 'SWITCH') {
     const sold = operation.legs.filter((leg) => leg.direction === 'OUT').length;
     const bought = operation.legs.filter((leg) => leg.direction === 'IN').length;
-    return `${sold} supports vendus, ${bought} achetés`;
+    return t('portfolio.account.operations.switchSummary', { sold, bought });
   }
-  return hasField(operation.type, 'legs') ? `${operation.legs.length} supports` : null;
+  return hasField(operation.type, 'legs')
+    ? t('portfolio.account.form.legs.supportCount', { count: operation.legs.length })
+    : null;
 }
 
 function present(amount: PortfolioOperation['fees']) {
@@ -41,7 +44,7 @@ export function OperationDayRow({
   /** Null while loading: the row keeps its final structure with blocks for the values. */
   operation: PortfolioOperation | null;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const locale = i18n.language;
   const active = operation?.state !== 'VOIDED';
   const fees = operation ? present(operation.fees) : null;
@@ -57,12 +60,15 @@ export function OperationDayRow({
           .filter((part) => part !== null)
           .join(' × ')
       : null;
-  const detail = operation ? (legSummary(operation) ?? quantified) : null;
-  const figure = (name: string, amount: PortfolioOperation['fees']) => (
-    <DatedCell column={name === 'Frais' ? 2 : 3}>
+  const detail = operation ? (legSummary(t, operation) ?? quantified) : null;
+  const figure = (kind: 'fees' | 'taxes', amount: PortfolioOperation['fees']) => (
+    <DatedCell column={kind === 'fees' ? 2 : 3}>
       {operation && amount ? (
         <span className={styles.figure}>
-          <span>{name}</span> {formatAmount(amount.value, amount.assetCode, locale)}
+          <span>
+            {kind === 'fees' ? t('portfolio.account.form.fees') : t('portfolio.account.form.taxes')}
+          </span>{' '}
+          {formatAmount(amount.value, amount.assetCode, locale)}
         </span>
       ) : operation ? null : (
         <SkeletonBlock />
@@ -84,7 +90,9 @@ export function OperationDayRow({
               tone: 'muted',
               cue: (
                 <StatusBadge tone="info">
-                  {operation?.voidKind === 'REPLACED' ? 'Remplacée' : 'Annulée'}
+                  {operation?.voidKind === 'REPLACED'
+                    ? t('portfolio.account.operations.replaced')
+                    : t('portfolio.account.operations.voided')}
                 </StatusBadge>
               ),
             }
@@ -94,10 +102,10 @@ export function OperationDayRow({
           className={styles.open}
           disabled={operation === null}
           onClick={() => operation && actions.onDetail(operation)}
-          title={operation ? operationTitle(operation) : undefined}
+          title={operation ? operationTitle(t, operation) : undefined}
           type="button"
         >
-          {operation ? operationTitle(operation) : <SkeletonBlock />}
+          {operation ? operationTitle(t, operation) : <SkeletonBlock />}
         </button>
       }
       meta={
@@ -105,17 +113,27 @@ export function OperationDayRow({
           {operation ? (
             <>
               <span>
-                {[operationTypeLabel(operation.type), detail].filter(Boolean).join(' · ')}
+                {[operationTypeLabel(t, operation.type), detail].filter(Boolean).join(' · ')}
               </span>
               {fees || taxes ? (
                 <span className={styles.marks}>
                   {fees ? (
-                    <span aria-label="Frais" className={styles.mark} role="img" title="Frais">
+                    <span
+                      aria-label={t('portfolio.account.form.fees')}
+                      className={styles.mark}
+                      role="img"
+                      title={t('portfolio.account.form.fees')}
+                    >
                       <Icon name="sliders" size={12} />
                     </span>
                   ) : null}
                   {taxes ? (
-                    <span aria-label="Taxes" className={styles.mark} role="img" title="Taxes">
+                    <span
+                      aria-label={t('portfolio.account.form.taxes')}
+                      className={styles.mark}
+                      role="img"
+                      title={t('portfolio.account.form.taxes')}
+                    >
                       <Icon name="tax" size={12} />
                     </span>
                   ) : null}
@@ -132,14 +150,15 @@ export function OperationDayRow({
           <DatedCell column={1}>
             {operation && gross ? (
               <span className={styles.figure}>
-                <span>Brut</span> {formatAmount(gross.value, gross.assetCode, locale)}
+                <span>{t('portfolio.account.operations.gross')}</span>{' '}
+                {formatAmount(gross.value, gross.assetCode, locale)}
               </span>
             ) : operation ? null : (
               <SkeletonBlock />
             )}
           </DatedCell>
-          {figure('Frais', fees)}
-          {figure('Taxes', taxes)}
+          {figure('fees', fees)}
+          {figure('taxes', taxes)}
         </>
       }
       value={operation ? <CashAmount amount={operation.cashAmount} /> : <SkeletonBlock />}

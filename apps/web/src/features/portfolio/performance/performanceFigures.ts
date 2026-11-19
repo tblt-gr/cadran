@@ -7,19 +7,16 @@ export const figureKeys: readonly FigureKey[] = [
   'moneyWeighted',
 ];
 
-export const figureLabels: Record<FigureKey, string> = {
-  gain: 'Gain total',
-  modifiedDietz: 'Rendement (Modified Dietz)',
-  timeWeighted: 'Rendement des placements (TWR)',
-  moneyWeighted: 'Rendement personnel (MWR)',
-};
+export const figureLabelKeys = {
+  gain: 'portfolio.performance.figures.gain',
+  modifiedDietz: 'portfolio.performance.figures.modifiedDietz',
+  timeWeighted: 'portfolio.performance.figures.timeWeighted',
+  moneyWeighted: 'portfolio.performance.figures.moneyWeighted',
+} as const satisfies Record<FigureKey, string>;
 
-export const methodSentences: Record<FigureKey, string> = {
-  gain: 'Valeur finale moins valeur initiale moins les versements nets.',
-  modifiedDietz:
-    'Approximation du rendement pondéré dans le temps : chaque flux est pondéré par la part de la période où il était investi.',
-  timeWeighted:
-    "Rendement des placements, neutre vis-à-vis des versements, calculé à partir d'une valorisation à chaque date de flux.",
-  moneyWeighted:
-    'Taux annuel de votre argent, compte tenu des dates de vos versements et retraits.',
-};
+export const methodSentenceKeys = {
+  gain: 'portfolio.performance.methods.gain',
+  modifiedDietz: 'portfolio.performance.methods.modifiedDietz',
+  timeWeighted: 'portfolio.performance.methods.timeWeighted',
+  moneyWeighted: 'portfolio.performance.methods.moneyWeighted',
+} as const satisfies Record<FigureKey, string>;

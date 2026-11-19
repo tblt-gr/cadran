@@ -18,7 +18,7 @@ interface Props {
 
 /** The yearly goals of one year. */
 export function GoalPanelYearly({ year, evaluations, goals, handlers }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const title = t('goals.panel.yearlySection');
 
   if (evaluations === undefined || goals === undefined) {
@@ -33,6 +33,7 @@ export function GoalPanelYearly({ year, evaluations, goals, handlers }: Props) {
   const rows = buildRows(
     evaluations.years.find((period) => period.period === String(year)),
     indexSummaries(goals),
+    i18n.language,
   );
   if (rows.length === 0) return <p className={styles.empty}>{t('goals.panel.emptyYear')}</p>;
   return (

@@ -1,4 +1,5 @@
 import type { Instrument } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 
 /** The same notice holds its queried name while the scoped instrument read is pending. */
@@ -17,25 +18,30 @@ export function ExistingInstrumentChoice({
   onUse: () => void;
   onRetry: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <>
       {pending && !instrument ? (
-        <SkeletonStatus>Recherche de l’instrument existant</SkeletonStatus>
+        <SkeletonStatus>{t('investments.instruments.existing.searching')}</SkeletonStatus>
       ) : null}
       <p>
-        Cet ISIN existe déjà :{' '}
-        <strong>{instrument?.name ?? (failed ? 'Indisponible' : <SkeletonBlock />)}</strong>.
+        {t('investments.instruments.existing.exists')}{' '}
+        <strong>
+          {instrument?.name ??
+            (failed ? t('investments.instruments.existing.unavailableName') : <SkeletonBlock />)}
+        </strong>
+        .
       </p>
       {failed ? (
         <p>
-          L’instrument est indisponible.{' '}
+          {t('investments.instruments.existing.unavailable')}{' '}
           <button className="secondary-action" type="button" onClick={onRetry}>
-            Réessayer
+            {t('actions.retry')}
           </button>
         </p>
       ) : null}
       {instrument && !compatible ? (
-        <p>Cet instrument ne correspond pas à la devise ou au type du compte.</p>
+        <p>{t('investments.instruments.existing.incompatible')}</p>
       ) : null}
       <button
         className="primary-action"
@@ -43,7 +49,9 @@ export function ExistingInstrumentChoice({
         type="button"
         onClick={onUse}
       >
-        {instrument?.status === 'INACTIVE' ? 'Réactiver et utiliser' : 'Utiliser cet instrument'}
+        {instrument?.status === 'INACTIVE'
+          ? t('investments.instruments.duplicate.reactivateAndUse')
+          : t('investments.instruments.existing.useThis')}
       </button>
     </>
   );

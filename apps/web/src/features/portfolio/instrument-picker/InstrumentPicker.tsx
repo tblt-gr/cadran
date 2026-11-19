@@ -137,17 +137,19 @@ export function InstrumentPicker({
         ) : null}
         {open && result.isError ? (
           <p role="alert">
-            La recherche est indisponible.{' '}
+            {t('portfolio.instrumentPicker.unavailable')}{' '}
             <button
               className="secondary-action"
               onClick={() => void result.refetch()}
               type="button"
             >
-              Réessayer
+              {t('actions.retry')}
             </button>
           </p>
         ) : null}
-        {open && result.isSuccess && items.length === 0 ? <p>Aucun instrument trouvé.</p> : null}
+        {open && result.isSuccess && items.length === 0 ? (
+          <p>{t('portfolio.instrumentPicker.none')}</p>
+        ) : null}
       </div>
       {open && optionCount > 0 && !result.isError ? (
         <ul className={styles.options} id={id} role="listbox" aria-labelledby={`${id}-label`}>
@@ -162,7 +164,8 @@ export function InstrumentPicker({
               }}
               role="option"
             >
-              {item.name} · {item.isin ?? 'sans ISIN'} · {item.ticker ?? 'sans ticker'}
+              {item.name} · {item.isin ?? t('portfolio.instrumentPicker.noIsin')} ·{' '}
+              {item.ticker ?? t('portfolio.instrumentPicker.noTicker')}
             </li>
           ))}
           {canCreate ? (
@@ -175,7 +178,7 @@ export function InstrumentPicker({
                 create();
               }}
             >
-              Créer « {trimmed} »
+              {t('portfolio.instrumentPicker.create', { name: trimmed })}
             </li>
           ) : null}
         </ul>

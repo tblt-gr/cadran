@@ -1,4 +1,5 @@
 import type { PortfolioCashWarning } from '@cadran/api-client';
+import type { TFunction } from 'i18next';
 import { formatAmount, formatCalendarNumericDay, isZeroDecimal, roundDecimal } from '@/lib/decimal';
 
 type Code = PortfolioCashWarning['code'];
@@ -14,32 +15,33 @@ export function sourceKind(code: Code): 'operation' | 'transaction' {
     : 'operation';
 }
 
-function plural(count: number, one: string, many: string): string {
-  return count === 1 ? one : many;
-}
-
-export function warningSentence(warning: PortfolioCashWarning, locale: string): string {
-  const n = warning.count;
+export function warningSentence(
+  t: TFunction,
+  warning: PortfolioCashWarning,
+  locale: string,
+): string {
+  const count = warning.count;
   switch (warning.code) {
     case 'NEGATIVE_CASH':
       return warning.firstDate
-        ? `Solde négatif à partir du ${formatCalendarNumericDay(warning.firstDate)} (${n} ${plural(n, 'opération', 'opérations')})`
-        : `Solde négatif après ${n} ${plural(n, 'opération', 'opérations')}`;
+        ? t('portfolio.cash.warnings.NEGATIVE_CASH_FROM', {
+            count,
+            date: formatCalendarNumericDay(warning.firstDate),
+          })
+        : t('portfolio.cash.warnings.NEGATIVE_CASH', { count });
     case 'UNLINKED_TRANSFER_IN':
-      return `${n} ${plural(n, 'virement entrant n’est lié', 'virements entrants ne sont liés')} à aucun versement`;
     case 'UNLINKED_TRANSFER_OUT':
-      return `${n} ${plural(n, 'virement sortant n’est lié', 'virements sortants ne sont liés')} à aucun retrait`;
     case 'UNLINKED_EXTERNAL_FLOW':
-      return `${n} ${plural(n, 'versement ou retrait sans virement lié', 'versements ou retraits sans virement lié')} (un historique antérieur au suivi est légitime)`;
     case 'LINKED_TRANSFER_CHANGED':
-      return `${n} ${plural(n, 'opération ne correspond plus à son virement lié', 'opérations ne correspondent plus à leur virement lié')} (date, montant ou sens différent, ou virement annulé)`;
     case 'NON_TRANSFER_TRANSACTION':
-      return `${n} ${plural(n, 'transaction de revenu, dépense, remboursement ou frais enregistrée', 'transactions de revenu, dépense, remboursement ou frais enregistrées')} sur ce compte avant le suivi par portefeuille`;
+      return t(`portfolio.cash.warnings.${warning.code}`, { count });
     case 'ROUNDING_RESIDUALS': {
       const total = warning.amount
-        ? ` : total ${formatAmount(warning.amount.value, warning.amount.assetCode, locale)}`
+        ? t('portfolio.cash.warnings.roundingTotal', {
+            amount: formatAmount(warning.amount.value, warning.amount.assetCode, locale),
+          })
         : '';
-      return `${n} ${plural(n, 'opération avec un résidu d’arrondi', 'opérations avec un résidu d’arrondi')}${total}`;
+      return `${t('portfolio.cash.warnings.ROUNDING_RESIDUALS', { count })}${total}`;
     }
   }
 }

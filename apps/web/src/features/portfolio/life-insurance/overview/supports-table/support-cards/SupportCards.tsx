@@ -1,10 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import type { Summary } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import {
   supportCells,
-  supportHeaders,
   supportResultTone,
+  useSupportHeaders,
 } from '@/features/portfolio/life-insurance/overview/supports-table/supportPresentation';
 import styles from './SupportCards.module.css';
 
@@ -12,17 +13,18 @@ import styles from './SupportCards.module.css';
 const MAIN = [5, 6, 7, 8];
 const DETAILS = [1, 2, 3, 4, 9];
 
-const blocks = (positions: number[]) =>
-  positions.map((position) => (
-    <div key={supportHeaders[position]}>
-      <dt>{supportHeaders[position]}</dt>
-      <dd>
-        <SkeletonBlock className={styles.value} />
-      </dd>
-    </div>
-  ));
-
 export function SupportCards({ summary }: { summary: Summary | null }) {
+  const { t, i18n } = useTranslation();
+  const supportHeaders = useSupportHeaders();
+  const blocks = (positions: number[]) =>
+    positions.map((position) => (
+      <div key={supportHeaders[position]}>
+        <dt>{supportHeaders[position]}</dt>
+        <dd>
+          <SkeletonBlock className={styles.value} />
+        </dd>
+      </div>
+    ));
   return (
     <div className={styles.cards}>
       {!summary
@@ -31,13 +33,13 @@ export function SupportCards({ summary }: { summary: Summary | null }) {
               <SkeletonBlock className={styles.name} />
               <dl>{blocks(MAIN)}</dl>
               <details className={styles.details}>
-                <summary>Détails</summary>
+                <summary>{t('portfolio.lifeInsurance.supports.details')}</summary>
                 <dl>{blocks(DETAILS)}</dl>
               </details>
             </article>
           ))
         : summary.supports.map((row) => {
-            const cells = supportCells(row, summary.assetCode);
+            const cells = supportCells(row, summary.assetCode, t, i18n.language);
             const figures = (positions: number[]) =>
               positions.map((position) => (
                 <div key={supportHeaders[position]}>
@@ -60,7 +62,7 @@ export function SupportCards({ summary }: { summary: Summary | null }) {
                 </h4>
                 <dl>{figures(MAIN)}</dl>
                 <details className={styles.details}>
-                  <summary>Détails</summary>
+                  <summary>{t('portfolio.lifeInsurance.supports.details')}</summary>
                   <dl>{figures(DETAILS)}</dl>
                 </details>
               </article>

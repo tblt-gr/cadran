@@ -1,5 +1,6 @@
 import { deactivateInstrument, reactivateInstrument, type Instrument } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -19,6 +20,7 @@ export function InstrumentStatusModal({
   onClose: () => void;
   onStale: () => void;
 }) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const refresh = () =>
     Promise.all([
@@ -50,7 +52,11 @@ export function InstrumentStatusModal({
     <Modal
       intent="confirm"
       close={onClose}
-      title={instrument.status === 'ACTIVE' ? 'Archiver l’instrument' : 'Réactiver l’instrument'}
+      title={
+        instrument.status === 'ACTIVE'
+          ? t('investments.instruments.statusDialog.archiveTitle')
+          : t('investments.instruments.statusDialog.reactivateTitle')
+      }
     >
       <InstrumentStatusDialog
         onCancel={onClose}

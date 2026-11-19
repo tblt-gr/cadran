@@ -28,7 +28,7 @@ export function CompactOperationFilters(props: OperationFiltersProps) {
   };
 
   return (
-    <section aria-label="Filtres des opérations" className={styles.bar}>
+    <section aria-label={t('portfolio.account.filters.label')} className={styles.bar}>
       <button
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -39,9 +39,12 @@ export function CompactOperationFilters(props: OperationFiltersProps) {
         type="button"
       >
         <Icon name="filter" size={16} />
-        Filtrer
+        {t('portfolio.account.filters.toggle')}
         {chips.length > 0 ? (
-          <span aria-label={`${chips.length} filtres actifs`} className={styles.count}>
+          <span
+            aria-label={t('portfolio.account.filters.activeCount', { count: chips.length })}
+            className={styles.count}
+          >
             {chips.length}
           </span>
         ) : null}
@@ -67,7 +70,7 @@ export function CompactOperationFilters(props: OperationFiltersProps) {
           />
           <OperationFilterInputs {...props} />
           <button className={`primary-action ${styles.showResults}`} onClick={close} type="button">
-            Afficher les opérations
+            {t('portfolio.account.filters.showResults')}
           </button>
         </ModalSheet>
       ) : null}

@@ -7,22 +7,23 @@ import styles from './OperationDetailModal.module.css';
 
 export function OperationLegsTable({
   legs,
-  caption = 'Supports de l’opération',
+  caption,
 }: {
   legs: PortfolioOperationLeg[];
   caption?: string;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
+  const title = caption ?? t('portfolio.account.legs.caption');
   return (
-    <div className={styles.scroll} role="region" aria-label={caption} tabIndex={0}>
+    <div className={styles.scroll} role="region" aria-label={title} tabIndex={0}>
       <table>
-        <caption>{caption}</caption>
+        <caption>{title}</caption>
         <thead>
           <tr>
-            {['Sens', 'Support', 'Parts', 'Valeur liquidative', 'Montant', 'Écart d’arrondi'].map(
-              (label) => (
-                <th scope="col" key={label}>
-                  {label}
+            {(['direction', 'support', 'units', 'unitValue', 'amount', 'rounding'] as const).map(
+              (column) => (
+                <th scope="col" key={column}>
+                  {t(`portfolio.account.legs.columns.${column}`)}
                 </th>
               ),
             )}
@@ -31,12 +32,16 @@ export function OperationLegsTable({
         <tbody>
           {legs.map((leg) => (
             <tr key={leg.index}>
-              <td>{leg.direction === 'IN' ? 'Entrée' : 'Sortie'}</td>
+              <td>
+                {leg.direction === 'IN'
+                  ? t('portfolio.account.legs.in')
+                  : t('portfolio.account.legs.out')}
+              </td>
               <th scope="row">
                 {leg.instrument ? (
                   <InstrumentLink instrument={leg.instrument} />
                 ) : (
-                  <EmptyValue label="Support indisponible" />
+                  <EmptyValue label={t('portfolio.account.legs.unavailable')} />
                 )}
               </th>
               <td>{formatDecimal(leg.quantity, i18n.language)}</td>
@@ -50,14 +55,14 @@ export function OperationLegsTable({
                     i18n.language,
                   )
                 ) : (
-                  <EmptyValue label="Non renseigné" />
+                  <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />
                 )}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      {legs.length === 0 ? <p>Aucun support.</p> : null}
+      {legs.length === 0 ? <p>{t('portfolio.account.legs.none')}</p> : null}
     </div>
   );
 }

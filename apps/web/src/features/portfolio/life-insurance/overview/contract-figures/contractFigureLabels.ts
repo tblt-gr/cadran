@@ -1,9 +1,8 @@
+import { lazyLabels } from '@/features/portfolio/lazyLabels';
+const figureIds = ['value', 'gain', 'premiums', 'surrenders', 'fees'] as const;
+export type ContractFigure = (typeof figureIds)[number];
 /** The value and its result lead, the cumulated flows and the fees follow. */
-export const figureLabels = {
-  value: 'Valeur du contrat',
-  gain: "Gain depuis l'ouverture",
-  premiums: 'Versements cumulés',
-  surrenders: 'Rachats nets versés',
-  fees: 'Frais cumulés',
-};
-export type ContractFigure = keyof typeof figureLabels;
+export const figureLabels = lazyLabels<ContractFigure>(
+  figureIds,
+  'portfolio.lifeInsurance.figures.labels',
+);

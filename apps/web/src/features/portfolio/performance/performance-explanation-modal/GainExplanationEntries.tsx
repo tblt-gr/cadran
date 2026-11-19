@@ -1,6 +1,18 @@
 import type { PortfolioGainFigure } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import styles from './PerformanceExplanationModal.module.css';
+type FactKey =
+  | 'startValue'
+  | 'endValue'
+  | 'netFlows'
+  | 'realized'
+  | 'unrealizedChange'
+  | 'income'
+  | 'fees'
+  | 'taxes'
+  | 'residual';
+
 export function GainExplanationEntries({
   gain,
   assetCode,
@@ -8,19 +20,21 @@ export function GainExplanationEntries({
   gain: PortfolioGainFigure;
   assetCode: string;
 }) {
+  const { t, i18n } = useTranslation();
+  const fact = (key: FactKey) => t(`portfolio.performance.facts.${key}`);
   const facts: [string, string | null][] = [
-    ['Valeur initiale', gain.inputs.startValue],
-    ['Valeur finale', gain.inputs.endValue],
-    ['Versements nets', gain.inputs.netFlows],
+    [fact('startValue'), gain.inputs.startValue],
+    [fact('endValue'), gain.inputs.endValue],
+    [fact('netFlows'), gain.inputs.netFlows],
   ];
   if (gain.decomposition.status === 'COMPLETE')
     facts.push(
-      ['Réalisé', gain.decomposition.realized],
-      ['Variation latente', gain.decomposition.unrealizedChange],
-      ['Revenus', gain.decomposition.income],
-      ['Frais', gain.decomposition.fees],
-      ['Taxes', gain.decomposition.taxes],
-      ['Écart', gain.decomposition.residual],
+      [fact('realized'), gain.decomposition.realized],
+      [fact('unrealizedChange'), gain.decomposition.unrealizedChange],
+      [fact('income'), gain.decomposition.income],
+      [fact('fees'), gain.decomposition.fees],
+      [fact('taxes'), gain.decomposition.taxes],
+      [fact('residual'), gain.decomposition.residual],
     );
   return (
     <div className={styles.content}>
@@ -29,10 +43,18 @@ export function GainExplanationEntries({
           const anchor = gain.freshness[key];
           return (
             <li key={key}>
-              {key === 'start' ? 'Début' : 'Fin'} :{' '}
-              {anchor
-                ? `${formatCalendarNumericDay(anchor.date)}, ${anchor.ageDays} jours, ${anchor.priceQuality === 'STALE' ? 'prix anciens' : anchor.priceQuality === 'CURRENT' ? 'prix actuels' : 'valorisation non détaillée'}`
-                : 'Aucune valorisation'}
+              {t('portfolio.performance.anchor.gainLine', {
+                label: t(`portfolio.performance.anchor.${key}`),
+                details: anchor
+                  ? t('portfolio.performance.anchor.gainDetails', {
+                      date: formatCalendarNumericDay(anchor.date),
+                      count: anchor.ageDays,
+                      quality: t(
+                        `portfolio.performance.qualityLower.${anchor.priceQuality === 'STALE' ? 'STALE' : anchor.priceQuality === 'CURRENT' ? 'CURRENT' : 'NOT_DETAILED'}`,
+                      ),
+                    })
+                  : t('portfolio.performance.anchor.noValuation'),
+              })}
             </li>
           );
         })}
@@ -41,7 +63,11 @@ export function GainExplanationEntries({
         {facts.map(([label, value]) => (
           <div className={styles.fact} key={label}>
             <dt>{label}</dt>
-            <dd>{value === null ? 'Non calculable' : formatAmount(value, assetCode, 'fr')}</dd>
+            <dd>
+              {value === null
+                ? t('states.notCalculable.label')
+                : formatAmount(value, assetCode, i18n.language)}
+            </dd>
           </div>
         ))}
       </dl>

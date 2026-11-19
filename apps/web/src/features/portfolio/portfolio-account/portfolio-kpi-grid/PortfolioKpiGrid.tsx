@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { PortfolioOverviewSummary } from '@cadran/api-client';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import {
-  kpiLabels,
-  reasonLabels,
+  kpiLabel,
+  reasonLabel,
   type KpiCode,
 } from '@/features/portfolio/portfolio-account/overviewLabels';
 import { KpiFigure } from './KpiFigure';
@@ -32,6 +33,7 @@ export function PortfolioKpiGrid({
   /** Valuation notices shown under the total value they qualify. */
   qualifiers?: ReactNode;
 }) {
+  const { t, i18n } = useTranslation();
   const [reviewing, setReviewing] = useState(false);
   const needsReview = summary?.reconciliation.status === 'NEEDS_REVIEW';
   const year = asOf.slice(0, 4);
@@ -42,25 +44,27 @@ export function PortfolioKpiGrid({
   };
   const values: Record<KpiCode, ReactNode> | null = summary
     ? {
-        TOTAL_VALUE: kpiValueText(summary, 'TOTAL_VALUE'),
-        UNREALIZED_GAIN: kpiValueText(summary, 'UNREALIZED_GAIN'),
-        CASH: kpiValueText(summary, 'CASH'),
-        NET_DEPOSITS: kpiValueText(summary, 'NET_DEPOSITS'),
-        COSTS: kpiValueText(summary, 'COSTS'),
+        TOTAL_VALUE: kpiValueText(summary, 'TOTAL_VALUE', t, i18n.language),
+        UNREALIZED_GAIN: kpiValueText(summary, 'UNREALIZED_GAIN', t, i18n.language),
+        CASH: kpiValueText(summary, 'CASH', t, i18n.language),
+        NET_DEPOSITS: kpiValueText(summary, 'NET_DEPOSITS', t, i18n.language),
+        COSTS: kpiValueText(summary, 'COSTS', t, i18n.language),
         RECONCILIATION: null,
       }
     : null;
   const figure = (code: KpiCode, size: 'display' | 'lead' | 'compact') => {
     const label =
-      code === 'NET_DEPOSITS' || code === 'COSTS' ? `${kpiLabels[code]} ${year}` : kpiLabels[code];
+      code === 'NET_DEPOSITS' || code === 'COSTS'
+        ? `${kpiLabel(t, code)} ${year}`
+        : kpiLabel(t, code);
     const reason = summary?.explanations[code].reason;
     return (
       <KpiFigure
-        explainLabel={`Expliquer : ${kpiLabels[code]}`}
+        explainLabel={t('portfolio.account.kpiGrid.explain', { label: kpiLabel(t, code) })}
         key={code}
         label={label}
         onExplain={summary ? () => onExplain(code) : null}
-        reason={reason ? (reasonLabels[reason] ?? reason) : undefined}
+        reason={reason ? (reasonLabel(t, reason) ?? reason) : undefined}
         size={size}
         tone={tones[code]}
         value={values ? values[code] : null}
@@ -69,7 +73,7 @@ export function PortfolioKpiGrid({
   };
   return (
     <section
-      aria-label="Indicateurs du portefeuille"
+      aria-label={t('portfolio.account.kpiGrid.label')}
       aria-busy={!summary}
       className={`${embedded ? '' : 'card'} ${styles.summary}`}
       data-testid={!summary ? 'portfolio-kpi-skeleton' : undefined}
@@ -84,7 +88,9 @@ export function PortfolioKpiGrid({
           {qualifiers}
           {needsReview && summary ? (
             <button className={styles.pill} onClick={() => setReviewing(true)} type="button">
-              <StatusBadge tone="warning">{kpiValueText(summary, 'RECONCILIATION')}</StatusBadge>
+              <StatusBadge tone="warning">
+                {kpiValueText(summary, 'RECONCILIATION', t, i18n.language)}
+              </StatusBadge>
             </button>
           ) : null}
         </div>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { LifeInsuranceEuroFundRate, LifeInsuranceEuroFund } from '@cadran/api-client';
@@ -6,8 +7,9 @@ import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
 import { formatDecimal } from '@/lib/decimal';
-import { basisLabels } from '@/features/portfolio/life-insurance/lifeInsuranceLabels';
 import styles from './EuroFundRatesCard.module.css';
+const columnKeys = ['year', 'support', 'served', 'bonus', 'basis', 'source', 'actions'] as const;
+
 export function EuroFundRatesCard({
   items = [],
   euroFunds = [],
@@ -25,6 +27,10 @@ export function EuroFundRatesCard({
   onAdd: () => void;
   onRemove: (id: string) => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const notProvided = <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />;
+  const percent = (value: string) =>
+    t('portfolio.lifeInsurance.percent', { value: formatDecimal(value, i18n.language) });
   const missing = euroFunds.some((fund) => fund.missingLastYear);
   const latestYear = items.reduce<number | null>(
     (year, item) => (year === null || item.year > year ? item.year : year),
@@ -32,17 +38,19 @@ export function EuroFundRatesCard({
   );
   return (
     <ContractSection
-      title="Taux des fonds en euros"
-      label="Taux des fonds en euros"
+      title={t('portfolio.lifeInsurance.rates.title')}
+      label={t('portfolio.lifeInsurance.rates.title')}
       hint={
         loading ? (
           <SkeletonBlock className={styles.hintSkeleton} />
         ) : missing ? (
-          <StatusBadge tone="warning">{`Taux ${lastClosedYear} manquant`}</StatusBadge>
+          <StatusBadge tone="warning">
+            {t('portfolio.lifeInsurance.rates.missingBadge', { year: lastClosedYear })}
+          </StatusBadge>
         ) : latestYear !== null ? (
-          `dernier taux : ${latestYear}`
+          t('portfolio.lifeInsurance.rates.hintLatest', { year: latestYear })
         ) : (
-          'Aucun taux'
+          t('portfolio.lifeInsurance.rates.hintNone')
         )
       }
       action={
@@ -52,7 +60,7 @@ export function EuroFundRatesCard({
           disabled={loading || !writable}
           onClick={onAdd}
         >
-          Renseigner un taux
+          {t('portfolio.lifeInsurance.rates.add')}
         </button>
       }
     >
@@ -62,23 +70,25 @@ export function EuroFundRatesCard({
           .map((f) => (
             <p key={f.instrument.id}>
               <InstrumentLink instrument={f.instrument} /> :{' '}
-              <StatusBadge tone="warning">{`Taux ${lastClosedYear} non renseigné`}</StatusBadge>
+              <StatusBadge tone="warning">
+                {t('portfolio.lifeInsurance.rates.unprovidedBadge', { year: lastClosedYear })}
+              </StatusBadge>
             </p>
           ))}
       </div>
       <div
         className={styles.scroll}
         role="region"
-        aria-label="Taux des fonds en euros"
+        aria-label={t('portfolio.lifeInsurance.rates.title')}
         tabIndex={0}
       >
         <table className={styles.table}>
-          <caption>Taux annoncés par l'assureur, distincts de la performance du contrat.</caption>
+          <caption>{t('portfolio.lifeInsurance.rates.caption')}</caption>
           <thead>
             <tr>
-              {['Année', 'Support', 'Taux servi', 'Bonus', 'Base', 'Source', 'Actions'].map((h) => (
-                <th key={h} scope="col">
-                  {h}
+              {columnKeys.map((key) => (
+                <th key={key} scope="col">
+                  {t(`portfolio.lifeInsurance.rates.columns.${key}`)}
                 </th>
               ))}
             </tr>
@@ -98,25 +108,24 @@ export function EuroFundRatesCard({
                         }
                       />
                     ) : (
-                      'Support indisponible'
+                      t('portfolio.lifeInsurance.rates.unavailableSupport')
                     )}
                   </td>
-                  <td>{formatDecimal(item.servedRate, 'fr-FR')} %</td>
-                  <td>
-                    {item.bonusRate === null ? (
-                      <EmptyValue label="Non renseigné" />
-                    ) : (
-                      `${formatDecimal(item.bonusRate, 'fr-FR')} %`
-                    )}
-                  </td>
-                  <td>{basisLabels[item.basis]}</td>
-                  <td>{item.sourceNote ?? <EmptyValue label="Non renseigné" />}</td>
+                  <td>{percent(item.servedRate)}</td>
+                  <td>{item.bonusRate === null ? notProvided : percent(item.bonusRate)}</td>
+                  <td>{t(`portfolio.lifeInsurance.basis.${item.basis}`)}</td>
+                  <td>{item.sourceNote ?? notProvided}</td>
                   <td>
                     <button
                       className="icon-ghost"
                       type="button"
                       disabled={!writable}
-                      aria-label={`Supprimer le taux ${item.year} de ${euroFunds.find((f) => f.instrument.id === item.instrumentId)?.instrument.name ?? 'ce support'}`}
+                      aria-label={t('portfolio.lifeInsurance.rates.remove', {
+                        year: item.year,
+                        name:
+                          euroFunds.find((f) => f.instrument.id === item.instrumentId)?.instrument
+                            .name ?? t('portfolio.lifeInsurance.rates.thisSupport'),
+                      })}
                       onClick={() => onRemove(item.id)}
                     >
                       <Icon name="delete" size={16} />
@@ -128,7 +137,7 @@ export function EuroFundRatesCard({
           )}
         </table>
       </div>
-      {!loading && items.length === 0 ? <p>Aucun taux renseigné.</p> : null}
+      {!loading && items.length === 0 ? <p>{t('portfolio.lifeInsurance.rates.empty')}</p> : null}
     </ContractSection>
   );
 }

@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import styles from './MetricPolicyPage.module.css';
 
-const DATE_TIME = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
-
 interface MetricPolicyHistoryProps {
   activeVersion: number;
   onActivate: (policy: MetricPolicy) => void;
@@ -16,7 +14,11 @@ export function MetricPolicyHistory({
   onActivate,
   versions,
 }: MetricPolicyHistoryProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const dateTime = new Intl.DateTimeFormat(i18n.language, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
 
   return (
     <section aria-labelledby="metric-policy-history-title" className={`card ${styles.history}`}>
@@ -56,7 +58,7 @@ export function MetricPolicyHistory({
                 <td>
                   {policy.createdAt === null
                     ? t('metricPolicy.history.builtIn')
-                    : DATE_TIME.format(new Date(policy.createdAt))}
+                    : dateTime.format(new Date(policy.createdAt))}
                 </td>
                 <td>
                   {policy.version === activeVersion ? (

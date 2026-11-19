@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
@@ -12,6 +13,7 @@ import styles from './ValuationForm.module.css';
  * element: labels, mode choice and submit are real, every draft value pending.
  */
 export function ValuationDraftSkeleton({ loading = true }: { loading?: boolean }) {
+  const { t } = useTranslation();
   return (
     <ModalForm
       aria-busy={loading || undefined}
@@ -19,34 +21,43 @@ export function ValuationDraftSkeleton({ loading = true }: { loading?: boolean }
       onSubmit={(event) => event.preventDefault()}
       data-testid="valuation-draft-skeleton"
     >
-      {loading ? <SkeletonStatus>Chargement du brouillon de valorisation…</SkeletonStatus> : null}
+      {loading ? (
+        <SkeletonStatus>{t('portfolio.valuations.form.loadingDraft')}</SkeletonStatus>
+      ) : null}
       <fieldset className={styles.segmented} disabled>
-        <legend>Mode de saisie</legend>
+        <legend>{t('portfolio.valuations.form.mode')}</legend>
         <label className={styles.segment}>
           <input name="valuation-detail-skeleton" type="radio" />
-          Valeur totale
+          {t('portfolio.valuations.form.modeTotal')}
         </label>
         <label className={styles.segment}>
           <input name="valuation-detail-skeleton" type="radio" />
-          Détail par ligne
+          {t('portfolio.valuations.form.modePositions')}
         </label>
       </fieldset>
       <FormGrid>
-        <FormField label="Valeur totale du compte">
+        <FormField label={t('portfolio.valuations.form.accountTotal')}>
           {() => <SkeletonBlock className={styles.skeletonControl} />}
         </FormField>
-        <FormField label="Espèces du relevé" hint={<ValuationCashHint />}>
+        <FormField
+          label={t('portfolio.valuations.form.statementCash')}
+          hint={<ValuationCashHint />}
+        >
           {() => <SkeletonBlock className={styles.skeletonControl} />}
         </FormField>
-        <FormSection title="Champs avancés" open={false} onToggle={() => undefined}>
-          <FormField label="Note" wide>
+        <FormSection
+          title={t('portfolio.lifeInsurance.advancedFields')}
+          open={false}
+          onToggle={() => undefined}
+        >
+          <FormField label={t('portfolio.valuations.common.note')} wide>
             {() => <SkeletonBlock className={styles.skeletonControl} />}
           </FormField>
         </FormSection>
       </FormGrid>
       <ModalActions>
         <button className="primary-action" disabled type="button">
-          Enregistrer
+          {t('portfolio.lifeInsurance.save')}
         </button>
       </ModalActions>
     </ModalForm>

@@ -1,5 +1,6 @@
 import type { PortfolioCash, PortfolioCashWarning } from '@cadran/api-client';
 import { useState } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
@@ -18,11 +19,14 @@ function SourceLink({ href, children }: { children: string; href: string }) {
   );
 }
 
-function operationLabel(cash: PortfolioCash, id: string, index: number): string {
+function operationLabel(t: TFunction, cash: PortfolioCash, id: string, index: number): string {
   const movement = cash.movements.find((candidate) => candidate.operationId === id);
   return movement
-    ? `${operationTypeLabel(movement.type)} du ${formatCalendarNumericDay(movement.tradeDate)}`
-    : `Opération ${index + 1}`;
+    ? t('portfolio.account.operations.menu.operationLabel', {
+        type: operationTypeLabel(t, movement.type),
+        day: formatCalendarNumericDay(movement.tradeDate),
+      })
+    : t('portfolio.cash.warnings.operationN', { index: index + 1 });
 }
 
 /**
@@ -37,7 +41,7 @@ export function CashWarnings({
   accountId: string;
   cash: PortfolioCash | null;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [open, setOpen] = useState(false);
   const shown = (cash?.warnings ?? []).filter(
     (warning) => !isHiddenWarning(warning, i18n.language),
@@ -48,18 +52,18 @@ export function CashWarnings({
   function row(warning: PortfolioCashWarning, data: PortfolioCash) {
     return (
       <li className={styles.row} key={warning.code}>
-        <span>{warningSentence(warning, i18n.language)}</span>
+        <span>{warningSentence(t, warning, i18n.language)}</span>
         {sourceKind(warning.code) === 'operation' ? (
           <span className={styles.sources}>
             {warning.sourceIds.map((id, index) => (
               <SourceLink href={`/portfolios/${accountId}?tab=operations&operation=${id}`} key={id}>
-                {operationLabel(data, id, index)}
+                {operationLabel(t, data, id, index)}
               </SourceLink>
             ))}
           </span>
         ) : (
           <SourceLink href={portfolioAccountHref(accountId, data.to.slice(0, 7))}>
-            Voir les mouvements du compte
+            {t('portfolio.cash.warnings.seeMovements')}
           </SourceLink>
         )}
       </li>
@@ -71,15 +75,21 @@ export function CashWarnings({
   return (
     <>
       <button className={styles.pill} onClick={() => setOpen(true)} type="button">
-        <StatusBadge tone="warning">{`À vérifier (${warnings.length})`}</StatusBadge>
+        <StatusBadge tone="warning">
+          {t('portfolio.cash.warnings.toCheck', { count: warnings.length })}
+        </StatusBadge>
       </button>
       {open ? (
-        <Modal intent="detail" close={() => setOpen(false)} title="Contrôle des espèces">
+        <Modal
+          intent="detail"
+          close={() => setOpen(false)}
+          title={t('portfolio.cash.warnings.title')}
+        >
           <div className={styles.content}>
             <ul className={styles.list}>{warnings.map((warning) => row(warning, cash))}</ul>
             {infos.length > 0 ? (
               <details className={styles.infos}>
-                <summary>{`Informations (${infos.length})`}</summary>
+                <summary>{t('portfolio.cash.warnings.infos', { count: infos.length })}</summary>
                 <ul className={styles.list}>{infos.map((warning) => row(warning, cash))}</ul>
               </details>
             ) : null}

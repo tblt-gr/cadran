@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import type {
   OperationFieldErrors,
@@ -23,6 +24,7 @@ export function OperationExtraFields({
   onChange: (key: ExtraKey, value: string) => void;
   values: Pick<OperationFormValues, ExtraKey>;
 }) {
+  const { t } = useTranslation();
   const filled = Boolean(values.settlementDate || values.reference || values.note || values.reason);
   const [open, setOpen] = useState(filled);
   const refused = Boolean(
@@ -30,9 +32,13 @@ export function OperationExtraFields({
   );
 
   return (
-    <FormSection title="Champs avancés" open={open || refused} onToggle={setOpen}>
+    <FormSection
+      title={t('portfolio.account.form.extra.title')}
+      open={open || refused}
+      onToggle={setOpen}
+    >
       {editing ? (
-        <OperationField error={errors.reason} label="Motif (facultatif)" wide>
+        <OperationField error={errors.reason} label={t('portfolio.account.form.extra.reason')} wide>
           <input
             maxLength={200}
             onChange={(event) => onChange('reason', event.target.value)}
@@ -40,21 +46,24 @@ export function OperationExtraFields({
           />
         </OperationField>
       ) : null}
-      <OperationField error={errors.settlementDate} label="Date de règlement">
+      <OperationField
+        error={errors.settlementDate}
+        label={t('portfolio.account.form.extra.settlementDate')}
+      >
         <input
           onChange={(event) => onChange('settlementDate', event.target.value)}
           type="date"
           value={values.settlementDate}
         />
       </OperationField>
-      <OperationField error={errors.reference} label="Référence">
+      <OperationField error={errors.reference} label={t('portfolio.account.form.extra.reference')}>
         <input
           maxLength={64}
           onChange={(event) => onChange('reference', event.target.value)}
           value={values.reference}
         />
       </OperationField>
-      <OperationField error={errors.note} label="Note" wide>
+      <OperationField error={errors.note} label={t('portfolio.account.form.extra.note')} wide>
         <input
           maxLength={200}
           onChange={(event) => onChange('note', event.target.value)}

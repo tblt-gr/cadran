@@ -1,5 +1,6 @@
 import { capturePortfolioSource } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import {
@@ -7,14 +8,6 @@ import {
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import styles from './QualityIssues.module.css';
-const sentences = {
-  INTEREST_BASIS_UNKNOWN: 'La base des intérêts crédités n’est pas précisée.',
-  MISSING_EURO_FUND_RATE: 'Un taux servi manque pour les intérêts enregistrés.',
-  STALE_VALUATION: 'La valorisation est ancienne.',
-  NO_VALUATION: 'Aucune valorisation complète à cette date.',
-  NOT_DETAILED: 'La valorisation ne détaille pas les supports.',
-  RATE_NOT_UPDATED: 'Le taux servi d’un fonds en euros manque pour la dernière année clôturée.',
-};
 export function QualityIssues({
   summary,
   accountId,
@@ -24,15 +17,20 @@ export function QualityIssues({
   accountId: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t } = useTranslation();
   if (!summary || summary.qualityIssues.length === 0) return null;
   return (
-    <section className={styles.alert} role="status" aria-label="Qualité des données">
+    <section
+      className={styles.alert}
+      role="status"
+      aria-label={t('portfolio.lifeInsurance.quality.label')}
+    >
       <Icon name="alert" size={18} />
       <ul>
         {summary.qualityIssues.map((issue) => (
           <li key={issue.code}>
             <p>
-              {sentences[issue.code]} ({issue.count})
+              {t(`portfolio.lifeInsurance.quality.sentences.${issue.code}`)} ({issue.count})
             </p>
             {issue.operationIds.map((id, index) => {
               const href = sourceHref(accountId, summary.asOf, 'OPERATION', id);
@@ -46,12 +44,16 @@ export function QualityIssues({
                     handleClientNavigation(event, href);
                   }}
                 >
-                  Opération {index + 1}
+                  {t('portfolio.lifeInsurance.quality.operation', { index: index + 1 })}
                 </a>
               );
             })}
             {issue.count > issue.operationIds.length && issue.operationIds.length > 0 ? (
-              <p>{issue.count - issue.operationIds.length} autres opérations concernées</p>
+              <p>
+                {t('portfolio.lifeInsurance.quality.moreOperations', {
+                  count: issue.count - issue.operationIds.length,
+                })}
+              </p>
             ) : null}
           </li>
         ))}

@@ -1,27 +1,30 @@
+import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
-  money,
+  useLifeInsuranceMoney,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
 import styles from './TaxTrackingCard.module.css';
-const columns = {
-  year: 'Année',
-  premiums: 'Versements',
-  surrendersGross: 'Rachats bruts',
-  surrendersNetPaid: 'Net versé',
-  withheldIncomeTax: 'Impôt retenu',
-  withheldSocialContributions: 'Prélèvements sociaux',
-};
+const columnKeys = [
+  'year',
+  'premiums',
+  'surrendersGross',
+  'surrendersNetPaid',
+  'withheldIncomeTax',
+  'withheldSocialContributions',
+] as const;
 export function TaxTrackingCard({ summary }: { summary: Summary | null }) {
+  const { t } = useTranslation();
+  const money = useLifeInsuranceMoney();
   const age = summary?.contractAge;
   return (
     <ContractSection
-      title="Suivi fiscal (informatif)"
+      title={t('portfolio.lifeInsurance.tax.title')}
       hint={
         summary ? (
-          `au ${formatCalendarNumericDay(summary.asOf)}`
+          t('portfolio.lifeInsurance.asOf', { date: formatCalendarNumericDay(summary.asOf) })
         ) : (
           <SkeletonBlock className={styles.hintSkeleton} />
         )
@@ -32,24 +35,30 @@ export function TaxTrackingCard({ summary }: { summary: Summary | null }) {
       {!summary ? (
         <SkeletonBlock className={styles.age} />
       ) : age ? (
-        <p>{`Contrat ouvert depuis ${age.years} ans et ${age.months} mois (date fiscale du ${formatCalendarNumericDay(age.taxStartOn)}).`}</p>
+        <p>
+          {t('portfolio.lifeInsurance.tax.age', {
+            years: age.years,
+            months: age.months,
+            date: formatCalendarNumericDay(age.taxStartOn),
+          })}
+        </p>
       ) : (
-        <p>Date fiscale indisponible.</p>
+        <p>{t('portfolio.lifeInsurance.tax.dateUnavailable')}</p>
       )}
-      <p>Aucune estimation d'impôt : aucun barème fiscal identifié pour ce contrat.</p>
+      <p>{t('portfolio.lifeInsurance.tax.noEstimate')}</p>
       <div
         className={styles.scroll}
         role="region"
-        aria-label="Montants fiscaux par année"
+        aria-label={t('portfolio.lifeInsurance.tax.region')}
         tabIndex={0}
       >
         <table>
-          <caption className="sr-only">Montants fiscaux enregistrés par année</caption>
+          <caption className="sr-only">{t('portfolio.lifeInsurance.tax.caption')}</caption>
           <thead>
             <tr>
-              {Object.values(columns).map((label) => (
-                <th key={label} scope="col">
-                  {label}
+              {columnKeys.map((key) => (
+                <th key={key} scope="col">
+                  {t(`portfolio.lifeInsurance.tax.columns.${key}`)}
                 </th>
               ))}
             </tr>
@@ -61,7 +70,7 @@ export function TaxTrackingCard({ summary }: { summary: Summary | null }) {
               {summary.taxYears.map((row) => (
                 <tr key={row.year}>
                   <th scope="row">{row.year}</th>
-                  {(Object.keys(columns) as (keyof typeof columns)[])
+                  {columnKeys
                     .filter((key) => key !== 'year')
                     .map((key) => (
                       <td className="money" key={key}>
@@ -74,7 +83,7 @@ export function TaxTrackingCard({ summary }: { summary: Summary | null }) {
           )}
         </table>
       </div>
-      {summary?.taxYears.length === 0 ? <p>Aucune année enregistrée à cette date.</p> : null}
+      {summary?.taxYears.length === 0 ? <p>{t('portfolio.lifeInsurance.tax.noYear')}</p> : null}
     </ContractSection>
   );
 }

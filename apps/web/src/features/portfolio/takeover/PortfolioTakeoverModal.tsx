@@ -1,6 +1,7 @@
 import { recordPortfolioTakeover, type PortfolioTakeoverRequest } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -26,6 +27,7 @@ export function PortfolioTakeoverModal({
   /** Called with the takeover date once everything is recorded. */
   onSaved: (takenOverOn: string) => void;
 }) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const attempt = useRef<{ body: string; key: string } | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -67,7 +69,7 @@ export function PortfolioTakeoverModal({
         close={() => (dirty ? setConfirming(true) : onClose())}
         eyebrow={account.label}
         intent="create"
-        title="Saisir mes positions"
+        title={t('portfolio.takeover.enter')}
       >
         <PortfolioTakeoverForm
           account={account}

@@ -2,6 +2,7 @@ import { InstrumentLink } from '@/features/investments/instrument-link/Instrumen
 import type { PortfolioOverviewAllocation } from '@cadran/api-client';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { SegmentedControl } from '@/components/ui/segmented-control/SegmentedControl';
 import { AllocationLegend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
@@ -15,44 +16,43 @@ import {
 } from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import type { AllocationBy } from '@/features/portfolio/usePortfolioOverview';
-import { reasonLabels } from '@/features/portfolio/portfolio-account/overviewLabels';
+import { reasonLabel } from '@/features/portfolio/portfolio-account/overviewLabels';
 import {
-  instrumentClasses,
-  instrumentRegions,
+  instrumentClassOptions,
+  instrumentRegionOptions,
 } from '@/features/investments/instruments/instrument-form/instrumentOptions';
 import styles from './AllocationCard.module.css';
-const choices: { value: AllocationBy; label: string }[] = [
-  { value: 'INSTRUMENT', label: 'Instrument' },
-  { value: 'ASSET_CLASS', label: 'Classe d’actifs' },
-  { value: 'REGION', label: 'Région' },
-  { value: 'CURRENCY', label: 'Devise' },
-];
+const choices: AllocationBy[] = ['INSTRUMENT', 'ASSET_CLASS', 'REGION', 'CURRENCY'];
 /** The server groups by code; classes and regions read with the names used on the instruments. */
-const groupNames: Partial<Record<AllocationBy, ReadonlyMap<string, string>>> = {
-  ASSET_CLASS: new Map(instrumentClasses),
-  REGION: new Map(instrumentRegions),
-};
 export function AllocationCard({
   allocation,
-  title = 'Répartition',
+  title,
   by,
   onByChange,
   disabled = false,
   showFallbackNotice = true,
 }: {
   allocation: PortfolioOverviewAllocation | null;
+  /** Defaults to the allocation heading. */
   title?: string;
   by: AllocationBy;
   onByChange: (by: AllocationBy) => void;
   disabled?: boolean;
   showFallbackNotice?: boolean;
 }) {
+  const { t, i18n } = useTranslation();
   const money = (value: string | null) =>
-    value === null ? 'Non calculable' : formatAmount(value, allocation!.assetCode, 'fr');
+    value === null
+      ? t('states.notCalculable.label')
+      : formatAmount(value, allocation!.assetCode, i18n.language);
   const [tableOpen, setTableOpen] = useState(false);
+  const groupNames: Partial<Record<AllocationBy, ReadonlyMap<string, string>>> = {
+    ASSET_CLASS: new Map(instrumentClassOptions(t)),
+    REGION: new Map(instrumentRegionOptions(t)),
+  };
   const label = (key: string, text: string) =>
     key === 'UNSPECIFIED'
-      ? 'Non renseignée'
+      ? t('portfolio.allocation.unspecified')
       : ((allocation && groupNames[allocation.by]?.get(key)) ?? text);
   // A signed allocation stays useful in the table but cannot be represented by a donut.
   const signedShares =
@@ -69,16 +69,16 @@ export function AllocationCard({
     <div
       className={styles.tableScroll}
       role="region"
-      aria-label="Répartition détaillée"
+      aria-label={t('portfolio.allocation.detailed')}
       tabIndex={0}
     >
       <table>
-        <caption className="sr-only">Répartition détaillée, toutes les lignes</caption>
+        <caption className="sr-only">{t('portfolio.allocation.tableCaption')}</caption>
         <thead>
           <tr>
-            <th scope="col">Libellé</th>
-            <th scope="col">Valeur</th>
-            <th scope="col">Part</th>
+            <th scope="col">{t('portfolio.allocation.columns.label')}</th>
+            <th scope="col">{t('portfolio.allocation.columns.value')}</th>
+            <th scope="col">{t('portfolio.allocation.columns.share')}</th>
           </tr>
         </thead>
         {!allocation ? (
@@ -98,7 +98,9 @@ export function AllocationCard({
                 </th>
                 <td className="money">{money(item.value)}</td>
                 <td className="money">
-                  {item.share === null ? 'Non calculable' : formatRatioPercentage(item.share, 'fr')}
+                  {item.share === null
+                    ? t('states.notCalculable.label')
+                    : formatRatioPercentage(item.share, i18n.language)}
                 </td>
               </tr>
             ))}
@@ -115,9 +117,9 @@ export function AllocationCard({
       data-testid={!allocation ? 'portfolio-allocation-skeleton' : undefined}
     >
       <div className={styles.header}>
-        <h3 id="portfolio-allocation-title">{title}</h3>
+        <h3 id="portfolio-allocation-title">{title ?? t('portfolio.allocation.title')}</h3>
         <div className={styles.valuationDate}>
-          <span>Valorisation retenue :</span>
+          <span>{t('portfolio.allocation.valuationUsed')}</span>
           {!allocation ? (
             <SkeletonBlock className={styles.dateSkeleton} />
           ) : allocation.valuation ? (
@@ -125,9 +127,9 @@ export function AllocationCard({
               {formatCalendarNumericDay(allocation.valuation.valuedOn)}
             </time>
           ) : (
-            <span>aucune à cette date</span>
+            <span>{t('portfolio.allocation.noValuation')}</span>
           )}
-          {atCost ? <span>· au prix de revient</span> : null}
+          {atCost ? <span>{t('portfolio.allocation.atCost')}</span> : null}
         </div>
       </div>
       {showFallbackNotice && allocation ? (
@@ -138,9 +140,9 @@ export function AllocationCard({
       ) : null}
       <SegmentedControl
         disabled={disabled}
-        label="Regrouper la répartition"
+        label={t('portfolio.allocation.groupBy')}
         onChange={onByChange}
-        options={choices}
+        options={choices.map((value) => ({ value, label: t(`portfolio.allocation.by.${value}`) }))}
         value={by}
       />
       {!allocation ? (
@@ -148,25 +150,19 @@ export function AllocationCard({
       ) : allocation.slices.length === 0 && !signedShares ? (
         <p className={styles.note} role="status">
           {allocation.reason === 'PARTIAL_VALUATION'
-            ? 'Valorisation partielle : la répartition n’est pas calculable'
-            : reasonLabels[allocation.reason ?? 'NON_POSITIVE_TOTAL']}
+            ? t('portfolio.allocation.partial')
+            : reasonLabel(t, allocation.reason ?? 'NON_POSITIVE_TOTAL')}
         </p>
       ) : signedShares ? (
         <p className={styles.note} role="status">
-          Graphique indisponible : la répartition contient des parts négatives ou supérieures à 100
-          %. Consultez les valeurs signées du tableau.
+          {t('portfolio.allocation.chartUnavailable')}
         </p>
       ) : (
         <>
-          {atCost ? (
-            <p className={styles.note}>
-              Valorisation saisie en total : la valeur de chaque ligne n’est pas connue, la
-              répartition suit le prix de revient des titres détenus.
-            </p>
-          ) : null}
+          {atCost ? <p className={styles.note}>{t('portfolio.allocation.costNote')}</p> : null}
           <div className={styles.plot}>
             <DonutPlot
-              label="Répartition du portefeuille"
+              label={t('portfolio.allocation.plotLabel')}
               totalText={allocation.total === null ? null : money(allocation.total)}
               slices={allocation.slices.map((item) => ({
                 key: item.key,
@@ -176,7 +172,7 @@ export function AllocationCard({
               }))}
             />
             <AllocationLegend
-              label="Légende de la répartition"
+              label={t('portfolio.allocation.legend')}
               items={allocation.slices.map((item) => ({
                 key: item.key,
                 label:
@@ -188,7 +184,7 @@ export function AllocationCard({
                     label(item.key, item.label)
                   ),
                 amount: money(item.value),
-                share: formatRatioPercentage(item.share!, 'fr'),
+                share: formatRatioPercentage(item.share!, i18n.language),
                 barPercent: ratioToPercent(item.share!),
               }))}
             />
@@ -199,12 +195,12 @@ export function AllocationCard({
         <Disclosure
           meta={
             allocation
-              ? `${allocation.items.length} ${allocation.items.length > 1 ? 'lignes' : 'ligne'}`
+              ? t('portfolio.allocation.rows', { count: allocation.items.length })
               : undefined
           }
           onToggle={setTableOpen}
           open={tableOpen}
-          title="Toutes les lignes"
+          title={t('portfolio.allocation.allRows')}
         >
           {table}
         </Disclosure>

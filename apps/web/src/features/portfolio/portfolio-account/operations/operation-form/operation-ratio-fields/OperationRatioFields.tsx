@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { OperationDecimalField } from '@/features/portfolio/portfolio-account/operations/operation-form/OperationDecimalField';
 import styles from './OperationRatioFields.module.css';
 
@@ -14,16 +15,17 @@ export function OperationRatioFields({
   onDenominatorChange: (value: string) => void;
   onNumeratorChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <fieldset className={styles.ratio}>
-      <legend>Ratio de division</legend>
+      <legend>{t('portfolio.account.form.ratio.legend')}</legend>
       <OperationDecimalField
-        label="Numérateur du ratio"
+        label={t('portfolio.account.form.ratio.numerator')}
         onChange={onNumeratorChange}
         value={numerator}
       />
       <OperationDecimalField
-        label="Dénominateur du ratio"
+        label={t('portfolio.account.form.ratio.denominator')}
         onChange={onDenominatorChange}
         value={denominator}
       />

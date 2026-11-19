@@ -1,5 +1,6 @@
 import { voidPortfolioOperation, type PortfolioOperation } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -20,6 +21,7 @@ export function VoidOperationModal({
   onStale: () => void;
   operation: PortfolioOperation;
 }) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const refresh = () =>
     Promise.all([
@@ -65,11 +67,11 @@ export function VoidOperationModal({
   });
 
   return (
-    <Modal intent="confirm" close={onClose} title="Annuler l’opération">
+    <Modal intent="confirm" close={onClose} title={t('portfolio.account.void.confirm')}>
       <VoidOperationDialog
         onCancel={onClose}
         type={operation.type}
-        error={operationSaveMessage(voidOperation.error, [
+        error={operationSaveMessage(voidOperation.error, t, [
           operation.instrument,
           operation.counterInstrument,
         ])}

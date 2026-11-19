@@ -26,7 +26,7 @@ interface Props {
  * target at the summary, the goal rows inside. The last selected year starts open.
  */
 export function GoalPanelYears({ years, evaluations, goals, handlers, onStop }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState<ReadonlySet<number>>(() => new Set(years.slice(-1)));
   const summaries = goals ? indexSummaries(goals) : null;
   const toggle = (year: number, isOpen: boolean) =>
@@ -46,6 +46,7 @@ export function GoalPanelYears({ years, evaluations, goals, handlers, onStop }: 
           ? buildRows(
               evaluations.years.find((period) => period.period === String(year)),
               summaries,
+              i18n.language,
             )
           : [];
         const yearHandlers = { ...handlers, onStop: (goal: GoalSummary) => onStop(goal, year) };

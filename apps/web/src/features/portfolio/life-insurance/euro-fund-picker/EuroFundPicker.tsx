@@ -1,5 +1,6 @@
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { listInstruments } from '@cadran/api-client';
 import { authApiOptions } from '@/features/auth/apiOptions';
@@ -16,6 +17,7 @@ export function EuroFundPicker({
   onChange: (value: string) => void;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const query = useQuery({
@@ -35,7 +37,7 @@ export function EuroFundPicker({
   return (
     <div className={styles.form}>
       <label>
-        Rechercher un fonds en euros
+        {t('portfolio.lifeInsurance.rates.picker.search')}
         <input
           value={q}
           onChange={(e) => {
@@ -48,41 +50,38 @@ export function EuroFundPicker({
       </label>
       {query.isPending ? (
         <div aria-busy="true">
-          <SkeletonField label="Support" />
-          <SkeletonStatus>Chargement des supports…</SkeletonStatus>
+          <SkeletonField label={t('portfolio.lifeInsurance.rates.columns.support')} />
+          <SkeletonStatus>{t('portfolio.lifeInsurance.rates.picker.loading')}</SkeletonStatus>
         </div>
       ) : query.isError ? (
         <p role="alert">
-          Les supports sont indisponibles.{' '}
+          {t('portfolio.lifeInsurance.rates.picker.unavailable')}{' '}
           <button type="button" className="secondary-action" onClick={() => void query.refetch()}>
-            Réessayer
+            {t('actions.retry')}
           </button>
         </p>
       ) : (
         <>
           <label>
-            Support
+            {t('portfolio.lifeInsurance.rates.columns.support')}
             <select
               required
               value={value}
               onChange={(e) => onChange(e.target.value)}
               disabled={disabled}
             >
-              <option value="">Choisir un fonds en euros</option>
+              <option value="">{t('portfolio.lifeInsurance.rates.picker.choose')}</option>
               {funds.map((i) => (
                 <option key={i.id} value={i.id}>
                   {i.name}
-                  {i.status === 'INACTIVE' ? ' (inactif)' : ''}
+                  {i.status === 'INACTIVE'
+                    ? t('portfolio.lifeInsurance.rates.picker.inactive')
+                    : ''}
                 </option>
               ))}
             </select>
           </label>
-          {funds.length === 0 ? (
-            <p>
-              Aucun fonds en euros trouvé sur cette page. Recherchez son nom ou consultez la page
-              suivante.
-            </p>
-          ) : null}
+          {funds.length === 0 ? <p>{t('portfolio.lifeInsurance.rates.picker.none')}</p> : null}
         </>
       )}
       {query.data && (query.data.total > 50 || page > 1) ? (
@@ -96,7 +95,7 @@ export function EuroFundPicker({
               onChange('');
             }}
           >
-            Précédent
+            {t('portfolio.lifeInsurance.rates.picker.previous')}
           </button>
           <button
             className="secondary-action"
@@ -107,7 +106,7 @@ export function EuroFundPicker({
               onChange('');
             }}
           >
-            Suivant
+            {t('portfolio.lifeInsurance.rates.picker.next')}
           </button>
         </ModalActions>
       ) : null}

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { SwitchOperationFields } from './switch-operation-fields/SwitchOperationFields';
 import { OperationDecimalField } from './OperationDecimalField';
 import { SupportLegsField } from './support-legs-field/SupportLegsField';
@@ -18,6 +19,7 @@ export function InsuranceOperationFields({
   onChange: <K extends keyof OperationFormValues>(key: K, value: OperationFormValues[K]) => void;
   values: OperationFormValues;
 }) {
+  const { t } = useTranslation();
   const premium = values.type === 'PREMIUM';
   if (values.type === 'SWITCH')
     return (
@@ -41,12 +43,25 @@ export function InsuranceOperationFields({
   );
   return (
     <>
-      {decimal('grossAmount', premium ? 'Montant versé' : 'Montant brut du rachat')}
-      {decimal('fees', premium ? 'Frais sur versement' : 'Frais de rachat')}
+      {decimal(
+        'grossAmount',
+        premium
+          ? t('portfolio.account.form.insurance.premiumAmount')
+          : t('portfolio.account.form.insurance.surrenderGross'),
+      )}
+      {decimal(
+        'fees',
+        premium
+          ? t('portfolio.account.form.insurance.premiumFees')
+          : t('portfolio.account.form.insurance.surrenderFees'),
+      )}
       {!premium ? (
         <>
-          {decimal('withheldIncomeTax', 'Prélèvement fiscal retenu')}
-          {decimal('withheldSocialContributions', 'Prélèvements sociaux retenus')}
+          {decimal('withheldIncomeTax', t('portfolio.account.form.insurance.withheldIncomeTax'))}
+          {decimal(
+            'withheldSocialContributions',
+            t('portfolio.account.form.insurance.withheldSocial'),
+          )}
         </>
       ) : null}
       <SupportLegsField

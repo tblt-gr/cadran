@@ -2,6 +2,7 @@ import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './VoidOperationDialog.module.css';
 
 export function VoidOperationDialog({
@@ -17,6 +18,7 @@ export function VoidOperationDialog({
   onConfirm: (reason: string) => void;
   pending: boolean;
 }) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [missing, setMissing] = useState(false);
 
@@ -32,16 +34,11 @@ export function VoidOperationDialog({
 
   return (
     <ModalForm className={styles.dialog} noValidate onSubmit={submit}>
-      {type === 'SWITCH' ? (
-        <p>L’arbitrage entier sera annulé : supports vendus et achetés.</p>
-      ) : null}
-      <p>
-        L’opération restera visible dans l’historique avec le statut Annulée. Cette action ne peut
-        pas être défaite.
-      </p>
+      {type === 'SWITCH' ? <p>{t('portfolio.account.void.wholeSwitch')}</p> : null}
+      <p>{t('portfolio.account.void.notice')}</p>
       <FormGrid>
         <label data-span="full">
-          <span>Motif</span>
+          <span>{t('portfolio.account.detail.reason')}</span>
           <textarea
             data-autofocus
             maxLength={200}
@@ -51,7 +48,7 @@ export function VoidOperationDialog({
           />
           {missing ? (
             <small className={styles.error} role="alert">
-              Le motif est obligatoire.
+              {t('portfolio.account.void.reasonRequired')}
             </small>
           ) : null}
         </label>
@@ -64,11 +61,11 @@ export function VoidOperationDialog({
       <ModalActions>
         {onCancel ? (
           <button className="secondary-action" type="button" onClick={onCancel}>
-            Annuler
+            {t('actions.cancel')}
           </button>
         ) : null}
         <button className="primary-action" disabled={pending} type="submit">
-          {pending ? 'Annulation…' : 'Annuler l’opération'}
+          {pending ? t('portfolio.account.void.pending') : t('portfolio.account.void.confirm')}
         </button>
       </ModalActions>
     </ModalForm>

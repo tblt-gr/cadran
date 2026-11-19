@@ -1,6 +1,7 @@
 import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { PortfolioTakeoverRequest } from '@cadran/api-client';
 import { useMemo, useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { formatCalendarDay } from '@/lib/decimal';
 import { TakeoverInput } from './TakeoverInput';
@@ -41,6 +42,7 @@ export function PortfolioTakeoverForm({
   /** The per-line refusals of the last save. */
   serverErrors?: TakeoverFieldErrors;
 }) {
+  const { t, i18n } = useTranslation();
   const [values, setValues] = useState<TakeoverFormValues>(() => ({
     takenOverOn: defaultDate,
     lines: [emptyLine(defaultDate)],
@@ -92,8 +94,8 @@ export function PortfolioTakeoverForm({
       <div className={styles.top}>
         <TakeoverInput
           error={errors.date}
-          hint="La date de votre dernier relevé. La performance est calculée à partir de cette date."
-          label="Date de reprise"
+          hint={t('portfolio.takeover.dateHint')}
+          label={t('portfolio.takeover.date')}
           onChange={(event) => changeDate(event.target.value)}
           type="date"
           value={values.takenOverOn}
@@ -128,7 +130,7 @@ export function PortfolioTakeoverForm({
         }
         type="button"
       >
-        Ajouter une ligne
+        {t('portfolio.takeover.addLine')}
       </button>
       <div className={styles.top}>
         <TakeoverInput
@@ -136,7 +138,11 @@ export function PortfolioTakeoverForm({
           error={errors.cash}
           inputMode="decimal"
           label={
-            validDate ? `Espèces au ${formatCalendarDay(values.takenOverOn, 'fr')}` : 'Espèces'
+            validDate
+              ? t('portfolio.takeover.cashAt', {
+                  date: formatCalendarDay(values.takenOverOn, i18n.language),
+                })
+              : t('portfolio.takeover.cash')
           }
           onChange={(event) => update({ ...values, cash: event.target.value })}
           value={values.cash}
@@ -150,7 +156,7 @@ export function PortfolioTakeoverForm({
       />
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
-          {pending ? 'Enregistrement…' : 'Enregistrer la reprise'}
+          {pending ? t('portfolio.lifeInsurance.saving') : t('portfolio.takeover.save')}
         </button>
       </ModalActions>
     </ModalForm>

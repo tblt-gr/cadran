@@ -1,5 +1,6 @@
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { InstrumentCandidate } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import styles from './DuplicateNotice.module.css';
 export function DuplicateNotice({
   candidates,
@@ -16,23 +17,31 @@ export function DuplicateNotice({
   onUse?: (id: string) => void;
   pending?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <section className={styles.notice} aria-labelledby="duplicate-title">
-      <h3 id="duplicate-title">Instruments similaires</h3>
+      <h3 id="duplicate-title">{t('investments.instruments.duplicate.title')}</h3>
       <ul>
         {candidates.map((candidate) => (
           <li key={candidate.id}>
-            {candidate.name} · {candidate.isin ?? 'sans ISIN'} · {candidate.ticker ?? 'sans ticker'}{' '}
-            · {candidate.status === 'ACTIVE' ? 'Actif' : 'Archivé'}
+            {candidate.name} · {candidate.isin ?? t('investments.instruments.duplicate.noIsin')} ·{' '}
+            {candidate.ticker ?? t('investments.instruments.duplicate.noTicker')} ·{' '}
+            {candidate.status === 'ACTIVE'
+              ? t('investments.instruments.status.ACTIVE')
+              : t('investments.instruments.status.INACTIVE')}
             {onUse ? (
               <button
-                aria-label={`Utiliser ${candidate.name}`}
+                aria-label={t('investments.instruments.duplicate.useNamed', {
+                  name: candidate.name,
+                })}
                 className="secondary-action"
                 disabled={pending}
                 type="button"
                 onClick={() => onUse(candidate.id)}
               >
-                {candidate.status === 'ACTIVE' ? 'Utiliser' : 'Réactiver et utiliser'}
+                {candidate.status === 'ACTIVE'
+                  ? t('investments.instruments.duplicate.use')
+                  : t('investments.instruments.duplicate.reactivateAndUse')}
               </button>
             ) : null}
           </li>
@@ -40,10 +49,12 @@ export function DuplicateNotice({
       </ul>
       <ModalActions>
         <button className="secondary-action" disabled={pending} onClick={onCancel} type="button">
-          Annuler
+          {t('actions.cancel')}
         </button>
         <button className="primary-action" disabled={pending} onClick={onConfirm} type="button">
-          {editing ? 'Enregistrer quand même' : 'Créer quand même'}
+          {editing
+            ? t('investments.instruments.duplicate.saveAnyway')
+            : t('investments.instruments.duplicate.createAnyway')}
         </button>
       </ModalActions>
     </section>

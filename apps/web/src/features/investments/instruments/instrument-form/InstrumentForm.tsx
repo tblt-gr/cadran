@@ -11,11 +11,12 @@ import type {
   UpdateInstrumentRequest,
 } from '@cadran/api-client';
 import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useReferenceAssets } from '@/hooks/use-reference-assets';
 import type { InstrumentFieldErrors } from '@/features/investments/instruments/instrumentError';
 import { InstrumentIsinField } from './isin-field/InstrumentIsinField';
 import { InstrumentSelectField } from './select-field/InstrumentSelectField';
-import { instrumentTypes, validPrecision } from './instrumentOptions';
+import { instrumentTypeOptions, validPrecision } from './instrumentOptions';
 import styles from './InstrumentForm.module.css';
 import { InstrumentAdvancedFields } from './advanced-fields/InstrumentAdvancedFields';
 
@@ -51,6 +52,7 @@ export function InstrumentForm({
   fieldErrors = {},
   onSubmit,
 }: Props) {
+  const { t } = useTranslation();
   const assets = useReferenceAssets();
   const baseCurrency = useWorkspaceBaseCurrency();
   const [name, setName] = useState(instrument?.name ?? initial?.name ?? '');
@@ -135,14 +137,16 @@ export function InstrumentForm({
       ) : null}
       <FormGrid>
         <label>
-          <span>Nom</span>
+          <span>{t('investments.instruments.form.name')}</span>
           <input
             data-autofocus={!initial?.name || euroFund ? true : undefined}
             maxLength={120}
             onChange={(e) => setName(e.target.value)}
             value={name}
           />
-          {showErrors && name.trim() === '' ? <small>Le nom est obligatoire.</small> : null}
+          {showErrors && name.trim() === '' ? (
+            <small>{t('investments.instruments.form.nameRequired')}</small>
+          ) : null}
         </label>
         {!euroFund ? (
           <>
@@ -162,7 +166,7 @@ export function InstrumentForm({
                 value={ticker}
               />
               {showErrors && !isin.trim() && !ticker.trim() ? (
-                <small>Un ISIN ou un ticker est obligatoire.</small>
+                <small>{t('investments.instruments.form.identifierRequired')}</small>
               ) : fieldErrors.ticker ? (
                 <small>{fieldErrors.ticker}</small>
               ) : null}
@@ -172,15 +176,15 @@ export function InstrumentForm({
         <InstrumentSelectField
           disabled={lock?.instrumentType}
           disabledOptions={incompatibleEuroCurrency ? ['EURO_FUND'] : undefined}
-          label="Type"
-          options={instrumentTypes}
+          label={t('investments.instruments.form.type')}
+          options={instrumentTypeOptions(t)}
           onChange={(value) => setType(value as InstrumentType)}
           value={instrumentType}
         />
         <label>
-          <span>Devise</span>
+          <span>{t('investments.instruments.form.currency')}</span>
           <select
-            aria-label="Devise"
+            aria-label={t('investments.instruments.form.currency')}
             disabled={
               lock?.currencyCode || euroFund || locked || assets.isPending || assets.isError
             }
@@ -194,9 +198,9 @@ export function InstrumentForm({
             ))}
           </select>
           {lock?.currencyCode ? (
-            <small>Devise du compte</small>
+            <small>{t('investments.instruments.form.accountCurrency')}</small>
           ) : locked ? (
-            <small>Figé après la première utilisation</small>
+            <small>{t('investments.instruments.locked')}</small>
           ) : null}
         </label>
         <InstrumentAdvancedFields
@@ -220,7 +224,7 @@ export function InstrumentForm({
         />
       </FormGrid>
       {invalidEuroCurrency ? (
-        <p role="alert">Un fonds en euros doit utiliser la devise de référence de l’espace.</p>
+        <p role="alert">{t('investments.instruments.form.euroFundCurrency')}</p>
       ) : null}
       <ModalActions>
         <button
@@ -233,7 +237,9 @@ export function InstrumentForm({
           }
           type="submit"
         >
-          {pending ? 'Enregistrement…' : 'Enregistrer'}
+          {pending
+            ? t('investments.instruments.form.saving')
+            : t('investments.instruments.form.save')}
         </button>
       </ModalActions>
     </ModalForm>

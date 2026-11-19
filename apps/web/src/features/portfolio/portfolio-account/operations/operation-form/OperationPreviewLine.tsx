@@ -18,11 +18,15 @@ export function OperationPreviewLine({
   preview?: PortfolioOperationPreview;
   showResidual: boolean;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   return (
     <div aria-live="polite" className={styles.preview}>
       <div className={styles.previewRow}>
-        <span>{type === 'PREMIUM' ? 'Reste en liquidités' : 'Effet sur les espèces'}</span>{' '}
+        <span>
+          {type === 'PREMIUM'
+            ? t('portfolio.account.form.preview.remainsCash')
+            : t('portfolio.account.form.preview.cashEffect')}
+        </span>{' '}
         {preview ? (
           <strong>
             <CashAmount amount={preview.cashAmount} />
@@ -35,7 +39,7 @@ export function OperationPreviewLine({
       </div>
       {type === 'EURO_FUND_INTEREST' || type === 'PROFIT_SHARING' ? (
         <div className={styles.previewRow}>
-          <span>Net crédité</span>
+          <span>{t('portfolio.account.form.preview.netCredited')}</span>
           {preview?.netCreditedAmount ? (
             <strong>
               {formatDecimal(preview.netCreditedAmount.value, i18n.language)}{' '}
@@ -50,7 +54,7 @@ export function OperationPreviewLine({
       ) : null}
       {type === 'PARTIAL_SURRENDER' || type === 'FULL_SURRENDER' ? (
         <div className={styles.previewRow}>
-          <span>Net versé</span>
+          <span>{t('portfolio.account.form.preview.netPaid')}</span>
           {preview?.netPaidAmount ? (
             <strong>
               {formatDecimal(preview.netPaidAmount.value, i18n.language)}{' '}
@@ -65,7 +69,7 @@ export function OperationPreviewLine({
       ) : null}
       {type === 'FULL_SURRENDER' ? (
         <div className={styles.previewRow}>
-          <span>Montant brut attendu</span>
+          <span>{t('portfolio.account.form.preview.expectedGross')}</span>
           {preview?.expectedGrossAmount ? (
             <strong>
               {formatDecimal(preview.expectedGrossAmount.value, i18n.language)}{' '}
@@ -81,7 +85,7 @@ export function OperationPreviewLine({
       {type === 'SWITCH' ? <SwitchOperationPreview pending={pending} preview={preview} /> : null}
       {showResidual ? (
         <div className={styles.previewRow}>
-          <span>Écart d’arrondi</span>{' '}
+          <span>{t('portfolio.account.form.preview.rounding')}</span>{' '}
           {preview?.roundingResidual ? (
             <strong>
               {formatDecimal(preview.roundingResidual.value, i18n.language)}{' '}
@@ -96,7 +100,7 @@ export function OperationPreviewLine({
         .filter((leg) => leg.roundingResidual && !isZeroDecimal(leg.roundingResidual.value))
         .map((leg) => (
           <div className={styles.previewRow} key={leg.index}>
-            <span>Écart d’arrondi du support {leg.index}</span>
+            <span>{t('portfolio.account.form.preview.legRounding', { index: leg.index })}</span>
             <strong>
               {formatDecimal(leg.roundingResidual!.value, i18n.language)}{' '}
               {leg.roundingResidual!.assetCode}

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './IncrementalListFooter.module.css';
 
 export interface IncrementalListFooterProps {
@@ -32,6 +33,7 @@ export function IncrementalListFooter(props: IncrementalListFooterProps) {
     onNextLoaded,
     onPreviousLoaded,
   } = props;
+  const { t } = useTranslation();
   const sentinel = useRef<HTMLDivElement>(null);
   const wasVisible = useRef(false);
   const hadMore = useRef(hasMore);
@@ -88,27 +90,25 @@ export function IncrementalListFooter(props: IncrementalListFooterProps) {
     >
       {stale ? (
         <>
-          <p role="alert">La liste a changé. Rechargez-la pour continuer sans omettre d’élément.</p>
+          <p role="alert">{t('incrementalList.stale')}</p>
           <button className="secondary-action" onClick={onRestart} type="button">
-            Recharger la liste
+            {t('incrementalList.reload')}
           </button>
         </>
       ) : complete ? (
-        <p>Tous les éléments sont affichés.</p>
+        <p>{t('incrementalList.complete')}</p>
       ) : null}
       {hasPrevious ? (
         <button className="secondary-action" onClick={onPreviousLoaded} type="button">
-          Éléments précédents déjà chargés
+          {t('incrementalList.previousLoaded')}
         </button>
       ) : null}
       {hasNextLoaded ? (
         <button className="secondary-action" onClick={onNextLoaded} type="button">
-          Éléments suivants déjà chargés
+          {t('incrementalList.nextLoaded')}
         </button>
       ) : null}
-      {failed && !stale ? (
-        <p role="alert">La suite de la liste est indisponible. Vous pouvez réessayer.</p>
-      ) : null}
+      {failed && !stale ? <p role="alert">{t('incrementalList.failed')}</p> : null}
       {hasMore && !hasNextLoaded && !stale ? (
         <button
           aria-busy={loading || undefined}
@@ -118,7 +118,11 @@ export function IncrementalListFooter(props: IncrementalListFooterProps) {
           type="button"
         >
           <span aria-live="polite">
-            {loading ? 'Chargement de la suite…' : failed ? 'Réessayer' : 'Afficher plus'}
+            {loading
+              ? t('incrementalList.loadingMore')
+              : failed
+                ? t('actions.retry')
+                : t('incrementalList.more')}
           </span>
         </button>
       ) : null}

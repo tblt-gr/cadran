@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { Account } from '@cadran/api-client';
 import {
   LifeInsuranceSummaryPanel,
@@ -13,11 +14,12 @@ export function LifeInsuranceValuationsTab(
     onRecordClose?: () => void;
   },
 ) {
+  const { t } = useTranslation();
   return (
     <div className={styles.tab}>
       <LifeInsuranceSummaryPanel
         {...props}
-        title="La qualité des données est indisponible"
+        title={t('portfolio.lifeInsurance.quality.unavailable')}
         announceLoading={false}
       >
         {(summary) => (

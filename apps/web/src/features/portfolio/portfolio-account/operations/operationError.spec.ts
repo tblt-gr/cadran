@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { describe, expect, it } from 'vitest';
 import {
   operationFieldErrors,
@@ -17,7 +18,7 @@ describe('operationSaveMessage', () => {
     });
 
     expect(
-      operationSaveMessage(error, [
+      operationSaveMessage(error, i18n.t, [
         { id: 'instrument-1', name: 'ETF Monde' },
         { id: 'instrument-2', name: 'Action Exemple' },
       ]),
@@ -34,7 +35,7 @@ describe('operationSaveMessage', () => {
       response: new Response('{}', { status: 422 }),
     });
 
-    const message = operationSaveMessage(error);
+    const message = operationSaveMessage(error, i18n.t);
 
     expect(message).toContain('position concernée');
     expect(message).not.toContain('private-instrument-id');
@@ -46,6 +47,6 @@ it('explains the exact incoming amount refused by the switch server', () => {
     error: { code: 'switch_not_balanced', expectedIncomingAmount: '1990.00' },
     response: new Response('{}', { status: 422 }),
   });
-  expect(operationFieldErrors(error).legs).toContain('1990.00');
-  expect(operationSaveMessage(error)).toBeUndefined();
+  expect(operationFieldErrors(error, i18n.t).legs).toContain('1990.00');
+  expect(operationSaveMessage(error, i18n.t)).toBeUndefined();
 });

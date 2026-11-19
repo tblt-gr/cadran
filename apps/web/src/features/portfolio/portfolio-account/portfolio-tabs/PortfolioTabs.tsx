@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import type { AccountKind } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 import styles from './PortfolioTabs.module.css';
 
@@ -7,18 +9,13 @@ export type PortfolioTab =
   'positions' | 'operations' | 'valuations' | 'cash' | 'performance' | 'account' | 'contract';
 
 /** Shared account navigation first, followed by investment-specific views. */
-const tabs: { id: PortfolioTab; label: string }[] = [
-  { id: 'account', label: 'Compte' },
-  { id: 'operations', label: 'Opérations' },
-  { id: 'valuations', label: 'Valorisations' },
-  { id: 'positions', label: 'Positions' },
-  { id: 'performance', label: 'Performance' },
-];
+const tabIds: PortfolioTab[] = ['account', 'operations', 'valuations', 'positions', 'performance'];
 
-const insuranceLabels: Partial<Record<PortfolioTab, string>> = {
-  positions: 'Supports',
-  cash: 'Liquidités',
-};
+function tabLabel(t: TFunction, id: PortfolioTab, kind?: AccountKind): string {
+  if (kind === 'INSURANCE_CONTRACT' && (id === 'positions' || id === 'cash'))
+    return t(`portfolio.account.tabs.insurance.${id}`);
+  return t(`portfolio.account.tabs.${id}`);
+}
 
 /**
  * Navigation synced to `?tab=`. Insurance keeps its contract settings after the shared views.
@@ -36,13 +33,9 @@ export function PortfolioTabs({
   kind?: AccountKind;
   tools?: ReactNode;
 }) {
-  const accountTabs =
-    kind === 'INSURANCE_CONTRACT'
-      ? [
-          ...tabs.map((tab) => ({ ...tab, label: insuranceLabels[tab.id] ?? tab.label })),
-          { id: 'contract' as const, label: 'Contrat' },
-        ]
-      : tabs;
+  const { t } = useTranslation();
+  const ids = kind === 'INSURANCE_CONTRACT' ? [...tabIds, 'contract' as const] : tabIds;
+  const accountTabs = ids.map((id) => ({ id, label: tabLabel(t, id, kind) }));
   return (
     <div className={styles.bar}>
       <div className={styles.nav}>
@@ -53,7 +46,7 @@ export function PortfolioTabs({
             active: tab.id === active,
             href: `/portfolios/${accountId}?tab=${tab.id}${asOf ? `&asOf=${asOf}` : ''}`,
           }))}
-          label="Sections du portefeuille"
+          label={t('portfolio.account.tabs.label')}
         />
       </div>
       {tools ? <div className={styles.tools}>{tools}</div> : null}

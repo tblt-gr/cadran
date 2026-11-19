@@ -1,11 +1,12 @@
 import type { Instrument } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { useHeaderTitle } from '@/components/layout/header/HeaderTitleContext';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import {
-  instrumentTypes,
-  instrumentClasses,
-  instrumentRegions,
+  instrumentTypeOptions,
+  instrumentClassOptions,
+  instrumentRegionOptions,
 } from '@/features/investments/instruments/instrument-form/instrumentOptions';
 import { HeaderActions } from '@/components/layout/header/HeaderActionsContext';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
@@ -24,15 +25,16 @@ export function InstrumentSheetHeader({
   onEdit: () => void;
   onStatus: () => void;
 }) {
-  useHeaderTitle(window.location.pathname, instrument?.name ?? 'Instrument');
+  const { t } = useTranslation();
+  useHeaderTitle(window.location.pathname, instrument?.name ?? t('investments.sheet.defaultTitle'));
   const parts = instrument
     ? [
         instrument.isin,
         instrument.ticker,
         instrument.venueMic,
-        title(instrumentTypes, instrument.instrumentType),
-        title(instrumentClasses, instrument.assetClass),
-        title(instrumentRegions, instrument.region),
+        title(instrumentTypeOptions(t), instrument.instrumentType),
+        title(instrumentClassOptions(t), instrument.assetClass),
+        title(instrumentRegionOptions(t), instrument.region),
         instrument.currencyCode,
       ]
         .filter(Boolean)
@@ -41,7 +43,9 @@ export function InstrumentSheetHeader({
   return (
     <header className={styles.header}>
       <div className={styles.heading}>
-        {instrument?.status === 'INACTIVE' ? <StatusBadge tone="info">Archivé</StatusBadge> : null}
+        {instrument?.status === 'INACTIVE' ? (
+          <StatusBadge tone="info">{t('investments.instruments.status.INACTIVE')}</StatusBadge>
+        ) : null}
         <p className={styles.identity}>
           {instrument ? parts : pending ? <SkeletonBlock className={styles.identityBlock} /> : null}
         </p>
@@ -51,7 +55,9 @@ export function InstrumentSheetHeader({
           disabled={!instrument}
           triggerVariant="framed"
           label={
-            instrument ? `Actions de l’instrument ${instrument.name}` : 'Actions de l’instrument'
+            instrument
+              ? t('investments.sheet.actionsLabelNamed', { name: instrument.name })
+              : t('investments.sheet.actionsLabel')
           }
           items={
             instrument
@@ -59,15 +65,21 @@ export function InstrumentSheetHeader({
                   {
                     id: 'edit',
                     icon: 'edit',
-                    label: 'Modifier',
-                    text: 'Modifier',
+                    label: t('investments.instruments.actions.edit'),
+                    text: t('investments.instruments.actions.edit'),
                     onSelect: onEdit,
                   },
                   {
                     id: 'status',
                     icon: 'archive',
-                    label: instrument.status === 'INACTIVE' ? 'Réactiver' : 'Archiver',
-                    text: instrument.status === 'INACTIVE' ? 'Réactiver' : 'Archiver',
+                    label:
+                      instrument.status === 'INACTIVE'
+                        ? t('investments.instruments.actions.reactivate')
+                        : t('investments.instruments.actions.archive'),
+                    text:
+                      instrument.status === 'INACTIVE'
+                        ? t('investments.instruments.actions.reactivate')
+                        : t('investments.instruments.actions.archive'),
                     onSelect: onStatus,
                   },
                 ]

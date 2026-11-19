@@ -15,7 +15,7 @@ export function AccountLinesRows({
   account: HoldingsAccountSummary;
   assetCode: string | null;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return account.lines.map((line) => (
     <tr className={styles.lineRow} key={line.instrument.id}>
@@ -24,15 +24,15 @@ export function AccountLinesRows({
           <InstrumentLink instrument={line.instrument} />
         </strong>
         <span className={styles.identifier}>
-          {holdingsInstrumentLine(line.instrument, line.instrumentType)}
+          {holdingsInstrumentLine(line.instrument, line.instrumentType, t)}
         </span>
       </th>
       <td className={styles.number} data-label={t('investments.table.quantity')}>
-        {formatDecimal(line.quantity, 'fr')}
+        {formatDecimal(line.quantity, i18n.language)}
       </td>
       <td className={styles.number} data-label={t('investments.byAccount.securities')}>
         {line.value !== null ? (
-          holdingsMoney(line.value, assetCode)
+          holdingsMoney(line.value, assetCode, i18n.language)
         ) : (
           <NotComputable
             figure={t('investments.notComputable.figure', {

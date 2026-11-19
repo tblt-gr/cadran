@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { LIST_WINDOW_SIZE, useListWindow } from '@/hooks/incremental-list/useListWindow';
 import { IncrementalListFooter } from './IncrementalListFooter';
 
@@ -19,6 +20,7 @@ export function IncrementalList<T>({
     restart: () => void;
   };
 }) {
+  const { t } = useTranslation();
   const window = useListWindow(items, query.resetKey);
   return (
     <>
@@ -26,10 +28,12 @@ export function IncrementalList<T>({
       {items.length > 0 ? (
         <p className="sr-only" role="status" aria-atomic="true">
           {items.length > LIST_WINDOW_SIZE
-            ? `Éléments ${window.start + 1} à ${window.end} affichés sur ${items.length} chargés`
-            : items.length === 1
-              ? '1 élément chargé'
-              : `${items.length} éléments chargés`}
+            ? t('incrementalList.window', {
+                start: window.start + 1,
+                end: window.end,
+                total: items.length,
+              })
+            : t('incrementalList.loaded', { count: items.length })}
         </p>
       ) : null}
       <IncrementalListFooter

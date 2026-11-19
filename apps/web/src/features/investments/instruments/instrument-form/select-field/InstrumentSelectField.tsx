@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 export function InstrumentSelectField({
   disabled,
   disabledOptions,
@@ -15,11 +17,12 @@ export function InstrumentSelectField({
   value: string;
   nullable?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <label>
       <span>{label}</span>
       <select disabled={disabled} onChange={(e) => onChange(e.target.value)} value={value}>
-        {nullable ? <option value="">Non renseignée</option> : null}
+        {nullable ? <option value="">{t('investments.instruments.form.unset')}</option> : null}
         {options.map(([id, text]) => (
           <option disabled={disabledOptions?.includes(id)} key={id} value={id}>
             {text}

@@ -1,6 +1,7 @@
 import { LifeInsuranceOverview } from '@/features/portfolio/life-insurance/overview/LifeInsuranceOverview';
 import type { PortfolioOverviewSource } from '@cadran/api-client';
 import { useState, type ReactNode, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ValuationFallbackNotice } from '@/features/portfolio/valuation-fallback-notice/ValuationFallbackNotice';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { usePortfolioSummary } from '@/features/portfolio/usePortfolioOverview';
@@ -31,6 +32,7 @@ function SecuritiesOverview({
   history: ReactNode;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t, i18n } = useTranslation();
   const [explaining, setExplaining] = useState<KpiCode | null>(null);
   const summary = usePortfolioSummary(accountId, asOf, !frozen);
   const error = summary.error instanceof OperationRequestError ? summary.error : null;
@@ -42,10 +44,14 @@ function SecuritiesOverview({
       summary.data.newerPartialValuation) ? (
       <>
         {valuation?.stale ? (
-          <StatusBadge tone="warning">{`Valorisation ancienne (${valuation.ageDays} jours)`}</StatusBadge>
+          <StatusBadge tone="warning">
+            {t('portfolio.account.overview.staleValuation', { days: valuation.ageDays })}
+          </StatusBadge>
         ) : null}
         {valuation?.completeness === 'PARTIAL' ? (
-          <StatusBadge tone="warning">Valorisation partielle</StatusBadge>
+          <StatusBadge tone="warning">
+            {t('portfolio.account.warning.PARTIAL_VALUATION')}
+          </StatusBadge>
         ) : null}
         <ValuationFallbackNotice
           selected={summary.data.valuation}
@@ -69,14 +75,14 @@ function SecuritiesOverview({
           error
           title={
             error?.status === 404 || error?.status === 403
-              ? 'Portefeuille introuvable ou non accessible'
+              ? t('portfolio.account.overview.notFound')
               : error?.code === 'invalid_as_of'
-                ? 'La date sélectionnée est invalide'
-                : 'Les indicateurs sont indisponibles'
+                ? t('portfolio.account.overview.invalidDate')
+                : t('portfolio.account.overview.unavailable')
           }
         >
           <button className="secondary-action" type="button" onClick={() => void summary.refetch()}>
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : (
@@ -97,7 +103,7 @@ function SecuritiesOverview({
       {explaining && summary.data ? (
         <PortfolioKpiExplanationModal
           code={explaining}
-          value={kpiValueText(summary.data, explaining)}
+          value={kpiValueText(summary.data, explaining, t, i18n.language)}
           explanation={summary.data.explanations[explaining]}
           onClose={() => setExplaining(null)}
           onSource={(source) => {

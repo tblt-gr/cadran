@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { OperationRequestError } from '@/features/portfolio/portfolio-account/operations/operationError';
@@ -11,16 +12,14 @@ import { CashToolbar } from './CashToolbar';
 import { useCash } from './useCash';
 import styles from './CashTab.module.css';
 
-const refusals: Record<string, string> = {
-  cash_range_too_large: 'La période ne peut pas dépasser 366 jours : réduisez-la.',
-  cash_range_too_dense: 'La période compte plus de 2 000 mouvements : réduisez-la.',
-  invalid_cash_query:
-    'La période est invalide : la fin ne précède pas le début et ne peut pas être dans le futur.',
-  cash_amount_too_large:
-    'Les montants d’espèces sont trop grands pour être additionnés exactement.',
-};
+const refusalCodes = [
+  'cash_range_too_large',
+  'cash_range_too_dense',
+  'invalid_cash_query',
+  'cash_amount_too_large',
+] as const;
 
-/** The Espèces tab: derived cash balance with its checks, period totals and running movements. */
+/** The Cash tab: derived cash balance with its checks, period totals and running movements. */
 export function CashTab({
   accountId,
   asOf,
@@ -30,6 +29,7 @@ export function CashTab({
   asOf?: string;
   onAsOfChange?: (date: string) => void;
 }) {
+  const { t } = useTranslation();
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
   const [range, setRange] = useState(() => ({
@@ -39,8 +39,10 @@ export function CashTab({
   const from = asOf && range.to !== asOf ? startOfYear(asOf) : range.from;
   const cash = useCash(accountId, from, asOf ?? range.to);
   const refusal =
-    cash.error instanceof OperationRequestError && cash.error.code
-      ? refusals[cash.error.code]
+    cash.error instanceof OperationRequestError &&
+    cash.error.code &&
+    (refusalCodes as readonly string[]).includes(cash.error.code)
+      ? t(`portfolio.cash.refusals.${cash.error.code as (typeof refusalCodes)[number]}`)
       : undefined;
 
   return (
@@ -57,11 +59,11 @@ export function CashTab({
       {cash.isError ? (
         <OperationsState
           error
-          title={refusal ? 'Période refusée' : 'Les espèces sont indisponibles'}
+          title={refusal ? t('portfolio.cash.refused') : t('portfolio.cash.unavailable')}
         >
           {refusal ? <p>{refusal}</p> : null}
           <button className="secondary-action" onClick={() => void cash.refetch()} type="button">
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : (

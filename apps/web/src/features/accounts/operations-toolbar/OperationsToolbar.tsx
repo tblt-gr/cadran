@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
 import styles from './OperationsToolbar.module.css';
 
@@ -25,13 +26,14 @@ export function OperationsToolbar({
   /** The page header owns the voided-operations toggle. */
   voidedInHeader?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <fieldset className={styles.toolbar} disabled={disabled}>
-      <legend className="sr-only">Filtres des opérations</legend>
+      <legend className="sr-only">{t('accounts.operationsToolbar.legend')}</legend>
       {types}
       <div className={styles.period}>
         <label className={styles.date}>
-          <span>Du</span>
+          <span>{t('accounts.operationsToolbar.from')}</span>
           <input
             type="date"
             value={value.from}
@@ -40,7 +42,7 @@ export function OperationsToolbar({
           />
         </label>
         <label className={styles.date}>
-          <span>Au</span>
+          <span>{t('accounts.operationsToolbar.to')}</span>
           <input
             type="date"
             value={value.to}
@@ -57,7 +59,7 @@ export function OperationsToolbar({
             checked={value.includeVoided}
             onChange={(event) => onChange({ ...value, includeVoided: event.target.checked })}
           />
-          <span>Afficher les opérations annulées</span>
+          <span>{t('accounts.operationsToolbar.voided')}</span>
         </label>
       )}
       {actions ? <div className={styles.actions}>{actions}</div> : null}

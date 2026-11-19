@@ -4,8 +4,11 @@ import type {
   PortfolioOperationRequest,
   PortfolioOperationType,
 } from '@cadran/api-client';
+import i18n from 'i18next';
+import type { TFunction } from 'i18next';
 import { compareDecimals, isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
 import { hasField, operationMatrix, type FieldKey } from './operationMatrix';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 
 interface PickedInstrument {
   id: string;
@@ -132,12 +135,10 @@ export function valuesFromOperation(operation: PortfolioOperation): OperationFor
 }
 
 const CONTROL_CHARACTERS = /[\p{Cc}\p{Cf}]/u;
-const DECIMAL_MESSAGE = 'Saisissez un nombre décimal positif, sans exposant ni signe.';
-const POSITIVE_MESSAGE = 'La valeur doit être strictement positive.';
 
 /** A decimal typed by the user, with a comma accepted, or null when it is not canonical. */
 function normalize(raw: string): string {
-  return raw.trim().replace(',', '.');
+  return normalizeDecimalInput(raw);
 }
 
 function amount(value: string, assetCode: string): DecimalAmount {
@@ -152,15 +153,20 @@ type Result =
  * Turns the typed values into a create body. Only the fields of the type matrix
  * are read, decimals stay strings, and the cash effect is never part of it.
  */
-export function buildOperationRequest(values: OperationFormValues, assetCode: string): Result {
+export function buildOperationRequest(
+  values: OperationFormValues,
+  assetCode: string,
+  t: TFunction = i18n.t.bind(i18n),
+): Result {
   const errors: OperationFieldErrors = {};
   const request: PortfolioOperationRequest = { type: values.type, tradeDate: values.tradeDate };
   const matrix = operationMatrix[values.type];
 
-  if (values.tradeDate === '') errors.tradeDate = 'La date d’opération est obligatoire.';
+  if (values.tradeDate === '')
+    errors.tradeDate = t('portfolio.account.form.errors.tradeDateRequired');
   if (values.settlementDate !== '') {
     if (values.settlementDate < values.tradeDate) {
-      errors.settlementDate = 'La date de règlement ne peut précéder la date d’opération.';
+      errors.settlementDate = t('portfolio.account.form.errors.settlementBeforeTrade');
     } else {
       request.settlementDate = values.settlementDate;
     }
@@ -171,21 +177,22 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
     if (requirement === undefined) return undefined;
     const value = normalize(raw);
     if (value === '') {
-      if (requirement === 'R') errors[field] = 'Ce champ est obligatoire.';
+      if (requirement === 'R') errors[field] = t('portfolio.account.form.errors.required');
       return undefined;
     }
     if (!isCanonicalUnsignedDecimal(value)) {
-      errors[field] = DECIMAL_MESSAGE;
+      errors[field] = t('portfolio.account.form.errors.decimal');
       return undefined;
     }
     if (!allowZero && isZeroDecimal(value)) {
-      errors[field] = POSITIVE_MESSAGE;
+      errors[field] = t('portfolio.account.form.errors.positive');
       return undefined;
     }
     return value;
   }
   function picked(field: 'instrument' | 'counterInstrument', value: PickedInstrument | null) {
-    if (matrix[field] === 'R' && value === null) errors[field] = 'Choisissez un instrument.';
+    if (matrix[field] === 'R' && value === null)
+      errors[field] = t('portfolio.account.form.errors.chooseInstrument');
     return matrix[field] !== undefined ? (value?.id ?? undefined) : undefined;
   }
 
@@ -194,14 +201,15 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
   const counterInstrumentId = picked('counterInstrument', values.counterInstrument);
   if (counterInstrumentId) request.counterInstrumentId = counterInstrumentId;
   if (counterInstrumentId && counterInstrumentId === instrumentId) {
-    errors.counterInstrument = 'L’instrument reçu doit différer de l’instrument d’origine.';
+    errors.counterInstrument = t('portfolio.account.form.errors.counterInstrumentSame');
   }
 
   const unitLinkedFee =
     values.type === 'MANAGEMENT_FEE' &&
     values.instrument &&
     values.instrument.instrumentType !== 'EURO_FUND';
-  if (unitLinkedFee && !values.quantity.trim()) errors.quantity = 'Ce champ est obligatoire.';
+  if (unitLinkedFee && !values.quantity.trim())
+    errors.quantity = t('portfolio.account.form.errors.required');
   const quantity =
     values.type === 'MANAGEMENT_FEE' && !unitLinkedFee
       ? undefined
@@ -223,14 +231,15 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
   );
   if (taxes) request.taxes = amount(taxes, assetCode);
   if (hasField(values.type, 'interestBasis')) {
-    if (!values.interestBasis) errors.interestBasis = 'Choisissez une base du taux.';
+    if (!values.interestBasis)
+      errors.interestBasis = t('portfolio.account.form.errors.chooseBasis');
     else request.interestBasis = values.interestBasis;
     if (taxes && gross && compareDecimals(taxes, gross) >= 0)
-      errors.taxes = 'Les prélèvements doivent être inférieurs au montant brut.';
+      errors.taxes = t('portfolio.account.form.errors.taxesBelowGross');
   }
   if (hasField(values.type, 'rateYear')) {
     if (!/^\d{4}$/.test(values.rateYear) || values.rateYear > values.tradeDate.slice(0, 4))
-      errors.rateYear = 'Saisissez une année au plus égale à celle de l’opération.';
+      errors.rateYear = t('portfolio.account.form.errors.rateYear');
     else request.rateYear = parseInt(values.rateYear, 10);
   }
   for (const field of ['withheldIncomeTax', 'withheldSocialContributions'] as const) {
@@ -238,16 +247,17 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
     if (value) request[field] = amount(value, assetCode);
   }
   if (hasField(values.type, 'legs')) {
-    if (values.legs.length > 20) errors.legs = '20 supports au maximum.';
+    if (values.legs.length > 20) errors.legs = t('portfolio.account.form.errors.maxLegs');
     request.legs = values.legs.map((leg, index) => {
       const prefix = `legs.${index + 1}` as const;
       const validate = (field: 'quantity' | 'unitPrice' | 'amount') => {
         const value = normalize(leg[field]);
         if (!isCanonicalUnsignedDecimal(value) || isZeroDecimal(value))
-          errors[`${prefix}.${field}`] = 'Saisissez un nombre décimal strictement positif.';
+          errors[`${prefix}.${field}`] = t('portfolio.account.form.errors.strictlyPositive');
         return value;
       };
-      if (!leg.instrument) errors[`${prefix}.instrument`] = 'Choisissez un support.';
+      if (!leg.instrument)
+        errors[`${prefix}.instrument`] = t('portfolio.account.form.errors.chooseSupport');
       return {
         direction:
           values.type === 'SWITCH'
@@ -271,7 +281,7 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
   if (hasField(values.type, 'costAllocationRatio')) {
     const ratio = decimal('costAllocationRatio', values.costAllocationRatio);
     if (ratio && compareDecimals(ratio, '1') >= 0) {
-      errors.costAllocationRatio = 'Le ratio doit être strictement compris entre 0 et 1.';
+      errors.costAllocationRatio = t('portfolio.account.form.errors.allocationRatio');
     } else if (ratio) {
       request.costAllocationRatio = ratio;
     }
@@ -286,9 +296,9 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
       isZeroDecimal(numerator) ||
       isZeroDecimal(denominator)
     ) {
-      errors.ratio = 'Saisissez deux nombres strictement positifs.';
+      errors.ratio = t('portfolio.account.form.errors.ratioPositive');
     } else if (compareDecimals(numerator, denominator) === 0) {
-      errors.ratio = 'Les deux termes du ratio doivent être différents.';
+      errors.ratio = t('portfolio.account.form.errors.ratioDistinct');
     } else {
       request.ratio = { numerator, denominator };
     }
@@ -303,7 +313,7 @@ export function buildOperationRequest(values: OperationFormValues, assetCode: st
     const max = field === 'reference' ? 64 : 200;
     if (text === '') continue;
     if (text.length > max || CONTROL_CHARACTERS.test(text)) {
-      errors[field] = `Au plus ${max} caractères, sans caractère de contrôle.`;
+      errors[field] = t('portfolio.account.form.errors.textLimit', { max });
     } else if (field !== 'reason') {
       request[field] = text;
     }

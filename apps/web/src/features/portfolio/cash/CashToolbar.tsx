@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import { lastTwelveMonths, startOfYear } from './cashPeriod';
 import styles from './CashTab.module.css';
@@ -12,20 +13,21 @@ interface Props {
 
 /** Period selector shared by the live cash tab and its loading preview. */
 export function CashToolbar({ disabled = false, from, onChange, to, today }: Props) {
+  const { t } = useTranslation();
   return (
     <fieldset className={styles.toolbar} disabled={disabled}>
-      <legend className="sr-only">Période des espèces</legend>
+      <legend className="sr-only">{t('portfolio.cash.toolbar.legend')}</legend>
       <BusinessDateField
         hint={null}
-        label="Du"
+        label={t('portfolio.cash.toolbar.from')}
         onChange={(value) => onChange({ from: value, to })}
-        resetLabel="Début d’année"
+        resetLabel={t('portfolio.cash.toolbar.yearStart')}
         today={startOfYear(today)}
         value={from}
       />
       <BusinessDateField
         hint={null}
-        label="Au"
+        label={t('portfolio.cash.toolbar.to')}
         onChange={(value) => onChange({ from, to: value > today ? today : value })}
         today={today}
         value={to}
@@ -36,14 +38,14 @@ export function CashToolbar({ disabled = false, from, onChange, to, today }: Pro
           onClick={() => onChange({ from: startOfYear(today), to: today })}
           type="button"
         >
-          Cette année
+          {t('portfolio.cash.toolbar.thisYear')}
         </button>
         <button
           className="secondary-action"
           onClick={() => onChange({ from: lastTwelveMonths(today), to: today })}
           type="button"
         >
-          12 derniers mois
+          {t('portfolio.cash.toolbar.lastTwelveMonths')}
         </button>
       </div>
     </fieldset>

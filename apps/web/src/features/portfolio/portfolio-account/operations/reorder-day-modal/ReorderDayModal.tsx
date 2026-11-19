@@ -2,6 +2,7 @@ import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { reorderPortfolioOperations } from '@cadran/api-client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { Modal } from '@/components/ui/modal/Modal';
 import { SkeletonStatus, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Props) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const day = useDayOperations(accountId, tradeDate);
   type DayItems = NonNullable<typeof day.data>;
@@ -75,7 +77,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
       onClose();
     } catch (refusal) {
       if (refusal instanceof OperationRequestError && refusal.code === 'stale_operation_order') {
-        setError('Les opérations de cette journée ont changé. L’ordre a été actualisé.');
+        setError(t('portfolio.account.reorder.changed'));
         await day.refetch();
         setDraft(null);
         await Promise.all([
@@ -91,10 +93,10 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
         refusal.code === 'position_would_go_negative'
       ) {
         setError(
-          `Cet ordre rendrait la position négative le ${formatCalendarNumericDay(tradeDate)}.`,
+          t('portfolio.account.reorder.negative', { date: formatCalendarNumericDay(tradeDate) }),
         );
       } else {
-        setError(operationSaveMessage(refusal));
+        setError(operationSaveMessage(refusal, t));
       }
     } finally {
       setSaving(false);
@@ -105,17 +107,19 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
     <Modal
       intent="edit"
       close={onClose}
-      title={`Réordonner la journée du ${formatCalendarNumericDay(tradeDate)}`}
+      title={t('portfolio.account.operations.menu.reorderDay', {
+        day: formatCalendarNumericDay(tradeDate),
+      })}
     >
       <div className={styles.content}>
         {day.isPending ? (
           <section aria-busy="true" data-testid="reorder-day-skeleton">
-            <SkeletonStatus>Chargement des opérations de la journée…</SkeletonStatus>
-            <table aria-label="Opérations à réordonner">
+            <SkeletonStatus>{t('portfolio.account.reorder.loading')}</SkeletonStatus>
+            <table aria-label={t('portfolio.account.reorder.tableLabel')}>
               <thead>
                 <tr>
-                  <th scope="col">Opération</th>
-                  <th scope="col">Ordre</th>
+                  <th scope="col">{t('portfolio.account.reorder.operation')}</th>
+                  <th scope="col">{t('portfolio.account.reorder.order')}</th>
                 </tr>
               </thead>
               <SkeletonTableRows columns={2} rows={3} />
@@ -123,9 +127,9 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
           </section>
         ) : day.isError ? (
           <div className={styles.errorState}>
-            <p role="alert">Les opérations de cette journée sont indisponibles.</p>
+            <p role="alert">{t('portfolio.account.reorder.unavailable')}</p>
             <button className="secondary-action" onClick={() => void day.refetch()} type="button">
-              Réessayer
+              {t('actions.retry')}
             </button>
           </div>
         ) : (
@@ -137,12 +141,12 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
             ) : null}
             <ol className={styles.list}>
               {items.map((item, index) => {
-                const label = operationTypeLabel(item.type);
+                const label = operationTypeLabel(t, item.type);
                 return (
                   <li className={styles.item} key={item.id}>
                     <span className={styles.label}>{label}</span>
                     <button
-                      aria-label={`Monter ${label}`}
+                      aria-label={t('portfolio.account.reorder.moveUp', { label })}
                       className="icon-button"
                       disabled={index === 0 || saving}
                       onClick={() => move(index, -1)}
@@ -151,7 +155,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
                       <Icon name="arrow-up" />
                     </button>
                     <button
-                      aria-label={`Descendre ${label}`}
+                      aria-label={t('portfolio.account.reorder.moveDown', { label })}
                       className="icon-button"
                       disabled={index === items.length - 1 || saving}
                       onClick={() => move(index, 1)}
@@ -170,7 +174,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
                 onClick={onClose}
                 type="button"
               >
-                Annuler
+                {t('actions.cancel')}
               </button>
               <button
                 className="primary-action"
@@ -178,7 +182,7 @@ export function ReorderDayModal({ accountId, tradeDate, onClose, onSaved }: Prop
                 onClick={() => void save()}
                 type="button"
               >
-                {saving ? 'Enregistrement…' : 'Enregistrer l’ordre'}
+                {saving ? t('portfolio.account.form.saving') : t('portfolio.account.reorder.save')}
               </button>
             </ModalActions>
           </>

@@ -37,7 +37,7 @@ export function ValueHistoryCard({ accountId, asOf }: { accountId: string; asOf:
 
   if (history.isPending) {
     return (
-      <ValueHistoryCardSkeleton period={period} status="Chargement de l’évolution de la valeur…" />
+      <ValueHistoryCardSkeleton period={period} status={t('portfolio.account.history.loading')} />
     );
   }
 
@@ -51,7 +51,7 @@ export function ValueHistoryCard({ accountId, asOf }: { accountId: string; asOf:
       className={`card ${styles.card}`}
     >
       <div className={styles.header}>
-        <h3 id="portfolio-value-history-title">Évolution de la valeur</h3>
+        <h3 id="portfolio-value-history-title">{t('portfolio.account.history.title')}</h3>
         <ChartPeriodControl
           label={t('chartPeriod.groupLabel')}
           onChange={changePeriod}
@@ -61,19 +61,19 @@ export function ValueHistoryCard({ accountId, asOf }: { accountId: string; asOf:
       </div>
       {data === undefined ? (
         <div role="alert">
-          <p>L’évolution de la valeur est indisponible.</p>
+          <p>{t('portfolio.account.history.unavailable')}</p>
           <button className="secondary-action" onClick={() => void history.refetch()} type="button">
-            Réessayer
+            {t('actions.retry')}
           </button>
         </div>
       ) : data.points.length === 0 ? (
         <p role="status">
-          Aucune valorisation. Enregistrez la valeur de vos titres à partir d’un relevé.{' '}
+          {t('portfolio.account.history.empty')}{' '}
           <a
             href={valuationsHref}
             onClick={(event) => handleClientNavigation(event, valuationsHref)}
           >
-            Valorisations
+            {t('portfolio.account.history.valuationsLink')}
           </a>
         </p>
       ) : (
@@ -85,18 +85,18 @@ export function ValueHistoryCard({ accountId, asOf }: { accountId: string; asOf:
               points={data.points}
             />
           ) : (
-            <p role="status">Aucune valorisation complète à tracer.</p>
+            <p role="status">{t('portfolio.account.history.nothingToPlot')}</p>
           )}
           {data.truncated ? (
             <p className={styles.notice} role="status">
-              Seules les 240 dernières valorisations sont affichées.
+              {t('portfolio.account.history.truncated')}
             </p>
           ) : null}
           <Disclosure
-            meta={`${data.points.length} ${data.points.length > 1 ? 'valorisations' : 'valorisation'}`}
+            meta={t('portfolio.account.history.count', { count: data.points.length })}
             onToggle={setTableOpen}
             open={tableOpen}
-            title="Voir le tableau"
+            title={t('portfolio.account.history.viewTable')}
           >
             <ValueHistoryTable locale={i18n.language} points={data.points} />
           </Disclosure>

@@ -29,7 +29,7 @@ export function HoldingsAllocationCard({
   /** The positions view on the page: by account, the allocation starts by account too. */
   view?: 'asset' | 'account';
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [chosen, setChosen] = useState<AllocationCriterion | null>(null);
   // Without any line the asset views only hold the unsplit slice: the accounts are what to show.
   const criterion: AllocationCriterion =
@@ -39,8 +39,8 @@ export function HoldingsAllocationCard({
       : 'byAssetClass');
   const slices = holdings?.allocation[criterion] ?? [];
   const label = (slice: { key: string; label: string }) =>
-    sliceLabel(criterion, slice, t('investments.allocation.unspecified'));
-  const money = (value: string) => holdingsMoney(value, holdings!.assetCode);
+    sliceLabel(criterion, slice, t('investments.allocation.unspecified'), t);
+  const money = (value: string) => holdingsMoney(value, holdings!.assetCode, i18n.language);
   const charted = slices.length > 0 && slices.every((slice) => slice.share !== null);
   const criterionName = t(criterionNameKeys[criterion]);
 
@@ -126,7 +126,7 @@ export function HoldingsAllocationCard({
                         {slice.share === null ? (
                           <EmptyValue label={t('investments.summary.notCalculable')} />
                         ) : (
-                          formatRatioPercentage(slice.share, 'fr')
+                          formatRatioPercentage(slice.share, i18n.language)
                         )}
                       </td>
                     </tr>

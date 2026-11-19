@@ -19,6 +19,7 @@ import type { SplitRowValues } from '@/features/transactions/split-editor/SplitR
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
 import { TransactionSubmitError } from '@/features/transactions/submit-error/TransactionSubmitError';
 import styles from './RefundForm.module.css';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 
 interface RefundFormProps {
   accounts: Account[];
@@ -63,7 +64,7 @@ export function RefundForm({
       note: '',
     })),
   );
-  const normalizedAmount = amount.replace(',', '.');
+  const normalizedAmount = normalizeDecimalInput(amount);
   const amountCanonical = isCanonicalUnsignedDecimal(normalizedAmount);
   const amountTooHigh =
     amountCanonical &&

@@ -1,5 +1,6 @@
 import type { PortfolioPosition } from '@cadran/api-client';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { ReorderDayModal } from '@/features/portfolio/portfolio-account/operations/reorder-day-modal/ReorderDayModal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -22,6 +23,7 @@ export function PositionsTab({
   /** Supplied only while the account can still take over the positions it already holds. */
   onTakeover?: () => void;
 }) {
+  const { t } = useTranslation();
   const [detail, setDetail] = useState<PortfolioPosition | null>(null);
   const [lots, setLots] = useState<PortfolioPosition | null>(null);
   const [reorderingDate, setReorderingDate] = useState<string | null>(null);
@@ -32,17 +34,17 @@ export function PositionsTab({
       {positions.isPending ? (
         <PositionsList items={null} onOpen={setDetail} onReorder={() => {}} />
       ) : positions.isError ? (
-        <OperationsState error title="Les positions sont indisponibles">
+        <OperationsState error title={t('portfolio.account.form.legs.positionsUnavailable')}>
           <button
             className="secondary-action"
             onClick={() => void positions.refetch()}
             type="button"
           >
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : positions.data.items.length === 0 ? (
-        <OperationsState title="Aucune position à cette date">
+        <OperationsState title={t('portfolio.account.positions.none')}>
           <a
             className="secondary-action"
             href={`/portfolios/${accountId}?tab=operations&asOf=${asOf}`}
@@ -50,11 +52,11 @@ export function PositionsTab({
               handleClientNavigation(event, `/portfolios/${accountId}?tab=operations&asOf=${asOf}`)
             }
           >
-            Voir les opérations
+            {t('portfolio.account.positions.seeOperations')}
           </a>
           {onTakeover ? (
             <button className="primary-action" onClick={onTakeover} type="button">
-              Saisir mes positions
+              {t('portfolio.account.positions.enter')}
             </button>
           ) : null}
         </OperationsState>

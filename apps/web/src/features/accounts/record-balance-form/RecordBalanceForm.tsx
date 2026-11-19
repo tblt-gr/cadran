@@ -211,7 +211,7 @@ export function RecordBalanceForm({
         </FormGrid>
 
         <FormSection
-          title="Champs avancés"
+          title={t('transactions.form.advanced')}
           open={advancedOpen || (showErrors && commentInvalid)}
           onToggle={setAdvancedOpen}
         >

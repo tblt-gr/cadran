@@ -3,8 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { MetricPolicyDefinition } from './MetricPolicyDefinition';
 import styles from './MetricPolicyPage.module.css';
 
-const DATE_TIME = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' });
-
 interface ActiveMetricPolicyCardProps {
   active: MetricPolicy | null;
   activeSince: string | null;
@@ -17,7 +15,7 @@ export function ActiveMetricPolicyCard({
   activeSince,
   activeVersion,
 }: ActiveMetricPolicyCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   if (active === null) {
     return (
@@ -48,7 +46,12 @@ export function ActiveMetricPolicyCard({
       <p className={styles.since}>
         {activeSince === null
           ? t('metricPolicy.active.builtIn')
-          : t('metricPolicy.active.since', { date: DATE_TIME.format(new Date(activeSince)) })}
+          : t('metricPolicy.active.since', {
+              date: new Intl.DateTimeFormat(i18n.language, {
+                dateStyle: 'long',
+                timeStyle: 'short',
+              }).format(new Date(activeSince)),
+            })}
       </p>
       <MetricPolicyDefinition policy={active} />
     </section>

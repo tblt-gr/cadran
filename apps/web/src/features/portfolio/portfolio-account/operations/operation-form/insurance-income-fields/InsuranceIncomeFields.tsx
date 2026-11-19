@@ -1,6 +1,7 @@
 import { readInstrument } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
 import { OperationDecimalField } from '@/features/portfolio/portfolio-account/operations/operation-form/OperationDecimalField';
@@ -21,6 +22,7 @@ export function InsuranceIncomeFields({
   values: OperationFormValues;
   onChange: <K extends keyof OperationFormValues>(key: K, value: OperationFormValues[K]) => void;
 }) {
+  const { t } = useTranslation();
   const fee = values.type === 'MANAGEMENT_FEE';
   const interest = values.type === 'EURO_FUND_INTEREST' || values.type === 'PROFIT_SHARING';
   const metadata = useQuery({
@@ -63,7 +65,7 @@ export function InsuranceIncomeFields({
           key={values.type}
           currencyCode={account.assetCode}
           instrumentType={fee ? undefined : 'EURO_FUND'}
-          label="Support"
+          label={t('portfolio.account.form.income.support')}
           value={values.instrument}
           onChange={(instrument) => {
             onChange('instrument', instrument);
@@ -71,26 +73,31 @@ export function InsuranceIncomeFields({
             onChange('unitPrice', '');
           }}
         />
-        {fee && !values.instrument ? <small>Liquidités du contrat</small> : null}
+        {fee && !values.instrument ? (
+          <small>{t('portfolio.account.form.income.contractCash')}</small>
+        ) : null}
         {errors.instrument ? <small role="alert">{errors.instrument}</small> : null}
         {metadata.isError ? (
           <p role="alert">
-            Le support est indisponible.{' '}
+            {t('portfolio.account.form.income.supportUnavailable')}{' '}
             <button
               className="secondary-action"
               type="button"
               onClick={() => void metadata.refetch()}
             >
-              Réessayer
+              {t('actions.retry')}
             </button>
           </p>
         ) : null}
       </div>
       {interest ? (
         <>
-          {decimal('grossAmount', 'Montant brut crédité')}
-          {decimal('taxes', 'Prélèvements sociaux retenus')}
-          <OperationField label="Base du taux" error={errors.interestBasis}>
+          {decimal('grossAmount', t('portfolio.account.form.income.grossCredited'))}
+          {decimal('taxes', t('portfolio.account.form.insurance.withheldSocial'))}
+          <OperationField
+            label={t('portfolio.account.form.income.rateBasis')}
+            error={errors.interestBasis}
+          >
             <select
               value={values.interestBasis}
               onChange={(event) =>
@@ -100,30 +107,41 @@ export function InsuranceIncomeFields({
                 )
               }
             >
-              <option value="">Choisir une base</option>
-              <option value="NET_OF_MANAGEMENT_FEES">Net de frais de gestion</option>
-              <option value="GROSS_OF_MANAGEMENT_FEES">Brut de frais de gestion</option>
-              <option value="UNKNOWN">Non précisé</option>
+              <option value="">{t('portfolio.account.form.income.chooseBasis')}</option>
+              <option value="NET_OF_MANAGEMENT_FEES">
+                {t('portfolio.lifeInsurance.basis.NET_OF_MANAGEMENT_FEES')}
+              </option>
+              <option value="GROSS_OF_MANAGEMENT_FEES">
+                {t('portfolio.lifeInsurance.basis.GROSS_OF_MANAGEMENT_FEES')}
+              </option>
+              <option value="UNKNOWN">{t('portfolio.lifeInsurance.basis.UNKNOWN')}</option>
             </select>
           </OperationField>
         </>
       ) : fee ? (
         <>
-          {decimal('fees', 'Montant des frais')}
+          {decimal('fees', t('portfolio.account.form.income.feeAmount'))}
           {values.instrument &&
           values.instrument.instrumentType &&
           values.instrument.instrumentType !== 'EURO_FUND' ? (
             <>
-              {decimal('quantity', 'Parts prélevées')}
-              {decimal('unitPrice', 'Valeur liquidative')}
+              {decimal('quantity', t('portfolio.account.form.income.unitsWithdrawn'))}
+              {decimal('unitPrice', t('portfolio.account.form.income.unitValue'))}
             </>
           ) : null}
         </>
       ) : (
-        decimal('taxes', 'Montant')
+        decimal('taxes', t('portfolio.account.form.income.amount'))
       )}
       {!fee ? (
-        <OperationField label={interest ? 'Année du taux' : 'Année'} error={errors.rateYear}>
+        <OperationField
+          label={
+            interest
+              ? t('portfolio.account.form.income.rateYear')
+              : t('portfolio.account.form.income.year')
+          }
+          error={errors.rateYear}
+        >
           <input
             inputMode="numeric"
             maxLength={4}

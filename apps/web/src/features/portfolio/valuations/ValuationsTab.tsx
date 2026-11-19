@@ -1,6 +1,7 @@
 import { dismissPortfolioDetailSelection } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { Account, PortfolioValuationSummary } from '@cadran/api-client';
 import { useEffect, useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { OperationsState } from '@/features/portfolio/portfolio-account/operations/OperationsState';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
@@ -42,6 +43,7 @@ export function ValuationsTab({
   recording?: boolean;
   onRecordClose?: () => void;
 }) {
+  const { t } = useTranslation();
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);
   const [dialog, setDialog] = useState<Dialog>(null);
@@ -106,7 +108,7 @@ export function ValuationsTab({
     <div className={styles.tab}>
       {stale ? (
         <p className={styles.notice} role="status">
-          Cette valorisation a déjà été modifiée. La liste a été actualisée.
+          {t('portfolio.valuations.staleNotice')}
         </p>
       ) : null}
       {valuations.isPending ? (
@@ -117,18 +119,18 @@ export function ValuationsTab({
           valuations={null}
         />
       ) : valuations.isError && !valuations.data ? (
-        <OperationsState error title="Les valorisations sont indisponibles">
+        <OperationsState error title={t('portfolio.valuations.unavailable')}>
           <button
             className="secondary-action"
             onClick={() => void valuations.refetch()}
             type="button"
           >
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : total === 0 ? (
-        <OperationsState title="Aucune valorisation">
-          <p>Saisissez la valeur du compte à partir d’un relevé avec Nouvelle valorisation.</p>
+        <OperationsState title={t('portfolio.valuations.none')}>
+          <p>{t('portfolio.valuations.noneHint')}</p>
         </OperationsState>
       ) : (
         <IncrementalList items={valuations.data!.items} query={valuations}>

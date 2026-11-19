@@ -6,7 +6,7 @@ import { CashToolbar } from './CashToolbar';
 import { startOfYear } from './cashPeriod';
 import styles from './CashTab.module.css';
 
-/** Cold-load layout of the Espèces tab: the real chrome, every figure pending. */
+/** Cold-load layout of the Cash tab: the real chrome, every figure pending. */
 export function CashTabSkeleton({ asOf }: { asOf?: string }) {
   const timeZone = useWorkspaceTimeZone();
   const today = workspaceToday(new Date(), timeZone);

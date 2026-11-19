@@ -1,5 +1,6 @@
 import type { PortfolioAnnualPerformance, PortfolioAnnualPeriodLine } from '@cadran/api-client';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -11,7 +12,7 @@ import {
 } from '@/features/portfolio/performance/performance-tab/lineColumns';
 import {
   anchorsTitle,
-  emptyMonthLabel,
+  emptyMonthKey,
   monthName,
 } from '@/features/portfolio/performance/performance-tab/monthLabels';
 import styles from './PerformanceMonthCards.module.css';
@@ -42,6 +43,7 @@ function Card({
   selected?: string[];
   emptyLabel?: string;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const heading = (
     <h3 id={id} title={titleHint}>
@@ -92,7 +94,7 @@ function Card({
               .filter((column) => FOLDED_FIGURES.includes(column.id))
               .map((column) => (
                 <span className={styles.foldedFigure} key={column.id}>
-                  <span className={styles.foldedLabel}>{column.label}</span>
+                  <span className={styles.foldedLabel}>{t(column.label)}</span>
                   {!line ? (
                     <SkeletonBlock className={styles.skeleton} />
                   ) : (
@@ -112,7 +114,7 @@ function Card({
             .filter((column) => !selected || selected.includes(column.id))
             .map((column) => (
               <div className={styles.figure} key={column.id}>
-                <dt>{column.label}</dt>
+                <dt>{t(column.label)}</dt>
                 <dd>{value(column)}</dd>
               </div>
             ))}
@@ -134,10 +136,13 @@ export function PerformanceMonthCards({
   year?: number;
   onExplain: (target: ExplainTarget) => void;
 }) {
+  const { t, i18n } = useTranslation();
   const base = {
     accountId: annual?.accountId ?? '',
     assetCode: annual?.assetCode ?? '',
     residual: null,
+    t,
+    locale: i18n.language,
   };
   const shownYear = annual?.year ?? year;
   const months = annual
@@ -152,7 +157,7 @@ export function PerformanceMonthCards({
       {months.map((line) => {
         const empty =
           line.status === 'BEFORE_OPENING' || line.status === 'FUTURE'
-            ? emptyMonthLabel[line.status]
+            ? t(emptyMonthKey[line.status])
             : undefined;
         return (
           <Card
@@ -165,8 +170,8 @@ export function PerformanceMonthCards({
             onExplain={onExplain}
             status={line.status}
             target={(figure) => ({ kind: 'month', month: line.month, figure })}
-            title={monthName(line.month)}
-            titleHint={'from' in line ? anchorsTitle(line.from, line.to) : undefined}
+            title={monthName(line.month, i18n.language)}
+            titleHint={'from' in line ? anchorsTitle(line.from, line.to, t) : undefined}
           />
         );
       })}
@@ -178,7 +183,7 @@ export function PerformanceMonthCards({
         onExplain={onExplain}
         status="YEAR"
         target={(figure) => ({ kind: 'year', figure })}
-        title={`Année ${shownYear}`}
+        title={t('portfolio.performance.months.year', { year: shownYear })}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import {
 } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import type { Account, PortfolioOperation } from '@cadran/api-client';
 import { useEffect, useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { OperationDetailModal } from './operation-detail-modal/OperationDetailModal';
 import { OperationFilters } from './operation-filters/OperationFilters';
 import { noFilters, type OperationFilterValues } from './operation-filters/operationFilterValues';
@@ -20,7 +21,7 @@ import { ReorderDayModal } from './reorder-day-modal/ReorderDayModal';
 import { todayInBrowser } from '@/lib/businessDay';
 import styles from './OperationsTab.module.css';
 
-/** The Opérations tab: filters, dated rows and the modify, detail and void modals. */
+/** The Operations tab: filters, dated rows and the modify, detail and void modals. */
 export function OperationsTab({
   account,
   sourceReturnFocus,
@@ -40,6 +41,7 @@ export function OperationsTab({
   /** Owned by the page header, which carries the toggle. */
   includeVoided?: boolean;
 }) {
+  const { t } = useTranslation();
   const [chosen, setFilters] = useState<OperationFilterValues>(() => ({
     ...noFilters,
     instrumentId: instrumentFromLocation(),
@@ -92,7 +94,7 @@ export function OperationsTab({
       />
       {stale ? (
         <p className={styles.notice} role="status">
-          Cette opération a déjà été modifiée. La liste a été actualisée.
+          {t('portfolio.account.operations.stale')}
         </p>
       ) : null}
       {operations.isPending ? (
@@ -100,19 +102,21 @@ export function OperationsTab({
       ) : refusal?.code === 'account_not_portfolio' ? (
         <NotPortfolioState accountId={account.id} />
       ) : operations.isError && !operations.data ? (
-        <OperationsState error title="Les opérations sont indisponibles">
+        <OperationsState error title={t('portfolio.account.operations.unavailable')}>
           <button
             className="secondary-action"
             onClick={() => void operations.refetch()}
             type="button"
           >
-            Réessayer
+            {t('actions.retry')}
           </button>
         </OperationsState>
       ) : total === 0 ? (
         <OperationsState
           title={
-            filtered || filters.includeVoided ? 'Aucune opération trouvée' : 'Aucune opération'
+            filtered || filters.includeVoided
+              ? t('portfolio.account.operations.noneFound')
+              : t('portfolio.account.operations.none')
           }
         >
           {filtered ? null : (
@@ -122,7 +126,7 @@ export function OperationsTab({
               onClick={onCreate}
               type="button"
             >
-              Enregistrer la première opération
+              {t('portfolio.account.operations.recordFirst')}
             </button>
           )}
         </OperationsState>
