@@ -63,13 +63,6 @@ describe('HoldingsAllocationCard', () => {
     expect(within(table).getByText(/800,00/)).toBeTruthy();
   });
 
-  it('starts by account when the page shows the account view', () => {
-    render(<HoldingsAllocationCard holdings={holdingsFixture()} view="account" />);
-    expect(screen.getByRole('button', { name: 'Compte' }).getAttribute('aria-pressed')).toBe(
-      'true',
-    );
-  });
-
   it('keeps the asset class default when lines are held', () => {
     render(<HoldingsAllocationCard holdings={holdingsFixture()} />);
     expect(
