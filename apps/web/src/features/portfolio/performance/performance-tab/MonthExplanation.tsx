@@ -1,4 +1,5 @@
 import type { PortfolioOverviewSource } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
 import type { FigureKey } from '@/features/portfolio/performance/performanceFigures';
@@ -18,6 +19,7 @@ export function MonthExplanation({
   onClose: () => void;
   onSource: (source: PortfolioOverviewSource) => void;
 }) {
+  const { t } = useTranslation();
   const performance = usePortfolioPerformance(accountId, 'MONTH', month);
   if (performance.data) {
     return (
@@ -31,21 +33,25 @@ export function MonthExplanation({
   }
   if (performance.isError) {
     return (
-      <Modal intent="detail" close={onClose} title="Explication indisponible">
-        <p>L'explication de ce mois est indisponible.</p>
+      <Modal
+        intent="detail"
+        close={onClose}
+        title={t('portfolio.performance.monthExplanation.title')}
+      >
+        <p>{t('portfolio.performance.monthExplanation.unavailable')}</p>
         <button
           className="secondary-action"
           onClick={() => void performance.refetch()}
           type="button"
         >
-          Réessayer
+          {t('actions.retry')}
         </button>
       </Modal>
     );
   }
   return (
     <p className="sr-only" role="status">
-      Chargement de l'explication…
+      {t('portfolio.performance.monthExplanation.loading')}
     </p>
   );
 }

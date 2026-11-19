@@ -1,54 +1,33 @@
+import type { ParseKeys } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { Instrument } from '@cadran/api-client';
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import styles from './InstrumentTable.module.css';
 
-const typeLabels: Record<string, string> = {
-  EQUITY: 'Action',
-  ETF: 'ETF',
-  FUND: 'Fonds',
-  BOND: 'Obligation',
-  OTHER: 'Autre',
-};
-const classLabels: Record<string, string> = {
-  EQUITY: 'Actions',
-  BOND: 'Obligations',
-  MONEY_MARKET: 'Monétaire',
-  REAL_ESTATE: 'Immobilier',
-  COMMODITY: 'Matières premières',
-  MIXED: 'Diversifié',
-  OTHER: 'Autre',
-};
-const regionLabels: Record<string, string> = {
-  FRANCE: 'France',
-  EUROPE: 'Europe',
-  NORTH_AMERICA: 'Amérique du Nord',
-  ASIA_PACIFIC: 'Asie-Pacifique',
-  EMERGING: 'Pays émergents',
-  WORLD: 'Monde',
-  OTHER: 'Autre',
-};
 interface Props {
   items: Instrument[];
   onEdit: (item: Instrument) => void;
   onStatus: (item: Instrument) => void;
 }
 export function InstrumentTable({ items, onEdit, onStatus }: Props) {
+  const { t } = useTranslation();
+  const T = 'investments.instruments';
   return (
     <div className={`card ${styles.panel}`}>
       <div className={styles.scroll}>
         <table>
-          <caption className="sr-only">Instruments</caption>
+          <caption className="sr-only">{t('investments.tabs.instruments')}</caption>
           <thead>
             <tr>
-              {['Nom', 'Type', 'Région', 'Statut', ''].map((text, index) => (
+              {['name', 'type', 'region', 'status', ''].map((key, index) => (
                 <th
                   className={index >= 1 && index <= 3 ? styles.detail : undefined}
-                  key={text}
+                  key={key}
                   scope="col"
                 >
-                  {text}
+                  {key ? t(`${T}.table.${key}` as ParseKeys) : ''}
                 </th>
               ))}
             </tr>
@@ -59,40 +38,49 @@ export function InstrumentTable({ items, onEdit, onStatus }: Props) {
                 <th scope="row">
                   <InstrumentLink instrument={item} />
                   <small>
-                    {[item.isin, item.ticker].filter(Boolean).join(' · ') || 'Aucun identifiant'}
+                    {[item.isin, item.ticker].filter(Boolean).join(' · ') ||
+                      t(`${T}.table.noIdentifier`)}
                   </small>
                 </th>
                 <td className={styles.detail}>
-                  {typeLabels[item.instrumentType]}
+                  {t(`${T}.typesShort.${item.instrumentType}`, { defaultValue: '' })}
                   <small className={styles.sub}>
-                    {item.assetClass ? classLabels[item.assetClass] : 'Classe non renseignée'}
+                    {item.assetClass
+                      ? t(`${T}.classes.${item.assetClass}`)
+                      : t(`${T}.table.classUnset`)}
                   </small>
                 </td>
                 <td className={styles.detail}>
-                  {item.region ? regionLabels[item.region] : 'Non renseignée'}
+                  {item.region ? t(`${T}.regions.${item.region}`) : t(`${T}.table.unset`)}
                   <small className={styles.sub}>{item.currencyCode}</small>
                 </td>
                 <td className={styles.detail}>
                   <StatusBadge tone={item.status === 'ACTIVE' ? 'positive' : 'info'}>
-                    {item.status === 'ACTIVE' ? 'Actif' : 'Archivé'}
+                    {item.status === 'ACTIVE' ? t(`${T}.status.ACTIVE`) : t(`${T}.status.INACTIVE`)}
                   </StatusBadge>
                 </td>
                 <td>
                   <ActionMenu
-                    label={`Actions pour ${item.name}`}
+                    label={t(`${T}.table.actionsFor`, { name: item.name })}
                     items={[
                       {
                         id: 'edit',
                         icon: 'edit',
-                        label: `Modifier ${item.name}`,
-                        text: 'Modifier',
+                        label: t(`${T}.table.editNamed`, { name: item.name }),
+                        text: t(`${T}.actions.edit`),
                         onSelect: () => onEdit(item),
                       },
                       {
                         id: 'status',
                         icon: 'archive',
-                        label: `${item.status === 'ACTIVE' ? 'Archiver' : 'Réactiver'} ${item.name}`,
-                        text: item.status === 'ACTIVE' ? 'Archiver' : 'Réactiver',
+                        label:
+                          item.status === 'ACTIVE'
+                            ? t(`${T}.table.archiveNamed`, { name: item.name })
+                            : t(`${T}.table.reactivateNamed`, { name: item.name }),
+                        text:
+                          item.status === 'ACTIVE'
+                            ? t(`${T}.actions.archive`)
+                            : t(`${T}.actions.reactivate`),
                         onSelect: () => onStatus(item),
                       },
                     ]}

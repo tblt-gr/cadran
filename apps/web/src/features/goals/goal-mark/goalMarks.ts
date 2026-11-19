@@ -15,6 +15,7 @@ export function marksFor(
   periods: readonly GoalPeriodEvaluation[] | undefined,
   period: string,
   columnKey: string,
+  locale?: string,
 ): GoalEvaluation[] {
   if (periods === undefined) return [];
   return periods
@@ -23,7 +24,7 @@ export function marksFor(
     .filter((item) => item.columnKey === columnKey)
     .sort(
       (a, b) =>
-        TONE_ORDER[goalTone(a)] - TONE_ORDER[goalTone(b)] || a.label.localeCompare(b.label, 'fr'),
+        TONE_ORDER[goalTone(a)] - TONE_ORDER[goalTone(b)] || a.label.localeCompare(b.label, locale),
     );
 }
 

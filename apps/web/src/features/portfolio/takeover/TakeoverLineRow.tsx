@@ -1,4 +1,5 @@
 import type { PortfolioTakeoverPreviewLine } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -31,6 +32,7 @@ export function TakeoverLineRow({
   previewPending: boolean;
   removable: boolean;
 }) {
+  const { t, i18n } = useTranslation();
   const number = index + 1;
   const figure = (text: string | null) =>
     text !== null ? (
@@ -41,17 +43,17 @@ export function TakeoverLineRow({
       </strong>
     ) : (
       <strong>
-        <EmptyValue label="Non calculable" />
+        <EmptyValue label={t('states.notCalculable.label')} />
       </strong>
     );
   return (
     <fieldset className={styles.row}>
-      <legend>{`Ligne ${number}`}</legend>
+      <legend>{t('portfolio.takeover.line', { number })}</legend>
       <div className={styles.instrument}>
         <InstrumentPicker
           allowCreate
           currencyCode={assetCode}
-          label="Instrument"
+          label={t('portfolio.valuations.positions.instrument')}
           onChange={(item) =>
             onChange({ instrument: item ? { id: item.id, name: item.name } : null })
           }
@@ -67,16 +69,16 @@ export function TakeoverLineRow({
         autoComplete="off"
         error={errors.quantity}
         inputMode="decimal"
-        label="Quantité"
+        label={t('portfolio.positions.quantity')}
         onChange={(event) => onChange({ quantity: event.target.value })}
         value={line.quantity}
       />
       <TakeoverInput
         autoComplete="off"
         error={errors.costBasis}
-        hint="Laissez vide si inconnu."
+        hint={t('portfolio.takeover.leaveEmpty')}
         inputMode="decimal"
-        label="Coût de revient total"
+        label={t('portfolio.takeover.totalCostBasis')}
         onChange={(event) => onChange({ costBasis: event.target.value })}
         value={line.costBasis}
       />
@@ -84,31 +86,31 @@ export function TakeoverLineRow({
         autoComplete="off"
         error={errors.price}
         inputMode="decimal"
-        label="Cours"
+        label={t('portfolio.takeover.price')}
         onChange={(event) => onChange({ price: event.target.value })}
         value={line.price}
       />
       <TakeoverInput
         error={errors.priceDate}
-        label="Date du cours"
+        label={t('portfolio.takeover.priceDate')}
         onChange={(event) => onChange({ priceDate: event.target.value })}
         type="date"
         value={line.priceDate}
       />
       <div className={styles.readout}>
-        <span>Valeur</span>
-        {figure(preview?.value ? formatAmount(preview.value, assetCode, 'fr') : null)}
+        <span>{t('portfolio.takeover.value')}</span>
+        {figure(preview?.value ? formatAmount(preview.value, assetCode, i18n.language) : null)}
       </div>
       <div className={styles.readout}>
-        <span>PRU</span>
+        <span>{t('portfolio.takeover.avgUnitCost')}</span>
         {figure(
           preview?.averageUnitCost
-            ? `${formatDecimal(preview.averageUnitCost, 'fr')} ${assetCode}`
+            ? `${formatDecimal(preview.averageUnitCost, i18n.language)} ${assetCode}`
             : null,
         )}
       </div>
       <button
-        aria-label={`Retirer la ligne ${number}`}
+        aria-label={t('portfolio.takeover.removeLine', { number })}
         className={`icon-button ${styles.remove}`}
         disabled={!removable}
         onClick={onRemove}

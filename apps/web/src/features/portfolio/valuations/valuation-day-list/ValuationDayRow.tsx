@@ -31,7 +31,7 @@ export function ValuationDayRow({
   onWithdraw,
   valuation,
 }: ValuationDayRowProps) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (valuation === null)
     return (
       <DatedRow
@@ -43,7 +43,7 @@ export function ValuationDayRow({
           </small>
         }
         menuOnPhone
-        menu={<ActionMenu disabled label="Actions de la valorisation" items={[]} />}
+        menu={<ActionMenu disabled label={t('portfolio.valuations.row.actions')} items={[]} />}
         title={
           <button className={styles.open} disabled type="button">
             <SkeletonBlock />
@@ -56,11 +56,14 @@ export function ValuationDayRow({
   const date = formatCalendarNumericDay(valuation.valuedOn);
   const quality = summaryQualityLabel[valuation.priceQuality];
   const alerts = valuation.flags.map((flag) => flagLabel[flag]);
-  const completeness = valuation.completeness === 'COMPLETE' ? 'Complète' : 'Partielle';
+  const completeness =
+    valuation.completeness === 'COMPLETE'
+      ? t('portfolio.valuations.common.complete')
+      : t('portfolio.valuations.common.partial');
   const alertCue =
     alerts.length > 0 ? (
       <span
-        aria-label={`Alertes : ${alerts.join(', ')}`}
+        aria-label={t('portfolio.valuations.row.alertsLabel', { alerts: alerts.join(', ') })}
         className={styles.alert}
         role="img"
         title={alerts.join(', ')}
@@ -74,27 +77,27 @@ export function ValuationDayRow({
       menuOnPhone
       menu={
         <ActionMenu
-          label={`Actions pour la valorisation du ${date}`}
+          label={t('portfolio.valuations.row.actionsFor', { date })}
           items={[
             {
               id: 'detail',
               icon: 'info',
-              label: `Détail de la valorisation du ${date}`,
-              text: 'Détail',
+              label: t('portfolio.valuations.row.detailOf', { date }),
+              text: t('portfolio.valuations.row.detail'),
               onSelect: () => onDetail(valuation),
             },
             {
               id: 'replace',
               icon: 'edit',
-              label: `Remplacer la valorisation du ${date}`,
-              text: 'Remplacer',
+              label: t('portfolio.valuations.row.replaceOf', { date }),
+              text: t('portfolio.valuations.row.replace'),
               onSelect: () => onReplace(valuation),
             },
             {
               id: 'withdraw',
               icon: 'archive',
-              label: `Retirer la valorisation du ${date}`,
-              text: 'Retirer',
+              label: t('portfolio.valuations.row.withdrawOf', { date }),
+              text: t('portfolio.valuations.row.withdraw'),
               onSelect: () => onWithdraw(valuation),
             },
           ]}
@@ -108,7 +111,12 @@ export function ValuationDayRow({
                 <Icon name="alert" size={12} />
               </span>
             )}
-            {[completeness, quality ? `Prix ${quality.toLowerCase()}` : null]
+            {[
+              completeness,
+              quality
+                ? t('portfolio.valuations.row.priceQuality', { quality: quality.toLowerCase() })
+                : null,
+            ]
               .filter(Boolean)
               .join(' · ')}
             {alertCue}
@@ -118,7 +126,10 @@ export function ValuationDayRow({
       onOpen={() => onDetail(valuation)}
       title={
         <button
-          aria-label={`Détail de la valorisation du ${date}, ${entryModeLabel[valuation.detail]}`}
+          aria-label={t('portfolio.valuations.row.detailOfMode', {
+            date,
+            mode: entryModeLabel[valuation.detail],
+          })}
           className={styles.open}
           onClick={() => onDetail(valuation)}
           type="button"

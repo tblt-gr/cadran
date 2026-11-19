@@ -12,13 +12,17 @@ export function SwitchOperationPreview({
   pending: boolean;
   preview?: PortfolioOperationPreview;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const imbalance = preview?.difference && !isZeroDecimal(preview.difference.value);
   return (
     <>
       {(['expectedIncomingAmount', 'difference'] as const).map((field) => (
         <div className={styles.previewRow} key={field}>
-          <span>{field === 'difference' ? 'Écart' : 'À réinvestir'}</span>
+          <span>
+            {field === 'difference'
+              ? t('portfolio.account.form.switch.difference')
+              : t('portfolio.account.form.switch.toReinvest')}
+          </span>
           {preview?.[field] ? (
             <strong>
               {formatDecimal(preview[field].value, i18n.language)} {preview[field].assetCode}
@@ -31,12 +35,10 @@ export function SwitchOperationPreview({
         </div>
       ))}
       {imbalance ? (
-        <StatusBadge tone="warning">
-          Arbitrage déséquilibré : ajustez les supports ou les frais.
-        </StatusBadge>
+        <StatusBadge tone="warning">{t('portfolio.account.form.switch.unbalanced')}</StatusBadge>
       ) : null}
       <div className={styles.previewRow}>
-        <span>Barème (informatif)</span>
+        <span>{t('portfolio.account.form.switch.feeScale')}</span>
         {pending && !preview ? (
           <SkeletonBlock className={styles.previewValue} />
         ) : preview?.applicableSwitchFeeRate != null ||
@@ -53,7 +55,7 @@ export function SwitchOperationPreview({
               : null}
           </strong>
         ) : (
-          <span>Non renseigné</span>
+          <span>{t('portfolio.lifeInsurance.notProvided')}</span>
         )}
       </div>
     </>

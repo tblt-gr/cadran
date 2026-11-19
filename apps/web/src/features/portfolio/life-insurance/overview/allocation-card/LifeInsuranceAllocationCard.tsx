@@ -1,18 +1,22 @@
+import { useTranslation } from 'react-i18next';
 import { DonutPlot } from '@/components/ui/charts/donut-chart/DonutPlot';
 import { AllocationLegend } from '@/components/ui/charts/allocation-legend/AllocationLegend';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { compareDecimals, decimalRatioForGeometry } from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import {
-  allocationLabels,
-  allocationEmpty,
-  money,
+  allocationKinds,
+  useLifeInsuranceMoney,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
 import styles from './LifeInsuranceAllocationCard.module.css';
 export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | null }) {
+  const { t, i18n } = useTranslation();
+  const money = useLifeInsuranceMoney();
   const allocation = summary?.allocation;
-  const kinds = Object.keys(allocationLabels) as Summary['allocation']['items'][number]['kind'][];
+  const kinds: readonly Summary['allocation']['items'][number]['kind'][] = allocationKinds;
+  const kindLabel = (kind: (typeof allocationKinds)[number]) =>
+    t(`portfolio.lifeInsurance.allocation.kinds.${kind}`);
   const items = allocation?.items ?? kinds.map((kind) => ({ kind, value: null, share: null }));
   const charted =
     items.length > 0 &&
@@ -26,12 +30,12 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
   return (
     <section
       className={`card ${styles.card}`}
-      aria-label="Répartition du contrat"
+      aria-label={t('portfolio.lifeInsurance.allocation.label')}
       aria-busy={!summary}
     >
-      <h3>Répartition</h3>
+      <h3>{t('portfolio.lifeInsurance.allocation.title')}</h3>
       {allocation && allocation.status !== 'AVAILABLE' ? (
-        <p>{allocationEmpty[allocation.status]}</p>
+        <p>{t(`portfolio.lifeInsurance.allocation.empty.${allocation.status}`)}</p>
       ) : (
         <>
           {!summary || charted ? (
@@ -43,28 +47,28 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
                 />
               ) : (
                 <DonutPlot
-                  label="Répartition du contrat"
+                  label={t('portfolio.lifeInsurance.allocation.label')}
                   totalText={summary.valuation ? amount(summary.valuation.totalValue) : null}
                   slices={items.map((item) => ({
                     key: item.kind,
-                    caption: allocationLabels[item.kind],
+                    caption: kindLabel(item.kind),
                     amountText: amount(item.value),
                     size: decimalRatioForGeometry(item.share!, '1'),
                   }))}
                 />
               )}
               <AllocationLegend
-                label="Légende de la répartition"
+                label={t('portfolio.lifeInsurance.allocation.legend')}
                 items={items.map((item) => ({
                   key: item.kind,
-                  label: allocationLabels[item.kind],
+                  label: kindLabel(item.kind),
                   amount: summary ? (
                     amount(item.value)
                   ) : (
                     <SkeletonBlock className={styles.valueSkeleton} />
                   ),
                   share: summary ? (
-                    formatRatioPercentage(item.share!, 'fr')
+                    formatRatioPercentage(item.share!, i18n.language)
                   ) : (
                     <SkeletonBlock className={styles.valueSkeleton} />
                   ),
@@ -73,7 +77,7 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
               />
             </div>
           ) : (
-            <p>Parts non calculables ou signées : consultez les valeurs du tableau.</p>
+            <p>{t('portfolio.lifeInsurance.allocation.unchartable')}</p>
           )}
         </>
       )}
@@ -81,22 +85,22 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
         <div
           className={styles.scroll}
           role="region"
-          aria-label="Répartition détaillée"
+          aria-label={t('portfolio.lifeInsurance.allocation.detailed')}
           tabIndex={0}
         >
           <table>
-            <caption className="sr-only">Répartition du contrat</caption>
+            <caption className="sr-only">{t('portfolio.lifeInsurance.allocation.label')}</caption>
             <thead>
               <tr>
-                <th scope="col">Libellé</th>
-                <th scope="col">Valeur</th>
-                <th scope="col">Part</th>
+                <th scope="col">{t('portfolio.lifeInsurance.allocation.columns.label')}</th>
+                <th scope="col">{t('portfolio.lifeInsurance.allocation.columns.value')}</th>
+                <th scope="col">{t('portfolio.lifeInsurance.allocation.columns.share')}</th>
               </tr>
             </thead>
             <tbody>
               {items.map((item) => (
                 <tr key={item.kind}>
-                  <th scope="row">{allocationLabels[item.kind]}</th>
+                  <th scope="row">{kindLabel(item.kind)}</th>
                   <td className="money">
                     {summary ? (
                       amount(item.value)
@@ -108,9 +112,9 @@ export function LifeInsuranceAllocationCard({ summary }: { summary: Summary | nu
                     {!summary ? (
                       <SkeletonBlock className={styles.valueSkeleton} />
                     ) : item.share === null ? (
-                      'Non calculable'
+                      t('states.notCalculable.label')
                     ) : (
-                      formatRatioPercentage(item.share, 'fr')
+                      formatRatioPercentage(item.share, i18n.language)
                     )}
                   </td>
                 </tr>

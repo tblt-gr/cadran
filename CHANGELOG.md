@@ -12,6 +12,8 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Added
 
+- English as a second interface language, chosen in the Interface settings and kept in the
+  browser; amounts, rates, dates and month names follow the language (#709).
 - Weekly mutation testing (Infection with PCOV, `make mutation`) of the decimal, split, refund and
   transfer invariants, with a failing-run issue and a seven-day HTML report.
 - Privacy toggle in the Synthese that hides every amount, chart axis, tooltip and table figure

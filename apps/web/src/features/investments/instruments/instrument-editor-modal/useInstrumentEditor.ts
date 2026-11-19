@@ -7,6 +7,7 @@ import {
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { useSubmissionKey } from '@/hooks/use-submission-key';
@@ -25,6 +26,7 @@ export function useInstrumentEditor(
   instrument: Instrument | undefined,
   onSaved: (instrument: Instrument) => void,
 ) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const [retryDuplicate, setRetryDuplicate] = useState(false);
   const [submittedBody, setSubmittedBody] = useState<Body | null>(null);
@@ -98,8 +100,8 @@ export function useInstrumentEditor(
         : null,
     existingInstrumentId:
       requestError?.code === 'instrument_isin_exists' ? requestError.existingId : undefined,
-    fieldErrors: instrumentFieldErrors(error),
-    message: instrumentSaveMessage(error),
+    fieldErrors: instrumentFieldErrors(error, t),
+    message: instrumentSaveMessage(error, t),
     pending: save.isPending,
     submit(body: Body) {
       setSubmittedBody(body);

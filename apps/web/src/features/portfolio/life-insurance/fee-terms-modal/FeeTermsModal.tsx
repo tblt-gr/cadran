@@ -1,4 +1,5 @@
 import { addLifeInsuranceFeeTerms, type LifeInsuranceFeeTermsInput } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { FeeTermsForm } from '@/features/portfolio/life-insurance/fee-terms-form/FeeTermsForm';
@@ -17,6 +18,7 @@ export function FeeTermsModal({
   subscribedOn: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const save = useLifeInsuranceMutation(
     accountId,
     (body: LifeInsuranceFeeTermsInput) =>
@@ -24,7 +26,7 @@ export function FeeTermsModal({
     onClose,
   );
   return (
-    <Modal intent="create" title="Ajouter un barème" close={onClose}>
+    <Modal intent="create" title={t('portfolio.lifeInsurance.fees.add')} close={onClose}>
       <FeeTermsForm
         assetCode={assetCode}
         subscribedOn={subscribedOn}

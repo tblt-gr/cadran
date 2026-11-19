@@ -3,48 +3,42 @@ import type {
   PortfolioValuationDetail,
   PortfolioValuationFlag,
 } from '@cadran/api-client';
+import { lazyLabels } from '@/features/portfolio/lazyLabels';
 
-export const detailLabel: Record<PortfolioValuationDetail, string> = {
-  TOTAL: 'Total',
-  POSITIONS: 'Par ligne',
-};
+const prefix = 'portfolio.valuations';
+const details = ['TOTAL', 'POSITIONS'] as const;
+const flags = [
+  'STALE_PRICES',
+  'CASH_DIFFERENCE',
+  'OBSERVED_TOTAL_DIFFERENCE',
+  'POSITIONS_CHANGED',
+  'NEGATIVE_SECURITIES_VALUE',
+] as const;
+const qualities = ['CURRENT', 'STALE', 'MISSING', 'NOT_DETAILED'] as const;
 
-export const flagLabel: Record<PortfolioValuationFlag, string> = {
-  STALE_PRICES: 'Prix anciens',
-  CASH_DIFFERENCE: 'Écart d’espèces',
-  OBSERVED_TOTAL_DIFFERENCE: 'Écart avec le relevé',
-  POSITIONS_CHANGED: 'Positions modifiées depuis',
-  NEGATIVE_SECURITIES_VALUE: 'Titres négatifs',
-};
+export const flagLabel: Record<PortfolioValuationFlag, string> = lazyLabels(
+  flags,
+  `${prefix}.flags`,
+);
 
-export const flagSentence: Record<PortfolioValuationFlag, string> = {
-  STALE_PRICES: 'Au moins un prix date de plus de 5 jours avant la valorisation.',
-  CASH_DIFFERENCE: 'Les espèces du relevé diffèrent des espèces calculées.',
-  OBSERVED_TOTAL_DIFFERENCE:
-    'Le total du relevé s’écarte du total calculé au-delà de la tolérance.',
-  POSITIONS_CHANGED:
-    'Des opérations ont été enregistrées ou annulées depuis, à cette date ou avant : les positions ne correspondent plus.',
-  NEGATIVE_SECURITIES_VALUE:
-    'Le total est inférieur aux espèces : la valeur des titres est négative.',
-};
+export const flagSentence: Record<PortfolioValuationFlag, string> = lazyLabels(
+  flags,
+  `${prefix}.flagSentences`,
+);
 
 /** Price quality of a valuation summary, in the table's words. */
-export const summaryQualityLabel: Record<PortfolioPriceQuality, string | null> = {
-  CURRENT: 'Actuels',
-  STALE: 'Anciens',
-  MISSING: 'Manquants',
-  NOT_DETAILED: null,
-};
+export const summaryQualityLabel: Record<PortfolioPriceQuality, string | null> = lazyLabels<
+  PortfolioPriceQuality,
+  string | null
+>(qualities, `${prefix}.summaryQuality`, ['NOT_DETAILED']);
 
-export const lineQualityLabel: Record<PortfolioPriceQuality, string> = {
-  CURRENT: 'Actuel',
-  STALE: 'Ancien',
-  MISSING: 'Manquant',
-  NOT_DETAILED: 'Non détaillé',
-};
+export const lineQualityLabel: Record<PortfolioPriceQuality, string> = lazyLabels(
+  qualities,
+  `${prefix}.lineQuality`,
+);
 
 /** How a valuation was entered: the total typed from a statement, or computed from its lines. */
-export const entryModeLabel: Record<PortfolioValuationDetail, string> = {
-  TOTAL: 'Saisie manuelle',
-  POSITIONS: 'Calculée',
-};
+export const entryModeLabel: Record<PortfolioValuationDetail, string> = lazyLabels(
+  details,
+  `${prefix}.entryMode`,
+);

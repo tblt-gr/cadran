@@ -1,4 +1,5 @@
 import type { ParseKeys } from 'i18next';
+import { DEFAULT_LANGUAGE } from '@/i18n';
 
 export interface BreadcrumbItem {
   label: string;
@@ -18,7 +19,7 @@ export function breadcrumbItems(
   path: string,
   t: (key: ParseKeys) => string,
   account: { label: string | null; pending: boolean } | null,
-  locale = 'fr',
+  locale: string = DEFAULT_LANGUAGE,
 ): BreadcrumbItem[] {
   const home = { label: t('breadcrumb.home'), href: '/' };
   const item = (labelKey: ParseKeys, href?: string): BreadcrumbItem => ({

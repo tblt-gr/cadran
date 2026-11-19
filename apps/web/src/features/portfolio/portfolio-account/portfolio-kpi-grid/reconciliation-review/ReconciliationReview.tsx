@@ -1,13 +1,14 @@
 import type { PortfolioOverviewSummary } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { reviewGuide, tabLinkLabels } from './reviewGuide';
+import { reviewGuide, tabLinkLabel } from './reviewGuide';
 import styles from './ReconciliationReview.module.css';
 
 type Warning = PortfolioOverviewSummary['reconciliation']['warnings'][number];
 
 /**
- * The points behind « À vérifier », opened from the Rapprochement pill: each says what is wrong,
+ * The points behind “To check”, opened from the Reconciliation pill: each says what is wrong,
  * what to do and links to the tab where it is fixed.
  */
 export function ReconciliationReview({
@@ -21,19 +22,20 @@ export function ReconciliationReview({
   warnings: readonly Warning[];
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Modal
       intent="detail"
       close={onClose}
-      title={warnings.length === 1 ? '1 point à vérifier' : `${warnings.length} points à vérifier`}
+      title={t('portfolio.account.review.title', { count: warnings.length })}
     >
       <ul className={styles.review}>
         {warnings.map((warning) => {
-          const guide = reviewGuide(warning.code);
+          const guide = reviewGuide(t, warning.code, warning.count);
           const href = `/portfolios/${accountId}?tab=${guide.tab}&asOf=${asOf}`;
           return (
             <li key={warning.code}>
-              <strong>{guide.title(warning.count)}</strong>
+              <strong>{guide.title}</strong>
               {guide.hint ? <p>{guide.hint}</p> : null}
               <a
                 className="text-action"
@@ -43,7 +45,7 @@ export function ReconciliationReview({
                   handleClientNavigation(event, href);
                 }}
               >
-                {tabLinkLabels[guide.tab]}
+                {tabLinkLabel(t, guide.tab)}
               </a>
             </li>
           );

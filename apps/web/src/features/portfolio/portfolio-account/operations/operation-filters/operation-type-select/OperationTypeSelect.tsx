@@ -1,4 +1,5 @@
 import type { PortfolioOperationType } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { MultiSelect } from '@/components/ui/multi-select/MultiSelect';
 import {
   operationTypeLabel,
@@ -16,16 +17,17 @@ export function OperationTypeSelect({
   onChange: (types: PortfolioOperationType[]) => void;
   value: readonly PortfolioOperationType[];
 }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.types}>
       <MultiSelect
-        label="Types d’opération"
+        label={t('portfolio.account.operationTypes')}
         value={value}
         onChange={onChange}
         options={(accountKind ? allowedOperationTypes(accountKind) : operationTypes).map(
           (type) => ({
             value: type,
-            label: operationTypeLabel(type),
+            label: operationTypeLabel(t, type),
           }),
         )}
       />

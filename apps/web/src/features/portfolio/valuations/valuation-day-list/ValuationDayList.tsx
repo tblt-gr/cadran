@@ -12,23 +12,22 @@ interface ValuationDayListProps extends ValuationRowActions {
 }
 
 /** Active valuations grouped by valuation date, newest first, on the shared dated list. */
-export function ValuationDayList({
-  loadingLabel = 'Chargement des valorisations…',
-  valuations,
-  ...actions
-}: ValuationDayListProps) {
-  const { i18n } = useTranslation();
-  const words = { today: 'Aujourd’hui', yesterday: 'Hier' };
+export function ValuationDayList({ loadingLabel, valuations, ...actions }: ValuationDayListProps) {
+  const { t, i18n } = useTranslation();
+  const words = {
+    today: t('transactions.list.today'),
+    yesterday: t('transactions.list.yesterday'),
+  };
   return (
     <DatedList
       dayLabel={(day) => dayHeadingLabel(day, i18n.language, words)}
       getDay={(valuation) => valuation.valuedOn}
       getKey={(valuation) => valuation.id}
       items={valuations}
-      label="Valorisations du portefeuille"
-      loadingLabel={loadingLabel}
-      nextLoadedLabel="Valorisations suivantes"
-      previousLoadedLabel="Valorisations précédentes"
+      label={t('portfolio.valuations.list.label')}
+      loadingLabel={loadingLabel ?? t('portfolio.valuations.list.loading')}
+      nextLoadedLabel={t('portfolio.valuations.list.next')}
+      previousLoadedLabel={t('portfolio.valuations.list.previous')}
       renderRow={(valuation) => <ValuationDayRow {...actions} valuation={valuation} />}
       skeletonTestId="valuations-skeleton"
     />

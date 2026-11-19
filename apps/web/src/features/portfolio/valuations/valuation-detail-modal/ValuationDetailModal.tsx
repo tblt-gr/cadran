@@ -35,19 +35,24 @@ export function ValuationDetailModal({
   onClose: () => void;
   onOpen: (id: string) => void;
 }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const timeZone = useWorkspaceTimeZone();
   const query = useValuation(id);
   const valuation = query.data;
-  const exact = (amount: DecimalAmount | null, reason = 'Non calculable') =>
+  const exact = (
+    amount: DecimalAmount | null,
+    reason = t('portfolio.valuations.common.notCalculable'),
+  ) =>
     amount ? (
       maskAmountText(`${formatDecimal(amount.value, i18n.language)} ${amount.assetCode}`)
     ) : (
       <EmptyValue label={reason} />
     );
   const title = valuation
-    ? `Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}`
-    : 'Valorisation';
+    ? t('portfolio.explanation.source.VALUATION', {
+        date: formatCalendarNumericDay(valuation.valuedOn),
+      })
+    : t('portfolio.valuations.detailModal.titleFallback');
 
   const pending = query.isPending;
   const block = <SkeletonBlock className={styles.valueSkeleton} />;
@@ -58,43 +63,64 @@ export function ValuationDetailModal({
     <Modal intent="detail" returnFocus={returnFocus} close={onClose} title={title}>
       {query.isError ? (
         <div role="alert">
-          <p className={styles.error}>La valorisation est indisponible.</p>
+          <p className={styles.error}>{t('portfolio.valuations.detailModal.unavailable')}</p>
           <button className="secondary-action" onClick={() => void query.refetch()} type="button">
-            Réessayer
+            {t('actions.retry')}
           </button>
         </div>
       ) : (
         <div aria-busy={pending}>
-          {pending ? <SkeletonStatus>Chargement de la valorisation…</SkeletonStatus> : null}
+          {pending ? (
+            <SkeletonStatus>{t('portfolio.valuations.detailModal.loading')}</SkeletonStatus>
+          ) : null}
           <dl className={styles.list}>
-            <Row label="Complétude">
+            <Row label={t('portfolio.valuations.detailModal.completeness')}>
               {value((loaded) =>
                 loaded.completeness === 'COMPLETE' ? (
-                  <StatusBadge tone="positive">Complète</StatusBadge>
+                  <StatusBadge tone="positive">
+                    {t('portfolio.valuations.common.complete')}
+                  </StatusBadge>
                 ) : (
-                  <StatusBadge tone="warning">Partielle</StatusBadge>
+                  <StatusBadge tone="warning">
+                    {t('portfolio.valuations.common.partial')}
+                  </StatusBadge>
                 ),
               )}
             </Row>
-            <Row label="Valeur totale">{value((v) => exact(v.totalValue))}</Row>
-            <Row label="Titres">{value((v) => exact(v.securitiesValue))}</Row>
-            <Row label="Espèces">{value((v) => exact(v.cash))}</Row>
-            <Row label="Espèces calculées">{value((v) => exact(v.derivedCash))}</Row>
-            <Row label="Écart d’espèces">
-              {value((v) => exact(v.cashDifference, 'Aucun écart'))}
+            <Row label={t('portfolio.valuations.detailModal.totalValue')}>
+              {value((v) => exact(v.totalValue))}
             </Row>
-            <Row label="Total du relevé">
-              {value((v) => exact(v.observedTotal, 'Non renseigné'))}
+            <Row label={t('portfolio.takeover.securities')}>
+              {value((v) => exact(v.securitiesValue))}
             </Row>
-            <Row label="Écart">
-              {value((v) => exact(v.observedTotalDifference, 'Non applicable'))}
+            <Row label={t('portfolio.takeover.cash')}>{value((v) => exact(v.cash))}</Row>
+            <Row label={t('portfolio.valuations.detailModal.derivedCash')}>
+              {value((v) => exact(v.derivedCash))}
             </Row>
-            <Row label="Tolérance">{value((v) => exact(v.tolerance))}</Row>
-            {valuation?.note ? <Row label="Note">{valuation.note}</Row> : null}
+            <Row label={t('portfolio.valuations.flags.CASH_DIFFERENCE')}>
+              {value((v) => exact(v.cashDifference, t('portfolio.valuations.detailModal.noGap')))}
+            </Row>
+            <Row label={t('portfolio.valuations.common.statementTotal')}>
+              {value((v) => exact(v.observedTotal, t('portfolio.lifeInsurance.notProvided')))}
+            </Row>
+            <Row label={t('portfolio.valuations.detailModal.gap')}>
+              {value((v) =>
+                exact(
+                  v.observedTotalDifference,
+                  t('portfolio.valuations.detailModal.notApplicable'),
+                ),
+              )}
+            </Row>
+            <Row label={t('portfolio.lifeInsurance.explain.tolerance')}>
+              {value((v) => exact(v.tolerance))}
+            </Row>
+            {valuation?.note ? (
+              <Row label={t('portfolio.valuations.common.note')}>{valuation.note}</Row>
+            ) : null}
           </dl>
           {valuation && valuation.flags.length > 0 ? (
             <section className={styles.section}>
-              <h3>Alertes</h3>
+              <h3>{t('portfolio.valuations.detailModal.alerts')}</h3>
               <ul className={styles.flags}>
                 {valuation.flags.map((flag) => (
                   <li key={flag}>{flagSentence[flag]}</li>
@@ -103,7 +129,7 @@ export function ValuationDetailModal({
             </section>
           ) : null}
           <section className={styles.section}>
-            <h3>Positions</h3>
+            <h3>{t('portfolio.valuations.detailModal.positions')}</h3>
             <ValuationPositionsTable valuation={valuation ?? null} />
           </section>
           <div className={styles.links}>
@@ -113,16 +139,16 @@ export function ValuationDetailModal({
                 onClick={() => onOpen(valuation.supersedesId!)}
                 type="button"
               >
-                Remplace une valorisation précédente
+                {t('portfolio.valuations.detailModal.replaces')}
               </button>
             ) : null}
             {valuation?.supersededAt ? (
               <p>
-                Remplacée ou retirée le{' '}
-                {formatCalendarNumericDay(
-                  workspaceToday(new Date(valuation.supersededAt), timeZone),
-                )}
-                .
+                {t('portfolio.valuations.detailModal.supersededOn', {
+                  date: formatCalendarNumericDay(
+                    workspaceToday(new Date(valuation.supersededAt), timeZone),
+                  ),
+                })}
               </p>
             ) : null}
           </div>

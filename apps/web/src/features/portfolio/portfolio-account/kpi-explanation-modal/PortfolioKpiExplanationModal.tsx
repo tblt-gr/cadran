@@ -5,8 +5,8 @@ import { ExplanationFigure } from '@/features/portfolio/explanation/ExplanationF
 import { ExplanationSources } from '@/features/portfolio/explanation/ExplanationSources';
 import explanation from '@/features/portfolio/explanation/Explanation.module.css';
 import {
-  kpiLabels,
-  reasonLabels,
+  kpiLabel,
+  reasonLabel,
   type KpiCode,
 } from '@/features/portfolio/portfolio-account/overviewLabels';
 import { formatCalendarNumericDay } from '@/lib/decimal';
@@ -29,25 +29,30 @@ export function PortfolioKpiExplanationModal({
   const { t } = useTranslation();
   const day = formatCalendarNumericDay;
   return (
-    <Modal intent="detail" close={onClose} title={kpiLabels[code]}>
+    <Modal intent="detail" close={onClose} title={kpiLabel(t, code)}>
       <div className={explanation.content}>
         <ExplanationFigure
           meta={
             <>
-              <span>{`Du ${day(data.period.from)} au ${day(data.period.to)}`}</span>
+              <span>
+                {t('portfolio.account.filters.period', {
+                  from: day(data.period.from),
+                  to: day(data.period.to),
+                })}
+              </span>
               <span aria-hidden="true">·</span>
-              <span>{reasonLabels[data.quality] ?? data.quality}</span>
+              <span>{reasonLabel(t, data.quality) ?? data.quality}</span>
             </>
           }
           value={value}
         />
         <section className={explanation.block}>
-          <h3>Calcul</h3>
+          <h3>{t('portfolio.account.kpiGrid.calculation')}</h3>
           <p>{t(`portfolio.kpi.${code}.formula`)}</p>
         </section>
         {data.reason ? (
           <ul className={explanation.warnings}>
-            <li>{reasonLabels[data.reason] ?? data.reason}</li>
+            <li>{reasonLabel(t, data.reason) ?? data.reason}</li>
           </ul>
         ) : null}
         <ExplanationSources

@@ -15,7 +15,7 @@ export function HoldingAccountsRows({
   holding: Holding;
   assetCode: Holdings['assetCode'];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return holding.accounts.map((account) => {
     const href = `/portfolios/${account.accountId}?tab=positions`;
@@ -27,10 +27,10 @@ export function HoldingAccountsRows({
           </a>
         </th>
         <td className={styles.number} data-label={t('investments.table.quantity')}>
-          {formatDecimal(account.quantity, 'fr')}
+          {formatDecimal(account.quantity, i18n.language)}
         </td>
         <td className={styles.number} colSpan={2} data-label={t('investments.table.lastPrice')}>
-          {t('investments.table.valuedOn', { date: holdingsDay(account.valuedOn) })}
+          {t('investments.table.valuedOn', { date: holdingsDay(account.valuedOn, i18n.language) })}
         </td>
         <td className={styles.number} data-label={t('investments.table.value')}>
           {account.value === null ? (
@@ -46,7 +46,7 @@ export function HoldingAccountsRows({
               )}
             />
           ) : (
-            holdingsMoney(account.value, assetCode)
+            holdingsMoney(account.value, assetCode, i18n.language)
           )}
         </td>
         <td className={styles.number} data-label={t('investments.table.gain')}>

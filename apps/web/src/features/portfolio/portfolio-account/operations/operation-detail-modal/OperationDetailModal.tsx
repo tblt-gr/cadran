@@ -22,10 +22,11 @@ import styles from './OperationDetailModal.module.css';
 import { maskAmountText } from '@/lib/amountPrivacy';
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.row}>
       <dt>{label}</dt>
-      <dd>{children ?? <EmptyValue label="Non renseigné" />}</dd>
+      <dd>{children ?? <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />}</dd>
     </div>
   );
 }
@@ -41,7 +42,7 @@ export function OperationDetailModal({
   operation: PortfolioOperation;
   returnFocus?: RefObject<HTMLElement | null>;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const locale = i18n.language;
   const replaced = useOperation(operation.correctedByOperationId);
   const replaces = useOperation(operation.correctsOperationId);
@@ -68,79 +69,112 @@ export function OperationDetailModal({
       intent="detail"
       returnFocus={returnFocus}
       close={onClose}
-      title={`Opération : ${operationTypeLabel(operation.type)}`}
+      title={t('portfolio.account.detail.title', { type: operationTypeLabel(t, operation.type) })}
     >
       <dl className={styles.list}>
-        <Row label="Statut">
+        <Row label={t('portfolio.account.detail.status')}>
           {operation.state === 'ACTIVE' ? (
-            <StatusBadge tone="positive">Active</StatusBadge>
+            <StatusBadge tone="positive">{t('portfolio.account.detail.active')}</StatusBadge>
           ) : (
             <StatusBadge tone="info">
-              {operation.voidKind === 'REPLACED' ? 'Remplacée' : 'Annulée'}
+              {operation.voidKind === 'REPLACED'
+                ? t('portfolio.account.operations.replaced')
+                : t('portfolio.account.operations.voided')}
             </StatusBadge>
           )}
         </Row>
-        <Row label="Date d’opération">{formatCalendarNumericDay(operation.tradeDate)}</Row>
-        <Row label="Date de règlement">
+        <Row label={t('portfolio.account.form.tradeDate')}>
+          {formatCalendarNumericDay(operation.tradeDate)}
+        </Row>
+        <Row label={t('portfolio.account.form.extra.settlementDate')}>
           {operation.settlementDate && formatCalendarNumericDay(operation.settlementDate)}
         </Row>
-        <Row label="Ordre dans la journée">{String(operation.sequence)}</Row>
+        <Row label={t('portfolio.account.detail.sequence')}>{String(operation.sequence)}</Row>
         {has('instrument') ? (
-          <Row label="Instrument">{instrumentText(operation.instrument)}</Row>
+          <Row label={t('portfolio.account.form.instrument')}>
+            {instrumentText(operation.instrument)}
+          </Row>
         ) : null}
         {has('counterInstrument') ? (
-          <Row label="Instrument reçu">{instrumentText(operation.counterInstrument)}</Row>
+          <Row label={t('portfolio.account.form.counterInstrument')}>
+            {instrumentText(operation.counterInstrument)}
+          </Row>
         ) : null}
-        {has('quantity') ? <Row label="Quantité">{decimal(operation.quantity)}</Row> : null}
-        {has('unitPrice') ? <Row label="Prix unitaire">{decimal(operation.unitPrice)}</Row> : null}
+        {has('quantity') ? (
+          <Row label={t('portfolio.account.form.quantity')}>{decimal(operation.quantity)}</Row>
+        ) : null}
+        {has('unitPrice') ? (
+          <Row label={t('portfolio.account.form.unitPrice')}>{decimal(operation.unitPrice)}</Row>
+        ) : null}
         {has('grossAmount') ? (
-          <Row label="Montant brut">{amount(operation.grossAmount)}</Row>
+          <Row label={t('portfolio.account.form.grossAmount')}>{amount(operation.grossAmount)}</Row>
         ) : null}
         {has('fees') && operation.type !== 'SWITCH' ? (
-          <Row label="Frais">{amount(operation.fees)}</Row>
+          <Row label={t('portfolio.account.form.fees')}>{amount(operation.fees)}</Row>
         ) : null}
         {has('withheldIncomeTax') ? (
-          <Row label="Prélèvement fiscal retenu">{amount(operation.withheldIncomeTax)}</Row>
+          <Row label={t('portfolio.account.form.insurance.withheldIncomeTax')}>
+            {amount(operation.withheldIncomeTax)}
+          </Row>
         ) : null}
         {has('withheldSocialContributions') ? (
-          <Row label="Prélèvements sociaux retenus">
+          <Row label={t('portfolio.account.form.insurance.withheldSocial')}>
             {amount(operation.withheldSocialContributions)}
           </Row>
         ) : null}
         {has('withheldIncomeTax') ? (
-          <Row label="Net versé">{amount(operation.netPaidAmount)}</Row>
+          <Row label={t('portfolio.account.form.preview.netPaid')}>
+            {amount(operation.netPaidAmount)}
+          </Row>
         ) : null}
-        {has('taxes') ? <Row label="Taxes">{amount(operation.taxes)}</Row> : null}
-        {has('costBasis') ? <Row label="Coût de revient">{amount(operation.costBasis)}</Row> : null}
+        {has('taxes') ? (
+          <Row label={t('portfolio.account.form.taxes')}>{amount(operation.taxes)}</Row>
+        ) : null}
+        {has('costBasis') ? (
+          <Row label={t('portfolio.account.form.costBasis')}>{amount(operation.costBasis)}</Row>
+        ) : null}
         {has('counterQuantity') ? (
-          <Row label="Quantité reçue">{decimal(operation.counterQuantity)}</Row>
+          <Row label={t('portfolio.account.form.counterQuantity')}>
+            {decimal(operation.counterQuantity)}
+          </Row>
         ) : null}
         {has('ratio') ? (
-          <Row label="Ratio">
+          <Row label={t('portfolio.account.detail.ratio')}>
             {operation.ratio &&
-              `${decimal(operation.ratio.numerator)} pour ${decimal(operation.ratio.denominator)}`}
+              t('portfolio.account.detail.ratioValue', {
+                numerator: decimal(operation.ratio.numerator),
+                denominator: decimal(operation.ratio.denominator),
+              })}
           </Row>
         ) : null}
         {has('costAllocationRatio') ? (
-          <Row label="Part du coût allouée">{decimal(operation.costAllocationRatio)}</Row>
+          <Row label={t('portfolio.account.form.allocation')}>
+            {decimal(operation.costAllocationRatio)}
+          </Row>
         ) : null}
         <InsuranceIncomeDetail operation={operation} />
-        <Row label="Effet sur les espèces">
+        <Row label={t('portfolio.account.form.preview.cashEffect')}>
           <CashAmount amount={operation.cashAmount} />
         </Row>
         {operation.roundingResidual ? (
-          <Row label="Écart d’arrondi">{amount(operation.roundingResidual)}</Row>
+          <Row label={t('portfolio.account.form.preview.rounding')}>
+            {amount(operation.roundingResidual)}
+          </Row>
         ) : null}
-        <Row label="Référence">{operation.reference}</Row>
-        <Row label="Note">{operation.note}</Row>
+        <Row label={t('portfolio.account.form.extra.reference')}>{operation.reference}</Row>
+        <Row label={t('portfolio.account.form.extra.note')}>{operation.note}</Row>
         {operation.linkedTransactionId ? (
-          <Row label="Virement lié">
+          <Row label={t('portfolio.account.form.linkedTransfer')}>
             <a href={transferHref} onClick={(event) => handleClientNavigation(event, transferHref)}>
-              Virement lié du {formatCalendarNumericDay(operation.tradeDate)}
+              {t('portfolio.account.detail.linkedTransferOf', {
+                date: formatCalendarNumericDay(operation.tradeDate),
+              })}
             </a>
           </Row>
         ) : null}
-        {operation.state === 'VOIDED' ? <Row label="Motif">{operation.voidReason}</Row> : null}
+        {operation.state === 'VOIDED' ? (
+          <Row label={t('portfolio.account.detail.reason')}>{operation.voidReason}</Row>
+        ) : null}
       </dl>
       {operation.type === 'SWITCH' ? (
         <SwitchOperationDetail operation={operation} />
@@ -155,8 +189,10 @@ export function OperationDetailModal({
             type="button"
           >
             {replaces.data
-              ? `Remplace l’opération du ${formatCalendarNumericDay(replaces.data.tradeDate)}`
-              : 'Remplace une opération'}
+              ? t('portfolio.account.detail.replacesOn', {
+                  date: formatCalendarNumericDay(replaces.data.tradeDate),
+                })
+              : t('portfolio.account.detail.replaces')}
           </button>
         ) : null}
         {operation.correctedByOperationId ? (
@@ -166,8 +202,10 @@ export function OperationDetailModal({
             type="button"
           >
             {replaced.data
-              ? `Remplacée par l’opération du ${formatCalendarNumericDay(replaced.data.tradeDate)}`
-              : 'Remplacée par une opération'}
+              ? t('portfolio.account.detail.replacedByOn', {
+                  date: formatCalendarNumericDay(replaced.data.tradeDate),
+                })
+              : t('portfolio.account.detail.replacedBy')}
           </button>
         ) : null}
       </div>

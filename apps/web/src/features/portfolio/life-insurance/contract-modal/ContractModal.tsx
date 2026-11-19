@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   saveLifeInsuranceContract,
   type LifeInsuranceContract,
@@ -22,6 +23,7 @@ export function ContractModal({
   today: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   // A query refresh must not adopt a newer version for fields edited against the opening state.
   const [baseline] = useState(contract);
   const save = useLifeInsuranceMutation(
@@ -33,7 +35,11 @@ export function ContractModal({
   return (
     <Modal
       intent={baseline ? 'edit' : 'create'}
-      title={baseline ? 'Modifier le contrat' : 'Renseigner le contrat'}
+      title={
+        baseline
+          ? t('portfolio.lifeInsurance.contract.edit')
+          : t('portfolio.lifeInsurance.contract.fillAction')
+      }
       close={onClose}
     >
       <ContractForm

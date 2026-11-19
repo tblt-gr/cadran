@@ -1,4 +1,5 @@
 import { useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
 import { capturePortfolioSource } from '@/features/portfolio/portfolio-account/portfolioDetailLocation';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
@@ -17,11 +18,16 @@ export function CumulativeSources({
   accountId: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const cumulative = summary?.cumulative;
 
   return (
-    <Disclosure title="Sources des montants cumulés" open={open} onToggle={setOpen}>
+    <Disclosure
+      title={t('portfolio.lifeInsurance.recorded.sources')}
+      open={open}
+      onToggle={setOpen}
+    >
       {cumulative && summary ? (
         <>
           {cumulative.sources.length ? (
@@ -37,18 +43,23 @@ export function CumulativeSources({
                         handleClientNavigation(event, href);
                       }}
                     >
-                      {source.kind === 'OPERATION' ? 'Opération' : 'Valorisation'} du{' '}
-                      {formatCalendarNumericDay(source.date)}
+                      {t(`portfolio.explanation.source.${source.kind}`, {
+                        date: formatCalendarNumericDay(source.date),
+                      })}
                     </a>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p>Aucune source à cette date.</p>
+            <p>{t('portfolio.explanation.noSource')}</p>
           )}
           {cumulative.sourceCount > cumulative.sources.length ? (
-            <p>{cumulative.sourceCount - cumulative.sources.length} autres sources</p>
+            <p>
+              {t('portfolio.lifeInsurance.recorded.moreSources', {
+                count: cumulative.sourceCount - cumulative.sources.length,
+              })}
+            </p>
           ) : null}
         </>
       ) : null}

@@ -20,13 +20,13 @@ export function PartialFigure({
   /** What the figure is, so each button has its own accessible name and modal title. */
   figureLabel: string;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const explanation =
     figures.excludedValue === null
       ? t('investments.partial.explanation', { count: figures.excludedCount })
       : t('investments.partial.explanationWithValue', {
           count: figures.excludedCount,
-          value: holdingsMoney(figures.excludedValue, assetCode),
+          value: holdingsMoney(figures.excludedValue, assetCode, i18n.language),
         });
 
   return (

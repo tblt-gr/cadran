@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { GainExplanationEntries } from './GainExplanationEntries';
 import type {
   PortfolioGainFigure,
@@ -8,8 +9,8 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
-  figureLabels,
-  methodSentences,
+  figureLabelKeys,
+  methodSentenceKeys,
   type FigureKey,
 } from '@/features/portfolio/performance/performanceFigures';
 import { formulaText, gainFormulaText } from '@/features/portfolio/performance/performanceFormulas';
@@ -40,15 +41,18 @@ export function PerformanceExplanationModal(
       | { gainSummary: GainSummary; figure: 'gain' }
     ),
 ) {
+  const { t, i18n } = useTranslation();
   const { figure, onClose, onSource } = props;
   const performance = 'performance' in props ? props.performance : null;
   const gainSummary = 'gainSummary' in props ? props.gainSummary : null;
   const data = performance ? performance[figure] : gainSummary!.gain;
-  const label = figureLabels[figure];
+  const label = t(figureLabelKeys[figure]);
   const context = {
     accountId: performance?.accountId ?? gainSummary!.accountId,
     assetCode: performance?.assetCode ?? gainSummary!.assetCode,
     residual: (performance?.gain ?? gainSummary!.gain).decomposition.residual,
+    t,
+    locale: i18n.language,
   };
   return (
     <Modal intent="detail" close={onClose} title={label}>
@@ -58,27 +62,32 @@ export function PerformanceExplanationModal(
             <>
               <span>
                 {data.from && data.to
-                  ? `Du ${formatCalendarNumericDay(data.from)} au ${formatCalendarNumericDay(data.to)}`
-                  : 'Période indisponible'}
+                  ? t('portfolio.performance.modal.period', {
+                      from: formatCalendarNumericDay(data.from),
+                      to: formatCalendarNumericDay(data.to),
+                    })
+                  : t('portfolio.performance.modal.periodUnavailable')}
               </span>
               <QualityBadge quality={data.quality} />
             </>
           }
           value={
             data.value === null ? (
-              'Non calculable'
+              t('states.notCalculable.label')
             ) : (
               <FigureValue assetCode={context.assetCode} figure={data} />
             )
           }
         />
         <section className={explanation.block}>
-          <h3>Calcul</h3>
-          <p>{`${methodSentences[figure]} Net de frais et de taxes.`}</p>
+          <h3>{t('portfolio.performance.modal.calculation')}</h3>
+          <p>
+            {t('portfolio.performance.modal.method', { method: t(methodSentenceKeys[figure]) })}
+          </p>
           <p className={styles.formula} data-testid="formula">
             {performance
-              ? formulaText(performance, figure)
-              : gainFormulaText(gainSummary!.gain, gainSummary!.assetCode)}
+              ? formulaText(performance, figure, t, i18n.language)
+              : gainFormulaText(gainSummary!.gain, gainSummary!.assetCode, t, i18n.language)}
           </p>
         </section>
         {data.reasons.length ? (
@@ -91,7 +100,9 @@ export function PerformanceExplanationModal(
                   <span>{crowded ? summarizeReason(reason, context) : sentence}</span>
                   {crowded ? (
                     <details className={styles.dates}>
-                      <summary>{`Voir les ${reason.dates.length} dates`}</summary>
+                      <summary>
+                        {t('portfolio.performance.modal.showDates', { count: reason.dates.length })}
+                      </summary>
                       <p>{formatReasonDates(reason.dates)}</p>
                     </details>
                   ) : null}
@@ -113,7 +124,7 @@ export function PerformanceExplanationModal(
           </ul>
         ) : null}
         <details className={explanation.sources}>
-          <summary>Détail du calcul</summary>
+          <summary>{t('portfolio.performance.modal.detail')}</summary>
           <div className={styles.entries}>
             {performance ? (
               <ExplanationEntries figure={figure} performance={performance} />
@@ -127,7 +138,9 @@ export function PerformanceExplanationModal(
           onSource={onSource}
           sources={data.sources}
         />
-        <p className={explanation.footnote}>{`Méthode version ${data.methodVersion}`}</p>
+        <p className={explanation.footnote}>
+          {t('portfolio.performance.modal.methodVersion', { version: data.methodVersion })}
+        </p>
       </div>
     </Modal>
   );

@@ -1,4 +1,5 @@
 import { recordEuroFundRate, type LifeInsuranceEuroFundRateInput } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { EuroFundRateForm } from '@/features/portfolio/life-insurance/euro-fund-rate-form/EuroFundRateForm';
@@ -19,6 +20,7 @@ export function EuroFundRateModal({
   today: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const save = useLifeInsuranceMutation(
     accountId,
     (body: LifeInsuranceEuroFundRateInput) =>
@@ -27,7 +29,7 @@ export function EuroFundRateModal({
     [['instruments'], ['instrument-picker'], ['euro-fund-picker']],
   );
   return (
-    <Modal intent="create" title="Renseigner un taux" close={onClose}>
+    <Modal intent="create" title={t('portfolio.lifeInsurance.rates.add')} close={onClose}>
       <EuroFundRateForm
         assetCode={assetCode}
         subscribedOn={subscribedOn}

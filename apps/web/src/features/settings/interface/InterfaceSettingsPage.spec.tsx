@@ -155,17 +155,19 @@ describe('InterfaceSettingsPage', () => {
     ]);
   });
 
-  it('mirrors the loaded page: same card heading and checkbox', async () => {
+  it('mirrors the loaded page: same card headings and checkbox', async () => {
     api.readInterfacePreferences.mockReturnValue(ok(defaults));
     const { unmount } = render(
       <QueryClientProvider client={new QueryClient()}>
         <InterfaceSettingsPageSkeleton />
       </QueryClientProvider>,
     );
-    const skeletonHeading = screen.getByRole('heading', { level: 3 }).textContent;
+    const skeletonHeading = screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent);
     unmount();
     renderPage();
     await loadedCheckbox();
-    expect(screen.getByRole('heading', { level: 3 }).textContent).toBe(skeletonHeading);
+    expect(screen.getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual(
+      skeletonHeading,
+    );
   });
 });

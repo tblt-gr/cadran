@@ -7,7 +7,7 @@ import styles from '@/features/portfolio/portfolio-account/operations/operation-
 import { maskAmountText } from '@/lib/amountPrivacy';
 
 export function SwitchOperationDetail({ operation }: { operation: PortfolioOperation }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const rate = operation.applicableSwitchFeeRate;
   const fixed = operation.applicableSwitchFeeFixed;
   const amount = (value: { value: string; assetCode: string }) =>
@@ -15,28 +15,34 @@ export function SwitchOperationDetail({ operation }: { operation: PortfolioOpera
   return (
     <>
       <OperationLegsTable
-        caption="Vendus"
+        caption={t('portfolio.account.legs.sold')}
         legs={(operation.legs ?? []).filter((leg) => leg.direction === 'OUT')}
       />
       <OperationLegsTable
-        caption="Achetés"
+        caption={t('portfolio.account.legs.bought')}
         legs={(operation.legs ?? []).filter((leg) => leg.direction === 'IN')}
       />
       <dl className={styles.list}>
         <div className={styles.row}>
-          <dt>Frais d’arbitrage</dt>
-          <dd>{operation.fees ? amount(operation.fees) : <EmptyValue label="Non renseigné" />}</dd>
+          <dt>{t('portfolio.account.form.switch.fees')}</dt>
+          <dd>
+            {operation.fees ? (
+              amount(operation.fees)
+            ) : (
+              <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />
+            )}
+          </dd>
         </div>
         <div className={styles.row}>
-          <dt>Barème applicable</dt>
+          <dt>{t('portfolio.account.legs.applicableScale')}</dt>
           <dd>
             {rate === null && fixed === null ? (
-              <EmptyValue label="Non renseigné" />
+              <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />
             ) : (
               <>
                 {rate !== null ? `${formatDecimal(rate, i18n.language)} %` : null}
                 {rate !== null && fixed !== null ? ' + ' : null}
-                {fixed !== null ? amount(fixed) : null} (informatif)
+                {fixed !== null ? amount(fixed) : null} {t('portfolio.account.legs.informational')}
               </>
             )}
           </dd>

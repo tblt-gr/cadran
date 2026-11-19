@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
 import { OperationsToolbar } from '@/features/accounts/operations-toolbar/OperationsToolbar';
 import { type OperationFilterValues } from './operationFilterValues';
@@ -19,6 +20,7 @@ export function OperationFilterInputs({
   onChange,
   value,
 }: OperationFiltersProps) {
+  const { t } = useTranslation();
   return (
     <OperationsToolbar
       value={value}
@@ -35,7 +37,7 @@ export function OperationFilterInputs({
       instrument={
         <InstrumentPicker
           currencyCode={currencyCode}
-          label="Instrument"
+          label={t('portfolio.account.form.instrument')}
           onChange={(item) =>
             onChange({
               ...value,

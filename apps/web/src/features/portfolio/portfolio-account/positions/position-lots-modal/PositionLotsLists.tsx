@@ -1,4 +1,5 @@
 import type { PortfolioPositionLots } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { DatedRow } from '@/components/ui/dated-list/DatedRow';
 import { DatedRowList } from '@/components/ui/dated-list/DatedRowList';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -19,15 +20,17 @@ interface Props {
 }
 
 function Cost({ amount }: { amount: OpenLot['costBasis'] }) {
+  const { t, i18n } = useTranslation();
   return amount ? (
-    formatAmount(amount.value, amount.assetCode, 'fr-FR')
+    formatAmount(amount.value, amount.assetCode, i18n.language)
   ) : (
-    <EmptyValue label="Coût inconnu" />
+    <EmptyValue label={t('portfolio.positions.unknownCost')} />
   );
 }
 
 /** Open lots then the movement history, each as compact rows that never scroll sideways. */
 export function PositionLotsLists({ accountId, lots }: Props) {
+  const { t, i18n } = useTranslation();
   const operationLink = (id: string) => `/portfolios/${accountId}?tab=operations&operation=${id}`;
   const operation = (id: string, type: OpenLot['originType']) => (
     <a
@@ -35,25 +38,27 @@ export function PositionLotsLists({ accountId, lots }: Props) {
       href={operationLink(id)}
       onClick={(event) => handleClientNavigation(event, operationLink(id))}
     >
-      {operationTypeLabel(type)}
+      {operationTypeLabel(t, type)}
     </a>
   );
 
   return (
     <>
-      <h3>Lots ouverts</h3>
+      <h3>{t('portfolio.positions.lots.open')}</h3>
       <DatedRowList
         getKey={(lot) => lot.lotId}
         items={lots?.openLots ?? null}
-        label="Lots ouverts"
-        loadingLabel="Chargement des lots…"
+        label={t('portfolio.positions.lots.open')}
+        loadingLabel={t('portfolio.positions.lots.loading')}
         renderRow={(lot) => (
           <DatedRow
             meta={
               <>
                 <small>
                   {lot ? (
-                    `Quantité restante : ${formatDecimal(lot.openQuantity, 'fr-FR')}`
+                    t('portfolio.positions.lots.remaining', {
+                      quantity: formatDecimal(lot.openQuantity, i18n.language),
+                    })
                   ) : (
                     <SkeletonBlock />
                   )}
@@ -61,8 +66,10 @@ export function PositionLotsLists({ accountId, lots }: Props) {
                 <small>
                   {lot ? (
                     <>
-                      Quantité initiale {formatDecimal(lot.originalQuantity, 'fr-FR')} · Coût
-                      unitaire <Cost amount={lot.unitCost} /> ·{' '}
+                      {t('portfolio.positions.lots.initial', {
+                        quantity: formatDecimal(lot.originalQuantity, i18n.language),
+                      })}{' '}
+                      <Cost amount={lot.unitCost} /> ·{' '}
                       {operation(lot.originOperationId, lot.originType)}
                     </>
                   ) : (
@@ -78,15 +85,15 @@ export function PositionLotsLists({ accountId, lots }: Props) {
         skeletonRows={3}
         skeletonTestId="position-lots-skeleton"
       />
-      <h3>Historique</h3>
+      <h3>{t('portfolio.positions.lots.history')}</h3>
       <DatedRowList
         announce={false}
         getKey={(movement: Movement) =>
           `${movement.operationId}-${movement.lotId}-${movement.sequence}`
         }
         items={lots?.movements ?? null}
-        label="Mouvements des lots"
-        loadingLabel="Chargement des lots…"
+        label={t('portfolio.positions.lots.movements')}
+        loadingLabel={t('portfolio.positions.lots.loading')}
         renderRow={(movement) => (
           <DatedRow
             meta={
@@ -96,7 +103,9 @@ export function PositionLotsLists({ accountId, lots }: Props) {
                 </small>
                 <small>
                   {movement ? (
-                    `Δ quantité : ${formatDecimal(movement.quantityDelta, 'fr-FR')}`
+                    t('portfolio.positions.lots.delta', {
+                      quantity: formatDecimal(movement.quantityDelta, i18n.language),
+                    })
                   ) : (
                     <SkeletonBlock />
                   )}

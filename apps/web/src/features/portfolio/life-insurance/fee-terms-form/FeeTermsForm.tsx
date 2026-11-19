@@ -3,13 +3,15 @@ import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { LifeInsuranceFeeTermsInput } from '@cadran/api-client';
 import styles from '@/features/portfolio/life-insurance/contract-form/ContractForm.module.css';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 const rates = [
-  ['entryFeeRate', 'Versement (%)'],
-  ['euroFundManagementFeeRate', 'Gestion fonds euros (%)'],
-  ['unitLinkedManagementFeeRate', 'Gestion UC (%)'],
-  ['switchFeeRate', 'Arbitrage (%)'],
+  ['entryFeeRate', 'entry'],
+  ['euroFundManagementFeeRate', 'euroFund'],
+  ['unitLinkedManagementFeeRate', 'unitLinked'],
+  ['switchFeeRate', 'switch'],
 ] as const;
 export function FeeTermsForm({
   assetCode,
@@ -24,9 +26,11 @@ export function FeeTermsForm({
   error?: string;
   onSubmit: (input: LifeInsuranceFeeTermsInput) => void;
 }) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, string>>({ validFrom: subscribedOn });
   const field = (name: string, value: string) => setValues((old) => ({ ...old, [name]: value }));
-  const decimal = (name: string) => values[name]?.trim().replace(',', '.') || null;
+  const decimal = (name: string) =>
+    (values[name] ? normalizeDecimalInput(values[name]) : '') || null;
   const [advancedOpen, setAdvancedOpen] = useState(false);
   return (
     <ModalForm
@@ -53,7 +57,7 @@ export function FeeTermsForm({
       ) : null}
       <FormGrid>
         <label>
-          À partir du
+          {t('portfolio.lifeInsurance.fees.columns.from')}
           <input
             data-autofocus
             type="date"
@@ -64,9 +68,9 @@ export function FeeTermsForm({
             disabled={pending}
           />
         </label>
-        {rates.map(([id, label]) => (
+        {rates.map(([id, labelKey]) => (
           <label key={id}>
-            {label}
+            {t(`portfolio.lifeInsurance.fees.form.rates.${labelKey}`)}
             <input
               inputMode="decimal"
               pattern="[0-9]+([.,][0-9]{1,4})?"
@@ -77,7 +81,7 @@ export function FeeTermsForm({
           </label>
         ))}
         <label>
-          Arbitrage fixe ({assetCode})
+          {t('portfolio.lifeInsurance.fees.form.switchFixed', { assetCode })}
           <input
             inputMode="decimal"
             pattern="[0-9]+([.,][0-9]+)?"
@@ -86,9 +90,13 @@ export function FeeTermsForm({
             disabled={pending}
           />
         </label>
-        <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+        <FormSection
+          title={t('portfolio.lifeInsurance.advancedFields')}
+          open={advancedOpen}
+          onToggle={setAdvancedOpen}
+        >
           <label>
-            Source
+            {t('portfolio.lifeInsurance.fees.columns.source')}
             <input
               maxLength={200}
               value={values.sourceNote ?? ''}
@@ -100,7 +108,9 @@ export function FeeTermsForm({
       </FormGrid>
       <ModalActions>
         <button className="primary-action" type="submit" disabled={pending}>
-          {pending ? 'Enregistrement…' : 'Ajouter le barème'}
+          {pending
+            ? t('portfolio.lifeInsurance.saving')
+            : t('portfolio.lifeInsurance.fees.form.submit')}
         </button>
       </ModalActions>
     </ModalForm>

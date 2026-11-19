@@ -1,5 +1,6 @@
 import { figureLabels, type ContractFigure } from './contractFigureLabels';
 import { Fragment, useState, type RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { KpiFigure } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/KpiFigure';
@@ -8,7 +9,7 @@ import { QualityBadge } from '@/features/portfolio/performance/quality-badge/Qua
 import { PerformanceExplanationModal } from '@/features/portfolio/performance/performance-explanation-modal/PerformanceExplanationModal';
 import { ContractFigureExplanation } from './ContractFigureExplanation';
 import {
-  money,
+  useLifeInsuranceMoney,
   sourceHref,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
@@ -24,6 +25,8 @@ export function ContractFigures({
   accountId: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t } = useTranslation();
+  const money = useLifeInsuranceMoney();
   const [explaining, setExplaining] = useState<ContractFigure | null>(null);
   const values = summary
     ? {
@@ -39,20 +42,26 @@ export function ContractFigures({
   const qualifiers = summary ? (
     <div className={styles.qualifiers}>
       {!summary.valuation ? (
-        <StatusBadge tone="warning">Aucune valorisation</StatusBadge>
+        <StatusBadge tone="warning">{t('portfolio.lifeInsurance.figures.noValuation')}</StatusBadge>
       ) : summary.valuation.stale ? (
-        <StatusBadge tone="warning">{`Valorisation ancienne (${summary.valuation.ageDays} jours)`}</StatusBadge>
+        <StatusBadge tone="warning">
+          {t('portfolio.lifeInsurance.figures.staleValuation', {
+            count: summary.valuation.ageDays,
+          })}
+        </StatusBadge>
       ) : null}
       <QualityBadge quality={summary.gainSinceOpening.quality} />
       {summary.valuation?.flags.includes('OBSERVED_TOTAL_DIFFERENCE') ? (
-        <StatusBadge tone="warning">Écart au relevé à vérifier</StatusBadge>
+        <StatusBadge tone="warning">
+          {t('portfolio.lifeInsurance.figures.statementGap')}
+        </StatusBadge>
       ) : null}
     </div>
   ) : null;
   return (
     <section
       className={`${embedded ? '' : 'card'} ${styles.figures}`}
-      aria-label="Indicateurs du contrat"
+      aria-label={t('portfolio.lifeInsurance.figures.label')}
       aria-busy={!summary}
     >
       {(Object.keys(figureLabels) as ContractFigure[]).map((key) => (
@@ -60,7 +69,9 @@ export function ContractFigures({
           <KpiFigure
             label={figureLabels[key]}
             tone={key === 'gain' ? gain?.tone : undefined}
-            explainLabel={`Expliquer : ${figureLabels[key]}`}
+            explainLabel={t('portfolio.lifeInsurance.figures.explain', {
+              label: figureLabels[key],
+            })}
             size={key === 'value' ? 'display' : key === 'gain' ? 'lead' : 'compact'}
             value={
               values
@@ -73,7 +84,9 @@ export function ContractFigures({
             }
             note={
               key === 'value' && summary?.valuation
-                ? `Valorisation du ${formatCalendarNumericDay(summary.valuation.valuedOn)}`
+                ? t('portfolio.lifeInsurance.figures.valuationOf', {
+                    date: formatCalendarNumericDay(summary.valuation.valuedOn),
+                  })
                 : undefined
             }
             onExplain={

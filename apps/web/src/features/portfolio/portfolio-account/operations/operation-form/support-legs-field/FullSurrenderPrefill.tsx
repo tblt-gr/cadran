@@ -1,5 +1,6 @@
 import { listPortfolioPositions, readInstrument } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import styles from './SupportLegsField.module.css';
@@ -15,6 +16,7 @@ export function FullSurrenderPrefill({
   tradeDate: string;
   onPrefill: (legs: SupportLegValue[]) => void;
 }) {
+  const { t } = useTranslation();
   const query = useQuery({
     queryKey: ['full-surrender-positions', accountId, tradeDate],
     enabled: tradeDate !== '',
@@ -59,30 +61,34 @@ export function FullSurrenderPrefill({
         }
         onClick={() => onPrefill(query.data!)}
       >
-        Reprendre toutes les positions
+        {t('portfolio.account.form.legs.takeAll')}
       </button>
       <div aria-busy={query.isPending} className={styles.summary}>
-        <span>Positions à reprendre</span>
+        <span>{t('portfolio.account.form.legs.toTake')}</span>
         {query.isPending ? (
           <>
-            <SkeletonStatus>Chargement des positions</SkeletonStatus>
+            <SkeletonStatus>{t('portfolio.account.form.legs.loadingPositions')}</SkeletonStatus>
             <SkeletonBlock className={styles.summaryValue} />
           </>
         ) : (
-          <span>{query.data ? `${query.data.length} supports` : '-'}</span>
+          <span>
+            {query.data
+              ? t('portfolio.account.form.legs.supportCount', { count: query.data.length })
+              : '-'}
+          </span>
         )}
       </div>
       {query.isError ? (
         <p role="alert">
-          Les positions sont indisponibles.{' '}
+          {t('portfolio.account.form.legs.positionsUnavailable')}{' '}
           <button className="secondary-action" type="button" onClick={() => void query.refetch()}>
-            Réessayer
+            {t('actions.retry')}
           </button>
         </p>
       ) : null}
-      {query.data?.length === 0 ? <p>Aucune position détenue à cette date.</p> : null}
+      {query.data?.length === 0 ? <p>{t('portfolio.account.form.legs.noneHeld')}</p> : null}
       {query.data && query.data.length > 20 ? (
-        <p role="alert">Le contrat dépasse la limite de 20 supports par opération.</p>
+        <p role="alert">{t('portfolio.account.form.legs.limit')}</p>
       ) : null}
     </div>
   );

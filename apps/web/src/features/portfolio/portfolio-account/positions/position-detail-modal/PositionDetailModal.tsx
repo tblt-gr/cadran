@@ -1,11 +1,12 @@
 import type { DecimalAmount, PortfolioPosition } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { UnrealizedGain } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
 import { formatAmount, formatDecimal } from '@/lib/decimal';
-import { valueReasonLabels } from '@/features/portfolio/portfolio-account/positions/positionLabels';
+import { valueReasonLabel } from '@/features/portfolio/portfolio-account/positions/positionLabels';
 import styles from './PositionDetailModal.module.css';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
 
 /** The figures a position row leaves out: costs, result, lot count and the way to the lots. */
 export function PositionDetailModal({ onClose, onLots, position }: Props) {
+  const { t, i18n } = useTranslation();
   const unknownCost = position.costReason === 'UNKNOWN_LOT_COST';
 
   return (
@@ -26,33 +28,37 @@ export function PositionDetailModal({ onClose, onLots, position }: Props) {
         </p>
         <dl className={styles.figures}>
           <div>
-            <dt>Quantité</dt>
-            <dd>{formatDecimal(position.quantity, 'fr-FR')}</dd>
+            <dt>{t('portfolio.positions.quantity')}</dt>
+            <dd>{formatDecimal(position.quantity, i18n.language)}</dd>
           </div>
           <div>
-            <dt>Prix de revient moyen</dt>
+            <dt>{t('portfolio.positions.detail.avgCost')}</dt>
             <dd>
               <CostValue amount={position.averageUnitCost} unknown={unknownCost} />
             </dd>
           </div>
           <div>
-            <dt>Coût total (moyen)</dt>
+            <dt>{t('portfolio.positions.detail.totalCost')}</dt>
             <dd>
               <CostValue amount={position.averageCostBasis} badge unknown={unknownCost} />
             </dd>
           </div>
           <div>
-            <dt>Valeur</dt>
+            <dt>{t('portfolio.positions.detail.value')}</dt>
             <dd>
               {position.marketValue ? (
-                formatAmount(position.marketValue.value, position.marketValue.assetCode, 'fr-FR')
+                formatAmount(
+                  position.marketValue.value,
+                  position.marketValue.assetCode,
+                  i18n.language,
+                )
               ) : (
-                <EmptyValue label={valueReasonLabels[position.valueReason ?? 'NO_VALUATION']} />
+                <EmptyValue label={valueReasonLabel(t, position.valueReason ?? 'NO_VALUATION')} />
               )}
             </dd>
           </div>
           <div>
-            <dt>Résultat</dt>
+            <dt>{t('portfolio.positions.detail.result')}</dt>
             <dd>
               <UnrealizedGain
                 assetCode={position.unrealizedGain?.assetCode ?? ''}
@@ -61,13 +67,13 @@ export function PositionDetailModal({ onClose, onLots, position }: Props) {
             </dd>
           </div>
           <div>
-            <dt>Lots ouverts</dt>
+            <dt>{t('portfolio.positions.detail.openLots')}</dt>
             <dd>{position.openLotCount}</dd>
           </div>
         </dl>
         <div>
           <button className="secondary-action" onClick={() => onLots(position)} type="button">
-            Voir les lots
+            {t('portfolio.positions.detail.viewLots')}
           </button>
         </div>
       </div>
@@ -84,13 +90,16 @@ function CostValue({
   badge?: boolean;
   unknown: boolean;
 }) {
-  if (!unknown && amount) return formatAmount(amount.value, amount.assetCode, 'fr-FR');
-  if (!unknown) return <EmptyValue label="Non calculable" />;
+  const { t, i18n } = useTranslation();
+  if (!unknown && amount) return formatAmount(amount.value, amount.assetCode, i18n.language);
+  if (!unknown) return <EmptyValue label={t('states.notCalculable.label')} />;
 
   return (
     <span className={styles.unknown}>
-      <EmptyValue label="Coût inconnu" />
-      {badge ? <StatusBadge tone="warning">Coût inconnu</StatusBadge> : null}
+      <EmptyValue label={t('portfolio.positions.unknownCost')} />
+      {badge ? (
+        <StatusBadge tone="warning">{t('portfolio.positions.unknownCost')}</StatusBadge>
+      ) : null}
     </span>
   );
 }

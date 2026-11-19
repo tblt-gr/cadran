@@ -86,5 +86,5 @@ function addCategory(current: CategoryPage | undefined, category: Category) {
 }
 
 function normalize(value: string): string {
-  return value.normalize('NFKD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr');
+  return value.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase();
 }

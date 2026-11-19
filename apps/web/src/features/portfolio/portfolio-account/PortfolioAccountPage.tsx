@@ -33,7 +33,7 @@ import { useAccountHeader } from '@/features/accounts/account-header/useAccountH
  * Entry actions open their modal on the tab that lists the resulting record.
  */
 export function PortfolioAccountPage({ accountId }: { accountId: string }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const account = useAccountDetail(accountId);
   const label = !account.isError && account.data?.id === accountId ? account.data.label : null;
   useBreadcrumbAccount(`/portfolios/${accountId}`, label, account.isPending);
@@ -104,7 +104,7 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
       <PortfolioAccountPageSkeleton
         accountId={accountId}
         asOf={asOf}
-        status="Chargement du portefeuille…"
+        status={t('portfolio.account.page.loading')}
       />
     );
   }
@@ -114,9 +114,9 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
     if (status === 404 || status === 403) return <PlaceholderPage />;
     return (
       <section className={`card ${styles.routeState}`} role="alert">
-        <h2>Le portefeuille est indisponible</h2>
+        <h2>{t('portfolio.account.page.unavailable')}</h2>
         <button className="secondary-action" onClick={() => void account.refetch()} type="button">
-          Réessayer
+          {t('actions.retry')}
         </button>
       </section>
     );
@@ -161,7 +161,11 @@ export function PortfolioAccountPage({ accountId }: { accountId: string }) {
           onClose={() => setCreating(null)}
           onSaved={(takenOverOn) => {
             setCreating(null);
-            setTakeoverNotice(`Positions reprises au ${formatCalendarDay(takenOverOn, 'fr')}.`);
+            setTakeoverNotice(
+              t('portfolio.takeover.saved', {
+                date: formatCalendarDay(takenOverOn, i18n.language),
+              }),
+            );
           }}
         />
       ) : null}

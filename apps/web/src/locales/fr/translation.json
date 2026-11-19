@@ -88,7 +88,8 @@
     "expand": "Déployer",
     "morePageActions": "Autres actions de la page",
     "scrollLeft": "Défiler vers la gauche",
-    "scrollRight": "Défiler vers la droite"
+    "scrollRight": "Défiler vers la droite",
+    "retry": "Réessayer"
   },
   "privacy": {
     "hide": "Masquer les montants",
@@ -220,6 +221,185 @@
     "error": {
       "title": "Les positions sont indisponibles.",
       "retry": "Réessayer"
+    },
+    "sheet": {
+      "summaryLabel": "Synthèse de l'instrument",
+      "quantityHeld": "Quantité détenue",
+      "noHolding": "Aucune détention",
+      "value": "Valeur",
+      "unrealizedGain": "Plus-value latente",
+      "realizedGain": "Plus-value réalisée",
+      "income": "Revenus perçus",
+      "totalGain": "Gain total",
+      "valuedOn": "Valorisation au {{date}}",
+      "valuedBetween": "Valorisations du {{from}} au {{to}}",
+      "accounts": {
+        "caption": "Par compte",
+        "account": "Compte",
+        "quantity": "Quantité",
+        "value": "Valeur",
+        "unrealized": "Plus-value latente",
+        "realized": "Réalisée",
+        "income": "Revenus",
+        "feesAndTaxes": "Frais et taxes",
+        "operations": "Opérations",
+        "viewOperations": "Voir les opérations"
+      },
+      "reasons": {
+        "UNKNOWN_LOT_COST": "Plus-value réalisée non calculable : coût d'origine inconnu",
+        "HISTORY_TOO_LARGE": "Historique trop volumineux pour ce compte",
+        "NO_VALUATION": "Aucune valorisation disponible",
+        "MISSING_PRICE": "Prix manquant",
+        "MIXED_ASSETS": "Devises différentes : gain total non calculable",
+        "default": "Non calculable"
+      },
+      "notHeld": "Cet instrument n'est détenu sur aucun compte. Il n'a donc ni quantité, ni valeur, ni résultat à afficher.",
+      "truncated": "Seuls les 50 premiers comptes sont affichés.",
+      "stale": "Cet instrument a déjà été modifié. La fiche a été actualisée.",
+      "unavailable": "La fiche est indisponible.",
+      "loadingSheet": "Chargement de la fiche instrument…",
+      "defaultTitle": "Instrument",
+      "actionsLabel": "Actions de l’instrument",
+      "actionsLabelNamed": "Actions de l’instrument {{name}}"
+    },
+    "instruments": {
+      "types": {
+        "EQUITY": "Action",
+        "ETF": "ETF",
+        "FUND": "Fonds (OPCVM)",
+        "BOND": "Obligation",
+        "EURO_FUND": "Fonds en euros",
+        "OTHER": "Autre"
+      },
+      "typesShort": {
+        "EQUITY": "Action",
+        "ETF": "ETF",
+        "FUND": "Fonds",
+        "BOND": "Obligation",
+        "EURO_FUND": "Fonds en euros",
+        "OTHER": "Autre"
+      },
+      "classes": {
+        "EQUITY": "Actions",
+        "BOND": "Obligations",
+        "MONEY_MARKET": "Monétaire",
+        "REAL_ESTATE": "Immobilier",
+        "COMMODITY": "Matières premières",
+        "MIXED": "Diversifié",
+        "OTHER": "Autre"
+      },
+      "regions": {
+        "FRANCE": "France",
+        "EUROPE": "Europe",
+        "NORTH_AMERICA": "Amérique du Nord",
+        "ASIA_PACIFIC": "Asie-Pacifique",
+        "EMERGING": "Pays émergents",
+        "WORLD": "Monde",
+        "OTHER": "Autre"
+      },
+      "fieldErrors": {
+        "isin": "Cet ISIN est invalide.",
+        "ticker": "Ce ticker est invalide.",
+        "venueMic": "Ce code MIC est invalide."
+      },
+      "errors": {
+        "instrument_response_incompatible": "La réponse de l’instrument est incompatible. Réessayez.",
+        "stale_instrument_version": "Cet instrument a été modifié ailleurs. Fermez cette fenêtre pour recharger la liste, puis réessayez.",
+        "instrument_identity_locked": "L’ISIN, la devise, les précisions et le type fonds en euros sont figés après la première utilisation.",
+        "instrument_limit_reached": "La limite d’instruments de cet espace est atteinte.",
+        "connection": "La connexion a échoué. Vérifiez votre connexion puis réessayez.",
+        "refused": "La modification a été refusée. Vérifiez les champs."
+      },
+      "precisionInvalid": "La précision doit être comprise entre 0 et 12.",
+      "locked": "Figé après la première utilisation",
+      "actions": {
+        "edit": "Modifier",
+        "archive": "Archiver",
+        "reactivate": "Réactiver"
+      },
+      "status": {
+        "ACTIVE": "Actif",
+        "INACTIVE": "Archivé"
+      },
+      "page": {
+        "unavailable": "Les instruments sont indisponibles",
+        "noneFound": "Aucun instrument trouvé",
+        "none": "Aucun instrument",
+        "createFirst": "Créer le premier instrument",
+        "staleNotice": "Cet instrument a déjà été modifié. La liste a été actualisée."
+      },
+      "table": {
+        "name": "Nom",
+        "isin": "ISIN",
+        "ticker": "Ticker",
+        "type": "Type",
+        "class": "Classe",
+        "region": "Région",
+        "currency": "Devise",
+        "status": "Statut",
+        "noIdentifier": "Aucun identifiant",
+        "classUnset": "Classe non renseignée",
+        "unset": "Non renseignée",
+        "actionsFor": "Actions pour {{name}}",
+        "editNamed": "Modifier {{name}}",
+        "archiveNamed": "Archiver {{name}}",
+        "reactivateNamed": "Réactiver {{name}}"
+      },
+      "form": {
+        "name": "Nom",
+        "nameRequired": "Le nom est obligatoire.",
+        "identifierRequired": "Un ISIN ou un ticker est obligatoire.",
+        "type": "Type",
+        "currency": "Devise",
+        "accountCurrency": "Devise du compte",
+        "euroFundCurrency": "Un fonds en euros doit utiliser la devise de référence de l’espace.",
+        "saving": "Enregistrement…",
+        "save": "Enregistrer",
+        "venue": "Place de cotation (MIC)",
+        "assetClass": "Classe d'actifs",
+        "region": "Région",
+        "quantityPrecision": "Précision des quantités",
+        "pricePrecision": "Précision des prix",
+        "euroFundPar": "Un fonds en euros vaut toujours 1 € par part.",
+        "unset": "Non renseignée",
+        "isinExists": "Cet ISIN existe déjà.",
+        "viewExisting": "Voir l’instrument existant"
+      },
+      "state": {
+        "retry": "Réessayer"
+      },
+      "editor": {
+        "eyebrowNew": "Nouvel instrument",
+        "titleEdit": "Modifier l’instrument",
+        "titleCreate": "Créer un instrument",
+        "titleNew": "Nouvel instrument",
+        "useFailed": "Impossible d’utiliser cet instrument. Vérifiez sa devise et son type, puis réessayez."
+      },
+      "statusDialog": {
+        "archiveText": "Cet instrument ne sera plus proposé lors des nouvelles opérations. Son historique restera lisible.",
+        "reactivateText": "Cet instrument sera de nouveau proposé lors des nouvelles opérations.",
+        "error": "La modification est indisponible. Réessayez.",
+        "archiveTitle": "Archiver l’instrument",
+        "reactivateTitle": "Réactiver l’instrument"
+      },
+      "duplicate": {
+        "title": "Instruments similaires",
+        "noIsin": "sans ISIN",
+        "noTicker": "sans ticker",
+        "useNamed": "Utiliser {{name}}",
+        "use": "Utiliser",
+        "reactivateAndUse": "Réactiver et utiliser",
+        "saveAnyway": "Enregistrer quand même",
+        "createAnyway": "Créer quand même"
+      },
+      "existing": {
+        "searching": "Recherche de l’instrument existant",
+        "exists": "Cet ISIN existe déjà :",
+        "unavailableName": "Indisponible",
+        "unavailable": "L’instrument est indisponible.",
+        "incompatible": "Cet instrument ne correspond pas à la devise ou au type du compte.",
+        "useThis": "Utiliser cet instrument"
+      }
     }
   },
   "navigation": {
@@ -1088,7 +1268,13 @@
         "withdrawn": "La dérogation a été retirée : le compte suit de nouveau la règle héritée.",
         "reconciled": "Le solde a été rapproché."
       },
-      "refreshError": "Actualisation du compte impossible. Les dernières données disponibles restent affichées."
+      "refreshError": "Actualisation du compte impossible. Les dernières données disponibles restent affichées.",
+      "navigation": {
+        "label": "Sections du compte",
+        "account": "Compte",
+        "operations": "Opérations",
+        "balance": "Solde"
+      }
     },
     "history": {
       "title": "Historique du solde",
@@ -1188,6 +1374,12 @@
       "hint": "Ce compte sera proposé pour les nouvelles transactions. Il remplace le compte principal précédent ; un filtre de compte reste prioritaire.",
       "ineligible": "Seul un compte courant ouvert valorisé par ses mouvements peut être principal.",
       "fallback": "Si ce compte est principal, sa clôture ou son archivage supprime la présélection pour les nouvelles transactions. Un filtre de compte reste prioritaire."
+    },
+    "operationsToolbar": {
+      "legend": "Filtres des opérations",
+      "from": "Du",
+      "to": "Au",
+      "voided": "Afficher les opérations annulées"
     }
   },
   "accountGroups": {
@@ -1794,7 +1986,12 @@
   },
   "portfolio": {
     "instrumentPicker": {
-      "loading": "Chargement des instruments disponibles…"
+      "loading": "Chargement des instruments disponibles…",
+      "unavailable": "La recherche est indisponible.",
+      "none": "Aucun instrument trouvé.",
+      "noIsin": "sans ISIN",
+      "noTicker": "sans ticker",
+      "create": "Créer « {{name}} »"
     },
     "instruments": {
       "loading": "Chargement des instruments…",
@@ -1830,6 +2027,1434 @@
       "RECONCILIATION": {
         "formula": "Rapproché quand aucune alerte ne porte sur les espèces, les positions ou la valorisation. Le détail des points à vérifier figure sous les indicateurs."
       }
+    },
+    "lifeInsurance": {
+      "notProvided": "Non renseigné",
+      "percent": "{{value}} %",
+      "basis": {
+        "NET_OF_MANAGEMENT_FEES": "Net de frais de gestion",
+        "GROSS_OF_MANAGEMENT_FEES": "Brut de frais de gestion",
+        "UNKNOWN": "Non précisé"
+      },
+      "allocation": {
+        "title": "Répartition",
+        "label": "Répartition du contrat",
+        "legend": "Légende de la répartition",
+        "unchartable": "Parts non calculables ou signées : consultez les valeurs du tableau.",
+        "detailed": "Répartition détaillée",
+        "columns": {
+          "label": "Libellé",
+          "value": "Valeur",
+          "share": "Part"
+        },
+        "kinds": {
+          "EURO_FUND": "Fonds en euros",
+          "UNIT_LINKED": "Unités de compte",
+          "CASH": "Liquidités"
+        },
+        "empty": {
+          "NO_VALUATION": "Enregistrez une valorisation pour voir la répartition.",
+          "NOT_DETAILED": "Répartition indisponible : la dernière valorisation ne détaille pas les supports."
+        }
+      },
+      "supports": {
+        "title": "Supports du contrat",
+        "detailed": "Supports détaillés",
+        "details": "Détails",
+        "noneHeld": "Aucun support détenu à cette date.",
+        "headers": {
+          "support": "Support",
+          "type": "Type",
+          "units": "Parts",
+          "unitPrice": "Valeur liquidative",
+          "date": "Date",
+          "value": "Valeur",
+          "weight": "Poids",
+          "costBasis": "Coût de revient",
+          "performance": "Performance ou taux",
+          "interest": "Intérêts crédités"
+        },
+        "quality": {
+          "CURRENT": "Prix actuel",
+          "STALE": "Prix ancien",
+          "MISSING": "Prix manquant",
+          "NOT_DETAILED": "Prix non détaillé"
+        },
+        "types": {
+          "EURO_FUND": "Fonds en euros",
+          "UNIT_LINKED": "Unité de compte"
+        },
+        "unrealized": "Plus-value latente : {{gain}} ({{performance}})",
+        "unrealizedRatio": "{{ratio}} latente",
+        "servedRate": "Taux servi {{year}} : {{rate}} % ({{basis}}){{bonus}}",
+        "bonus": ", bonus enregistré : {{rate}} %",
+        "servedRateMissing": "Taux servi non renseigné",
+        "priceDateMissing": "Date indisponible",
+        "priceLine": "{{date}} · {{quality}}",
+        "notApplicable": "Sans objet",
+        "credited": "Intérêts crédités {{year}} : {{amount}}",
+        "unavailable": "Les supports du contrat sont indisponibles",
+        "ledger": "Quantités et lots issus des opérations"
+      },
+      "fees": {
+        "title": "Barèmes de frais",
+        "hintLatest": "dernier barème du {{date}}",
+        "hintNone": "Aucun barème",
+        "add": "Ajouter un barème",
+        "empty": "Aucun barème de frais renseigné.",
+        "remove": "Supprimer le barème du {{date}}",
+        "columns": {
+          "from": "À partir du",
+          "entry": "Versement",
+          "euroFund": "Gestion fonds euros",
+          "unitLinked": "Gestion UC",
+          "switch": "Arbitrage",
+          "switchFixed": "Arbitrage fixe",
+          "source": "Source",
+          "actions": "Actions"
+        },
+        "form": {
+          "rates": {
+            "entry": "Versement (%)",
+            "euroFund": "Gestion fonds euros (%)",
+            "unitLinked": "Gestion UC (%)",
+            "switch": "Arbitrage (%)"
+          },
+          "switchFixed": "Arbitrage fixe ({{assetCode}})",
+          "submit": "Ajouter le barème"
+        }
+      },
+      "rates": {
+        "title": "Taux des fonds en euros",
+        "missingBadge": "Taux {{year}} manquant",
+        "unprovidedBadge": "Taux {{year}} non renseigné",
+        "hintLatest": "dernier taux : {{year}}",
+        "hintNone": "Aucun taux",
+        "add": "Renseigner un taux",
+        "caption": "Taux annoncés par l'assureur, distincts de la performance du contrat.",
+        "unavailableSupport": "Support indisponible",
+        "thisSupport": "ce support",
+        "remove": "Supprimer le taux {{year}} de {{name}}",
+        "empty": "Aucun taux renseigné.",
+        "columns": {
+          "year": "Année",
+          "support": "Support",
+          "served": "Taux servi",
+          "bonus": "Bonus",
+          "basis": "Base",
+          "source": "Source",
+          "actions": "Actions"
+        },
+        "form": {
+          "served": "Taux servi (%)",
+          "bonus": "Bonus (%)",
+          "submit": "Enregistrer le taux"
+        },
+        "picker": {
+          "search": "Rechercher un fonds en euros",
+          "loading": "Chargement des supports…",
+          "unavailable": "Les supports sont indisponibles.",
+          "choose": "Choisir un fonds en euros",
+          "inactive": " (inactif)",
+          "none": "Aucun fonds en euros trouvé sur cette page. Recherchez son nom ou consultez la page suivante.",
+          "previous": "Précédent",
+          "next": "Suivant"
+        }
+      },
+      "management": {
+        "FREE": "Gestion libre",
+        "MANAGED": "Gestion sous mandat",
+        "PILOTED": "Gestion pilotée"
+      },
+      "figures": {
+        "labels": {
+          "value": "Valeur du contrat",
+          "gain": "Gain depuis l'ouverture",
+          "premiums": "Versements cumulés",
+          "surrenders": "Rachats nets versés",
+          "fees": "Frais cumulés"
+        },
+        "noValuation": "Aucune valorisation",
+        "staleValuation_one": "Valorisation ancienne ({{count}} jours)",
+        "staleValuation_other": "Valorisation ancienne ({{count}} jours)",
+        "statementGap": "Écart au relevé à vérifier",
+        "label": "Indicateurs du contrat",
+        "explain": "Expliquer : {{label}}",
+        "valuationOf": "Valorisation du {{date}}"
+      },
+      "contract": {
+        "insurer": "Assureur",
+        "distributor": "Distributeur",
+        "commercialName": "Nom commercial",
+        "number": "Numéro de contrat",
+        "subscribedOn": "Souscrit le",
+        "taxStart": "Date fiscale du contrat",
+        "managementMode": "Mode de gestion",
+        "cardLabel": "Informations du contrat",
+        "title": "Contrat",
+        "edit": "Modifier le contrat",
+        "status": "Statut",
+        "open": "Ouvert",
+        "closed": "Clos",
+        "closedOn": " le {{date}}",
+        "numberHint": "Actuel : {{current}}. Laissez vide pour le conserver.",
+        "numberNone": "non renseigné",
+        "clearNumber": "Effacer le numéro",
+        "unavailable": "Le contrat est indisponible",
+        "refreshFailed": "L’actualisation du contrat a échoué. Les dernières données restent affichées.",
+        "settled": "Contrat soldé le {{date}}. Vous pouvez clôturer le compte depuis la",
+        "accountsList": "liste des comptes",
+        "fill": "Renseignez le contrat d'assurance-vie pour enregistrer ses opérations.",
+        "fillAction": "Renseigner le contrat",
+        "amountsUnavailable": "Les montants du contrat sont indisponibles",
+        "loading": "Chargement du contrat…"
+      },
+      "advancedFields": "Champs avancés",
+      "saving": "Enregistrement…",
+      "save": "Enregistrer",
+      "remove": {
+        "title": {
+          "fee": "Supprimer le barème",
+          "rate": "Supprimer le taux"
+        },
+        "confirm": {
+          "fee": "Confirmez la suppression de ce barème de frais. Vous pourrez le renseigner à nouveau.",
+          "rate": "Confirmez la suppression de ce taux servi. Vous pourrez le renseigner à nouveau."
+        },
+        "keep": "Conserver",
+        "removing": "Suppression…",
+        "action": "Supprimer"
+      },
+      "errors": {
+        "stale_contract_version": "Ce contrat a été modifié ailleurs. Fermez cette fenêtre et rouvrez le contrat actualisé.",
+        "life_insurance_contract_exists": "Un contrat existe déjà. Fermez cette fenêtre pour consulter le contrat actualisé.",
+        "fee_terms_exist": "Un barème existe déjà à cette date. Choisissez une autre date.",
+        "euro_fund_rate_exists": "Un taux existe déjà pour ce support et cette année. Supprimez-le avant de le remplacer.",
+        "invalid_contract_field": "Vérifiez les champs du contrat et le format du numéro.",
+        "invalid_contract_date": "Les dates du contrat ne peuvent pas être dans le futur.",
+        "invalid_fee_rate": "Les frais doivent être compris entre 0 et 100 %, avec au plus quatre décimales.",
+        "invalid_fee_terms_date": "Le barème doit commencer à la date de souscription ou après.",
+        "invalid_euro_fund_rate": "Vérifiez l’année et les taux, avec au plus quatre décimales.",
+        "instrument_not_euro_fund": "Sélectionnez un support de type fonds en euros.",
+        "fee_terms_limit_reached": "La limite de 50 barèmes est atteinte.",
+        "euro_fund_rates_limit_reached": "La limite de 200 taux est atteinte.",
+        "saveFailed": "L’enregistrement a échoué. Vérifiez les champs et votre connexion, puis réessayez."
+      },
+      "overview": {
+        "loading": "Chargement de la synthèse du contrat…",
+        "unavailable": "La synthèse du contrat est indisponible"
+      },
+      "quality": {
+        "unavailable": "La qualité des données est indisponible",
+        "sentences": {
+          "INTEREST_BASIS_UNKNOWN": "La base des intérêts crédités n’est pas précisée.",
+          "MISSING_EURO_FUND_RATE": "Un taux servi manque pour les intérêts enregistrés.",
+          "STALE_VALUATION": "La valorisation est ancienne.",
+          "NO_VALUATION": "Aucune valorisation complète à cette date.",
+          "NOT_DETAILED": "La valorisation ne détaille pas les supports.",
+          "RATE_NOT_UPDATED": "Le taux servi d’un fonds en euros manque pour la dernière année clôturée."
+        },
+        "label": "Qualité des données",
+        "operation": "Opération {{index}}",
+        "moreOperations_one": "{{count}} autres opérations concernées",
+        "moreOperations_other": "{{count}} autres opérations concernées"
+      },
+      "summaryPanel": {
+        "loading": "Chargement des données du contrat…",
+        "notFound": "Contrat introuvable ou non accessible",
+        "invalidDate": "La date sélectionnée est invalide",
+        "stillShown": "Les dernières données restent affichées."
+      },
+      "recorded": {
+        "sources": "Sources des montants cumulés",
+        "moreSources_one": "{{count}} autres sources",
+        "moreSources_other": "{{count}} autres sources",
+        "rows": {
+          "premiums": "Versements bruts",
+          "surrendersGross": "Rachats bruts",
+          "entryFees": "Frais d’entrée",
+          "managementFees": "Frais de gestion",
+          "switchFees": "Frais d’arbitrage",
+          "surrenderFees": "Frais de rachat",
+          "otherFees": "Autres frais",
+          "incomeTax": "Impôt retenu",
+          "socialContributions": "Prélèvements sociaux",
+          "otherWithholdings": "Autres retenues",
+          "interestGross": "Intérêts crédités bruts",
+          "interestNet": "Intérêts crédités nets",
+          "profitSharingGross": "Participation aux bénéfices brute",
+          "profitSharingNet": "Participation aux bénéfices nette"
+        },
+        "title": "Montants cumulés enregistrés",
+        "intro": "Depuis la souscription jusqu’à la date sélectionnée. Montants observés, sans estimation ; les arbitrages sont exclus des versements et des rachats.",
+        "region": "Montants cumulés",
+        "nature": "Nature",
+        "amount": "Montant"
+      },
+      "asOf": "au {{date}}",
+      "explain": {
+        "observedTotal": "Total observé",
+        "statementGap": "Écart au relevé",
+        "tolerance": "Tolérance",
+        "fees": {
+          "ENTRY": "Entrée",
+          "MANAGEMENT": "Gestion",
+          "SWITCH": "Arbitrage",
+          "SURRENDER": "Rachat",
+          "OTHER": "Autres"
+        },
+        "netPaid": "Net versé",
+        "period": "{{from}} au {{to}}",
+        "fromDate": "Du {{date}}",
+        "sinceSubscription": "Depuis la souscription",
+        "completeValuation": "Valorisation complète",
+        "recordedAmounts": "Montants enregistrés",
+        "calculation": "Calcul",
+        "totalOnly": "Total observé de la valorisation retenue. La répartition n’est pas détaillée.",
+        "formulas": {
+          "value": "Valeur du contrat = fonds en euros + unités de compte + liquidités de la valorisation retenue.",
+          "premiums": "Versements cumulés = somme des versements bruts enregistrés. Les arbitrages sont exclus.",
+          "surrenders": "Rachats nets versés = somme des montants effectivement versés pour les rachats enregistrés. Les arbitrages sont exclus.",
+          "fees": "Frais cumulés = frais d’entrée + gestion + arbitrage + rachat + autres frais enregistrés."
+        }
+      },
+      "tax": {
+        "title": "Suivi fiscal (informatif)",
+        "age": "Contrat ouvert depuis {{years}} ans et {{months}} mois (date fiscale du {{date}}).",
+        "dateUnavailable": "Date fiscale indisponible.",
+        "noEstimate": "Aucune estimation d'impôt : aucun barème fiscal identifié pour ce contrat.",
+        "region": "Montants fiscaux par année",
+        "caption": "Montants fiscaux enregistrés par année",
+        "columns": {
+          "year": "Année",
+          "premiums": "Versements",
+          "surrendersGross": "Rachats bruts",
+          "surrendersNetPaid": "Net versé",
+          "withheldIncomeTax": "Impôt retenu",
+          "withheldSocialContributions": "Prélèvements sociaux"
+        },
+        "noYear": "Aucune année enregistrée à cette date.",
+        "unavailable": "Le suivi fiscal est indisponible"
+      }
+    },
+    "performance": {
+      "reasons": {
+        "tooMuch": "Trop de données pour ce calcul ; choisissez une période plus courte.",
+        "weakCapital": "Capital moyen trop faible pour un taux significatif.",
+        "NO_START_VALUATION": "Aucune valorisation complète à la fin du mois précédent.",
+        "NO_END_VALUATION": "Aucune valorisation complète dans la période.",
+        "VALUATION_PARTIAL": "La valorisation du {{date}} est partielle.",
+        "UNVALUED_SECURITY_TRANSFER": "Un transfert de titres sans valeur empêche le calcul.",
+        "NO_INVESTED_CAPITAL": "Aucun capital investi sur la période.",
+        "MONTH_NOT_CALCULABLE": "Mois non calculables : {{dates}}.",
+        "NON_POSITIVE_GROWTH_FACTOR": "Rendement mensuel inférieur ou égal à -100 % : le chaînage n'est pas publié ({{dates}}).",
+        "MISSING_FLOW_VALUATION": "Valorisation manquante le jour d'un flux : {{dates}}.",
+        "STALE_FLOW_VALUATION": "Prix anciens le jour d'un flux : {{dates}}.",
+        "ZERO_START_VALUE": "Valeur nulle au début d'une sous-période.",
+        "NO_SIGN_CHANGE": "Il faut au moins un versement et une valeur ou un retrait.",
+        "NO_ROOT_IN_RANGE": "Aucun taux entre -99,9 % et +3 678 %.",
+        "MULTIPLE_ROOTS": "Plusieurs taux possibles : aucun n'est retenu.",
+        "NO_CONVERGENCE": "Le calcul n'a pas convergé.",
+        "UNKNOWN_LOT_COST": "Coût d'acquisition inconnu : décomposition indisponible.",
+        "BEFORE_TAKEOVER": "Antérieur à la reprise du {{date}}",
+        "PERIOD_STARTS_AT_TAKEOVER": "Calculé depuis la reprise du {{date}}",
+        "PERIOD_IN_PROGRESS": "Période en cours, calculée jusqu'au {{date}}.",
+        "DECOMPOSITION_RESIDUAL": "Écart de décomposition de {{amount}}.",
+        "unknownAmount": "montant inconnu",
+        "unrecognized": "Motif non reconnu ({{code}})"
+      },
+      "actions": {
+        "recordValuation": "Enregistrer une valorisation",
+        "completeValuation": "Compléter la valorisation",
+        "checkPositions": "Vérifier les positions"
+      },
+      "reasonSummaries": {
+        "MISSING_FLOW_VALUATION": "Relevés manquants aux dates de versement ou retrait.",
+        "STALE_FLOW_VALUATION": "Prix anciens aux dates de versement ou retrait.",
+        "MONTH_NOT_CALCULABLE": "Des relevés mensuels manquent pour ce calcul.",
+        "NON_POSITIVE_GROWTH_FACTOR": "Un rendement mensuel inférieur ou égal à -100 % empêche le chaînage."
+      },
+      "formula": {
+        "chained": "Rendements mensuels enchaînés : (1 + r1) × (1 + r2) × … − 1 = {{rate}}",
+        "modifiedDietz": "Rendement = gain ÷ capital moyen = {{gain}} ÷ {{capital}} = {{rate}}, {{period}}",
+        "days_one": "sur {{count}} jour",
+        "days_other": "sur {{count}} jours",
+        "daysUnknown": "sur - jours",
+        "timeWeighted_one": "Rendement = (1 + r1) × (1 + r2) × … − 1 sur {{count}} sous-période = {{rate}}",
+        "timeWeighted_other": "Rendement = (1 + r1) × (1 + r2) × … − 1 sur {{count}} sous-périodes = {{rate}}",
+        "moneyWeighted": "{{formula}} ; taux annualisé = {{rate}}",
+        "gain": "Gain = {{end}}{{start}} − {{flows}} = {{gain}}",
+        "gainStart": " − {{start}}"
+      },
+      "facts": {
+        "startValue": "Valeur initiale",
+        "endValue": "Valeur finale",
+        "netFlows": "Versements nets",
+        "realized": "Réalisé",
+        "unrealizedChange": "Variation latente",
+        "income": "Revenus",
+        "fees": "Frais",
+        "taxes": "Taxes",
+        "residual": "Écart",
+        "gain": "Gain",
+        "duration": "Durée",
+        "days_one": "{{count}} jour",
+        "days_other": "{{count}} jours",
+        "averageCapital": "Capital moyen",
+        "minCapital": "Capital minimal accepté",
+        "breakpoints": "Dates de découpage",
+        "subperiods": "Sous-périodes",
+        "precision": "Précision de calcul",
+        "decimals_one": "{{count}} décimale",
+        "decimals_other": "{{count}} décimales",
+        "stopWidth": "Largeur d’arrêt",
+        "maxIterations": "Itérations maximales",
+        "searchedFactor": "Facteur journalier cherché",
+        "searchedRange": "{{from}} à {{to}}",
+        "flowDays": "Jours de flux"
+      },
+      "anchor": {
+        "start": "Début",
+        "end": "Fin",
+        "none": "{{title}} : aucune valorisation",
+        "line": "{{title}} : {{date}}, {{amount}}{{age}}",
+        "age_one": ", {{count}} jour, {{quality}}",
+        "age_other": ", {{count}} jours, {{quality}}",
+        "noPrice": "sans prix",
+        "noValuation": "Aucune valorisation",
+        "gainLine": "{{label}} : {{details}}",
+        "gainDetails_one": "{{date}}, {{count}} jour, {{quality}}",
+        "gainDetails_other": "{{date}}, {{count}} jours, {{quality}}"
+      },
+      "quality": {
+        "CURRENT": "Prix actuels",
+        "STALE": "Prix anciens",
+        "NOT_DETAILED": "Valorisation non détaillée"
+      },
+      "qualityLower": {
+        "CURRENT": "prix actuels",
+        "STALE": "prix anciens",
+        "NOT_DETAILED": "valorisation non détaillée"
+      },
+      "remaining": "+{{count}} autres",
+      "tables": {
+        "weighted": {
+          "caption": "Flux pondérés",
+          "date": "Date",
+          "amount": "Montant",
+          "remainingDays": "Jours restants",
+          "weight": "Poids"
+        },
+        "subperiods": {
+          "caption": "Sous-périodes",
+          "from": "Du",
+          "to": "Au",
+          "startValue": "Valeur initiale",
+          "endValue": "Valeur finale",
+          "flow": "Flux",
+          "return": "Rendement"
+        },
+        "investorFlows": {
+          "caption": "Flux investisseur",
+          "date": "Date",
+          "amount": "Montant"
+        }
+      },
+      "value": {
+        "notCalculable": "Non calculable",
+        "explain": "Expliquer : {{label}}",
+        "overPeriod": "sur la période",
+        "annualized": "annualisé",
+        "explainScope": "Expliquer : {{label}}, {{scope}}"
+      },
+      "months": {
+        "beforeOpening": "Avant l'ouverture",
+        "future": "À venir",
+        "anchors": "Du {{from}} au {{to}}",
+        "column": "Mois",
+        "perMonth": "Performance par mois",
+        "year": "Année {{year}}",
+        "yearScope": "année {{year}}"
+      },
+      "lines": {
+        "notChained": "non chaîné",
+        "notChainedHint": "Calculé sur les flux de l'année, pas à partir des mois."
+      },
+      "columns": {
+        "startValue": "Valeur début",
+        "deposits": "Versements",
+        "withdrawals": "Retraits",
+        "endValue": "Valeur fin",
+        "gain": "Gain",
+        "realized": "Réalisé",
+        "unrealizedChange": "Var. latente",
+        "income": "Revenus",
+        "fees": "Frais",
+        "feesPaid": "Frais payés",
+        "taxes": "Taxes",
+        "modifiedDietz": "Rendement (MD)",
+        "timeWeighted": "TWR",
+        "moneyWeighted": "MWR (mois)"
+      },
+      "figures": {
+        "gain": "Gain total",
+        "modifiedDietz": "Rendement (Modified Dietz)",
+        "timeWeighted": "Rendement des placements (TWR)",
+        "moneyWeighted": "Rendement personnel (MWR)"
+      },
+      "methods": {
+        "gain": "Valeur finale moins valeur initiale moins les versements nets.",
+        "modifiedDietz": "Approximation du rendement pondéré dans le temps : chaque flux est pondéré par la part de la période où il était investi.",
+        "timeWeighted": "Rendement des placements, neutre vis-à-vis des versements, calculé à partir d'une valorisation à chaque date de flux.",
+        "moneyWeighted": "Taux annuel de votre argent, compte tenu des dates de vos versements et retraits."
+      },
+      "modal": {
+        "period": "Du {{from}} au {{to}}",
+        "periodUnavailable": "Période indisponible",
+        "calculation": "Calcul",
+        "method": "{{method}} Net de frais et de taxes.",
+        "showDates": "Voir les {{count}} dates",
+        "detail": "Détail du calcul",
+        "methodVersion": "Méthode version {{version}}"
+      },
+      "qualityBadge": {
+        "EXACT": "Exact",
+        "APPROXIMATION": "Approximation",
+        "DEGRADED": "Données à vérifier",
+        "NOT_CALCULABLE": "Non calculable"
+      },
+      "yearLabel": "Année",
+      "columnsLabel": "Colonnes affichées",
+      "monthExplanation": {
+        "title": "Explication indisponible",
+        "unavailable": "L'explication de ce mois est indisponible.",
+        "loading": "Chargement de l'explication…"
+      },
+      "unavailable": "La performance est indisponible",
+      "yearOutOfRange": "Cette année n'est pas disponible pour ce compte.",
+      "backToCurrentYear": "Revenir à l'année en cours",
+      "noValuationYear": "Aucune valorisation pour cette année",
+      "loading": "Chargement de la performance…"
+    },
+    "kpiValue": {
+      "notValued": "Non valorisé",
+      "loss": "Perte −",
+      "gain": "Gain +",
+      "reconciled": "Rapproché",
+      "toCheck": "À vérifier ({{count}})"
+    },
+    "allocation": {
+      "by": {
+        "INSTRUMENT": "Instrument",
+        "ASSET_CLASS": "Classe d’actifs",
+        "REGION": "Région",
+        "CURRENCY": "Devise"
+      },
+      "title": "Répartition",
+      "unspecified": "Non renseignée",
+      "detailed": "Répartition détaillée",
+      "tableCaption": "Répartition détaillée, toutes les lignes",
+      "columns": {
+        "label": "Libellé",
+        "value": "Valeur",
+        "share": "Part"
+      },
+      "valuationUsed": "Valorisation retenue :",
+      "noValuation": "aucune à cette date",
+      "atCost": "· au prix de revient",
+      "groupBy": "Regrouper la répartition",
+      "partial": "Valorisation partielle : la répartition n’est pas calculable",
+      "chartUnavailable": "Graphique indisponible : la répartition contient des parts négatives ou supérieures à 100 %. Consultez les valeurs signées du tableau.",
+      "costNote": "Valorisation saisie en total : la valeur de chaque ligne n’est pas connue, la répartition suit le prix de revient des titres détenus.",
+      "plotLabel": "Répartition du portefeuille",
+      "legend": "Légende de la répartition",
+      "rows_one": "{{count}} ligne",
+      "rows_other": "{{count}} lignes",
+      "allRows": "Toutes les lignes"
+    },
+    "positions": {
+      "unknownCost": "Coût inconnu",
+      "quantity": "Quantité",
+      "avgUnitCostShort": "PRU",
+      "phoneAvgCost": " · PRU {{amount}}",
+      "cost": "Coût",
+      "closed": "Clôturée",
+      "checkOrder": "Ordre à vérifier",
+      "detail": {
+        "avgCost": "Prix de revient moyen",
+        "totalCost": "Coût total (moyen)",
+        "value": "Valeur",
+        "result": "Résultat",
+        "openLots": "Lots ouverts",
+        "viewLots": "Voir les lots"
+      },
+      "lots": {
+        "title": "Lots : {{name}}",
+        "heldQuantity": "Quantité détenue",
+        "fifoCost": "Coût restant (FIFO)",
+        "avgCost": "Prix de revient moyen",
+        "unavailable": "Les lots sont indisponibles.",
+        "note": "Lots consommés dans l’ordre d’acquisition (FIFO). Ce n’est pas un calcul fiscal.",
+        "open": "Lots ouverts",
+        "loading": "Chargement des lots…",
+        "remaining": "Quantité restante : {{quantity}}",
+        "initial": "Quantité initiale {{quantity}} · Coût unitaire",
+        "history": "Historique",
+        "movements": "Mouvements des lots",
+        "delta": "Δ quantité : {{quantity}}"
+      }
+    },
+    "unrealizedGain": {
+      "reasons": {
+        "NO_VALUATION": "Aucune valorisation",
+        "PARTIAL_VALUATION": "Valorisation partielle",
+        "UNKNOWN_LOT_COST": "Coût d’acquisition inconnu",
+        "INCOMPLETE_GAIN": "Plus-value incomplète",
+        "MIXED_ASSETS": "Actifs différents"
+      },
+      "performanceNotCalculable": "Performance non calculable"
+    },
+    "takeover": {
+      "summaryLabel": "Résumé de la reprise",
+      "securities": "Titres",
+      "cash": "Espèces",
+      "cashAt": "Espèces au {{date}}",
+      "total": "Total",
+      "previewUnavailable": "Aperçu indisponible.",
+      "value": "Valeur",
+      "avgUnitCost": "PRU",
+      "saved": "Positions reprises au {{date}}.",
+      "validation": {
+        "lineErrors": {
+          "unknown_instrument": "Cet instrument est introuvable.",
+          "instrument_inactive": "Cet instrument est inactif.",
+          "instrument_currency_mismatch": "La devise de l’instrument diffère de celle du compte.",
+          "duplicate_instrument": "Cet instrument figure déjà dans une autre ligne.",
+          "invalid_decimal": "Saisissez un nombre valide.",
+          "precision_exceeded": "Ce montant dépasse la précision autorisée.",
+          "not_positive": "Cette valeur doit être strictement positive.",
+          "negative": "Cette valeur ne peut pas être négative.",
+          "quantity_precision_exceeded": "La quantité dépasse la précision de l’instrument.",
+          "price_precision_exceeded": "Le cours dépasse la précision de l’instrument.",
+          "price_date_after_takeover": "La date du cours doit précéder la date de reprise ou l’égaler.",
+          "value_too_large": "Cette valeur est trop grande."
+        },
+        "requestErrors": {
+          "invalid_date": "La date est invalide.",
+          "before_account_opening": "La date précède l’ouverture du compte.",
+          "in_the_future": "La date ne peut pas être dans le futur.",
+          "lines_count": "Saisissez entre 1 et 200 lignes.",
+          "invalid_decimal": "Saisissez un montant valide.",
+          "negative": "Les espèces ne peuvent pas être négatives.",
+          "precision_exceeded": "Ce montant dépasse la précision autorisée.",
+          "value_too_large": "Cette valeur est trop grande."
+        },
+        "fallback": "Cette valeur est refusée.",
+        "date": "Saisissez la date de reprise.",
+        "instrument": "Choisissez un instrument.",
+        "quantity": "Saisissez une quantité strictement positive.",
+        "price": "Saisissez un cours strictement positif.",
+        "amount": "Saisissez un montant valide."
+      },
+      "errors": {
+        "blocked": {
+          "NOT_SUPPORTED": "Ce compte ne permet pas la reprise de positions.",
+          "ALREADY_TAKEN_OVER": "Les positions de ce compte ont déjà été reprises.",
+          "ACTIVE_VALUATION": "Ce compte a déjà une valorisation : la reprise n’est plus possible.",
+          "SECURITY_OPERATION": "Ce compte contient déjà des opérations sur titres : la reprise n’est plus possible.",
+          "CASH_OPERATION_BEFORE": "Ce compte a une opération sur les espèces à cette date ou avant : choisissez une date plus récente."
+        },
+        "codes": {
+          "operation_limit_reached": "La limite de 10 000 opérations actives pour ce compte est atteinte.",
+          "valuation_limit_reached": "La limite de valorisations actives pour ce compte est atteinte.",
+          "write_conflict": "Une autre écriture est en cours sur ce compte. Réessayez.",
+          "portfolio_payload_too_large": "La requête est trop volumineuse."
+        },
+        "connection": "La connexion a échoué. Vérifiez votre connexion puis réessayez.",
+        "closedMonth": "Le mois de reprise est clôturé. Rouvrez-le avant d’enregistrer la reprise.",
+        "refused": "L’enregistrement a été refusé. Réessayez."
+      },
+      "line": "Ligne {{number}}",
+      "leaveEmpty": "Laissez vide si inconnu.",
+      "totalCostBasis": "Coût de revient total",
+      "price": "Cours",
+      "priceDate": "Date du cours",
+      "removeLine": "Retirer la ligne {{number}}",
+      "prompt": {
+        "title": "Vos positions ne sont pas encore saisies",
+        "text": "Saisissez les lignes que ce compte détient déjà pour démarrer son suivi."
+      },
+      "enter": "Saisir mes positions",
+      "discard": {
+        "title": "Abandonner la saisie ?",
+        "text": "Les positions saisies ne seront pas enregistrées.",
+        "discard": "Abandonner",
+        "continue": "Continuer la saisie"
+      },
+      "dateHint": "La date de votre dernier relevé. La performance est calculée à partir de cette date.",
+      "date": "Date de reprise",
+      "addLine": "Ajouter une ligne",
+      "save": "Enregistrer la reprise"
+    },
+    "account": {
+      "kpi": {
+        "TOTAL_VALUE": "Valeur totale",
+        "UNREALIZED_GAIN": "Plus-value latente",
+        "CASH": "Espèces",
+        "NET_DEPOSITS": "Versements nets",
+        "COSTS": "Frais et taxes",
+        "RECONCILIATION": "Rapprochement"
+      },
+      "flag": {
+        "STALE_PRICES": "Prix anciens",
+        "CASH_DIFFERENCE": "Écart d’espèces",
+        "OBSERVED_TOTAL_DIFFERENCE": "Écart avec le relevé",
+        "POSITIONS_CHANGED": "Positions modifiées depuis",
+        "NEGATIVE_SECURITIES_VALUE": "Titres négatifs"
+      },
+      "flagSentence": {
+        "STALE_PRICES": "Au moins un prix date de plus de 5 jours avant la valorisation.",
+        "CASH_DIFFERENCE": "Les espèces du relevé diffèrent des espèces calculées.",
+        "OBSERVED_TOTAL_DIFFERENCE": "Le total du relevé s’écarte du total calculé au-delà de la tolérance.",
+        "POSITIONS_CHANGED": "Des opérations ont été enregistrées ou annulées depuis, à cette date ou avant : les positions ne correspondent plus.",
+        "NEGATIVE_SECURITIES_VALUE": "Le total est inférieur aux espèces : la valeur des titres est négative."
+      },
+      "warning": {
+        "LINKED_TRANSFER_CHANGED": "Versement différent de son virement lié",
+        "NON_TRANSFER_TRANSACTION": "Une transaction a été enregistrée sur ce compte avant le suivi par portefeuille.",
+        "UNLINKED_TRANSFER_IN": "Virement bancaire entrant non lié",
+        "UNLINKED_TRANSFER_OUT": "Virement bancaire sortant non lié",
+        "NEGATIVE_CASH": "Solde espèces négatif",
+        "UNKNOWN_LOT_COST": "Prix de revient inconnu",
+        "ORDER_DEPENDENT_DAY": "Ordre des opérations à vérifier",
+        "PARTIAL_VALUATION": "Valorisation partielle",
+        "STALE_VALUATION": "Valorisation ancienne",
+        "MISSING_PRICE": "Prix manquant",
+        "UNKNOWN_POSITION_COST": "Prix de revient inconnu"
+      },
+      "reason": {
+        "NO_VALUATION": "Aucune valorisation à cette date",
+        "NOT_DETAILED": "Valorisation saisie en total : répartition par ligne indisponible",
+        "NON_POSITIVE_TOTAL": "Valeur totale nulle ou négative : la répartition n’est pas calculable",
+        "COMPLETE": "Complète",
+        "PARTIAL": "Partielle",
+        "DERIVED": "Calculée",
+        "OBSERVED": "Relevé",
+        "RECONCILED": "Rapproché",
+        "NEEDS_REVIEW": "À vérifier",
+        "NO_DATA": "Aucune donnée",
+        "EXACT": "Exacte",
+        "CURRENT": "À jour",
+        "WARNING": "À vérifier"
+      },
+      "history": {
+        "detailMissing": "Détail non saisi",
+        "detail": {
+          "TOTAL": "Total",
+          "POSITIONS": "Par ligne"
+        },
+        "quality": {
+          "CURRENT": "Actuels",
+          "STALE": "Anciens",
+          "MISSING": "Manquants"
+        },
+        "tooltipEntry": "Saisie : {{detail}}",
+        "tooltipPrice": "Prix : {{quality}}",
+        "chartLabel": "Évolution de la valeur totale du portefeuille",
+        "timeAxis": "Date de valorisation",
+        "valueAxis": "Valeur totale en {{assetCode}}",
+        "columns": {
+          "date": "Date",
+          "total": "Valeur totale",
+          "securities": "Titres",
+          "cash": "Espèces",
+          "entry": "Saisie",
+          "quality": "Qualité"
+        },
+        "tableLabel": "Valorisations du portefeuille par date",
+        "notDetailed": "Non détaillé",
+        "title": "Évolution de la valeur",
+        "viewTable": "Voir le tableau",
+        "loading": "Chargement de l’évolution de la valeur…",
+        "unavailable": "L’évolution de la valeur est indisponible.",
+        "empty": "Aucune valorisation. Enregistrez la valeur de vos titres à partir d’un relevé.",
+        "valuationsLink": "Valorisations",
+        "nothingToPlot": "Aucune valorisation complète à tracer.",
+        "truncated": "Seules les 240 dernières valorisations sont affichées.",
+        "count_one": "{{count}} valorisation",
+        "count_other": "{{count}} valorisations"
+      },
+      "operationError": {
+        "field": {
+          "instrument_not_euro_fund": "Choisissez un fonds en euros.",
+          "invalid_year": "L’année doit être comprise entre la souscription et l’opération.",
+          "invalid_interest_basis": "Choisissez une base du taux.",
+          "premium_allocation_exceeds_net": "Les supports dépassent le versement net de frais.",
+          "surrender_exceeds_available": "Le rachat dépasse les liquidités et les supports vendus.",
+          "invalid_surrender_amounts": "Les frais et prélèvements dépassent le montant brut du rachat.",
+          "full_surrender_not_balanced": "Le rachat total doit solder exactement les liquidités.",
+          "switch_same_support": "Un support ne peut pas être vendu et acheté dans le même arbitrage.",
+          "unknown_leg_instrument": "Ce support est introuvable.",
+          "duplicate_leg_instrument": "Ce support figure déjà dans l’opération.",
+          "invalid_leg_direction": "Le sens de ce support ne correspond pas à l’opération.",
+          "euro_fund_price_fixed": "Le prix d’un fonds en euros est fixé à 1.",
+          "operation_asset_mismatch": "La devise du support doit correspondre au compte.",
+          "invalid_operation_quantity": "La quantité est invalide.",
+          "quantity_precision_exceeded": "La quantité dépasse la précision de l’instrument.",
+          "price_precision_exceeded": "Le prix dépasse la précision de l’instrument.",
+          "instrument_inactive": "Cet instrument est inactif.",
+          "instrument_currency_mismatch": "La devise de l’instrument diffère de celle du compte.",
+          "unknown_instrument": "Cet instrument est introuvable.",
+          "invalid_corporate_action": "L’opération sur titres est incohérente.",
+          "invalid_operation_date": "La date doit être comprise entre l’ouverture du compte et aujourd’hui.",
+          "invalid_settlement_date": "La date de règlement doit suivre la date d’opération de 31 jours au plus.",
+          "linked_transfer_mismatch": "Ce virement ne correspond pas au montant, à la date ou au sens.",
+          "linked_transfer_taken": "Ce virement est déjà lié à une autre opération.",
+          "invalid_operation_amount": "Le montant est invalide.",
+          "invalid_operation_text": "Le texte contient un caractère interdit ou est trop long.",
+          "operation_field_required": "Ce champ est obligatoire pour ce type.",
+          "operation_field_not_allowed": "Ce champ n’est pas autorisé pour ce type."
+        },
+        "message": {
+          "full_surrender_positions_remaining": "Le rachat total laisse des supports détenus. Reprenez toutes les positions.",
+          "operations_after_full_surrender": "Des opérations suivent cette date. Corrigez-les avant le rachat total.",
+          "too_many_operation_legs": "20 supports au maximum sont autorisés.",
+          "life_insurance_contract_required": "Renseignez d’abord le contrat avant de saisir une opération.",
+          "life_insurance_contract_closed": "Ce contrat est clos à la date de l’opération.",
+          "operation_type_not_allowed_for_account": "Ce type d’opération n’est pas autorisé sur ce contrat.",
+          "euro_fund_price_fixed": "Un fonds en euros vaut toujours 1 € par part.",
+          "account_not_portfolio": "Ce compte n’est pas suivi en mode portefeuille.",
+          "portfolio_account_inactive": "Ce compte est clos ou archivé : il n’accepte plus d’opération.",
+          "operation_limit_reached": "La limite de 10 000 opérations actives pour ce compte est atteinte.",
+          "stale_operation_version": "Cette opération a été modifiée ailleurs. Fermez cette fenêtre pour recharger la liste.",
+          "operation_voided": "Cette opération est déjà annulée ou remplacée.",
+          "portfolio_operation_conflict": "Une autre écriture est en cours sur ce compte. Réessayez.",
+          "unsupported_operation_type": "Ce type d’opération n’est pas pris en charge.",
+          "portfolio_payload_too_large": "La requête est trop volumineuse."
+        },
+        "grossMismatch": "Le montant brut ne correspond pas à quantité × prix.",
+        "grossMismatchExpected": "Le montant brut ne correspond pas à quantité × prix. Montant attendu : {{expected}}.",
+        "switchNotBalanced": "L’arbitrage doit être équilibré. À réinvestir : {{amount}}.",
+        "legAmountMismatch": "Le montant ne correspond pas aux parts × valeur liquidative. Montant attendu : {{amount}}.",
+        "legInvalid": "Ce support est invalide. Vérifiez ses valeurs.",
+        "fullSurrenderExpected": "Le rachat total doit solder les liquidités. Montant brut attendu : {{amount}}.",
+        "connection": "La connexion a échoué. Vérifiez votre connexion puis réessayez.",
+        "periodClosed": "Le mois concerné est clôturé. Rouvrez-le avant d’enregistrer cette opération.",
+        "negativePosition": "Cette opération rendrait la position {{instrument}} négative le {{date}}.",
+        "negativePositionInstrument": "concernée",
+        "negativePositionDate": "à cette date",
+        "refused": "L’enregistrement a été refusé. Vérifiez les champs."
+      },
+      "form": {
+        "errors": {
+          "tradeDateRequired": "La date d’opération est obligatoire.",
+          "settlementBeforeTrade": "La date de règlement ne peut précéder la date d’opération.",
+          "required": "Ce champ est obligatoire.",
+          "decimal": "Saisissez un nombre décimal positif, sans exposant ni signe.",
+          "positive": "La valeur doit être strictement positive.",
+          "chooseInstrument": "Choisissez un instrument.",
+          "counterInstrumentSame": "L’instrument reçu doit différer de l’instrument d’origine.",
+          "chooseBasis": "Choisissez une base du taux.",
+          "taxesBelowGross": "Les prélèvements doivent être inférieurs au montant brut.",
+          "rateYear": "Saisissez une année au plus égale à celle de l’opération.",
+          "maxLegs": "20 supports au maximum.",
+          "strictlyPositive": "Saisissez un nombre décimal strictement positif.",
+          "chooseSupport": "Choisissez un support.",
+          "allocationRatio": "Le ratio doit être strictement compris entre 0 et 1.",
+          "ratioPositive": "Saisissez deux nombres strictement positifs.",
+          "ratioDistinct": "Les deux termes du ratio doivent être différents.",
+          "textLimit": "Au plus {{max}} caractères, sans caractère de contrôle."
+        },
+        "tradeDate": "Date d’opération",
+        "instrument": "Instrument",
+        "quantity": "Quantité",
+        "unitPrice": "Prix unitaire",
+        "grossAmount": "Montant brut",
+        "fees": "Frais",
+        "taxes": "Taxes",
+        "costBasisHint": "Laissez vide si le coût d’origine est inconnu.",
+        "costBasis": "Coût de revient",
+        "counterInstrument": "Instrument reçu",
+        "counterQuantity": "Quantité reçue",
+        "allocationHint": "Part du coût de revient allouée aux titres reçus, entre 0 et 1.",
+        "allocation": "Part du coût allouée",
+        "saving": "Enregistrement…",
+        "save": "Enregistrer",
+        "editTitle": "Modifier l’opération",
+        "newTitle": "Nouvelle opération",
+        "linkedTransfer": "Virement lié",
+        "noLinkedTransfer": "Aucun virement lié",
+        "currentLinkedTransfer": "Virement actuellement lié",
+        "transfersUnavailable": "Les virements sont indisponibles.",
+        "preview": {
+          "remainsCash": "Reste en liquidités",
+          "cashEffect": "Effet sur les espèces",
+          "netCredited": "Net crédité",
+          "netPaid": "Net versé",
+          "expectedGross": "Montant brut attendu",
+          "rounding": "Écart d’arrondi",
+          "legRounding": "Écart d’arrondi du support {{index}}"
+        },
+        "insurance": {
+          "premiumAmount": "Montant versé",
+          "surrenderGross": "Montant brut du rachat",
+          "premiumFees": "Frais sur versement",
+          "surrenderFees": "Frais de rachat",
+          "withheldIncomeTax": "Prélèvement fiscal retenu",
+          "withheldSocial": "Prélèvements sociaux retenus"
+        },
+        "ratio": {
+          "legend": "Ratio de division",
+          "numerator": "Numérateur du ratio",
+          "denominator": "Dénominateur du ratio"
+        },
+        "extra": {
+          "title": "Champs avancés",
+          "reason": "Motif (facultatif)",
+          "settlementDate": "Date de règlement",
+          "reference": "Référence",
+          "note": "Note"
+        },
+        "income": {
+          "support": "Support",
+          "contractCash": "Liquidités du contrat",
+          "supportUnavailable": "Le support est indisponible.",
+          "grossCredited": "Montant brut crédité",
+          "rateBasis": "Base du taux",
+          "chooseBasis": "Choisir une base",
+          "feeAmount": "Montant des frais",
+          "unitsWithdrawn": "Parts prélevées",
+          "unitValue": "Valeur liquidative",
+          "amount": "Montant",
+          "rateYear": "Année du taux",
+          "year": "Année"
+        },
+        "switch": {
+          "fees": "Frais d’arbitrage",
+          "sold": "Supports vendus",
+          "bought": "Supports achetés",
+          "difference": "Écart",
+          "toReinvest": "À réinvestir",
+          "unbalanced": "Arbitrage déséquilibré : ajustez les supports ou les frais.",
+          "feeScale": "Barème (informatif)"
+        },
+        "legs": {
+          "addOne": "Ajoutez au moins un support.",
+          "none": "Aucun support : l’opération utilise les liquidités du contrat.",
+          "add": "Ajouter un support",
+          "takeAll": "Reprendre toutes les positions",
+          "toTake": "Positions à reprendre",
+          "loadingPositions": "Chargement des positions",
+          "supportCount_one": "{{count}} supports",
+          "supportCount_other": "{{count}} supports",
+          "positionsUnavailable": "Les positions sont indisponibles.",
+          "noneHeld": "Aucune position détenue à cette date.",
+          "limit": "Le contrat dépasse la limite de 20 supports par opération.",
+          "support": "Support {{index}}",
+          "units": "Parts {{index}}",
+          "unitValue": "Valeur liquidative {{index}}",
+          "amount": "Montant {{index}}",
+          "remove": "Retirer ce support"
+        }
+      },
+      "operationTypeField": "Type",
+      "operationTypes": "Types d’opération",
+      "filters": {
+        "period": "Du {{from}} au {{to}}",
+        "since": "Depuis le {{date}}",
+        "until": "Jusqu’au {{date}}",
+        "label": "Filtres des opérations",
+        "toggle": "Filtrer",
+        "activeCount_one": "{{count}} filtres actifs",
+        "activeCount_other": "{{count}} filtres actifs",
+        "showResults": "Afficher les opérations"
+      },
+      "notPortfolio": {
+        "title": "Ce compte n’est pas suivi en mode portefeuille",
+        "open": "Ouvrir le compte"
+      },
+      "operations": {
+        "stale": "Cette opération a déjà été modifiée. La liste a été actualisée.",
+        "unavailable": "Les opérations sont indisponibles",
+        "noneFound": "Aucune opération trouvée",
+        "none": "Aucune opération",
+        "recordFirst": "Enregistrer la première opération",
+        "listLabel": "Opérations du portefeuille",
+        "loading": "Chargement des opérations…",
+        "transfer": "Virement",
+        "switchSummary": "{{sold}} supports vendus, {{bought}} achetés",
+        "replaced": "Remplacée",
+        "voided": "Annulée",
+        "gross": "Brut",
+        "menu": {
+          "actions": "Actions de l’opération",
+          "operationLabel": "{{type}} du {{day}}",
+          "actionsFor": "Actions pour l’opération {{label}}",
+          "reorderDay": "Réordonner la journée du {{day}}",
+          "reorder": "Réordonner la journée",
+          "detailOf": "Détail de l’opération {{label}}",
+          "detail": "Détail",
+          "editOf": "Modifier l’opération {{label}}",
+          "edit": "Modifier",
+          "voidOf": "Annuler l’opération {{label}}"
+        }
+      },
+      "detail": {
+        "title": "Opération : {{type}}",
+        "status": "Statut",
+        "active": "Active",
+        "sequence": "Ordre dans la journée",
+        "ratio": "Ratio",
+        "ratioValue": "{{numerator}} pour {{denominator}}",
+        "linkedTransferOf": "Virement lié du {{date}}",
+        "reason": "Motif",
+        "replacesOn": "Remplace l’opération du {{date}}",
+        "replaces": "Remplace une opération",
+        "replacedByOn": "Remplacée par l’opération du {{date}}",
+        "replacedBy": "Remplacée par une opération",
+        "feeNature": "Nature des frais",
+        "feeNatures": {
+          "ENTRY": "Frais sur versement",
+          "MANAGEMENT": "Frais de gestion",
+          "SWITCH": "Frais d’arbitrage",
+          "SURRENDER": "Frais de rachat",
+          "OTHER": "Autres frais"
+        }
+      },
+      "legs": {
+        "caption": "Supports de l’opération",
+        "columns": {
+          "direction": "Sens",
+          "support": "Support",
+          "units": "Parts",
+          "unitValue": "Valeur liquidative",
+          "amount": "Montant",
+          "rounding": "Écart d’arrondi"
+        },
+        "in": "Entrée",
+        "out": "Sortie",
+        "unavailable": "Support indisponible",
+        "none": "Aucun support.",
+        "sold": "Vendus",
+        "bought": "Achetés",
+        "applicableScale": "Barème applicable",
+        "informational": "(informatif)"
+      },
+      "void": {
+        "wholeSwitch": "L’arbitrage entier sera annulé : supports vendus et achetés.",
+        "notice": "L’opération restera visible dans l’historique avec le statut Annulée. Cette action ne peut pas être défaite.",
+        "reasonRequired": "Le motif est obligatoire.",
+        "pending": "Annulation…",
+        "confirm": "Annuler l’opération"
+      },
+      "reorder": {
+        "changed": "Les opérations de cette journée ont changé. L’ordre a été actualisé.",
+        "negative": "Cet ordre rendrait la position négative le {{date}}.",
+        "loading": "Chargement des opérations de la journée…",
+        "tableLabel": "Opérations à réordonner",
+        "operation": "Opération",
+        "order": "Ordre",
+        "unavailable": "Les opérations de cette journée sont indisponibles.",
+        "moveUp": "Monter {{label}}",
+        "moveDown": "Descendre {{label}}",
+        "save": "Enregistrer l’ordre"
+      },
+      "page": {
+        "loading": "Chargement du portefeuille…",
+        "unavailable": "Le portefeuille est indisponible"
+      },
+      "header": {
+        "showVoided": "Afficher les opérations annulées",
+        "showClosed": "Afficher les positions soldées"
+      },
+      "tabs": {
+        "account": "Compte",
+        "operations": "Opérations",
+        "valuations": "Valorisations",
+        "positions": "Positions",
+        "performance": "Performance",
+        "contract": "Contrat",
+        "cash": "Liquidités",
+        "insurance": {
+          "positions": "Supports",
+          "cash": "Liquidités"
+        },
+        "label": "Sections du portefeuille"
+      },
+      "review": {
+        "NEGATIVE_CASH": {
+          "title_one": "Espèces négatives ({{count}} opération)",
+          "title_other": "Espèces négatives ({{count}} opérations)",
+          "hint": "Les achats et retraits dépassent l’argent arrivé sur le compte : un versement, un dividende ou des intérêts manquent probablement."
+        },
+        "UNLINKED_TRANSFER_IN": {
+          "title_one": "Virements reçus sans versement ({{count}} virement)",
+          "title_other": "Virements reçus sans versement ({{count}} virements)",
+          "hint": "Ces virements bancaires sont arrivés sur le compte sans versement dans le portefeuille. Créez le versement et liez-le au virement."
+        },
+        "UNLINKED_TRANSFER_OUT": {
+          "title_one": "Virements sortis sans retrait ({{count}} virement)",
+          "title_other": "Virements sortis sans retrait ({{count}} virements)",
+          "hint": "Ces virements bancaires ont quitté le compte sans retrait dans le portefeuille. Créez le retrait et liez-le au virement."
+        },
+        "LINKED_TRANSFER_CHANGED": {
+          "title_one": "Versements différents de leur virement ({{count}} opération)",
+          "title_other": "Versements différents de leur virement ({{count}} opérations)",
+          "hint": "La date, le montant ou le sens ne correspond plus au virement bancaire lié, ou le virement a été annulé. Corrigez l’opération ou le virement pour qu’ils concordent."
+        },
+        "NON_TRANSFER_TRANSACTION": {
+          "title_one": "Transactions bancaires hors virement ({{count}} transaction)",
+          "title_other": "Transactions bancaires hors virement ({{count}} transactions)",
+          "hint": "Un revenu, une dépense ou des frais ont été saisis comme transaction du compte. Saisissez-les comme opération du portefeuille, puis annulez la transaction."
+        },
+        "CASH_DIFFERENCE": {
+          "title": "Espèces du relevé différentes du calcul",
+          "hint": "Le relevé indique d’autres espèces que celles calculées à partir des opérations : une opération manque ou est erronée avant cette date."
+        },
+        "OBSERVED_TOTAL_DIFFERENCE": {
+          "title": "Total du relevé différent du calcul",
+          "hint": "Le total saisi s’écarte de la somme des lignes et des espèces. Vérifiez les quantités et les prix de la valorisation."
+        },
+        "POSITIONS_CHANGED": {
+          "title": "Valorisation à reprendre",
+          "hint": "Des opérations ont changé à sa date ou avant : ses positions ne correspondent plus. Ressaisissez la valorisation."
+        },
+        "NEGATIVE_SECURITIES_VALUE": {
+          "title": "Valeur des titres négative",
+          "hint": "Le total saisi est inférieur aux espèces. Vérifiez le total et les espèces du relevé."
+        },
+        "STALE_PRICES": {
+          "title": "Prix anciens",
+          "hint": "Au moins un prix date de plus de 5 jours avant la valorisation. Mettez les prix à jour."
+        },
+        "PARTIAL_VALUATION": {
+          "title": "Valorisation partielle",
+          "hint": "Certaines lignes n’ont pas de prix. Complétez la valorisation."
+        },
+        "STALE_VALUATION": {
+          "title": "Valorisation ancienne",
+          "hint": "La dernière valorisation est trop ancienne pour la date affichée. Saisissez une valorisation plus récente."
+        },
+        "UNKNOWN_LOT_COST": {
+          "title_one": "Prix de revient inconnu ({{count}} position)",
+          "title_other": "Prix de revient inconnu ({{count}} positions)",
+          "hint": "Des titres sont entrés sans prix de revient (transfert, attribution). Renseignez-le dans l’opération d’origine."
+        },
+        "ORDER_DEPENDENT_DAY": {
+          "title_one": "Ordre des opérations à vérifier ({{count}} jour)",
+          "title_other": "Ordre des opérations à vérifier ({{count}} jours)",
+          "hint": "Le même jour, plusieurs opérations donnent un résultat différent selon leur ordre. Vérifiez leur ordre de saisie."
+        },
+        "links": {
+          "cash": "Voir le détail dans Espèces",
+          "valuations": "Ouvrir les valorisations",
+          "operations": "Ouvrir les opérations",
+          "account": "Ouvrir les mouvements du compte"
+        },
+        "title_one": "{{count}} point à vérifier",
+        "title_other": "{{count}} points à vérifier"
+      },
+      "overview": {
+        "staleValuation": "Valorisation ancienne ({{days}} jours)",
+        "notFound": "Portefeuille introuvable ou non accessible",
+        "invalidDate": "La date sélectionnée est invalide",
+        "unavailable": "Les indicateurs sont indisponibles"
+      },
+      "allocationTab": {
+        "unavailable": "La répartition est indisponible"
+      },
+      "positions": {
+        "none": "Aucune position à cette date",
+        "seeOperations": "Voir les opérations",
+        "enter": "Saisir mes positions",
+        "listLabel": "Positions du portefeuille",
+        "loading": "Chargement des positions…"
+      },
+      "valueReason": {
+        "NO_VALUATION": "Aucune valorisation",
+        "PARTIAL_VALUATION": "Valorisation partielle",
+        "NOT_DETAILED": "Valeur non détaillée",
+        "QUANTITY_CHANGED": "Quantité modifiée depuis la valorisation"
+      },
+      "kpiGrid": {
+        "explain": "Expliquer : {{label}}",
+        "label": "Indicateurs du portefeuille",
+        "calculation": "Calcul"
+      },
+      "operationType": {
+        "EURO_FUND_INTEREST": "Intérêts du fonds en euros",
+        "PROFIT_SHARING": "Participation aux bénéfices",
+        "MANAGEMENT_FEE": "Frais de gestion",
+        "SOCIAL_CONTRIBUTION": "Prélèvements sociaux",
+        "SWITCH": "Arbitrage",
+        "PREMIUM": "Versement",
+        "PARTIAL_SURRENDER": "Rachat partiel",
+        "FULL_SURRENDER": "Rachat total",
+        "DEPOSIT": "Versement",
+        "WITHDRAWAL": "Retrait",
+        "BUY": "Achat",
+        "SELL": "Vente",
+        "DIVIDEND": "Dividende",
+        "INTEREST": "Intérêts",
+        "FEE": "Frais",
+        "TAX": "Taxe",
+        "SECURITY_TRANSFER_IN": "Transfert de titres entrant",
+        "SECURITY_TRANSFER_OUT": "Transfert de titres sortant",
+        "SPLIT": "Division",
+        "MERGER": "Fusion",
+        "SPIN_OFF": "Scission"
+      }
+    },
+    "cash": {
+      "warnings": {
+        "NEGATIVE_CASH_FROM_one": "Solde négatif à partir du {{date}} ({{count}} opération)",
+        "NEGATIVE_CASH_FROM_other": "Solde négatif à partir du {{date}} ({{count}} opérations)",
+        "NEGATIVE_CASH_one": "Solde négatif après {{count}} opération",
+        "NEGATIVE_CASH_other": "Solde négatif après {{count}} opérations",
+        "UNLINKED_TRANSFER_IN_one": "{{count}} virement entrant n’est lié à aucun versement",
+        "UNLINKED_TRANSFER_IN_other": "{{count}} virements entrants ne sont liés à aucun versement",
+        "UNLINKED_TRANSFER_OUT_one": "{{count}} virement sortant n’est lié à aucun retrait",
+        "UNLINKED_TRANSFER_OUT_other": "{{count}} virements sortants ne sont liés à aucun retrait",
+        "UNLINKED_EXTERNAL_FLOW_one": "{{count}} versement ou retrait sans virement lié (un historique antérieur au suivi est légitime)",
+        "UNLINKED_EXTERNAL_FLOW_other": "{{count}} versements ou retraits sans virement lié (un historique antérieur au suivi est légitime)",
+        "LINKED_TRANSFER_CHANGED_one": "{{count}} opération ne correspond plus à son virement lié (date, montant ou sens différent, ou virement annulé)",
+        "LINKED_TRANSFER_CHANGED_other": "{{count}} opérations ne correspondent plus à leur virement lié (date, montant ou sens différent, ou virement annulé)",
+        "NON_TRANSFER_TRANSACTION_one": "{{count}} transaction de revenu, dépense, remboursement ou frais enregistrée sur ce compte avant le suivi par portefeuille",
+        "NON_TRANSFER_TRANSACTION_other": "{{count}} transactions de revenu, dépense, remboursement ou frais enregistrées sur ce compte avant le suivi par portefeuille",
+        "ROUNDING_RESIDUALS_one": "{{count}} opération avec un résidu d’arrondi",
+        "ROUNDING_RESIDUALS_other": "{{count}} opérations avec un résidu d’arrondi",
+        "roundingTotal": " : total {{amount}}",
+        "operationN": "Opération {{index}}",
+        "seeMovements": "Voir les mouvements du compte",
+        "toCheck": "À vérifier ({{count}})",
+        "title": "Contrôle des espèces",
+        "infos": "Informations ({{count}})"
+      },
+      "movements": {
+        "none": "Aucun mouvement d’espèces sur la période",
+        "label": "Mouvements d’espèces",
+        "effect": "Effet espèces",
+        "balanceAfter": "Solde après"
+      },
+      "loading": "Chargement des espèces…",
+      "toolbar": {
+        "legend": "Période des espèces",
+        "from": "Du",
+        "yearStart": "Début d’année",
+        "to": "Au",
+        "thisYear": "Cette année",
+        "lastTwelveMonths": "12 derniers mois"
+      },
+      "refusals": {
+        "cash_range_too_large": "La période ne peut pas dépasser 366 jours : réduisez-la.",
+        "cash_range_too_dense": "La période compte plus de 2 000 mouvements : réduisez-la.",
+        "invalid_cash_query": "La période est invalide : la fin ne précède pas le début et ne peut pas être dans le futur.",
+        "cash_amount_too_large": "Les montants d’espèces sont trop grands pour être additionnés exactement."
+      },
+      "refused": "Période refusée",
+      "unavailable": "Les espèces sont indisponibles",
+      "summary": {
+        "title": "Solde espèces",
+        "period": "Période",
+        "explainClosing": "Expliquer : solde de clôture",
+        "formula": "Solde de clôture = solde d’ouverture + versements − retraits − achats (brut) + ventes (brut) − supports achetés + supports vendus + dividendes (brut) + intérêts (brut) − frais − taxes + soulte reçue. Les frais et les taxes sont comptés une seule fois, quel que soit le type d’opération qui les porte.",
+        "rows": {
+          "opening": "Solde d’ouverture",
+          "deposits": "Versements",
+          "withdrawals": "Retraits",
+          "buys": "Achats (brut)",
+          "sells": "Ventes (brut)",
+          "supportsBought": "Supports achetés",
+          "supportsSold": "Supports vendus",
+          "dividends": "Dividendes (brut)",
+          "interest": "Intérêts (brut)",
+          "fees": "Frais",
+          "taxes": "Taxes",
+          "cashInLieu": "Soulte reçue",
+          "closing": "Solde de clôture"
+        }
+      }
+    },
+    "valuations": {
+      "detail": {
+        "TOTAL": "Total",
+        "POSITIONS": "Par ligne"
+      },
+      "flags": {
+        "STALE_PRICES": "Prix anciens",
+        "CASH_DIFFERENCE": "Écart d’espèces",
+        "OBSERVED_TOTAL_DIFFERENCE": "Écart avec le relevé",
+        "POSITIONS_CHANGED": "Positions modifiées depuis",
+        "NEGATIVE_SECURITIES_VALUE": "Titres négatifs"
+      },
+      "flagSentences": {
+        "STALE_PRICES": "Au moins un prix date de plus de 5 jours avant la valorisation.",
+        "CASH_DIFFERENCE": "Les espèces du relevé diffèrent des espèces calculées.",
+        "OBSERVED_TOTAL_DIFFERENCE": "Le total du relevé s’écarte du total calculé au-delà de la tolérance.",
+        "POSITIONS_CHANGED": "Des opérations ont été enregistrées ou annulées depuis, à cette date ou avant : les positions ne correspondent plus.",
+        "NEGATIVE_SECURITIES_VALUE": "Le total est inférieur aux espèces : la valeur des titres est négative."
+      },
+      "summaryQuality": {
+        "CURRENT": "Actuels",
+        "STALE": "Anciens",
+        "MISSING": "Manquants"
+      },
+      "lineQuality": {
+        "CURRENT": "Actuel",
+        "STALE": "Ancien",
+        "MISSING": "Manquant",
+        "NOT_DETAILED": "Non détaillé"
+      },
+      "entryMode": {
+        "TOTAL": "Saisie manuelle",
+        "POSITIONS": "Calculée"
+      },
+      "staleNotice": "Cette valorisation a déjà été modifiée. La liste a été actualisée.",
+      "unavailable": "Les valorisations sont indisponibles",
+      "none": "Aucune valorisation",
+      "noneHint": "Saisissez la valeur du compte à partir d’un relevé avec Nouvelle valorisation.",
+      "common": {
+        "notCalculable": "Non calculable",
+        "complete": "Complète",
+        "partial": "Partielle",
+        "statementTotal": "Total du relevé",
+        "note": "Note"
+      },
+      "detailModal": {
+        "titleFallback": "Valorisation",
+        "unavailable": "La valorisation est indisponible.",
+        "loading": "Chargement de la valorisation…",
+        "completeness": "Complétude",
+        "totalValue": "Valeur totale",
+        "derivedCash": "Espèces calculées",
+        "noGap": "Aucun écart",
+        "gap": "Écart",
+        "notApplicable": "Non applicable",
+        "alerts": "Alertes",
+        "positions": "Positions",
+        "replaces": "Remplace une valorisation précédente",
+        "supersededOn": "Remplacée ou retirée le {{date}}.",
+        "valuedPositions": "Positions valorisées"
+      },
+      "positions": {
+        "instrument": "Instrument",
+        "price": "Prix",
+        "priceDate": "Date du prix",
+        "age": "Âge",
+        "quality": "Qualité",
+        "days": "{{count}} j",
+        "unknownPrice": "Prix inconnu"
+      },
+      "row": {
+        "actions": "Actions de la valorisation",
+        "alertsLabel": "Alertes : {{alerts}}",
+        "actionsFor": "Actions pour la valorisation du {{date}}",
+        "detailOf": "Détail de la valorisation du {{date}}",
+        "detail": "Détail",
+        "replaceOf": "Remplacer la valorisation du {{date}}",
+        "replace": "Remplacer",
+        "withdrawOf": "Retirer la valorisation du {{date}}",
+        "withdraw": "Retirer",
+        "priceQuality": "Prix {{quality}}",
+        "detailOfMode": "Détail de la valorisation du {{date}}, {{mode}}"
+      },
+      "list": {
+        "label": "Valorisations du portefeuille",
+        "loading": "Chargement des valorisations…",
+        "next": "Valorisations suivantes",
+        "previous": "Valorisations précédentes"
+      },
+      "form": {
+        "statementCash": "Espèces du relevé",
+        "existing": "Une valorisation existe déjà le {{date}} : elle sera remplacée et conservée dans l’historique.",
+        "mode": "Mode de saisie",
+        "modeTotal": "Valeur totale",
+        "modePositions": "Détail par ligne",
+        "lastValue": "Dernière valeur : {{amount}} au {{date}}",
+        "accountTotal": "Valeur totale du compte",
+        "noPosition": "Aucune position détenue à cette date.",
+        "statementTotalHint": "Facultatif : signale un écart avec le total calculé.",
+        "loadingDraft": "Chargement du brouillon de valorisation…",
+        "cashHint": "Laissez vide pour retenir les espèces calculées :"
+      },
+      "dateStep": {
+        "hint": "Les positions et les espèces sont celles détenues à cette date.",
+        "label": "Date de valorisation",
+        "continue": "Continuer"
+      },
+      "priceRow": {
+        "fromValuation": "Prix de la valorisation du {{date}}",
+        "fromPurchase": "Prix de l’achat du {{date}}",
+        "quantity": "Quantité : {{quantity}}"
+      },
+      "modal": {
+        "replace": "Remplacer la valorisation du {{date}}",
+        "new": "Nouvelle valorisation",
+        "draftUnavailable": "Le brouillon de valorisation est indisponible.",
+        "changeDate": "Changer la date"
+      },
+      "withdraw": {
+        "explain": "La valeur publiée dans le patrimoine sera retirée ; la valorisation reste dans l’historique.",
+        "cancel": "Annuler",
+        "pending": "Retrait…",
+        "title": "Retirer la valorisation"
+      },
+      "errors": {
+        "field": {
+          "invalid_valuation_total": "La valeur totale est invalide.",
+          "invalid_valuation_price": "Le prix est invalide.",
+          "price_precision_exceeded": "Le prix dépasse la précision de l’instrument.",
+          "invalid_price_date": "La date du prix doit précéder ou égaler la date de valorisation.",
+          "invalid_valuation_date": "La date doit être comprise entre l’ouverture du compte et aujourd’hui.",
+          "operation_asset_mismatch": "Le montant doit être exprimé dans la devise du compte.",
+          "valuation_field_not_allowed": "Ce champ n’est pas autorisé pour ce type de saisie."
+        },
+        "message": {
+          "account_not_portfolio": "Ce compte n’est pas suivi en mode portefeuille.",
+          "portfolio_account_inactive": "Ce compte est clos ou archivé : il n’accepte plus de valorisation.",
+          "valuation_exists": "Une valorisation existe déjà à cette date. Rechargez la liste puis utilisez Remplacer.",
+          "stale_valuation_version": "Cette valorisation a été modifiée ailleurs. Fermez cette fenêtre pour recharger la liste.",
+          "valuation_limit_reached": "La limite de 5 000 valorisations actives pour ce compte est atteinte.",
+          "portfolio_valuation_conflict": "Une autre écriture est en cours sur ce compte. Réessayez.",
+          "valuation_price_entry_missing": "Un prix doit être fourni pour chaque position détenue à cette date.",
+          "unknown_valuation_instrument": "Un prix concerne un instrument non détenu à cette date.",
+          "invalid_valuation_detail": "Le type de saisie est invalide.",
+          "invalid_valuation_payload": "La requête est invalide. Vérifiez les champs.",
+          "portfolio_payload_too_large": "La requête est trop volumineuse.",
+          "cash_amount_too_large": "Les montants sont trop grands pour être additionnés exactement.",
+          "portfolio_valuation_not_found": "Cette valorisation n’existe plus."
+        },
+        "connection": "La connexion a échoué. Vérifiez votre connexion puis réessayez.",
+        "closedMonth": "Le mois concerné est clôturé. Rouvrez-le avant d’enregistrer cette valorisation.",
+        "refused": "L’enregistrement a été refusé. Vérifiez les champs."
+      },
+      "validation": {
+        "decimal": "Saisissez un nombre décimal, sans exposant.",
+        "required": "Ce champ est obligatoire.",
+        "priceMissing": "Saisissez un prix ou cochez Prix inconnu.",
+        "pricePositive": "Le prix doit être strictement positif.",
+        "priceDateRequired": "La date du prix est obligatoire.",
+        "priceDateAfter": "La date du prix doit être au plus la date de valorisation.",
+        "noteLength": "Au plus 200 caractères, sans caractère de contrôle."
+      },
+      "fallbackNotice": "Valorisation du {{partial}} partielle : valeurs du {{shown}} affichées."
+    },
+    "explanation": {
+      "source": {
+        "OPERATION": "Opération du {{date}}",
+        "VALUATION": "Valorisation du {{date}}"
+      },
+      "noSource": "Aucune source à cette date.",
+      "sources": "Sources du calcul ({{count}})",
+      "more_one": "et {{count}} autres",
+      "more_other": "et {{count}} autres"
+    },
+    "monthEnd": {
+      "loading": "Chargement des fins de mois à saisir…",
+      "unavailable": "Les fins de mois à saisir sont indisponibles.",
+      "label": "Fins de mois à saisir",
+      "due": "Valorisation de fin {{month}} à saisir",
+      "enter": "Saisir la valorisation"
     }
   },
   "productModels": {
@@ -2133,6 +3758,10 @@
   },
   "settings": {
     "loading": "Chargement du profil…",
+    "language": {
+      "title": "Langue",
+      "label": "Langue"
+    },
     "interface": {
       "title": "Affichage des chiffres",
       "loading": "Chargement des préférences d’interface…",
@@ -3915,5 +5544,18 @@
       "version_limit": "Le nombre maximal de versions est atteint.",
       "activation_limit": "Le nombre maximal d’activations est atteint."
     }
+  },
+  "incrementalList": {
+    "stale": "La liste a changé. Rechargez-la pour continuer sans omettre d’élément.",
+    "reload": "Recharger la liste",
+    "complete": "Tous les éléments sont affichés.",
+    "previousLoaded": "Éléments précédents déjà chargés",
+    "nextLoaded": "Éléments suivants déjà chargés",
+    "failed": "La suite de la liste est indisponible. Vous pouvez réessayer.",
+    "loadingMore": "Chargement de la suite…",
+    "more": "Afficher plus",
+    "window": "Éléments {{start}} à {{end}} affichés sur {{total}} chargés",
+    "loaded_one": "{{count}} élément chargé",
+    "loaded_other": "{{count}} éléments chargés"
   }
 }

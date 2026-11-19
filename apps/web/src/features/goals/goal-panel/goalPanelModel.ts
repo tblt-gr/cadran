@@ -15,17 +15,18 @@ export interface GoalRowModel {
   replaced: { id: string; label: string }[];
 }
 
-function byLabel(a: { label: string }, b: { label: string }): number {
-  return a.label.localeCompare(b.label, 'fr');
+function byLabel(a: { label: string }, b: { label: string }, locale?: string): number {
+  return a.label.localeCompare(b.label, locale);
 }
 
 /** Ceilings first, then minimums, then by label. */
 function compareEvaluations(
   a: { direction: GoalDirection; label: string },
   b: { direction: GoalDirection; label: string },
+  locale?: string,
 ): number {
   if (a.direction !== b.direction) return a.direction === 'CEILING' ? -1 : 1;
-  return byLabel(a, b);
+  return byLabel(a, b, locale);
 }
 
 export function indexSummaries(summaries: readonly GoalSummary[]): Map<string, GoalSummary> {
@@ -36,17 +37,20 @@ export function indexSummaries(summaries: readonly GoalSummary[]): Map<string, G
 export function buildRows(
   period: GoalPeriodEvaluation | undefined,
   summaries: ReadonlyMap<string, GoalSummary>,
+  locale?: string,
 ): GoalRowModel[] {
   if (period === undefined) return [];
-  return [...period.items].sort(compareEvaluations).map((evaluation) => ({
-    period: period.period,
-    evaluation,
-    summary: summaries.get(evaluation.goalId) ?? null,
-    replaced: evaluation.overrides.flatMap((id) => {
-      const hidden = summaries.get(id);
-      return hidden === undefined ? [] : [{ id, label: hidden.label }];
-    }),
-  }));
+  return [...period.items]
+    .sort((a, b) => compareEvaluations(a, b, locale))
+    .map((evaluation) => ({
+      period: period.period,
+      evaluation,
+      summary: summaries.get(evaluation.goalId) ?? null,
+      replaced: evaluation.overrides.flatMap((id) => {
+        const hidden = summaries.get(id);
+        return hidden === undefined ? [] : [{ id, label: hidden.label }];
+      }),
+    }));
 }
 
 /** How a goal row reads: `done` recedes, `positive` is green, `negative` red, `neutral` plain. */

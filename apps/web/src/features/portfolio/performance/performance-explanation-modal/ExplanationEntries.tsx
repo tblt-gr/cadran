@@ -1,29 +1,37 @@
 import type { PortfolioPerformance } from '@cadran/api-client';
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import type { FigureKey } from '@/features/portfolio/performance/performanceFigures';
+import { methodFacts, type Fact } from './methodFacts';
 import styles from './PerformanceExplanationModal.module.css';
 
-const priceQualities = {
-  CURRENT: 'Prix actuels',
-  STALE: 'Prix anciens',
-  NOT_DETAILED: 'Valorisation non détaillée',
-} as const;
-
 type Freshness = PortfolioPerformance['gain']['freshness']['start'];
-type Fact = [label: string, value: string];
 
 function anchorLine(
   title: string,
   anchor: PortfolioPerformance['start'],
   freshness: Freshness,
   assetCode: string,
+  t: TFunction,
+  locale: string,
 ) {
-  if (!anchor) return `${title} : aucune valorisation`;
+  if (!anchor) return t('portfolio.performance.anchor.none', { title });
   const age = freshness
-    ? `, ${freshness.ageDays} jours, ${freshness.priceQuality ? priceQualities[freshness.priceQuality] : 'sans prix'}`
+    ? t('portfolio.performance.anchor.age', {
+        count: freshness.ageDays,
+        quality: freshness.priceQuality
+          ? t(`portfolio.performance.quality.${freshness.priceQuality}`)
+          : t('portfolio.performance.anchor.noPrice'),
+      })
     : '';
-  return `${title} : ${formatCalendarNumericDay(anchor.date)}, ${formatAmount(anchor.totalValue, assetCode, 'fr')}${age}`;
+  return t('portfolio.performance.anchor.line', {
+    title,
+    date: formatCalendarNumericDay(anchor.date),
+    amount: formatAmount(anchor.totalValue, assetCode, locale),
+    age,
+  });
 }
 
 function Facts({ facts }: { facts: Fact[] }) {
@@ -40,7 +48,10 @@ function Facts({ facts }: { facts: Fact[] }) {
 }
 
 function Remaining({ count, shown }: { count: number; shown: number }) {
-  return count > shown ? <p className={styles.muted}>{`+${count - shown} autres`}</p> : null;
+  const { t } = useTranslation();
+  return count > shown ? (
+    <p className={styles.muted}>{t('portfolio.performance.remaining', { count: count - shown })}</p>
+  ) : null;
 }
 
 function Table({ caption, head, rows }: { caption: string; head: string[]; rows: string[][] }) {
@@ -71,61 +82,6 @@ function Table({ caption, head, rows }: { caption: string; head: string[]; rows:
   );
 }
 
-function methodFacts(performance: PortfolioPerformance, key: FigureKey): Fact[] {
-  const money = (value: string | null) =>
-    value === null ? '-' : formatAmount(value, performance.assetCode, 'fr');
-  switch (key) {
-    case 'gain': {
-      const { inputs, decomposition } = performance.gain;
-      return [
-        ['Valeur initiale', money(inputs.startValue)],
-        ['Valeur finale', money(inputs.endValue)],
-        ['Versements nets', money(inputs.netFlows)],
-        ...(decomposition.status === 'COMPLETE'
-          ? ([
-              ['Réalisé', money(decomposition.realized)],
-              ['Variation latente', money(decomposition.unrealizedChange)],
-              ['Revenus', money(decomposition.income)],
-              ['Frais', money(decomposition.fees)],
-              ['Taxes', money(decomposition.taxes)],
-              ['Écart', money(decomposition.residual)],
-            ] as Fact[])
-          : []),
-      ];
-    }
-    case 'modifiedDietz': {
-      const { inputs } = performance.modifiedDietz;
-      return [
-        ['Valeur initiale', money(inputs.startValue)],
-        ['Gain', money(inputs.gain)],
-        ['Durée', inputs.periodDays === null ? '-' : `${inputs.periodDays} jours`],
-        ['Capital moyen', money(inputs.averageCapital)],
-        ['Capital minimal accepté', formatRatioPercentage(inputs.minCapitalRatio, 'fr')],
-      ];
-    }
-    case 'timeWeighted': {
-      const { inputs } = performance.timeWeighted;
-      return [
-        ['Dates de découpage', String(inputs.breakpointCount)],
-        ['Sous-périodes', String(inputs.subperiodCount)],
-      ];
-    }
-    case 'moneyWeighted': {
-      const { inputs } = performance.moneyWeighted;
-      return [
-        ['Précision de calcul', `${inputs.workingScale} décimales`],
-        ['Largeur d’arrêt', inputs.stopWidth],
-        ['Itérations maximales', String(inputs.maxIterations)],
-        [
-          'Facteur journalier cherché',
-          `${inputs.searchRange[0].replace('.', ',')} à ${inputs.searchRange[1].replace('.', ',')}`,
-        ],
-        ['Jours de flux', String(inputs.flowDayCount)],
-      ];
-    }
-  }
-}
-
 function MethodTable({
   performance,
   figure,
@@ -133,21 +89,28 @@ function MethodTable({
   performance: PortfolioPerformance;
   figure: FigureKey;
 }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language;
   const money = (value: string | null) =>
-    value === null ? '-' : formatAmount(value, performance.assetCode, 'fr');
+    value === null ? '-' : formatAmount(value, performance.assetCode, locale);
   if (figure === 'modifiedDietz') {
     const { weights, weightCount } = performance.modifiedDietz;
     if (weights.length === 0) return null;
     return (
       <>
         <Table
-          caption="Flux pondérés"
-          head={['Date', 'Montant', 'Jours restants', 'Poids']}
+          caption={t('portfolio.performance.tables.weighted.caption')}
+          head={[
+            t('portfolio.performance.tables.weighted.date'),
+            t('portfolio.performance.tables.weighted.amount'),
+            t('portfolio.performance.tables.weighted.remainingDays'),
+            t('portfolio.performance.tables.weighted.weight'),
+          ]}
           rows={weights.map((flow) => [
             formatCalendarNumericDay(flow.date),
             money(flow.amount),
             flow.remainingDays,
-            formatRatioPercentage(flow.weight, 'fr'),
+            formatRatioPercentage(flow.weight, locale),
           ])}
         />
         <Remaining count={weightCount} shown={weights.length} />
@@ -160,15 +123,22 @@ function MethodTable({
     return (
       <>
         <Table
-          caption="Sous-périodes"
-          head={['Du', 'Au', 'Valeur initiale', 'Valeur finale', 'Flux', 'Rendement']}
+          caption={t('portfolio.performance.tables.subperiods.caption')}
+          head={[
+            t('portfolio.performance.tables.subperiods.from'),
+            t('portfolio.performance.tables.subperiods.to'),
+            t('portfolio.performance.tables.subperiods.startValue'),
+            t('portfolio.performance.tables.subperiods.endValue'),
+            t('portfolio.performance.tables.subperiods.flow'),
+            t('portfolio.performance.tables.subperiods.return'),
+          ]}
           rows={subperiods.map((sub) => [
             formatCalendarNumericDay(sub.from),
             formatCalendarNumericDay(sub.to),
             money(sub.startValue),
             money(sub.endValue),
             money(sub.flow),
-            sub.value === null ? '-' : formatRatioPercentage(sub.value, 'fr'),
+            sub.value === null ? '-' : formatRatioPercentage(sub.value, locale),
           ])}
         />
         <Remaining count={subperiodCount} shown={subperiods.length} />
@@ -181,8 +151,11 @@ function MethodTable({
     return (
       <>
         <Table
-          caption="Flux investisseur"
-          head={['Date', 'Montant']}
+          caption={t('portfolio.performance.tables.investorFlows.caption')}
+          head={[
+            t('portfolio.performance.tables.investorFlows.date'),
+            t('portfolio.performance.tables.investorFlows.amount'),
+          ]}
           rows={cashFlows.map((flow) => [formatCalendarNumericDay(flow.date), money(flow.amount)])}
         />
         <Remaining count={cashFlowCount} shown={cashFlows.length} />
@@ -200,14 +173,24 @@ export function ExplanationEntries({
   performance: PortfolioPerformance;
   figure: FigureKey;
 }) {
+  const { t, i18n } = useTranslation();
   const { freshness } = performance[figure];
+  const anchor = (key: 'start' | 'end') =>
+    anchorLine(
+      t(`portfolio.performance.anchor.${key}`),
+      performance[key],
+      freshness[key],
+      performance.assetCode,
+      t,
+      i18n.language,
+    );
   return (
     <div className={styles.content}>
       <ul>
-        <li>{anchorLine('Début', performance.start, freshness.start, performance.assetCode)}</li>
-        <li>{anchorLine('Fin', performance.end, freshness.end, performance.assetCode)}</li>
+        <li>{anchor('start')}</li>
+        <li>{anchor('end')}</li>
       </ul>
-      <Facts facts={methodFacts(performance, figure)} />
+      <Facts facts={methodFacts(performance, figure, t, i18n.language)} />
       <MethodTable figure={figure} performance={performance} />
     </div>
   );

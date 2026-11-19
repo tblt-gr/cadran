@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { OperationDecimalField } from '@/features/portfolio/portfolio-account/operations/operation-form/OperationDecimalField';
 import { SupportLegsField } from '@/features/portfolio/portfolio-account/operations/operation-form/support-legs-field/SupportLegsField';
 import type {
@@ -16,18 +17,19 @@ export function SwitchOperationFields({
   values: OperationFormValues;
   onChange: <K extends keyof OperationFormValues>(key: K, value: OperationFormValues[K]) => void;
 }) {
+  const { t } = useTranslation();
   const outgoing = values.legs.filter((leg) => leg.direction !== 'IN');
   const incoming = values.legs.filter((leg) => leg.direction === 'IN');
   return (
     <>
       <OperationDecimalField
-        label="Frais d’arbitrage"
+        label={t('portfolio.account.form.switch.fees')}
         error={errors.fees}
         value={values.fees}
         onChange={(value) => onChange('fees', value)}
       />
       <SupportLegsField
-        label="Supports vendus"
+        label={t('portfolio.account.form.switch.sold')}
         maxLegs={10}
         assetCode={account.assetCode}
         errors={errors}
@@ -40,7 +42,7 @@ export function SwitchOperationFields({
         }
       />
       <SupportLegsField
-        label="Supports achetés"
+        label={t('portfolio.account.form.switch.bought')}
         maxLegs={10}
         indexOffset={outgoing.length}
         assetCode={account.assetCode}

@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { useLifeInsuranceContract } from '@/features/portfolio/life-insurance/useLifeInsuranceContract';
@@ -28,6 +29,7 @@ export function ContractTab({
   asOf?: string;
   sourceReturnFocus?: RefObject<HTMLElement | null>;
 }) {
+  const { t } = useTranslation();
   const query = useLifeInsuranceContract(accountId);
   const today = workspaceToday(new Date(), useWorkspaceTimeZone());
   const [modal, setModal] = useState<'contract' | 'fee' | 'rate' | null>(null);
@@ -37,9 +39,9 @@ export function ContractTab({
   if (query.isError && !query.data)
     return (
       <section className={`card ${styles.state}`} role="alert">
-        <h3>Le contrat est indisponible</h3>
+        <h3>{t('portfolio.lifeInsurance.contract.unavailable')}</h3>
         <button className="secondary-action" type="button" onClick={() => void query.refetch()}>
-          Réessayer
+          {t('actions.retry')}
         </button>
       </section>
     );
@@ -48,18 +50,19 @@ export function ContractTab({
     <div className={styles.tab}>
       {query.isError ? (
         <p role="alert">
-          L’actualisation du contrat a échoué. Les dernières données restent affichées.{' '}
+          {t('portfolio.lifeInsurance.contract.refreshFailed')}{' '}
           <button className="secondary-action" type="button" onClick={() => void query.refetch()}>
-            Réessayer
+            {t('actions.retry')}
           </button>
         </p>
       ) : null}
       {data.contract?.status === 'CLOSED' && data.contract.closedOn ? (
         <p role="status">
-          Contrat soldé le {formatCalendarNumericDay(data.contract.closedOn)}. Vous pouvez clôturer
-          le compte depuis la{' '}
+          {t('portfolio.lifeInsurance.contract.settled', {
+            date: formatCalendarNumericDay(data.contract.closedOn),
+          })}{' '}
           <a href="/accounts" onClick={(event) => handleClientNavigation(event, '/accounts')}>
-            liste des comptes
+            {t('portfolio.lifeInsurance.contract.accountsList')}
           </a>
           .
         </p>
@@ -93,15 +96,15 @@ export function ContractTab({
         </>
       ) : (
         <section className={`card ${styles.state}`}>
-          <h3>Contrat</h3>
-          <p>Renseignez le contrat d'assurance-vie pour enregistrer ses opérations.</p>
+          <h3>{t('portfolio.lifeInsurance.contract.title')}</h3>
+          <p>{t('portfolio.lifeInsurance.contract.fill')}</p>
           <button
             className="primary-action"
             type="button"
             disabled={!writable}
             onClick={() => setModal('contract')}
           >
-            Renseigner le contrat
+            {t('portfolio.lifeInsurance.contract.fillAction')}
           </button>
         </section>
       )}

@@ -7,9 +7,11 @@ import type {
   LifeInsuranceEuroFundRateInput,
   LifeInsuranceEuroFundRateBasis,
 } from '@cadran/api-client';
-import { basisLabels } from '@/features/portfolio/life-insurance/lifeInsuranceLabels';
+import { useTranslation } from 'react-i18next';
+import { basisIds } from '@/features/portfolio/life-insurance/lifeInsuranceLabels';
 import { EuroFundPicker } from '@/features/portfolio/life-insurance/euro-fund-picker/EuroFundPicker';
 import styles from '@/features/portfolio/life-insurance/contract-form/ContractForm.module.css';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 export function EuroFundRateForm({
   assetCode,
   subscribedOn,
@@ -25,6 +27,7 @@ export function EuroFundRateForm({
   error?: string;
   onSubmit: (input: LifeInsuranceEuroFundRateInput) => void;
 }) {
+  const { t } = useTranslation();
   const [instrumentId, setInstrumentId] = useState('');
   const [year, setYear] = useState(String(Number(today.slice(0, 4)) - 1));
   const [servedRate, setServedRate] = useState('');
@@ -41,8 +44,8 @@ export function EuroFundRateForm({
         onSubmit({
           instrumentId,
           year: Number(year),
-          servedRate: servedRate.replace(',', '.'),
-          bonusRate: bonusRate ? bonusRate.replace(',', '.') : null,
+          servedRate: normalizeDecimalInput(servedRate),
+          bonusRate: bonusRate ? normalizeDecimalInput(bonusRate) : null,
           basis,
           sourceNote: sourceNote.trim() || null,
         });
@@ -61,7 +64,7 @@ export function EuroFundRateForm({
       />
       <FormGrid>
         <label>
-          Année
+          {t('portfolio.lifeInsurance.rates.columns.year')}
           <input
             data-autofocus
             type="number"
@@ -74,7 +77,7 @@ export function EuroFundRateForm({
           />
         </label>
         <label>
-          Taux servi (%)
+          {t('portfolio.lifeInsurance.rates.form.served')}
           <input
             required
             inputMode="decimal"
@@ -85,7 +88,7 @@ export function EuroFundRateForm({
           />
         </label>
         <label>
-          Bonus (%)
+          {t('portfolio.lifeInsurance.rates.form.bonus')}
           <input
             inputMode="decimal"
             pattern="[0-9]+([.,][0-9]{1,4})?"
@@ -95,22 +98,26 @@ export function EuroFundRateForm({
           />
         </label>
         <label>
-          Base
+          {t('portfolio.lifeInsurance.rates.columns.basis')}
           <select
             value={basis}
             onChange={(e) => setBasis(e.target.value as LifeInsuranceEuroFundRateBasis)}
             disabled={pending}
           >
-            {Object.entries(basisLabels).map(([id, label]) => (
+            {basisIds.map((id) => (
               <option key={id} value={id}>
-                {label}
+                {t(`portfolio.lifeInsurance.basis.${id}`)}
               </option>
             ))}
           </select>
         </label>
-        <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+        <FormSection
+          title={t('portfolio.lifeInsurance.advancedFields')}
+          open={advancedOpen}
+          onToggle={setAdvancedOpen}
+        >
           <label>
-            Source
+            {t('portfolio.lifeInsurance.fees.columns.source')}
             <input
               maxLength={200}
               value={sourceNote}
@@ -122,7 +129,9 @@ export function EuroFundRateForm({
       </FormGrid>
       <ModalActions>
         <button className="primary-action" type="submit" disabled={pending || !instrumentId}>
-          {pending ? 'Enregistrement…' : 'Enregistrer le taux'}
+          {pending
+            ? t('portfolio.lifeInsurance.saving')
+            : t('portfolio.lifeInsurance.rates.form.submit')}
         </button>
       </ModalActions>
     </ModalForm>

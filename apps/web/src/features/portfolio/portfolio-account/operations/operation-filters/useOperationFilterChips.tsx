@@ -9,6 +9,7 @@ import type { OperationFilterValues } from './operationFilterValues';
 
 /** The name of the filtered instrument: the one the picker chose, else read from its id. */
 function useInstrumentName(filters: OperationFilterValues) {
+  const { t } = useTranslation();
   const id = filters.instrumentId;
   const lookup = useQuery({
     queryKey: ['operation-filter-instrument', id],
@@ -20,7 +21,7 @@ function useInstrumentName(filters: OperationFilterValues) {
     },
     retry: false,
   });
-  return filters.instrumentName ?? lookup.data ?? 'Instrument';
+  return filters.instrumentName ?? lookup.data ?? t('portfolio.account.form.instrument');
 }
 
 /** One chip per applied filter; the voided toggle lives in the page header and has no chip. */
@@ -34,7 +35,7 @@ export function useOperationFilterChips(
   const chips: FilterChip[] = [];
 
   for (const type of filters.types) {
-    const label = operationTypeLabel(type);
+    const label = operationTypeLabel(t, type);
     chips.push({
       key: `type-${type}`,
       label,
@@ -45,10 +46,13 @@ export function useOperationFilterChips(
   if (filters.from || filters.to) {
     const label =
       filters.from && filters.to
-        ? `Du ${formatCalendarNumericDay(filters.from)} au ${formatCalendarNumericDay(filters.to)}`
+        ? t('portfolio.account.filters.period', {
+            from: formatCalendarNumericDay(filters.from),
+            to: formatCalendarNumericDay(filters.to),
+          })
         : filters.from
-          ? `Depuis le ${formatCalendarNumericDay(filters.from)}`
-          : `Jusqu’au ${formatCalendarNumericDay(filters.to)}`;
+          ? t('portfolio.account.filters.since', { date: formatCalendarNumericDay(filters.from) })
+          : t('portfolio.account.filters.until', { date: formatCalendarNumericDay(filters.to) });
     chips.push({
       key: 'period',
       label,

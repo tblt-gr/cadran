@@ -11,6 +11,7 @@ import {
   percentageToRatio,
   ratioToPercentage,
 } from '@/features/goals/goalDecimal';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 
 export const MAX_ESSENTIAL_CATEGORIES = 50;
 const MAX_TRAILING_MONTHS = 24;
@@ -53,7 +54,7 @@ export function draftFromPolicy(policy: EmergencyFundPolicy): PolicyDraft {
 
 /** Accepts a decimal comma; the wire format always uses a dot. */
 function normalizeTarget(value: string): string {
-  return value.trim().replace(',', '.');
+  return normalizeDecimalInput(value);
 }
 
 /** 0 to 60 months with at most one decimal, checked on the digits so no float is involved. */

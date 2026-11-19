@@ -11,13 +11,13 @@ import styles from './MonthEndValuationBanner.module.css';
  * deep link that opens the valuation form on the last day of that month. Hidden when nothing is due.
  */
 export function MonthEndValuationBanner({ accountId, asOf }: { accountId: string; asOf: string }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const summary = usePortfolioSummary(accountId, asOf);
 
   if (summary.isPending) {
     return (
       <div aria-busy="true" className={styles.banner}>
-        <SkeletonStatus>Chargement des fins de mois à saisir…</SkeletonStatus>
+        <SkeletonStatus>{t('portfolio.monthEnd.loading')}</SkeletonStatus>
         <SkeletonBlock className={styles.skeleton} />
       </div>
     );
@@ -25,9 +25,9 @@ export function MonthEndValuationBanner({ accountId, asOf }: { accountId: string
   if (summary.isError) {
     return (
       <div className={styles.banner} role="alert">
-        <p className={styles.error}>Les fins de mois à saisir sont indisponibles.</p>
+        <p className={styles.error}>{t('portfolio.monthEnd.unavailable')}</p>
         <button className="secondary-action" onClick={() => void summary.refetch()} type="button">
-          Réessayer
+          {t('actions.retry')}
         </button>
       </div>
     );
@@ -36,20 +36,20 @@ export function MonthEndValuationBanner({ accountId, asOf }: { accountId: string
   if (due.length === 0) return null;
 
   return (
-    <ul aria-label="Fins de mois à saisir" className={styles.banner}>
+    <ul aria-label={t('portfolio.monthEnd.label')} className={styles.banner}>
       {due.map((month) => {
         const href = monthEndPath(accountId, month);
         return (
           <li className={styles.line} key={month}>
             <StatusBadge icon="alert" tone="warning">
-              {`Valorisation de fin ${dueMonthLabel(month, due, i18n.language)} à saisir`}
+              {t('portfolio.monthEnd.due', { month: dueMonthLabel(month, due, i18n.language) })}
             </StatusBadge>
             <a
               className={`secondary-action ${styles.action}`}
               href={href}
               onClick={(event) => handleClientNavigation(event, href)}
             >
-              Saisir la valorisation
+              {t('portfolio.monthEnd.enter')}
             </a>
           </li>
         );

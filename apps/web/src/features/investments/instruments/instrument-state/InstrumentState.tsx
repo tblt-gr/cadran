@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import styles from './InstrumentState.module.css';
 
 export function InstrumentState({
@@ -12,12 +13,13 @@ export function InstrumentState({
   onRetry?: () => void;
   children?: ReactNode;
 }) {
+  const { t } = useTranslation();
   return (
     <section className={`card ${styles.state}`} role={error ? 'alert' : undefined}>
       <h3>{title}</h3>
       {error ? (
         <button className="secondary-action" onClick={onRetry} type="button">
-          Réessayer
+          {t('actions.retry')}
         </button>
       ) : (
         children

@@ -2,6 +2,7 @@ import type {
   OperationFieldErrors,
   SupportLegValue,
 } from '@/features/portfolio/portfolio-account/operations/operation-form/operationRequest';
+import { useTranslation } from 'react-i18next';
 import { SupportLegRow } from './SupportLegRow';
 import styles from './SupportLegsField.module.css';
 
@@ -22,6 +23,7 @@ export function SupportLegsField({
   onChange: (value: SupportLegValue[]) => void;
   value: SupportLegValue[];
 }) {
+  const { t } = useTranslation();
   return (
     <div
       data-span="full"
@@ -32,9 +34,7 @@ export function SupportLegsField({
       {label ? <h3>{label}</h3> : null}
       {value.length === 0 ? (
         <p>
-          {label
-            ? 'Ajoutez au moins un support.'
-            : 'Aucun support : l’opération utilise les liquidités du contrat.'}
+          {label ? t('portfolio.account.form.legs.addOne') : t('portfolio.account.form.legs.none')}
         </p>
       ) : null}
       {value.map((leg, index) => (
@@ -62,7 +62,7 @@ export function SupportLegsField({
           ])
         }
       >
-        Ajouter un support
+        {t('portfolio.account.form.legs.add')}
       </button>
     </div>
   );

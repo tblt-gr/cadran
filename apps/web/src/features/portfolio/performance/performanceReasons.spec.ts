@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
+import i18n from '@/i18n';
 import { describeReason, formatReasonDates, summarizeReason } from './performanceReasons';
 
-const context = { accountId: 'account-1', assetCode: 'EUR', residual: '0.50' };
+const context = {
+  accountId: 'account-1',
+  assetCode: 'EUR',
+  residual: '0.50',
+  t: i18n.t,
+  locale: 'fr',
+};
 
 describe('describeReason', () => {
   it('asks for the missing flow valuation with a link to the valuations tab', () => {

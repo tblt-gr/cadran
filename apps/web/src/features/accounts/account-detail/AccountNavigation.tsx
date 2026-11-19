@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { TabsNav } from '@/components/ui/tabs-nav/TabsNav';
 
 export type AccountTab = 'account' | 'balance' | 'operations';
@@ -9,29 +10,30 @@ export function activeAccountTab(): AccountTab {
 }
 
 export function AccountNavigation({ accountId, tab }: { accountId: string; tab: AccountTab }) {
+  const { t } = useTranslation();
   return (
     <TabsNav
       items={[
         {
           id: 'account',
-          label: 'Compte',
+          label: t('accounts.detail.navigation.account'),
           active: tab === 'account',
           href: `/accounts/${accountId}?tab=account`,
         },
         {
           id: 'operations',
-          label: 'Opérations',
+          label: t('accounts.detail.navigation.operations'),
           active: tab === 'operations',
           href: `/accounts/${accountId}?tab=operations`,
         },
         {
           id: 'balance',
-          label: 'Solde',
+          label: t('accounts.detail.navigation.balance'),
           active: tab === 'balance',
           href: `/accounts/${accountId}?tab=balance`,
         },
       ]}
-      label="Sections du compte"
+      label={t('accounts.detail.navigation.label')}
     />
   );
 }

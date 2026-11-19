@@ -1,16 +1,21 @@
 import type { LifeInsuranceSummary } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { formatAmount } from '@/lib/decimal';
-export const allocationLabels = {
-  EURO_FUND: 'Fonds en euros',
-  UNIT_LINKED: 'Unités de compte',
-  CASH: 'Liquidités',
-};
-export const allocationEmpty = {
-  NO_VALUATION: 'Enregistrez une valorisation pour voir la répartition.',
-  NOT_DETAILED: 'Répartition indisponible : la dernière valorisation ne détaille pas les supports.',
-};
-export const money = (value: string | null, assetCode: string) =>
-  value === null ? 'Non calculable' : formatAmount(value, assetCode, 'fr');
+export const allocationKinds = ['EURO_FUND', 'UNIT_LINKED', 'CASH'] as const;
+export function lifeInsuranceMoney(
+  value: string | null,
+  assetCode: string,
+  locale: string,
+  notCalculable: string,
+) {
+  return value === null ? notCalculable : formatAmount(value, assetCode, locale);
+}
+/** An amount of the contract in the active language; a missing one is told in words. */
+export function useLifeInsuranceMoney() {
+  const { t, i18n } = useTranslation();
+  return (value: string | null, assetCode: string) =>
+    lifeInsuranceMoney(value, assetCode, i18n.language, t('states.notCalculable.label'));
+}
 export function sourceHref(
   accountId: string,
   asOf: string,

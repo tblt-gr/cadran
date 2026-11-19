@@ -26,8 +26,8 @@ export function OperationDayList({
       getDay={(operation) => operation.tradeDate}
       getKey={(operation) => operation.id}
       items={operations}
-      label="Opérations du portefeuille"
-      loadingLabel="Chargement des opérations…"
+      label={t('portfolio.account.operations.listLabel')}
+      loadingLabel={t('portfolio.account.operations.loading')}
       nextLoadedLabel={t('transactions.pagination.nextLoaded')}
       previousLoadedLabel={t('transactions.pagination.previousLoaded')}
       renderRow={(operation) => <OperationDayRow actions={actions} operation={operation} />}

@@ -3,6 +3,7 @@ import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { PortfolioOperation, PortfolioOperationRequest } from '@cadran/api-client';
 import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   operationFieldErrors,
   operationSaveMessage,
@@ -47,6 +48,7 @@ export function OperationForm({
   saveError,
   today,
 }: Props) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<OperationFormValues>(() =>
     operation
       ? valuesFromOperation(operation)
@@ -56,11 +58,11 @@ export function OperationForm({
         },
   );
   const [submitted, setSubmitted] = useState(false);
-  const built = buildOperationRequest(values, account.assetCode);
+  const built = buildOperationRequest(values, account.assetCode, t);
   const preview = useOperationPreview(account.id, built.request, operation?.id);
   const errors: OperationFieldErrors = {
     ...(submitted ? built.errors : null),
-    ...operationFieldErrors(preview.error),
+    ...operationFieldErrors(preview.error, t),
     ...fieldErrors,
   };
   if (values.type === 'MANAGEMENT_FEE' && errors.grossAmount) {
@@ -82,8 +84,8 @@ export function OperationForm({
     operation?.counterInstrument ?? null,
   ];
   const saveMessage =
-    operationSaveMessage(saveError, instruments) ??
-    operationSaveMessage(preview.error, instruments);
+    operationSaveMessage(saveError, t, instruments) ??
+    operationSaveMessage(preview.error, t, instruments);
   const has = (field: Parameters<typeof hasField>[1]) => hasField(type, field);
 
   function set<K extends keyof OperationFormValues>(key: K, value: OperationFormValues[K]) {
@@ -128,7 +130,7 @@ export function OperationForm({
             set('linkedTransactionId', '');
           }}
         />
-        <OperationField error={errors.tradeDate} label="Date d’opération">
+        <OperationField error={errors.tradeDate} label={t('portfolio.account.form.tradeDate')}>
           <input
             onChange={(event) => set('tradeDate', event.target.value)}
             type="date"
@@ -155,13 +157,13 @@ export function OperationForm({
           <OperationInstrumentField
             currencyCode={account.assetCode}
             error={errors.instrument}
-            label="Instrument"
+            label={t('portfolio.account.form.instrument')}
             onChange={(item) => set('instrument', item)}
             value={values.instrument}
           />
         ) : null}
-        {!insuranceIncome && decimal('quantity', 'Quantité')}
-        {!insuranceIncome && decimal('unitPrice', 'Prix unitaire')}
+        {!insuranceIncome && decimal('quantity', t('portfolio.account.form.quantity'))}
+        {!insuranceIncome && decimal('unitPrice', t('portfolio.account.form.unitPrice'))}
         {insuranceIncome ? (
           <InsuranceIncomeFields account={account} errors={errors} values={values} onChange={set} />
         ) : has('legs') ? (
@@ -174,16 +176,16 @@ export function OperationForm({
           />
         ) : (
           <>
-            {decimal('grossAmount', 'Montant brut')}
-            {decimal('fees', 'Frais')}
+            {decimal('grossAmount', t('portfolio.account.form.grossAmount'))}
+            {decimal('fees', t('portfolio.account.form.fees'))}
           </>
         )}
-        {!insuranceIncome && decimal('taxes', 'Taxes')}
+        {!insuranceIncome && decimal('taxes', t('portfolio.account.form.taxes'))}
         {has('costBasis') ? (
           <OperationDecimalField
             error={errors.costBasis}
-            hint="Laissez vide si le coût d’origine est inconnu."
-            label="Coût de revient"
+            hint={t('portfolio.account.form.costBasisHint')}
+            label={t('portfolio.account.form.costBasis')}
             onChange={(value) => set('costBasis', value)}
             value={values.costBasis}
           />
@@ -192,7 +194,7 @@ export function OperationForm({
           <OperationInstrumentField
             currencyCode={account.assetCode}
             error={errors.counterInstrument}
-            label="Instrument reçu"
+            label={t('portfolio.account.form.counterInstrument')}
             onChange={(item) => set('counterInstrument', item)}
             value={values.counterInstrument}
           />
@@ -200,7 +202,7 @@ export function OperationForm({
         {has('counterQuantity') ? (
           <OperationDecimalField
             error={errors.counterQuantity}
-            label="Quantité reçue"
+            label={t('portfolio.account.form.counterQuantity')}
             onChange={(value) => set('counterQuantity', value)}
             value={values.counterQuantity}
           />
@@ -217,8 +219,8 @@ export function OperationForm({
         {has('costAllocationRatio') ? (
           <OperationDecimalField
             error={errors.costAllocationRatio}
-            hint="Part du coût de revient allouée aux titres reçus, entre 0 et 1."
-            label="Part du coût allouée"
+            hint={t('portfolio.account.form.allocationHint')}
+            label={t('portfolio.account.form.allocation')}
             onChange={(value) => set('costAllocationRatio', value)}
             value={values.costAllocationRatio}
           />
@@ -238,7 +240,7 @@ export function OperationForm({
       />
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
-          {pending ? 'Enregistrement…' : 'Enregistrer'}
+          {pending ? t('portfolio.account.form.saving') : t('portfolio.account.form.save')}
         </button>
       </ModalActions>
     </ModalForm>

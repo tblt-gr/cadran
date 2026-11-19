@@ -1,4 +1,5 @@
 import type { PortfolioOperationType } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { OperationField } from '@/features/portfolio/portfolio-account/operations/operation-form/OperationField';
 import {
   allowedOperationTypes,
@@ -14,8 +15,9 @@ export function OperationTypeSelect({
   onChange: (type: PortfolioOperationType) => void;
   value: PortfolioOperationType;
 }) {
+  const { t } = useTranslation();
   return (
-    <OperationField label="Type">
+    <OperationField label={t('portfolio.account.operationTypeField')}>
       <select
         data-autofocus
         value={value}
@@ -23,7 +25,7 @@ export function OperationTypeSelect({
       >
         {allowedOperationTypes(accountKind).map((type) => (
           <option key={type} value={type}>
-            {operationTypeLabel(type)}
+            {operationTypeLabel(t, type)}
           </option>
         ))}
       </select>

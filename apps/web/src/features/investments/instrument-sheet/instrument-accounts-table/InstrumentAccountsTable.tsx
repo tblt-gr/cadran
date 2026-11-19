@@ -1,4 +1,5 @@
 import type { InstrumentHolding } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { holdingsMoney } from '@/features/investments/holdingsFormat';
@@ -8,27 +9,29 @@ import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatDecimal } from '@/lib/decimal';
 import styles from './InstrumentAccountsTable.module.css';
 
-const columns = [
-  'Compte',
-  'Quantité',
-  'Valeur',
-  'Plus-value latente',
-  'Réalisée',
-  'Revenus',
-  'Frais et taxes',
-  'Opérations',
-];
+const columnKeys = [
+  'account',
+  'quantity',
+  'value',
+  'unrealized',
+  'realized',
+  'income',
+  'feesAndTaxes',
+  'operations',
+] as const;
 const gainClass = (value: string | null | undefined) => {
   const sign = sheetGainTone(value);
   return sign ? styles[sign] : '';
 };
 export function InstrumentAccountsTable({ data }: { data: InstrumentHolding | null }) {
+  const { t, i18n } = useTranslation();
+  const columns = columnKeys.map((key) => t(`investments.sheet.accounts.${key}`));
   const accounts = data ? data.accounts : [null, null];
   return (
     <section className={`card ${styles.panel}`}>
       <div className={styles.scroll}>
         <table>
-          <caption>Par compte</caption>
+          <caption>{t('investments.sheet.accounts.caption')}</caption>
           <thead>
             <tr>
               {columns.map((label) => (
@@ -56,7 +59,7 @@ export function InstrumentAccountsTable({ data }: { data: InstrumentHolding | nu
                 : [];
               return (
                 <tr key={account?.accountId ?? index}>
-                  <th scope="row" data-label="Compte">
+                  <th scope="row" data-label={columns[0]}>
                     <a
                       href={account ? portfolio : undefined}
                       aria-disabled={!account || undefined}
@@ -67,7 +70,7 @@ export function InstrumentAccountsTable({ data }: { data: InstrumentHolding | nu
                       {account ? account.label : <SkeletonBlock className={styles.nameBlock} />}
                     </a>
                     {account?.reason ? (
-                      <p className={styles.reason}>{sheetReason(account.reason)}</p>
+                      <p className={styles.reason}>{sheetReason(account.reason, t)}</p>
                     ) : null}
                   </th>
                   {columns.slice(1, 7).map((label, column) => (
@@ -79,15 +82,15 @@ export function InstrumentAccountsTable({ data }: { data: InstrumentHolding | nu
                       {!account ? (
                         <SkeletonBlock className={styles.valueBlock} />
                       ) : values[column] === null ? (
-                        <EmptyValue label={sheetReason(account.reason)} />
+                        <EmptyValue label={sheetReason(account.reason, t)} />
                       ) : column === 0 ? (
-                        formatDecimal(values[column]!, 'fr')
+                        formatDecimal(values[column]!, i18n.language)
                       ) : (
-                        `${column >= 2 && !values[column]!.startsWith('-') && /[1-9]/.test(values[column]!) ? '+' : ''}${holdingsMoney(values[column]!, data!.instrument.currencyCode)}`
+                        `${column >= 2 && !values[column]!.startsWith('-') && /[1-9]/.test(values[column]!) ? '+' : ''}${holdingsMoney(values[column]!, data!.instrument.currencyCode, i18n.language)}`
                       )}
                     </td>
                   ))}
-                  <td data-label="Opérations">
+                  <td data-label={columns[7]}>
                     <a
                       href={account ? operations : undefined}
                       aria-disabled={!account || undefined}
@@ -95,7 +98,7 @@ export function InstrumentAccountsTable({ data }: { data: InstrumentHolding | nu
                         if (account) handleClientNavigation(event, operations);
                       }}
                     >
-                      Voir les opérations
+                      {t('investments.sheet.accounts.viewOperations')}
                     </a>
                   </td>
                 </tr>

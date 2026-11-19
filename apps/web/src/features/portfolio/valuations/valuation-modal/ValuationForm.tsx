@@ -35,7 +35,7 @@ export function ValuationForm({
   saveMessage?: string;
   version: number | null;
 }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [values, setValues] = useState<ValuationFormValues>(() => valuesFromDraft(draft));
   const [advancedOpen, setAdvancedOpen] = useState(Boolean(values.note));
   const [submitted, setSubmitted] = useState(false);
@@ -47,7 +47,7 @@ export function ValuationForm({
     <DecimalInput
       error={errors['/observedCash']}
       hint={<ValuationCashHint cash={draft.derivedCash} />}
-      label="Espèces du relevé"
+      label={t('portfolio.valuations.form.statementCash')}
       onChange={(value) => set('observedCash', value)}
       value={values.observedCash}
     />
@@ -71,16 +71,17 @@ export function ValuationForm({
       ) : null}
       {draft.currentValuation ? (
         <p className={styles.notice} role="status">
-          Une valorisation existe déjà le {formatCalendarNumericDay(draft.valuedOn)} : elle sera
-          remplacée et conservée dans l’historique.
+          {t('portfolio.valuations.form.existing', {
+            date: formatCalendarNumericDay(draft.valuedOn),
+          })}
         </p>
       ) : null}
       <fieldset className={styles.segmented}>
-        <legend>Mode de saisie</legend>
+        <legend>{t('portfolio.valuations.form.mode')}</legend>
         {(
           [
-            ['TOTAL', 'Valeur totale'],
-            ['POSITIONS', 'Détail par ligne'],
+            ['TOTAL', t('portfolio.valuations.form.modeTotal')],
+            ['POSITIONS', t('portfolio.valuations.form.modePositions')],
           ] as const
         ).map(([detail, label]) => (
           <label className={styles.segment} key={detail}>
@@ -101,10 +102,17 @@ export function ValuationForm({
               error={errors['/totalValue']}
               hint={
                 draft.lastTotal
-                  ? `Dernière valeur : ${formatAmount(draft.lastTotal.value.value, draft.lastTotal.value.assetCode, i18n.language)} au ${formatCalendarNumericDay(draft.lastTotal.valuedOn)}`
+                  ? t('portfolio.valuations.form.lastValue', {
+                      amount: formatAmount(
+                        draft.lastTotal.value.value,
+                        draft.lastTotal.value.assetCode,
+                        i18n.language,
+                      ),
+                      date: formatCalendarNumericDay(draft.lastTotal.valuedOn),
+                    })
                   : undefined
               }
-              label="Valeur totale du compte"
+              label={t('portfolio.valuations.form.accountTotal')}
               onChange={(value) => set('totalValue', value)}
               value={values.totalValue}
             />
@@ -114,15 +122,15 @@ export function ValuationForm({
           <>
             {draft.positions.length === 0 ? (
               <p className={styles.notice} data-span="full">
-                Aucune position détenue à cette date.
+                {t('portfolio.valuations.form.noPosition')}
               </p>
             ) : null}
 
             {cashField}
             <DecimalInput
               error={errors['/observedTotal']}
-              hint="Facultatif : signale un écart avec le total calculé."
-              label="Total du relevé"
+              hint={t('portfolio.valuations.form.statementTotalHint')}
+              label={t('portfolio.valuations.common.statementTotal')}
               onChange={(value) => set('observedTotal', value)}
               value={values.observedTotal}
             />
@@ -146,11 +154,11 @@ export function ValuationForm({
           </>
         )}
         <FormSection
-          title="Champs avancés"
+          title={t('portfolio.lifeInsurance.advancedFields')}
           open={advancedOpen || Boolean(errors['/note'])}
           onToggle={setAdvancedOpen}
         >
-          <FormField error={errors['/note']} label="Note" wide>
+          <FormField error={errors['/note']} label={t('portfolio.valuations.common.note')} wide>
             {(attributes) => (
               <input
                 {...attributes}
@@ -164,7 +172,7 @@ export function ValuationForm({
       </FormGrid>
       <ModalActions>
         <button className="primary-action" disabled={pending} type="submit">
-          {pending ? 'Enregistrement…' : 'Enregistrer'}
+          {pending ? t('portfolio.lifeInsurance.saving') : t('portfolio.lifeInsurance.save')}
         </button>
       </ModalActions>
     </ModalForm>

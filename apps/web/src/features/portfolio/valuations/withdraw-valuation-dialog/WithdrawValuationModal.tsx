@@ -1,5 +1,6 @@
 import { withdrawPortfolioValuation, type PortfolioValuationSummary } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
@@ -22,6 +23,7 @@ export function WithdrawValuationModal({
   onStale: () => void;
   valuation: PortfolioValuationSummary;
 }) {
+  const { t } = useTranslation();
   const client = useQueryClient();
   const withdraw = useMutation({
     mutationFn: async () => {
@@ -47,13 +49,12 @@ export function WithdrawValuationModal({
   });
 
   return (
-    <Modal
-      intent="confirm"
-      close={onClose}
-
-      title="Retirer la valorisation"
-    >
-      <p>{`Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}`}</p>
+    <Modal intent="confirm" close={onClose} title={t('portfolio.valuations.withdraw.title')}>
+      <p>
+        {t('portfolio.explanation.source.VALUATION', {
+          date: formatCalendarNumericDay(valuation.valuedOn),
+        })}
+      </p>
       <WithdrawValuationDialog
         onCancel={onClose}
         error={valuationSaveMessage(withdraw.error)}

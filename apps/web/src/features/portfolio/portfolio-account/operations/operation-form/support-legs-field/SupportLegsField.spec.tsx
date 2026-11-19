@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
@@ -76,6 +77,7 @@ describe('support editor', () => {
         response: new Response('{}', { status: 422 }),
         error: { code: 'leg_amount_mismatch', legIndex: 2, expectedAmount: '3900.00' },
       }),
+      i18n.t,
     );
     const value = [euro, units].map((instrument) => ({
       key: instrument.id,

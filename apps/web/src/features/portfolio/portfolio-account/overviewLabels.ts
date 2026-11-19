@@ -1,46 +1,73 @@
-import { flagSentence } from '@/features/portfolio/valuations/valuationLabels';
+import type { TFunction } from 'i18next';
 
-export const kpiLabels = {
-  TOTAL_VALUE: 'Valeur totale',
-  UNREALIZED_GAIN: 'Plus-value latente',
-  CASH: 'Espèces',
-  NET_DEPOSITS: 'Versements nets',
-  COSTS: 'Frais et taxes',
-  RECONCILIATION: 'Rapprochement',
-};
-export type KpiCode = keyof typeof kpiLabels;
-export const warningLabels: Record<string, string> = {
-  ...flagSentence,
-  LINKED_TRANSFER_CHANGED: 'Versement différent de son virement lié',
-  NON_TRANSFER_TRANSACTION:
-    'Une transaction a été enregistrée sur ce compte avant le suivi par portefeuille.',
-  UNLINKED_TRANSFER_IN: 'Virement bancaire entrant non lié',
-  UNLINKED_TRANSFER_OUT: 'Virement bancaire sortant non lié',
-  NEGATIVE_CASH: 'Solde espèces négatif',
-  UNKNOWN_LOT_COST: 'Prix de revient inconnu',
-  ORDER_DEPENDENT_DAY: 'Ordre des opérations à vérifier',
-  PARTIAL_VALUATION: 'Valorisation partielle',
-  STALE_VALUATION: 'Valorisation ancienne',
-  MISSING_PRICE: 'Prix manquant',
-  UNKNOWN_POSITION_COST: 'Prix de revient inconnu',
-};
+const kpiCodes = [
+  'TOTAL_VALUE',
+  'UNREALIZED_GAIN',
+  'CASH',
+  'NET_DEPOSITS',
+  'COSTS',
+  'RECONCILIATION',
+] as const;
+export type KpiCode = (typeof kpiCodes)[number];
 
-export const reasonLabels: Record<string, string> = {
-  ...warningLabels,
-  NO_VALUATION: 'Aucune valorisation à cette date',
-  PARTIAL_VALUATION: 'Valorisation partielle',
-  UNKNOWN_LOT_COST: 'Prix de revient inconnu',
-  NOT_DETAILED: 'Valorisation saisie en total : répartition par ligne indisponible',
-  NON_POSITIVE_TOTAL: 'Valeur totale nulle ou négative : la répartition n’est pas calculable',
-  STALE_VALUATION: 'Valorisation ancienne',
-  COMPLETE: 'Complète',
-  PARTIAL: 'Partielle',
-  DERIVED: 'Calculée',
-  OBSERVED: 'Relevé',
-  RECONCILED: 'Rapproché',
-  NEEDS_REVIEW: 'À vérifier',
-  NO_DATA: 'Aucune donnée',
-  EXACT: 'Exacte',
-  CURRENT: 'À jour',
-  WARNING: 'À vérifier',
-};
+export function kpiLabel(t: TFunction, code: KpiCode): string {
+  return t(`portfolio.account.kpi.${code}`);
+}
+
+const flagCodes = [
+  'STALE_PRICES',
+  'CASH_DIFFERENCE',
+  'OBSERVED_TOTAL_DIFFERENCE',
+  'POSITIONS_CHANGED',
+  'NEGATIVE_SECURITIES_VALUE',
+] as const;
+const warningCodes = [
+  'LINKED_TRANSFER_CHANGED',
+  'NON_TRANSFER_TRANSACTION',
+  'UNLINKED_TRANSFER_IN',
+  'UNLINKED_TRANSFER_OUT',
+  'NEGATIVE_CASH',
+  'UNKNOWN_LOT_COST',
+  'ORDER_DEPENDENT_DAY',
+  'PARTIAL_VALUATION',
+  'STALE_VALUATION',
+  'MISSING_PRICE',
+  'UNKNOWN_POSITION_COST',
+] as const;
+const reasonCodes = [
+  'NO_VALUATION',
+  'NOT_DETAILED',
+  'NON_POSITIVE_TOTAL',
+  'COMPLETE',
+  'PARTIAL',
+  'DERIVED',
+  'OBSERVED',
+  'RECONCILED',
+  'NEEDS_REVIEW',
+  'NO_DATA',
+  'EXACT',
+  'CURRENT',
+  'WARNING',
+] as const;
+
+function isOneOf<T extends string>(codes: readonly T[], code: string): code is T {
+  return (codes as readonly string[]).includes(code);
+}
+
+/** The sentence of a reconciliation warning or valuation flag, undefined for an unknown code. */
+export function warningLabel(t: TFunction, code: string): string | undefined {
+  if (isOneOf(flagCodes, code)) return t(`portfolio.account.flagSentence.${code}`);
+  if (isOneOf(warningCodes, code)) return t(`portfolio.account.warning.${code}`);
+  return undefined;
+}
+
+/** The sentence of a quality, status or "not computable" reason, undefined for an unknown code. */
+export function reasonLabel(t: TFunction, code: string): string | undefined {
+  if (isOneOf(reasonCodes, code)) return t(`portfolio.account.reason.${code}`);
+  return warningLabel(t, code);
+}
+
+/** The short name of a valuation flag, as the history chart and table list it. */
+export function flagShortLabel(t: TFunction, flag: (typeof flagCodes)[number]): string {
+  return t(`portfolio.account.flag.${flag}`);
+}

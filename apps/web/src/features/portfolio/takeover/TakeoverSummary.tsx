@@ -1,4 +1,5 @@
 import type { PortfolioTakeoverPreview } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatAmount } from '@/lib/decimal';
@@ -16,16 +17,17 @@ export function TakeoverSummary({
   pending: boolean;
   preview: PortfolioTakeoverPreview | undefined;
 }) {
+  const { t, i18n } = useTranslation();
   const figure = (value: string | null | undefined) =>
     value ? (
-      <strong>{formatAmount(value, assetCode, 'fr')}</strong>
+      <strong>{formatAmount(value, assetCode, i18n.language)}</strong>
     ) : pending ? (
       <strong>
         <SkeletonBlock className={styles.figure} />
       </strong>
     ) : (
       <strong>
-        <EmptyValue label="Non calculable" />
+        <EmptyValue label={t('states.notCalculable.label')} />
       </strong>
     );
   return (
@@ -33,21 +35,21 @@ export function TakeoverSummary({
       aria-live="polite"
       className={styles.summary}
       role="group"
-      aria-label="Résumé de la reprise"
+      aria-label={t('portfolio.takeover.summaryLabel')}
     >
       <div className={styles.readout}>
-        <span>Titres</span>
+        <span>{t('portfolio.takeover.securities')}</span>
         {figure(preview?.securitiesValue)}
       </div>
       <div className={styles.readout}>
-        <span>Espèces</span>
+        <span>{t('portfolio.takeover.cash')}</span>
         {figure(preview?.cash)}
       </div>
       <div className={styles.readout}>
-        <span>Total</span>
+        <span>{t('portfolio.takeover.total')}</span>
         {figure(preview?.totalValue)}
       </div>
-      {failed ? <p className={styles.hint}>Aperçu indisponible.</p> : null}
+      {failed ? <p className={styles.hint}>{t('portfolio.takeover.previewUnavailable')}</p> : null}
     </div>
   );
 }

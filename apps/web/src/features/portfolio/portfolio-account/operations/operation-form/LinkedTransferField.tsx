@@ -22,7 +22,7 @@ export function LinkedTransferField({
   onChange: (candidate: PortfolioTransferCandidate | null, id: string) => void;
   value: string;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const candidates = useQuery({
     queryKey: ['portfolio-transfer-candidates', accountId, direction],
     queryFn: async ({ signal }) => {
@@ -40,7 +40,7 @@ export function LinkedTransferField({
   const items = candidates.data ?? [];
 
   return (
-    <OperationField error={error} label="Virement lié">
+    <OperationField error={error} label={t('portfolio.account.form.linkedTransfer')}>
       <select
         onChange={(event) =>
           onChange(
@@ -50,9 +50,9 @@ export function LinkedTransferField({
         }
         value={value}
       >
-        <option value="">Aucun virement lié</option>
+        <option value="">{t('portfolio.account.form.noLinkedTransfer')}</option>
         {value !== '' && !items.some((item) => item.transactionId === value) ? (
-          <option value={value}>Virement actuellement lié</option>
+          <option value={value}>{t('portfolio.account.form.currentLinkedTransfer')}</option>
         ) : null}
         {items.map((item) => (
           <option key={item.transactionId} value={item.transactionId}>
@@ -62,7 +62,9 @@ export function LinkedTransferField({
           </option>
         ))}
       </select>
-      {candidates.isError ? <small role="alert">Les virements sont indisponibles.</small> : null}
+      {candidates.isError ? (
+        <small role="alert">{t('portfolio.account.form.transfersUnavailable')}</small>
+      ) : null}
     </OperationField>
   );
 }

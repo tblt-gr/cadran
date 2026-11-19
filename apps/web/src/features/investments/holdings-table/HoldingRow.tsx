@@ -28,7 +28,7 @@ export function HoldingRow({
   open: boolean;
   onToggle: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { instrument } = holding;
   const figureName = (column: string) =>
     t('investments.notComputable.figure', { column, name: instrument.name });
@@ -42,24 +42,26 @@ export function HoldingRow({
             <InstrumentLink instrument={instrument} />
           </strong>
           <span className={styles.identifier}>
-            {holdingsInstrumentLine(instrument, holding.instrumentType)}
+            {holdingsInstrumentLine(instrument, holding.instrumentType, t)}
           </span>
         </th>
         <td className={styles.number} data-label={t('investments.table.quantity')}>
-          {formatDecimal(holding.quantity, 'fr')}
+          {formatDecimal(holding.quantity, i18n.language)}
         </td>
         <td className={styles.number} data-label={t('investments.table.averageCost')}>
           {holding.averageUnitCost === null
             ? dash(t('investments.table.notCalculable'))
-            : holdingsUnitPrice(holding.averageUnitCost, assetCode)}
+            : holdingsUnitPrice(holding.averageUnitCost, assetCode, i18n.language)}
         </td>
         <td className={styles.number} data-label={t('investments.table.lastPrice')}>
           {holding.lastPrice === null ? (
             dash(t('investments.table.notCalculable'))
           ) : (
             <>
-              <span>{holdingsUnitPrice(holding.lastPrice.price, assetCode)}</span>
-              <small className={styles.sub}>{holdingsDay(holding.lastPrice.priceDate)}</small>
+              <span>{holdingsUnitPrice(holding.lastPrice.price, assetCode, i18n.language)}</span>
+              <small className={styles.sub}>
+                {holdingsDay(holding.lastPrice.priceDate, i18n.language)}
+              </small>
             </>
           )}
         </td>
@@ -74,7 +76,7 @@ export function HoldingRow({
               )}
             />
           ) : (
-            holdingsMoney(holding.value, assetCode)
+            holdingsMoney(holding.value, assetCode, i18n.language)
           )}
         </td>
         <td className={styles.number} data-label={t('investments.table.gain')}>
@@ -100,7 +102,7 @@ export function HoldingRow({
         <td className={styles.number} data-label={t('investments.table.share')}>
           {holding.share.percentDisplay === null
             ? dash(t('investments.table.notCalculable'))
-            : holdingsPercent(holding.share.percentDisplay)}
+            : holdingsPercent(holding.share.percentDisplay, i18n.language)}
         </td>
         <td className={styles.toggle}>
           <button

@@ -7,20 +7,35 @@ import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { formatAmount, isZeroDecimal } from '@/lib/decimal';
 import styles from './CashSummary.module.css';
 
-const rows: { key: string; label: string; pick: (cash: PortfolioCash) => DecimalAmount }[] = [
-  { key: 'opening', label: 'Solde d’ouverture', pick: (cash) => cash.openingBalance },
-  { key: 'deposits', label: 'Versements', pick: (cash) => cash.totals.deposits },
-  { key: 'withdrawals', label: 'Retraits', pick: (cash) => cash.totals.withdrawals },
-  { key: 'buys', label: 'Achats (brut)', pick: (cash) => cash.totals.buysGross },
-  { key: 'sells', label: 'Ventes (brut)', pick: (cash) => cash.totals.sellsGross },
-  { key: 'supportsBought', label: 'Supports achetés', pick: (cash) => cash.totals.supportsBought },
-  { key: 'supportsSold', label: 'Supports vendus', pick: (cash) => cash.totals.supportsSold },
-  { key: 'dividends', label: 'Dividendes (brut)', pick: (cash) => cash.totals.dividendsGross },
-  { key: 'interest', label: 'Intérêts (brut)', pick: (cash) => cash.totals.interestGross },
-  { key: 'fees', label: 'Frais', pick: (cash) => cash.totals.fees },
-  { key: 'taxes', label: 'Taxes', pick: (cash) => cash.totals.taxes },
-  { key: 'cashInLieu', label: 'Soulte reçue', pick: (cash) => cash.totals.cashInLieu },
-  { key: 'closing', label: 'Solde de clôture', pick: (cash) => cash.closingBalance },
+type RowKey =
+  | 'opening'
+  | 'deposits'
+  | 'withdrawals'
+  | 'buys'
+  | 'sells'
+  | 'supportsBought'
+  | 'supportsSold'
+  | 'dividends'
+  | 'interest'
+  | 'fees'
+  | 'taxes'
+  | 'cashInLieu'
+  | 'closing';
+
+const rows: { key: RowKey; pick: (cash: PortfolioCash) => DecimalAmount }[] = [
+  { key: 'opening', pick: (cash) => cash.openingBalance },
+  { key: 'deposits', pick: (cash) => cash.totals.deposits },
+  { key: 'withdrawals', pick: (cash) => cash.totals.withdrawals },
+  { key: 'buys', pick: (cash) => cash.totals.buysGross },
+  { key: 'sells', pick: (cash) => cash.totals.sellsGross },
+  { key: 'supportsBought', pick: (cash) => cash.totals.supportsBought },
+  { key: 'supportsSold', pick: (cash) => cash.totals.supportsSold },
+  { key: 'dividends', pick: (cash) => cash.totals.dividendsGross },
+  { key: 'interest', pick: (cash) => cash.totals.interestGross },
+  { key: 'fees', pick: (cash) => cash.totals.fees },
+  { key: 'taxes', pick: (cash) => cash.totals.taxes },
+  { key: 'cashInLieu', pick: (cash) => cash.totals.cashInLieu },
+  { key: 'closing', pick: (cash) => cash.closingBalance },
 ];
 
 /** The balances that frame the period, always listed even when zero. */
@@ -39,7 +54,7 @@ export function CashSummary({
   /** The cash checks pill, beside the title. */
   checks?: ReactNode;
 }) {
-  const { i18n } = useTranslation();
+  const { i18n, t } = useTranslation();
   const [explaining, setExplaining] = useState(false);
   const titleId = useId();
   const explanationId = useId();
@@ -50,7 +65,7 @@ export function CashSummary({
   return (
     <section aria-labelledby={titleId} className={`card ${styles.panel}`}>
       <div className={styles.titleRow}>
-        <h3 id={titleId}>Solde espèces</h3>
+        <h3 id={titleId}>{t('portfolio.cash.summary.title')}</h3>
         {checks}
       </div>
       <div className={styles.balance}>
@@ -58,19 +73,16 @@ export function CashSummary({
       </div>
       <div className={styles.period}>
         <h4>
-          Période
+          {t('portfolio.cash.summary.period')}
           <InfoButton
             aria-controls={explanationId}
             aria-expanded={explaining}
-            label="Expliquer : solde de clôture"
+            label={t('portfolio.cash.summary.explainClosing')}
             onClick={() => setExplaining((value) => !value)}
           />
         </h4>
         <p className={styles.explanation} hidden={!explaining} id={explanationId}>
-          Solde de clôture = solde d’ouverture + versements − retraits − achats (brut) + ventes
-          (brut) − supports achetés + supports vendus + dividendes (brut) + intérêts (brut) − frais
-          − taxes + soulte reçue. Les frais et les taxes sont comptés une seule fois, quel que soit
-          le type d’opération qui les porte.
+          {t('portfolio.cash.summary.formula')}
         </p>
         <dl className={styles.figures}>
           {rows
@@ -81,7 +93,7 @@ export function CashSummary({
             )
             .map((row) => (
               <div key={row.key}>
-                <dt>{row.label}</dt>
+                <dt>{t(`portfolio.cash.summary.rows.${row.key}`)}</dt>
                 <dd>
                   {cash ? (
                     money(row.pick(cash))

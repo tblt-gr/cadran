@@ -18,7 +18,7 @@ interface Props {
 
 /** The goals of one month. */
 export function GoalPanelMonthly({ month, evaluations, goals, handlers }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const title = t('goals.panel.monthSection');
 
   if (evaluations === undefined || goals === undefined) {
@@ -33,6 +33,7 @@ export function GoalPanelMonthly({ month, evaluations, goals, handlers }: Props)
   const rows = buildRows(
     evaluations.months.find((period) => period.period === month),
     indexSummaries(goals),
+    i18n.language,
   );
   if (rows.length === 0) return <p className={styles.empty}>{t('goals.panel.emptyMonth')}</p>;
   return (

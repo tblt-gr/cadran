@@ -3,7 +3,10 @@ import type {
   PortfolioTakeoverLineInput,
   PortfolioTakeoverRequest,
 } from '@cadran/api-client';
+import i18n from '@/i18n';
+import type { ParseKeys } from 'i18next';
 import { isCanonicalUnsignedDecimal, isZeroDecimal } from '@/lib/decimal';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 
 export const MAX_TAKEOVER_LINES = 200;
 
@@ -33,6 +36,8 @@ export interface TakeoverFieldErrors {
   lines: Record<number, Partial<Record<TakeoverLineField, string>>>;
 }
 
+const tv = (key: string) => i18n.t(`portfolio.takeover.validation.${key}` as ParseKeys);
+
 let sequence = 0;
 export function emptyLine(priceDate: string): TakeoverLineValues {
   sequence += 1;
@@ -48,7 +53,7 @@ export function emptyLine(priceDate: string): TakeoverLineValues {
 
 /** A typed decimal, comma accepted: the exact string or null when it is not canonical. */
 function typed(raw: string): string | null {
-  const value = raw.trim().replace(',', '.');
+  const value = normalizeDecimalInput(raw);
   return isCanonicalUnsignedDecimal(value) ? value : null;
 }
 
@@ -61,7 +66,7 @@ export function buildTakeoverRequest(values: TakeoverFormValues): {
   errors: TakeoverFieldErrors;
 } {
   const errors: TakeoverFieldErrors = { lines: {} };
-  if (values.takenOverOn === '') errors.date = 'Saisissez la date de reprise.';
+  if (values.takenOverOn === '') errors.date = tv('date');
 
   const lines: PortfolioTakeoverLineInput[] = [];
   values.lines.forEach((line, index) => {
@@ -70,12 +75,10 @@ export function buildTakeoverRequest(values: TakeoverFormValues): {
     const price = typed(line.price);
     const costRaw = line.costBasis.trim();
     const costBasis = costRaw === '' ? null : typed(costRaw);
-    if (!line.instrument) lineErrors.instrument = 'Choisissez un instrument.';
-    if (quantity === null || isZeroDecimal(quantity))
-      lineErrors.quantity = 'Saisissez une quantité strictement positive.';
-    if (price === null || isZeroDecimal(price))
-      lineErrors.price = 'Saisissez un cours strictement positif.';
-    if (costRaw !== '' && costBasis === null) lineErrors.costBasis = 'Saisissez un montant valide.';
+    if (!line.instrument) lineErrors.instrument = tv('instrument');
+    if (quantity === null || isZeroDecimal(quantity)) lineErrors.quantity = tv('quantity');
+    if (price === null || isZeroDecimal(price)) lineErrors.price = tv('price');
+    if (costRaw !== '' && costBasis === null) lineErrors.costBasis = tv('amount');
     if (Object.keys(lineErrors).length > 0) {
       errors.lines[index] = lineErrors;
       return;
@@ -92,7 +95,7 @@ export function buildTakeoverRequest(values: TakeoverFormValues): {
 
   const cashRaw = values.cash.trim();
   const cash = cashRaw === '' ? null : typed(cashRaw);
-  if (cashRaw !== '' && cash === null) errors.cash = 'Saisissez un montant valide.';
+  if (cashRaw !== '' && cash === null) errors.cash = tv('amount');
 
   const complete =
     errors.date === undefined && errors.cash === undefined && lines.length === values.lines.length;
@@ -102,31 +105,33 @@ export function buildTakeoverRequest(values: TakeoverFormValues): {
   };
 }
 
-const lineTexts: Record<string, string> = {
-  unknown_instrument: 'Cet instrument est introuvable.',
-  instrument_inactive: 'Cet instrument est inactif.',
-  instrument_currency_mismatch: 'La devise de l’instrument diffère de celle du compte.',
-  duplicate_instrument: 'Cet instrument figure déjà dans une autre ligne.',
-  invalid_decimal: 'Saisissez un nombre valide.',
-  precision_exceeded: 'Ce montant dépasse la précision autorisée.',
-  not_positive: 'Cette valeur doit être strictement positive.',
-  negative: 'Cette valeur ne peut pas être négative.',
-  quantity_precision_exceeded: 'La quantité dépasse la précision de l’instrument.',
-  price_precision_exceeded: 'Le cours dépasse la précision de l’instrument.',
-  price_date_after_takeover: 'La date du cours doit précéder la date de reprise ou l’égaler.',
-  value_too_large: 'Cette valeur est trop grande.',
-};
-const requestTexts: Record<string, string> = {
-  invalid_date: 'La date est invalide.',
-  before_account_opening: 'La date précède l’ouverture du compte.',
-  in_the_future: 'La date ne peut pas être dans le futur.',
-  lines_count: 'Saisissez entre 1 et 200 lignes.',
-  negative: 'Les espèces ne peuvent pas être négatives.',
-  invalid_decimal: 'Saisissez un montant valide.',
-  precision_exceeded: 'Ce montant dépasse la précision autorisée.',
-  value_too_large: 'Cette valeur est trop grande.',
-};
-const fallback = 'Cette valeur est refusée.';
+const lineCodes = new Set([
+  'unknown_instrument',
+  'instrument_inactive',
+  'instrument_currency_mismatch',
+  'duplicate_instrument',
+  'invalid_decimal',
+  'precision_exceeded',
+  'not_positive',
+  'negative',
+  'quantity_precision_exceeded',
+  'price_precision_exceeded',
+  'price_date_after_takeover',
+  'value_too_large',
+]);
+const requestCodes = new Set([
+  'invalid_date',
+  'before_account_opening',
+  'in_the_future',
+  'lines_count',
+  'invalid_decimal',
+  'negative',
+  'precision_exceeded',
+  'value_too_large',
+]);
+const lineText = (code: string) => tv(lineCodes.has(code) ? `lineErrors.${code}` : 'fallback');
+const requestText = (code: string) =>
+  tv(requestCodes.has(code) ? `requestErrors.${code}` : 'fallback');
 const lineFieldOf: Record<string, TakeoverLineField | undefined> = {
   instrumentId: 'instrument',
   quantity: 'quantity',
@@ -143,11 +148,11 @@ export function mapTakeoverErrors(errors: readonly PortfolioTakeoverError[]): Ta
       const field = lineFieldOf[error.field];
       if (field) {
         const row = (mapped.lines[error.line - 1] ??= {});
-        row[field] ??= lineTexts[error.code] ?? fallback;
+        row[field] ??= lineText(error.code);
         continue;
       }
     }
-    const text = requestTexts[error.code] ?? fallback;
+    const text = requestText(error.code);
     if (error.field === 'takenOverOn') mapped.date ??= text;
     else if (error.field === 'cash') mapped.cash ??= text;
     else mapped.form ??= text;

@@ -7,6 +7,7 @@ import type {
   TransactionState,
 } from '@cadran/api-client';
 import { compareDecimals, isCanonicalDecimal } from '@/lib/decimal';
+import { normalizeDecimalInput } from '@/lib/decimalInput';
 
 export type TransactionAxis =
   'DISCRETIONARY' | 'ESSENTIAL' | 'FIXED' | 'PERSONAL' | 'PROFESSIONAL' | 'VARIABLE';
@@ -344,7 +345,7 @@ export function isImpossibleCombination(filters: TransactionFilterState): boolea
  * left for {@link isValidAmountBound} to reject.
  */
 export function normalizeAmountInput(raw: string): string {
-  return raw.replaceAll('-', '').replace(',', '.');
+  return normalizeDecimalInput(raw.replaceAll('-', ''));
 }
 
 /**

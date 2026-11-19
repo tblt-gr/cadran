@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import {
-  money,
+  useLifeInsuranceMoney,
   sourceHref,
   type Summary,
 } from '@/features/portfolio/life-insurance/overview/summaryPresentation';
@@ -10,15 +11,6 @@ import { ExplanationFigure } from '@/features/portfolio/explanation/ExplanationF
 import { ExplanationSources } from '@/features/portfolio/explanation/ExplanationSources';
 import explanation from '@/features/portfolio/explanation/Explanation.module.css';
 import styles from './ContractFigureExplanation.module.css';
-const formulas = {
-  value:
-    'Valeur du contrat = fonds en euros + unités de compte + liquidités de la valorisation retenue.',
-  premiums:
-    'Versements cumulés = somme des versements bruts enregistrés. Les arbitrages sont exclus.',
-  surrenders:
-    'Rachats nets versés = somme des montants effectivement versés pour les rachats enregistrés. Les arbitrages sont exclus.',
-  fees: 'Frais cumulés = frais d’entrée + gestion + arbitrage + rachat + autres frais enregistrés.',
-};
 export function ContractFigureExplanation({
   figure,
   value,
@@ -33,6 +25,7 @@ export function ContractFigureExplanation({
   accountId: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const valuation = summary.valuation;
   const sources =
     figure === 'value'
@@ -41,46 +34,68 @@ export function ContractFigureExplanation({
         : []
       : summary.cumulative.sources;
   const count = figure === 'value' ? sources.length : summary.cumulative.sourceCount;
+  const money = useLifeInsuranceMoney();
   const amount = (value: string | null) => money(value, summary.assetCode);
   const cumulative = summary.cumulative;
   const facts: [string, string | null][] =
     figure === 'value'
       ? [
-          ['Fonds en euros', valuation?.euroFundValue ?? null],
-          ['Unités de compte', valuation?.unitLinkedValue ?? null],
-          ['Liquidités', valuation?.cash ?? null],
-          ['Total observé', valuation?.observedTotal ?? null],
-          ['Écart au relevé', valuation?.observedTotalDifference ?? null],
-          ['Tolérance', valuation?.tolerance ?? null],
+          [
+            t('portfolio.lifeInsurance.allocation.kinds.EURO_FUND'),
+            valuation?.euroFundValue ?? null,
+          ],
+          [
+            t('portfolio.lifeInsurance.allocation.kinds.UNIT_LINKED'),
+            valuation?.unitLinkedValue ?? null,
+          ],
+          [t('portfolio.lifeInsurance.allocation.kinds.CASH'), valuation?.cash ?? null],
+          [t('portfolio.lifeInsurance.explain.observedTotal'), valuation?.observedTotal ?? null],
+          [
+            t('portfolio.lifeInsurance.explain.statementGap'),
+            valuation?.observedTotalDifference ?? null,
+          ],
+          [t('portfolio.lifeInsurance.explain.tolerance'), valuation?.tolerance ?? null],
         ]
       : figure === 'fees'
         ? [
-            ['Entrée', cumulative.fees.ENTRY],
-            ['Gestion', cumulative.fees.MANAGEMENT],
-            ['Arbitrage', cumulative.fees.SWITCH],
-            ['Rachat', cumulative.fees.SURRENDER],
-            ['Autres', cumulative.fees.OTHER],
+            [t('portfolio.lifeInsurance.explain.fees.ENTRY'), cumulative.fees.ENTRY],
+            [t('portfolio.lifeInsurance.explain.fees.MANAGEMENT'), cumulative.fees.MANAGEMENT],
+            [t('portfolio.lifeInsurance.explain.fees.SWITCH'), cumulative.fees.SWITCH],
+            [t('portfolio.lifeInsurance.explain.fees.SURRENDER'), cumulative.fees.SURRENDER],
+            [t('portfolio.lifeInsurance.explain.fees.OTHER'), cumulative.fees.OTHER],
           ]
         : figure === 'surrenders'
           ? [
-              ['Rachats bruts', cumulative.surrendersGross],
-              ['Net versé', cumulative.surrendersNetPaid],
+              [
+                t('portfolio.lifeInsurance.recorded.rows.surrendersGross'),
+                cumulative.surrendersGross,
+              ],
+              [t('portfolio.lifeInsurance.explain.netPaid'), cumulative.surrendersNetPaid],
             ]
-          : [['Versements bruts', cumulative.premiums]];
+          : [[t('portfolio.lifeInsurance.recorded.rows.premiums'), cumulative.premiums]];
   const period =
     figure === 'value'
       ? valuation
-        ? `Valorisation du ${formatCalendarNumericDay(valuation.valuedOn)}`
-        : 'Aucune valorisation'
-      : `${summary.contract ? `Du ${formatCalendarNumericDay(summary.contract.subscribedOn)}` : 'Depuis la souscription'} au ${formatCalendarNumericDay(summary.asOf)}`;
+        ? t('portfolio.lifeInsurance.figures.valuationOf', {
+            date: formatCalendarNumericDay(valuation.valuedOn),
+          })
+        : t('portfolio.lifeInsurance.figures.noValuation')
+      : t('portfolio.lifeInsurance.explain.period', {
+          from: summary.contract
+            ? t('portfolio.lifeInsurance.explain.fromDate', {
+                date: formatCalendarNumericDay(summary.contract.subscribedOn),
+              })
+            : t('portfolio.lifeInsurance.explain.sinceSubscription'),
+          to: formatCalendarNumericDay(summary.asOf),
+        });
   const quality =
     figure === 'value'
       ? !valuation
-        ? 'Aucune valorisation'
+        ? t('portfolio.lifeInsurance.figures.noValuation')
         : valuation.stale
-          ? `Valorisation ancienne (${valuation.ageDays} jours)`
-          : 'Valorisation complète'
-      : 'Montants enregistrés';
+          ? t('portfolio.lifeInsurance.figures.staleValuation', { count: valuation.ageDays })
+          : t('portfolio.lifeInsurance.explain.completeValuation')
+      : t('portfolio.lifeInsurance.explain.recordedAmounts');
   return (
     <Modal intent="detail" close={onClose} title={figureLabels[figure]}>
       <div className={explanation.content}>
@@ -95,11 +110,11 @@ export function ContractFigureExplanation({
           value={value}
         />
         <section className={explanation.block}>
-          <h3>Calcul</h3>
+          <h3>{t('portfolio.lifeInsurance.explain.calculation')}</h3>
           <p>
             {figure === 'value' && valuation?.detail === 'TOTAL'
-              ? 'Total observé de la valorisation retenue. La répartition n’est pas détaillée.'
-              : formulas[figure]}
+              ? t('portfolio.lifeInsurance.explain.totalOnly')
+              : t(`portfolio.lifeInsurance.explain.formulas.${figure}`)}
           </p>
           <dl className={styles.facts}>
             {facts.map(([label, fact]) => (

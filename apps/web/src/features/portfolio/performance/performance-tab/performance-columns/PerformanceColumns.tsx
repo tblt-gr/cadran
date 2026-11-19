@@ -1,6 +1,7 @@
 import { ActionMenu } from '@/components/ui/action-menu/ActionMenu';
 import styles from './PerformanceColumns.module.css';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { lineColumns } from '@/features/portfolio/performance/performance-tab/lineColumns';
 
 export function usePerformanceColumns(accountId: string) {
@@ -41,17 +42,18 @@ export function PerformanceColumns({
   onChange: (next: string[]) => void;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <div className={styles.picker}>
       <ActionMenu
-        label="Colonnes affichées"
+        label={t('portfolio.performance.columnsLabel')}
         triggerIcon="columns"
         triggerVariant="framed"
         disabled={disabled}
         items={lineColumns.map((column) => ({
           id: column.id,
-          label: column.label,
-          text: column.label,
+          label: t(column.label),
+          text: t(column.label),
           icon: 'columns',
           checked: selected.includes(column.id),
           disabled: selected.length === 1 && selected.includes(column.id),

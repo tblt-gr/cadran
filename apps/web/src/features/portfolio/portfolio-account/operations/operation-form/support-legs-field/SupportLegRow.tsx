@@ -1,6 +1,7 @@
 import { readInstrument } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { authApiOptions } from '@/features/auth/apiOptions';
 import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
@@ -26,6 +27,7 @@ export function SupportLegRow({
   onRemove: () => void;
   value: SupportLegValue;
 }) {
+  const { t } = useTranslation();
   const metadata = useQuery({
     queryKey: ['instrument', value.instrument?.id],
     enabled: !!value.instrument && !value.instrument.instrumentType,
@@ -51,12 +53,12 @@ export function SupportLegRow({
   const prefix = `legs.${index}` as const;
   return (
     <fieldset className={styles.row}>
-      <legend>Support {index}</legend>
+      <legend>{t('portfolio.account.form.legs.support', { index })}</legend>
       <div className={styles.controls}>
         <InstrumentPicker
           allowCreate
           currencyCode={assetCode}
-          label={`Support ${index}`}
+          label={t('portfolio.account.form.legs.support', { index })}
           value={value.instrument}
           onChange={(instrument) =>
             onChange({ ...value, instrument, quantity: '', unitPrice: '', amount: '' })
@@ -65,13 +67,13 @@ export function SupportLegRow({
         {!euro ? (
           <>
             <OperationDecimalField
-              label={`Parts ${index}`}
+              label={t('portfolio.account.form.legs.units', { index })}
               value={value.quantity}
               error={errors[`${prefix}.quantity`]}
               onChange={(quantity) => onChange({ ...value, quantity })}
             />
             <OperationDecimalField
-              label={`Valeur liquidative ${index}`}
+              label={t('portfolio.account.form.legs.unitValue', { index })}
               value={value.unitPrice}
               error={errors[`${prefix}.unitPrice`]}
               onChange={(unitPrice) => onChange({ ...value, unitPrice })}
@@ -79,14 +81,14 @@ export function SupportLegRow({
           </>
         ) : null}
         <OperationDecimalField
-          label={`Montant ${index}`}
+          label={t('portfolio.account.form.legs.amount', { index })}
           value={value.amount}
           error={errors[`${prefix}.amount`]}
           onChange={(amount) => onChange({ ...value, amount })}
         />
         <button
           className={`icon-button ${styles.remove}`}
-          aria-label="Retirer ce support"
+          aria-label={t('portfolio.account.form.legs.remove')}
           type="button"
           onClick={onRemove}
         >
@@ -97,13 +99,13 @@ export function SupportLegRow({
       {errors[`${prefix}.row`] ? <p role="alert">{errors[`${prefix}.row`]}</p> : null}
       {metadata.isError ? (
         <p role="alert">
-          Le support est indisponible.{' '}
+          {t('portfolio.account.form.income.supportUnavailable')}{' '}
           <button
             className="secondary-action"
             type="button"
             onClick={() => void metadata.refetch()}
           >
-            Réessayer
+            {t('actions.retry')}
           </button>
         </p>
       ) : null}

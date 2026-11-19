@@ -1,10 +1,14 @@
 import type { PortfolioOverviewSource } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import styles from './Explanation.module.css';
 
-function sourceLabel(source: PortfolioOverviewSource): string {
-  return `${source.kind === 'OPERATION' ? 'Opération' : 'Valorisation'} du ${formatCalendarNumericDay(source.date)}`;
+function sourceLabel(source: PortfolioOverviewSource, t: TFunction): string {
+  return t(`portfolio.explanation.source.${source.kind}`, {
+    date: formatCalendarNumericDay(source.date),
+  });
 }
 
 /**
@@ -24,11 +28,12 @@ export function ExplanationSources({
   /** The page of a source: given, each source is a real link that can open elsewhere. */
   hrefOf?: (source: PortfolioOverviewSource) => string;
 }) {
+  const { t } = useTranslation();
   const total = sources.length + more;
-  if (total === 0) return <p className={styles.footnote}>Aucune source à cette date.</p>;
+  if (total === 0) return <p className={styles.footnote}>{t('portfolio.explanation.noSource')}</p>;
   return (
     <details className={styles.sources}>
-      <summary>{`Sources du calcul (${total})`}</summary>
+      <summary>{t('portfolio.explanation.sources', { count: total })}</summary>
       <ul>
         {sources.map((source) => (
           <li key={`${source.kind}-${source.id}`}>
@@ -40,16 +45,16 @@ export function ExplanationSources({
                   handleClientNavigation(event, hrefOf(source), () => onSource(source))
                 }
               >
-                {sourceLabel(source)}
+                {sourceLabel(source, t)}
               </a>
             ) : (
               <button className="text-action" onClick={() => onSource(source)} type="button">
-                {sourceLabel(source)}
+                {sourceLabel(source, t)}
               </button>
             )}
           </li>
         ))}
-        {more > 0 ? <li>{`et ${more} autres`}</li> : null}
+        {more > 0 ? <li>{t('portfolio.explanation.more', { count: more })}</li> : null}
       </ul>
     </details>
   );

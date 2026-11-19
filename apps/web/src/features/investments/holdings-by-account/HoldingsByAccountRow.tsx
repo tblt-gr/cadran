@@ -22,7 +22,7 @@ export function HoldingsByAccountRow({
   open: boolean;
   onToggle: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const accountHref = `/portfolios/${account.accountId}`;
   const valuationsHref = `${accountHref}?tab=valuations`;
   const detailed = account.detail === 'LINES';
@@ -59,7 +59,7 @@ export function HoldingsByAccountRow({
         <td className={styles.number} data-label={t('investments.byAccount.securities')}>
           {account.securitiesValue === null
             ? dash(notCalculable)
-            : holdingsMoney(account.securitiesValue, assetCode)}
+            : holdingsMoney(account.securitiesValue, assetCode, i18n.language)}
         </td>
         <td className={styles.number} data-label={t('investments.byAccount.gain')}>
           <div className={styles.gainCell}>
@@ -99,10 +99,12 @@ export function HoldingsByAccountRow({
         <td className={styles.number} data-label={t('investments.byAccount.share')}>
           {account.share.percentDisplay === null
             ? dash(notCalculable)
-            : holdingsPercent(account.share.percentDisplay)}
+            : holdingsPercent(account.share.percentDisplay, i18n.language)}
         </td>
         <td className={styles.number} data-label={t('investments.byAccount.valuedOn')}>
-          {account.valuedOn === null ? dash(notCalculable) : holdingsDay(account.valuedOn)}
+          {account.valuedOn === null
+            ? dash(notCalculable)
+            : holdingsDay(account.valuedOn, i18n.language)}
         </td>
         <td className={styles.toggle}>
           {detailed ? (

@@ -1,6 +1,7 @@
 import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Instrument } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import styles from './InstrumentStatusDialog.module.css';
 export function InstrumentStatusDialog({
   error,
@@ -15,6 +16,7 @@ export function InstrumentStatusDialog({
   onCancel?: () => void;
   onConfirm: () => void;
 }) {
+  const { t } = useTranslation();
   const archive = instrument.status === 'ACTIVE';
   return (
     <ModalForm
@@ -26,18 +28,24 @@ export function InstrumentStatusDialog({
     >
       <p>
         {archive
-          ? 'Cet instrument ne sera plus proposé lors des nouvelles opérations. Son historique restera lisible.'
-          : 'Cet instrument sera de nouveau proposé lors des nouvelles opérations.'}
+          ? t('investments.instruments.statusDialog.archiveText')
+          : t('investments.instruments.statusDialog.reactivateText')}
       </p>
-      {error ? <p role="alert">La modification est indisponible. Réessayez.</p> : null}
+      {error ? <p role="alert">{t('investments.instruments.statusDialog.error')}</p> : null}
       <ModalActions>
         {onCancel ? (
           <button className="secondary-action" type="button" onClick={onCancel}>
-            Annuler
+            {t('actions.cancel')}
           </button>
         ) : null}
         <button className="primary-action" disabled={pending} type="submit">
-          {pending ? 'Enregistrement…' : error ? 'Réessayer' : archive ? 'Archiver' : 'Réactiver'}
+          {pending
+            ? t('investments.instruments.form.saving')
+            : error
+              ? t('actions.retry')
+              : archive
+                ? t('investments.instruments.actions.archive')
+                : t('investments.instruments.actions.reactivate')}
         </button>
       </ModalActions>
     </ModalForm>

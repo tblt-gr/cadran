@@ -9,31 +9,39 @@ import styles from './ValuationDetailModal.module.css';
 
 /** Frozen lines; a TOTAL valuation keeps quantities but states that its prices are not detailed. */
 export function ValuationPositionsTable({ valuation }: { valuation: PortfolioValuation | null }) {
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const detailed = valuation?.detail === 'POSITIONS';
-  const notDetailed = <span>Non détaillé</span>;
+  const notDetailed = <span>{t('portfolio.valuations.lineQuality.NOT_DETAILED')}</span>;
 
   return (
-    <div className={styles.scroll} role="region" aria-label="Positions valorisées" tabIndex={0}>
-      <table aria-label="Positions valorisées" className={styles.positions}>
+    <div
+      className={styles.scroll}
+      role="region"
+      aria-label={t('portfolio.valuations.detailModal.valuedPositions')}
+      tabIndex={0}
+    >
+      <table
+        aria-label={t('portfolio.valuations.detailModal.valuedPositions')}
+        className={styles.positions}
+      >
         <thead>
           <tr>
-            <th scope="col">Instrument</th>
+            <th scope="col">{t('portfolio.valuations.positions.instrument')}</th>
             <th className={styles.number} scope="col">
-              Quantité
+              {t('portfolio.positions.quantity')}
             </th>
             <th className={styles.number} scope="col">
-              Prix
+              {t('portfolio.valuations.positions.price')}
             </th>
-            <th scope="col">Date du prix</th>
+            <th scope="col">{t('portfolio.valuations.positions.priceDate')}</th>
             <th className={styles.number} scope="col">
-              Âge
+              {t('portfolio.valuations.positions.age')}
             </th>
             <th className={styles.number} scope="col">
-              Valeur
+              {t('portfolio.positions.detail.value')}
             </th>
-            <th scope="col">Qualité</th>
+            <th scope="col">{t('portfolio.valuations.positions.quality')}</th>
           </tr>
         </thead>
         {valuation ? (
@@ -56,7 +64,7 @@ export function ValuationPositionsTable({ valuation }: { valuation: PortfolioVal
                   ) : line.unitPrice ? (
                     formatDecimal(line.unitPrice, locale)
                   ) : (
-                    <EmptyValue label="Prix inconnu" />
+                    <EmptyValue label={t('portfolio.valuations.positions.unknownPrice')} />
                   )}
                 </td>
                 <td>
@@ -65,23 +73,23 @@ export function ValuationPositionsTable({ valuation }: { valuation: PortfolioVal
                   ) : line.priceDate ? (
                     formatCalendarNumericDay(line.priceDate)
                   ) : (
-                    <EmptyValue label="Prix inconnu" />
+                    <EmptyValue label={t('portfolio.valuations.positions.unknownPrice')} />
                   )}
                 </td>
                 <td className={styles.number}>
                   {!detailed ? (
                     notDetailed
                   ) : line.priceAgeDays === null ? (
-                    <EmptyValue label="Prix inconnu" />
+                    <EmptyValue label={t('portfolio.valuations.positions.unknownPrice')} />
                   ) : (
-                    `${line.priceAgeDays} j`
+                    t('portfolio.valuations.positions.days', { count: line.priceAgeDays })
                   )}
                 </td>
                 <td className={styles.number}>
                   {line.marketValue ? (
                     `${formatDecimal(line.marketValue.value, locale)} ${line.marketValue.assetCode}`
                   ) : (
-                    <EmptyValue label="Non calculable" />
+                    <EmptyValue label={t('portfolio.valuations.common.notCalculable')} />
                   )}
                 </td>
                 <td>{lineQualityLabel[line.priceQuality]}</td>

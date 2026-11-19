@@ -96,7 +96,7 @@ export function InstrumentsPage() {
       />
       {staleNotice ? (
         <p className={styles.notice} role="status">
-          Cet instrument a déjà été modifié. La liste a été actualisée.
+          {t('investments.instruments.page.staleNotice')}
         </p>
       ) : null}
       {editor ? (
@@ -124,14 +124,20 @@ export function InstrumentsPage() {
         <InstrumentState
           error
           onRetry={() => void instruments.refetch()}
-          title="Les instruments sont indisponibles"
+          title={t('investments.instruments.page.unavailable')}
         />
       ) : total === 0 ? (
-        <InstrumentState title={query ? 'Aucun instrument trouvé' : 'Aucun instrument'}>
+        <InstrumentState
+          title={
+            query
+              ? t('investments.instruments.page.noneFound')
+              : t('investments.instruments.page.none')
+          }
+        >
           <>
             {!query ? (
               <button className="primary-action" onClick={() => setEditor('create')} type="button">
-                Créer le premier instrument
+                {t('investments.instruments.page.createFirst')}
               </button>
             ) : null}
           </>

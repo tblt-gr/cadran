@@ -3,6 +3,7 @@ import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   LifeInsuranceContract,
   LifeInsuranceContractInput,
@@ -23,6 +24,7 @@ export function ContractForm({
   error?: string;
   onSubmit: (input: LifeInsuranceContractInput) => void;
 }) {
+  const { t } = useTranslation();
   const [insurer, setInsurer] = useState(contract?.insurer ?? '');
   const [distributor, setDistributor] = useState(contract?.distributor ?? '');
   const [commercialName, setCommercialName] = useState(contract?.commercialName ?? '');
@@ -67,7 +69,7 @@ export function ContractForm({
       ) : null}
       <FormGrid>
         <label>
-          Assureur
+          {t('portfolio.lifeInsurance.contract.insurer')}
           <input
             data-autofocus
             required
@@ -78,7 +80,7 @@ export function ContractForm({
           />
         </label>
         <label>
-          Souscrit le
+          {t('portfolio.lifeInsurance.contract.subscribedOn')}
           <input
             type="date"
             required
@@ -89,7 +91,7 @@ export function ContractForm({
           />
         </label>
         <label>
-          Mode de gestion
+          {t('portfolio.lifeInsurance.contract.managementMode')}
           <select
             value={mode}
             onChange={(e) => setMode(e.target.value as LifeInsuranceManagementMode)}
@@ -102,9 +104,13 @@ export function ContractForm({
             ))}
           </select>
         </label>
-        <FormSection title="Champs avancés" open={advancedOpen} onToggle={setAdvancedOpen}>
+        <FormSection
+          title={t('portfolio.lifeInsurance.advancedFields')}
+          open={advancedOpen}
+          onToggle={setAdvancedOpen}
+        >
           <label>
-            Distributeur
+            {t('portfolio.lifeInsurance.contract.distributor')}
             <input
               maxLength={80}
               value={distributor}
@@ -113,7 +119,7 @@ export function ContractForm({
             />
           </label>
           <label>
-            Nom commercial
+            {t('portfolio.lifeInsurance.contract.commercialName')}
             <input
               maxLength={120}
               value={commercialName}
@@ -122,9 +128,9 @@ export function ContractForm({
             />
           </label>
           <label>
-            Numéro de contrat
+            {t('portfolio.lifeInsurance.contract.number')}
             <input
-              aria-label="Numéro de contrat"
+              aria-label={t('portfolio.lifeInsurance.contract.number')}
               aria-describedby={contract ? 'contract-number-hint' : undefined}
               autoComplete="off"
               minLength={4}
@@ -136,13 +142,16 @@ export function ContractForm({
             />
             {contract ? (
               <small id="contract-number-hint">
-                Actuel : {contract.contractNumberMasked ?? 'non renseigné'}. Laissez vide pour le
-                conserver.
+                {t('portfolio.lifeInsurance.contract.numberHint', {
+                  current:
+                    contract.contractNumberMasked ??
+                    t('portfolio.lifeInsurance.contract.numberNone'),
+                })}
               </small>
             ) : null}
           </label>
           <label>
-            Date fiscale du contrat
+            {t('portfolio.lifeInsurance.contract.taxStart')}
             <input
               type="date"
               max={today}
@@ -159,7 +168,7 @@ export function ContractForm({
                 onChange={(e) => setClearNumber(e.target.checked)}
                 disabled={pending}
               />
-              Effacer le numéro
+              {t('portfolio.lifeInsurance.contract.clearNumber')}
             </label>
           ) : null}
         </FormSection>
@@ -167,7 +176,7 @@ export function ContractForm({
 
       <ModalActions>
         <button className="primary-action" type="submit" disabled={pending}>
-          {pending ? 'Enregistrement…' : 'Enregistrer'}
+          {pending ? t('portfolio.lifeInsurance.saving') : t('portfolio.lifeInsurance.save')}
         </button>
       </ModalActions>
     </ModalForm>

@@ -1,4 +1,5 @@
 import type { PortfolioOverviewValuation } from '@cadran/api-client';
+import { useTranslation } from 'react-i18next';
 import { formatCalendarNumericDay } from '@/lib/decimal';
 import styles from './ValuationFallbackNotice.module.css';
 
@@ -10,11 +11,14 @@ export function ValuationFallbackNotice({
   selected: PortfolioOverviewValuation | null;
   newerPartial: PortfolioOverviewValuation | null;
 }) {
+  const { t } = useTranslation();
   if (!selected || !newerPartial) return null;
   return (
     <p className={styles.notice}>
-      Valorisation du {formatCalendarNumericDay(newerPartial.valuedOn)} partielle : valeurs du{' '}
-      {formatCalendarNumericDay(selected.valuedOn)} affichées.
+      {t('portfolio.valuations.fallbackNotice', {
+        partial: formatCalendarNumericDay(newerPartial.valuedOn),
+        shown: formatCalendarNumericDay(selected.valuedOn),
+      })}
     </p>
   );
 }

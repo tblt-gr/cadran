@@ -2,6 +2,7 @@ import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BusinessDateField } from '@/components/ui/business-date-field/BusinessDateField';
 import styles from './ValuationForm.module.css';
 
@@ -17,6 +18,7 @@ export function ValuationDateStep({
   today: string;
   value: string;
 }) {
+  const { t } = useTranslation();
   function submit(event: FormEvent) {
     event.preventDefault();
     onContinue();
@@ -26,17 +28,17 @@ export function ValuationDateStep({
     <ModalForm className={styles.form} noValidate onSubmit={submit}>
       <FormGrid>
         <BusinessDateField
-          hint="Les positions et les espèces sont celles détenues à cette date."
-          label="Date de valorisation"
+          hint={t('portfolio.valuations.dateStep.hint')}
+          label={t('portfolio.valuations.dateStep.label')}
           onChange={onChange}
-          resetLabel="Aujourd’hui"
+          resetLabel={t('transactions.list.today')}
           today={today}
           value={value}
         />
       </FormGrid>
       <ModalActions>
         <button className="primary-action" type="submit">
-          Continuer
+          {t('portfolio.valuations.dateStep.continue')}
         </button>
       </ModalActions>
     </ModalForm>

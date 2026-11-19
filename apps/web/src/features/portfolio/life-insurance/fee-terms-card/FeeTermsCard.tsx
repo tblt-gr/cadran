@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import type { LifeInsuranceFeeTerms } from '@cadran/api-client';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -5,6 +6,17 @@ import { formatAmount, formatDecimal, formatCalendarNumericDay } from '@/lib/dec
 import { SkeletonBlock, SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { ContractSection } from '@/features/portfolio/life-insurance/contract-section/ContractSection';
 import styles from './FeeTermsCard.module.css';
+const columnKeys = [
+  'from',
+  'entry',
+  'euroFund',
+  'unitLinked',
+  'switch',
+  'switchFixed',
+  'source',
+  'actions',
+] as const;
+
 export function FeeTermsCard({
   items = [],
   loading = false,
@@ -18,23 +30,27 @@ export function FeeTermsCard({
   onAdd: () => void;
   onRemove: (id: string) => void;
 }) {
+  const { t, i18n } = useTranslation();
+  const notProvided = <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />;
   const percent = (value: string | null) =>
-    value === null ? <EmptyValue label="Non renseigné" /> : `${formatDecimal(value, 'fr-FR')} %`;
+    value === null
+      ? notProvided
+      : t('portfolio.lifeInsurance.percent', { value: formatDecimal(value, i18n.language) });
   const latest = items.reduce<string | null>(
     (date, item) => (date === null || item.validFrom > date ? item.validFrom : date),
     null,
   );
   return (
     <ContractSection
-      title="Barèmes de frais"
-      label="Barèmes de frais"
+      title={t('portfolio.lifeInsurance.fees.title')}
+      label={t('portfolio.lifeInsurance.fees.title')}
       hint={
         loading ? (
           <SkeletonBlock className={styles.hintSkeleton} />
         ) : latest ? (
-          `dernier barème du ${formatCalendarNumericDay(latest)}`
+          t('portfolio.lifeInsurance.fees.hintLatest', { date: formatCalendarNumericDay(latest) })
         ) : (
-          'Aucun barème'
+          t('portfolio.lifeInsurance.fees.hintNone')
         )
       }
       action={
@@ -44,26 +60,22 @@ export function FeeTermsCard({
           disabled={loading || !writable}
           onClick={onAdd}
         >
-          Ajouter un barème
+          {t('portfolio.lifeInsurance.fees.add')}
         </button>
       }
     >
-      <div className={styles.scroll} role="region" aria-label="Barèmes de frais" tabIndex={0}>
+      <div
+        className={styles.scroll}
+        role="region"
+        aria-label={t('portfolio.lifeInsurance.fees.title')}
+        tabIndex={0}
+      >
         <table className={styles.table}>
           <thead>
             <tr>
-              {[
-                'À partir du',
-                'Versement',
-                'Gestion fonds euros',
-                'Gestion UC',
-                'Arbitrage',
-                'Arbitrage fixe',
-                'Source',
-                'Actions',
-              ].map((h) => (
-                <th scope="col" key={h}>
-                  {h}
+              {columnKeys.map((key) => (
+                <th scope="col" key={key}>
+                  {t(`portfolio.lifeInsurance.fees.columns.${key}`)}
                 </th>
               ))}
             </tr>
@@ -80,23 +92,23 @@ export function FeeTermsCard({
                   <td>{percent(item.unitLinkedManagementFeeRate)}</td>
                   <td>{percent(item.switchFeeRate)}</td>
                   <td>
-                    {item.switchFeeFixed ? (
-                      formatAmount(
-                        item.switchFeeFixed.value,
-                        item.switchFeeFixed.assetCode,
-                        'fr-FR',
-                      )
-                    ) : (
-                      <EmptyValue label="Non renseigné" />
-                    )}
+                    {item.switchFeeFixed
+                      ? formatAmount(
+                          item.switchFeeFixed.value,
+                          item.switchFeeFixed.assetCode,
+                          i18n.language,
+                        )
+                      : notProvided}
                   </td>
-                  <td>{item.sourceNote ?? <EmptyValue label="Non renseigné" />}</td>
+                  <td>{item.sourceNote ?? notProvided}</td>
                   <td>
                     <button
                       className="icon-ghost"
                       type="button"
                       disabled={!writable}
-                      aria-label={`Supprimer le barème du ${formatCalendarNumericDay(item.validFrom)}`}
+                      aria-label={t('portfolio.lifeInsurance.fees.remove', {
+                        date: formatCalendarNumericDay(item.validFrom),
+                      })}
                       onClick={() => onRemove(item.id)}
                     >
                       <Icon name="delete" size={16} />
@@ -108,7 +120,7 @@ export function FeeTermsCard({
           )}
         </table>
       </div>
-      {!loading && items.length === 0 ? <p>Aucun barème de frais renseigné.</p> : null}
+      {!loading && items.length === 0 ? <p>{t('portfolio.lifeInsurance.fees.empty')}</p> : null}
     </ContractSection>
   );
 }

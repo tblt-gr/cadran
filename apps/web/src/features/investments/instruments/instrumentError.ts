@@ -1,3 +1,5 @@
+import type { ParseKeys } from 'i18next';
+import type { TFunction } from 'i18next';
 import type { InstrumentCandidate, InstrumentProblem, Problem } from '@cadran/api-client';
 
 export class InstrumentRequestError extends Error {
@@ -29,31 +31,24 @@ const fieldMessages: Record<string, keyof InstrumentFieldErrors> = {
   invalid_instrument_ticker: 'ticker',
   invalid_instrument_venue: 'venueMic',
 };
-const fieldTexts: Record<keyof InstrumentFieldErrors, string> = {
-  isin: 'Cet ISIN est invalide.',
-  ticker: 'Ce ticker est invalide.',
-  venueMic: 'Ce code MIC est invalide.',
-};
-const messages: Record<string, string> = {
-  instrument_response_incompatible: 'La réponse de l’instrument est incompatible. Réessayez.',
-  stale_instrument_version:
-    'Cet instrument a été modifié ailleurs. Fermez cette fenêtre pour recharger la liste, puis réessayez.',
-  instrument_identity_locked:
-    'L’ISIN, la devise, les précisions et le type fonds en euros sont figés après la première utilisation.',
-  instrument_limit_reached: 'La limite d’instruments de cet espace est atteinte.',
-};
+const messageCodes = [
+  'instrument_response_incompatible',
+  'stale_instrument_version',
+  'instrument_identity_locked',
+  'instrument_limit_reached',
+];
 
-export function instrumentFieldErrors(error: unknown): InstrumentFieldErrors {
+export function instrumentFieldErrors(error: unknown, t: TFunction): InstrumentFieldErrors {
   if (!(error instanceof InstrumentRequestError) || !error.code) return {};
   const field = fieldMessages[error.code];
-  return field ? { [field]: fieldTexts[field] } : {};
+  return field ? { [field]: t(`investments.instruments.fieldErrors.${field}`) } : {};
 }
 
 /** General message for a save failure; duplicates and field errors are shown elsewhere. */
-export function instrumentSaveMessage(error: unknown): string | undefined {
+export function instrumentSaveMessage(error: unknown, t: TFunction): string | undefined {
   if (!error) return undefined;
   if (!(error instanceof InstrumentRequestError)) {
-    return 'La connexion a échoué. Vérifiez votre connexion puis réessayez.';
+    return t('investments.instruments.errors.connection');
   }
   if (
     error.code === 'instrument_duplicate_candidates' ||
@@ -62,9 +57,9 @@ export function instrumentSaveMessage(error: unknown): string | undefined {
   ) {
     return undefined;
   }
-  return (
-    (error.code && messages[error.code]) || 'La modification a été refusée. Vérifiez les champs.'
-  );
+  return error.code && messageCodes.includes(error.code)
+    ? t(`investments.instruments.errors.${error.code}` as ParseKeys)
+    : t('investments.instruments.errors.refused');
 }
 
 export function isStaleInstrumentError(error: unknown): boolean {

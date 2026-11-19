@@ -1,4 +1,5 @@
 import { usePerformanceColumns } from './performance-columns/PerformanceColumns';
+import { useTranslation } from 'react-i18next';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { PerformanceMonthCards } from './performance-month-cards/PerformanceMonthCards';
@@ -17,12 +18,13 @@ export function PerformanceTabSkeleton({
   selected?: string[];
   accountId?: string;
 }) {
+  const { t } = useTranslation();
   const stored = usePerformanceColumns(accountId);
   const visible = selected ?? stored.selected;
   const narrow = useMediaQuery('(max-width: 767px)');
   return (
     <div aria-busy="true" className={styles.tab} data-testid="performance-skeleton">
-      <SkeletonStatus>Chargement de la performance…</SkeletonStatus>
+      <SkeletonStatus>{t('portfolio.performance.loading')}</SkeletonStatus>
       <PerformanceToolbar
         bounds={null}
         onYearChange={() => undefined}

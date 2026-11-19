@@ -1,3 +1,4 @@
+import i18n from 'i18next';
 import { useEffect, useRef } from 'react';
 import type { PortfolioTab } from './portfolio-tabs/PortfolioTabs';
 /** Rebind a source link after its report tab returns, rather than focusing a detached node. */
@@ -30,10 +31,9 @@ export function usePortfolioSourceReturnFocus(active: PortfolioTab, asOf: string
         !document.querySelector('[role="dialog"]') &&
         document.activeElement === document.body
       ) {
+        const label = i18n.t('portfolio.account.tabs.label');
         document
-          .querySelector<HTMLElement>(
-            'nav[aria-label="Sections du portefeuille"] [aria-current="page"]',
-          )
+          .querySelector<HTMLElement>(`nav[aria-label="${label}"] [aria-current="page"]`)
           ?.focus();
       }
     });
