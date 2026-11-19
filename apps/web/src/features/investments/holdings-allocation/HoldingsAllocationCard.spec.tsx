@@ -94,7 +94,7 @@ describe('HoldingsAllocationCard', () => {
     expect(screen.getByRole('table', { name: 'Détail de la répartition' })).toBeTruthy();
   });
 
-  it('explains a signed allocation and still lists its values', () => {
+  it('notes the negative share left out of the donut and still lists its values', () => {
     const holdings = holdingsFixture();
     render(
       <HoldingsAllocationCard
@@ -110,7 +110,7 @@ describe('HoldingsAllocationCard', () => {
         }}
       />,
     );
-    expect(screen.getByRole('status').textContent).toContain('parts négatives');
+    expect(screen.getByRole('status').textContent).toContain('1 part négative ignorée');
     expect(screen.getByText('-20,00 %')).toBeTruthy();
   });
 

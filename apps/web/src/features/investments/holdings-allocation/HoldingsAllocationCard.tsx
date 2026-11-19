@@ -6,8 +6,10 @@ import {
   AllocationBreakdown,
   type AllocationBreakdownSlice,
 } from '@/components/ui/charts/allocation-breakdown/AllocationBreakdown';
-import { isSignedRatio } from '@/components/ui/charts/allocation-breakdown/isSignedRatio';
-import { decimalRatioForGeometry } from '@/lib/decimal';
+import {
+  geometrySize,
+  isNegativeRatio,
+} from '@/components/ui/charts/allocation-breakdown/signedRatio';
 import { sliceCaption } from '@/features/dashboard/allocation-charts/sliceCaption';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import { holdingsMoney } from '@/features/investments/holdingsFormat';
@@ -42,7 +44,7 @@ export function HoldingsAllocationCard({
     sliceLabel(criterion, slice, t('investments.allocation.unspecified'), t);
   const money = (value: string) => holdingsMoney(value, holdings!.assetCode, i18n.language);
   const charted = raw.length > 0 && raw.every((slice) => slice.share !== null);
-  const signed = raw.some((slice) => isSignedRatio(slice.share));
+  const ignored = raw.filter((slice) => isNegativeRatio(slice.share)).length;
 
   const slices: AllocationBreakdownSlice[] | null = holdings
     ? raw.map((slice) => ({
@@ -59,7 +61,7 @@ export function HoldingsAllocationCard({
           ),
         amountText: money(slice.value),
         shareText: slice.share === null ? null : formatRatioPercentage(slice.share, i18n.language),
-        size: charted && !signed ? decimalRatioForGeometry(slice.share!, '1') : null,
+        size: charted ? geometrySize(slice.share) : null,
         // Accounts valued as a total stand for no category: a neutral fill, no colour meaning.
         fill: slice.key === 'UNSPLIT' ? 'var(--text-muted)' : undefined,
       }))
@@ -76,13 +78,12 @@ export function HoldingsAllocationCard({
       criterion={criterion}
       donutLabel={t('investments.allocation.donut', { criterion: t(criterionNameKeys[criterion]) })}
       onCriterionChange={setChosen}
+      ignoredCount={ignored}
       slices={slices}
       status={
-        signed
-          ? { kind: 'signed' }
-          : charted
-            ? { kind: 'ready' }
-            : { kind: 'notCalculable', message: t('allocation.notCalculable') }
+        charted
+          ? { kind: 'ready' }
+          : { kind: 'notCalculable', message: t('allocation.notCalculable') }
       }
       title={t('allocation.title')}
       titleId="holdings-allocation-title"

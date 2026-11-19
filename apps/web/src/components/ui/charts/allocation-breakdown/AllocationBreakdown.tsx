@@ -21,7 +21,7 @@ export interface AllocationBreakdownSlice {
 }
 
 export type AllocationBreakdownStatus =
-  { kind: 'ready' } | { kind: 'notCalculable'; message: string } | { kind: 'signed' };
+  { kind: 'ready' } | { kind: 'notCalculable'; message: string };
 
 export interface AllocationBreakdownProps<C extends string> {
   title: string;
@@ -38,6 +38,8 @@ export interface AllocationBreakdownProps<C extends string> {
   notice?: ReactNode;
   headerExtra?: ReactNode;
   status?: AllocationBreakdownStatus;
+  /** Negative shares left out of the donut; the table still lists them. */
+  ignoredCount?: number;
 }
 
 /** The panel shared by every allocation: criterion control, donut and always-visible slice table. */
@@ -55,6 +57,7 @@ export function AllocationBreakdown<C extends string>({
   notice,
   headerExtra,
   status = { kind: 'ready' },
+  ignoredCount = 0,
 }: AllocationBreakdownProps<C>) {
   const { t } = useTranslation();
   const Heading = `h${headingLevel}` as const;
@@ -78,23 +81,34 @@ export function AllocationBreakdown<C extends string>({
       <div className={styles.body}>
         {loading ? (
           <SkeletonBlock className={styles.plotSkeleton} />
-        ) : status.kind === 'ready' && plotted.length > 0 ? (
-          <DonutPlot
-            label={donutLabel}
-            slices={plotted.map((slice) => ({
-              key: slice.key,
-              caption: slice.caption,
-              amountText: slice.amountText,
-              size: slice.size!,
-              fill: slice.fill,
-            }))}
-            totalText={totalText}
-          />
-        ) : status.kind === 'ready' ? null : (
+        ) : status.kind === 'notCalculable' ? (
           <p className={styles.note} role="status">
-            {status.kind === 'notCalculable' ? status.message : t('allocation.signed')}
+            {status.message}
           </p>
-        )}
+        ) : plotted.length > 0 ? (
+          <div className={styles.plotColumn}>
+            <DonutPlot
+              label={donutLabel}
+              slices={plotted.map((slice) => ({
+                key: slice.key,
+                caption: slice.caption,
+                amountText: slice.amountText,
+                size: slice.size!,
+                fill: slice.fill,
+              }))}
+              totalText={totalText}
+            />
+            {ignoredCount > 0 ? (
+              <p className={styles.note} role="status">
+                {t('allocation.ignored', { count: ignoredCount })}
+              </p>
+            ) : null}
+          </div>
+        ) : ignoredCount > 0 ? (
+          <p className={styles.note} role="status">
+            {t('allocation.signed')}
+          </p>
+        ) : null}
         {/* Nothing to list: the status above says so, an empty table would only repeat its head. */}
         {!loading && slices.length === 0 ? null : (
           <div

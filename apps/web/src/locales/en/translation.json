@@ -116,7 +116,9 @@
       "share": "Share"
     },
     "notCalculable": "Allocation not calculable",
-    "signed": "Chart unavailable: the allocation contains negative shares or shares above 100%. See the signed values in the table."
+    "signed": "Chart unavailable: no positive share to draw. See the signed values in the table.",
+    "ignored_one": "{{count}} negative share left out of the chart",
+    "ignored_other": "{{count}} negative shares left out of the chart"
   },
   "investments": {
     "loading": "Loading positions…",

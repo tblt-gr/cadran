@@ -6,7 +6,7 @@ import {
   type AllocationBreakdownProps,
   type AllocationBreakdownSlice,
 } from './AllocationBreakdown';
-import { isSignedRatio } from './isSignedRatio';
+import { geometrySize, isNegativeRatio } from './signedRatio';
 
 afterEach(cleanup);
 
@@ -86,10 +86,22 @@ describe('AllocationBreakdown', () => {
     expect(screen.getByRole('heading', { level: 2 })).toBeTruthy();
   });
 
-  it('draws no donut and explains a signed allocation while keeping the table', () => {
-    render(panel({ status: { kind: 'signed' } }));
-    expect(screen.getByRole('status').textContent).toContain('parts négatives');
-    expect(screen.queryByRole('img', { name: 'Répartition test' })).toBeNull();
+  it('notes the negative shares left out of the donut and keeps the table', () => {
+    render(panel({ ignoredCount: 2 }));
+    expect(screen.getByRole('status').textContent).toBe(
+      '2 parts négatives ignorées dans le graphique',
+    );
+    expect(screen.getByRole('table')).toBeTruthy();
+  });
+
+  it('makes the chart unavailable when no share is positive', () => {
+    render(
+      panel({
+        ignoredCount: 1,
+        slices: slices.map((slice) => ({ ...slice, size: null })),
+      }),
+    );
+    expect(screen.getByRole('status').textContent).toContain('aucune part positive');
     expect(screen.getByRole('table')).toBeTruthy();
   });
 
@@ -114,15 +126,25 @@ describe('AllocationBreakdown', () => {
   });
 });
 
-describe('isSignedRatio', () => {
+describe('signed ratios', () => {
   it.each([
     ['-0.01', true],
-    ['1.000000000000000000000001', true],
-    ['1', false],
     ['0', false],
     ['0.75', false],
+    ['1.5', false],
     [null, false],
-  ])('%s is %s', (ratio, expected) => {
-    expect(isSignedRatio(ratio)).toBe(expected);
+  ])('%s is negative: %s', (ratio, expected) => {
+    expect(isNegativeRatio(ratio)).toBe(expected);
+  });
+
+  it.each([
+    ['-0.2', null],
+    ['0', null],
+    [null, null],
+    ['0.25', 0.25],
+    ['1', 1],
+    ['1000000', 1],
+  ])('draws %s with the geometry %s', (ratio, expected) => {
+    expect(geometrySize(ratio)).toBe(expected);
   });
 });

@@ -7,9 +7,12 @@ import {
   type AllocationBreakdownSlice,
   type AllocationBreakdownStatus,
 } from '@/components/ui/charts/allocation-breakdown/AllocationBreakdown';
-import { isSignedRatio } from '@/components/ui/charts/allocation-breakdown/isSignedRatio';
+import {
+  geometrySize,
+  isNegativeRatio,
+} from '@/components/ui/charts/allocation-breakdown/signedRatio';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { decimalRatioForGeometry, formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
+import { formatAmount, formatCalendarNumericDay } from '@/lib/decimal';
 import { formatRatioPercentage, ratioToPercent } from '@/lib/formatRatioPercentage';
 import { sliceCaption } from '@/features/dashboard/allocation-charts/sliceCaption';
 import type { AllocationBy } from '@/features/portfolio/usePortfolioOverview';
@@ -53,9 +56,10 @@ export function AllocationCard({
     key === 'UNSPECIFIED'
       ? t('portfolio.allocation.unspecified')
       : ((allocation && groupNames[allocation.by]?.get(key)) ?? text);
-  const signed =
-    !!allocation &&
-    [...allocation.items, ...allocation.slices].some((item) => isSignedRatio(item.share));
+  // A negative share (a debit cash balance) stays in the table but is left out of the donut.
+  const ignored = allocation
+    ? allocation.items.filter((item) => isNegativeRatio(item.share)).length
+    : 0;
   const atCost = allocation?.basis === 'COST';
   const charted = new Map((allocation?.slices ?? []).map((item) => [item.key, item.share]));
 
@@ -74,15 +78,13 @@ export function AllocationCard({
             ),
           amountText: money(item.value),
           shareText: item.share === null ? null : formatRatioPercentage(item.share, i18n.language),
-          size: share === null || signed ? null : decimalRatioForGeometry(share, '1'),
+          size: geometrySize(share),
         };
       })
     : null;
 
   let status: AllocationBreakdownStatus = { kind: 'ready' };
-  if (allocation && signed) {
-    status = { kind: 'signed' };
-  } else if (allocation && allocation.slices.length === 0) {
+  if (allocation && allocation.slices.length === 0 && ignored === 0) {
     status = {
       kind: 'notCalculable',
       message:
@@ -127,6 +129,7 @@ export function AllocationCard({
       }
       onCriterionChange={onByChange}
       slices={slices}
+      ignoredCount={ignored}
       status={status}
       title={title ?? t('allocation.title')}
       titleId="portfolio-allocation-title"

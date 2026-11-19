@@ -73,3 +73,9 @@
   display: grid;
   gap: var(--spacing-1);
 }
+
+.plotColumn {
+  display: grid;
+  min-width: 0;
+  gap: var(--spacing-2);
+}

@@ -116,7 +116,9 @@
       "share": "Part"
     },
     "notCalculable": "Répartition non calculable",
-    "signed": "Graphique indisponible : la répartition contient des parts négatives ou supérieures à 100 %. Consultez les valeurs signées du tableau."
+    "signed": "Graphique indisponible : aucune part positive à dessiner. Consultez les valeurs signées du tableau.",
+    "ignored_one": "{{count}} part négative ignorée dans le graphique",
+    "ignored_other": "{{count}} parts négatives ignorées dans le graphique"
   },
   "investments": {
     "loading": "Chargement des positions…",
