@@ -12,7 +12,6 @@
 
 <hr>
 <p align="center">
-<a href="#status">Status</a> &bull;
 <a href="#features">Features</a> &bull;
 <a href="#security">Security</a> &bull;
 <a href="#stack">Stack</a> &bull;
@@ -31,19 +30,6 @@
 Cadran Budget replaces an annual budget and wealth spreadsheet with a responsive application on
 your own server. Financial calculations use exact decimals and expose their sources and data
 quality; unavailable results stay explicitly unavailable.
-
-## Status
-
-Version 1.0.0 is the first MVP release. Releases 0.1.0 to 0.7.0 delivered the application
-foundation, accounts, transactions, budgets and closing, reports, goals, manual portfolios and
-multi-support life insurance; 1.0.0 completes the operational side with encrypted backups, guarded
-restoration, safe upgrades and an installable PWA. Importing historical data is not part of 1.0.0;
-a generic import assistant is planned for a later release. Always install a published release
-rather than `main`, and read the [changelog](./CHANGELOG.md) before using personal data.
-
-This is a single-owner application. Generic imports, exports, tax tracking, bank synchronization,
-shared workspaces, live market prices, payment initiation and financial advice are outside the MVP.
-It does not produce official tax returns. There is no native mobile application.
 
 ## Features
 
