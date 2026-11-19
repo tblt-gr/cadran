@@ -74,6 +74,8 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
   and portfolio operations, an icon and a label on every page header action, a back arrow on
   phone detail pages and a five-icon mobile navigation bar (#551, #552, #554, #635, #667, #669,
   #679, #681, #689, #691, #692, #693).
+- Show the date of the net worth card under its title, and draw the curve charts with more dashed
+  level lines and axis figures, in a quieter axis color.
 - Reorder the primary navigation around accounts, put the budget after home, make the monthly
   budget the entry point for transactions and move the monthly closure into its overflow menu
   (#349, #458, #476, #510).

@@ -41,6 +41,9 @@ export function DashboardPageSkeleton({
           </div>
         </div>
         <div>
+          <p className={cardStyles.asOf}>
+            <SkeletonBlock className={styles.asOf} />
+          </p>
           <div className={cardStyles.figureRow}>
             <SkeletonBlock className={styles.amount} />
             <AmountVisibilityToggle disabled />

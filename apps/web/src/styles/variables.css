@@ -26,7 +26,10 @@
   --bg-mobile-navigation: #0d0d0f;
   --border-subtle: rgba(255, 255, 255, 0.07);
   --border-strong: rgba(255, 255, 255, 0.12);
-  --chart-grid: rgba(255, 255, 255, 0.05);
+  --chart-grid: rgba(255, 255, 255, 0.09);
+  --chart-grid-dash: 4 4;
+  /* Dates and figures of a chart axis: one step under muted, still 4.6:1 on --bg-surface-1. */
+  --chart-axis-text: #7d7d86;
   /* Flat states, no gloss: the selected row is one surface step up, the primary action is a
      platinum fill. Depth comes from the step and the hairline, never from a gradient. */
   --bg-selected: #1c1c20;

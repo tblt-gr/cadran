@@ -5,6 +5,13 @@
   margin-top: var(--spacing-3);
 }
 
+.asOf {
+  display: block;
+  width: calc(var(--spacing-12) * 2);
+  max-width: 100%;
+  height: var(--font-size-meta);
+}
+
 .freshness {
   width: calc(var(--spacing-12) * 4);
   max-width: 100%;

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { useMediaQuery } from '@/hooks/use-media-query';
 import { datePosition, plotRuns, smoothPath, stepAfterPath, type PlotPoint } from './plotGeometry';
-import { AREA, nearestByX, plotX, tickIndices, tooltipEdge, yExtent } from './plotLayout';
+import { AREA, nearestByX, plotX, tickIndices, tooltipEdge, yLevels } from './plotLayout';
 import styles from './CurveChart.module.css';
 
 export interface CurvePoint {
@@ -95,7 +95,7 @@ export function CurveChart({
     dates,
   );
   const placed = runs.flat();
-  const yTicks = yExtent(placed);
+  const yTicks = yLevels(placed);
   const selectedIndex = selectedKey === null ? -1 : points.findIndex((p) => p.key === selectedKey);
   const shownIndex = activeIndex ?? (selectedIndex >= 0 ? selectedIndex : null);
   const active =
@@ -179,7 +179,7 @@ export function CurveChart({
             </linearGradient>
           </defs>
           <g className={styles.grid}>
-            <path d={`M0 30H${AREA.width}M0 90H${AREA.width}`} />
+            <path d={yTicks.map((tick) => `M0 ${tick.y}H${AREA.width}`).join('')} />
           </g>
           {runs.map((run) => {
             const line = linePath(run);
