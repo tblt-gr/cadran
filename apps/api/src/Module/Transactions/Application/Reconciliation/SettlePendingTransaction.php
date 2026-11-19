@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Reconciliation;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Domain\AssetAmount;
+use App\Module\Transactions\Application\BalanceFloorDeltas;
 use App\Module\Transactions\Application\Recurrence\MatchTransactionToOccurrence;
 use App\Module\Transactions\Application\StaleTransactionVersion;
 use App\Module\Transactions\Application\TransactionAuditEvents;
@@ -43,6 +45,7 @@ final readonly class SettlePendingTransaction
         private RecordAuditEvent $recordAuditEvent,
         private MatchTransactionToOccurrence $matchRecurrence,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -88,6 +91,7 @@ final readonly class SettlePendingTransaction
         } catch (InvalidTransaction $exception) {
             throw new TransactionConflict('The incoming movement cannot settle this transaction.', previous: $exception);
         }
+        ($this->assertBalance)($candidate->workspace, BalanceFloorDeltas::replacement($candidate, $settled));
         try {
             $written = $this->transactions->update($settled, $candidate->version);
         } catch (DuplicateSourceReference $exception) {

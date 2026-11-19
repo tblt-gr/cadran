@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -40,6 +41,7 @@ final readonly class UpdateTransaction
         private MatchTransactionToOccurrence $matchRecurrence,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -145,6 +147,7 @@ final readonly class UpdateTransaction
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The requested transaction edit is invalid.', previous: $exception);
             }
+            ($this->assertBalance)($context->workspace, BalanceFloorDeltas::replacement($current, $updated));
             if (!$this->transactions->update($updated, $current->version)) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');
             }

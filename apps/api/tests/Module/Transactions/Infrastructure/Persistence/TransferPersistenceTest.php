@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Transactions\Infrastructure\Persistence;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
+use App\Module\Accounts\Infrastructure\Persistence\DbalAccountBalanceSnapshotRepository;
 use App\Module\Accounts\Infrastructure\Persistence\DbalAccountRepository;
 use App\Module\Accounts\Infrastructure\Persistence\DbalPeriodClosureRepository;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -28,9 +30,11 @@ use App\Module\Transactions\Application\TransferPortfolioSync;
 use App\Module\Transactions\Application\TransferReferences;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionRepository;
+use App\Module\Transactions\Infrastructure\Persistence\DbalBalanceMovementReader;
 use App\Module\Transactions\Infrastructure\Persistence\DbalRefundRepository;
 use App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository;
 use App\Module\Transactions\Infrastructure\Persistence\DbalTransferRepository;
+use App\Tests\Module\Accounts\Application\Double\AlwaysInteractive;
 use App\Tests\Module\Accounts\Application\Double\SequenceUuidGenerator;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -91,6 +95,12 @@ final class TransferPersistenceTest extends KernelTestCase
             clock: $clock,
             calendar: new WorkspaceCalendar($clock, $caller, new DbalWorkspaceTimezoneReader($this->connection)),
             assertPeriodOpen: new AssertPeriodOpen(new DbalPeriodClosureRepository($this->connection)),
+            assertBalance: new AssertAccountBalanceNonNegative(
+                new DbalAccountRepository($this->connection),
+                new DbalAccountBalanceSnapshotRepository($this->connection),
+                new DbalBalanceMovementReader($this->connection),
+                new AlwaysInteractive(),
+            ),
             portfolioSync: new class implements TransferPortfolioSync {
                 public function __invoke(WorkspaceScope $workspace, Transaction $source, Transaction $target): void
                 {

@@ -13,6 +13,7 @@ import { RefundEditor } from '@/features/transactions/refund-editor/RefundEditor
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import type { Editor } from '@/features/transactions/transactionEditorState';
 import {
+  transactionErrorDay,
   transactionErrorDetail,
   transactionErrorKind,
   type TransactionErrorKind,
@@ -82,6 +83,7 @@ export function TransactionModals({
           onSaved={onTransferSaved}
           pending={transferSave.isPending}
           submitError={transactionErrorKind(transferSave.error, transferSave.isError)}
+          submitErrorDay={transactionErrorDay(transferSave.error)}
         />
       ) : null}
 
@@ -93,6 +95,7 @@ export function TransactionModals({
           onSubmit={(body) => save.mutate(body)}
           pending={save.isPending}
           submitError={submitError}
+          submitErrorDay={transactionErrorDay(save.error)}
           submitErrorDetail={transactionErrorDetail(save.error)}
           transaction={editor === 'create' ? undefined : editor}
         />
@@ -114,6 +117,7 @@ export function TransactionModals({
             onConfirm={() => voidMutation.mutate(voiding)}
             pending={voidMutation.isPending}
             submitError={voidError}
+            submitErrorDay={transactionErrorDay(voidMutation.error)}
             submitErrorDetail={transactionErrorDetail(voidMutation.error)}
             transaction={voiding}
           />

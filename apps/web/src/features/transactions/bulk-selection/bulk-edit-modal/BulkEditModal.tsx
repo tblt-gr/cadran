@@ -16,6 +16,7 @@ import { BulkEditRow } from './BulkEditRow';
 import { BulkMoveRows } from './bulk-move-rows/BulkMoveRows';
 import { BulkMovePreview } from './bulk-move-preview/BulkMovePreview';
 import { BulkEditResultView } from './BulkEditResult';
+import { InsufficientBalanceMessage } from '@/features/transactions/insufficient-balance/InsufficientBalanceMessage';
 import { BulkLabelField } from './BulkLabelField';
 import {
   EMPTY_DRAFT,
@@ -202,9 +203,13 @@ export function BulkEditModal({ close, pageItems, reloadAfterWrite, scope }: Bul
           <p className={styles.note}>{t('transactions.bulk.note')}</p>
           {error ? (
             <p className={styles.error} role="alert">
-              {t(`transactions.bulk.errors.${error.kind}`, {
-                count: error.actualCount ?? undefined,
-              })}
+              {error.kind === 'insufficientBalance' && error.firstNegativeOn ? (
+                <InsufficientBalanceMessage date={error.firstNegativeOn} />
+              ) : (
+                t(`transactions.bulk.errors.${error.kind}`, {
+                  count: error.actualCount ?? undefined,
+                })
+              )}
             </p>
           ) : null}
           <ModalActions>

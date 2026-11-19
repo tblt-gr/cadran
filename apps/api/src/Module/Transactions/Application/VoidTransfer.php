@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AccountBalanceDelta;
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -27,6 +29,7 @@ final readonly class VoidTransfer
         private PresentTransfer $presentTransfer,
         private ClockInterface $clock,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
         private TransferPortfolioSync $portfolioSync,
     ) {
     }
@@ -56,6 +59,14 @@ final readonly class VoidTransfer
             $legIds = array_filter([$current->sourceTransactionId, $current->targetTransactionId, $current->feeTransactionId]);
             sort($legIds);
             $voidedLegs = [];
+            $deltas = [];
+            foreach ($legIds as $legId) {
+                $leg = $this->transactions->findForUpdate($context->workspace, $legId);
+                if (null !== $leg) {
+                    $deltas = [...$deltas, ...BalanceFloorDeltas::removal($leg, AccountBalanceDelta::FIELD_SOURCE_AMOUNT)];
+                }
+            }
+            ($this->assertBalance)($context->workspace, $deltas);
             $sourceLegBefore = null;
             $sourceLegAfter = null;
             $targetLegAfter = null;

@@ -15,7 +15,10 @@ import { useBulkSelection } from '@/features/transactions/bulk-selection/useBulk
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import { TransactionWorkflow } from '@/features/transactions/transaction-workflow/TransactionWorkflow';
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
-import { transactionErrorKind } from '@/features/transactions/transactionError';
+import {
+  transactionErrorDay,
+  transactionErrorKind,
+} from '@/features/transactions/transactionError';
 import { AccountMovementsSection } from '@/features/accounts/account-detail/account-movements-section/AccountMovementsSection';
 import { useAccountMovements } from '@/features/accounts/account-detail/account-movements/useAccountMovements';
 import { useAccountDetailMutations } from '@/features/accounts/account-detail/useAccountDetailMutations';
@@ -127,6 +130,7 @@ export function AccountLedger({
           onSubmit={(body) => saveTransaction.mutate(body as CreateTransactionRequest)}
           pending={saveTransaction.isPending}
           submitError={transactionErrorKind(saveTransaction.error, saveTransaction.isError)}
+          submitErrorDay={transactionErrorDay(saveTransaction.error)}
         />
       ) : null}
 
@@ -140,6 +144,7 @@ export function AccountLedger({
           refreshError={refreshError}
           pending={saveTransfer.isPending}
           submitError={transactionErrorKind(saveTransfer.error, saveTransfer.isError)}
+          submitErrorDay={transactionErrorDay(saveTransfer.error)}
         />
       ) : null}
 

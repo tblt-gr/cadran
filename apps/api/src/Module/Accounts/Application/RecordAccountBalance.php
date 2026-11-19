@@ -42,6 +42,7 @@ final readonly class RecordAccountBalance
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -71,6 +72,8 @@ final readonly class RecordAccountBalance
                 $snapshot->asOf,
                 BalanceSnapshotSource::MANUAL,
             );
+
+            $this->assertBalance->assertDeclared($context->workspace, $account, $snapshot->asOf, $snapshot->amount->value, $current?->id);
 
             if (null !== $current) {
                 if (null === $input->version) {

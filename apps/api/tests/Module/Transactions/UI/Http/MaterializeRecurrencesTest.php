@@ -99,6 +99,23 @@ final class MaterializeRecurrencesTest extends WebTestCase
         self::assertNull($this->instalment('2026-12-05')['generated_transaction_id']);
     }
 
+    public function testAPlannedInstalmentIsNeverRefusedForALowBalance(): void
+    {
+        $this->connection->insert('account_balance_snapshots', [
+            'id' => '00000000-0000-7000-8000-000000960001',
+            'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => self::OWN_ACCOUNT, 'as_of' => '2026-11-01',
+            'amount_value' => '100.00', 'amount_literal' => '100.00', 'amount_asset' => 'EUR',
+            'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'comment' => null, 'version' => 1,
+            'recorded_at' => '2026-11-02 00:00:00+00', 'recorded_by' => WorkspaceFixture::OWNER_ID, 'superseded_at' => null,
+        ]);
+
+        $this->createRecurrence(['autoCreate' => true]);
+
+        $transactions = $this->transactions();
+        self::assertCount(1, $transactions);
+        self::assertSame('-850.00', $transactions[0]['amount']);
+    }
+
     public function testARerunCreatesAndBooksNothing(): void
     {
         $this->createRecurrence(['autoCreate' => true]);

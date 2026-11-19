@@ -50,6 +50,8 @@ final readonly class CreateTransactionInput
          * created for is linked explicitly, never guessed by the matcher.
          */
         public bool $matchRecurrence = true,
+        /** False for a row the recurrence job plans: it records a planned fact, never a refused spend. */
+        public bool $guardBalance = true,
     ) {
     }
 }

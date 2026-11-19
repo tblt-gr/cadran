@@ -1,0 +1,29 @@
+description: >-
+  Raised when an interactive write would create or deepen a negative balance on
+  a current, savings or cash account. The document carries the account, the
+  input to blame and the first day the balance would be negative, never an
+  amount. Nothing is written.
+allOf:
+  - $ref: ./Problem.yaml
+  - type: object
+    required:
+      - accountId
+      - field
+      - firstNegativeOn
+    properties:
+      type:
+        const: /problems/account-balance-insufficient
+      status:
+        const: 422
+      accountId:
+        type: string
+        format: uuid
+      field:
+        type: string
+        description: The request input to flag.
+        enum:
+          - amount
+          - sourceAmount
+      firstNegativeOn:
+        type: string
+        format: date

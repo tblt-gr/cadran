@@ -57,11 +57,15 @@ post:
       description: >-
         The transaction is a transfer leg or its fee (`type:
         /problems/transaction-belongs-to-transfer`).
+        A write that would put a current, savings or cash account below zero is
+        refused (`type: /problems/account-balance-insufficient`, with `accountId`,
+        `field` and `firstNegativeOn`) and writes nothing.
       content:
         application/problem+json:
           schema:
             oneOf:
               - $ref: ../components/schemas/Problem.yaml
               - $ref: ../components/schemas/TransactionBelongsToTransferProblem.yaml
+              - $ref: ../components/schemas/AccountBalanceInsufficientProblem.yaml
     '500':
       $ref: ../components/responses/InternalServerError.yaml

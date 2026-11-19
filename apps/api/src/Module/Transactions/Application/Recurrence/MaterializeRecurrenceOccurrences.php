@@ -137,7 +137,7 @@ final readonly class MaterializeRecurrenceOccurrences
                 paymentMethod: $recurrence->paymentMethod?->value, mcc: null, maskedCard: null, bankReference: null,
                 categoryId: $recurrence->categoryId, splits: null,
                 source: TransactionSource::RECURRENCE->value, sourceRef: $occurrence->id,
-                reconcile: false, automation: true, matchRecurrence: false,
+                reconcile: false, automation: true, matchRecurrence: false, guardBalance: false,
             ));
         } catch (PeriodClosed) {
             ++$tally->skippedClosedPeriod;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -51,6 +52,7 @@ final readonly class BulkEditTransactions
         private RecordAuditEvent $recordAuditEvent,
         private UuidGenerator $uuidGenerator,
         private ClockInterface $clock,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -92,6 +94,15 @@ final readonly class BulkEditTransactions
             // Recomputed from the rows as they are now that they are locked: any edit since the preview shows.
             if ($changes->moves() && !$this->previewTokens->accepts($input->previewToken, $context->workspace, $ids, $changes, $evaluation->eligibleVersions())) {
                 throw new BulkPreviewStale();
+            }
+
+            if ($changes->moves()) {
+                // The whole batch is judged at once and refused as a whole, before any row is written.
+                $deltas = [];
+                foreach ($evaluation->eligible as $current) {
+                    $deltas = [...$deltas, ...BalanceFloorDeltas::replacement($current, $current->moved($changes->accountId, $changes->bookedOn))];
+                }
+                ($this->assertBalance)($context->workspace, $deltas);
             }
 
             $now = $this->clock->now();

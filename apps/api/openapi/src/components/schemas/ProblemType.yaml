@@ -12,6 +12,10 @@ oneOf:
   - const: /problems/account-balance-conflict
     description: >-
       A balance snapshot already exists for the account and date.
+  - const: /problems/account-balance-insufficient
+    description: >-
+      The write would put a current, savings or cash account below zero; the
+      extension members name the account, the input and the first negative day.
   - const: /problems/account-group-archived
     description: >-
       The account group is archived and cannot be changed.

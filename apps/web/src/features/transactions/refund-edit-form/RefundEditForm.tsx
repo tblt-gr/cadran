@@ -26,6 +26,7 @@ interface Props {
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDay?: string | null;
   submitErrorDetail?: string | null;
 }
 
@@ -35,6 +36,7 @@ export function RefundEditForm({
   onSubmit,
   pending,
   submitError,
+  submitErrorDay,
   submitErrorDetail,
 }: Props) {
   const { t } = useTranslation();
@@ -95,6 +97,7 @@ export function RefundEditForm({
           className={styles.alert}
           accountId={values.accountId}
           kind={submitError}
+          day={submitErrorDay}
           detail={submitErrorDetail}
         />
       ) : null}

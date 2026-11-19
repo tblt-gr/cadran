@@ -4,6 +4,7 @@ import { classifyProblem } from '@/lib/apiProblem';
 
 export type TransactionErrorKind =
   | 'conflict'
+  | 'insufficientBalance'
   | 'invalid'
   | 'network'
   | 'periodClosed'
@@ -22,16 +23,28 @@ export class TransactionRequestError extends Error {
   readonly kind: TransactionErrorKind;
   /** The server's own translated explanation, when the response carried one. */
   readonly detail: string | undefined;
+  /** For an insufficient balance: the request input to flag, and the first day the balance would be negative. */
+  readonly field: 'amount' | 'sourceAmount' | undefined;
+  readonly firstNegativeOn: string | undefined;
 
   constructor(status: number, problem: Problem | undefined) {
     super(`Transaction request failed with status ${status}.`);
     this.status = status;
     this.kind = classifyProblem(status, problem?.type, PROBLEM_KINDS);
     this.detail = problem?.detail;
+    const extension = problem as (Problem & Partial<BalanceExtension>) | undefined;
+    this.field = extension?.field;
+    this.firstNegativeOn = extension?.firstNegativeOn;
   }
 }
 
+interface BalanceExtension {
+  field: 'amount' | 'sourceAmount';
+  firstNegativeOn: string;
+}
+
 const PROBLEM_KINDS: Record<string, TransactionErrorKind> = {
+  '/problems/account-balance-insufficient': 'insufficientBalance',
   '/problems/period-closed': 'periodClosed',
   '/problems/portfolio-account-requires-operations': 'portfolioOperationsRequired',
   '/problems/transaction-conflict': 'conflict',
@@ -61,4 +74,9 @@ export function transactionErrorKind(
 /** The server's own explanation, when the error carried one - e.g. a refund's exact remaining balance. */
 export function transactionErrorDetail(error: unknown): string | null {
   return error instanceof TransactionRequestError ? (error.detail ?? null) : null;
+}
+
+/** The first day an insufficient-balance refusal puts the account below zero (ISO 8601), when the error carried it. */
+export function transactionErrorDay(error: unknown): string | null {
+  return error instanceof TransactionRequestError ? (error.firstNegativeOn ?? null) : null;
 }

@@ -68,6 +68,9 @@ post:
         An income, expense, refund or fee on an account followed in portfolio
         mode is refused (`type:
         /problems/portfolio-account-requires-operations`).
+        A write that would put a current, savings or cash account below zero is
+        refused (`type: /problems/account-balance-insufficient`, with `accountId`,
+        `field` and `firstNegativeOn`) and writes nothing.
       content:
         application/problem+json:
           schema:
@@ -75,5 +78,6 @@ post:
               - $ref: ../components/schemas/Problem.yaml
               - $ref: ../components/schemas/AmountInputProblem.yaml
               - $ref: ../components/schemas/PortfolioAccountRequiresOperationsProblem.yaml
+              - $ref: ../components/schemas/AccountBalanceInsufficientProblem.yaml
     '500':
       $ref: ../components/responses/InternalServerError.yaml

@@ -5513,7 +5513,7 @@ export type MetricPolicyProblem = Problem & {
 /**
  * Every RFC 9457 problem type the API returns, with the situation that produces it. A client branches on this value. `about:blank` is used when the HTTP status alone describes the problem.
  */
-export type ProblemType = 'about:blank' | '/problems/account-archived' | '/problems/account-balance-conflict' | '/problems/account-group-archived' | '/problems/account-group-label-taken' | '/problems/account-label-taken' | '/problems/account-not-life-insurance' | '/problems/account-not-portfolio' | '/problems/account-rule-override-conflict' | '/problems/activation-limit' | '/problems/amount.asset_precision_exceeded' | '/problems/amount.asset_unknown' | '/problems/amount.missing' | '/problems/amount.not_a_string' | '/problems/amount.not_canonical' | '/problems/amount.precision_exceeded' | '/problems/cash-amount-too-large' | '/problems/cash-range-too-dense' | '/problems/cash-range-too-large' | '/problems/category-operation-refused' | '/problems/common-password' | '/problems/composition-too-large' | '/problems/corporate-action-without-position' | '/problems/correction_reason_required' | '/problems/correction_span_exceeded' | '/problems/csrf-token' | '/problems/duplicate-leg-instrument' | '/problems/emergency_fund_forbidden' | '/problems/emergency_fund_scope_too_large' | '/problems/euro-fund-price-fixed' | '/problems/euro-fund-rate-exists' | '/problems/euro-fund-rate-limit-reached' | '/problems/euro-fund-rate-not-found' | '/problems/fee-terms-exist' | '/problems/fee-terms-limit-reached' | '/problems/full-surrender-not-balanced' | '/problems/full-surrender-positions-remaining' | '/problems/future_emergency_fund_as_of' | '/problems/future_goal_month' | '/problems/goal_forbidden' | '/problems/goal_identity_immutable' | '/problems/goal_not_found' | '/problems/goal_precondition_required' | '/problems/holdings-too-large' | '/problems/idempotency.in_flight' | '/problems/idempotency.invalid' | '/problems/idempotency.key_reused' | '/problems/idempotency.required' | '/problems/instrument-already-active' | '/problems/instrument-already-inactive' | '/problems/instrument-currency-mismatch' | '/problems/instrument-duplicate-candidates' | '/problems/instrument-field-not-allowed' | '/problems/instrument-forbidden' | '/problems/instrument-identifier-required' | '/problems/instrument-identity-locked' | '/problems/instrument-inactive' | '/problems/instrument-isin-exists' | '/problems/instrument-limit-reached' | '/problems/instrument-not-euro-fund' | '/problems/instrument-not-found' | '/problems/invalid-account-group-anchor' | '/problems/invalid-allocation-by' | '/problems/invalid-as-of' | '/problems/invalid-cash-query' | '/problems/invalid-contract-date' | '/problems/invalid-contract-field' | '/problems/invalid-corporate-action' | '/problems/invalid-current-password' | '/problems/invalid-display-name' | '/problems/invalid-euro-fund-rate' | '/problems/invalid-fee-rate' | '/problems/invalid-fee-terms-date' | '/problems/invalid-history-range' | '/problems/invalid-holdings-query' | '/problems/invalid-instrument-classification' | '/problems/invalid-instrument-isin' | '/problems/invalid-instrument-name' | '/problems/invalid-instrument-payload' | '/problems/invalid-instrument-precision' | '/problems/invalid-instrument-query' | '/problems/invalid-instrument-ticker' | '/problems/invalid-instrument-type' | '/problems/invalid-instrument-venue' | '/problems/invalid-interest-basis' | '/problems/invalid-leg-direction' | '/problems/invalid-life-insurance-payload' | '/problems/invalid-operation-amount' | '/problems/invalid-operation-date' | '/problems/invalid-operation-payload' | '/problems/invalid-operation-quantity' | '/problems/invalid-operation-query' | '/problems/invalid-operation-text' | '/problems/invalid-operation-type' | '/problems/invalid-operation-version' | '/problems/invalid-performance-period' | '/problems/invalid-performance-scope' | '/problems/invalid-portfolio-takeover' | '/problems/invalid-position-query' | '/problems/invalid-price-date' | '/problems/invalid-report-year' | '/problems/invalid-settlement-date' | '/problems/invalid-summary-date' | '/problems/invalid-surrender-amounts' | '/problems/invalid-valuation-date' | '/problems/invalid-valuation-detail' | '/problems/invalid-valuation-payload' | '/problems/invalid-valuation-price' | '/problems/invalid-valuation-query' | '/problems/invalid-valuation-total' | '/problems/invalid-year' | '/problems/invalid-year-range' | '/problems/invalid_effective_month' | '/problems/invalid_emergency_fund_as_of' | '/problems/invalid_emergency_fund_category' | '/problems/invalid_emergency_fund_policy' | '/problems/invalid_goal_batch' | '/problems/invalid_goal_direction' | '/problems/invalid_goal_metric_scope' | '/problems/invalid_goal_month' | '/problems/invalid_goal_period' | '/problems/invalid_goal_query' | '/problems/invalid_goal_ratio' | '/problems/invalid_goal_schedule' | '/problems/invalid_goal_target' | '/problems/invalid_goal_tolerance' | '/problems/invalid_goal_value_type' | '/problems/invalid_goal_year' | '/problems/invalid_schedule_preview' | '/problems/invalid_target_amount' | '/problems/invalid_target_months' | '/problems/invalid_target_ratio' | '/problems/invalid_trailing_months' | '/problems/leg-amount-mismatch' | '/problems/life-insurance-contract-closed' | '/problems/life-insurance-contract-exists' | '/problems/life-insurance-contract-not-found' | '/problems/life-insurance-contract-required' | '/problems/life-insurance-fee-terms-not-found' | '/problems/linear_schedule_impossible' | '/problems/linked-transfer-mismatch' | '/problems/linked-transfer-taken' | '/problems/lists.forbidden' | '/problems/lists.invalid_revision' | '/problems/lists.revision_stale' | '/problems/monthly-ledger-scope-too-large' | '/problems/monthly-projection-scope-too-large' | '/problems/net-worth-scope-too-large' | '/problems/operation-amount-mismatch' | '/problems/operation-asset-mismatch' | '/problems/operation-field-not-allowed' | '/problems/operation-field-required' | '/problems/operation-limit-reached' | '/problems/operation-type-not-allowed-for-account' | '/problems/operation-voided' | '/problems/operations-after-full-surrender' | '/problems/performance-range-too-dense' | '/problems/period-closed' | '/problems/period-closing-blocked' | '/problems/period-closure-conflict' | '/problems/policy-already-active' | '/problems/policy-definition-exists' | '/problems/policy-version-limit' | '/problems/portfolio-account-inactive' | '/problems/portfolio-account-not-found' | '/problems/portfolio-account-requires-operations' | '/problems/portfolio-account-valued-by-portfolio' | '/problems/portfolio-forbidden' | '/problems/portfolio-instrument-not-found' | '/problems/portfolio-operation-conflict' | '/problems/portfolio-operation-not-found' | '/problems/portfolio-takeover-exists' | '/problems/portfolio-takeover-not-empty' | '/problems/portfolio-takeover-not-supported' | '/problems/portfolio-valuation-conflict' | '/problems/portfolio-valuation-not-found' | '/problems/position-would-go-negative' | '/problems/premium-allocation-exceeds-net' | '/problems/price-precision-exceeded' | '/problems/product-model-archived' | '/problems/product-model-name-taken' | '/problems/quantity-precision-exceeded' | '/problems/range-too-large' | '/problems/recurrences.archived' | '/problems/recurrences.forbidden' | '/problems/recurrences.invalid' | '/problems/recurrences.invalid_query' | '/problems/recurrences.not_archived' | '/problems/recurrences.not_found' | '/problems/refund.already_settled' | '/problems/refund.asset_mismatch' | '/problems/refund.date_before_original' | '/problems/refund.exceeds_refundable' | '/problems/refund.original_nature' | '/problems/refund.original_not_refundable' | '/problems/reused-password' | '/problems/rules.archived' | '/problems/rules.execution_limit' | '/problems/rules.forbidden' | '/problems/rules.invalid' | '/problems/rules.invalid_query' | '/problems/rules.invalid_reference' | '/problems/rules.not_found' | '/problems/rules.preview_stale' | '/problems/rules.range_too_large' | '/problems/rules.unsafe_pattern' | '/problems/schedule_negative_part' | '/problems/schedule_part_count' | '/problems/schedule_precision_exceeded' | '/problems/schedule_sum_mismatch' | '/problems/split-fraction-unsupported' | '/problems/splits.duplicate_category' | '/problems/splits.required' | '/problems/splits.sum_exceeds' | '/problems/splits.sum_missing' | '/problems/splits.too_many' | '/problems/stale-account-group-order' | '/problems/stale-account-order' | '/problems/stale-active-policy' | '/problems/stale-contract-version' | '/problems/stale-instrument-version' | '/problems/stale-operation-order' | '/problems/stale-operation-version' | '/problems/stale-valuation-version' | '/problems/stale-version' | '/problems/stale_goal_version' | '/problems/surrender-exceeds-available' | '/problems/switch-not-balanced' | '/problems/switch-same-support' | '/problems/too-many-operation-legs' | '/problems/too_many_emergency_fund_categories' | '/problems/transaction-belongs-to-transfer' | '/problems/transaction-conflict' | '/problems/transaction.belongs_to_refund' | '/problems/transaction.has_refunds' | '/problems/transactions.bulk-preview-required' | '/problems/transactions.bulk-preview-stale' | '/problems/transactions.bulk-scope-changed' | '/problems/transactions.bulk-scope-too-large' | '/problems/transactions.cursor_stale' | '/problems/transfer.amount_mismatch' | '/problems/transfer.same_account' | '/problems/unknown-instrument' | '/problems/unknown-leg-instrument' | '/problems/unknown-policy-version' | '/problems/unknown-valuation-instrument' | '/problems/unknown_goal_reference' | '/problems/unsupported-instrument-currency' | '/problems/unsupported-operation-type' | '/problems/unsupported_goal_currency' | '/problems/valuation-conflict' | '/problems/valuation-exists' | '/problems/valuation-field-not-allowed' | '/problems/valuation-limit-reached' | '/problems/valuation-price-entry-missing' | '/problems/weak-password';
+export type ProblemType = 'about:blank' | '/problems/account-archived' | '/problems/account-balance-conflict' | '/problems/account-balance-insufficient' | '/problems/account-group-archived' | '/problems/account-group-label-taken' | '/problems/account-label-taken' | '/problems/account-not-life-insurance' | '/problems/account-not-portfolio' | '/problems/account-rule-override-conflict' | '/problems/activation-limit' | '/problems/amount.asset_precision_exceeded' | '/problems/amount.asset_unknown' | '/problems/amount.missing' | '/problems/amount.not_a_string' | '/problems/amount.not_canonical' | '/problems/amount.precision_exceeded' | '/problems/cash-amount-too-large' | '/problems/cash-range-too-dense' | '/problems/cash-range-too-large' | '/problems/category-operation-refused' | '/problems/common-password' | '/problems/composition-too-large' | '/problems/corporate-action-without-position' | '/problems/correction_reason_required' | '/problems/correction_span_exceeded' | '/problems/csrf-token' | '/problems/duplicate-leg-instrument' | '/problems/emergency_fund_forbidden' | '/problems/emergency_fund_scope_too_large' | '/problems/euro-fund-price-fixed' | '/problems/euro-fund-rate-exists' | '/problems/euro-fund-rate-limit-reached' | '/problems/euro-fund-rate-not-found' | '/problems/fee-terms-exist' | '/problems/fee-terms-limit-reached' | '/problems/full-surrender-not-balanced' | '/problems/full-surrender-positions-remaining' | '/problems/future_emergency_fund_as_of' | '/problems/future_goal_month' | '/problems/goal_forbidden' | '/problems/goal_identity_immutable' | '/problems/goal_not_found' | '/problems/goal_precondition_required' | '/problems/holdings-too-large' | '/problems/idempotency.in_flight' | '/problems/idempotency.invalid' | '/problems/idempotency.key_reused' | '/problems/idempotency.required' | '/problems/instrument-already-active' | '/problems/instrument-already-inactive' | '/problems/instrument-currency-mismatch' | '/problems/instrument-duplicate-candidates' | '/problems/instrument-field-not-allowed' | '/problems/instrument-forbidden' | '/problems/instrument-identifier-required' | '/problems/instrument-identity-locked' | '/problems/instrument-inactive' | '/problems/instrument-isin-exists' | '/problems/instrument-limit-reached' | '/problems/instrument-not-euro-fund' | '/problems/instrument-not-found' | '/problems/invalid-account-group-anchor' | '/problems/invalid-allocation-by' | '/problems/invalid-as-of' | '/problems/invalid-cash-query' | '/problems/invalid-contract-date' | '/problems/invalid-contract-field' | '/problems/invalid-corporate-action' | '/problems/invalid-current-password' | '/problems/invalid-display-name' | '/problems/invalid-euro-fund-rate' | '/problems/invalid-fee-rate' | '/problems/invalid-fee-terms-date' | '/problems/invalid-history-range' | '/problems/invalid-holdings-query' | '/problems/invalid-instrument-classification' | '/problems/invalid-instrument-isin' | '/problems/invalid-instrument-name' | '/problems/invalid-instrument-payload' | '/problems/invalid-instrument-precision' | '/problems/invalid-instrument-query' | '/problems/invalid-instrument-ticker' | '/problems/invalid-instrument-type' | '/problems/invalid-instrument-venue' | '/problems/invalid-interest-basis' | '/problems/invalid-leg-direction' | '/problems/invalid-life-insurance-payload' | '/problems/invalid-operation-amount' | '/problems/invalid-operation-date' | '/problems/invalid-operation-payload' | '/problems/invalid-operation-quantity' | '/problems/invalid-operation-query' | '/problems/invalid-operation-text' | '/problems/invalid-operation-type' | '/problems/invalid-operation-version' | '/problems/invalid-performance-period' | '/problems/invalid-performance-scope' | '/problems/invalid-portfolio-takeover' | '/problems/invalid-position-query' | '/problems/invalid-price-date' | '/problems/invalid-report-year' | '/problems/invalid-settlement-date' | '/problems/invalid-summary-date' | '/problems/invalid-surrender-amounts' | '/problems/invalid-valuation-date' | '/problems/invalid-valuation-detail' | '/problems/invalid-valuation-payload' | '/problems/invalid-valuation-price' | '/problems/invalid-valuation-query' | '/problems/invalid-valuation-total' | '/problems/invalid-year' | '/problems/invalid-year-range' | '/problems/invalid_effective_month' | '/problems/invalid_emergency_fund_as_of' | '/problems/invalid_emergency_fund_category' | '/problems/invalid_emergency_fund_policy' | '/problems/invalid_goal_batch' | '/problems/invalid_goal_direction' | '/problems/invalid_goal_metric_scope' | '/problems/invalid_goal_month' | '/problems/invalid_goal_period' | '/problems/invalid_goal_query' | '/problems/invalid_goal_ratio' | '/problems/invalid_goal_schedule' | '/problems/invalid_goal_target' | '/problems/invalid_goal_tolerance' | '/problems/invalid_goal_value_type' | '/problems/invalid_goal_year' | '/problems/invalid_schedule_preview' | '/problems/invalid_target_amount' | '/problems/invalid_target_months' | '/problems/invalid_target_ratio' | '/problems/invalid_trailing_months' | '/problems/leg-amount-mismatch' | '/problems/life-insurance-contract-closed' | '/problems/life-insurance-contract-exists' | '/problems/life-insurance-contract-not-found' | '/problems/life-insurance-contract-required' | '/problems/life-insurance-fee-terms-not-found' | '/problems/linear_schedule_impossible' | '/problems/linked-transfer-mismatch' | '/problems/linked-transfer-taken' | '/problems/lists.forbidden' | '/problems/lists.invalid_revision' | '/problems/lists.revision_stale' | '/problems/monthly-ledger-scope-too-large' | '/problems/monthly-projection-scope-too-large' | '/problems/net-worth-scope-too-large' | '/problems/operation-amount-mismatch' | '/problems/operation-asset-mismatch' | '/problems/operation-field-not-allowed' | '/problems/operation-field-required' | '/problems/operation-limit-reached' | '/problems/operation-type-not-allowed-for-account' | '/problems/operation-voided' | '/problems/operations-after-full-surrender' | '/problems/performance-range-too-dense' | '/problems/period-closed' | '/problems/period-closing-blocked' | '/problems/period-closure-conflict' | '/problems/policy-already-active' | '/problems/policy-definition-exists' | '/problems/policy-version-limit' | '/problems/portfolio-account-inactive' | '/problems/portfolio-account-not-found' | '/problems/portfolio-account-requires-operations' | '/problems/portfolio-account-valued-by-portfolio' | '/problems/portfolio-forbidden' | '/problems/portfolio-instrument-not-found' | '/problems/portfolio-operation-conflict' | '/problems/portfolio-operation-not-found' | '/problems/portfolio-takeover-exists' | '/problems/portfolio-takeover-not-empty' | '/problems/portfolio-takeover-not-supported' | '/problems/portfolio-valuation-conflict' | '/problems/portfolio-valuation-not-found' | '/problems/position-would-go-negative' | '/problems/premium-allocation-exceeds-net' | '/problems/price-precision-exceeded' | '/problems/product-model-archived' | '/problems/product-model-name-taken' | '/problems/quantity-precision-exceeded' | '/problems/range-too-large' | '/problems/recurrences.archived' | '/problems/recurrences.forbidden' | '/problems/recurrences.invalid' | '/problems/recurrences.invalid_query' | '/problems/recurrences.not_archived' | '/problems/recurrences.not_found' | '/problems/refund.already_settled' | '/problems/refund.asset_mismatch' | '/problems/refund.date_before_original' | '/problems/refund.exceeds_refundable' | '/problems/refund.original_nature' | '/problems/refund.original_not_refundable' | '/problems/reused-password' | '/problems/rules.archived' | '/problems/rules.execution_limit' | '/problems/rules.forbidden' | '/problems/rules.invalid' | '/problems/rules.invalid_query' | '/problems/rules.invalid_reference' | '/problems/rules.not_found' | '/problems/rules.preview_stale' | '/problems/rules.range_too_large' | '/problems/rules.unsafe_pattern' | '/problems/schedule_negative_part' | '/problems/schedule_part_count' | '/problems/schedule_precision_exceeded' | '/problems/schedule_sum_mismatch' | '/problems/split-fraction-unsupported' | '/problems/splits.duplicate_category' | '/problems/splits.required' | '/problems/splits.sum_exceeds' | '/problems/splits.sum_missing' | '/problems/splits.too_many' | '/problems/stale-account-group-order' | '/problems/stale-account-order' | '/problems/stale-active-policy' | '/problems/stale-contract-version' | '/problems/stale-instrument-version' | '/problems/stale-operation-order' | '/problems/stale-operation-version' | '/problems/stale-valuation-version' | '/problems/stale-version' | '/problems/stale_goal_version' | '/problems/surrender-exceeds-available' | '/problems/switch-not-balanced' | '/problems/switch-same-support' | '/problems/too-many-operation-legs' | '/problems/too_many_emergency_fund_categories' | '/problems/transaction-belongs-to-transfer' | '/problems/transaction-conflict' | '/problems/transaction.belongs_to_refund' | '/problems/transaction.has_refunds' | '/problems/transactions.bulk-preview-required' | '/problems/transactions.bulk-preview-stale' | '/problems/transactions.bulk-scope-changed' | '/problems/transactions.bulk-scope-too-large' | '/problems/transactions.cursor_stale' | '/problems/transfer.amount_mismatch' | '/problems/transfer.same_account' | '/problems/unknown-instrument' | '/problems/unknown-leg-instrument' | '/problems/unknown-policy-version' | '/problems/unknown-valuation-instrument' | '/problems/unknown_goal_reference' | '/problems/unsupported-instrument-currency' | '/problems/unsupported-operation-type' | '/problems/unsupported_goal_currency' | '/problems/valuation-conflict' | '/problems/valuation-exists' | '/problems/valuation-field-not-allowed' | '/problems/valuation-limit-reached' | '/problems/valuation-price-entry-missing' | '/problems/weak-password';
 
 /**
  * An RFC 9457 problem detail. Extension members are allowed; specialised problems compose it with allOf.
@@ -6219,6 +6219,20 @@ export type LifeInsuranceSummary = {
         operationIds: Array<string>;
         count: number;
     }>;
+};
+
+/**
+ * Raised when an interactive write would create or deepen a negative balance on a current, savings or cash account. The document carries the account, the input to blame and the first day the balance would be negative, never an amount. Nothing is written.
+ */
+export type AccountBalanceInsufficientProblem = Problem & {
+    type?: '/problems/account-balance-insufficient';
+    status?: 422;
+    accountId: string;
+    /**
+     * The request input to flag.
+     */
+    field: 'amount' | 'sourceAmount';
+    firstNegativeOn: string;
 };
 
 /**
@@ -11168,9 +11182,9 @@ export type RecordAccountBalanceErrors = {
      */
     415: Problem;
     /**
-     * The snapshot fields are invalid or the account is archived.
+     * The snapshot fields are invalid or the account is archived. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | AmountInputProblem;
+    422: Problem | AmountInputProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -11234,9 +11248,9 @@ export type CorrectAccountBalanceErrors = {
      */
     415: Problem;
     /**
-     * The fields are invalid or the account is archived.
+     * The fields are invalid or the account is archived. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | AmountInputProblem;
+    422: Problem | AmountInputProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -13843,9 +13857,9 @@ export type CreateTransactionErrors = {
      */
     415: Problem;
     /**
-     * The amount, dates, nature, category or bounds are invalid, or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`), or an Idempotency-Key is invalid or required by an IMPORT or PROVIDER source. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).
+     * The amount, dates, nature, category or bounds are invalid, or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`), or an Idempotency-Key is invalid or required by an IMPORT or PROVIDER source. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | AmountInputProblem | PortfolioAccountRequiresOperationsProblem;
+    422: Problem | AmountInputProblem | PortfolioAccountRequiresOperationsProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -13947,9 +13961,9 @@ export type UpdateTransactionErrors = {
      */
     415: Problem;
     /**
-     * The edit is invalid, tried to change an immutable field, targets a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`), or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`). An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).
+     * The edit is invalid, tried to change an immutable field, targets a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`), or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`). An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | AmountInputProblem | TransactionBelongsToTransferProblem | PortfolioAccountRequiresOperationsProblem;
+    422: Problem | AmountInputProblem | TransactionBelongsToTransferProblem | PortfolioAccountRequiresOperationsProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14409,9 +14423,9 @@ export type BulkEditTransactionsErrors = {
      */
     415: Problem;
     /**
-     * The body or the Idempotency-Key is invalid, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).
+     * The body or the Idempotency-Key is invalid, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem;
+    422: Problem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14474,9 +14488,9 @@ export type VoidTransactionErrors = {
      */
     415: Problem;
     /**
-     * The transaction is a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`).
+     * The transaction is a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | TransactionBelongsToTransferProblem;
+    422: Problem | TransactionBelongsToTransferProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14589,9 +14603,9 @@ export type ResolveAccountReconciliationErrors = {
      */
     415: Problem;
     /**
-     * The password does not satisfy the account password policy.
+     * The request is invalid. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem;
+    422: Problem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14654,9 +14668,9 @@ export type ReconcileTransactionErrors = {
      */
     415: Problem;
     /**
-     * The password does not satisfy the account password policy.
+     * The request is invalid. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem;
+    422: Problem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14711,9 +14725,9 @@ export type DuplicateTransactionErrors = {
      */
     409: Problem;
     /**
-     * A transfer leg or refund cannot be duplicated, or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).
+     * A transfer leg or refund cannot be duplicated, or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | PortfolioAccountRequiresOperationsProblem;
+    422: Problem | PortfolioAccountRequiresOperationsProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14778,9 +14792,9 @@ export type CreateTransferErrors = {
      */
     415: Problem;
     /**
-     * The accounts, amounts, dates, state, label or fee are invalid. The source and target account must differ (`type: /problems/transfer.same_account`), and a same-asset pair with an explicit targetAmount must net exactly to zero (`type: /problems/transfer.amount_mismatch`), or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).
+     * The accounts, amounts, dates, state, label or fee are invalid. The source and target account must differ (`type: /problems/transfer.same_account`), and a same-asset pair with an explicit targetAmount must net exactly to zero (`type: /problems/transfer.amount_mismatch`), or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | AmountInputProblem | PortfolioAccountRequiresOperationsProblem;
+    422: Problem | AmountInputProblem | PortfolioAccountRequiresOperationsProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14882,9 +14896,9 @@ export type UpdateTransferErrors = {
      */
     415: Problem;
     /**
-     * The edit is invalid or tried to change an immutable field. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).
+     * The edit is invalid or tried to change an immutable field. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem | PortfolioAccountRequiresOperationsProblem;
+    422: Problem | PortfolioAccountRequiresOperationsProblem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -14947,9 +14961,9 @@ export type VoidTransferErrors = {
      */
     415: Problem;
     /**
-     * The password does not satisfy the account password policy.
+     * The request is invalid. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem;
+    422: Problem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */

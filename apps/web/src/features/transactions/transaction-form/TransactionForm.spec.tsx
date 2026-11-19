@@ -167,3 +167,65 @@ describe('TransactionForm planned dates', () => {
     );
   });
 });
+
+describe('TransactionForm insufficient balance', () => {
+  const guarded = {
+    ...account,
+    kind: 'CURRENT',
+    valuationMode: 'TRANSACTIONS',
+    valuation: { amount: { value: '100.00', assetCode: 'EUR' } },
+  } as unknown as Account;
+
+  function renderGuarded(props: Partial<Parameters<typeof TransactionForm>[0]> = {}) {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <TransactionForm
+          accounts={[guarded]}
+          onSubmit={vi.fn()}
+          pending={false}
+          submitError={null}
+          {...props}
+        />
+      </QueryClientProvider>,
+    );
+  }
+
+  it('flags the amount as soon as it exceeds the known balance, with exact decimals', () => {
+    renderGuarded();
+    const amount = screen.getByLabelText('Montant');
+    fireEvent.change(amount, { target: { value: '-100.00' } });
+    expect(amount.getAttribute('aria-invalid')).toBeNull();
+
+    fireEvent.change(amount, { target: { value: '-100.000000000000000000000001' } });
+    expect(amount.getAttribute('aria-invalid')).toBe('true');
+    expect(document.body.textContent).toContain('ce montant mettrait le compte en négatif le');
+  });
+
+  it('does not break while a negative amount is being typed', () => {
+    renderGuarded();
+    const amount = screen.getByLabelText('Montant');
+    fireEvent.change(amount, { target: { value: '-' } });
+    fireEvent.change(amount, { target: { value: '-1.' } });
+    expect(screen.getByLabelText('Montant')).toBe(amount);
+  });
+
+  it('leaves a future date to the server', () => {
+    renderGuarded();
+    setDate('2026-11-12');
+    const amount = screen.getByLabelText('Montant');
+    fireEvent.change(amount, { target: { value: '-500.00' } });
+    expect(amount.getAttribute('aria-invalid')).toBeNull();
+  });
+
+  it('shows the server refusal on the amount input and focuses it', () => {
+    renderGuarded({ submitError: 'insufficientBalance', submitErrorDay: '2026-11-05' });
+    const amount = screen.getByLabelText('Montant');
+    expect(amount.getAttribute('aria-invalid')).toBe('true');
+    expect(document.activeElement).toBe(amount);
+    const ids = amount.getAttribute('aria-describedby')?.split(' ') ?? [];
+    expect(ids.map((id) => document.getElementById(id)?.textContent).join(' ')).toContain(
+      'le 5 novembre 2026',
+    );
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+});

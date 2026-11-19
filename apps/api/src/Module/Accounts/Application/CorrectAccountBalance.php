@@ -35,6 +35,7 @@ final readonly class CorrectAccountBalance
         private TransactionBoundary $transactionBoundary,
         private RecordAuditEvent $recordAuditEvent,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -95,6 +96,7 @@ final readonly class CorrectAccountBalance
                 throw new InvalidAccountBalanceInput($exception->getMessage(), previous: $exception);
             }
 
+            $this->assertBalance->assertDeclared($context->workspace, $account, $corrected->asOf, $corrected->amount->value, $current->id);
             if (!$this->snapshots->update($corrected, $input->version)) {
                 throw new StaleAccountVersion('The snapshot has been modified by another request.');
             }

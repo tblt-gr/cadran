@@ -159,3 +159,31 @@ it('does not offer to correct a snapshot that is not manual or not active', asyn
   expect(screen.queryByRole('button', { name: /modifier le relevé du/i })).toBeNull();
   expect(screen.getByRole('button', { name: /retirer le relevé du/i })).toBeTruthy();
 });
+
+it('shows an insufficient balance on the amount input with the date, and focuses it', () => {
+  listing([]);
+  render(
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <RecordBalanceForm
+        account={account}
+        onCancel={vi.fn()}
+        onCorrected={vi.fn()}
+        onSubmit={vi.fn()}
+        pending={false}
+        submitError="insufficientBalance"
+        submitErrorDay="2026-11-05"
+        valuation={valuation}
+      />
+    </QueryClientProvider>,
+  );
+
+  const amount = screen.getByLabelText('Montant observé');
+  expect(amount.getAttribute('aria-invalid')).toBe('true');
+  expect(document.activeElement).toBe(amount);
+  const ids = amount.getAttribute('aria-describedby')?.split(' ') ?? [];
+  expect(ids.map((id) => document.getElementById(id)?.textContent).join(' ')).toContain(
+    'le 5 novembre 2026',
+  );
+});

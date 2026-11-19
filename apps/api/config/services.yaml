@@ -80,3 +80,9 @@ services:
 
   App\Module\Accounts\Application\BookedMovementTotals:
     alias: App\Module\Transactions\Infrastructure\Persistence\DbalBookedMovementTotals
+
+  App\Module\Accounts\Application\InteractiveWriteContext:
+    alias: App\Module\Accounts\UI\Http\HttpInteractiveWriteContext
+
+  App\Module\Accounts\Application\BalanceMovementReader:
+    alias: App\Module\Transactions\Infrastructure\Persistence\DbalBalanceMovementReader

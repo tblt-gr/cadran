@@ -14,6 +14,7 @@ interface TransferEditorProps {
   onSaved: () => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDay?: string | null;
   refreshError?: { message: string; retry: () => void };
 }
 
@@ -25,6 +26,7 @@ export function TransferEditor({
   onSaved,
   pending,
   submitError,
+  submitErrorDay,
   refreshError,
 }: TransferEditorProps) {
   const { t } = useTranslation();
@@ -52,6 +54,7 @@ export function TransferEditor({
         onSubmit={(body) => void transfer.submit(body)}
         pending={pending || transfer.pending}
         submitError={submitError}
+        submitErrorDay={submitErrorDay}
       />
     </Modal>
   );

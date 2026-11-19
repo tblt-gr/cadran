@@ -15,6 +15,7 @@ import type { BulkScope } from '@/features/transactions/bulk-selection/useBulkSe
 
 export type BulkErrorKind =
   | 'conflict'
+  | 'insufficientBalance'
   | 'invalid'
   | 'network'
   | 'periodClosed'
@@ -28,11 +29,17 @@ export type BulkErrorKind =
 export class BulkRequestError extends Error {
   readonly actualCount: number | null;
   readonly kind: BulkErrorKind;
+  /** For an insufficient balance: the first day an account would be negative (ISO 8601). */
+  readonly firstNegativeOn: string | null;
 
-  constructor(status: number, problem: (Problem & { actualCount?: number }) | undefined) {
+  constructor(
+    status: number,
+    problem: (Problem & { actualCount?: number; firstNegativeOn?: string }) | undefined,
+  ) {
     super(`Bulk request failed with status ${status}.`);
     this.actualCount = typeof problem?.actualCount === 'number' ? problem.actualCount : null;
     this.kind = classify(status, problem?.type);
+    this.firstNegativeOn = problem?.firstNegativeOn ?? null;
   }
 }
 
@@ -40,6 +47,7 @@ const BULK_PROBLEM_KINDS: Record<string, BulkErrorKind> = {
   '/problems/transactions.bulk-scope-too-large': 'scopeTooLarge',
   '/problems/transactions.bulk-scope-changed': 'scopeChanged',
   '/problems/period-closed': 'periodClosed',
+  '/problems/account-balance-insufficient': 'insufficientBalance',
   '/problems/transactions.bulk-preview-stale': 'previewStale',
   '/problems/transactions.bulk-preview-required': 'previewRequired',
 };

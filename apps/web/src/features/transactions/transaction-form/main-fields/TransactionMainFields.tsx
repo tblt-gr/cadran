@@ -1,11 +1,12 @@
 import type { Account, CreateTransactionRequest } from '@cadran/api-client';
-import { useId } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   hasRecordedAmount,
   SignedAmountHint,
 } from '@/components/ui/signed-amount-hint/SignedAmountHint';
 import { formatAmount } from '@/lib/decimal';
+import { InsufficientBalanceMessage } from '@/features/transactions/insufficient-balance/InsufficientBalanceMessage';
 import type { AmountDirection } from '@/lib/signedAmount';
 import type {
   TransactionFormErrors,
@@ -32,6 +33,11 @@ interface TransactionMainFieldsProps {
   direction: AmountDirection | null;
   editing: boolean;
   errors: TransactionFormErrors;
+  /**
+   * The amount would put the account below zero: `refused` once the server said so (the input then
+   * takes focus), otherwise a client hint. `day` is the first negative day when known.
+   */
+  insufficient: { day: string | null; refused: boolean } | null;
   onAccountChosen: () => void;
   onChange: <K extends keyof TransactionFormValues>(
     field: K,
@@ -54,6 +60,7 @@ export function TransactionMainFields({
   direction,
   editing,
   errors,
+  insufficient,
   onAccountChosen,
   onChange: set,
   rawLabelLocked,
@@ -64,6 +71,12 @@ export function TransactionMainFields({
 }: TransactionMainFieldsProps) {
   const { t, i18n } = useTranslation();
   const errorId = useId();
+  const amountInput = useRef<HTMLInputElement>(null);
+  const refused = insufficient?.refused === true;
+
+  useEffect(() => {
+    if (refused) amountInput.current?.focus();
+  }, [refused]);
 
   // The exact balance the server reports for an account, when it can be calculated.
   const accountOptionLabel = (account: Account) => {
@@ -163,19 +176,26 @@ export function TransactionMainFields({
           aria-describedby={[
             hasRecordedAmount(values.amountValue) ? `${errorId}-amountHint` : null,
             showErrors && errors.amountValue ? `${errorId}-amountValue` : null,
+            insufficient ? `${errorId}-insufficient` : null,
           ]
             .filter(Boolean)
             .join(' ')}
-          aria-invalid={showErrors && errors.amountValue ? true : undefined}
+          aria-invalid={(showErrors && errors.amountValue) || insufficient ? true : undefined}
           aria-label={t('transactions.fields.amount')}
           autoComplete="off"
           inputMode="decimal"
           onChange={(event) => set('amountValue', event.target.value)}
+          ref={amountInput}
           spellCheck={false}
           value={values.amountValue}
         />
         {showErrors && errors.amountValue ? (
           <small id={`${errorId}-amountValue`}>{t('transactions.validation.amount')}</small>
+        ) : null}
+        {insufficient ? (
+          <small id={`${errorId}-insufficient`}>
+            <InsufficientBalanceMessage date={insufficient.day} />
+          </small>
         ) : null}
         <SignedAmountHint
           assetCode={amountAssetCode}
