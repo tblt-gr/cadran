@@ -1,7 +1,12 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
-import { holdingsFixture, unsplitAccount } from '@/features/investments/holdingsFixture';
+import {
+  allTotalHoldings,
+  holdingsFixture,
+  totalAccountSummary,
+  unsplitAccount,
+} from '@/features/investments/holdingsFixture';
 import { HoldingsView } from './HoldingsView';
 
 afterEach(cleanup);
@@ -52,5 +57,39 @@ describe('HoldingsView', () => {
     unmount();
     render1([]);
     expect(screen.queryByRole('group', { name: 'Affichage des positions' })).toBeNull();
+  });
+
+  it.each([
+    ['accounts without any retained valuation', 'unvalued'],
+    ['accounts valued as a total', 'total'],
+  ])('keeps the view switch at the same place in both views with %s', (_name, kind) => {
+    const base = allTotalHoldings();
+    const holdings =
+      kind === 'total'
+        ? base
+        : {
+            ...base,
+            totals: { ...base.totals, securitiesValue: null, totalValue: null },
+            accounts: [{ ...totalAccountSummary, securitiesValue: null }],
+            unsplitAccounts: [],
+          };
+    const follows = (a: Element, b: Element) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    for (const view of ['asset', 'account'] as const) {
+      const { unmount } = render(
+        <HoldingsView
+          holdings={holdings}
+          onSortChange={vi.fn()}
+          onViewChange={vi.fn()}
+          sort={{ key: 'name', direction: 'asc' } as never}
+          view={view}
+        />,
+      );
+      const group = screen.getByRole('group', { name: 'Affichage des positions' });
+      // The summary and the allocation stay above the switch, in both views.
+      expect(follows(screen.getAllByText('Valeur des titres')[0]!, group)).toBeTruthy();
+      expect(follows(screen.getByRole('heading', { name: 'Répartition' }), group)).toBeTruthy();
+      unmount();
+    }
   });
 });
