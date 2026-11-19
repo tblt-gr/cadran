@@ -101,3 +101,14 @@ CVE-2026-71200
 CVE-2026-119373
 CVE-2026-119374
 CVE-2026-119379
+
+# review: 2026-12-15
+# Go standard library (embedded in the FrankenPHP/Caddy binary, Go 1.27.3):
+# CVE-2026-97054 is fixed in Go 1.27.4 but no FrankenPHP release ships it yet
+# (1.13.5, published 2026-11-12, is the latest). The flaw is a race that can
+# panic an HTTP/1 server using MaxBytesReader when a handler reads the body
+# while the header is written: a crash of the worker, never a data leak. The
+# container restarts on failure, runs as non-root, read-only, and the server
+# is reachable only on loopback or a VPN. Bump the FrankenPHP image as soon as
+# a release with Go 1.27.4 or newer exists and delete this entry then.
+CVE-2026-97054
