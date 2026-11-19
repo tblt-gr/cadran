@@ -48,6 +48,12 @@ final class SeedDemoDataTest extends KernelTestCase
         $summary = $seed(WorkspaceFixture::OWNER_EMAIL);
 
         self::assertSame(5, $summary->accounts);
+        // Demo categories carry an icon and a color so the interface looks lived in.
+        $labels = array_column(SeedDemoData::CATEGORIES, 1);
+        self::assertSame(0, $this->rows(
+            sprintf('SELECT COUNT(*) FROM category_categories WHERE workspace_id = ? AND label IN (%s) AND (icon IS NULL OR color IS NULL)', implode(', ', array_fill(0, count($labels), '?'))),
+            [WorkspaceFixture::OWN_WORKSPACE, ...$labels],
+        ));
         // Premiums and transfers are paid from the savings account: its recorded balance must stay positive.
         self::assertSame(0, $this->rows(
             "SELECT COUNT(*) FROM account_balance_snapshots s JOIN account_financial_accounts a ON a.id = s.account_id WHERE s.workspace_id = ? AND a.kind IN ('SAVINGS', 'CURRENT') AND s.amount_value < 0",

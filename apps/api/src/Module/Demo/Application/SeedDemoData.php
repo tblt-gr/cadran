@@ -69,6 +69,23 @@ final readonly class SeedDemoData
         'holidays' => ['EXPENSE', 'Vacances', ['VARIABLE', 'DISCRETIONARY'], true],
     ];
 
+    /** key => [icon, color]. Icons come from the web catalogue (category-icons.ts); colors are distinct so charts read at a glance. */
+    private const array CATEGORY_APPEARANCE = [
+        'salary' => ['briefcase', '#4CAF7D'],
+        'salary_bonus' => ['star', '#8BC34A'],
+        'rent' => ['home', '#5C8DEF'],
+        'energy' => ['bulb', '#F2B84B'],
+        'telecom' => ['wifi', '#38B2C8'],
+        'subscriptions' => ['repeat', '#9B7BEA'],
+        'groceries' => ['shopping-cart', '#E8833A'],
+        'restaurants' => ['utensils', '#E5604D'],
+        'transport' => ['bus', '#4A9BD9'],
+        'health' => ['medical-cross', '#D9577E'],
+        'leisure' => ['ticket', '#C26FD3'],
+        'shopping' => ['bag', '#E0A458'],
+        'holidays' => ['plane', '#3FB8A5'],
+    ];
+
     public function __construct(
         private DemoActor $actor,
         private ListAccounts $listAccounts,
@@ -271,8 +288,8 @@ final readonly class SeedDemoData
                 type: $type,
                 label: $label,
                 parentId: null,
-                icon: null,
-                color: null,
+                icon: self::CATEGORY_APPEARANCE[$key][0],
+                color: self::CATEGORY_APPEARANCE[$key][1],
                 defaultAnalyticAxes: $axes,
                 budgetIncluded: $budgeted,
                 sortOrder: $order++,
