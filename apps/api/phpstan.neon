@@ -29,6 +29,3 @@ parameters:
         -
             identifier: staticMethod.alreadyNarrowedType
             path: tests
-        -
-            identifier: nullCoalesce.offset
-            path: tests
