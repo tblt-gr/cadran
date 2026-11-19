@@ -32,6 +32,7 @@ Closes #
 - [ ] Loading, empty, error and non-calculable UI states are handled
 - [ ] Each changed screen's skeleton was compared tag by tag with its loaded JSX
 - [ ] Keyboard, focus, contrast and responsive behavior are checked if the UI changed
+- [ ] `CHANGELOG.md` `Unreleased` has one sentence for this change, or it is invisible to users and operators
 - [ ] Relevant formula, catalog, user and architecture documentation is updated
 - [ ] `pnpm quality` and all applicable application checks pass locally
 - [ ] No unrelated change is mixed into this PR
