@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -48,6 +49,7 @@ final readonly class CreateTransaction
         private SettlePendingTransaction $settlePending,
         private ReconciliationRepository $reconciliations,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -114,6 +116,9 @@ final readonly class CreateTransaction
                 }
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The transaction input is invalid.', previous: $exception);
+            }
+            if ($input->guardBalance) {
+                ($this->assertBalance)($context->workspace, BalanceFloorDeltas::addition($transaction));
             }
             try {
                 $this->transactions->add($transaction);

@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { useAccountDetail } from '@/features/accounts/account-detail/useAccountDetail';
 import {
+  accountErrorDay,
   accountErrorKind,
   accountRequestError,
   AccountRequestError,
@@ -134,6 +135,7 @@ export function MissingValuationRecorder({
         onSubmit={(body) => record.mutate({ target: account.data, body })}
         pending={record.isPending}
         submitError={accountErrorKind(record.error, record.isError)}
+        submitErrorDay={accountErrorDay(record.error)}
         valuation={account.data.valuation}
       />
       <ModalActions>{back}</ModalActions>

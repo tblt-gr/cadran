@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AccountBalanceDelta;
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -20,6 +22,7 @@ use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionNature;
 use App\Module\Transactions\Domain\TransactionRepository;
 use App\Module\Transactions\Domain\TransactionSource;
+use App\Module\Transactions\Domain\TransactionState;
 use App\Module\Transactions\Domain\TransferRepository;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -39,6 +42,7 @@ final readonly class UpdateTransfer
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
         private TransferPortfolioSync $portfolioSync,
     ) {
     }
@@ -107,6 +111,15 @@ final readonly class UpdateTransfer
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransferInput('The transfer input is invalid.', previous: $exception);
             }
+            $deltas = [
+                ...BalanceFloorDeltas::replacement($sourceLeg, $editedSource, AccountBalanceDelta::FIELD_SOURCE_AMOUNT),
+                ...BalanceFloorDeltas::replacement($targetLeg, $editedTarget, AccountBalanceDelta::FIELD_SOURCE_AMOUNT),
+                ...BalanceFloorDeltas::removal($existingFeeLeg, AccountBalanceDelta::FIELD_SOURCE_AMOUNT),
+            ];
+            if (null !== $newFee && in_array($draft->state, [TransactionState::PENDING, TransactionState::BOOKED], true)) {
+                $deltas[] = new AccountBalanceDelta($sourceAccount->id, $draft->bookedOn, $newFee->value, AccountBalanceDelta::FIELD_SOURCE_AMOUNT);
+            }
+            ($this->assertBalance)($context->workspace, $deltas);
             if (!$this->transactions->update($editedSource, $sourceLeg->version)
                 || !$this->transactions->update($editedTarget, $targetLeg->version)) {
                 throw new StaleTransferVersion('The transfer changed concurrently.');

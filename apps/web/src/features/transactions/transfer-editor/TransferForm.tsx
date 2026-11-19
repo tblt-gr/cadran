@@ -2,10 +2,11 @@ import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type { Account, CreateTransferRequest } from '@cadran/api-client';
-import { useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { TransferAdditionalFields } from './TransferAdditionalFields';
 import { TransferAccountField } from './TransferAccountField';
-import { balancesAfterTransfer } from './balancesAfterTransfer';
+import { balancesAfterTransfer, transferOverdraws } from './balancesAfterTransfer';
+import { InsufficientBalanceMessage } from '@/features/transactions/insufficient-balance/InsufficientBalanceMessage';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import type { TransactionErrorKind } from '@/features/transactions/transactionError';
@@ -28,6 +29,8 @@ interface TransferFormProps {
   onSubmit: (body: CreateTransferRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  /** For an insufficient balance: the first day the source account would be negative (ISO 8601). */
+  submitErrorDay?: string | null;
 }
 
 /**
@@ -41,6 +44,7 @@ export function TransferForm({
   onSubmit,
   pending,
   submitError,
+  submitErrorDay,
 }: TransferFormProps) {
   const { t } = useTranslation();
   const errorId = useId();
@@ -65,6 +69,14 @@ export function TransferForm({
     source,
     values,
   });
+  const shortfall = transferOverdraws({ errors, source, today, values });
+  const refused = submitError === 'insufficientBalance';
+  const insufficientDay = refused ? (submitErrorDay ?? null) : shortfall ? values.bookedOn : null;
+  const insufficient = refused || shortfall;
+  const sourceAmountInput = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (refused) sourceAmountInput.current?.focus();
+  }, [refused]);
   const sourceAsset = accounts.find((account) => account.id === values.sourceAccountId)?.assetCode;
   const targetAsset = accounts.find((account) => account.id === values.targetAccountId)?.assetCode;
 
@@ -81,7 +93,7 @@ export function TransferForm({
 
   return (
     <ModalForm className={formStyles.form} noValidate onSubmit={submit}>
-      {submitError ? (
+      {submitError && !refused ? (
         <TransactionSubmitError
           accountId={values.sourceAccountId}
           className={formStyles.alert}
@@ -92,7 +104,7 @@ export function TransferForm({
       <FormGrid>
         <TransferAccountField
           accounts={accounts}
-          after={sourceAfter}
+          after={insufficient ? null : sourceAfter}
           autoFocus={!lockedSourceAccountId}
           disabled={pending || Boolean(lockedSourceAccountId)}
           error={showErrors && errors.sourceAccountId}
@@ -135,18 +147,31 @@ export function TransferForm({
           <input
             disabled={pending}
             aria-describedby={
-              showErrors && errors.sourceAmountValue ? `${errorId}-sourceAmountValue` : undefined
+              [
+                showErrors && errors.sourceAmountValue ? `${errorId}-sourceAmountValue` : null,
+                insufficient ? `${errorId}-insufficient` : null,
+              ]
+                .filter(Boolean)
+                .join(' ') || undefined
             }
-            aria-invalid={showErrors && errors.sourceAmountValue ? true : undefined}
+            aria-invalid={
+              (showErrors && errors.sourceAmountValue) || insufficient ? true : undefined
+            }
             autoComplete="off"
             inputMode="decimal"
             onChange={(event) => set('sourceAmountValue', event.target.value)}
+            ref={sourceAmountInput}
             spellCheck={false}
             value={values.sourceAmountValue}
           />
           {showErrors && errors.sourceAmountValue ? (
             <small id={`${errorId}-sourceAmountValue`}>
               {t('transactions.transfer.validation.sourceAmount')}
+            </small>
+          ) : null}
+          {insufficient ? (
+            <small id={`${errorId}-insufficient`}>
+              <InsufficientBalanceMessage date={insufficientDay} />
             </small>
           ) : null}
         </label>

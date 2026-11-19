@@ -7,7 +7,8 @@ import type {
 import { useState, type FormEvent } from 'react';
 import { useCategoryDefaultAxes } from '@/features/categories/useCategoryDefaultAxes';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
-import { addDecimals } from '@/lib/decimal';
+import { addDecimals, negateDecimal } from '@/lib/decimal';
+import { isBalanceGuarded, wouldGoNegative } from '@/features/transactions/wouldGoNegative';
 import { isUpcomingDay, workspaceToday } from '@/lib/workspaceTime';
 import { ADVANCED_FIELDS } from './advanced-fields/advancedFields';
 import type { SavedCategory } from './transaction-category-field/TransactionCategoryField';
@@ -118,7 +119,24 @@ export function useTransactionFormState({
   // On creation only: an existing row is already counted in the reported balance.
   const accountBalance = accounts.find((account) => account.id === resolved.accountId)?.valuation
     ?.amount;
+  // The server stays the authority for backdated and future dates: the hint only covers a booking
+  // dated today or earlier, where the reported balance is the one the entry lands on.
+  const shortfallDay =
+    !editing &&
+    !errors.amountValue &&
+    accountBalance &&
+    accountBalance.assetCode === amountAssetCode &&
+    isBalanceGuarded(accounts.find((account) => account.id === resolved.accountId)) &&
+    values.bookedOn !== '' &&
+    values.bookedOn <= today &&
+    wouldGoNegative(
+      accountBalance.value,
+      signedAmount.startsWith('-') ? negateDecimal(signedAmount) : '0',
+    )
+      ? values.bookedOn
+      : null;
   const balanceAfter =
+    shortfallDay === null &&
     !editing &&
     !errors.amountValue &&
     accountBalance &&
@@ -163,6 +181,7 @@ export function useTransactionFormState({
     set,
     setAdvancedOpen,
     setValues,
+    shortfallDay,
     showErrors,
     signedAmount,
     stateLocked: editing && transaction.state !== 'PENDING',

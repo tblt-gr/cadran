@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -40,6 +41,7 @@ final readonly class DuplicateTransaction
         private MatchTransactionToOccurrence $matchRecurrence,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -99,6 +101,7 @@ final readonly class DuplicateTransaction
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The transaction cannot be duplicated.', previous: $exception);
             }
+            ($this->assertBalance)($context->workspace, BalanceFloorDeltas::addition($duplicate));
             $this->transactions->add($duplicate);
             ($this->recordAuditEvent)(new AuditEventRecord(
                 $context->workspace, $context->actorId, TransactionAuditEvents::DUPLICATED,

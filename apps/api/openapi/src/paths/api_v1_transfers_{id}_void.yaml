@@ -52,6 +52,16 @@ post:
     '415':
       $ref: ../components/responses/UnsupportedMediaType.yaml
     '422':
-      $ref: ../components/responses/UnprocessableEntity.yaml
+      description: >-
+        The request is invalid. A write that would put a current, savings or cash
+        account below zero is refused (`type:
+        /problems/account-balance-insufficient`, with `accountId`, `field` and
+        `firstNegativeOn`) and writes nothing.
+      content:
+        application/problem+json:
+          schema:
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AccountBalanceInsufficientProblem.yaml
     '500':
       $ref: ../components/responses/InternalServerError.yaml

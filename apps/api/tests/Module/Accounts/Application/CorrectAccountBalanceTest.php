@@ -6,6 +6,7 @@ namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\AccountBalanceConflict;
 use App\Module\Accounts\Application\AccountBalanceNotFound;
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Application\CorrectAccountBalance;
 use App\Module\Accounts\Application\CorrectAccountBalanceInput;
@@ -21,11 +22,13 @@ use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Tests\Module\Accounts\Application\Double\AlwaysInteractive;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
 use App\Tests\Module\Accounts\Application\Double\ImmediateTransactionBoundary;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountBalanceSnapshotRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
+use App\Tests\Module\Accounts\Application\Double\NoMovementsReader;
 use App\Tests\Module\Accounts\Application\Double\SequenceUuidGenerator;
 use App\Tests\Module\Accounts\Domain\AccountFixture;
 use App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog;
@@ -142,6 +145,7 @@ final class CorrectAccountBalanceTest extends TestCase
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             new MockClock(self::NOW, 'UTC'),
             new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
+            $this->floor(),
         );
 
         return $record(AccountFixture::ID, new RecordAccountBalanceInput('2026-09-03', '230.5688', 'EUR', null, null));
@@ -157,6 +161,12 @@ final class CorrectAccountBalanceTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             $assertPeriodOpen ?? new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
+            $this->floor(),
         );
+    }
+
+    private function floor(): AssertAccountBalanceNonNegative
+    {
+        return new AssertAccountBalanceNonNegative(new InMemoryAccountRepository(AccountFixture::account()), $this->snapshots, new NoMovementsReader(), new AlwaysInteractive());
     }
 }

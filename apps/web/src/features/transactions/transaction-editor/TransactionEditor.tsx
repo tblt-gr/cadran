@@ -21,6 +21,7 @@ interface TransactionEditorProps {
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDay?: string | null;
   submitErrorDetail?: string | null;
   transaction?: Transaction;
 }
@@ -33,6 +34,7 @@ export function TransactionEditor({
   onSubmit,
   pending,
   submitError,
+  submitErrorDay,
   submitErrorDetail,
   transaction,
 }: TransactionEditorProps) {
@@ -55,6 +57,7 @@ export function TransactionEditor({
         onSubmit={onSubmit}
         pending={pending}
         submitError={submitError}
+        submitErrorDay={submitErrorDay}
         submitErrorDetail={submitErrorDetail}
         transaction={transaction}
       />

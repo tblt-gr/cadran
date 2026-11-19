@@ -1,7 +1,7 @@
 import type { Account, AccountBalanceSnapshot } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
-import { accountErrorKind } from '@/features/accounts/accountError';
+import { accountErrorDay, accountErrorKind } from '@/features/accounts/accountError';
 import { RecordBalanceForm } from '@/features/accounts/record-balance-form/RecordBalanceForm';
 import { useRecordBalance } from './useRecordBalance';
 
@@ -36,6 +36,7 @@ export function RecordBalanceModal({
         onSubmit={(body) => record.mutate(body)}
         pending={record.isPending}
         submitError={accountErrorKind(record.error, record.isError)}
+        submitErrorDay={accountErrorDay(record.error)}
         valuation={account.valuation}
       />
     </Modal>

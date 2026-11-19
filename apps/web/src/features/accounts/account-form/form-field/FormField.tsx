@@ -3,7 +3,7 @@ import styles from './FormField.module.css';
 
 interface FormFieldProps {
   children: (ids: { fieldId: string; describedBy: string | undefined }) => ReactNode;
-  error?: string;
+  error?: ReactNode;
   hint?: string;
   label: string;
   name: string;

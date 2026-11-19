@@ -11,7 +11,7 @@ import { AccountEditor } from '@/features/accounts/account-editor/AccountEditor'
 import { AccountWizard } from '@/features/accounts/account-wizard/AccountWizard';
 import { ArchiveAccountDialog } from '@/features/accounts/archive-account-dialog/ArchiveAccountDialog';
 import { RecordBalanceForm } from '@/features/accounts/record-balance-form/RecordBalanceForm';
-import { accountErrorKind } from '@/features/accounts/accountError';
+import { accountErrorDay, accountErrorKind } from '@/features/accounts/accountError';
 
 type Editor = Account | 'create' | null;
 
@@ -92,6 +92,7 @@ export function AccountActionsModals({
             onSubmit={(body) => recordBalance.mutate({ account: recording, body })}
             pending={recordBalance.isPending}
             submitError={accountErrorKind(recordBalance.error, recordBalance.isError)}
+            submitErrorDay={accountErrorDay(recordBalance.error)}
             valuation={recording.valuation}
           />
         </Modal>

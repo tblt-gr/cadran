@@ -106,4 +106,26 @@ describe('useBulkEdit', () => {
     expect(call.body).toEqual({ ...body, preview: true });
     expect(call.headers['Idempotency-Key']).toBeUndefined();
   });
+
+  it('classifies an insufficient balance and keeps its first negative day', async () => {
+    api.bulkEditTransactions.mockResolvedValueOnce({
+      data: undefined,
+      error: {
+        type: '/problems/account-balance-insufficient',
+        status: 422,
+        firstNegativeOn: '2026-11-06',
+      },
+      response: new Response('{}', { status: 422 }),
+    });
+    const { result } = renderHook(() => useBulkEdit({ reloadAfterWrite: vi.fn() }), { wrapper });
+
+    await act(async () => {
+      await result.current.mutateAsync(body).catch(() => undefined);
+    });
+    await waitFor(() => expect(result.current.error).toBeInstanceOf(BulkRequestError));
+
+    const error = result.current.error as BulkRequestError;
+    expect(error.kind).toBe('insufficientBalance');
+    expect(error.firstNegativeOn).toBe('2026-11-06');
+  });
 });

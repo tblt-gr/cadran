@@ -123,9 +123,14 @@ post:
         The body or the Idempotency-Key is invalid, or the scope exceeds 500
         transactions (`type: /problems/transactions.bulk-scope-too-large`, with
         `limit`).
+        A write that would put a current, savings or cash account below zero is
+        refused (`type: /problems/account-balance-insufficient`, with `accountId`,
+        `field` and `firstNegativeOn`) and writes nothing.
       content:
         application/problem+json:
           schema:
-            $ref: ../components/schemas/Problem.yaml
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AccountBalanceInsufficientProblem.yaml
     '500':
       $ref: ../components/responses/InternalServerError.yaml

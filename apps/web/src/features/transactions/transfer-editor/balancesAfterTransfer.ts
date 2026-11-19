@@ -1,5 +1,6 @@
 import type { Account } from '@cadran/api-client';
 import { addDecimals, subtractDecimals } from '@/lib/decimal';
+import { isBalanceGuarded, wouldGoNegative } from '@/features/transactions/wouldGoNegative';
 import type { TransferFormValues, TransferFormErrors } from './transferFormValues';
 
 interface Balance {
@@ -53,4 +54,34 @@ export function balancesAfterTransfer({
       : null;
 
   return { sourceAfter, targetAfter };
+}
+
+/**
+ * The amount would take the source account below zero. The server stays the authority for backdated
+ * and future dates: the hint only covers a transfer dated today or earlier, where the reported balance
+ * is the one the transfer lands on.
+ */
+export function transferOverdraws({
+  errors,
+  source,
+  today,
+  values,
+}: {
+  errors: TransferFormErrors;
+  source: Account | undefined;
+  today: string;
+  values: TransferFormValues;
+}): boolean {
+  const balance = balanceOf(source);
+
+  return (
+    isBalanceGuarded(source) &&
+    balance !== null &&
+    balance.assetCode === source?.assetCode &&
+    values.sourceAmountValue !== '' &&
+    !errors.sourceAmountValue &&
+    values.bookedOn !== '' &&
+    values.bookedOn <= today &&
+    wouldGoNegative(balance.value, values.sourceAmountValue)
+  );
 }

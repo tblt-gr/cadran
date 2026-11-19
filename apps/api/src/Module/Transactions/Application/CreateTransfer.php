@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AccountBalanceDelta;
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -38,6 +40,7 @@ final readonly class CreateTransfer
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
         private TransferPortfolioSync $portfolioSync,
     ) {
     }
@@ -100,6 +103,11 @@ final readonly class CreateTransfer
                 throw new InvalidTransferInput('The transfer input is invalid.', previous: $exception);
             }
 
+            ($this->assertBalance)($context->workspace, [
+                ...BalanceFloorDeltas::addition($sourceTransaction, AccountBalanceDelta::FIELD_SOURCE_AMOUNT),
+                ...BalanceFloorDeltas::addition($targetTransaction, AccountBalanceDelta::FIELD_SOURCE_AMOUNT),
+                ...BalanceFloorDeltas::addition($feeTransaction, AccountBalanceDelta::FIELD_SOURCE_AMOUNT),
+            ]);
             $this->transactions->add($sourceTransaction);
             $this->transactions->add($targetTransaction);
             if (null !== $feeTransaction) {

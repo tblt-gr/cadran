@@ -27,6 +27,7 @@ interface TransactionFormProps {
   onSubmit: (body: CreateTransactionRequest | UpdateTransactionRequest) => void;
   pending: boolean;
   submitError: TransactionErrorKind | null;
+  submitErrorDay?: string | null;
   submitErrorDetail?: string | null;
   transaction?: Transaction;
 }
@@ -42,6 +43,7 @@ export function TransactionForm({
   onSubmit,
   pending,
   submitError,
+  submitErrorDay,
   submitErrorDetail,
   transaction,
 }: TransactionFormProps) {
@@ -62,6 +64,7 @@ export function TransactionForm({
     set,
     setAdvancedOpen,
     setValues,
+    shortfallDay,
     showErrors,
     signedAmount,
     stateLocked,
@@ -70,9 +73,17 @@ export function TransactionForm({
     values,
   } = useTransactionFormState({ accounts, defaultAccountId, defaults, onSubmit, transaction });
 
+  // A refused balance is shown on the amount input, not in the banner.
+  const refused = submitError === 'insufficientBalance';
+  const insufficient = refused
+    ? { day: submitErrorDay ?? null, refused: true }
+    : shortfallDay === null
+      ? null
+      : { day: shortfallDay, refused: false };
+
   return (
     <ModalForm className={styles.form} noValidate onSubmit={submit}>
-      {submitError ? (
+      {submitError && !refused ? (
         <TransactionSubmitError
           accountId={resolved.accountId}
           className={styles.alert}
@@ -89,6 +100,7 @@ export function TransactionForm({
           direction={direction}
           editing={editing}
           errors={errors}
+          insufficient={insufficient}
           onAccountChosen={markAccountChosen}
           onChange={set}
           rawLabelLocked={rawLabelLocked}

@@ -756,6 +756,9 @@ api:
     transfer_forbidden:
       title: 'Virements inaccessibles'
       detail: "Cette session n'est rattachée à aucun espace de travail."
+    account_balance_insufficient:
+      title: 'Solde insuffisant'
+      detail: "Cette opération mettrait le compte en négatif le %date%. Rien n'a été enregistré."
     period_closed:
       title: 'Période clôturée'
       detail: 'Cette opération touche une période clôturée. Rouvrez la période avant de modifier ses mouvements.'

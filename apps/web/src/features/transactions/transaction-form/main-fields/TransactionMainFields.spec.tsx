@@ -34,6 +34,7 @@ function renderFields(overrides: Partial<Parameters<typeof TransactionMainFields
       direction={null}
       editing={false}
       errors={{}}
+      insufficient={null}
       onAccountChosen={onAccountChosen}
       onChange={onChange}
       rawLabelLocked={false}
@@ -79,4 +80,22 @@ it('locks the account and explains why when editing', () => {
 it('shows the read-only raw label beside the editable display label', () => {
   renderFields({ rawLabelLocked: true });
   expect((screen.getByLabelText('Libellé d’origine') as HTMLInputElement).readOnly).toBe(true);
+});
+
+it('flags an amount that would overdraw the account and links the dated message', () => {
+  renderFields({ insufficient: { day: '2026-11-05', refused: false } });
+  const input = screen.getByLabelText('Montant');
+  expect(input.getAttribute('aria-invalid')).toBe('true');
+  const ids = input.getAttribute('aria-describedby')?.trim().split(' ') ?? [];
+  const message = document.getElementById(ids[ids.length - 1] ?? '');
+  expect(message?.textContent).toBe(
+    'Solde insuffisant : ce montant mettrait le compte en négatif le 5 novembre 2026.',
+  );
+  expect(message?.querySelector('time')?.getAttribute('datetime')).toBe('2026-11-05');
+  expect(document.activeElement).not.toBe(input);
+});
+
+it('moves focus to the amount once the server refused the balance', () => {
+  renderFields({ insufficient: { day: '2026-11-05', refused: true } });
+  expect(document.activeElement).toBe(screen.getByLabelText('Montant'));
 });

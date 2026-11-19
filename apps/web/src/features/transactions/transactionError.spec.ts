@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { transactionRequestError } from './transactionError';
+import { transactionErrorDay, transactionRequestError } from './transactionError';
 
 describe('transactionRequestError', () => {
   it('classifies the stable closed-period problem apart from a plain conflict', () => {
@@ -23,5 +23,23 @@ describe('transactionRequestError', () => {
     });
 
     expect(error.kind).toBe('portfolioOperationsRequired');
+  });
+
+  it('keeps the account input and the first negative day of an insufficient balance', () => {
+    const error = transactionRequestError({
+      error: {
+        type: '/problems/account-balance-insufficient',
+        status: 422,
+        title: 't',
+        detail: 'd',
+        field: 'sourceAmount',
+        firstNegativeOn: '2026-11-05',
+      },
+      response: { status: 422 } as Response,
+    });
+
+    expect(error.kind).toBe('insufficientBalance');
+    expect(error.field).toBe('sourceAmount');
+    expect(transactionErrorDay(error)).toBe('2026-11-05');
   });
 });

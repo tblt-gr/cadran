@@ -7,6 +7,7 @@ namespace App\Tests\Module\Accounts\Application;
 use App\Module\Accounts\Application\AccountArchived;
 use App\Module\Accounts\Application\AccountBalanceConflict;
 use App\Module\Accounts\Application\AccountNotFound;
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\PeriodClosed;
@@ -22,11 +23,13 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\InvalidAmountInput;
+use App\Tests\Module\Accounts\Application\Double\AlwaysInteractive;
 use App\Tests\Module\Accounts\Application\Double\CollectingAuditEventRepository;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
 use App\Tests\Module\Accounts\Application\Double\ImmediateTransactionBoundary;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountBalanceSnapshotRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
+use App\Tests\Module\Accounts\Application\Double\NoMovementsReader;
 use App\Tests\Module\Accounts\Application\Double\SequenceUuidGenerator;
 use App\Tests\Module\Accounts\Domain\AccountFixture;
 use App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog;
@@ -246,16 +249,20 @@ final class RecordAccountBalanceTest extends TestCase
         string $caller = AccountFixture::WORKSPACE,
         ?AssertPeriodOpen $assertPeriodOpen = null,
     ): RecordAccountBalance {
+        $accounts ??= new InMemoryAccountRepository($account ?? AccountFixture::account());
+        $snapshots ??= new InMemoryAccountBalanceSnapshotRepository();
+
         return new RecordAccountBalance(
             new FixedCallerWorkspace($caller),
-            $accounts ?? new InMemoryAccountRepository($account ?? AccountFixture::account()),
-            $snapshots ?? new InMemoryAccountBalanceSnapshotRepository(),
+            $accounts,
+            $snapshots,
             new AmountInputParser(InMemoryAssetCatalog::withCodes('EUR', 'USD')),
             new SequenceUuidGenerator(),
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             new MockClock(self::NOW, 'UTC'),
             $assertPeriodOpen ?? new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
+            new AssertAccountBalanceNonNegative($accounts, $snapshots, new NoMovementsReader(), new AlwaysInteractive()),
         );
     }
 }

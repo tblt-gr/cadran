@@ -12,6 +12,9 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Added
 
+- A write that would put a current, savings or cash account below zero is refused with the first
+  negative day, and the amount input of the transaction, transfer and declared-balance forms
+  shows the error; recurrences and automatic booking are not refused.
 - English as a second interface language, chosen in the Interface settings and kept in the
   browser; amounts, rates, dates and month names follow the language (#709).
 - Weekly mutation testing (Infection with PCOV, `make mutation`) of the decimal, split, refund and

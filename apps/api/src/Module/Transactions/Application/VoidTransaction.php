@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Accounts\Application\AssertAccountBalanceNonNegative;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -34,6 +35,7 @@ final readonly class VoidTransaction
         private MatchTransactionToOccurrence $matchRecurrence,
         private ReconciliationRepository $reconciliations,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -69,6 +71,7 @@ final readonly class VoidTransaction
             } catch (InvalidTransaction $exception) {
                 throw new TransactionConflict('The transaction cannot be voided.', previous: $exception);
             }
+            ($this->assertBalance)($context->workspace, BalanceFloorDeltas::removal($current));
             if (!$this->transactions->update($voided, $current->version)) {
                 throw new StaleTransactionVersion('The transaction changed concurrently.');
             }

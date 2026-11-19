@@ -31,4 +31,37 @@ describe('TransactionSubmitError', () => {
 
     expect(screen.getByRole('alert').textContent).toBe('L’enregistrement a échoué. Réessayez.');
   });
+
+  it('names the first negative day of an insufficient balance in French and English', async () => {
+    const { default: i18n } = await import('i18next');
+    const { default: english } = await import('@/locales/en/translation.json');
+    i18n.addResourceBundle('en', 'translation', english);
+    render(<TransactionSubmitError className="x" day="2026-11-05" kind="insufficientBalance" />);
+
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Solde insuffisant : ce montant mettrait le compte en négatif le 5 novembre 2026.',
+    );
+    expect(screen.getByRole('alert').querySelector('time')?.getAttribute('datetime')).toBe(
+      '2026-11-05',
+    );
+
+    await i18n.changeLanguage('en');
+    try {
+      cleanup();
+      render(<TransactionSubmitError className="x" day="2026-11-05" kind="insufficientBalance" />);
+      expect(screen.getByRole('alert').textContent).toBe(
+        'Insufficient balance: this amount would put the account below zero on November 5, 2026.',
+      );
+    } finally {
+      await i18n.changeLanguage('fr');
+    }
+  });
+
+  it('falls back to an undated message when the day is unknown', () => {
+    render(<TransactionSubmitError className="x" kind="insufficientBalance" />);
+
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Solde insuffisant : ce montant mettrait le compte en négatif.',
+    );
+  });
 });

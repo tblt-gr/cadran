@@ -4162,13 +4162,14 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: The snapshot fields are invalid or the account is archived.
+          description: 'The snapshot fields are invalid or the account is archived. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/AmountInputProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/balances/{snapshotId}:
@@ -4227,13 +4228,14 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: The fields are invalid or the account is archived.
+          description: 'The fields are invalid or the account is archived. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/AmountInputProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/balances/{snapshotId}/withdraw:
@@ -6594,7 +6596,7 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The amount, dates, nature, category or bounds are invalid, or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`), or an Idempotency-Key is invalid or required by an IMPORT or PROVIDER source. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).'
+          description: 'The amount, dates, nature, category or bounds are invalid, or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`), or an Idempotency-Key is invalid or required by an IMPORT or PROVIDER source. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
@@ -6602,6 +6604,7 @@ paths:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/AmountInputProblem'
                   - $ref: '#/components/schemas/PortfolioAccountRequiresOperationsProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}:
@@ -6682,7 +6685,7 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The edit is invalid, tried to change an immutable field, targets a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`), or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`). An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).'
+          description: 'The edit is invalid, tried to change an immutable field, targets a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`), or the splits allocation leaves a remainder unallocated (`type: /problems/splits.sum_missing`), exceeds the amount (`type: /problems/splits.sum_exceeds`), carries more than twenty rows (`type: /problems/splits.too_many`) or repeats a category (`type: /problems/splits.duplicate_category`). An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
@@ -6691,6 +6694,7 @@ paths:
                   - $ref: '#/components/schemas/AmountInputProblem'
                   - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
                   - $ref: '#/components/schemas/PortfolioAccountRequiresOperationsProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/splits:
@@ -7250,11 +7254,13 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The body or the Idempotency-Key is invalid, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`).'
+          description: 'The body or the Idempotency-Key is invalid, or the scope exceeds 500 transactions (`type: /problems/transactions.bulk-scope-too-large`, with `limit`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/void:
@@ -7306,13 +7312,14 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The transaction is a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`).'
+          description: 'The transaction is a transfer leg or its fee (`type: /problems/transaction-belongs-to-transfer`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/TransactionBelongsToTransferProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{accountId}/reconciliation:
@@ -7410,7 +7417,13 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: 'The request is invalid. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/reconcile:
@@ -7462,7 +7475,13 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: 'The request is invalid. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transactions/{id}/duplicate:
@@ -7509,13 +7528,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/Problem'
         '422':
-          description: 'A transfer leg or refund cannot be duplicated, or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).'
+          description: 'A transfer leg or refund cannot be duplicated, or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/PortfolioAccountRequiresOperationsProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transfers:
@@ -7568,7 +7588,7 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The accounts, amounts, dates, state, label or fee are invalid. The source and target account must differ (`type: /problems/transfer.same_account`), and a same-asset pair with an explicit targetAmount must net exactly to zero (`type: /problems/transfer.amount_mismatch`), or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).'
+          description: 'The accounts, amounts, dates, state, label or fee are invalid. The source and target account must differ (`type: /problems/transfer.same_account`), and a same-asset pair with an explicit targetAmount must net exactly to zero (`type: /problems/transfer.amount_mismatch`), or the Idempotency-Key is invalid. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
@@ -7576,6 +7596,7 @@ paths:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/AmountInputProblem'
                   - $ref: '#/components/schemas/PortfolioAccountRequiresOperationsProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transfers/{id}:
@@ -7656,13 +7677,14 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The edit is invalid or tried to change an immutable field. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`).'
+          description: 'The edit is invalid or tried to change an immutable field. An income, expense, refund or fee on an account followed in portfolio mode is refused (`type: /problems/portfolio-account-requires-operations`). A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/Problem'
                   - $ref: '#/components/schemas/PortfolioAccountRequiresOperationsProblem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/transfers/{id}/void:
@@ -7714,7 +7736,13 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          $ref: '#/components/responses/UnprocessableEntity'
+          description: 'The request is invalid. A write that would put a current, savings or cash account below zero is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
+          content:
+            application/problem+json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/period-closures:
@@ -22935,6 +22963,8 @@ components:
           description: The account is archived and cannot be changed.
         - const: /problems/account-balance-conflict
           description: A balance snapshot already exists for the account and date.
+        - const: /problems/account-balance-insufficient
+          description: The write would put a current, savings or cash account below zero; the extension members name the account, the input and the first negative day.
         - const: /problems/account-group-archived
           description: The account group is archived and cannot be changed.
         - const: /problems/account-group-label-taken
@@ -25468,3 +25498,29 @@ components:
               count:
                 type: integer
                 minimum: 1
+    AccountBalanceInsufficientProblem:
+      description: Raised when an interactive write would create or deepen a negative balance on a current, savings or cash account. The document carries the account, the input to blame and the first day the balance would be negative, never an amount. Nothing is written.
+      allOf:
+        - $ref: '#/components/schemas/Problem'
+        - type: object
+          required:
+            - accountId
+            - field
+            - firstNegativeOn
+          properties:
+            type:
+              const: /problems/account-balance-insufficient
+            status:
+              const: 422
+            accountId:
+              type: string
+              format: uuid
+            field:
+              type: string
+              description: The request input to flag.
+              enum:
+                - amount
+                - sourceAmount
+            firstNegativeOn:
+              type: string
+              format: date

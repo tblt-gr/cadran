@@ -1,6 +1,5 @@
 import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
-import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
 import type {
   Account,
@@ -11,9 +10,13 @@ import type {
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/ui/disclosure/Disclosure';
-import { FormField } from '@/features/accounts/account-form/form-field/FormField';
-import { accountErrorKind, type AccountErrorKind } from '@/features/accounts/accountError';
+import {
+  accountErrorDay,
+  accountErrorKind,
+  type AccountErrorKind,
+} from '@/features/accounts/accountError';
 import { formatCalendarNumericDay, isCanonicalDecimal } from '@/lib/decimal';
+import { BalanceFields } from './balance-fields/BalanceFields';
 import { BalanceCommentField } from './balance-comment-field/BalanceCommentField';
 import { BalanceSnapshotsList } from './balance-snapshots/BalanceSnapshotsList';
 import { latestBalanceDay, newSnapshotRequest } from './newSnapshotRequest';
@@ -35,6 +38,8 @@ interface RecordBalanceFormProps {
   onSubmit: (body: RecordAccountBalanceRequest) => void;
   pending: boolean;
   submitError: AccountErrorKind | null;
+  /** For an insufficient balance: the first day the account would be negative (ISO 8601). */
+  submitErrorDay?: string | null;
 }
 
 /**
@@ -56,6 +61,7 @@ export function RecordBalanceForm({
   onSubmit,
   pending,
   submitError,
+  submitErrorDay,
 }: RecordBalanceFormProps) {
   const { t } = useTranslation();
   const [asOf, setAsOf] = useState(initialEditing?.asOf ?? initialAsOf ?? valuation.requestedOn);
@@ -73,6 +79,9 @@ export function RecordBalanceForm({
 
   const correctError = accountErrorKind(correct.error, correct.isError);
   const shownError = editing ? correctError : submitError;
+  // A refused balance is shown on the amount input, not in the banner.
+  const refused = shownError === 'insufficientBalance';
+  const refusalDay = editing ? accountErrorDay(correct.error) : (submitErrorDay ?? null);
   const busy = pending || correct.isPending;
   // The list sits below the form: bring the form back into view so the change of mode is seen.
   useEffect(() => {
@@ -82,6 +91,10 @@ export function RecordBalanceForm({
     editingRef.current?.scrollIntoView({ block: 'start' });
     amountRef.current?.focus({ preventScroll: true });
   }, [editing]);
+
+  useEffect(() => {
+    if (refused) amountRef.current?.focus();
+  }, [refused]);
 
   const trimmedAmount = amount.trim();
   const trimmedComment = comment.trim();
@@ -141,7 +154,7 @@ export function RecordBalanceForm({
   return (
     <div className={styles.wrapper}>
       <ModalForm className={styles.form} noValidate onSubmit={submit}>
-        {shownError ? (
+        {shownError && !refused ? (
           <p className={styles.alert} role="alert">
             {t(`accounts.balances.errors.${shownError}`)}
           </p>
@@ -162,53 +175,21 @@ export function RecordBalanceForm({
           </p>
         )}
 
-        <FormGrid className={styles.fields}>
-          <FormField
-            error={showErrors && asOfInvalid ? t('accounts.balances.validation.asOf') : undefined}
-            hint={t('accounts.balances.asOfHint')}
-            label={t('accounts.balances.fields.asOf')}
-            name="balance-as-of"
-          >
-            {({ fieldId, describedBy }) => (
-              <input
-                aria-describedby={describedBy}
-                aria-invalid={showErrors && asOfInvalid ? true : undefined}
-                id={fieldId}
-                max={latestAllowed}
-                min={account.openedOn}
-                onChange={(event) => setAsOf(event.target.value)}
-                readOnly={editing !== null}
-                required
-                type="date"
-                value={asOf}
-              />
-            )}
-          </FormField>
-
-          <FormField
-            error={
-              showErrors && amountInvalid ? t('accounts.balances.validation.amount') : undefined
-            }
-            hint={t('accounts.balances.amountHint')}
-            label={t('accounts.balances.fields.amount')}
-            name="balance-amount"
-          >
-            {({ fieldId, describedBy }) => (
-              <input
-                aria-describedby={describedBy}
-                aria-invalid={showErrors && amountInvalid ? true : undefined}
-                autoComplete="off"
-                id={fieldId}
-                inputMode="decimal"
-                onChange={(event) => setAmount(event.target.value)}
-                ref={amountRef}
-                required
-                spellCheck={false}
-                value={amount}
-              />
-            )}
-          </FormField>
-        </FormGrid>
+        <BalanceFields
+          amount={amount}
+          amountInvalid={amountInvalid}
+          amountRef={amountRef}
+          asOf={asOf}
+          asOfInvalid={asOfInvalid}
+          className={styles.fields}
+          dateLocked={editing !== null}
+          latestAllowed={latestAllowed}
+          minDay={account.openedOn}
+          onAmount={setAmount}
+          onAsOf={setAsOf}
+          refusal={refused ? { day: refusalDay } : null}
+          showErrors={showErrors}
+        />
 
         <FormSection
           title={t('transactions.form.advanced')}
