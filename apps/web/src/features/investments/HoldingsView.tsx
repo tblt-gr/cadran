@@ -49,13 +49,12 @@ export function HoldingsView({
       />
     </div>
   );
-  if (holdings && holdings.items.length === 0 && (!byAccount || holdings.accounts.length === 0)) {
-    const noAccount = isNoInvestmentAccount(holdings);
-    // Accounts valued as a total still have totals and an allocation by account.
+  // With no account at all there is nothing to switch between: only the reason and the way out.
+  const noAccount = holdings !== null && isNoInvestmentAccount(holdings);
+  if (holdings && holdings.items.length === 0 && (holdings.accounts.length === 0 || noAccount)) {
     const hasTotals = holdings.totals.securitiesValue !== null;
     return (
       <>
-        {holdings.accounts.length > 0 ? viewControl : null}
         {holdings.unsplitAccounts.length === 0 ? (
           <section className={`card ${styles.empty}`}>
             <h3>{t(noAccount ? 'investments.empty.noAccount' : 'investments.empty.noPosition')}</h3>
@@ -70,36 +69,41 @@ export function HoldingsView({
             ) : null}
           </section>
         ) : null}
-        {hasTotals ? (
-          <>
-            <HoldingsSummary holdings={holdings} />
-          </>
-        ) : null}
+        {hasTotals ? <HoldingsSummary holdings={holdings} /> : null}
         <HoldingsAlerts holdings={holdings} showUnsplit showWarnings={hasTotals} />
         {hasTotals ? (
           <div className={styles.grid}>
-            <HoldingsAllocationCard holdings={holdings} view={view} />
+            <HoldingsAllocationCard holdings={holdings} />
           </div>
         ) : null}
       </>
     );
   }
 
+  // Accounts but no instrument line: the by-asset view keeps the same page and swaps the table for
+  // the reason, so the switch never moves between the two views.
+  const noLine = holdings !== null && holdings.items.length === 0;
   return (
     <>
-      {viewControl}
       <HoldingsSummary holdings={holdings} />
       {holdings ? <HoldingsAlerts holdings={holdings} showUnsplit={!byAccount} /> : null}
       {holdings && byAccount ? (
         <HoldingsCoverage total={holdings.accounts.length} unvalued={unvalued} />
       ) : null}
       <div className={styles.grid}>
-        <HoldingsAllocationCard holdings={holdings} view={view} />
+        <HoldingsAllocationCard holdings={holdings} />
       </div>
+      {viewControl}
       {byAccount ? (
         holdings && valued.length === 0 && unvalued.length > 0 ? null : (
           <HoldingsByAccountTable holdings={holdings && { ...holdings, accounts: valued }} />
         )
+      ) : noLine ? (
+        holdings?.unsplitAccounts.length === 0 ? (
+          <section className={`card ${styles.empty}`}>
+            <h3>{t('investments.empty.noPosition')}</h3>
+          </section>
+        ) : null
       ) : (
         <HoldingsTable holdings={holdings} onSortChange={onSortChange} sort={sort} />
       )}

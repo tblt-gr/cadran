@@ -124,15 +124,44 @@ describe('InvestmentsPage', () => {
     );
   });
 
-  it('puts the view control first, before the summary cards, loaded or not', async () => {
+  it('keeps the view control above the table, outside its card, in both views', async () => {
+    window.history.replaceState({}, '', '/investments');
     api.readHoldings.mockImplementation(() => success(holdingsFixture()));
     renderPage();
-    const before = (control: HTMLElement) =>
-      control.compareDocumentPosition(screen.getByText('Valeur des titres')) &
-      Node.DOCUMENT_POSITION_FOLLOWING;
-    expect(before(screen.getByRole('group', { name: 'Affichage des positions' }))).toBeTruthy();
-    await screen.findByText('MSCI World');
-    expect(before(screen.getByRole('group', { name: 'Affichage des positions' }))).toBeTruthy();
+    const follows = (a: Element, b: Element) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const check = (tableName: string) => {
+      const control = screen.getByRole('group', { name: 'Affichage des positions' });
+      const table = screen.getByRole('table', { name: tableName });
+      expect(table.closest('.card')!.contains(control)).toBe(false);
+      expect(follows(control, table)).toBeTruthy();
+      expect(
+        follows(screen.getByRole('table', { name: 'Détail de la répartition' }), control),
+      ).toBeTruthy();
+    };
+    await screen.findByRole('link', { name: 'CTO' });
+    check('Positions par compte');
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    check('Positions par actif');
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    check('Positions par compte');
+  });
+
+  it('keeps the allocation criterion when the positions view changes', async () => {
+    window.history.replaceState({}, '', '/investments');
+    api.readHoldings.mockImplementation(() => success(holdingsFixture()));
+    renderPage();
+    await screen.findByRole('link', { name: 'CTO' });
+    const pressed = () =>
+      screen.getByRole('button', { name: "Classe d'actifs" }).getAttribute('aria-pressed');
+    expect(pressed()).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    expect(pressed()).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Région' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    expect(screen.getByRole('button', { name: 'Région' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 
   it('opens on the account view by default, whatever an invalid view parameter says', async () => {
