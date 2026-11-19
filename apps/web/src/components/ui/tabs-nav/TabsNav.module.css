@@ -140,6 +140,7 @@
     position: sticky;
     z-index: var(--z-header);
     top: 0;
-    background: var(--bg-shell);
+    background: var(--bg-ambient), var(--bg-shell);
+    background-attachment: fixed;
   }
 }

@@ -17,7 +17,8 @@
   transition:
     color var(--duration-fast) var(--ease-out),
     background-color var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    border-color var(--duration-fast) var(--ease-out),
+    backdrop-filter var(--duration-fast) var(--ease-out);
 }
 
 .link:hover,
@@ -27,7 +28,10 @@
 
 .link:hover {
   color: var(--text-primary);
-  background: var(--bg-surface-1);
+  /* Glass, no border: a translucent wash over whatever the light puts behind the menu. */
+  background: var(--bg-glass);
+  -webkit-backdrop-filter: var(--filter-glass);
+  backdrop-filter: var(--filter-glass);
 }
 
 /* The current page is marked by the white rule alone, flush with the sidebar edge; every link

@@ -9,7 +9,9 @@
   justify-content: space-between;
   min-height: var(--header-height);
   padding: var(--spacing-none) var(--content-gutter);
-  background: var(--bg-shell);
+  /* Opaque, yet seamless: it repaints the page light, fixed to the viewport, over the field. */
+  background: var(--bg-ambient), var(--bg-shell);
+  background-attachment: fixed;
   gap: var(--spacing-6);
 }
 

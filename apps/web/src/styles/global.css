@@ -1,6 +1,7 @@
 :root {
   color: var(--text-primary);
-  background: var(--bg-page);
+  background: var(--bg-ambient), var(--bg-page);
+  background-attachment: fixed;
   font-family: var(--font-family-sans);
   /* cv05 gives the lowercase l a tail, which keeps 1, I and l apart in figures
      and labels; ss03 uses the round comma and quote shapes French text needs. */
@@ -21,7 +22,6 @@ html {
   /* A tap leaves no flash on any element, interactive or not (the property is inherited). */
   -webkit-tap-highlight-color: transparent;
   min-width: 20rem;
-  background: var(--bg-page);
 }
 
 #root {
@@ -34,7 +34,7 @@ body {
   min-width: 20rem;
   min-height: 100vh;
   min-height: 100svh;
-  background: var(--bg-page);
+  background: var(--color-transparent);
 }
 
 button,

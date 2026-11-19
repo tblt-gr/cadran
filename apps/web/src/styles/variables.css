@@ -8,6 +8,18 @@
   --bg-page: #0a0a0b;
   --bg-shell: #0a0a0b;
   --bg-sidebar: #0a0a0b;
+  /* One warm light in the top-left corner of the field, eased over several stops so it has no edge. */
+  --bg-ambient: radial-gradient(
+    90vmax 59.4vmax at 0 0,
+    rgba(236, 224, 209, 0.065) 0%,
+    rgba(236, 224, 209, 0.047) 18%,
+    rgba(236, 224, 209, 0.026) 38%,
+    rgba(236, 224, 209, 0.01) 60%,
+    rgba(236, 224, 209, 0) 82%
+  );
+  /* Menu hover: a translucent wash with a blur behind it, no border. */
+  --bg-glass: rgba(255, 255, 255, 0.07);
+  --filter-glass: blur(14px) saturate(150%);
   --bg-surface-1: #111113;
   --bg-surface-2: #18181b;
   --bg-surface-hover: #1f1f23;
@@ -72,7 +84,7 @@
   --shadow-sheet: 0 1.5rem 4rem rgba(0, 0, 0, 0.5);
 
   /* Layout dimensions */
-  --sidebar-width: 15rem;
+  --sidebar-width: max-content;
   --sidebar-width-collapsed: 3rem;
   --header-height: 3.5rem;
   /* Rows stay readable on wide screens: the page column stops here and the extra width becomes side margins. */
