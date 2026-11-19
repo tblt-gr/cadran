@@ -26,6 +26,77 @@ goals, portfolios and multi-support life insurance features are described in the
   offline handling; API responses and financial data are never cached for offline use.
 - Installation, operations and contribution guides, a reproducible release checklist and a
   quality guard against undocumented Makefile targets.
+- Unify budget plans, targets and savings goals into one goal model: net worth and account
+  balance targets, optional tolerance, a side panel in the monthly budget and the annual report,
+  per-month or per-year evaluation, stop and delete, details and revision history, and goal marks
+  in report charts (#486, #487, #488, #493, #495, #497, #498, #499, #518).
+- Merge the reports into the budget with annual and multi-year views, report columns reordered
+  by dragging, category columns shown as a tree and all account kinds included by default (#382,
+  #506, #517, #519).
+- Chart monthly expenses by category and the value history of every account, compose a parent
+  group, and choose the period of the net worth chart (#332, #392, #406, #461).
+- Organise accounts in a group tree with inherited and customizable colors, sub-group membership
+  instead of tags, reordering, allocation by group, a primary transaction account, and an
+  accounts overview with one ordered table per group (#350, #353, #383, #400, #401, #402, #403,
+  #404, #405).
+- Record, correct and withdraw the balance snapshots that anchor an account, with a Solde tab and
+  a stepped savings balance history (#345, #351, #374, #377, #439).
+- Group transactions by day, select and recategorize or edit several at once, move transactions
+  to another account or date with a balance preview, and accept unsigned expense amounts (#379,
+  #381, #398, #479, #480).
+- Create recurring transactions automatically and plan upcoming transactions within the current
+  month (#433, #437).
+- Show every holding across accounts on an Investments page, open instrument sheets from
+  operation names, create instruments from pickers, take over existing positions when opening a
+  securities account, and refresh the valuation after each cash or trade operation (#466, #481,
+  #482, #484, #485).
+- Delete a category while transferring or keeping its history, and merge categories without
+  keeping the merged source in the list (#369, #393).
+- Add an opt-in "remember me" to the sign-in and end every session 30 days after sign-in; return
+  to the sign-in when any request finds the session expired (#409, #571, #581).
+- Reset the owner password from the console, log failed and throttled sign-ins without
+  identifying data, and write structured JSON logs carrying a request identifier (#569, #570,
+  #573).
+- Schedule the maintenance jobs, run `make doctor` daily with a failure notification, rotate the
+  container logs, rehearse a cold restore on a disposable stack and let the installation set
+  container memory limits (#572, #584, #611, #634, #638).
+- List every problem type in the OpenAPI contract and guard the whole `/api/v1` contract (#315,
+  #595).
+- Verify WCAG 2.2 AA on the critical journeys and gate the responsive and browser journeys with
+  end-to-end tests (#320, #327).
+
+### Changed
+
+- Unify the interface on the graphite and platinum registry: shared modal layouts (full screen on
+  mobile), tabs, tables and controls, one dated row list across registers, balances, valuations
+  and portfolio operations, an icon and a label on every page header action, a back arrow on
+  phone detail pages and a five-icon mobile navigation bar (#551, #552, #554, #635, #667, #669,
+  #679, #681, #689, #691, #692, #693).
+- Reorder the primary navigation around accounts, put the budget after home, make the monthly
+  budget the entry point for transactions and move the monthly closure into its overflow menu
+  (#349, #458, #476, #510).
+- Simplify the portfolio, life insurance, catalogue and investments screens and the account and
+  performance views (#420, #555, #556, #557, #558, #563).
+- Move page actions into the header and group the settings under `/parameters` (#297).
+- Load the French dictionary as its own chunk and tally the transaction facets in one scan when
+  no split filter is set (#586, #643).
+- Split the PHP classes and React components that exceeded the size ceilings and serve
+  cross-module totals from dedicated readers, with no behavior change (#577, #579, #583, #637,
+  #656).
+
+### Fixed
+
+- Derive account balances from snapshots and booked movements, and measure the net worth change
+  from the closing balance of the baseline (#344, #394).
+- Keep the original analytic axes on a proposed refund split, handle refund decimal entry safely,
+  allow editing existing refund metadata and start a new refund on the workspace's today (#378,
+  #465, #511, #645).
+- Respect the upcoming transaction preference in goals, cover descendants in parent category
+  columns and align the multi-year report with the annual details (#413, #514, #615).
+- Preserve the scroll position when loading more rows, and make overflowing tab strips scrollable
+  with a mouse (#317, #504).
+- Fix the mobile layout of cards, tabs, filters, month cards and action menus across the
+  application (#640, #641, #646, #649, #661, #662, #663, #664, #665, #670, #671).
 
 ### MVP boundaries
 
@@ -37,6 +108,9 @@ goals, portfolios and multi-support life insurance features are described in the
 
 ### Security
 
+- Complete the OWASP ASVS 5.0 security review of the MVP, update Symfony to 7.4.23 for security
+  advisories and apply all Alpine, zlib, krb5 and sqlite image fixes (#325, #322, #470, #477,
+  #516, #601).
 - Upgrade the FrankenPHP base image to 1.13.1 (Go binary free of known HIGH and CRITICAL findings)
   and drop the expired `.trivyignore` exceptions for kin-openapi, gRPC-Go and golang.org/x/crypto.
 - Send `Strict-Transport-Security` (one year, no preload) on any host name except localhost,
