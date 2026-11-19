@@ -55,9 +55,16 @@ export function HoldingsView({
     const hasTotals = holdings.totals.securitiesValue !== null;
     return (
       <>
+        {hasTotals ? <HoldingsSummary holdings={holdings} /> : null}
+        <HoldingsAlerts holdings={holdings} showUnsplit showWarnings={hasTotals} />
+        {hasTotals ? (
+          <div className={styles.grid}>
+            <HoldingsAllocationCard holdings={holdings} />
+          </div>
+        ) : null}
+        {holdings.accounts.length > 0 ? viewControl : null}
         {holdings.unsplitAccounts.length === 0 ? (
           <section className={`card ${styles.empty}`}>
-            {holdings.accounts.length > 0 ? viewControl : null}
             <h3>{t(noAccount ? 'investments.empty.noAccount' : 'investments.empty.noPosition')}</h3>
             {noAccount ? (
               <a
@@ -69,15 +76,6 @@ export function HoldingsView({
               </a>
             ) : null}
           </section>
-        ) : holdings.accounts.length > 0 ? (
-          viewControl
-        ) : null}
-        {hasTotals ? <HoldingsSummary holdings={holdings} /> : null}
-        <HoldingsAlerts holdings={holdings} showUnsplit showWarnings={hasTotals} />
-        {hasTotals ? (
-          <div className={styles.grid}>
-            <HoldingsAllocationCard holdings={holdings} />
-          </div>
         ) : null}
       </>
     );
@@ -93,20 +91,13 @@ export function HoldingsView({
       <div className={styles.grid}>
         <HoldingsAllocationCard holdings={holdings} />
       </div>
+      {viewControl}
       {byAccount ? (
         holdings && valued.length === 0 && unvalued.length > 0 ? null : (
-          <HoldingsByAccountTable
-            holdings={holdings && { ...holdings, accounts: valued }}
-            toolbar={viewControl}
-          />
+          <HoldingsByAccountTable holdings={holdings && { ...holdings, accounts: valued }} />
         )
       ) : (
-        <HoldingsTable
-          holdings={holdings}
-          onSortChange={onSortChange}
-          sort={sort}
-          toolbar={viewControl}
-        />
+        <HoldingsTable holdings={holdings} onSortChange={onSortChange} sort={sort} />
       )}
     </>
   );

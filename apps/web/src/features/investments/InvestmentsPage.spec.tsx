@@ -124,23 +124,27 @@ describe('InvestmentsPage', () => {
     );
   });
 
-  it('puts the view control inside the positions table card, loaded or not', async () => {
+  it('keeps the view control above the table, outside its card, in both views', async () => {
     window.history.replaceState({}, '', '/investments');
     api.readHoldings.mockImplementation(() => success(holdingsFixture()));
     renderPage();
-    const inTableCard = () => {
+    const follows = (a: Element, b: Element) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING;
+    const check = (tableName: string) => {
       const control = screen.getByRole('group', { name: 'Affichage des positions' });
-      const card = screen.getByRole('table', { name: 'Positions par compte' }).closest('.card')!;
-      expect(card.contains(control)).toBe(true);
+      const table = screen.getByRole('table', { name: tableName });
+      expect(table.closest('.card')!.contains(control)).toBe(false);
+      expect(follows(control, table)).toBeTruthy();
       expect(
-        control.compareDocumentPosition(
-          screen.getByRole('table', { name: 'Positions par compte' }),
-        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        follows(screen.getByRole('table', { name: 'Répartition des titres' }), control),
       ).toBeTruthy();
     };
-    inTableCard();
     await screen.findByRole('link', { name: 'CTO' });
-    inTableCard();
+    check('Positions par compte');
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    check('Positions par actif');
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    check('Positions par compte');
   });
 
   it('keeps the allocation criterion when the positions view changes', async () => {

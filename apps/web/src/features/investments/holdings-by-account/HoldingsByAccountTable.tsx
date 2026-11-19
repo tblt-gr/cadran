@@ -1,5 +1,5 @@
 import type { Holdings } from '@cadran/api-client';
-import { useState, type ReactNode } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -9,14 +9,7 @@ import styles from './HoldingsByAccountTable.module.css';
 const PENDING_ROWS = 3;
 
 /** One line per account, in the server order: no header sorts here. */
-export function HoldingsByAccountTable({
-  holdings,
-  toolbar,
-}: {
-  holdings: Holdings | null;
-  /** Header row of the card, above the table: the view switch of the positions. */
-  toolbar?: ReactNode;
-}) {
+export function HoldingsByAccountTable({ holdings }: { holdings: Holdings | null }) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
   const toggle = (id: string) =>
@@ -34,7 +27,6 @@ export function HoldingsByAccountTable({
 
   return (
     <div className={`card ${styles.panel}`}>
-      {toolbar ? <div className={styles.toolbar}>{toolbar}</div> : null}
       <div className={styles.scroll}>
         <table>
           <caption className="sr-only">{t('investments.byAccount.caption')}</caption>

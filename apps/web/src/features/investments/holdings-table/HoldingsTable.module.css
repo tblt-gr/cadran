@@ -3,27 +3,6 @@
   overflow: hidden;
 }
 
-/* Header row of the card: the view switch, set off from the table by a hairline. */
-.toolbar {
-  padding: var(--spacing-3) var(--spacing-4);
-  border-bottom: var(--border-line-subtle);
-}
-
-@media (max-width: 767px) {
-  .toolbar > div {
-    display: flex;
-    width: 100%;
-  }
-
-  .toolbar [role='group'] {
-    flex: 1;
-  }
-
-  .toolbar button {
-    flex: 1;
-  }
-}
-
 .scroll {
   overflow-x: auto;
 }

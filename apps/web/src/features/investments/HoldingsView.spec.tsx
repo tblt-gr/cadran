@@ -31,7 +31,7 @@ describe('HoldingsView', () => {
     expect(summary.closest('details')?.textContent).toContain('est valorisé en total');
   });
 
-  it('shows the view switch in the empty card when accounts exist but no line', () => {
+  it('shows the view switch above the empty card when accounts exist but no line', () => {
     const base = holdingsFixture();
     const render1 = (accounts: typeof base.accounts) =>
       render(
@@ -45,7 +45,10 @@ describe('HoldingsView', () => {
       );
     const { unmount } = render1(base.accounts);
     const group = screen.getByRole('group', { name: 'Affichage des positions' });
-    expect(group.closest('section')?.textContent).toContain('Aucune position');
+    expect(
+      group.compareDocumentPosition(screen.getByText('Aucune position détenue')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     unmount();
     render1([]);
     expect(screen.queryByRole('group', { name: 'Affichage des positions' })).toBeNull();
