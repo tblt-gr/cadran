@@ -1,5 +1,5 @@
 import type { Holdings } from '@cadran/api-client';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -13,12 +13,14 @@ interface HoldingsTableProps {
   holdings: Holdings | null;
   sort: HoldingsSort;
   onSortChange: (sort: HoldingsSort) => void;
+  /** Header row of the card, above the table: the view switch of the positions. */
+  toolbar?: ReactNode;
 }
 
 const PENDING_ROWS = 4;
 
 /** One line per instrument across every account, ordered by the server. */
-export function HoldingsTable({ holdings, sort, onSortChange }: HoldingsTableProps) {
+export function HoldingsTable({ holdings, sort, onSortChange, toolbar }: HoldingsTableProps) {
   const { t } = useTranslation();
   const [opened, setOpened] = useState<ReadonlySet<string>>(new Set());
   const toggle = (id: string) =>
@@ -47,6 +49,7 @@ export function HoldingsTable({ holdings, sort, onSortChange }: HoldingsTablePro
 
   return (
     <div className={`card ${styles.panel}`}>
+      {toolbar ? <div className={styles.toolbar}>{toolbar}</div> : null}
       <div className={styles.scroll}>
         <table>
           <caption className="sr-only">{t('investments.table.caption')}</caption>

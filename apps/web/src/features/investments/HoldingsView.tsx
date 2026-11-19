@@ -55,9 +55,9 @@ export function HoldingsView({
     const hasTotals = holdings.totals.securitiesValue !== null;
     return (
       <>
-        {holdings.accounts.length > 0 ? viewControl : null}
         {holdings.unsplitAccounts.length === 0 ? (
           <section className={`card ${styles.empty}`}>
+            {holdings.accounts.length > 0 ? viewControl : null}
             <h3>{t(noAccount ? 'investments.empty.noAccount' : 'investments.empty.noPosition')}</h3>
             {noAccount ? (
               <a
@@ -69,16 +69,14 @@ export function HoldingsView({
               </a>
             ) : null}
           </section>
+        ) : holdings.accounts.length > 0 ? (
+          viewControl
         ) : null}
-        {hasTotals ? (
-          <>
-            <HoldingsSummary holdings={holdings} />
-          </>
-        ) : null}
+        {hasTotals ? <HoldingsSummary holdings={holdings} /> : null}
         <HoldingsAlerts holdings={holdings} showUnsplit showWarnings={hasTotals} />
         {hasTotals ? (
           <div className={styles.grid}>
-            <HoldingsAllocationCard holdings={holdings} view={view} />
+            <HoldingsAllocationCard holdings={holdings} />
           </div>
         ) : null}
       </>
@@ -87,21 +85,28 @@ export function HoldingsView({
 
   return (
     <>
-      {viewControl}
       <HoldingsSummary holdings={holdings} />
       {holdings ? <HoldingsAlerts holdings={holdings} showUnsplit={!byAccount} /> : null}
       {holdings && byAccount ? (
         <HoldingsCoverage total={holdings.accounts.length} unvalued={unvalued} />
       ) : null}
       <div className={styles.grid}>
-        <HoldingsAllocationCard holdings={holdings} view={view} />
+        <HoldingsAllocationCard holdings={holdings} />
       </div>
       {byAccount ? (
         holdings && valued.length === 0 && unvalued.length > 0 ? null : (
-          <HoldingsByAccountTable holdings={holdings && { ...holdings, accounts: valued }} />
+          <HoldingsByAccountTable
+            holdings={holdings && { ...holdings, accounts: valued }}
+            toolbar={viewControl}
+          />
         )
       ) : (
-        <HoldingsTable holdings={holdings} onSortChange={onSortChange} sort={sort} />
+        <HoldingsTable
+          holdings={holdings}
+          onSortChange={onSortChange}
+          sort={sort}
+          toolbar={viewControl}
+        />
       )}
     </>
   );

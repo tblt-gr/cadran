@@ -69,6 +69,7 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Changed
 
+- The positions view switch of the Investments page now sits in the header of the positions table, and the allocation card no longer follows it.
 - Soften the shell: a warm light in the top-left corner of the background, no divider between
   the menu and the page, a menu as wide as its content and a glass hover on its links.
 - Unify the interface on the graphite and platinum registry: shared modal layouts (full screen on

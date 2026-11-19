@@ -21,22 +21,12 @@ const criterionNameKeys = {
 } as const;
 
 /** Share of the securities by asset class, region or instrument: a donut and its legend table. */
-export function HoldingsAllocationCard({
-  holdings,
-  view,
-}: {
-  holdings: Holdings | null;
-  /** The positions view on the page: by account, the allocation starts by account too. */
-  view?: 'asset' | 'account';
-}) {
+export function HoldingsAllocationCard({ holdings }: { holdings: Holdings | null }) {
   const { t, i18n } = useTranslation();
   const [chosen, setChosen] = useState<AllocationCriterion | null>(null);
   // Without any line the asset views only hold the unsplit slice: the accounts are what to show.
   const criterion: AllocationCriterion =
-    chosen ??
-    (view === 'account' || (holdings && holdings.items.length === 0)
-      ? 'byAccount'
-      : 'byAssetClass');
+    chosen ?? (holdings && holdings.items.length === 0 ? 'byAccount' : 'byAssetClass');
   const slices = holdings?.allocation[criterion] ?? [];
   const label = (slice: { key: string; label: string }) =>
     sliceLabel(criterion, slice, t('investments.allocation.unspecified'), t);

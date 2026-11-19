@@ -124,15 +124,40 @@ describe('InvestmentsPage', () => {
     );
   });
 
-  it('puts the view control first, before the summary cards, loaded or not', async () => {
+  it('puts the view control inside the positions table card, loaded or not', async () => {
+    window.history.replaceState({}, '', '/investments');
     api.readHoldings.mockImplementation(() => success(holdingsFixture()));
     renderPage();
-    const before = (control: HTMLElement) =>
-      control.compareDocumentPosition(screen.getByText('Valeur des titres')) &
-      Node.DOCUMENT_POSITION_FOLLOWING;
-    expect(before(screen.getByRole('group', { name: 'Affichage des positions' }))).toBeTruthy();
-    await screen.findByText('MSCI World');
-    expect(before(screen.getByRole('group', { name: 'Affichage des positions' }))).toBeTruthy();
+    const inTableCard = () => {
+      const control = screen.getByRole('group', { name: 'Affichage des positions' });
+      const card = screen.getByRole('table', { name: 'Positions par compte' }).closest('.card')!;
+      expect(card.contains(control)).toBe(true);
+      expect(
+        control.compareDocumentPosition(
+          screen.getByRole('table', { name: 'Positions par compte' }),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    };
+    inTableCard();
+    await screen.findByRole('link', { name: 'CTO' });
+    inTableCard();
+  });
+
+  it('keeps the allocation criterion when the positions view changes', async () => {
+    window.history.replaceState({}, '', '/investments');
+    api.readHoldings.mockImplementation(() => success(holdingsFixture()));
+    renderPage();
+    await screen.findByRole('link', { name: 'CTO' });
+    const pressed = () =>
+      screen.getByRole('button', { name: "Classe d'actifs" }).getAttribute('aria-pressed');
+    expect(pressed()).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Par actif' }));
+    expect(pressed()).toBe('true');
+    fireEvent.click(screen.getByRole('button', { name: 'Région' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Par compte' }));
+    expect(screen.getByRole('button', { name: 'Région' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    );
   });
 
   it('opens on the account view by default, whatever an invalid view parameter says', async () => {

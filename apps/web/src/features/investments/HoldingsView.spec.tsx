@@ -30,4 +30,24 @@ describe('HoldingsView', () => {
     expect((summary.closest('details') as HTMLDetailsElement).open).toBe(false);
     expect(summary.closest('details')?.textContent).toContain('est valorisé en total');
   });
+
+  it('shows the view switch in the empty card when accounts exist but no line', () => {
+    const base = holdingsFixture();
+    const render1 = (accounts: typeof base.accounts) =>
+      render(
+        <HoldingsView
+          holdings={{ ...base, items: [], accounts, unsplitAccounts: [] }}
+          onSortChange={vi.fn()}
+          onViewChange={vi.fn()}
+          sort={{ key: 'name', direction: 'asc' } as never}
+          view="asset"
+        />,
+      );
+    const { unmount } = render1(base.accounts);
+    const group = screen.getByRole('group', { name: 'Affichage des positions' });
+    expect(group.closest('section')?.textContent).toContain('Aucune position');
+    unmount();
+    render1([]);
+    expect(screen.queryByRole('group', { name: 'Affichage des positions' })).toBeNull();
+  });
 });
