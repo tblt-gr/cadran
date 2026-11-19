@@ -44,29 +44,33 @@ describe('AllocationCard', () => {
       percentage: /-99\s999\s900,00 %/,
       amount: /-9\s999,99/,
     },
-  ])('retains signed values without drawing cash $cash against total $total', (values) => {
-    const allocation = allocationFixture();
-    allocation.total = values.total;
-    allocation.items = [
-      {
-        key: 'SECURITIES',
-        label: 'Titres',
-        value: values.securities,
-        share: values.securitiesShare,
-      },
-      { key: 'CASH', label: 'Espèces', value: values.cash, share: values.cashShare },
-    ];
-    allocation.slices = allocation.items;
-    render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
-    expect(screen.getByRole('status').textContent).toContain(
-      'parts négatives ou supérieures à 100 %',
-    );
-    expect(screen.queryByRole('list', { name: 'Légende de la répartition' })).toBeNull();
-    expect(screen.getByRole('rowheader', { name: 'Espèces' })).toBeTruthy();
-    expect(screen.getByRole('table', { name: /toutes les lignes/ }).closest('details')).toBeNull();
-    expect(screen.getByText(values.percentage)).toBeTruthy();
-    expect(screen.getByText(values.amount)).toBeTruthy();
-  });
+  ])(
+    'keeps signed values in the table and leaves the negative cash out of the donut: $cash against total $total',
+    (values) => {
+      const allocation = allocationFixture();
+      allocation.total = values.total;
+      allocation.items = [
+        {
+          key: 'SECURITIES',
+          label: 'Titres',
+          value: values.securities,
+          share: values.securitiesShare,
+        },
+        { key: 'CASH', label: 'Espèces', value: values.cash, share: values.cashShare },
+      ];
+      allocation.slices = allocation.items;
+      render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
+      expect(screen.getByRole('status').textContent).toContain(
+        '1 part négative ignorée dans le graphique',
+      );
+      expect(screen.getByRole('rowheader', { name: 'Espèces' })).toBeTruthy();
+      expect(
+        screen.getByRole('table', { name: 'Détail de la répartition' }).closest('details'),
+      ).toBeNull();
+      expect(screen.getByText(values.percentage)).toBeTruthy();
+      expect(screen.getByText(values.amount)).toBeTruthy();
+    },
+  );
   it('checks unmerged table shares even when the chart slices hide a negative share', () => {
     const allocation = allocationFixture();
     allocation.items = [
@@ -75,18 +79,15 @@ describe('AllocationCard', () => {
     ];
     render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
     expect(screen.getByRole('status')).toBeTruthy();
-    expect(screen.queryByRole('list', { name: 'Légende de la répartition' })).toBeNull();
   });
 
   it('uses server shares and retains a complete table alternative and grouping controls', () => {
     const change = vi.fn();
     render(<AllocationCard allocation={allocationFixture()} by="INSTRUMENT" onByChange={change} />);
-    const table = screen.getByRole('table', { name: /toutes les lignes/ });
+    const table = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(table.parentElement?.getAttribute('role')).toBe('region');
-    expect(table.parentElement?.getAttribute('aria-label')).toBe('Répartition détaillée');
+    expect(table.parentElement?.getAttribute('aria-label')).toBe('Détail de la répartition');
     expect(table.parentElement?.tabIndex).toBe(0);
-    expect((table.closest('details') as HTMLDetailsElement).open).toBe(false);
-    expect(screen.getByText('Toutes les lignes').closest('summary')).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Non renseignée' })).toBeTruthy();
     expect(screen.getAllByText('75,00 %').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByRole('button', { name: 'Région' }));
@@ -129,7 +130,6 @@ describe('AllocationCard', () => {
     );
     expect(screen.getByText('· au prix de revient')).toBeTruthy();
     expect(screen.getByText(/la répartition suit le prix de revient/)).toBeTruthy();
-    expect(screen.getByRole('list', { name: 'Légende de la répartition' })).toBeTruthy();
     expect(screen.queryByRole('status')).toBeNull();
   });
 });

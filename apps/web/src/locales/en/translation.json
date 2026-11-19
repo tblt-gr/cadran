@@ -106,6 +106,20 @@
     "missingFreshness_other": "{{count}} missing valuations",
     "staleFreshness": "Updated {{count}} days ago"
   },
+  "allocation": {
+    "title": "Allocation",
+    "criterion": "Allocation criterion",
+    "caption": "Allocation breakdown",
+    "columns": {
+      "label": "Label",
+      "amount": "Amount",
+      "share": "Share"
+    },
+    "notCalculable": "Allocation not calculable",
+    "signed": "Chart unavailable: no positive share to draw. See the signed values in the table.",
+    "ignored_one": "{{count}} negative share left out of the chart",
+    "ignored_other": "{{count}} negative shares left out of the chart"
+  },
   "investments": {
     "loading": "Loading positions…",
     "tabs": {
@@ -125,8 +139,6 @@
       "notCalculable": "Not calculable"
     },
     "allocation": {
-      "title": "Allocation",
-      "criterion": "Allocation criterion",
       "assetClass": "Asset class",
       "region": "Region",
       "instrument": "Asset",
@@ -138,12 +150,7 @@
         "instrument": "asset",
         "account": "account"
       },
-      "caption": "Securities allocation",
-      "label": "Label",
-      "amount": "Amount",
-      "share": "Share",
-      "unspecified": "Not specified",
-      "notCalculable": "Allocation not calculable"
+      "unspecified": "Not specified"
     },
     "table": {
       "caption": "Positions by asset",
@@ -2550,27 +2557,13 @@
         "REGION": "Region",
         "CURRENCY": "Currency"
       },
-      "title": "Allocation",
       "unspecified": "Not specified",
-      "detailed": "Detailed allocation",
-      "tableCaption": "Detailed allocation, all rows",
-      "columns": {
-        "label": "Label",
-        "value": "Value",
-        "share": "Share"
-      },
       "valuationUsed": "Valuation used:",
       "noValuation": "none on this date",
       "atCost": "· at cost",
-      "groupBy": "Group the allocation",
       "partial": "Partial valuation: the allocation is not calculable",
-      "chartUnavailable": "Chart unavailable: the allocation contains negative shares or shares above 100%. See the signed values in the table.",
       "costNote": "Valuation entered as a total: the value of each line is not known, so the allocation follows the cost basis of the securities held.",
-      "plotLabel": "Portfolio allocation",
-      "legend": "Allocation legend",
-      "rows_one": "{{count}} row",
-      "rows_other": "{{count}} rows",
-      "allRows": "All rows"
+      "plotLabel": "Portfolio allocation"
     },
     "positions": {
       "unknownCost": "Unknown cost",

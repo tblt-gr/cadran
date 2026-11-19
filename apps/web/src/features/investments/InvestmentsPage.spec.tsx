@@ -136,7 +136,7 @@ describe('InvestmentsPage', () => {
       expect(table.closest('.card')!.contains(control)).toBe(false);
       expect(follows(control, table)).toBeTruthy();
       expect(
-        follows(screen.getByRole('table', { name: 'Répartition des titres' }), control),
+        follows(screen.getByRole('table', { name: 'Détail de la répartition' }), control),
       ).toBeTruthy();
     };
     await screen.findByRole('link', { name: 'CTO' });
@@ -228,7 +228,7 @@ describe('InvestmentsPage', () => {
     expect(screen.getByRole('button', { name: 'Compte' }).getAttribute('aria-pressed')).toBe(
       'true',
     );
-    const legend = screen.getByRole('table', { name: 'Répartition des titres' });
+    const legend = screen.getByRole('table', { name: 'Détail de la répartition' });
     expect(within(legend).getByText('Assurance vie')).toBeTruthy();
     expect(screen.queryByText('Aucune position détenue')).toBeNull();
 
