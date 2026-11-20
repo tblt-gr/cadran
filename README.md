@@ -13,6 +13,7 @@
 <hr>
 <p align="center">
 <a href="#features">Features</a> &bull;
+<a href="#screenshots">Screenshots</a> &bull;
 <a href="#security">Security</a> &bull;
 <a href="#stack">Stack</a> &bull;
 <a href="#quick-start-with-docker">Quick Start</a> &bull;
@@ -48,6 +49,16 @@ quality; unavailable results stay explicitly unavailable.
   restoration, and upgrades with a verified pre-upgrade backup and rollback (see below).
 - **PWA**: installable responsive application that caches only its own assets, never financial
   data.
+
+## Screenshots
+
+### Summary
+
+![Cadran summary showing net worth over time, asset allocation and emergency fund progress](.github/assets/screenshots/summary.png)
+
+### Monthly budget
+
+![Monthly budget showing income, spending by category, transfers and account balances](.github/assets/screenshots/monthly-budget.png)
 
 ## Security
 
