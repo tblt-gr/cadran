@@ -12,8 +12,8 @@
 
 <hr>
 <p align="center">
-<a href="#features">Features</a> &bull;
 <a href="#screenshots">Screenshots</a> &bull;
+<a href="#features">Features</a> &bull;
 <a href="#security">Security</a> &bull;
 <a href="#stack">Stack</a> &bull;
 <a href="#quick-start-with-docker">Quick Start</a> &bull;
@@ -32,6 +32,10 @@ Cadran Budget replaces an annual budget and wealth spreadsheet with a responsive
 your own server. Financial calculations use exact decimals and expose their sources and data
 quality; unavailable results stay explicitly unavailable.
 
+## Screenshots
+
+<p align="center"><img src=".github/assets/screenshots/summary.png" alt="Cadran summary showing net worth over time, asset allocation and emergency fund progress" width="50%"><img src=".github/assets/screenshots/monthly-budget.png" alt="Monthly budget showing income, spending by category, transfers and account balances" width="50%"></p>
+
 ## Features
 
 - **Accounts and wealth**: accounts and account rules, balances, valuations and explained net
@@ -49,16 +53,6 @@ quality; unavailable results stay explicitly unavailable.
   restoration, and upgrades with a verified pre-upgrade backup and rollback (see below).
 - **PWA**: installable responsive application that caches only its own assets, never financial
   data.
-
-## Screenshots
-
-### Summary
-
-![Cadran summary showing net worth over time, asset allocation and emergency fund progress](.github/assets/screenshots/summary.png)
-
-### Monthly budget
-
-![Monthly budget showing income, spending by category, transfers and account balances](.github/assets/screenshots/monthly-budget.png)
 
 ## Security
 
