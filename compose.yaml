@@ -7,6 +7,44 @@ x-logging: &default-logging
     max-file: '5'
 
 services:
+  # Docker Desktop on WSL restarts containers before it can serve bind mounts from the Linux
+  # distribution, so a container that bind-mounts a host file fails at every boot. This one-shot
+  # service copies the host secret files into a named volume on each `docker compose up`; app and
+  # db mount only named volumes and restart on their own.
+  secrets:
+    build:
+      context: .
+      dockerfile: docker/postgres/Dockerfile
+    image: cadran_db:local
+    container_name: ${CADRAN_STACK:-cadran}_secrets
+    # Root without any capability: it owns the fresh volume and makes the copies world-readable
+    # for www-data (33) and postgres (70). It has no network and exits once the copy is done.
+    user: '0:0'
+    entrypoint: ['/bin/sh', '-ceu']
+    command:
+      - |
+        mkdir -p /target/app /target/db
+        install -m 0444 /run/secrets/app_secret /target/app/app_secret
+        install -m 0444 /run/secrets/db_password /target/app/db_password
+        install -m 0444 /run/secrets/db_password /target/db/db_password
+    secrets:
+      - app_secret
+      - db_password
+    network_mode: none
+    volumes:
+      - type: volume
+        source: secrets
+        target: /target
+    mem_limit: 32m
+    pids_limit: 16
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: 'no'
+    logging: *default-logging
+
   app:
     build:
       context: .
@@ -28,17 +66,22 @@ services:
         host_ip: ${CADRAN_HTTPS_BIND:-127.0.0.1}
         protocol: tcp
     depends_on:
+      secrets:
+        condition: service_completed_successfully
       db:
         condition: service_healthy
-    secrets:
-      - app_secret
-      - db_password
     networks:
       - edge
       - internal
     volumes:
       - caddy_data:/data
       - caddy_config:/config
+      - type: volume
+        source: secrets
+        target: /run/secrets
+        read_only: true
+        volume:
+          subpath: app
     tmpfs:
       - /app/apps/api/var:uid=33,gid=33,mode=0700
       - /tmp:uid=33,gid=33,mode=1777
@@ -69,12 +112,19 @@ services:
       POSTGRES_DB: cadran
       POSTGRES_USER: cadran
       POSTGRES_PASSWORD_FILE: /run/secrets/db_password
-    secrets:
-      - db_password
+    depends_on:
+      secrets:
+        condition: service_completed_successfully
     networks:
       - internal
     volumes:
       - db_data:/var/lib/postgresql/18/docker
+      - type: volume
+        source: secrets
+        target: /run/secrets
+        read_only: true
+        volume:
+          subpath: db
     tmpfs:
       - /var/run/postgresql:uid=70,gid=70,mode=0775
       - /tmp:uid=70,gid=70,mode=1777
@@ -108,6 +158,8 @@ volumes:
     name: ${CADRAN_STACK:-cadran}_caddy_config
   db_data:
     name: ${CADRAN_STACK:-cadran}_db_data
+  secrets:
+    name: ${CADRAN_STACK:-cadran}_secrets
 
 secrets:
   app_secret:
