@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { InstrumentHolding } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
@@ -6,7 +7,7 @@ import { holdingsMoney } from '@/features/investments/holdingsFormat';
 import { sheetGainTone } from '@/features/investments/instrument-sheet/sheetGainTone';
 import { sheetReason } from '@/features/investments/instrument-sheet/sheetReason';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
-import { formatDecimal } from '@/lib/decimal';
+import { formatFinancialDecimal, signedPresentation } from '@/lib/decimal';
 import styles from './InstrumentAccountsTable.module.css';
 
 const columnKeys = [
@@ -84,9 +85,28 @@ export function InstrumentAccountsTable({ data }: { data: InstrumentHolding | nu
                       ) : values[column] === null ? (
                         <EmptyValue label={sheetReason(account.reason, t)} />
                       ) : column === 0 ? (
-                        formatDecimal(values[column]!, i18n.language)
+                        <MoneyValue
+                          value={formatFinancialDecimal(values[column]!, i18n.language)}
+                        />
                       ) : (
-                        `${column >= 2 && !values[column]!.startsWith('-') && /[1-9]/.test(values[column]!) ? '+' : ''}${holdingsMoney(values[column]!, data!.instrument.currencyCode, i18n.language)}`
+                        <MoneyValue
+                          value={
+                            column >= 2
+                              ? signedPresentation(
+                                  holdingsMoney(
+                                    values[column]!,
+                                    data!.instrument.currencyCode,
+                                    i18n.language,
+                                  ),
+                                  values[column]!,
+                                ).text
+                              : holdingsMoney(
+                                  values[column]!,
+                                  data!.instrument.currencyCode,
+                                  i18n.language,
+                                )
+                          }
+                        />
                       )}
                     </td>
                   ))}

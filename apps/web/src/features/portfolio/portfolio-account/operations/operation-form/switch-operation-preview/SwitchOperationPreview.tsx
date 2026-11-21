@@ -1,8 +1,10 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { PortfolioOperationPreview } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatDecimal, isZeroDecimal } from '@/lib/decimal';
+import { formatExactAmount, formatDecimal, isZeroDecimal } from '@/lib/decimal';
 import styles from '@/features/portfolio/portfolio-account/operations/operation-form/OperationForm.module.css';
 
 export function SwitchOperationPreview({
@@ -13,7 +15,8 @@ export function SwitchOperationPreview({
   preview?: PortfolioOperationPreview;
 }) {
   const { i18n, t } = useTranslation();
-  const imbalance = preview?.difference && !isZeroDecimal(preview.difference.value);
+  const imbalance =
+    !areAmountsHidden() && preview?.difference && !isZeroDecimal(preview.difference.value);
   return (
     <>
       {(['expectedIncomingAmount', 'difference'] as const).map((field) => (
@@ -25,7 +28,14 @@ export function SwitchOperationPreview({
           </span>
           {preview?.[field] ? (
             <strong>
-              {formatDecimal(preview[field].value, i18n.language)} {preview[field].assetCode}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  preview[field].value,
+                  preview[field].assetCode,
+                  i18n.language,
+                )}
+              />
             </strong>
           ) : pending ? (
             <SkeletonBlock className={styles.previewValue} />
@@ -50,9 +60,16 @@ export function SwitchOperationPreview({
             {preview.applicableSwitchFeeRate != null && preview.applicableSwitchFeeFixed != null
               ? ' + '
               : null}
-            {preview.applicableSwitchFeeFixed != null
-              ? `${formatDecimal(preview.applicableSwitchFeeFixed.value, i18n.language)} ${preview.applicableSwitchFeeFixed.assetCode}`
-              : null}
+            {preview.applicableSwitchFeeFixed != null ? (
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  preview.applicableSwitchFeeFixed.value,
+                  preview.applicableSwitchFeeFixed.assetCode,
+                  i18n.language,
+                )}
+              />
+            ) : null}
           </strong>
         ) : (
           <span>{t('portfolio.lifeInsurance.notProvided')}</span>

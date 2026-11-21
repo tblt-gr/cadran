@@ -1,7 +1,9 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
 import type { PortfolioOverviewAccountCard } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { formatAmount } from '@/lib/decimal';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { signedPresentation, formatAmount } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import styles from './UnrealizedGain.module.css';
 
@@ -10,8 +12,7 @@ export type GainReason =
 
 /** The sign is always written, so a gain and a loss differ without colour. */
 export function signed(text: string, raw: string): string {
-  if (!/[1-9]/.test(text)) return text;
-  return raw.startsWith('-') ? text : `+${text}`;
+  return signedPresentation(text, raw).text;
 }
 
 /** Unrealized gain amount and its performance since the start; a missing figure is a dash, never zero. */
@@ -39,15 +40,26 @@ export function UnrealizedGain({
       />
     );
   }
-  const tone = value.startsWith('-') ? styles.loss : styles.gain;
+  const sign = signedPresentation('', value).sign;
+  const tone = sign < 0 ? styles.loss : sign > 0 ? styles.gain : '';
 
   return (
     <span className={`${styles.figures} ${tone}`}>
-      <span>{signed(formatAmount(value, assetCode, i18n.language), value)}</span>
+      <MoneyValue
+        wrapGroups={false}
+        value={signed(formatAmount(value, assetCode, i18n.language), value)}
+      />
       {performance === undefined ? null : performance === null ? (
         <EmptyValue label={t('portfolio.unrealizedGain.performanceNotCalculable')} />
       ) : (
-        <span>({signed(formatRatioPercentage(performance, i18n.language), performance)})</span>
+        <MoneyValue
+          wrapGroups={false}
+          value={
+            areAmountsHidden()
+              ? signedPresentation('', performance).text
+              : `(${signed(formatRatioPercentage(performance, i18n.language), performance)})`
+          }
+        />
       )}
     </span>
   );

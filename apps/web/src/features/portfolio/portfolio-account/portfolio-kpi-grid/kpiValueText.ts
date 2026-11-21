@@ -1,3 +1,4 @@
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
 import type { PortfolioOverviewSummary } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import type { KpiCode } from '@/features/portfolio/portfolio-account/overviewLabels';
@@ -23,7 +24,9 @@ export function kpiValueText(
     case 'UNREALIZED_GAIN':
       return gain === null
         ? notCalculable
-        : `${gain.startsWith('-') ? t('portfolio.kpiValue.loss') : t('portfolio.kpiValue.gain')}${money(gain.replace(/^-/, ''))}${gainPerformance(summary.unrealizedGain.performance, locale)}`;
+        : areAmountsHidden()
+          ? AMOUNT_MASK
+          : `${gain.startsWith('-') ? t('portfolio.kpiValue.loss') : t('portfolio.kpiValue.gain')}${money(gain.replace(/^-/, ''))}${gainPerformance(summary.unrealizedGain.performance, locale)}`;
     case 'CASH':
       return money(summary.cash);
     case 'NET_DEPOSITS':

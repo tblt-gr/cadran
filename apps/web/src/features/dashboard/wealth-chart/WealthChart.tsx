@@ -1,3 +1,5 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { shownAmount } from '@/lib/shownAmount';
 import type { NetWorthPoint } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { CurveChart, type CurvePoint } from '@/components/ui/charts/curve-chart/CurveChart';
@@ -26,10 +28,7 @@ function pointValueLabel(point: NetWorthPoint, locale: string): string | null {
     return null;
   }
 
-  const shown = point.total.display ?? {
-    value: point.total.value,
-    assetCode: point.total.assetCode,
-  };
+  const shown = shownAmount(point.total);
 
   return formatAmount(shown.value, shown.assetCode, locale);
 }
@@ -54,14 +53,15 @@ export function WealthChart({
 
     return {
       axisLabel: date,
-      geometryValue: point.total?.display?.value ?? point.total?.value ?? null,
+      geometryValue:
+        point.total === null || areAmountsHidden() ? null : shownAmount(point.total).value,
       hitLabel: value === null ? date : `${date}, ${value}`,
       key: point.on,
       tooltipTitle: <time dateTime={point.on}>{date}</time>,
       value: <NetWorthFigure amount={point.total} reason={point.reason} />,
     };
   });
-  const hasCurve = curvePoints.some((point) => point.geometryValue !== null);
+  const hasCurve = points?.some((point) => point.total !== null);
 
   return (
     <figure className={styles.chart} aria-labelledby="wealth-chart-title">
@@ -74,6 +74,7 @@ export function WealthChart({
         <p className={styles.emptyPlot}>{t('dashboard.chart.empty')}</p>
       ) : (
         <CurveChart
+          hideValueAxis={areAmountsHidden()}
           hideTooltip={onActivePoint !== undefined}
           onSelect={
             onSelect

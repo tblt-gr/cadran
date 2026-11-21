@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { formatAmount } from '@/lib/decimal';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { formatAmount, signedPresentation } from '@/lib/decimal';
 import { formatRatioPercentage } from '@/lib/formatRatioPercentage';
 import {
   summarizeReason,
@@ -23,21 +24,21 @@ export type PerformanceFigure =
   | PortfolioTimeWeightedFigure
   | PortfolioMoneyWeightedFigure;
 
-/** Server text with an explicit sign; the sign is never left to the colour alone. */
-export function signed(text: string): { text: string; tone: string } {
-  if (text === '-') return { text, tone: '' };
-  if (/^-0(?:[,.]0+)?(?![\d,.])/.test(text)) return { text: text.slice(1), tone: '' };
-  if (text.startsWith('-')) return { text, tone: styles.negative };
-  if (/^0(?:[,.]0+)?(?![\d,.])/.test(text)) return { text, tone: '' };
-  return { text: `+${text}`, tone: styles.positive };
+/** The raw decimal owns the sign; hidden and zero figures are neutral. */
+export function signed(text: string, raw = text): { text: string; tone: string } {
+  const shown = signedPresentation(text, raw);
+  return {
+    text: shown.text,
+    tone: shown.sign < 0 ? styles.negative : shown.sign > 0 ? styles.positive : '',
+  };
 }
 
 export function Rate({ ratio, unit }: { ratio: string; unit?: string }) {
   const { i18n } = useTranslation();
-  const { text, tone } = signed(formatRatioPercentage(ratio, i18n.language));
+  const { text, tone } = signed(formatRatioPercentage(ratio, i18n.language), ratio);
   return (
     <span className={tone}>
-      {text}
+      <MoneyValue value={text} />
       {unit ? <span className={styles.unit}> {unit}</span> : null}
     </span>
   );
@@ -74,8 +75,15 @@ export function FigureValue({
   if ('annualizedRate' in figure) return <MoneyWeighted figure={figure} />;
   if (figure.value === null) return null;
   if ('decomposition' in figure) {
-    const { text, tone } = signed(formatAmount(figure.value, assetCode, i18n.language));
-    return <span className={tone}>{text}</span>;
+    const { text, tone } = signed(
+      formatAmount(figure.value, assetCode, i18n.language),
+      figure.value,
+    );
+    return (
+      <span className={tone}>
+        <MoneyValue value={text} />
+      </span>
+    );
   }
   return <Rate ratio={figure.value} />;
 }

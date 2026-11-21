@@ -6,10 +6,17 @@ import styles from './MoneyValue.module.css';
 interface MoneyValueProps {
   className?: string;
   value: string | null;
+  /** Keep existing single-line readouts intact when migrating their privacy announcement. */
+  wrapGroups?: boolean;
   skeletonClassName?: string;
 }
 
-export function MoneyValue({ className, value, skeletonClassName }: MoneyValueProps) {
+export function MoneyValue({
+  className,
+  value,
+  skeletonClassName,
+  wrapGroups = true,
+}: MoneyValueProps) {
   const { t } = useTranslation();
   if (value === null) {
     return (
@@ -21,7 +28,7 @@ export function MoneyValue({ className, value, skeletonClassName }: MoneyValuePr
     );
   }
   // Assistive technologies get a sentence, never a run of bullet characters.
-  if (value === AMOUNT_MASK) {
+  if (value.includes(AMOUNT_MASK)) {
     return (
       <span className={className} data-visual-mask>
         <span aria-hidden="true" className={styles.tail}>
@@ -31,7 +38,7 @@ export function MoneyValue({ className, value, skeletonClassName }: MoneyValuePr
       </span>
     );
   }
-  const groups = value.split('\u202f');
+  const groups = wrapGroups ? value.split('\u202f') : [value];
 
   return (
     <span className={className} data-visual-mask>

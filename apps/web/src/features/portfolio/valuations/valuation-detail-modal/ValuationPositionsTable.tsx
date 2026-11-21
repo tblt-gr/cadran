@@ -1,9 +1,10 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioValuation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
+import { formatCalendarNumericDay, formatFinancialDecimal, formatExactAmount } from '@/lib/decimal';
 import { lineQualityLabel } from '@/features/portfolio/valuations/valuationLabels';
 import styles from './ValuationDetailModal.module.css';
 
@@ -57,12 +58,14 @@ export function ValuationPositionsTable({ valuation }: { valuation: PortfolioVal
                     line.instrument.id
                   )}
                 </th>
-                <td className={styles.number}>{formatDecimal(line.quantity, locale)}</td>
+                <td className={styles.number}>
+                  <MoneyValue value={formatFinancialDecimal(line.quantity, locale)} />
+                </td>
                 <td className={styles.number}>
                   {!detailed ? (
                     notDetailed
                   ) : line.unitPrice ? (
-                    formatDecimal(line.unitPrice, locale)
+                    <MoneyValue value={formatFinancialDecimal(line.unitPrice, locale)} />
                   ) : (
                     <EmptyValue label={t('portfolio.valuations.positions.unknownPrice')} />
                   )}
@@ -87,7 +90,13 @@ export function ValuationPositionsTable({ valuation }: { valuation: PortfolioVal
                 </td>
                 <td className={styles.number}>
                   {line.marketValue ? (
-                    `${formatDecimal(line.marketValue.value, locale)} ${line.marketValue.assetCode}`
+                    <MoneyValue
+                      value={formatExactAmount(
+                        line.marketValue.value,
+                        line.marketValue.assetCode,
+                        locale,
+                      )}
+                    />
                   ) : (
                     <EmptyValue label={t('portfolio.valuations.common.notCalculable')} />
                   )}

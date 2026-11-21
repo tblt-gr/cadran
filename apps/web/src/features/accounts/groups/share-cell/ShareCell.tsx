@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { NetWorthShare } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { formatSharePercent } from '@/lib/formatSharePercent';
@@ -26,5 +27,5 @@ export function ShareCell({ share }: ShareCellProps) {
     );
   }
 
-  return <span className={styles.value}>{formatSharePercent(share.percentDisplay)}</span>;
+  return <MoneyValue className={styles.value} value={formatSharePercent(share.percentDisplay)} />;
 }

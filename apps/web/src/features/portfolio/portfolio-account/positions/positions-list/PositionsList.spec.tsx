@@ -1,3 +1,4 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import type { PortfolioPosition } from '@cadran/api-client';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -30,7 +31,10 @@ function position(overrides: Partial<PortfolioPosition> = {}): PortfolioPosition
   };
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 
 function renderList(items: PortfolioPosition[] | null, handlers = {}) {
   return render(<PositionsList items={items} onOpen={vi.fn()} onReorder={vi.fn()} {...handlers} />);
@@ -138,4 +142,39 @@ describe('PositionsList', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
     expect(screen.getAllByText('Chargement des positions…')).toHaveLength(1);
   });
+});
+
+it.each(['12', '-12', '0', '0.000000000000000000000001'])(
+  'announces every masked position figure for %s',
+  (value) => {
+    setAmountsHidden(true);
+    const amount = { value, assetCode: 'EUR' };
+    const { container } = renderList([
+      position({
+        quantity: value,
+        averageUnitCost: amount,
+        averageCostBasis: amount,
+        marketValue: amount,
+        unrealizedGain: amount,
+      }),
+    ]);
+    expect(screen.getAllByText('Montant masqué')).toHaveLength(8);
+    const figures = [...container.querySelectorAll('[data-visual-mask]')];
+    expect(figures).toHaveLength(8);
+    for (const figure of figures) {
+      expect(figure.textContent).toBe('••••••Montant masqué');
+      expect(figure.querySelector('[aria-hidden="true"]')?.textContent).toBe('••••••');
+    }
+    expect(container.querySelector('[class*="phoneFigures"]')?.textContent).toContain('PRU');
+    expect(container.querySelector('[data-closed], [class*="gain"], [class*="loss"]')).toBeNull();
+  },
+);
+
+it('announces the masked fallback cost without hiding its missing valuation reason', () => {
+  setAmountsHidden(true);
+  renderList([position({ marketValue: null, unrealizedGain: null, valueReason: 'NO_VALUATION' })]);
+  const fallback = document.querySelector('[class*="costFallback"]')!;
+  expect(within(fallback as HTMLElement).getByText('Montant masqué')).toBeTruthy();
+  expect(fallback.textContent).toContain('Coût');
+  expect(fallback.textContent).not.toContain('320,60');
 });

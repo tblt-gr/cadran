@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { DecimalAmount, PortfolioValuation } from '@cadran/api-client';
 import type { ReactNode, RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -5,20 +6,26 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { Modal } from '@/components/ui/modal/Modal';
 import { SkeletonBlock, SkeletonStatus } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
+import { formatCalendarNumericDay } from '@/lib/decimal';
 import { useWorkspaceTimeZone } from '@/features/auth/useWorkspaceTimeZone';
 import { workspaceToday } from '@/lib/workspaceTime';
 import { useValuation } from '@/features/portfolio/valuations/useValuations';
 import { flagSentence } from '@/features/portfolio/valuations/valuationLabels';
 import { ValuationPositionsTable } from './ValuationPositionsTable';
 import styles from './ValuationDetailModal.module.css';
-import { maskAmountText } from '@/lib/amountPrivacy';
+import { formatExactAmount } from '@/lib/decimal';
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
   return (
     <div className={styles.row}>
       <dt>{label}</dt>
-      <dd>{children}</dd>
+      <dd>
+        {typeof children === 'string' ? (
+          <MoneyValue wrapGroups={false} value={children} />
+        ) : (
+          children
+        )}
+      </dd>
     </div>
   );
 }
@@ -44,7 +51,7 @@ export function ValuationDetailModal({
     reason = t('portfolio.valuations.common.notCalculable'),
   ) =>
     amount ? (
-      maskAmountText(`${formatDecimal(amount.value, i18n.language)} ${amount.assetCode}`)
+      formatExactAmount(amount.value, amount.assetCode, i18n.language)
     ) : (
       <EmptyValue label={reason} />
     );

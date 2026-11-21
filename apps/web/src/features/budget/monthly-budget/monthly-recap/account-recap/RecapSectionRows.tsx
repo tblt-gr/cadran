@@ -1,3 +1,4 @@
+import { shownAmount } from '@/lib/shownAmount';
 import type { NetWorthAmount, NetWorthShare } from '@cadran/api-client';
 import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,7 +30,7 @@ function SectionValueCell({
     );
   }
 
-  const shown = amount.display ?? { value: amount.value, assetCode: amount.assetCode };
+  const shown = shownAmount(amount);
   return <MoneyValue value={formatAmount(shown.value, shown.assetCode, i18n.language)} />;
 }
 

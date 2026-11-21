@@ -1,3 +1,5 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { PortfolioPosition } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import type { ReactNode } from 'react';
@@ -9,7 +11,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { signed } from '@/features/portfolio/unrealized-gain/UnrealizedGain';
-import { formatAmount, formatDecimal } from '@/lib/decimal';
+import { formatAmount, formatFinancialDecimal } from '@/lib/decimal';
 import {
   isClosedPosition,
   valueReasonLabel,
@@ -33,7 +35,12 @@ function ResultText({
 }) {
   const { i18n } = useTranslation();
   const text = signed(formatAmount(gain.value, gain.assetCode, i18n.language), gain.value);
-  if (!/[1-9]/.test(gain.value)) return <span className={className}>{text}</span>;
+  if (areAmountsHidden() || !/[1-9]/.test(gain.value))
+    return (
+      <span className={className}>
+        <MoneyValue value={text} />
+      </span>
+    );
   const loss = gain.value.startsWith('-');
 
   return (
@@ -62,7 +69,7 @@ function costOf(
     return <EmptyValue label={t('portfolio.positions.unknownCost')} />;
 
   return amount ? (
-    formatAmount(amount.value, amount.assetCode, locale)
+    <MoneyValue wrapGroups={false} value={formatAmount(amount.value, amount.assetCode, locale)} />
   ) : (
     <EmptyValue label={t('states.notCalculable.label')} />
   );
@@ -102,7 +109,7 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
           <DatedCell column={1}>
             {position ? (
               <Figure
-                amount={formatDecimal(position.quantity, locale)}
+                amount=<MoneyValue value={formatFinancialDecimal(position.quantity, locale)} />
                 label={t('portfolio.positions.quantity')}
               />
             ) : (
@@ -131,16 +138,20 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
           {position ? (
             <>
               <span className={styles.phoneFigures}>
-                {formatDecimal(position.quantity, locale)}
-                {position.averageUnitCost
-                  ? t('portfolio.positions.phoneAvgCost', {
-                      amount: formatAmount(
+                <MoneyValue value={formatFinancialDecimal(position.quantity, locale)} />
+                {position.averageUnitCost ? (
+                  <span>
+                    {t('portfolio.positions.phoneAvgCost', { amount: '' })}
+                    <MoneyValue
+                      wrapGroups={false}
+                      value={formatAmount(
                         position.averageUnitCost.value,
                         position.averageUnitCost.assetCode,
                         locale,
-                      ),
-                    })
-                  : null}
+                      )}
+                    />
+                  </span>
+                ) : null}
               </span>
               {closed ? (
                 <StatusBadge tone="neutral">{t('portfolio.positions.closed')}</StatusBadge>
@@ -179,7 +190,14 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
         ) : position.marketValue ? (
           <span className={styles.valueStack}>
             <span>
-              {formatAmount(position.marketValue.value, position.marketValue.assetCode, locale)}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatAmount(
+                  position.marketValue.value,
+                  position.marketValue.assetCode,
+                  locale,
+                )}
+              />
             </span>
             {position.unrealizedGain ? (
               <ResultText className={styles.phoneResult} gain={position.unrealizedGain} />
@@ -193,7 +211,10 @@ export function PositionRow({ onOpen, onReorder, position }: Props) {
             {fallbackCost ? (
               <span className={styles.costFallback} title={reason}>
                 <span>{t('portfolio.positions.cost')}</span>{' '}
-                {formatAmount(fallbackCost.value, fallbackCost.assetCode, locale)}
+                <MoneyValue
+                  wrapGroups={false}
+                  value={formatAmount(fallbackCost.value, fallbackCost.assetCode, locale)}
+                />
                 <span className="sr-only">{reason}</span>
               </span>
             ) : null}

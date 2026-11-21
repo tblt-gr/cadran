@@ -1,10 +1,11 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { PortfolioTakeoverPreviewLine } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { InstrumentPicker } from '@/features/portfolio/instrument-picker/InstrumentPicker';
-import { formatAmount, formatDecimal } from '@/lib/decimal';
+import { formatAmount, formatExactAmount } from '@/lib/decimal';
 import { TakeoverInput } from './TakeoverInput';
 import type { TakeoverLineField, TakeoverLineValues } from './takeoverRequest';
 import styles from './PortfolioTakeoverForm.module.css';
@@ -36,7 +37,9 @@ export function TakeoverLineRow({
   const number = index + 1;
   const figure = (text: string | null) =>
     text !== null ? (
-      <strong>{text}</strong>
+      <strong>
+        <MoneyValue value={text} />
+      </strong>
     ) : previewPending ? (
       <strong>
         <SkeletonBlock className={styles.figure} />
@@ -105,7 +108,7 @@ export function TakeoverLineRow({
         <span>{t('portfolio.takeover.avgUnitCost')}</span>
         {figure(
           preview?.averageUnitCost
-            ? `${formatDecimal(preview.averageUnitCost, i18n.language)} ${assetCode}`
+            ? formatExactAmount(preview.averageUnitCost, assetCode, i18n.language)
             : null,
         )}
       </div>

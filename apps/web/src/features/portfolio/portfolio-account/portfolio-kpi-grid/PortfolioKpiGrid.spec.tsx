@@ -1,9 +1,13 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import '@/i18n';
 import { PortfolioKpiGrid } from './PortfolioKpiGrid';
 import { summaryFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 describe('PortfolioKpiGrid', () => {
   it('explains unknown gains and displays a loss with words and sign', () => {
     const summary = summaryFixture();
@@ -89,3 +93,19 @@ describe('PortfolioKpiGrid', () => {
     expect(screen.getByText('Valorisation ancienne (12 jours)')).toBeTruthy();
   });
 });
+
+it.each(['12', '-12', '0', '0.000000000000000000000001'])(
+  'masks KPI %s without gain or loss wording',
+  (value) => {
+    setAmountsHidden(true);
+    const summary = summaryFixture();
+    summary.unrealizedGain.value = value;
+    summary.cash = value;
+    const { container } = render(
+      <PortfolioKpiGrid summary={summary} asOf="2026-03-10" onExplain={vi.fn()} />,
+    );
+    expect(screen.getAllByText('Montant masqué')).toHaveLength(3);
+    expect(container.textContent).not.toMatch(/Gain |Perte |[0-9+−]/);
+    expect(container.querySelector('[class*="positive"], [class*="negative"]')).toBeNull();
+  },
+);

@@ -1,9 +1,13 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
 import { UnrealizedGain } from './UnrealizedGain';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 
 describe('UnrealizedGain', () => {
   it('shows a signed amount and the performance with two decimals', () => {
@@ -33,11 +37,26 @@ describe('UnrealizedGain', () => {
     expect(screen.getByText('Performance non calculable')).toBeTruthy();
   });
 
-  it('prints no sign when the figures round to zero', () => {
+  it('keeps the exact raw sign when a figure rounds to zero', () => {
     render(<UnrealizedGain assetCode="EUR" performance="0.00004" value="0.004" />);
-    expect(screen.getByText(/^0,00\s€$/)).toBeTruthy();
-    expect(screen.getByText('(0,00 %)')).toBeTruthy();
+    expect(screen.getByText(/^\+0,00\s€$/)).toBeTruthy();
+    expect(screen.getByText('(+0,00 %)')).toBeTruthy();
+    cleanup();
     render(<UnrealizedGain assetCode="EUR" performance="-0.00004" value="-0.004" />);
-    expect(screen.queryByText(/[+-]0,00/)).toBeNull();
+    expect(screen.getByText(/^-0,00\s€$/)).toBeTruthy();
+    expect(screen.getByText('(-0,00 %)')).toBeTruthy();
   });
 });
+
+it.each(['219.5', '-219.5', '0', '0.000000000000000000000001'])(
+  'masks gain %s without direction',
+  (value) => {
+    setAmountsHidden(true);
+    const { container } = render(
+      <UnrealizedGain assetCode="EUR" performance={value} value={value} />,
+    );
+    expect(screen.getAllByText('Montant masqué')).toHaveLength(2);
+    expect(container.textContent).not.toMatch(/[0-9+−-]/);
+    expect(container.querySelector('[class*="gain"], [class*="loss"]')).toBeNull();
+  },
+);

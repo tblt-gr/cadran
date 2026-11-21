@@ -1,3 +1,4 @@
+import { AMOUNT_MASK, areAmountsHidden } from './amountPrivacy';
 import { formatPercentDecimal } from './decimal';
 
 /**
@@ -5,6 +6,7 @@ import { formatPercentDecimal } from './decimal';
  * binary floating point: a stored `0.30` is visibly `30,00 %`.
  */
 export function formatRatioPercentage(ratio: string, locale: string): string {
+  if (areAmountsHidden()) return AMOUNT_MASK;
   return `${formatPercentDecimal(ratioToPercent(ratio), locale)} %`;
 }
 

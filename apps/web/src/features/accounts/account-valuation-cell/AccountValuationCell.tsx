@@ -2,9 +2,9 @@ import type { AccountValuation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
-import { AMOUNT_MASK } from '@/lib/amountPrivacy';
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
 import { ceilingFillPercent } from '@/lib/depositCeiling';
-import { formatAmount, formatCalendarDay } from '@/lib/decimal';
+import { formatAmount, formatCalendarDay, signedPresentation } from '@/lib/decimal';
 import styles from './AccountValuationCell.module.css';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 
@@ -84,38 +84,36 @@ export function AccountValuationCell({
   }
 
   const derivation = valuation.basis === 'SNAPSHOT_PLUS_MOVEMENTS' ? valuation.derivation : null;
-  const negative = valuation.display !== null && valuation.display.value.startsWith('-');
-  const figure = valuation.belowDisplayStep
-    ? t('accounts.balances.belowStep')
-    : valuation.display
-      ? formatAmount(valuation.display.value, valuation.display.assetCode, i18n.language)
-      : t('accounts.balances.missing');
-  // A colour never carries the sign alone: the balance itself already reads
-  // "-" or a forced "+", so a reader who cannot tell red from green still
-  // gets the same fact.
+  const hidden = areAmountsHidden();
+  const sign = valuation.display ? signedPresentation('', valuation.display.value).sign : 0;
+  const figure = hidden
+    ? AMOUNT_MASK
+    : valuation.belowDisplayStep
+      ? t('accounts.balances.belowStep')
+      : valuation.display
+        ? formatAmount(valuation.display.value, valuation.display.assetCode, i18n.language)
+        : t('accounts.balances.missing');
   const signedFigure =
     size === 'lg' && valuation.display && !valuation.belowDisplayStep
-      ? negative || figure.startsWith('+')
-        ? figure
-        : `+${figure}`
+      ? signedPresentation(figure, valuation.display.value).text
       : figure;
 
   const ceilingLabel =
     ceiling === null ? null : formatAmount(ceiling.value, ceiling.assetCode, i18n.language);
   const ratio =
-    ceiling === null || valuation.display === null
+    hidden || ceiling === null || valuation.display === null
       ? null
       : ceilingFillPercent(valuation.display.value, ceiling.value);
 
   return (
     <div className={cellClassName}>
-      {valuation.belowDisplayStep ? (
+      {valuation.belowDisplayStep && !hidden ? (
         <span className={styles.unknown}>{figure}</span>
       ) : !valuation.display ? (
         <EmptyValue label={t('accounts.balances.missing')} />
       ) : ceilingLabel === null ? (
         size === 'lg' ? (
-          <span data-sign={negative ? 'outflow' : 'inflow'}>
+          <span data-sign={sign === 0 ? undefined : sign < 0 ? 'outflow' : 'inflow'}>
             <MoneyValue value={signedFigure} />
           </span>
         ) : (

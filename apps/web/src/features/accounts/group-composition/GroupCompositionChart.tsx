@@ -1,3 +1,5 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { shownAmount } from '@/lib/shownAmount';
 import type { NetWorthAmount } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { DonutChart, type DonutSlice } from '@/components/ui/charts/donut-chart/DonutChart';
@@ -21,7 +23,7 @@ interface GroupCompositionChartProps {
 
 function amountText(amount: NetWorthAmount | null, locale: string): string | null {
   if (amount === null) return null;
-  const shown = amount.display ?? { value: amount.value, assetCode: amount.assetCode };
+  const shown = shownAmount(amount);
   return formatAmount(shown.value, shown.assetCode, locale);
 }
 
@@ -58,7 +60,7 @@ export function GroupCompositionChart({
     <div className={styles.plot} data-visual-mask ref={ref}>
       {entries === null ? (
         <SkeletonBlock className={styles.plotSkeleton} />
-      ) : ready && slices.length > 0 ? (
+      ) : !areAmountsHidden() && ready && slices.length > 0 ? (
         <DonutChart
           height={size.height}
           label={label}
