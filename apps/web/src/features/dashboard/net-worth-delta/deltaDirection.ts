@@ -1,16 +1,7 @@
-/** A canonical decimal that is exactly zero, whatever scale it carries. */
-const ZERO = /^-?0(?:\.0+)?$/;
+import { signedPresentation } from '@/lib/decimal';
 
-/**
- * Which way net worth moved, read from the digits of the canonical string.
- *
- * A flat month is its own answer: presenting `0.00` as a rise would tell a
- * reader, and a screen reader, that something happened when nothing did.
- */
+/** Direction comes from the exact decimal, with no direction in privacy mode. */
 export function deltaDirection(value: string): 'down' | 'flat' | 'up' {
-  if (ZERO.test(value)) {
-    return 'flat';
-  }
-
-  return value.startsWith('-') ? 'down' : 'up';
+  const sign = signedPresentation('', value).sign;
+  return sign < 0 ? 'down' : sign > 0 ? 'up' : 'flat';
 }

@@ -56,6 +56,39 @@ export function formatDecimal(value: string, locale: string): string {
   );
 }
 
+/** Read-only financial quantities, unlike editable inputs and reference rates. */
+export function formatFinancialDecimal(value: string, locale: string): string {
+  return areAmountsHidden() ? AMOUNT_MASK : formatDecimal(value, locale);
+}
+
+/** An observed amount keeps every digit, including for currencies. */
+export function formatExactAmount(value: string, assetCode: string | null, locale: string): string {
+  if (areAmountsHidden()) return AMOUNT_MASK;
+  return `${formatDecimal(value, locale)}${assetCode ? `\u00a0${assetCode}` : ''}`;
+}
+
+function decimalSign(value: string): -1 | 0 | 1 {
+  if (!/[1-9]/.test(value)) return 0;
+  return value.startsWith('-') ? -1 : 1;
+}
+
+/** Privacy removes the direction as well as the digits. */
+export function signedPresentation(text: string, raw: string): { text: string; sign: -1 | 0 | 1 } {
+  if (areAmountsHidden()) return { text: AMOUNT_MASK, sign: 0 };
+  const sign = decimalSign(raw);
+  return {
+    text:
+      sign === 0
+        ? text.replace(/^-(?=0)/, '')
+        : sign < 0 && !/^[−-]/.test(text)
+          ? `-${text}`
+          : sign > 0 && !text.startsWith('+')
+            ? `+${text}`
+            : text,
+    sign,
+  };
+}
+
 /** Two fraction digits, the display rule for percentages and euro amounts. */
 const DISPLAY_FRACTION_DIGITS = 2;
 

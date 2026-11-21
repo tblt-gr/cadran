@@ -1,3 +1,4 @@
+import { AMOUNT_MASK, areAmountsHidden } from './amountPrivacy';
 import { roundDecimal } from './decimal';
 
 /**
@@ -6,6 +7,7 @@ import { roundDecimal } from './decimal';
  * never through a `Number`.
  */
 export function formatSharePercent(percent: string, options?: { fractionDigits?: number }): string {
+  if (areAmountsHidden()) return AMOUNT_MASK;
   const rounded = roundDecimal(percent, options?.fractionDigits ?? 2);
   const negative = rounded.startsWith('-');
   const body = (negative ? rounded.slice(1) : rounded).replace('.', ',');

@@ -1,9 +1,8 @@
 import type { PortfolioValuationHistoryPoint } from '@cadran/api-client';
 import type { DecimalAmount } from '@cadran/api-client';
-import { formatDecimal } from '@/lib/decimal';
 import type { TFunction } from 'i18next';
 import { flagShortLabel } from '@/features/portfolio/portfolio-account/overviewLabels';
-import { maskAmountText } from '@/lib/amountPrivacy';
+import { formatExactAmount } from '@/lib/decimal';
 
 /** Why a figure of the point is missing: partial valuation, breakdown not entered, otherwise not computable. */
 export function missingReason(t: TFunction, point: PortfolioValuationHistoryPoint): string {
@@ -40,5 +39,5 @@ export function pointWarnings(t: TFunction, point: PortfolioValuationHistoryPoin
 
 /** Every stored digit is kept: the history shows observed figures, never rounded ones. */
 export function exactAmount(amount: DecimalAmount, locale: string): string {
-  return maskAmountText(`${formatDecimal(amount.value, locale)}\u00a0${amount.assetCode}`);
+  return formatExactAmount(amount.value, amount.assetCode, locale);
 }

@@ -1,3 +1,5 @@
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { PortfolioOperation } from '@cadran/api-client';
 import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +8,7 @@ import { DatedRow } from '@/components/ui/dated-list/DatedRow';
 import { Icon } from '@/components/ui/icon/Icon';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
-import { formatAmount, formatDecimal, isZeroDecimal } from '@/lib/decimal';
+import { formatAmount, formatFinancialDecimal, isZeroDecimal } from '@/lib/decimal';
 import { CashAmount } from '@/features/portfolio/portfolio-account/operations/cash-amount/CashAmount';
 import { hasField } from '@/features/portfolio/portfolio-account/operations/operation-form/operationMatrix';
 import { operationTypeLabel } from '@/features/portfolio/portfolio-account/operations/operation-type-label';
@@ -32,7 +34,7 @@ function legSummary(t: TFunction, operation: PortfolioOperation) {
 }
 
 function present(amount: PortfolioOperation['fees']) {
-  return amount !== null && !isZeroDecimal(amount.value) ? amount : null;
+  return amount !== null && (areAmountsHidden() || !isZeroDecimal(amount.value)) ? amount : null;
 }
 
 /** One operation of the dated list: instrument and meta on the left, the cash effect on the right. */
@@ -52,15 +54,17 @@ export function OperationDayRow({
   const quantified =
     operation?.quantity != null && hasField(operation.type, 'quantity')
       ? [
-          formatDecimal(operation.quantity, locale),
+          formatFinancialDecimal(operation.quantity, locale),
           operation.unitPrice != null && hasField(operation.type, 'unitPrice')
-            ? formatDecimal(operation.unitPrice, locale)
+            ? formatFinancialDecimal(operation.unitPrice, locale)
             : null,
         ]
           .filter((part) => part !== null)
           .join(' × ')
       : null;
-  const detail = operation ? (legSummary(t, operation) ?? quantified) : null;
+  const detail = operation
+    ? (legSummary(t, operation) ?? (quantified && areAmountsHidden() ? AMOUNT_MASK : quantified))
+    : null;
   const figure = (kind: 'fees' | 'taxes', amount: PortfolioOperation['fees']) => (
     <DatedCell column={kind === 'fees' ? 2 : 3}>
       {operation && amount ? (
@@ -68,7 +72,10 @@ export function OperationDayRow({
           <span>
             {kind === 'fees' ? t('portfolio.account.form.fees') : t('portfolio.account.form.taxes')}
           </span>{' '}
-          {formatAmount(amount.value, amount.assetCode, locale)}
+          <MoneyValue
+            wrapGroups={false}
+            value={formatAmount(amount.value, amount.assetCode, locale)}
+          />
         </span>
       ) : operation ? null : (
         <SkeletonBlock />
@@ -113,7 +120,13 @@ export function OperationDayRow({
           {operation ? (
             <>
               <span>
-                {[operationTypeLabel(t, operation.type), detail].filter(Boolean).join(' · ')}
+                {areAmountsHidden() && detail === AMOUNT_MASK ? (
+                  <>
+                    {operationTypeLabel(t, operation.type)} · <MoneyValue value={AMOUNT_MASK} />
+                  </>
+                ) : (
+                  [operationTypeLabel(t, operation.type), detail].filter(Boolean).join(' · ')
+                )}
               </span>
               {fees || taxes ? (
                 <span className={styles.marks}>
@@ -151,7 +164,10 @@ export function OperationDayRow({
             {operation && gross ? (
               <span className={styles.figure}>
                 <span>{t('portfolio.account.operations.gross')}</span>{' '}
-                {formatAmount(gross.value, gross.assetCode, locale)}
+                <MoneyValue
+                  wrapGroups={false}
+                  value={formatAmount(gross.value, gross.assetCode, locale)}
+                />
               </span>
             ) : operation ? null : (
               <SkeletonBlock />

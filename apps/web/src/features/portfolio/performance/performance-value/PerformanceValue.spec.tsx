@@ -1,10 +1,14 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
 import { performanceFixture } from '@/features/portfolio/performance/performanceFixtures';
 import { PerformanceValue, signed } from './PerformanceValue';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 
 const accountContext = { accountId: 'account-1', assetCode: 'EUR', residual: null };
 
@@ -189,3 +193,21 @@ describe('PerformanceValue', () => {
     expect(explain).toHaveBeenCalled();
   });
 });
+
+it.each(['250', '-250', '0', '0.000000000000000000000001'])(
+  'masks performance %s without a tone',
+  (value) => {
+    setAmountsHidden(true);
+    const { container } = render(
+      <PerformanceValue
+        context={accountContext}
+        figure={{ ...performanceFixture().gain, value }}
+        label="Gain total"
+        onExplain={null}
+      />,
+    );
+    expect(screen.getByText('Montant masqué')).toBeTruthy();
+    expect(screen.getByTestId('performance-value').textContent).not.toMatch(/[0-9+−-]/);
+    expect(container.querySelector('[class*="positive"], [class*="negative"]')).toBeNull();
+  },
+);

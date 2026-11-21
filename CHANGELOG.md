@@ -98,6 +98,8 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 ### Fixed
 
+- Hide read-only amounts and their signs consistently across account, budget and investment views.
+
 - Run local architecture checks with Docker tooling and report overdue image-scan exception
   reviews in the nightly check.
 - Save categories with budget inclusion turned off (#715).

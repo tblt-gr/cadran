@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { InsuranceIncomeDetail } from './insurance-income-detail/InsuranceIncomeDetail';
 import { SwitchOperationDetail } from './switch-operation-detail/SwitchOperationDetail';
@@ -9,7 +10,7 @@ import { Modal } from '@/components/ui/modal/Modal';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
 import { handleClientNavigation } from '@/hooks/use-client-navigation';
 import { portfolioAccountHref } from '@/features/portfolio/portfolioAccountHref';
-import { formatCalendarNumericDay, formatDecimal } from '@/lib/decimal';
+import { formatCalendarNumericDay, formatFinancialDecimal } from '@/lib/decimal';
 import { CashAmount } from '@/features/portfolio/portfolio-account/operations/cash-amount/CashAmount';
 import {
   hasField,
@@ -19,14 +20,20 @@ import { operationTypeLabel } from '@/features/portfolio/portfolio-account/opera
 import { useOperation } from '@/features/portfolio/portfolio-account/operations/useOperation';
 import { OperationLegsTable } from './OperationLegsTable';
 import styles from './OperationDetailModal.module.css';
-import { maskAmountText } from '@/lib/amountPrivacy';
+import { formatExactAmount } from '@/lib/decimal';
 
 function Row({ children, label }: { children: ReactNode; label: string }) {
   const { t } = useTranslation();
   return (
     <div className={styles.row}>
       <dt>{label}</dt>
-      <dd>{children ?? <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />}</dd>
+      <dd>
+        {typeof children === 'string' ? (
+          <MoneyValue wrapGroups={false} value={children} />
+        ) : (
+          (children ?? <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />)
+        )}
+      </dd>
     </div>
   );
 }
@@ -48,11 +55,10 @@ export function OperationDetailModal({
   const replaces = useOperation(operation.correctsOperationId);
   const has = (field: FieldKey) => hasField(operation.type, field);
   const transferHref = portfolioAccountHref(operation.accountId, operation.tradeDate.slice(0, 7));
-  const decimal = (value: string | null) => (value === null ? null : formatDecimal(value, locale));
+  const decimal = (value: string | null) =>
+    value === null ? null : formatFinancialDecimal(value, locale);
   const amount = (value: { value: string; assetCode: string } | null) =>
-    value === null
-      ? null
-      : maskAmountText(`${formatDecimal(value.value, locale)} ${value.assetCode}`);
+    value === null ? null : formatExactAmount(value.value, value.assetCode, locale);
   const instrumentText = (item: PortfolioOperation['instrument']) =>
     item ? (
       <>

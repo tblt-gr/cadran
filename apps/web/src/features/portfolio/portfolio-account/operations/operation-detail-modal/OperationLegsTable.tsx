@@ -1,8 +1,10 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import type { PortfolioOperationLeg } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { formatAmount, formatDecimal, isZeroDecimal } from '@/lib/decimal';
+import { formatAmount, formatFinancialDecimal, isZeroDecimal } from '@/lib/decimal';
 import styles from './OperationDetailModal.module.css';
 
 export function OperationLegsTable({
@@ -44,16 +46,28 @@ export function OperationLegsTable({
                   <EmptyValue label={t('portfolio.account.legs.unavailable')} />
                 )}
               </th>
-              <td>{formatDecimal(leg.quantity, i18n.language)}</td>
-              <td>{formatDecimal(leg.unitPrice, i18n.language)}</td>
-              <td>{formatAmount(leg.amount.value, leg.amount.assetCode, i18n.language)}</td>
               <td>
-                {leg.roundingResidual && !isZeroDecimal(leg.roundingResidual.value) ? (
-                  formatAmount(
-                    leg.roundingResidual.value,
-                    leg.roundingResidual.assetCode,
-                    i18n.language,
-                  )
+                <MoneyValue value={formatFinancialDecimal(leg.quantity, i18n.language)} />
+              </td>
+              <td>
+                <MoneyValue value={formatFinancialDecimal(leg.unitPrice, i18n.language)} />
+              </td>
+              <td>
+                <MoneyValue
+                  value={formatAmount(leg.amount.value, leg.amount.assetCode, i18n.language)}
+                />
+              </td>
+              <td>
+                {leg.roundingResidual &&
+                (areAmountsHidden() || !isZeroDecimal(leg.roundingResidual.value)) ? (
+                  <MoneyValue
+                    wrapGroups={false}
+                    value={formatAmount(
+                      leg.roundingResidual.value,
+                      leg.roundingResidual.assetCode,
+                      i18n.language,
+                    )}
+                  />
                 ) : (
                   <EmptyValue label={t('portfolio.lifeInsurance.notProvided')} />
                 )}

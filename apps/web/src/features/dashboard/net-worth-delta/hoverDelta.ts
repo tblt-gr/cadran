@@ -1,11 +1,7 @@
+import { shownAmount } from '@/lib/shownAmount';
 import type { NetWorthAmount, NetWorthDelta, NetWorthPoint } from '@cadran/api-client';
 import { compareDecimals, decimalRatio, roundDecimal, subtractDecimals } from '@/lib/decimal';
 import { ratioToPercent } from '@/lib/formatRatioPercentage';
-
-/** The figure the screen shows for an amount: its display value when the asset has one. */
-function shown(amount: NetWorthAmount): { value: string; assetCode: string } {
-  return amount.display ?? { value: amount.value, assetCode: amount.assetCode };
-}
 
 /**
  * What moved between the compared day of the period and a hovered point, for the card to show
@@ -26,8 +22,8 @@ export function hoverDelta(point: NetWorthPoint, base: NetWorthDelta): NetWorthD
       rateReason: null,
     };
   }
-  const current = shown(point.total);
-  const start = shown(previous);
+  const current = shownAmount(point.total);
+  const start = shownAmount(previous);
   const change = subtractDecimals(current.value, start.value);
   const amount: NetWorthAmount = {
     value: change,

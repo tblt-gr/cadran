@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { useTranslation } from 'react-i18next';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -51,7 +52,11 @@ export function SupportCards({ summary }: { summary: Summary | null }) {
                         : 'money'
                     }
                   >
-                    {cells[position]}
+                    {typeof cells[position] === 'string' ? (
+                      <MoneyValue wrapGroups={false} value={cells[position]} />
+                    ) : (
+                      cells[position]
+                    )}
                   </dd>
                 </div>
               ));

@@ -45,8 +45,3 @@ export function subscribeAmountPrivacy(listener: Listener): () => void {
     listeners.delete(listener);
   };
 }
-
-/** The text to render for an amount: the mask while the privacy mode is on. */
-export function maskAmountText(text: string): string {
-  return hidden ? AMOUNT_MASK : text;
-}

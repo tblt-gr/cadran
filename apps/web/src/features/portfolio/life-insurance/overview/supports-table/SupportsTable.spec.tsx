@@ -1,9 +1,13 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import { afterEach, expect, it } from 'vitest';
 import { summaryFixture } from '@/features/portfolio/life-insurance/overview/summaryFixture';
 import { SupportsTable } from './SupportsTable';
 import { SupportCards } from './support-cards/SupportCards';
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 it('keeps exact quantity, dated stale price, cost, UC gain and euro interest distinct', () => {
   render(<SupportsTable summary={summaryFixture()} />);
   const table = screen.getByRole('table', { name: 'Supports du contrat' });
@@ -48,10 +52,10 @@ it('shows the hand-computed sub-cent price exactly in table and mobile cards: 10
   ];
   render(<SupportsTable summary={summary} />);
   const table = screen.getByRole('table', { name: 'Supports du contrat' });
-  expect(within(table).getByRole('cell', { name: '0,004 EUR' })).toBeTruthy();
+  expect(within(table).getByRole('cell', { name: /0,004\sEUR/ })).toBeTruthy();
   expect(within(table).getByRole('cell', { name: /4,00\s€/ })).toBeTruthy();
   const mobile = screen.getByRole('article', { name: 'Fonds UC Démo' });
-  expect(within(mobile).getByText('0,004 EUR')).toBeTruthy();
+  expect(within(mobile).getByText(/0,004\sEUR/)).toBeTruthy();
 });
 it('keeps zero unit prices distinguishable from unavailable prices', () => {
   const summary = summaryFixture();
@@ -102,8 +106,24 @@ it('writes the sign of the unrealized gain and colours a gain green and a loss r
       .getByRole('row', { name: /Fonds UC Démo/ })
       .querySelectorAll('td')[7] as HTMLElement,
   );
-  expect(loss.getByText(/-12,50/).className).toMatch(/loss/);
+  expect(loss.getByText(/-12,50/).closest('td')!.className).toMatch(/loss/);
   const gain = within(table).getByRole('row', { name: /Autre UC/ });
   expect(gain.textContent).toContain('+8,00');
   expect(gain.querySelector('td[class*="gain"]')).toBeTruthy();
+});
+
+it('keeps a non-calculable performance reason beside a confidential known gain in table and mobile', () => {
+  setAmountsHidden(true);
+  const summary = summaryFixture();
+  summary.supports = [
+    { ...summary.supports[1], unrealizedGain: '12.5', unrealizedPerformance: null },
+  ];
+  render(<SupportsTable summary={summary} />);
+  const table = screen.getByRole('table', { name: 'Supports du contrat' });
+  const result = table.querySelector('tbody tr')!.querySelectorAll('td')[7]!;
+  expect(within(result as HTMLElement).getByText('Montant masqué')).toBeTruthy();
+  expect(within(result as HTMLElement).getByText('Non calculable')).toBeTruthy();
+  const mobile = screen.getByRole('article', { name: 'Fonds UC Démo' });
+  expect(within(mobile).getByText('Non calculable')).toBeTruthy();
+  expect(result.textContent).not.toMatch(/[0-9+−]/);
 });

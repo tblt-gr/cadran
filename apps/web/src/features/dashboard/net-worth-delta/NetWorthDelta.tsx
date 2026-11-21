@@ -1,3 +1,6 @@
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { shownAmount } from '@/lib/shownAmount';
 import type { NetWorthDelta as Delta } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/ui/icon/Icon';
@@ -39,11 +42,16 @@ export function NetWorthDelta({ delta }: NetWorthDeltaProps) {
     );
   }
 
+  if (areAmountsHidden())
+    return (
+      <p className={styles.delta}>
+        <MoneyValue value={AMOUNT_MASK} />
+        {delta.ratePercentDisplay === null ? null : <MoneyValue value={AMOUNT_MASK} />}
+      </p>
+    );
+
   const direction = deltaDirection(delta.amount.value);
-  const shown = delta.amount.display ?? {
-    value: delta.amount.value,
-    assetCode: delta.amount.assetCode,
-  };
+  const shown = shownAmount(delta.amount);
   const figure = formatAmount(shown.value, shown.assetCode, i18n.language);
   // The label names the direction in words, so the amount inside it stays
   // unsigned: "decrease of minus 1 740 euros" reads as a double negative.

@@ -4,7 +4,7 @@ import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
 import { KpiFigure } from '@/features/portfolio/portfolio-account/portfolio-kpi-grid/KpiFigure';
 import { holdingsDay, holdingsMoney } from '@/features/investments/holdingsFormat';
-import { formatDecimal } from '@/lib/decimal';
+import { formatFinancialDecimal, signedPresentation } from '@/lib/decimal';
 import { sheetGainTone } from '@/features/investments/instrument-sheet/sheetGainTone';
 import { sheetReason } from '@/features/investments/instrument-sheet/sheetReason';
 import styles from './InstrumentSheetSummary.module.css';
@@ -15,7 +15,7 @@ export function InstrumentSheetSummary({ data }: { data: InstrumentHolding | nul
   const money = (value: string | null | undefined, signed = false) => {
     if (value == null) return <EmptyValue label={t('investments.summary.notCalculable')} />;
     const text = holdingsMoney(value, data!.instrument.currencyCode, i18n.language);
-    return signed && !value.startsWith('-') && /[1-9]/.test(value) ? `+${text}` : text;
+    return signed ? signedPresentation(text, value).text : text;
   };
   const empty = data !== null && !holding && data.accounts.length === 0;
   // Without any holding the page says it once, in its content, instead of six empty figures.
@@ -36,7 +36,7 @@ export function InstrumentSheetSummary({ data }: { data: InstrumentHolding | nul
           value={
             data ? (
               holding ? (
-                formatDecimal(holding.quantity, i18n.language)
+                formatFinancialDecimal(holding.quantity, i18n.language)
               ) : (
                 <EmptyValue label={t('investments.sheet.noHolding')} />
               )

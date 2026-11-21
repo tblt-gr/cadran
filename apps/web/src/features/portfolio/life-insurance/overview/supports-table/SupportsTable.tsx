@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import { useTranslation } from 'react-i18next';
 import { InstrumentLink } from '@/features/investments/instrument-link/InstrumentLink';
 import { SkeletonTableRows } from '@/components/ui/skeleton/Skeleton';
@@ -62,7 +63,11 @@ export function SupportsTable({ summary }: { summary: Summary | null }) {
                                   .join(' ')}
                                 key={index}
                               >
-                                {cell}
+                                {typeof cell === 'string' ? (
+                                  <MoneyValue wrapGroups={false} value={cell} />
+                                ) : (
+                                  cell
+                                )}
                               </td>
                             ),
                         )}

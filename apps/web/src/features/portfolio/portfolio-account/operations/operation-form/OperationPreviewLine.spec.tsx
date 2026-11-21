@@ -1,9 +1,13 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import '@/i18n';
 import { OperationPreviewLine } from './OperationPreviewLine';
 const amount = (value: string) => ({ value, assetCode: 'EUR' });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 describe('insurance preview figures', () => {
   it('keeps net credited unknown and retains its label while waiting for the server', () => {
     const { container, rerender } = render(
@@ -93,3 +97,32 @@ describe('insurance preview figures', () => {
     expect(screen.queryByText(/Écart d’arrondi du support/)).toBeNull();
   });
 });
+
+it.each(['12', '-12', '0', '0.000000000000000000000001'])(
+  'masks exact preview %s and residuals',
+  (value) => {
+    setAmountsHidden(true);
+    const { container } = render(
+      <OperationPreviewLine
+        type="FULL_SURRENDER"
+        pending={false}
+        showResidual
+        preview={{
+          cashAmount: amount(value),
+          netCreditedAmount: null,
+          netPaidAmount: amount(value),
+          expectedGrossAmount: amount(value),
+          expectedIncomingAmount: null,
+          difference: null,
+          applicableSwitchFeeRate: null,
+          applicableSwitchFeeFixed: null,
+          roundingResidual: amount(value),
+          legs: [],
+        }}
+      />,
+    );
+    expect(screen.getAllByText('Montant masqué')).toHaveLength(4);
+    expect(container.textContent).not.toMatch(/[0-9+−-]/);
+    expect(container.querySelector('[class*="positive"], [class*="negative"]')).toBeNull();
+  },
+);

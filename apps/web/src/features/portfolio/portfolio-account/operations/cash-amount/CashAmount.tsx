@@ -1,3 +1,5 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
 import type { DecimalAmount } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { compareDecimals, formatAmount, isZeroDecimal, negateDecimal } from '@/lib/decimal';
@@ -6,6 +8,7 @@ import styles from './CashAmount.module.css';
 /** A signed cash effect: the sign is always text, colour only reinforces it. */
 export function CashAmount({ amount }: { amount: DecimalAmount }) {
   const { i18n } = useTranslation();
+  if (areAmountsHidden()) return <MoneyValue value={AMOUNT_MASK} />;
   if (isZeroDecimal(amount.value)) {
     return <span>{formatAmount('0', amount.assetCode, i18n.language)}</span>;
   }

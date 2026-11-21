@@ -268,3 +268,23 @@ it.each([
   rerender(<AccountValuationCell {...props} valuation={valuation({ quality: 'CURRENT' })} />);
   expect(structure(container.firstElementChild!)).toEqual(loadingStructure);
 });
+
+it.each(['250', '-250', '0', '0.000000000000000000000001'])(
+  'masks balance %s and its ceiling geometry',
+  (value) => {
+    setAmountsHidden(true);
+    try {
+      const { container } = render(
+        <AccountValuationCell
+          size="lg"
+          ceiling={{ value: '999999999999999999999', assetCode: 'EUR' }}
+          valuation={valuation({ display: { value, assetCode: 'EUR' }, belowDisplayStep: true })}
+        />,
+      );
+      expect(screen.getAllByText('Montant masqué')).toHaveLength(2);
+      expect(container.querySelector('[data-sign], [style*="width"]')).toBeNull();
+    } finally {
+      setAmountsHidden(false);
+    }
+  },
+);

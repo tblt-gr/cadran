@@ -113,7 +113,7 @@ describe('insurance detail', () => {
     expect(modal.getByText('Sortie')).toBeTruthy();
     expect(modal.getByText('7,50 EUR')).toBeTruthy();
     expect(modal.getByText('8,60 EUR')).toBeTruthy();
-    expect(modal.getByText(/1.033,90 EUR/)).toBeTruthy();
+    expect(modal.getByText(/1.033,90\sEUR/)).toBeTruthy();
   });
   it('leaves the residual cell empty when the server residual is zero', () => {
     render(

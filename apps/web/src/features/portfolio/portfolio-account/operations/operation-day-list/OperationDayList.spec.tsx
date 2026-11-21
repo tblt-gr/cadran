@@ -1,3 +1,4 @@
+import { setAmountsHidden } from '@/lib/amountPrivacy';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '@/i18n';
@@ -9,7 +10,10 @@ import {
 import { OperationDayList } from './OperationDayList';
 import type { OperationRowActions } from './OperationRowMenu';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  setAmountsHidden(false);
+});
 
 const buy = operationFixture({
   id: 'op-buy',
@@ -166,3 +170,27 @@ describe('OperationDayList', () => {
     expect(within(skeleton).queryByText(/€/)).toBeNull();
   });
 });
+
+it.each(['12', '-12', '0', '0.000000000000000000000001'])(
+  'announces every masked operation cell for %s',
+  async (value) => {
+    setAmountsHidden(true);
+    const amount = { value, assetCode: 'EUR' };
+    renderList([
+      {
+        ...buy,
+        quantity: value,
+        unitPrice: value,
+        grossAmount: amount,
+        fees: amount,
+        taxes: amount,
+        cashAmount: amount,
+      },
+    ]);
+    await datedListLoaded();
+    const row = screen.getByRole('button', { name: /^ETF Monde$/ }).closest('li')!;
+    expect(within(row).getAllByText('Montant masqué')).toHaveLength(5);
+    expect(row.querySelector('[class*="positive"], [class*="negative"]')).toBeNull();
+    expect(row.textContent).not.toMatch(/[0-9+−]/);
+  },
+);

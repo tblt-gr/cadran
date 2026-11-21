@@ -1,7 +1,9 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { PortfolioOperationPreview, PortfolioOperationType } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
-import { formatDecimal, isZeroDecimal } from '@/lib/decimal';
+import { formatExactAmount, isZeroDecimal } from '@/lib/decimal';
 import { SwitchOperationPreview } from './switch-operation-preview/SwitchOperationPreview';
 import { CashAmount } from '@/features/portfolio/portfolio-account/operations/cash-amount/CashAmount';
 import styles from './OperationForm.module.css';
@@ -42,8 +44,14 @@ export function OperationPreviewLine({
           <span>{t('portfolio.account.form.preview.netCredited')}</span>
           {preview?.netCreditedAmount ? (
             <strong>
-              {formatDecimal(preview.netCreditedAmount.value, i18n.language)}{' '}
-              {preview.netCreditedAmount.assetCode}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  preview.netCreditedAmount.value,
+                  preview.netCreditedAmount.assetCode,
+                  i18n.language,
+                )}
+              />
             </strong>
           ) : pending ? (
             <SkeletonBlock className={styles.previewValue} />
@@ -57,8 +65,14 @@ export function OperationPreviewLine({
           <span>{t('portfolio.account.form.preview.netPaid')}</span>
           {preview?.netPaidAmount ? (
             <strong>
-              {formatDecimal(preview.netPaidAmount.value, i18n.language)}{' '}
-              {preview.netPaidAmount.assetCode}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  preview.netPaidAmount.value,
+                  preview.netPaidAmount.assetCode,
+                  i18n.language,
+                )}
+              />
             </strong>
           ) : pending ? (
             <SkeletonBlock className={styles.previewValue} />
@@ -72,8 +86,14 @@ export function OperationPreviewLine({
           <span>{t('portfolio.account.form.preview.expectedGross')}</span>
           {preview?.expectedGrossAmount ? (
             <strong>
-              {formatDecimal(preview.expectedGrossAmount.value, i18n.language)}{' '}
-              {preview.expectedGrossAmount.assetCode}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  preview.expectedGrossAmount.value,
+                  preview.expectedGrossAmount.assetCode,
+                  i18n.language,
+                )}
+              />
             </strong>
           ) : pending ? (
             <SkeletonBlock className={styles.previewValue} />
@@ -88,8 +108,14 @@ export function OperationPreviewLine({
           <span>{t('portfolio.account.form.preview.rounding')}</span>{' '}
           {preview?.roundingResidual ? (
             <strong>
-              {formatDecimal(preview.roundingResidual.value, i18n.language)}{' '}
-              {preview.roundingResidual.assetCode}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  preview.roundingResidual.value,
+                  preview.roundingResidual.assetCode,
+                  i18n.language,
+                )}
+              />
             </strong>
           ) : (
             <span>-</span>
@@ -97,13 +123,23 @@ export function OperationPreviewLine({
         </div>
       ) : null}
       {(preview?.legs ?? [])
-        .filter((leg) => leg.roundingResidual && !isZeroDecimal(leg.roundingResidual.value))
+        .filter(
+          (leg) =>
+            leg.roundingResidual &&
+            (areAmountsHidden() || !isZeroDecimal(leg.roundingResidual.value)),
+        )
         .map((leg) => (
           <div className={styles.previewRow} key={leg.index}>
             <span>{t('portfolio.account.form.preview.legRounding', { index: leg.index })}</span>
             <strong>
-              {formatDecimal(leg.roundingResidual!.value, i18n.language)}{' '}
-              {leg.roundingResidual!.assetCode}
+              <MoneyValue
+                wrapGroups={false}
+                value={formatExactAmount(
+                  leg.roundingResidual!.value,
+                  leg.roundingResidual!.assetCode,
+                  i18n.language,
+                )}
+              />
             </strong>
           </div>
         ))}

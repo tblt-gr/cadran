@@ -1,18 +1,23 @@
+import { AMOUNT_MASK, areAmountsHidden } from '@/lib/amountPrivacy';
 import type { TFunction } from 'i18next';
 import {
   formatAmount,
   formatCalendarDay,
-  formatDecimal,
+  formatFinancialDecimal,
   formatPercentDecimal,
+  formatExactAmount,
 } from '@/lib/decimal';
 
 /** An amount in its asset, or the bare figure when the accounts do not share one unit. */
 export function holdingsMoney(value: string, assetCode: string | null, locale: string): string {
-  return assetCode === null ? formatDecimal(value, locale) : formatAmount(value, assetCode, locale);
+  return assetCode === null
+    ? formatFinancialDecimal(value, locale)
+    : formatAmount(value, assetCode, locale);
 }
 
 /** The server rounds the share to two decimals; the browser only appends the unit. */
 export function holdingsPercent(percentDisplay: string, locale: string): string {
+  if (areAmountsHidden()) return AMOUNT_MASK;
   return `${formatPercentDecimal(percentDisplay, locale)} %`;
 }
 
@@ -37,7 +42,8 @@ export function isNoInvestmentAccount(holdings: {
 
 /** A unit price keeps the precision of the instrument, so it is never rounded to cents. */
 export function holdingsUnitPrice(value: string, assetCode: string | null, locale: string): string {
-  const figure = formatDecimal(value, locale);
+  if (areAmountsHidden()) return formatExactAmount(value, assetCode, locale);
+  const figure = formatFinancialDecimal(value, locale);
   if (assetCode === null) return figure;
   try {
     const symbol = new Intl.NumberFormat(locale, { style: 'currency', currency: assetCode })

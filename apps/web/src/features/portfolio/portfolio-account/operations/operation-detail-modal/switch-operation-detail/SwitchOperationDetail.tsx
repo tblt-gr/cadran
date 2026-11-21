@@ -1,17 +1,22 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
+import { formatDecimal } from '@/lib/decimal';
 import type { PortfolioOperation } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
-import { formatDecimal } from '@/lib/decimal';
 import { OperationLegsTable } from '@/features/portfolio/portfolio-account/operations/operation-detail-modal/OperationLegsTable';
 import styles from '@/features/portfolio/portfolio-account/operations/operation-detail-modal/OperationDetailModal.module.css';
-import { maskAmountText } from '@/lib/amountPrivacy';
+import { formatExactAmount } from '@/lib/decimal';
 
 export function SwitchOperationDetail({ operation }: { operation: PortfolioOperation }) {
   const { i18n, t } = useTranslation();
   const rate = operation.applicableSwitchFeeRate;
   const fixed = operation.applicableSwitchFeeFixed;
-  const amount = (value: { value: string; assetCode: string }) =>
-    maskAmountText(`${formatDecimal(value.value, i18n.language)} ${value.assetCode}`);
+  const amount = (value: { value: string; assetCode: string }) => (
+    <MoneyValue
+      wrapGroups={false}
+      value={formatExactAmount(value.value, value.assetCode, i18n.language)}
+    />
+  );
   return (
     <>
       <OperationLegsTable

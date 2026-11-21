@@ -1,3 +1,4 @@
+import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
 import type { ReactNode } from 'react';
 import { InfoButton } from '@/components/ui/info-button/InfoButton';
 import { SkeletonBlock } from '@/components/ui/skeleton/Skeleton';
@@ -54,7 +55,11 @@ export function KpiFigure({
         )}
       </div>
       <div className={`${styles.value} ${tone}`}>
-        {value ?? <SkeletonBlock className={styles.valueSkeleton} />}
+        {typeof value === 'string' ? (
+          <MoneyValue wrapGroups={false} value={value} />
+        ) : (
+          (value ?? <SkeletonBlock className={styles.valueSkeleton} />)
+        )}
       </div>
       {note ? <p className={styles.note}>{note}</p> : null}
       {reason ? <StatusBadge tone="warning">{reason}</StatusBadge> : null}

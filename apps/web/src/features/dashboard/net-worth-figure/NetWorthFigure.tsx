@@ -1,3 +1,5 @@
+import { areAmountsHidden } from '@/lib/amountPrivacy';
+import { shownAmount } from '@/lib/shownAmount';
 import type { NetWorthAmount, NetWorthReason } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { MoneyValue } from '@/components/ui/money-value/MoneyValue';
@@ -30,7 +32,7 @@ export function NetWorthFigure({ amount, className, reason }: NetWorthFigureProp
     );
   }
 
-  if (amount.belowDisplayStep) {
+  if (amount.belowDisplayStep && !areAmountsHidden()) {
     return (
       <span className={`${styles.unavailable} ${className ?? ''}`}>
         {t('dashboard.netWorth.belowStep')}
@@ -41,7 +43,7 @@ export function NetWorthFigure({ amount, className, reason }: NetWorthFigureProp
   // An asset the reference does not know carries no display precision. The
   // exact figure is still a figure, so it is shown as recorded rather than
   // mistaken for one too small to display.
-  const shown = amount.display ?? { value: amount.value, assetCode: amount.assetCode };
+  const shown = shownAmount(amount);
 
   return (
     <MoneyValue

@@ -1,3 +1,5 @@
+import { signedPresentation } from '@/lib/decimal';
+import { areAmountsHidden } from '@/lib/amountPrivacy';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { PortfolioOverviewSummary } from '@cadran/api-client';
@@ -39,7 +41,14 @@ export function PortfolioKpiGrid({
   const year = asOf.slice(0, 4);
   const gain = summary?.unrealizedGain.value;
   const tones: Partial<Record<KpiCode, string>> = {
-    UNREALIZED_GAIN: gain == null ? '' : gain.startsWith('-') ? styles.negative : styles.positive,
+    UNREALIZED_GAIN:
+      gain == null
+        ? ''
+        : signedPresentation('', gain).sign < 0
+          ? styles.negative
+          : signedPresentation('', gain).sign > 0
+            ? styles.positive
+            : '',
     CASH: summary?.cash.startsWith('-') ? styles.negative : '',
   };
   const values: Record<KpiCode, ReactNode> | null = summary
@@ -66,7 +75,7 @@ export function PortfolioKpiGrid({
         onExplain={summary ? () => onExplain(code) : null}
         reason={reason ? (reasonLabel(t, reason) ?? reason) : undefined}
         size={size}
-        tone={tones[code]}
+        tone={areAmountsHidden() ? '' : tones[code]}
         value={values ? values[code] : null}
       />
     );
