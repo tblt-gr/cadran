@@ -1,5 +1,9 @@
 # Accepted image-scan findings, one identifier per line, each
-# preceded by a comment with the reason and a review date (`# review: YYYY-MM-DD`).
+# preceded by a comment with the reason and exactly one review date (`# review: YYYY-MM-DD`,
+# a real calendar date; one date covers the consecutive entries of its block). A missing or
+# malformed date fails every lint. A date in the past or more than 90 days ahead (UTC, inclusive)
+# only warns in the pull-request lint and fails the nightly strict check, so review the entry,
+# then move its date forward or delete it.
 # This file is used only for the application image. Database and Dockerfile
 # scans intentionally run without these application-specific exceptions.
 #

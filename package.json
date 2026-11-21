@@ -13,7 +13,7 @@
     "release": "./scripts/release.sh",
     "lint:em-dash": "sh scripts/ci/check-no-em-dash.sh",
     "lint:docs": "sh ./scripts/lint-docs.sh",
-    "lint:infrastructure": "node scripts/test-infrastructure.mjs && node scripts/ci/test-ops-scripts.mjs && node scripts/ci/test-check-licenses.mjs",
+    "lint:infrastructure": "node scripts/test-infrastructure.mjs && node scripts/ci/test-ops-scripts.mjs && node scripts/ci/test-check-licenses.mjs && node scripts/ci/test-check-trivyignore-reviews.mjs",
     "generate:api": "pnpm --filter @cadran/api-client generate",
     "lint": "pnpm --recursive --if-present lint",
     "typecheck": "pnpm --recursive --if-present typecheck",

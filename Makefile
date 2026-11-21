@@ -226,9 +226,10 @@ test-web: tools
 test-infrastructure: tools
 	$(COMPOSE_DEFAULT) config --format json | $(TOOLS_DOCKER_RUN) --interactive --env COMPOSE_CONFIG_PATH=/dev/stdin $(TOOLS_IMAGE) node scripts/test-infrastructure.mjs
 	$(TOOLS_RUN) node scripts/ci/test-ops-scripts.mjs
+	$(TOOLS_RUN) node scripts/ci/test-check-trivyignore-reviews.mjs
 
-architecture:
-	sh scripts/test-architecture.sh
+architecture: tools
+	$(TOOLS_RUN) sh scripts/test-architecture.sh
 
 quality: architecture test-infrastructure test-database
 	$(TOOLS_RUN_WITH_DB) composer quality --working-dir=apps/api
