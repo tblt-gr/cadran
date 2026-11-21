@@ -6,6 +6,8 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-21
+
 The first MVP release. It builds on the accounts, transactions, budgets, closing, reports, goals,
 portfolios and multi-support life insurance features of the releases below and adds the
 operational side: backups, restoration, safe upgrades and an installable PWA.
