@@ -107,6 +107,7 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
   duplicate (#717).
 - The application and database containers start again on their own after a reboot of Docker
   Desktop on WSL: they read their secrets from a Docker volume instead of bind-mounted host files.
+- Enter a positive fee when editing a transfer, just as when creating one.
 - Derive account balances from snapshots and booked movements, and measure the net worth change
   from the closing balance of the baseline (#344, #394).
 - Keep the original analytic axes on a proposed refund split, handle refund decimal entry safely,

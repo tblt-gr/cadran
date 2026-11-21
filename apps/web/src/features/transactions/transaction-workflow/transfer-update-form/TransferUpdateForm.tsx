@@ -1,10 +1,12 @@
 import { ModalForm } from '@/components/ui/form-layout/ModalForm';
 import type { Transfer, UpdateTransferRequest } from '@cadran/api-client';
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FormGrid } from '@/components/ui/form-layout/FormGrid';
 import { FormSection } from '@/components/ui/form-layout/FormSection';
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
+import { isPositiveMagnitude } from '@/features/transactions/transfer-editor/transferFormValues';
+import { negateDecimal } from '@/lib/decimal';
 import { TransferLegs } from './TransferLegs';
 import styles from './TransferUpdateForm.module.css';
 
@@ -29,7 +31,17 @@ export function TransferUpdateForm({
   const [label, setLabel] = useState(transfer?.source.rawLabel ?? '');
   const [bookedOn, setBookedOn] = useState(transfer?.source.bookedOn ?? '');
   const [valueOn, setValueOn] = useState(transfer?.source.valueOn ?? '');
-  const [feeValue, setFeeValue] = useState(transfer?.fee?.amount.value ?? '');
+  // The fee leg is stored as an outflow; the field shows its unsigned magnitude, as on creation.
+  const [feeValue, setFeeValue] = useState(() =>
+    transfer?.fee ? negateDecimal(transfer.fee.amount.value) : '',
+  );
+  const [feeRejected, setFeeRejected] = useState(false);
+  const [feeFocusRequest, setFeeFocusRequest] = useState(0);
+  const feeInput = useRef<HTMLInputElement>(null);
+  const feeErrorId = useId();
+  useEffect(() => {
+    if (feeFocusRequest > 0) feeInput.current?.focus();
+  }, [feeFocusRequest]);
   const [note, setNote] = useState(transfer?.source.note ?? '');
   const [advancedOpen, setAdvancedOpen] = useState(
     () => (transfer?.fee?.amount.value ?? '') !== '' || (transfer?.source.note ?? '') !== '',
@@ -42,21 +54,30 @@ export function TransferUpdateForm({
       className={styles.form}
       onSubmit={(event) => {
         event.preventDefault();
-        if (draftTransfer)
-          onSubmit({
-            sourceAccountId: draftTransfer.source.accountId,
-            targetAccountId: draftTransfer.target.accountId,
-            label,
-            bookedOn,
-            valueOn: valueOn || null,
-            note: note || null,
-            state,
-            fee:
-              feeValue === ''
-                ? null
-                : { value: feeValue, assetCode: draftTransfer.source.amount.assetCode },
-            version: draftTransfer.version,
-          });
+        if (!draftTransfer) return;
+        if (!voiding && feeValue !== '' && !isPositiveMagnitude(feeValue)) {
+          setFeeRejected(true);
+          setAdvancedOpen(true);
+          setFeeFocusRequest((count) => count + 1);
+          return;
+        }
+        onSubmit({
+          sourceAccountId: draftTransfer.source.accountId,
+          targetAccountId: draftTransfer.target.accountId,
+          label,
+          bookedOn,
+          valueOn: valueOn || null,
+          note: note || null,
+          state,
+          fee:
+            feeValue === ''
+              ? null
+              : {
+                  value: negateDecimal(feeValue),
+                  assetCode: draftTransfer.source.amount.assetCode,
+                },
+          version: draftTransfer.version,
+        });
       }}
     >
       {error ? <p role="alert">{error}</p> : null}
@@ -118,10 +139,21 @@ export function TransferUpdateForm({
                 <label>
                   <span>{t('transactions.transfer.fields.fee')}</span>
                   <input
+                    ref={feeInput}
+                    aria-describedby={feeRejected ? feeErrorId : undefined}
+                    aria-invalid={feeRejected ? true : undefined}
+                    autoComplete="off"
                     inputMode="decimal"
+                    spellCheck={false}
                     value={feeValue}
-                    onChange={(event) => setFeeValue(event.target.value)}
+                    onChange={(event) => {
+                      setFeeValue(event.target.value);
+                      setFeeRejected(false);
+                    }}
                   />
+                  {feeRejected ? (
+                    <small id={feeErrorId}>{t('transactions.transfer.validation.fee')}</small>
+                  ) : null}
                 </label>
                 <label data-span="full">
                   <span>{t('transactions.fields.note')}</span>

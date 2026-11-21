@@ -132,7 +132,7 @@ export function transferRequest(
   };
 }
 
-function isPositiveMagnitude(value: string): boolean {
+export function isPositiveMagnitude(value: string): boolean {
   return isCanonicalDecimal(value) && !isZeroDecimal(value) && compareDecimals(value, '0') > 0;
 }
 
