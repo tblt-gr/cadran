@@ -67,7 +67,7 @@ export async function openMovementEditModal(
 }
 
 /** A phone row carries no action menu: its detail dialog holds the same actions as buttons. */
-async function openActions(row: Locator) {
+export async function openActions(row: Locator) {
   const menu = row.getByRole('button', { name: /^Actions de la transaction/ });
   if (await menu.isVisible()) {
     await menu.click();

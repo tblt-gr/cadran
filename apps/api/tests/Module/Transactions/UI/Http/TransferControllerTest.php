@@ -178,6 +178,52 @@ final class TransferControllerTest extends WebTestCase
         self::assertSame(1, $this->ownTransferCount());
     }
 
+    public function testATransferReplayWritesOnceAndAuditsOnce(): void
+    {
+        $key = 'transfer-replay-one-audit-0001';
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+
+        self::assertSame(1, $this->ownTransferCount());
+        self::assertSame(2, $this->ownAuditCount('transaction.created'));
+        self::assertSame(1, $this->ownAuditCount('transfer.created'));
+    }
+
+    public function testATransferKeyUsedInAnotherWorkspaceNeverLeaksNorUnlocksAForeignAccount(): void
+    {
+        $key = 'transfer-key-across-workspaces-1';
+        $this->seedAccount(self::OTHER_TARGET_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Épargne voisine', 'EUR');
+        $foreign = $this->payload(overrides: [
+            'sourceAccountId' => self::OTHER_ACCOUNT,
+            'targetAccountId' => self::OTHER_TARGET_ACCOUNT,
+            'label' => 'Virement voisin',
+        ]);
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->resetLoginThrottling();
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $this->requestCreate($foreign, $key);
+        self::assertResponseStatusCodeSame(201);
+        $neighbour = $this->decode();
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->resetLoginThrottling();
+        $this->signIn();
+
+        $this->requestCreate($foreign, $key);
+        self::assertResponseStatusCodeSame(404);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertStringNotContainsString(self::stringValue($neighbour, 'id'), (string) $this->client->getResponse()->getContent());
+
+        $this->requestCreate($this->payload(), $key);
+        self::assertResponseStatusCodeSame(201);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertNotSame($neighbour['id'], $this->decode()['id']);
+        self::assertSame(1, $this->ownTransferCount());
+    }
+
     public function testAFeeProducesItsOwnFeeTransactionOnTheSourceAccount(): void
     {
         $created = $this->createTransfer(overrides: [
@@ -764,6 +810,17 @@ final class TransferControllerTest extends WebTestCase
         return (int) $count;
     }
 
+    private function ownAuditCount(string $eventType): int
+    {
+        $count = $this->connection->fetchOne(
+            'SELECT count(*) FROM audit_events WHERE event_type = ? AND workspace_id = ?',
+            [$eventType, WorkspaceFixture::OWN_WORKSPACE],
+        );
+        self::assertTrue(is_int($count) || is_string($count));
+
+        return (int) $count;
+    }
+
     private function ownTransferCount(): int
     {
         $count = $this->connection->fetchOne(
@@ -784,10 +841,10 @@ final class TransferControllerTest extends WebTestCase
         return (int) $count;
     }
 
-    private function signIn(): void
+    private function signIn(string $email = WorkspaceFixture::OWNER_EMAIL): void
     {
         $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: json_encode([
-            'email' => WorkspaceFixture::OWNER_EMAIL,
+            'email' => $email,
             'password' => WorkspaceFixture::OWNER_PASSWORD,
         ], JSON_THROW_ON_ERROR));
         self::assertResponseStatusCodeSame(204);

@@ -103,6 +103,8 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 - Save categories with budget inclusion turned off (#715).
 - Apply the balance floor when withdrawing a snapshot or switching an eligible account to
   transaction-based valuation.
+- Retrying a transaction, transfer or refund save after a lost response no longer creates a
+  duplicate (#717).
 - Derive account balances from snapshots and booked movements, and measure the net worth change
   from the closing balance of the baseline (#344, #394).
 - Keep the original analytic axes on a proposed refund split, handle refund decimal entry safely,

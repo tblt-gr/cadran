@@ -101,23 +101,26 @@ export function AccountLedger({
     ...(activeAccounts.data?.items ?? []).filter((item) => item.id !== account.id),
   ];
 
-  const { saveTransaction, saveTransfer, completeTransfer } = useAccountDetailMutations({
-    accountId: account.id,
-    reloadAfterWrite,
-    onTransactionSaved: () => {
-      onEditorChange(null);
-      onSaved('transactionSaved');
-    },
-    onTransferSaved: () => {
-      onEditorChange(null);
-      onSaved('transferSaved');
-    },
-  });
+  const { saveTransaction, saveTransfer, completeTransfer, transactionDraft, transferDraft } =
+    useAccountDetailMutations({
+      accountId: account.id,
+      reloadAfterWrite,
+      onTransactionSaved: () => {
+        onEditorChange(null);
+        onSaved('transactionSaved');
+      },
+      onTransferSaved: () => {
+        onEditorChange(null);
+        onSaved('transferSaved');
+      },
+    });
 
   function close() {
     onEditorChange(null);
     saveTransaction.reset();
     saveTransfer.reset();
+    transactionDraft.release();
+    transferDraft.release();
   }
 
   return (

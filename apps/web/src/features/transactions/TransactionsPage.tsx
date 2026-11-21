@@ -67,28 +67,41 @@ export function TransactionsPage() {
     onVoided: () => {},
     reloadAfterWrite,
   });
-  const { save, saved, setSaved, submitError, transferSave, completeTransfer } = mutations;
+  const {
+    save,
+    saved,
+    setSaved,
+    submitError,
+    transactionDraft,
+    transferDraft,
+    transferSave,
+    completeTransfer,
+  } = mutations;
 
   function openEditor(target: Exclude<Editor, null>) {
     setSaved(null);
     save.reset();
+    transactionDraft.release();
     setEditor(target);
   }
 
   function closeEditor() {
     setEditor(null);
     save.reset();
+    transactionDraft.release();
   }
 
   function openTransferEditor() {
     setSaved(null);
     transferSave.reset();
+    transferDraft.release();
     setTransferEditorOpen(true);
   }
 
   function closeTransferEditor() {
     setTransferEditorOpen(false);
     transferSave.reset();
+    transferDraft.release();
   }
 
   const initialLoading =
