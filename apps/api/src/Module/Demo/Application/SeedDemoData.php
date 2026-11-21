@@ -52,7 +52,7 @@ final readonly class SeedDemoData
     private const string OPENING_DAY = '2023-12-31';
     private const int RANDOM_SEED = 20260926;
 
-    /** key => [type, label, axes, budgeted]. Always budgeted: inserting budget_included = false currently fails in DbalCategoryRepository::add(). */
+    /** key => [type, label, axes, budgeted]. */
     public const array CATEGORIES = [
         'salary' => ['INCOME', 'Salaire', [], true],
         'salary_bonus' => ['INCOME', 'Primes', [], true],
@@ -67,6 +67,7 @@ final readonly class SeedDemoData
         'leisure' => ['EXPENSE', 'Loisirs', ['VARIABLE', 'DISCRETIONARY'], true],
         'shopping' => ['EXPENSE', 'Shopping', ['VARIABLE', 'DISCRETIONARY'], true],
         'holidays' => ['EXPENSE', 'Vacances', ['VARIABLE', 'DISCRETIONARY'], true],
+        'internal_transfers' => ['EXPENSE', 'Régularisations', [], false],
     ];
 
     public function __construct(

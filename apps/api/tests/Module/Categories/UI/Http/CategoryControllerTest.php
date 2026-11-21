@@ -343,6 +343,67 @@ final class CategoryControllerTest extends WebTestCase
         self::assertSame(1, (int) $version);
     }
 
+    public function testACategoryExcludedFromTheBudgetIsPersistedAndToggledInBothDirections(): void
+    {
+        $created = $this->createCategoryWith('Hors budget', null, ['budgetIncluded' => false]);
+        self::assertFalse($created['budgetIncluded']);
+        $id = self::stringValue($created, 'id');
+        self::assertFalse($this->listedFlag($id));
+        self::assertSame([false], $this->storedFlags($id));
+
+        $this->requestUpdate($id, [...$created, 'budgetIncluded' => true]);
+        self::assertResponseStatusCodeSame(200);
+        $included = $this->decode();
+        self::assertTrue($included['budgetIncluded']);
+        self::assertSame(2, $included['version']);
+        self::assertTrue($this->listedFlag($id));
+
+        $this->requestUpdate($id, [...$included, 'budgetIncluded' => false]);
+        self::assertResponseStatusCodeSame(200);
+        $excluded = $this->decode();
+        self::assertFalse($excluded['budgetIncluded']);
+        self::assertSame(3, $excluded['version']);
+        self::assertFalse($this->listedFlag($id));
+        self::assertSame([false], $this->storedFlags($id));
+    }
+
+    public function testAMalformedBudgetFlagIsRefusedAndAForeignCategoryStaysUnchanged(): void
+    {
+        $category = $this->createCategory('Restaurants');
+        $id = self::stringValue($category, 'id');
+
+        $this->requestUpdate($id, [...$category, 'budgetIncluded' => 'false']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame([true], $this->storedFlags($id));
+
+        $foreignId = '00000000-0000-7000-8000-0000000000cf';
+        $this->insertCategory($foreignId, WorkspaceFixture::OTHER_WORKSPACE, 'Private label');
+        $this->requestUpdate($foreignId, [...$category, 'budgetIncluded' => false, 'version' => 1]);
+        self::assertResponseStatusCodeSame(404);
+        self::assertSame([true], $this->storedFlags($foreignId));
+    }
+
+    private function listedFlag(string $id): mixed
+    {
+        $this->client->request('GET', '/api/v1/categories', server: self::jsonHeaders());
+        self::assertResponseIsSuccessful();
+        foreach ($this->items() as $item) {
+            if ($item['id'] === $id) {
+                return $item['budgetIncluded'];
+            }
+        }
+        self::fail('The category is not listed.');
+    }
+
+    /** @return list<bool> */
+    private function storedFlags(string $id): array
+    {
+        return array_map(
+            static fn (mixed $flag): bool => (bool) $flag,
+            $this->connection->fetchFirstColumn('SELECT budget_included FROM category_categories WHERE id = ?', [$id]),
+        );
+    }
+
     public function testEditingAFieldOtherThanBudgetIncludedDuringAnActiveClosureStillWorks(): void
     {
         $category = $this->createCategory('Restaurants');

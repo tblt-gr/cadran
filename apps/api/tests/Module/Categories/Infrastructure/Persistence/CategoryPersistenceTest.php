@@ -149,6 +149,41 @@ final class CategoryPersistenceTest extends KernelTestCase
         self::assertSame('Sorties', $this->repository->find(WorkspaceFixture::own(), $category->id)?->label);
     }
 
+    public function testABudgetExcludedCategoryIsInsertedAndUpdatedInBothDirections(): void
+    {
+        $category = $this->category('00000000-0000-7000-8000-0000000000c1', WorkspaceFixture::own(), budgetIncluded: false);
+        $this->repository->add($category);
+        $stored = $this->repository->find(WorkspaceFixture::own(), $category->id);
+        self::assertFalse($stored?->budgetIncluded);
+
+        $included = $this->withBudgetIncluded($category, true);
+        self::assertTrue($this->repository->update($included, 1));
+        $stored = $this->repository->find(WorkspaceFixture::own(), $category->id);
+        self::assertNotNull($stored);
+        self::assertTrue($stored->budgetIncluded);
+        self::assertSame(2, $stored->version);
+
+        self::assertTrue($this->repository->update($this->withBudgetIncluded($included, false), 2));
+        $stored = $this->repository->find(WorkspaceFixture::own(), $category->id);
+        self::assertNotNull($stored);
+        self::assertFalse($stored->budgetIncluded);
+        self::assertSame(3, $stored->version);
+    }
+
+    private function withBudgetIncluded(Category $category, bool $budgetIncluded): Category
+    {
+        return $category->reconfigure(
+            type: $category->type,
+            label: $category->label,
+            icon: $category->icon,
+            color: $category->color,
+            defaultAnalyticAxes: $category->defaultAnalyticAxes,
+            budgetIncluded: $budgetIncluded,
+            sortOrder: $category->sortOrder,
+            updatedAt: new \DateTimeImmutable(),
+        );
+    }
+
     public function testChildCreationLockSerializesAConcurrentParentTypeChange(): void
     {
         $parent = $this->category('00000000-0000-7000-8000-0000000000c1', WorkspaceFixture::own());
@@ -402,6 +437,7 @@ final class CategoryPersistenceTest extends KernelTestCase
         CategoryType $type = CategoryType::EXPENSE,
         ?string $color = '#AABBCC',
         ?string $icon = 'utensils',
+        bool $budgetIncluded = true,
     ): Category {
         $now = new \DateTimeImmutable('2026-09-01T12:00:00+00:00');
 
@@ -414,7 +450,7 @@ final class CategoryPersistenceTest extends KernelTestCase
             icon: $icon,
             color: $color,
             defaultAnalyticAxes: [AnalyticAxis::DISCRETIONARY],
-            budgetIncluded: true,
+            budgetIncluded: $budgetIncluded,
             sortOrder: 10,
             depth: $depth,
             version: 1,

@@ -100,6 +100,7 @@ operational side: backups, restoration, safe upgrades and an installable PWA.
 
 - Run local architecture checks with Docker tooling and report overdue image-scan exception
   reviews in the nightly check.
+- Save categories with budget inclusion turned off (#715).
 - Derive account balances from snapshots and booked movements, and measure the net worth change
   from the closing balance of the baseline (#344, #394).
 - Keep the original analytic axes on a proposed refund split, handle refund decimal entry safely,
