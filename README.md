@@ -139,7 +139,9 @@ local file for runtime settings; generated secrets stay in `var/docker-secrets/`
 | `CADRAN_DB_MEMORY`     | `1g`        | Optional database container memory limit (Compose size, minimum recommended `512m`). |
 
 `CADRAN_VERSION` is derived from the package version. The application and database secrets are
-generated, never copied from example values. `FILE`, `IDENTITY`, `LABEL`, `CONFIRM`, `VERSION`,
+generated, never copied from example values. Each `make up` copies them into the `cadran_secrets`
+volume, which the containers read, so they restart on their own with Docker, including Docker
+Desktop on WSL; run `make up` again after changing a file in `var/docker-secrets/`. `FILE`, `IDENTITY`, `LABEL`, `CONFIRM`, `VERSION`,
 `FROM` and `DRY_RUN` are command arguments, not persistent runtime settings. See the backup and
 upgrade examples below and the comments in `.env.example` for development-only arguments.
 
@@ -315,7 +317,7 @@ the data again. Run the steps one by one, only after reading them:
 
 1. `make down` stops the stack.
 2. After you have confirmed that nothing must be kept, delete the data volumes with
-   `docker volume rm cadran_db_data cadran_caddy_data cadran_caddy_config`.
+   `docker volume rm cadran_db_data cadran_caddy_data cadran_caddy_config cadran_secrets`.
 3. Delete the configuration and secrets with `rm -r var/docker-secrets .env.local`.
 4. Backups are separate: delete the backup directory and the offline identity only if you do not
    want to keep any backup. Without the identity, remaining backups can never be read again.

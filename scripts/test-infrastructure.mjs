@@ -60,9 +60,11 @@ const fail = (message) => {
 const services = configuration.services ?? {};
 const serviceNames = Object.keys(services).sort();
 
-if (JSON.stringify(serviceNames) !== JSON.stringify(['app', 'db'])) {
-  fail(`Expected only app and db services, received: ${serviceNames.join(', ')}`);
+if (JSON.stringify(serviceNames) !== JSON.stringify(['app', 'db', 'secrets'])) {
+  fail(`Expected only app, db and secrets services, received: ${serviceNames.join(', ')}`);
 }
+
+const { secrets: secretsService, ...longRunningServices } = services;
 
 for (const [serviceName, service] of Object.entries(services)) {
   if (!service.image?.startsWith('cadran_')) {
@@ -81,10 +83,6 @@ for (const [serviceName, service] of Object.entries(services)) {
     fail(`${serviceName} must rotate its logs with json-file, max-size and max-file`);
   }
 
-  if (!service.healthcheck?.test) {
-    fail(`${serviceName} must define a health check`);
-  }
-
   if (
     service.read_only !== true ||
     service.security_opt?.includes('no-new-privileges:true') !== true
@@ -92,12 +90,6 @@ for (const [serviceName, service] of Object.entries(services)) {
     fail(`${serviceName} must use a read-only root filesystem and no-new-privileges`);
   }
 
-  if (!service.user || service.user.startsWith('0:')) {
-    fail(`${serviceName} must run as a non-root user`);
-  }
-
-  // A runaway request handler or query must not be able to starve the host
-  // or the sibling container of memory or of the kernel's process table.
   if (!service.mem_limit) {
     fail(`${serviceName} must declare a memory limit`);
   }
@@ -116,6 +108,20 @@ for (const [serviceName, service] of Object.entries(services)) {
   if (service.privileged === true) {
     fail(`${serviceName} must not run privileged`);
   }
+}
+
+for (const [serviceName, service] of Object.entries(longRunningServices)) {
+  if (!service.healthcheck?.test) {
+    fail(`${serviceName} must define a health check`);
+  }
+
+  if (!service.user || service.user.startsWith('0:')) {
+    fail(`${serviceName} must run as a non-root user`);
+  }
+
+  if (service.restart !== 'unless-stopped') {
+    fail(`${serviceName} must restart with the Docker daemon (restart: unless-stopped)`);
+  }
 
   // A secret travels as a mounted file, never as a value in the environment.
   const environment = service.environment ?? {};
@@ -125,18 +131,58 @@ for (const [serviceName, service] of Object.entries(services)) {
     }
   }
 
-  const mountedSecrets = (service.secrets ?? []).map((secret) => secret.source ?? secret);
-  if (!mountedSecrets.includes('db_password')) {
-    fail(`${serviceName} must read the database password from a mounted secret file`);
+  // Docker Desktop on WSL restarts containers before it serves bind mounts from the Linux
+  // distribution: a single bind mount keeps the container down after every boot.
+  if ((service.volumes ?? []).some((volume) => volume.type === 'bind')) {
+    fail(`${serviceName} must not bind-mount host paths, or it cannot restart on its own`);
   }
+
+  if ((service.secrets ?? []).length > 0) {
+    fail(`${serviceName} must read its secrets from the secrets volume, not a bind-mounted secret`);
+  }
+
+  const secretsMount = (service.volumes ?? []).find((volume) => volume.target === '/run/secrets');
+  if (
+    secretsMount?.type !== 'volume' ||
+    secretsMount.source !== 'secrets' ||
+    secretsMount.read_only !== true ||
+    secretsMount.volume?.subpath !== serviceName
+  ) {
+    fail(
+      `${serviceName} must mount its own subpath of the secrets volume read-only at /run/secrets`,
+    );
+  }
+
+  if (services[serviceName].depends_on?.secrets?.condition !== 'service_completed_successfully') {
+    fail(`${serviceName} must wait for the secrets copy to complete`);
+  }
+}
+
+// The one-shot copy is the only consumer of the host secret files. It may run as root because
+// it owns the fresh volume, but holds no capability, no network and never restarts.
+const secretSources = (secretsService.secrets ?? []).map((secret) => secret.source ?? secret);
+if (JSON.stringify(secretSources.sort()) !== JSON.stringify(['app_secret', 'db_password'])) {
+  fail('The secrets service must read app_secret and db_password from mounted secret files');
+}
+
+if (secretsService.network_mode !== 'none') {
+  fail('The secrets service must run without any network');
+}
+
+if (secretsService.restart !== 'no' || secretsService.ports !== undefined) {
+  fail('The secrets service must be a one-shot without published ports');
+}
+
+if (
+  !/install -m 0444 \/run\/secrets\/db_password \/target\/db\/db_password/.test(
+    (secretsService.command ?? []).join('\n'),
+  )
+) {
+  fail('The secrets service must copy the database password for the db service');
 }
 
 if (services.app.environment?.APP_ENV !== 'prod') {
   fail('The app service must run with APP_ENV=prod');
-}
-
-if (!(services.app.secrets ?? []).some((secret) => (secret.source ?? secret) === 'app_secret')) {
-  fail('The app service must read APP_SECRET from a mounted secret file');
 }
 
 if (services.db.environment?.POSTGRES_PASSWORD_FILE !== '/run/secrets/db_password') {
