@@ -22,6 +22,7 @@ final class AccountBalanceFloorControllerTest extends WebTestCase
     private const string COURANT = '00000000-0000-7000-8000-0000000000d1';
     private const string EPARGNE = '00000000-0000-7000-8000-0000000000d4';
     private const string OTHER = '00000000-0000-7000-8000-0000000000d2';
+    private const string SNAPSHOT_VALUED = '00000000-0000-7000-8000-0000000000d5';
     private const string PROBLEM = '/problems/account-balance-insufficient';
 
     private KernelBrowser $client;
@@ -51,6 +52,7 @@ final class AccountBalanceFloorControllerTest extends WebTestCase
         $this->account(self::COURANT, WorkspaceFixture::OWN_WORKSPACE, 'CURRENT');
         $this->account(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, 'SAVINGS');
         $this->account(self::OTHER, WorkspaceFixture::OTHER_WORKSPACE, 'CURRENT');
+        $this->account(self::SNAPSHOT_VALUED, WorkspaceFixture::OWN_WORKSPACE, 'CURRENT', 'SNAPSHOTS');
         $this->snapshot(self::COURANT, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '500.00');
         $this->row(self::COURANT, '-200.00', '2026-11-05', 'EXPENSE');
         $this->income = $this->row(self::COURANT, '100.00', '2026-11-10', 'INCOME');
@@ -252,6 +254,118 @@ final class AccountBalanceFloorControllerTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
     }
 
+    public function testWithdrawingTheAnchorThatAbsorbedAMovementIsRefusedAndWritesNothing(): void
+    {
+        // 10.00 on 11-01, then 5.00 on 11-02 with a movement of -12.00 that day inside that observed balance.
+        $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '10.00');
+        $later = $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-02', '5.00');
+        $this->row(self::EPARGNE, '-12.00', '2026-11-02', 'EXPENSE');
+        $before = $this->footprint();
+
+        $this->withdraw(self::EPARGNE, $later);
+
+        self::assertResponseStatusCodeSame(422);
+        $body = $this->decode();
+        self::assertSame(self::PROBLEM, $body['type']);
+        self::assertSame(self::EPARGNE, $body['accountId']);
+        self::assertSame('amount', $body['field']);
+        self::assertSame('2026-11-02', $body['firstNegativeOn']);
+        self::assertStringNotContainsString('12.00', (string) $this->client->getResponse()->getContent());
+        self::assertSame($before, $this->footprint());
+        self::assertSame(1, self::integer($this->connection->fetchOne('SELECT version FROM account_balance_snapshots WHERE id = ?', [$later])));
+        self::assertNull($this->connection->fetchOne('SELECT superseded_at FROM account_balance_snapshots WHERE id = ?', [$later]) ?: null);
+    }
+
+    public function testWithdrawingDownToExactlyZeroKeepsTheRowOnTheTrail(): void
+    {
+        $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '10.00');
+        $later = $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-02', '5.00');
+        $this->row(self::EPARGNE, '-10.00', '2026-11-02', 'EXPENSE');
+
+        $this->withdraw(self::EPARGNE, $later);
+
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame(1, self::integer($this->connection->fetchOne('SELECT COUNT(*) FROM account_balance_snapshots WHERE id = ? AND superseded_at IS NOT NULL', [$later])));
+    }
+
+    public function testWithdrawingTheSoleAnchorLeavesAnUnknownBalanceAndIsAccepted(): void
+    {
+        $this->row(self::EPARGNE, '-50.00', '2026-11-05', 'EXPENSE');
+        $sole = $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '10.00');
+
+        $this->withdraw(self::EPARGNE, $sole);
+
+        self::assertResponseStatusCodeSame(200);
+    }
+
+    public function testWithdrawingOnAnotherWorkspaceIsNotFoundAndChangesNothing(): void
+    {
+        $foreign = $this->snapshot(self::OTHER, WorkspaceFixture::OTHER_WORKSPACE, '2026-11-01', '10.00');
+        $before = $this->footprint();
+
+        $this->withdraw(self::OTHER, $foreign);
+        self::assertResponseStatusCodeSame(404);
+
+        // A visible account with a snapshot that belongs to another account is not found either.
+        $this->withdraw(self::COURANT, $foreign);
+        self::assertResponseStatusCodeSame(404);
+
+        self::assertSame($before, $this->footprint());
+        self::assertNull($this->connection->fetchOne('SELECT superseded_at FROM account_balance_snapshots WHERE id = ?', [$foreign]) ?: null);
+    }
+
+    public function testWithdrawingWithAStaleVersionOrWithoutCsrfIsRefusedBeforeTheFloor(): void
+    {
+        $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '10.00');
+        $later = $this->snapshot(self::EPARGNE, WorkspaceFixture::OWN_WORKSPACE, '2026-11-02', '5.00');
+        $this->row(self::EPARGNE, '-12.00', '2026-11-02', 'EXPENSE');
+
+        $this->withdraw(self::EPARGNE, $later, 7);
+        self::assertResponseStatusCodeSame(409);
+
+        $this->client->setServerParameter('HTTP_X_CSRF_TOKEN', '');
+        $this->withdraw(self::EPARGNE, $later);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testSwitchingToTransactionValuationIsRefusedWhenItWouldBreachTheFloor(): void
+    {
+        $this->snapshot(self::SNAPSHOT_VALUED, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '10.00');
+        $this->row(self::SNAPSHOT_VALUED, '-12.00', '2026-11-04', 'EXPENSE');
+        $before = $this->footprint();
+
+        $this->reconfigure(self::SNAPSHOT_VALUED, 'TRANSACTIONS');
+
+        self::assertResponseStatusCodeSame(422);
+        $body = $this->decode();
+        self::assertSame(self::PROBLEM, $body['type']);
+        self::assertSame(self::SNAPSHOT_VALUED, $body['accountId']);
+        self::assertSame('2026-11-04', $body['firstNegativeOn']);
+        self::assertSame($before, $this->footprint());
+        self::assertSame('SNAPSHOTS', $this->connection->fetchOne('SELECT valuation_mode FROM account_financial_accounts WHERE id = ?', [self::SNAPSHOT_VALUED]));
+    }
+
+    public function testSwitchingToTransactionValuationWithoutABreachAndOrdinaryEditsSucceed(): void
+    {
+        $this->snapshot(self::SNAPSHOT_VALUED, WorkspaceFixture::OWN_WORKSPACE, '2026-11-01', '10.00');
+        $this->row(self::SNAPSHOT_VALUED, '-12.00', '2026-11-04', 'EXPENSE');
+
+        $this->reconfigure(self::SNAPSHOT_VALUED, 'SNAPSHOTS', 'Renamed');
+        self::assertResponseStatusCodeSame(200);
+
+        $this->row(self::SNAPSHOT_VALUED, '12.00', '2026-11-04', 'INCOME');
+        $this->reconfigure(self::SNAPSHOT_VALUED, 'TRANSACTIONS', 'Renamed', 2);
+        self::assertResponseStatusCodeSame(200);
+        self::assertSame('TRANSACTIONS', $this->decode()['valuationMode']);
+    }
+
+    public function testReconfiguringAnotherWorkspaceAccountIsNotFound(): void
+    {
+        $this->reconfigure(self::OTHER, 'TRANSACTIONS');
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
     /** @return array{int, int} */
     private function footprint(): array
     {
@@ -330,6 +444,21 @@ final class AccountBalanceFloorControllerTest extends WebTestCase
         $this->client->request('POST', '/api/v1/transactions/bulk-edit', server: $headers, content: json_encode($body, JSON_THROW_ON_ERROR));
     }
 
+    private function withdraw(string $account, string $snapshot, int $version = 1): void
+    {
+        $this->client->request('POST', '/api/v1/accounts/'.$account.'/balances/'.$snapshot.'/withdraw', server: self::headers(), content: json_encode(['version' => $version], JSON_THROW_ON_ERROR));
+    }
+
+    private function reconfigure(string $account, string $valuationMode, string $label = 'Compte CURRENT SNAPSHOTS', int $version = 1): void
+    {
+        $this->client->request('PUT', '/api/v1/accounts/'.$account, server: self::headers(), content: json_encode([
+            'label' => $label, 'isPrimary' => false, 'kind' => 'CURRENT', 'productCode' => null, 'productModelId' => null,
+            'institution' => null, 'maskedIdentifier' => null, 'valuationMode' => $valuationMode, 'liquidityLevel' => 'IMMEDIATE',
+            'includeInNetWorth' => false, 'includeInEmergencyFund' => false, 'openedOn' => '2026-01-01', 'closedOn' => null,
+            'version' => $version, 'primaryGroupId' => null,
+        ], JSON_THROW_ON_ERROR));
+    }
+
     private function record(string $account, string $asOf, string $amount): void
     {
         $this->client->request('POST', '/api/v1/accounts/'.$account.'/balances', server: self::headers(), content: json_encode([
@@ -351,26 +480,29 @@ final class AccountBalanceFloorControllerTest extends WebTestCase
         return $id;
     }
 
-    private function account(string $id, string $workspace, string $kind): void
+    private function account(string $id, string $workspace, string $kind, string $valuationMode = 'TRANSACTIONS'): void
     {
         $this->connection->insert('account_financial_accounts', [
-            'id' => $id, 'workspace_id' => $workspace, 'label' => 'Compte '.$kind, 'asset_code' => 'EUR', 'kind' => $kind,
-            'masked_identifier' => null, 'valuation_mode' => 'TRANSACTIONS', 'liquidity_level' => 'IMMEDIATE',
+            'id' => $id, 'workspace_id' => $workspace, 'label' => 'Compte '.$kind.('TRANSACTIONS' === $valuationMode ? '' : ' '.$valuationMode), 'asset_code' => 'EUR', 'kind' => $kind,
+            'masked_identifier' => null, 'valuation_mode' => $valuationMode, 'liquidity_level' => 'IMMEDIATE',
             'include_in_net_worth' => false, 'include_in_emergency_fund' => false,
             'opened_on' => '2026-01-01', 'closed_on' => null, 'version' => 1,
             'created_at' => '2026-03-14 09:12:04+00', 'updated_at' => '2026-03-14 09:12:04+00',
         ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);
     }
 
-    private function snapshot(string $account, string $workspace, string $asOf, string $amount): void
+    private function snapshot(string $account, string $workspace, string $asOf, string $amount): string
     {
+        $id = sprintf('00000000-0000-7000-8000-%012d', 950000 + ++$this->sequence);
         $this->connection->insert('account_balance_snapshots', [
-            'id' => sprintf('00000000-0000-7000-8000-%012d', 950000 + ++$this->sequence),
+            'id' => $id,
             'workspace_id' => $workspace, 'account_id' => $account, 'as_of' => $asOf,
             'amount_value' => $amount, 'amount_literal' => $amount, 'amount_asset' => 'EUR',
             'source' => 'MANUAL', 'reconciliation_status' => 'UNRECONCILED', 'comment' => null, 'version' => 1,
             'recorded_at' => '2026-11-02 00:00:00+00', 'recorded_by' => WorkspaceFixture::OWNER_ID, 'superseded_at' => null,
         ]);
+
+        return $id;
     }
 
     /** @return array<string, string> */

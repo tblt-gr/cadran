@@ -92,10 +92,17 @@ put:
       description: >-
         The account fields are invalid, an immutable rule was violated, or the
         account is archived and read-only (`type: /problems/account-archived`).
+        Switching a cash, current or savings account from snapshot-based to
+        transaction-based valuation is refused when the movements it newly
+        counts would put a day-end balance below zero (`type:
+        /problems/account-balance-insufficient`, with `accountId`, `field` and
+        `firstNegativeOn`) and writes nothing.
       content:
         application/problem+json:
           schema:
-            $ref: ../components/schemas/Problem.yaml
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AccountBalanceInsufficientProblem.yaml
     '500':
       $ref: ../components/responses/InternalServerError.yaml
   requestBody:

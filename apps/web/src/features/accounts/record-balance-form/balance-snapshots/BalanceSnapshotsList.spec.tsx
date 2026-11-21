@@ -32,6 +32,20 @@ function ok(value: unknown, status = 200) {
   return Promise.resolve({ data: value, response: new Response('{}', { status }) });
 }
 
+function refused(day: string) {
+  return Promise.resolve({
+    error: {
+      type: '/problems/account-balance-insufficient',
+      title: 'Insufficient balance',
+      status: 422,
+      accountId: 'courant',
+      field: 'amount',
+      firstNegativeOn: day,
+    },
+    response: new Response('{}', { status: 422 }),
+  });
+}
+
 function renderList() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -71,6 +85,22 @@ it('lists an active relevé and withdraws it', async () => {
     id: 'courant',
     snapshotId: active.id,
   });
+});
+
+it('announces a dated floor refusal and keeps the confirmation pending', async () => {
+  api.withdrawAccountBalance.mockImplementation(() => refused('2026-01-20'));
+  renderList();
+
+  fireEvent.click(
+    await screen.findByRole('button', { name: 'Actions pour le relevé du 15/01/2026' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Retirer le relevé du 15/01/2026' }));
+  fireEvent.click(await screen.findByRole('button', { name: 'Retirer le relevé' }));
+
+  const alert = await screen.findByRole('alert');
+  expect(alert.textContent).toMatch(/Retrait impossible/);
+  expect(alert.querySelector('time')?.getAttribute('datetime')).toBe('2026-01-20');
+  expect(screen.getByRole('button', { name: 'Retirer le relevé' })).toBeTruthy();
 });
 
 it('offers no withdrawal on a relevé that is already withdrawn', async () => {

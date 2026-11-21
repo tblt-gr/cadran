@@ -1170,6 +1170,8 @@
       "loading": "Loading the product linked to the account…",
       "templateLoading": "Loading the template linked to the account…",
       "productUnavailable": "The product linked to this account could not be read. The type remains set by this reference; the API will refuse a combination the product does not declare.",
+      "reconfigurationRefused": "Change refused: the movements now counted would put the account below zero on <date>{{date}}</date>.",
+      "reconfigurationRefusedUndated": "Change refused: the movements now counted would put the account below zero.",
       "templateUnavailable": "The template linked to this account could not be read. The type remains set by this reference; the API will refuse a combination the template does not declare."
     },
     "overrides": {
@@ -1350,6 +1352,8 @@
       "recordedAt": "Recorded on",
       "truncated": "{{shown}} statements shown out of {{total}}. The oldest are not listed.",
       "confirmHint": "This statement will no longer be used to compute the balance. The row remains visible as withdrawn.",
+      "withdrawalRefused": "Withdrawal refused: the account balance would drop below zero on <date>{{date}}</date>.",
+      "withdrawalRefusedUndated": "Withdrawal refused: the account balance would drop below zero.",
       "confirming": "Withdrawing…",
       "confirmAction": "Withdraw the statement"
     },

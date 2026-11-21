@@ -1,6 +1,10 @@
 import type { AccountBalanceSnapshot } from '@cadran/api-client';
 import { useId, useState } from 'react';
-import { accountErrorKind, type AccountErrorKind } from '@/features/accounts/accountError';
+import {
+  accountErrorDay,
+  accountErrorKind,
+  type AccountErrorKind,
+} from '@/features/accounts/accountError';
 import { useWithdrawBalance } from './useBalanceSnapshots';
 
 export interface BalanceWithdrawal {
@@ -9,6 +13,8 @@ export interface BalanceWithdrawal {
   hintId: string;
   pending: boolean;
   error: AccountErrorKind | null;
+  /** For an insufficient balance: the first day the account would be negative (ISO 8601). */
+  errorDay: string | null;
   ask: (snapshot: AccountBalanceSnapshot) => void;
   cancel: () => void;
   confirm: (snapshot: AccountBalanceSnapshot) => void;
@@ -32,6 +38,7 @@ export function useBalanceWithdrawal(
     hintId,
     pending: withdraw.isPending,
     error: accountErrorKind(withdraw.error, withdraw.isError),
+    errorDay: accountErrorDay(withdraw.error),
     ask: (snapshot) => {
       withdraw.reset();
       setAskedId(snapshot.id);

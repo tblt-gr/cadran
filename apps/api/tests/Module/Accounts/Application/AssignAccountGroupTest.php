@@ -121,6 +121,7 @@ final class AssignAccountGroupTest extends TestCase
             ),
             new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
             new Double\InMemoryAccountOrderRepository(),
+            new \App\Module\Accounts\Application\AssertAccountBalanceNonNegative($accounts, new InMemoryAccountBalanceSnapshotRepository(), new Double\NoMovementsReader(), new Double\AlwaysInteractive()),
         );
     }
 }

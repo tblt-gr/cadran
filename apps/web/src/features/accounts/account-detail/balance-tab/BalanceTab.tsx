@@ -7,6 +7,7 @@ import { OperationsState } from '@/features/portfolio/portfolio-account/operatio
 import { useBalanceSnapshots } from '@/features/accounts/record-balance-form/balance-snapshots/useBalanceSnapshots';
 import { useBalanceWithdrawal } from '@/features/accounts/record-balance-form/balance-snapshots/useBalanceWithdrawal';
 import { RecordBalanceModal } from './RecordBalanceModal';
+import { InsufficientBalanceMessage } from '@/features/transactions/insufficient-balance/InsufficientBalanceMessage';
 import styles from './BalanceTab.module.css';
 
 type Dialog = { correcting?: AccountBalanceSnapshot; asOf?: string } | null;
@@ -39,7 +40,11 @@ export function BalanceTab({ account }: { account: Account }) {
       ) : null}
       {withdrawal.error ? (
         <p className={styles.alert} role="alert">
-          {t(`accounts.balances.errors.${withdrawal.error}`)}
+          {withdrawal.error === 'insufficientBalance' ? (
+            <InsufficientBalanceMessage date={withdrawal.errorDay} write="withdrawal" />
+          ) : (
+            t(`accounts.balances.errors.${withdrawal.error}`)
+          )}
         </p>
       ) : null}
       {withdrawal.confirmingId !== null ? (

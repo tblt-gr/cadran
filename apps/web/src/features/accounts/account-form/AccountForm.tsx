@@ -30,6 +30,7 @@ import { useAssetOptions } from './useAssetOptions';
 import { accountFormValidity } from './accountFormValidity';
 import { GroupingFields } from './grouping-fields/GroupingFields';
 import { ValuationFields } from './valuation-fields/ValuationFields';
+import { AccountSubmitError } from './submit-error/AccountSubmitError';
 import styles from './AccountForm.module.css';
 
 interface AccountFormProps {
@@ -40,6 +41,8 @@ interface AccountFormProps {
   /** The catalogue product or workspace template the account is created from, or null when it is described by hand. */
   origin?: AccountOrigin;
   submitError: AccountErrorKind | null;
+  /** For an insufficient balance: the first day the account would be negative (ISO 8601). */
+  submitErrorDay?: string | null;
   submitLabel?: 'save' | 'continue';
   /** Receives the fields as they stand, so a caller can restore them later. */
   onCancel: (values: AccountFormValues) => void;
@@ -52,6 +55,7 @@ export function AccountForm({
   pending,
   origin = null,
   submitError,
+  submitErrorDay = null,
   submitLabel = 'save',
   onCancel,
   onSubmit,
@@ -134,11 +138,7 @@ export function AccountForm({
 
   return (
     <ModalForm className={styles.form} noValidate onSubmit={submit}>
-      {submitError ? (
-        <p className={styles.alert} role="alert">
-          {t(`accounts.errors.${submitError}`)}
-        </p>
-      ) : null}
+      {submitError ? <AccountSubmitError day={submitErrorDay} error={submitError} /> : null}
 
       <FormGrid className={styles.fields}>
         <IdentityFields

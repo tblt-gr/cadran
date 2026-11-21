@@ -36,6 +36,7 @@ final readonly class UpdateAccount
         private ResolveAccountValuation $valuations,
         private AssertPeriodOpen $periods,
         private AccountOrderRepository $orders,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -126,6 +127,8 @@ final readonly class UpdateAccount
             } catch (InvalidAccount $exception) {
                 throw new InvalidAccountInput($exception->getMessage(), previous: $exception);
             }
+
+            $this->assertBalance->assertReconfigured($context->workspace, $current, $updated);
 
             $clearedPrimaryId = $updated->isPrimary && !$current->isPrimary
                 ? $this->accounts->primaryId($context->workspace)
