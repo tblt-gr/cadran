@@ -32,6 +32,8 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
+      - name: Check the exception review dates strictly
+        run: node scripts/ci/check-trivyignore-reviews.mjs --strict
       - name: Prepare local runtime files
         run: sh scripts/init-local.sh
       - name: Build the deployed images
