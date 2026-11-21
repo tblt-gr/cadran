@@ -237,7 +237,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
                 'workspace_id' => $category->workspace->id,
                 ...CategoryRow::columns($category),
                 'created_at' => $category->createdAt->format('Y-m-d H:i:s.uP'),
-            ]);
+            ], ['budget_included' => ParameterType::BOOLEAN]);
         } catch (UniqueConstraintViolationException $exception) {
             throw new CategoryConflict('An active sibling already uses this label.', previous: $exception);
         }
@@ -249,11 +249,8 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             return 1 === (int) $this->connection->update(
                 'category_categories',
                 CategoryRow::columns($category),
-                [
-                    'workspace_id' => $category->workspace->id,
-                    'id' => $category->id,
-                    'version' => $expectedVersion,
-                ],
+                ['workspace_id' => $category->workspace->id, 'id' => $category->id, 'version' => $expectedVersion],
+                ['budget_included' => ParameterType::BOOLEAN],
             );
         } catch (UniqueConstraintViolationException $exception) {
             throw new CategoryConflict('An active sibling already uses this label.', previous: $exception);

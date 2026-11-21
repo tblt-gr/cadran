@@ -21,6 +21,7 @@ final class DemoCategoryAppearance
         'leisure' => ['ticket', '#C26FD3'],
         'shopping' => ['bag', '#E0A458'],
         'holidays' => ['plane', '#3FB8A5'],
+        'internal_transfers' => ['wallet', '#8A8F98'],
     ];
 
     /** @return array{0: string, 1: string} icon and color of a demo category key */
