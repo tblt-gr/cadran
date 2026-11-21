@@ -188,7 +188,7 @@ it.each(['12', '-12', '0', '0.000000000000000000000001'])(
       },
     ]);
     await datedListLoaded();
-    const row = screen.getByRole('button', { name: 'ETF Monde', exact: true }).closest('li')!;
+    const row = screen.getByRole('button', { name: /^ETF Monde$/ }).closest('li')!;
     expect(within(row).getAllByText('Montant masqué')).toHaveLength(5);
     expect(row.querySelector('[class*="positive"], [class*="negative"]')).toBeNull();
     expect(row.textContent).not.toMatch(/[0-9+−]/);
