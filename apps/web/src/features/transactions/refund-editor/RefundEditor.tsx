@@ -9,13 +9,14 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { formatCalendarShortDay } from '@/lib/decimal';
 import { Modal } from '@/components/ui/modal/Modal';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { authApiOptions, idempotentApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import {
   transactionErrorDetail,
   transactionErrorKind,
   transactionRequestError,
 } from '@/features/transactions/transactionError';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 import { RefundForm } from './RefundForm';
 import { RefundFormSkeleton } from './RefundFormSkeleton';
 
@@ -42,17 +43,26 @@ export function RefundEditor({ accounts, close, onSaved, transaction }: RefundEd
     },
     retry: false,
   });
+  // Lives in the editor, above the form that remounts with each fresh proposal.
+  const submission = useSubmissionKey();
   const save = useMutation({
     mutationFn: async (body: CreateRefundRequest) => {
+      const key = submission.keyFor(body);
       const result = await withCsrfRetry(() =>
-        createTransactionRefund({ ...authApiOptions(), path: { id: transaction.id }, body }),
+        createTransactionRefund({
+          ...idempotentApiOptions(key),
+          path: { id: transaction.id },
+          body,
+        }),
       );
       if (!result.response?.ok || !result.data) throw transactionRequestError(result);
       return result.data;
     },
     onSuccess: async () => {
-      await onSaved();
+      submission.release();
       close();
+      // Follow-up read: its failure must not turn the committed refund into a fresh write.
+      await onSaved().catch(() => undefined);
     },
   });
 

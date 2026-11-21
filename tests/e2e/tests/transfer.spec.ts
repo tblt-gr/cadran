@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { auditAccessibility } from './support/a11y';
+import { loseNextResponse } from './support/lost-response';
 import {
   clickPageAction,
   movementRows,
@@ -31,6 +32,28 @@ test.describe('internal transfer', () => {
     await expect(legs).toHaveCount(2);
     await expect(legs.getByRole('img', { name: 'Sortie de 25,00 €' })).toBeVisible();
     await expect(legs.getByRole('img', { name: 'Entrée de 25,00 €' })).toBeVisible();
+  });
+
+  test('records one transfer when the first response is lost and the save is retried', async ({
+    page,
+  }) => {
+    const label = uniqueLabel('E2E virement perdu');
+    await page.goto('/transactions');
+    await settled(page);
+    await loseNextResponse(page, '**/api/v1/transfers');
+
+    await clickPageAction(page, 'Nouveau virement');
+    const editor = page.getByRole('dialog', { name: 'Nouveau virement' });
+    await selectAccount(editor.getByLabel('Compte source'), 'Compte courant');
+    await selectAccount(editor.getByLabel('Compte de destination'), 'Livret A');
+    await editor.getByLabel('Montant (EUR)').fill('7.00');
+    await editor.getByLabel('Libellé').fill(label);
+    await editor.getByRole('button', { name: 'Créer le virement' }).click();
+    await expect(editor.getByRole('alert')).toBeVisible();
+
+    await editor.getByRole('button', { name: 'Créer le virement' }).click();
+    await expect(editor).toBeHidden();
+    await expect(movementRows(page, label)).toHaveCount(2);
   });
 
   test('refuses a transfer between an account and itself', async ({ page }) => {

@@ -1,4 +1,6 @@
 import { expect, test } from '@playwright/test';
+import { openActions } from './support/edit-movement';
+import { loseNextResponse } from './support/lost-response';
 import { openTransactionSplits } from './support/transaction-splits';
 import { movementRows, selectAccount, settled, uniqueLabel } from './support/page';
 
@@ -46,6 +48,67 @@ test.describe('transaction entry', () => {
     await expect(row).toBeVisible();
     await expect(row.getByRole('img', { name: 'Sortie de 12,34 €' })).toBeVisible();
     await expect(row).toContainText(category);
+  });
+
+  test('saves one transaction when the first response is lost and the save is retried', async ({
+    page,
+  }) => {
+    const label = uniqueLabel('E2E achat perdu');
+    await page.goto('/transactions');
+    await settled(page);
+    await loseNextResponse(page, '**/api/v1/transactions');
+
+    await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
+    const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });
+    await selectAccount(editor.getByLabel('Compte', { exact: true }), 'Compte courant');
+    await editor.getByLabel('Montant').fill('-3.21');
+    await editor.getByLabel('Libellé').fill(label);
+    await editor.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(editor.getByRole('alert')).toBeVisible();
+    await expect(editor).toBeVisible();
+
+    await editor.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(editor).toBeHidden();
+    await expect(movementRows(page, label)).toHaveCount(1);
+  });
+
+  test('saves one refund when the first response is lost and the save is retried', async ({
+    page,
+  }) => {
+    const original = uniqueLabel('E2E achat remboursable');
+    const label = uniqueLabel('E2E remboursement perdu');
+    await page.goto('/transactions');
+    await settled(page);
+    await page.getByRole('button', { name: 'Nouvelle transaction' }).click();
+    const editor = page.getByRole('dialog', { name: 'Nouvelle transaction' });
+    await selectAccount(editor.getByLabel('Compte', { exact: true }), 'Compte courant');
+    await editor.getByLabel('Montant').fill('-5.00');
+    await editor.getByLabel('Libellé').fill(original);
+    await editor.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(editor).toBeHidden();
+    await settled(page);
+
+    await openActions(movementRows(page, original).first());
+    await page.getByRole('button', { name: /^Créer un remboursement/ }).click();
+    await settled(page);
+    const refund = page.getByRole('dialog');
+    await selectAccount(
+      refund.getByRole('combobox', { name: 'Compte', exact: true }),
+      'Compte courant',
+    );
+    // The ledger runs on Paris time: a UTC date is the day before between 00:00 and 02:00 there.
+    const day = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris' }).format(new Date());
+    await refund.getByLabel('Date comptable').fill(day);
+    await refund.getByLabel('Libellé', { exact: true }).fill(label);
+    await refund.getByLabel('Montant', { exact: true }).fill('1,00');
+    await loseNextResponse(page, /\/api\/v1\/transactions\/[^/]+\/refunds$/);
+    await refund.getByRole('button', { name: 'Créer le remboursement', exact: true }).click();
+    await expect(refund.getByRole('alert')).toBeVisible();
+
+    await refund.getByRole('button', { name: 'Créer le remboursement', exact: true }).click();
+    await expect(refund).toBeHidden();
+    await settled(page);
+    await expect(movementRows(page, label)).toHaveCount(1);
   });
 
   test('refuses an empty amount without closing the form', async ({ page }) => {

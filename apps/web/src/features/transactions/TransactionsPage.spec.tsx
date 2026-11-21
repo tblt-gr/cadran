@@ -215,6 +215,10 @@ describe('TransactionsPage', () => {
       expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
     );
     expect(api.createTransfer).toHaveBeenCalledOnce();
+    expect(api.createTransfer.mock.calls[0]?.[0].headers['Idempotency-Key']).toMatch(
+      /^[0-9a-f-]{36}$/,
+    );
+    expect(api.createTransfer.mock.calls[0]?.[0].headers['X-CSRF-TOKEN']).toBeDefined();
     expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
   });
 
@@ -477,6 +481,10 @@ describe('TransactionsPage', () => {
       }),
     );
     await waitFor(() => expect(api.createTransaction).toHaveBeenCalledOnce());
+    expect(api.createTransaction.mock.calls[0]?.[0].headers['Idempotency-Key']).toMatch(
+      /^[0-9a-f-]{36}$/,
+    );
+    expect(api.createTransaction.mock.calls[0]?.[0].headers['X-CSRF-TOKEN']).toBeDefined();
     expect(api.createTransaction.mock.calls[0]?.[0].body).toMatchObject({
       amount: { value: '-42.90', assetCode: 'EUR' },
       valueOn: '2026-09-09',

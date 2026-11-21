@@ -389,6 +389,68 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(2, (int) $keyRows);
     }
 
+    public function testARefundReplayCommitsOneRefundAndOneAuditEvent(): void
+    {
+        $original = $this->createTransaction();
+        $originalId = self::stringValue($original, 'id');
+        $key = 'refund-replay-one-write-0001';
+        $body = [
+            'accountId' => self::OWN_ACCOUNT, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ];
+        $before = $this->createdAuditEvents();
+
+        $this->requestRefund($originalId, $body, $key);
+        self::assertResponseStatusCodeSame(201);
+        $first = $this->decode();
+        $this->requestRefund($originalId, $body, $key);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame('true', $this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertEquals($first, $this->decode());
+        self::assertSame(2, $this->ownTransactionCount());
+        self::assertSame($before + 1, $this->createdAuditEvents());
+    }
+
+    public function testACreationKeyUsedInAnotherWorkspaceNeverLeaksItsResponseNorUnlocksAForeignReference(): void
+    {
+        $this->seedForeignTransaction();
+        $key = 'key-used-in-another-workspace-01';
+        $foreignAccount = '00000000-0000-7000-8000-0000000000d9';
+        $refund = static fn (string $account): array => [
+            'accountId' => $account, 'amount' => ['value' => '1.00', 'assetCode' => 'EUR'],
+            'bookedOn' => '2026-03-14', 'rawLabel' => 'Remboursement', 'counterparty' => null, 'note' => null,
+        ];
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->resetLoginThrottling();
+        $this->signIn(WorkspaceFixture::OTHER_OWNER_EMAIL);
+        $this->requestCreate($this->payload(overrides: ['accountId' => self::OTHER_ACCOUNT, 'categoryId' => self::OTHER_CATEGORY]), $key);
+        self::assertResponseStatusCodeSame(201);
+        $this->requestRefund(self::FOREIGN_TRANSACTION, $refund($foreignAccount), $key);
+        self::assertResponseStatusCodeSame(201);
+
+        $this->client->request('DELETE', '/api/v1/session');
+        $this->resetLoginThrottling();
+        $this->signIn();
+
+        $this->requestCreate($this->payload(overrides: ['accountId' => self::OTHER_ACCOUNT]), $key);
+        self::assertResponseStatusCodeSame(404);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        $this->requestRefund(self::FOREIGN_TRANSACTION, $refund(self::OWN_ACCOUNT), $key);
+        self::assertResponseStatusCodeSame(404);
+        self::assertNull($this->client->getResponse()->headers->get('Idempotency-Replayed'));
+        self::assertSame(0, $this->ownTransactionCount());
+    }
+
+    private function createdAuditEvents(): int
+    {
+        $count = $this->connection->fetchOne("SELECT count(*) FROM audit_events WHERE event_type = 'transaction.created'");
+        self::assertTrue(is_int($count) || is_string($count));
+
+        return (int) $count;
+    }
+
     public function testAnExpiredIdempotencyKeyIsTreatedAsANewCreation(): void
     {
         $key = 'transaction-create-expired-key01';

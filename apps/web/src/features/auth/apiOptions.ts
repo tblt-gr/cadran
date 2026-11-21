@@ -29,3 +29,10 @@ export function authApiOptions() {
     headers: { 'X-CSRF-TOKEN': csrfToken() },
   };
 }
+
+/** `authApiOptions` plus the `Idempotency-Key` of a create. Call it inside the CSRF retry so the token is re-read while the key stays the one chosen for the submit. */
+export function idempotentApiOptions(key: string) {
+  const options = authApiOptions();
+
+  return { ...options, headers: { ...options.headers, 'Idempotency-Key': key } };
+}

@@ -10,7 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { idempotentApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { TransactionEditor } from '@/features/transactions/transaction-editor/TransactionEditor';
 import {
@@ -19,6 +19,7 @@ import {
 } from '@/features/transactions/transactionError';
 import { TransferEditor } from '@/features/transactions/transfer-editor/TransferEditor';
 import { defaultDayForMonth } from '@/features/budget/monthly-budget/budgetPeriod';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 import { useActiveBudgetAccounts } from './useActiveBudgetAccounts';
 import { budgetTransactionDefaults } from './budgetCreationDefaults';
 import { BudgetCreationSkeleton } from './BudgetCreationSkeleton';
@@ -38,7 +39,7 @@ interface BudgetCreationModalsProps {
 }
 
 export function BudgetCreationModals({
-  close,
+  close: closeDraft,
   draft,
   month,
   onSaved,
@@ -47,27 +48,50 @@ export function BudgetCreationModals({
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const accounts = useActiveBudgetAccounts(draft !== null);
+  // Owned here, above the account-driven remounts of the editors: one key per body for the
+  // lifetime of the opened modal, released when the modal closes or the write commits.
+  const transactionDraft = useSubmissionKey();
+  const transferDraft = useSubmissionKey();
+  function close() {
+    transactionDraft.release();
+    transferDraft.release();
+    closeDraft();
+  }
+  /** Follow-up reads: a failure here must not surface as a failed, retryable write. */
+  async function refreshReads() {
+    try {
+      await onSaved();
+      await invalidateAccountBalances(queryClient);
+    } catch {
+      // The write is committed; the reads refresh on their next trigger.
+    }
+  }
   const transaction = useMutation({
     mutationFn: async (body: CreateTransactionRequest) => {
-      const result = await withCsrfRetry(() => createTransaction({ ...authApiOptions(), body }));
+      const key = transactionDraft.keyFor(body);
+      const result = await withCsrfRetry(() =>
+        createTransaction({ ...idempotentApiOptions(key), body }),
+      );
       if (!result.response?.ok || !result.data) throw transactionRequestError(result);
       return result.data;
     },
     onSuccess: async () => {
       close();
-      await onSaved();
-      await invalidateAccountBalances(queryClient);
+      await refreshReads();
     },
   });
   const transfer = useMutation({
     mutationFn: async (body: CreateTransferRequest) => {
-      const result = await withCsrfRetry(() => createTransfer({ ...authApiOptions(), body }));
+      const key = transferDraft.keyFor(body);
+      const result = await withCsrfRetry(() =>
+        createTransfer({ ...idempotentApiOptions(key), body }),
+      );
       if (!result.response?.ok || !result.data) throw transactionRequestError(result);
       return result.data;
     },
     onSuccess: async () => {
-      await onSaved();
-      await invalidateAccountBalances(queryClient);
+      transferDraft.release();
+      await refreshReads();
     },
   });
 

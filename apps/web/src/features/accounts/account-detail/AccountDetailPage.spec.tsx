@@ -782,6 +782,10 @@ describe('AccountDetailPage', () => {
       expect(screen.queryByRole('dialog', { name: 'Nouveau virement' })).toBeNull(),
     );
     expect(api.createTransfer).toHaveBeenCalledOnce();
+    expect(api.createTransfer.mock.calls[0]?.[0].headers['Idempotency-Key']).toMatch(
+      /^[0-9a-f-]{36}$/,
+    );
+    expect(api.createTransfer.mock.calls[0]?.[0].headers['X-CSRF-TOKEN']).toBeDefined();
     expect(api.recordPortfolioOperation).not.toHaveBeenCalled();
   });
 

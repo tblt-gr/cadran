@@ -6,9 +6,10 @@ import {
 } from '@cadran/api-client';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { invalidateAccountBalances } from '@/features/accounts/invalidateAccountBalances';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { idempotentApiOptions } from '@/features/auth/apiOptions';
 import { withCsrfRetry } from '@/features/auth/withCsrfRetry';
 import { transactionRequestError } from '@/features/transactions/transactionError';
+import { useSubmissionKey } from '@/hooks/use-submission-key';
 
 /**
  * The two writes a detail page can trigger for its account: a prefilled
@@ -29,21 +30,34 @@ export function useAccountDetailMutations({
 }) {
   const queryClient = useQueryClient();
 
+  // One key owner per opened create modal; the ledger releases it when the modal closes.
+  const transactionDraft = useSubmissionKey();
+  const transferDraft = useSubmissionKey();
+
+  /** Follow-up reads: a failure here must not surface as a failed, retryable write. */
   async function refreshAfterWrite() {
-    await queryClient.invalidateQueries({ queryKey: ['account', accountId] });
-    await reloadAfterWrite();
-    await invalidateAccountBalances(queryClient);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['account', accountId] });
+      await reloadAfterWrite();
+      await invalidateAccountBalances(queryClient);
+    } catch {
+      // The write is committed; the reads refresh on their next trigger.
+    }
   }
 
   const saveTransaction = useMutation({
     mutationFn: async (body: CreateTransactionRequest) => {
-      const result = await withCsrfRetry(() => createTransaction({ ...authApiOptions(), body }));
+      const key = transactionDraft.keyFor(body);
+      const result = await withCsrfRetry(() =>
+        createTransaction({ ...idempotentApiOptions(key), body }),
+      );
       if (!result.response?.ok || !result.data) {
         throw transactionRequestError(result);
       }
       return result.data;
     },
     onSuccess: async () => {
+      transactionDraft.release();
       onTransactionSaved();
       await refreshAfterWrite();
     },
@@ -51,16 +65,24 @@ export function useAccountDetailMutations({
 
   const saveTransfer = useMutation({
     mutationFn: async (body: CreateTransferRequest) => {
-      const result = await withCsrfRetry(() => createTransfer({ ...authApiOptions(), body }));
+      const key = transferDraft.keyFor(body);
+      const result = await withCsrfRetry(() =>
+        createTransfer({ ...idempotentApiOptions(key), body }),
+      );
       if (!result.response?.ok || !result.data) {
         throw transactionRequestError(result);
       }
       return result.data;
     },
-    onSuccess: refreshAfterWrite,
+    onSuccess: async () => {
+      transferDraft.release();
+      await refreshAfterWrite();
+    },
   });
 
   return {
+    transactionDraft,
+    transferDraft,
     saveTransaction,
     saveTransfer,
     completeTransfer: async () => {
