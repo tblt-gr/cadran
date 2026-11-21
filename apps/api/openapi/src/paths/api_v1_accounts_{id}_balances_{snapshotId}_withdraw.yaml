@@ -61,10 +61,15 @@ post:
     '422':
       description: >-
         The version is invalid or the account is archived (`type:
-        /problems/account-archived`).
+        /problems/account-archived`). A withdrawal that would put a current,
+        savings or cash account below zero on a day it holds a movement or an
+        anchor is refused (`type: /problems/account-balance-insufficient`, with
+        `accountId`, `field` and `firstNegativeOn`) and writes nothing.
       content:
         application/problem+json:
           schema:
-            $ref: ../components/schemas/Problem.yaml
+            oneOf:
+              - $ref: ../components/schemas/Problem.yaml
+              - $ref: ../components/schemas/AccountBalanceInsufficientProblem.yaml
     '500':
       $ref: ../components/responses/InternalServerError.yaml

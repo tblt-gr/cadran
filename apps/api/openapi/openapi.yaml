@@ -3857,11 +3857,13 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The account fields are invalid, an immutable rule was violated, or the account is archived and read-only (`type: /problems/account-archived`).'
+          description: 'The account fields are invalid, an immutable rule was violated, or the account is archived and read-only (`type: /problems/account-archived`). Switching a cash, current or savings account from snapshot-based to transaction-based valuation is refused when the movements it newly counts would put a day-end balance below zero (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
       requestBody:
@@ -4294,11 +4296,13 @@ paths:
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':
-          description: 'The version is invalid or the account is archived (`type: /problems/account-archived`).'
+          description: 'The version is invalid or the account is archived (`type: /problems/account-archived`). A withdrawal that would put a current, savings or cash account below zero on a day it holds a movement or an anchor is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.'
           content:
             application/problem+json:
               schema:
-                $ref: '#/components/schemas/Problem'
+                oneOf:
+                  - $ref: '#/components/schemas/Problem'
+                  - $ref: '#/components/schemas/AccountBalanceInsufficientProblem'
         '500':
           $ref: '#/components/responses/InternalServerError'
   /api/v1/accounts/{id}/rules:

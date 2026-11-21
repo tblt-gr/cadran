@@ -10,16 +10,6 @@
   gap: var(--spacing-4);
 }
 
-.alert {
-  margin: var(--spacing-none);
-  padding: var(--spacing-3) var(--spacing-4);
-  border: var(--border-line-subtle);
-  border-color: var(--negative);
-  border-radius: var(--radius-control);
-  color: var(--negative);
-  background: var(--negative-soft);
-}
-
 @media (max-width: 42rem) {
   .fields {
     grid-template-columns: 1fr;

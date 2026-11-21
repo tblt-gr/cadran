@@ -75,6 +75,20 @@ function ok(value: unknown, status = 200) {
   return Promise.resolve({ data: value, response: new Response('{}', { status }) });
 }
 
+function refused(day: string) {
+  return Promise.resolve({
+    error: {
+      type: '/problems/account-balance-insufficient',
+      title: 'Insufficient balance',
+      status: 422,
+      accountId: 'courant',
+      field: 'amount',
+      firstNegativeOn: day,
+    },
+    response: new Response('{}', { status: 422 }),
+  });
+}
+
 function page(items: unknown[], total = items.length) {
   return ok({ items, page: 1, pageSize: 100, total });
 }
@@ -228,6 +242,22 @@ describe('BalanceTab', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Retirer le relevé' }));
     const alerts = await screen.findAllByRole('alert');
     expect(alerts.length).toBeGreaterThan(0);
+  });
+
+  it('announces a dated floor refusal and keeps the confirmation pending', async () => {
+    api.withdrawAccountBalance.mockImplementation(() => refused('2026-01-20'));
+    renderTab();
+    await loaded();
+    fireEvent.click(screen.getByRole('button', { name: 'Actions pour le relevé du 15/01/2026' }));
+    fireEvent.click(await screen.findByRole('button', { name: /Retirer le relevé du/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Retirer le relevé' }));
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/Retrait impossible/);
+    expect(alert.querySelector('time')?.getAttribute('datetime')).toBe('2026-01-20');
+    expect(alert.textContent).not.toMatch(/100/);
+    expect(screen.getByRole('button', { name: 'Retirer le relevé' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Annuler' })).toBeTruthy();
   });
 
   it('offers no correction on an imported balance but opens a manual one in correction mode', async () => {

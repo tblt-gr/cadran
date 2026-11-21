@@ -10841,9 +10841,9 @@ export type UpdateAccountErrors = {
      */
     415: Problem;
     /**
-     * The account fields are invalid, an immutable rule was violated, or the account is archived and read-only (`type: /problems/account-archived`).
+     * The account fields are invalid, an immutable rule was violated, or the account is archived and read-only (`type: /problems/account-archived`). Switching a cash, current or savings account from snapshot-based to transaction-based valuation is refused when the movements it newly counts would put a day-end balance below zero (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem;
+    422: Problem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */
@@ -11314,9 +11314,9 @@ export type WithdrawAccountBalanceErrors = {
      */
     415: Problem;
     /**
-     * The version is invalid or the account is archived (`type: /problems/account-archived`).
+     * The version is invalid or the account is archived (`type: /problems/account-archived`). A withdrawal that would put a current, savings or cash account below zero on a day it holds a movement or an anchor is refused (`type: /problems/account-balance-insufficient`, with `accountId`, `field` and `firstNegativeOn`) and writes nothing.
      */
-    422: Problem;
+    422: Problem | AccountBalanceInsufficientProblem;
     /**
      * An unexpected server error occurred.
      */

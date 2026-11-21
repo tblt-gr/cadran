@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { BalanceDayList } from '@/features/accounts/balance-day-list/BalanceDayList';
 import { useBalanceSnapshots } from './useBalanceSnapshots';
 import { useBalanceWithdrawal } from './useBalanceWithdrawal';
+import { InsufficientBalanceMessage } from '@/features/transactions/insufficient-balance/InsufficientBalanceMessage';
 import styles from './BalanceSnapshotsList.module.css';
 
 /**
@@ -49,7 +50,11 @@ export function BalanceSnapshotsList({
       ) : null}
       {withdrawal.error ? (
         <p className={styles.alert} role="alert">
-          {t(`accounts.balances.errors.${withdrawal.error}`)}
+          {withdrawal.error === 'insufficientBalance' ? (
+            <InsufficientBalanceMessage date={withdrawal.errorDay} write="withdrawal" />
+          ) : (
+            t(`accounts.balances.errors.${withdrawal.error}`)
+          )}
         </p>
       ) : null}
       {withdrawal.confirmingId !== null ? (

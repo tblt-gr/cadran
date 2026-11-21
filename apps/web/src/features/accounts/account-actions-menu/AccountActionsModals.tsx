@@ -73,6 +73,7 @@ export function AccountActionsModals({
               onSubmit={(body) => save.mutate(body)}
               pending={save.isPending}
               submitError={accountErrorKind(save.error, save.isError)}
+              submitErrorDay={accountErrorDay(save.error)}
             />
           )}
         </Modal>

@@ -14,6 +14,7 @@ interface AccountEditorProps {
   onSubmit: (body: CreateAccountRequest | UpdateAccountRequest) => void;
   pending: boolean;
   submitError: AccountErrorKind | null;
+  submitErrorDay?: string | null;
 }
 
 /**
@@ -33,6 +34,7 @@ export function AccountEditor({
   onSubmit,
   pending,
   submitError,
+  submitErrorDay = null,
 }: AccountEditorProps) {
   const { t } = useTranslation();
   const catalogue = useAccountProduct(account.productCode, account.openedOn);
@@ -77,6 +79,7 @@ export function AccountEditor({
         origin={origin}
         pending={pending}
         submitError={submitError}
+        submitErrorDay={submitErrorDay}
       />
     </>
   );

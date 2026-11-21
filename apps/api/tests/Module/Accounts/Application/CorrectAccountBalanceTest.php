@@ -99,6 +99,7 @@ final class CorrectAccountBalanceTest extends TestCase
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             new MockClock(self::NOW, 'UTC'),
             new AssertPeriodOpen($this->createStub(PeriodClosureRepository::class)),
+            $this->floor(),
         ))(AccountFixture::ID, $recorded->id, $recorded->version);
 
         $this->expectException(AccountBalanceConflict::class);

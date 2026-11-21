@@ -31,6 +31,7 @@ final readonly class WithdrawAccountBalance
         private RecordAuditEvent $recordAuditEvent,
         private ClockInterface $clock,
         private AssertPeriodOpen $assertPeriodOpen,
+        private AssertAccountBalanceNonNegative $assertBalance,
     ) {
     }
 
@@ -66,6 +67,7 @@ final readonly class WithdrawAccountBalance
             }
 
             ($this->assertPeriodOpen)($context->workspace, $current->asOf);
+            $this->assertBalance->assertWithdrawn($context->workspace, $account, $current);
             $withdrawn = $current->withdrawn(max($this->clock->now(), $current->recordedAt));
             if (!$this->snapshots->update($withdrawn, $expectedVersion)) {
                 throw new StaleAccountVersion('The snapshot has been modified by another request.');

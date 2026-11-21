@@ -1170,6 +1170,8 @@
       "loading": "Chargement du produit rattaché au compte…",
       "templateLoading": "Chargement du modèle rattaché au compte…",
       "productUnavailable": "Le produit rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le produit ne déclare pas.",
+      "reconfigurationRefused": "Changement impossible : les mouvements désormais comptés mettraient le compte en négatif le <date>{{date}}</date>.",
+      "reconfigurationRefusedUndated": "Changement impossible : les mouvements désormais comptés mettraient le compte en négatif.",
       "templateUnavailable": "Le modèle rattaché à ce compte n’a pas pu être lu. La nature reste imposée par cette référence ; l’API refusera une combinaison que le modèle ne déclare pas."
     },
     "overrides": {
@@ -1350,6 +1352,8 @@
       "recordedAt": "Enregistré le",
       "truncated": "{{shown}} relevés affichés sur {{total}}. Les plus anciens ne sont pas listés.",
       "confirmHint": "Ce relevé ne servira plus à calculer le solde. La ligne reste visible comme retirée.",
+      "withdrawalRefused": "Retrait impossible : le solde du compte passerait en négatif le <date>{{date}}</date>.",
+      "withdrawalRefusedUndated": "Retrait impossible : le solde du compte passerait en négatif.",
       "confirming": "Retrait…",
       "confirmAction": "Retirer le relevé"
     },

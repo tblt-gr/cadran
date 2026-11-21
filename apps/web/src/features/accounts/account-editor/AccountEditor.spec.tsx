@@ -75,7 +75,11 @@ function ok<T>(data: T) {
   return Promise.resolve({ data, response: new Response(JSON.stringify(data), { status: 200 }) });
 }
 
-function renderEditor(editedAccount: Account = account, onSubmit = vi.fn()) {
+function renderEditor(
+  editedAccount: Account = account,
+  onSubmit = vi.fn(),
+  refusal: { error: 'insufficientBalance'; day: string | null } | null = null,
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return {
     ...render(
@@ -85,7 +89,8 @@ function renderEditor(editedAccount: Account = account, onSubmit = vi.fn()) {
           onCancel={vi.fn()}
           onSubmit={onSubmit}
           pending={false}
-          submitError={null}
+          submitError={refusal?.error ?? null}
+          submitErrorDay={refusal?.day ?? null}
         />
       </QueryClientProvider>,
     ),
@@ -119,6 +124,25 @@ describe('AccountEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
     expect(submit.mock.calls[1]?.[0]).toMatchObject({ isPrimary: false });
     expect(screen.getByText(/Seul un compte courant ouvert/)).toBeTruthy();
+  });
+
+  it('announces a dated floor refusal in the open editor and keeps the draft', async () => {
+    api.listAssets.mockReturnValue(ok({ items: [{ code: 'EUR', kind: 'FIAT' }] }));
+    api.listAccountGroups.mockReturnValue(ok({ items: [] }));
+    renderEditor(
+      { ...account, kind: 'CURRENT', productCode: null, includeInNetWorth: false },
+      vi.fn(),
+      {
+        error: 'insufficientBalance',
+        day: '2026-11-04',
+      },
+    );
+
+    const alert = await screen.findByRole('alert');
+    expect(alert.textContent).toMatch(/Changement impossible/);
+    expect(alert.querySelector('time')?.getAttribute('datetime')).toBe('2026-11-04');
+    expect(screen.getByDisplayValue(account.label)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Enregistrer' })).toBeTruthy();
   });
 
   it('hides the primary preference for accounts that are not current accounts', async () => {
