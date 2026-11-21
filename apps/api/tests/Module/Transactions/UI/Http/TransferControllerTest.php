@@ -549,6 +549,7 @@ final class TransferControllerTest extends WebTestCase
     public static function invalidEditedFees(): iterable
     {
         yield 'positive fee' => [['value' => '2.50', 'assetCode' => 'EUR']];
+        yield 'zero fee' => [['value' => '0.00', 'assetCode' => 'EUR']];
         yield 'fee in another asset' => [['value' => '-2.50', 'assetCode' => 'CHF']];
     }
 

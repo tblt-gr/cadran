@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { auditAccessibility } from './support/a11y';
 import { loseNextResponse } from './support/lost-response';
+import { openMovementEditModal } from './support/edit-movement';
 import {
   clickPageAction,
   movementRows,
@@ -72,6 +73,26 @@ test.describe('internal transfer', () => {
       'aria-invalid',
       'true',
     );
+  });
+});
+
+test.describe('transfer fee edit', () => {
+  test('keeps the fee positive in the field and refuses an invalid one by keyboard', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 360, height: 740 });
+    const edit = await openMovementEditModal(page, 'transfer');
+    await edit.getByText('Champs avancés').click();
+    const fee = edit.getByLabel(/^Montant des frais/);
+    await expect(fee).toHaveValue('');
+    await fee.fill('-1.50');
+    await page.keyboard.press('Enter');
+    await expect(fee).toBeFocused();
+    await expect(fee).toHaveAttribute('aria-invalid', 'true');
+    await expect(edit).toBeVisible();
+    await fee.fill('1.50');
+    await edit.getByRole('button', { name: 'Enregistrer' }).click();
+    await expect(edit).toBeHidden();
   });
 });
 

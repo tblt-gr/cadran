@@ -251,3 +251,65 @@ it('disables the separate submit action while a transfer update is pending', asy
   fireEvent.click(save);
   expect(api.updateTransfer).toHaveBeenCalledOnce();
 });
+
+const feeField = () => screen.getByLabelText(/^Montant des frais/) as HTMLInputElement;
+const submittedFee = () => api.updateTransfer.mock.calls[0]![0].body.fee;
+
+it('opens a stored fee as an unsigned magnitude and a fee-free transfer with a blank field', async () => {
+  api.getTransfer.mockImplementation(() => success({ ...transfer, fee: null }));
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  expect(feeField().value).toBe('');
+  cleanup();
+  api.getTransfer.mockImplementation(() => success(transfer));
+  setup();
+  await screen.findByDisplayValue('0.75');
+});
+
+it('negates an edited positive fee with its exact precision', async () => {
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  fireEvent.change(feeField(), { target: { value: '1.2500' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+  await waitFor(() => expect(api.updateTransfer).toHaveBeenCalledOnce());
+  expect(submittedFee()).toEqual({ value: '-1.2500', assetCode: 'EUR' });
+});
+
+it('removes the fee when the field is cleared', async () => {
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  fireEvent.change(feeField(), { target: { value: '' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+  await waitFor(() => expect(api.updateTransfer).toHaveBeenCalledOnce());
+  expect(submittedFee()).toBeNull();
+});
+
+it('lets a fee-free transfer gain a fee', async () => {
+  api.getTransfer.mockImplementation(() => success({ ...transfer, fee: null }));
+  setup();
+  await screen.findByDisplayValue('Épargne');
+  fireEvent.click(screen.getByText('Champs avancés'));
+  fireEvent.change(feeField(), { target: { value: '3' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+  await waitFor(() => expect(api.updateTransfer).toHaveBeenCalledOnce());
+  expect(submittedFee()).toEqual({ value: '-3', assetCode: 'EUR' });
+});
+
+it.each(['0', '0.00', '-1', '+1', '1,5', 'abc', ' 1'])(
+  'rejects the invalid fee %j locally and focuses the labeled input',
+  async (invalid) => {
+    const { close } = setup();
+    await screen.findByDisplayValue('Épargne');
+    fireEvent.change(screen.getByLabelText('Libellé'), { target: { value: 'Brouillon' } });
+    fireEvent.change(feeField(), { target: { value: invalid } });
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }));
+    await waitFor(() => expect(document.activeElement).toBe(feeField()));
+    expect(api.updateTransfer).not.toHaveBeenCalled();
+    expect(feeField().getAttribute('aria-invalid')).toBe('true');
+    const describedBy = feeField().getAttribute('aria-describedby')!;
+    expect(document.getElementById(describedBy)?.textContent).toBeTruthy();
+    expect(feeField().value).toBe(invalid);
+    expect((screen.getByLabelText('Libellé') as HTMLInputElement).value).toBe('Brouillon');
+    expect(close).not.toHaveBeenCalled();
+  },
+);
