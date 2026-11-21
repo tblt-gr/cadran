@@ -67,7 +67,7 @@ export function formatExactAmount(value: string, assetCode: string | null, local
   return `${formatDecimal(value, locale)}${assetCode ? `\u00a0${assetCode}` : ''}`;
 }
 
-export function decimalSign(value: string): -1 | 0 | 1 {
+function decimalSign(value: string): -1 | 0 | 1 {
   if (!/[1-9]/.test(value)) return 0;
   return value.startsWith('-') ? -1 : 1;
 }
