@@ -6,6 +6,10 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+### Added
+
+- The installed version number is shown in Settings > Interface.
+
 ### Changed
 
 - New Cadran dial logo in the sidebar, sign-in screen, favicon, installed app icons and README.

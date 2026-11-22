@@ -3762,6 +3762,10 @@
       "title": "Language",
       "label": "Language"
     },
+    "about": {
+      "title": "About",
+      "version": "Version"
+    },
     "interface": {
       "title": "Figures display",
       "loading": "Loading interface preferences…",

@@ -4,6 +4,7 @@ import { SettingsTabs } from '@/components/layout/settings-tabs/SettingsTabs';
 import { Toast } from '@/components/ui/toast/Toast';
 import { BudgetRequestError } from '@/features/budget/budgetError';
 import { InterfaceSettingsCard } from './InterfaceSettingsCard';
+import { AboutCard } from './AboutCard';
 import { LanguageCard } from './LanguageCard';
 import { InterfaceSettingsPageSkeleton } from './InterfaceSettingsPageSkeleton';
 import { useInterfacePreferences, useSaveInterfacePreferences } from './useInterfacePreferences';
@@ -66,6 +67,7 @@ export function InterfaceSettingsPage() {
         preferences={preferences.data}
       />
       <LanguageCard />
+      <AboutCard />
     </div>
   );
 }
