@@ -1,4 +1,4 @@
-<p align="center"><img src=".github/assets/cadran-budget-logo.svg" alt="Cadran Budget" height="96"></p>
+<p align="center"><img src=".github/assets/cadran-budget-logo.png" alt="Cadran Budget" height="96"></p>
 <h4 align="center">Self-hosted personal budgeting and wealth tracking.</h4>
 
 <p align="center">

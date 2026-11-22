@@ -6,6 +6,10 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- New Cadran dial logo in the sidebar, sign-in screen, favicon, installed app icons and README.
+
 ## [1.0.0] - 2026-11-21
 
 The first MVP release. It builds on the accounts, transactions, budgets, closing, reports, goals,

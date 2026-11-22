@@ -1,15 +1,22 @@
 /** The dial: Cadran's mark, drawn in the current text colour at whatever size its box gives it. */
 export function BrandMark({ className }: { className?: string }) {
   return (
-    <svg aria-hidden="true" className={className} viewBox="0 0 40 40">
-      <circle cx="20" cy="20" fill="none" r="15" stroke="currentColor" strokeWidth="2" />
+    <svg aria-hidden="true" className={className} viewBox="127 172 681 681">
       <path
-        d="M20 8v5M20 27v5M8 20h5M27 20h5M20 20l7-7"
+        d="M727 297A304 304 0 1 0 727 727"
+        fill="none"
         stroke="currentColor"
         strokeLinecap="round"
-        strokeWidth="2"
+        strokeWidth="72"
       />
-      <circle cx="20" cy="20" fill="currentColor" r="2.5" />
+      <path
+        d="M512 512L672 378"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="60"
+      />
+      <circle cx="512" cy="512" fill="currentColor" r="40" />
     </svg>
   );
 }
