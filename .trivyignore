@@ -116,3 +116,12 @@ CVE-2026-119379
 # is reachable only on loopback or a VPN. Bump the FrankenPHP image as soon as
 # a release with Go 1.27.4 or newer exists and delete this entry then.
 CVE-2026-97054
+
+# review: 2026-12-15
+# libssl3t64, openssl, openssl-provider-legacy (Debian 13.8, 3.5.9-1~deb13u1):
+# CVE-2026-124709 is a memory leak in the OpenSSL QUIC stream handling, with no
+# Debian fix yet. The application never serves QUIC through OpenSSL: HTTP/3 is
+# handled by the Go QUIC stack inside the FrankenPHP/Caddy binary, and PHP only
+# uses libssl for outbound TLS. Remove this entry once Debian ships a fixed
+# openssl.
+CVE-2026-124709
