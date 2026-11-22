@@ -6,6 +6,8 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-22
+
 ### Added
 
 - The installed version number is shown in Settings > Interface.
