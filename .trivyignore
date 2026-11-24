@@ -119,9 +119,11 @@ CVE-2026-97054
 
 # review: 2026-12-15
 # libssl3t64, openssl, openssl-provider-legacy (Debian 13.8, 3.5.9-1~deb13u1):
-# CVE-2026-124709 is a memory leak in the OpenSSL QUIC stream handling, with no
-# Debian fix yet. The application never serves QUIC through OpenSSL: HTTP/3 is
+# CVE-2026-124709 is a memory leak in the OpenSSL QUIC stream handling and
+# CVE-2026-107494 a denial of service through an unbounded QUIC frame, both with
+# no Debian fix yet. The application never serves QUIC through OpenSSL: HTTP/3 is
 # handled by the Go QUIC stack inside the FrankenPHP/Caddy binary, and PHP only
-# uses libssl for outbound TLS. Remove this entry once Debian ships a fixed
+# uses libssl for outbound TLS. Remove these entries once Debian ships a fixed
 # openssl.
 CVE-2026-124709
+CVE-2026-107494
