@@ -4,27 +4,26 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\UI\Http;
 
-use App\Module\Accounts\Application\AccountNotFound;
-use App\Module\Accounts\Application\InvalidAccountInput;
 use App\Module\Accounts\Application\ListAccounts;
 use App\Module\Accounts\Application\PresentAccountRules;
 use App\Module\Accounts\Application\ReadAccount;
 use App\Module\Accounts\Application\ReadAccountRules;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Adapts HTTP to the account use cases. Field-level validation lives in
- * {@see AccountPayload} and the wire shape in {@see AccountRepresentation};
- * what remains here is the routing and the status mapping. Writes live in
- * {@see AccountWriteController}.
+ * {@see AccountPayload}, the wire shape in {@see AccountRepresentation} and the
+ * status mapping in {@see AccountProblems}; what remains here is the routing.
+ * Writes live in {@see AccountWriteController}.
  */
 final readonly class AccountController
 {
-    public function __construct(private AccountHttp $http)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -39,7 +38,7 @@ final readonly class AccountController
         $asOf = $request->query->getString('asOf');
         if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
             || !self::flag($includeArchived) || !self::flag($includeClosed)) {
-            return $this->http->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_query');
         }
 
         try {
@@ -51,13 +50,11 @@ final readonly class AccountController
                 '' === $kind ? null : $kind,
                 '' === $asOf ? null : $asOf,
             );
-        } catch (InvalidAccountInput) {
-            return $this->http->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_query');
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::list());
         }
 
-        return $this->http->json(AccountRepresentation::page($accounts));
+        return $this->envelope->json(AccountRepresentation::page($accounts));
     }
 
     /**
@@ -74,18 +71,16 @@ final readonly class AccountController
     public function show(string $id, ReadAccount $readAccount): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
         try {
             $account = $readAccount($id);
-        } catch (AccountNotFound) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::show());
         }
 
-        return $this->http->json(AccountRepresentation::one($account));
+        return $this->envelope->json(AccountRepresentation::one($account));
     }
 
     /**
@@ -102,22 +97,18 @@ final readonly class AccountController
         PresentAccountRules $presentAccountRules,
     ): Response {
         if (!Identifier::isValid($id)) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
         $asOf = $request->query->getString('asOf');
 
         try {
             $rules = $readAccountRules($id, '' === $asOf ? null : $asOf);
-        } catch (InvalidAccountInput) {
-            return $this->http->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_rules_query');
-        } catch (AccountNotFound) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::rules());
         }
 
-        return $this->http->json(AccountRulesRepresentation::of($rules, $presentAccountRules($rules)));
+        return $this->envelope->json(AccountRulesRepresentation::of($rules, $presentAccountRules($rules)));
     }
 
     private static function flag(string $value): bool

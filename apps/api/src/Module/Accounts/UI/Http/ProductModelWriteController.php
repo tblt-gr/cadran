@@ -11,16 +11,13 @@ use App\Module\Accounts\Application\CreateProductModelFromProduct;
 use App\Module\Accounts\Application\CreateProductModelInput;
 use App\Module\Accounts\Application\DeclaredRuleInput;
 use App\Module\Accounts\Application\DuplicateProductModel;
-use App\Module\Accounts\Application\InvalidProductModelInput;
-use App\Module\Accounts\Application\ProductModelArchived;
-use App\Module\Accounts\Application\ProductModelConflict;
 use App\Module\Accounts\Application\ProductModelInputParser;
-use App\Module\Accounts\Application\ProductModelNotFound;
 use App\Module\Accounts\Application\RateBracketInput;
-use App\Module\Accounts\Application\StaleProductModelVersion;
 use App\Module\Catalog\Domain\ProductCapability;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -31,28 +28,19 @@ use Symfony\Component\Routing\Attribute\Route;
  */
 final readonly class ProductModelWriteController
 {
-    /**
-     * A name already taken and a stale version are both 409, but they ask the
-     * caller for opposite things: pick another name, or reload and reapply.
-     * The problem type is what lets a client tell them apart.
-     */
-    public const string TYPE_NAME_TAKEN = '/problems/product-model-name-taken';
-    public const string TYPE_STALE_VERSION = '/problems/stale-version';
-    public const string TYPE_ARCHIVED = '/problems/product-model-archived';
-
     private const array RULE_FIELDS = [
         'kind', 'amount', 'amountAssetCode', 'text', 'rateApplication', 'brackets', 'validFrom', 'validTo',
     ];
     private const array BRACKET_FIELDS = ['lowerBound', 'upperBound', 'percentage'];
 
-    public function __construct(private ProductModelHttp $http)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
     #[Route('/api/v1/product-models', name: 'api_v1_product_models_create', methods: ['POST'])]
     public function create(Request $request, CreateProductModel $createProductModel): Response
     {
-        $body = $this->http->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Large, 'api.problem.product_model_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -72,15 +60,11 @@ final readonly class ProductModelWriteController
                 capabilities: $payload->strings('capabilities', count(ProductCapability::cases())),
                 rules: self::rules($payload),
             ));
-        } catch (InvalidProductModelInput|\UnexpectedValueException) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_product_model');
-        } catch (ProductModelConflict) {
-            return $this->http->problem(Response::HTTP_CONFLICT, 'api.problem.product_model_name_taken', self::TYPE_NAME_TAKEN);
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.product_model_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, ProductModelProblems::write());
         }
 
-        return $this->http->json(ProductModelRepresentation::one($model), Response::HTTP_CREATED);
+        return $this->envelope->json(ProductModelRepresentation::one($model), Response::HTTP_CREATED);
     }
 
     /**
@@ -91,7 +75,7 @@ final readonly class ProductModelWriteController
     #[Route('/api/v1/product-models/from-product', name: 'api_v1_product_models_from_product', methods: ['POST'])]
     public function fromProduct(Request $request, CreateProductModelFromProduct $createFromProduct): Response
     {
-        $body = $this->http->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Large, 'api.problem.product_model_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -103,44 +87,32 @@ final readonly class ProductModelWriteController
                 $payload->string('name'),
                 $payload->string('valuationMode'),
             );
-        } catch (InvalidProductModelInput|\UnexpectedValueException) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_product_model');
-        } catch (ProductModelConflict) {
-            return $this->http->problem(Response::HTTP_CONFLICT, 'api.problem.product_model_name_taken', self::TYPE_NAME_TAKEN);
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.product_model_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, ProductModelProblems::write());
         }
 
-        return $this->http->json(ProductModelRepresentation::one($model), Response::HTTP_CREATED);
+        return $this->envelope->json(ProductModelRepresentation::one($model), Response::HTTP_CREATED);
     }
 
     #[Route('/api/v1/product-models/{id}/duplicate', name: 'api_v1_product_models_duplicate', methods: ['POST'])]
     public function duplicate(string $id, Request $request, DuplicateProductModel $duplicateProductModel): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
-        $body = $this->http->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Large, 'api.problem.product_model_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
 
         try {
             $model = $duplicateProductModel($id, ProductModelPayload::of($body, ['name'])->string('name'));
-        } catch (ProductModelArchived) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.product_model_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidProductModelInput|\UnexpectedValueException) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_product_model');
-        } catch (ProductModelNotFound) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
-        } catch (ProductModelConflict) {
-            return $this->http->problem(Response::HTTP_CONFLICT, 'api.problem.product_model_name_taken', self::TYPE_NAME_TAKEN);
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.product_model_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, ProductModelProblems::write());
         }
 
-        return $this->http->json(ProductModelRepresentation::one($model), Response::HTTP_CREATED);
+        return $this->envelope->json(ProductModelRepresentation::one($model), Response::HTTP_CREATED);
     }
 
     /**
@@ -152,10 +124,10 @@ final readonly class ProductModelWriteController
     public function addRule(string $id, Request $request, AddProductModelRule $addProductModelRule): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
-        $body = $this->http->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Large, 'api.problem.product_model_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -163,48 +135,32 @@ final readonly class ProductModelWriteController
         try {
             $payload = ProductModelPayload::of($body, [...self::RULE_FIELDS, 'version']);
             $model = $addProductModelRule($id, self::rule($payload), $payload->integer('version'));
-        } catch (ProductModelArchived) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.product_model_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidProductModelInput|\UnexpectedValueException) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_product_model');
-        } catch (ProductModelNotFound) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
-        } catch (StaleProductModelVersion) {
-            return $this->http->problem(Response::HTTP_CONFLICT, 'api.problem.product_model_stale_version', self::TYPE_STALE_VERSION);
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.product_model_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, ProductModelProblems::write());
         }
 
-        return $this->http->json(ProductModelRepresentation::one($model));
+        return $this->envelope->json(ProductModelRepresentation::one($model));
     }
 
     #[Route('/api/v1/product-models/{id}/archive', name: 'api_v1_product_models_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveProductModel $archiveProductModel): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
         }
 
-        $body = $this->http->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Large, 'api.problem.product_model_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
 
         try {
             $model = $archiveProductModel($id, ProductModelPayload::of($body, ['version'])->integer('version'));
-        } catch (ProductModelArchived) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.product_model_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidProductModelInput|\UnexpectedValueException) {
-            return $this->http->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_product_model');
-        } catch (ProductModelNotFound) {
-            return $this->http->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_model_not_found');
-        } catch (StaleProductModelVersion) {
-            return $this->http->problem(Response::HTTP_CONFLICT, 'api.problem.product_model_stale_version', self::TYPE_STALE_VERSION);
-        } catch (WorkspaceAccessDenied) {
-            return $this->http->problem(Response::HTTP_FORBIDDEN, 'api.problem.product_model_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, ProductModelProblems::write());
         }
 
-        return $this->http->json(ProductModelRepresentation::one($model));
+        return $this->envelope->json(ProductModelRepresentation::one($model));
     }
 
     /**

@@ -4,46 +4,30 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\UI\Http;
 
-use App\Module\Accounts\Application\AccountGroupArchived;
-use App\Module\Accounts\Application\AccountGroupConflict;
-use App\Module\Accounts\Application\AccountGroupNotFound;
 use App\Module\Accounts\Application\ArchiveAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroupInput;
-use App\Module\Accounts\Application\InvalidAccountGroupInput;
-use App\Module\Accounts\Application\InvalidAccountGroupMove;
 use App\Module\Accounts\Application\ListAccountGroups;
 use App\Module\Accounts\Application\MoveAccountGroup;
-use App\Module\Accounts\Application\StaleAccountGroupOrder;
-use App\Module\Accounts\Application\StaleAccountGroupVersion;
 use App\Module\Accounts\Application\UpdateAccountGroup;
 use App\Module\Accounts\Application\UpdateAccountGroupInput;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class AccountGroupController
 {
-    public const string TYPE_LABEL_TAKEN = '/problems/account-group-label-taken';
-    public const string TYPE_STALE_VERSION = '/problems/stale-version';
-    public const string TYPE_ARCHIVED = '/problems/account-group-archived';
-    public const string TYPE_STALE_ORDER = '/problems/stale-account-group-order';
-    public const string TYPE_INVALID_ANCHOR = '/problems/invalid-account-group-anchor';
-
     private const int MAX_MOVE_SIBLINGS = 100;
     private const array CREATE_FIELDS = ['label', 'parentId'];
     private const array UPDATE_FIELDS = ['label', 'parentId', 'version'];
     /** Deprecated on write: accepted and ignored on create, applied on update only while the parent stays. */
     private const array DEPRECATED_FIELDS = ['sortOrder'];
 
-    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -57,7 +41,7 @@ final readonly class AccountGroupController
         if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
             || !in_array($includeArchived, ['', 'true', 'false'], true)
             || !in_array($parentEligible, ['', 'true', 'false'], true)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_group_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_group_query');
         }
 
         try {
@@ -67,29 +51,26 @@ final readonly class AccountGroupController
                 '' === $pageSize ? null : (int) $pageSize,
                 'true' === $parentEligible,
             );
-        } catch (InvalidAccountGroupInput) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_group_query');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_group_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountGroupProblems::list());
         }
 
-        return self::json(AccountGroupRepresentation::page($groups));
+        return $this->envelope->json(AccountGroupRepresentation::page($groups));
     }
 
     #[Route('/api/v1/account-groups', name: 'api_v1_account_groups_create', methods: ['POST'])]
     public function create(Request $request, CreateAccountGroup $createAccountGroup): Response
     {
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_group_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
 
         $color = AccountGroupColorPayload::of($body);
         if ([] !== $color->errors) {
-            return ApiProblem::response(
+            return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,
-                $this->translator->trans('api.problem.invalid_account_group.title'),
-                $this->translator->trans('api.problem.invalid_account_group.detail'),
+                'api.problem.invalid_account_group',
                 extensions: ['errors' => $color->errors],
             );
         }
@@ -102,35 +83,30 @@ final readonly class AccountGroupController
                 color: $payload->nullableString('color'),
                 colorMode: $color->mode,
             ));
-        } catch (InvalidAccountGroupInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group');
-        } catch (AccountGroupConflict) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_group_label_taken', self::TYPE_LABEL_TAKEN);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_group_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountGroupProblems::write());
         }
 
-        return self::json(AccountGroupRepresentation::one($group), Response::HTTP_CREATED);
+        return $this->envelope->json(AccountGroupRepresentation::one($group), Response::HTTP_CREATED);
     }
 
     #[Route('/api/v1/account-groups/{id}', name: 'api_v1_account_groups_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateAccountGroup $updateAccountGroup): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
         }
 
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_group_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
 
         $color = AccountGroupColorPayload::of($body);
         if ([] !== $color->errors) {
-            return ApiProblem::response(
+            return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,
-                $this->translator->trans('api.problem.invalid_account_group.title'),
-                $this->translator->trans('api.problem.invalid_account_group.detail'),
+                'api.problem.invalid_account_group',
                 extensions: ['errors' => $color->errors],
             );
         }
@@ -146,50 +122,32 @@ final readonly class AccountGroupController
                 colorMode: $color->mode,
                 sortOrder: array_key_exists('sortOrder', $body) ? $payload->integer('sortOrder') : null,
             ));
-        } catch (AccountGroupArchived) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidAccountGroupInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group');
-        } catch (AccountGroupNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
-        } catch (StaleAccountGroupVersion) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_group_stale_version', self::TYPE_STALE_VERSION);
-        } catch (AccountGroupConflict) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_group_label_taken', self::TYPE_LABEL_TAKEN);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_group_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountGroupProblems::write());
         }
 
-        return self::json(AccountGroupRepresentation::one($group));
+        return $this->envelope->json(AccountGroupRepresentation::one($group));
     }
 
     #[Route('/api/v1/account-groups/{id}/archive', name: 'api_v1_account_groups_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveAccountGroup $archiveAccountGroup): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
         }
 
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_group_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
 
         try {
             $group = $archiveAccountGroup($id, AccountGroupPayload::of($body, ['version'])->integer('version'));
-        } catch (AccountGroupArchived) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidAccountGroupInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group');
-        } catch (AccountGroupNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
-        } catch (StaleAccountGroupVersion) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_group_stale_version', self::TYPE_STALE_VERSION);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_group_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountGroupProblems::archive());
         }
 
-        return self::json(AccountGroupRepresentation::one($group));
+        return $this->envelope->json(AccountGroupRepresentation::one($group));
     }
 
     /**
@@ -200,10 +158,10 @@ final readonly class AccountGroupController
     public function move(string $id, Request $request, MoveAccountGroup $moveAccountGroup): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
         }
 
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_group_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -217,23 +175,11 @@ final readonly class AccountGroupController
             }
 
             $moved = $moveAccountGroup($id, $beforeGroupId, $expected);
-        } catch (AccountGroupArchived) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidAccountGroupMove $exception) {
-            return InvalidAccountGroupMove::INVALID_ANCHOR === $exception->reason
-                ? $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_invalid_anchor', self::TYPE_INVALID_ANCHOR)
-                : $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group_move');
-        } catch (\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_group_move');
-        } catch (AccountGroupNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_group_not_found');
-        } catch (StaleAccountGroupOrder) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_group_stale_order', self::TYPE_STALE_ORDER);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_group_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountGroupProblems::move());
         }
 
-        return self::json(['parentId' => $moved->parentId, 'siblingIds' => $moved->siblingIds, 'rank' => $moved->rank]);
+        return $this->envelope->json(['parentId' => $moved->parentId, 'siblingIds' => $moved->siblingIds, 'rank' => $moved->rank]);
     }
 
     /** @phpstan-assert-if-true list<string> $value */
@@ -251,30 +197,8 @@ final readonly class AccountGroupController
         return count(array_unique($value)) === count($value);
     }
 
-    /** @return array<mixed>|Response */
-    private function readBody(Request $request): array|Response
-    {
-        return $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_group_payload_too_large');
-    }
-
     private static function unsignedIntegerOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
-    }
-
-    /** @param array<string, mixed> $data */
-    private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
-    {
-        return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-            $type,
-        );
     }
 }

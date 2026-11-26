@@ -4,22 +4,19 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\UI\Http;
 
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
- * Envelope, status and JSON helpers shared by the account controllers.
+ * Reads the body of an account write, refusing the fields the API no longer accepts.
  */
 final readonly class AccountHttp
 {
     private const string REMOVED_TAGS_FIELD = 'tagGroupIds';
 
-    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -40,30 +37,13 @@ final readonly class AccountHttp
         // Tags were removed: a stale client must learn its write was not saved
         // rather than see the field silently dropped.
         if (array_key_exists(self::REMOVED_TAGS_FIELD, $body)) {
-            return ApiProblem::response(
+            return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,
-                $this->translator->trans('api.problem.invalid_account.title'),
-                $this->translator->trans('api.problem.invalid_account.detail'),
+                'api.problem.invalid_account',
                 extensions: ['errors' => [['field' => self::REMOVED_TAGS_FIELD, 'code' => 'unsupported_field']]],
             );
         }
 
         return $body;
-    }
-
-    /** @param array<string, mixed> $data */
-    public function json(array $data, int $status = Response::HTTP_OK): JsonResponse
-    {
-        return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    public function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-            $type,
-        );
     }
 }

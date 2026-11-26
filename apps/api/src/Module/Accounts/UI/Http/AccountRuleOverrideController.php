@@ -4,30 +4,21 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\UI\Http;
 
-use App\Module\Accounts\Application\AccountArchived;
-use App\Module\Accounts\Application\AccountNotFound;
-use App\Module\Accounts\Application\AccountRuleOverrideConflict;
 use App\Module\Accounts\Application\AccountRuleOverrideInput;
-use App\Module\Accounts\Application\AccountRuleOverrideNotFound;
 use App\Module\Accounts\Application\DeclaredRuleInput;
 use App\Module\Accounts\Application\DeclaredRuleParser;
-use App\Module\Accounts\Application\InvalidAccountRuleOverrideInput;
-use App\Module\Accounts\Application\InvalidDeclaredRuleInput;
 use App\Module\Accounts\Application\ListAccountRuleOverrides;
 use App\Module\Accounts\Application\RateBracketInput;
 use App\Module\Accounts\Application\RecordAccountRuleOverride;
 use App\Module\Accounts\Application\ResolveAuthorNames;
 use App\Module\Accounts\Application\WithdrawAccountRuleOverride;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Adapts HTTP to the account rule-override use cases.
@@ -43,16 +34,13 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class AccountRuleOverrideController
 {
-    public const string TYPE_OVERRIDE_CONFLICT = '/problems/account-rule-override-conflict';
-    public const string TYPE_ARCHIVED = '/problems/account-archived';
-
     private const array OVERRIDE_FIELDS = [
         'kind', 'amount', 'amountAssetCode', 'text', 'rateApplication', 'brackets',
         'validFrom', 'validTo', 'reason',
     ];
     private const array BRACKET_FIELDS = ['lowerBound', 'upperBound', 'percentage'];
 
-    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -65,15 +53,13 @@ final readonly class AccountRuleOverrideController
     public function list(string $id, ListAccountRuleOverrides $listOverrides, ResolveAuthorNames $authors): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
         try {
             $overrides = $listOverrides($id);
-        } catch (AccountNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::show());
         }
 
         $ids = [];
@@ -81,36 +67,28 @@ final readonly class AccountRuleOverrideController
             $ids[] = $override->authorId;
         }
 
-        return self::json(AccountRuleOverrideRepresentation::list($overrides, $authors->forIds($ids)));
+        return $this->envelope->json(AccountRuleOverrideRepresentation::list($overrides, $authors->forIds($ids)));
     }
 
     #[Route('/api/v1/accounts/{id}/rule-overrides', name: 'api_v1_account_rule_overrides_record', methods: ['POST'])]
     public function record(string $id, Request $request, RecordAccountRuleOverride $recordOverride): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
 
         try {
             $override = $recordOverride($id, self::override(AccountPayload::of($body, self::OVERRIDE_FIELDS)));
-        } catch (AccountArchived) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
-        } catch (InvalidAccountRuleOverrideInput|InvalidDeclaredRuleInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_rule_override');
-        } catch (AccountNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (AccountRuleOverrideConflict) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_rule_override_conflict', self::TYPE_OVERRIDE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::ruleOverrides());
         }
 
-        return self::json(AccountRuleOverrideRepresentation::one($override), Response::HTTP_CREATED);
+        return $this->envelope->json(AccountRuleOverrideRepresentation::one($override), Response::HTTP_CREATED);
     }
 
     /**
@@ -130,10 +108,10 @@ final readonly class AccountRuleOverrideController
         WithdrawAccountRuleOverride $withdrawOverride,
     ): Response {
         if (!Identifier::isValid($id) || !Identifier::isValid($overrideId)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_rule_override_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_rule_override_not_found');
         }
 
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_payload_too_large');
         if ($body instanceof Response) {
             return $body;
         }
@@ -144,19 +122,11 @@ final readonly class AccountRuleOverrideController
             // this route with a payload it believes was applied.
             AccountPayload::of($body, []);
             $override = $withdrawOverride($id, $overrideId);
-        } catch (AccountArchived) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_archived', self::TYPE_ARCHIVED);
-        } catch (\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_rule_override');
-        } catch (AccountNotFound|AccountRuleOverrideNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_rule_override_not_found');
-        } catch (AccountRuleOverrideConflict) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_rule_override_conflict', self::TYPE_OVERRIDE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::withdrawRuleOverride());
         }
 
-        return self::json(AccountRuleOverrideRepresentation::one($override));
+        return $this->envelope->json(AccountRuleOverrideRepresentation::one($override));
     }
 
     private static function override(AccountPayload $payload): AccountRuleOverrideInput
@@ -180,34 +150,6 @@ final readonly class AccountRuleOverrideController
                 validTo: $payload->nullableString('validTo'),
             ),
             reason: $payload->string('reason'),
-        );
-    }
-
-    /**
-     * Envelope checks only: the media type, the size ceiling and the JSON
-     * syntax each answer their own status, so they stay beside the mapping
-     * rather than travelling as exceptions.
-     *
-     * @return array<mixed>|Response
-     */
-    private function readBody(Request $request): array|Response
-    {
-        return $this->envelope->body($request, BodyLimit::Standard, 'api.problem.account_payload_too_large');
-    }
-
-    /** @param array<string, mixed> $data */
-    private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
-    {
-        return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-            $type,
         );
     }
 }
