@@ -18,6 +18,7 @@ use App\Module\Portfolio\Domain\Valuation\Valuation;
 use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
 use App\Module\Portfolio\Domain\Valuation\ValuationDetail;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
+use App\Module\Portfolio\Domain\Valuation\ValuationSource;
 
 /**
  * Brings the valuation of the day back in step with the operations after a trade or a cash flow: what the latest
@@ -29,8 +30,6 @@ use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
  */
 final readonly class RefreshValuationAfterOperation
 {
-    public const string NOTE = 'Mise à jour automatique après une opération.';
-
     public function __construct(
         private ValuationRepository $valuations,
         private ValuationHoldings $holdings,
@@ -115,8 +114,9 @@ final readonly class RefreshValuationAfterOperation
             prices: null,
             observedCash: self::cash($account, $observedCash),
             observedTotal: null,
-            note: self::NOTE,
+            note: null,
             version: $current?->version,
+            source: ValuationSource::REFRESH,
         );
     }
 
@@ -154,8 +154,9 @@ final readonly class RefreshValuationAfterOperation
             prices: $prices,
             observedCash: self::cash($account, $observedCash),
             observedTotal: null,
-            note: self::NOTE,
+            note: null,
             version: $current?->version,
+            source: ValuationSource::REFRESH,
         );
     }
 

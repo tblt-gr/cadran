@@ -446,7 +446,7 @@ final class HoldingsAggregatorTest extends TestCase
         $allocation = self::map($result['allocation']);
         foreach (['byInstrument', 'byAssetClass', 'byRegion'] as $key) {
             $slices = self::list($allocation[$key]);
-            self::assertSame([['key' => 'UNSPLIT', 'label' => 'Comptes valorisés en total', 'value' => '1500.00', 'share' => '1.000000000000000000000000']], $slices, $key);
+            self::assertSame([['key' => 'UNSPLIT', 'label' => 'UNSPLIT', 'value' => '1500.00', 'share' => '1.000000000000000000000000']], $slices, $key);
         }
         $byAccount = self::list($allocation['byAccount']);
         self::assertSame(['Un', 'Deux'], array_column($byAccount, 'label'));
@@ -601,7 +601,7 @@ final class HoldingsAggregatorTest extends TestCase
         $allocation = self::map($result['allocation']);
         $classes = self::list($allocation['byAssetClass']);
         self::assertSame(['EQUITY', 'UNSPECIFIED'], array_column($classes, 'key'));
-        self::assertSame('Non renseignée', $classes[1]['label']);
+        self::assertSame('UNSPECIFIED', $classes[1]['label']);
         self::assertSame('1510.00', $classes[0]['value']);
         self::assertSame('1000.00', $classes[1]['value']);
         $regions = self::list($allocation['byRegion']);

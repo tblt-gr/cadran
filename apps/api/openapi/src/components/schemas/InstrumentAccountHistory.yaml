@@ -44,7 +44,7 @@ properties:
       - integer
       - 'null'
     minimum: 0
-    maximum: 5000
+    maximum: 10000
   firstOperationOn:
     type:
       - string

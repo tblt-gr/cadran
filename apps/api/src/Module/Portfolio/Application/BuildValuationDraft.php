@@ -95,13 +95,8 @@ final readonly class BuildValuationDraft
             }
             $best[$details->instrumentId] = ['price' => $details->unitPrice, 'date' => $details->tradeDate, 'kind' => 'OPERATION', 'id' => $operation->id];
         }
-        // Prices come most recent first; a valuation price wins ties with an operation of the same date.
-        $seen = [];
+        // At most the most recent price per instrument; it wins ties with an operation of the same date.
         foreach ($this->valuations->observedPrices($workspace, $accountId, $instrumentIds, $valuedOn) as $observed) {
-            if (isset($seen[$observed->instrumentId])) {
-                continue;
-            }
-            $seen[$observed->instrumentId] = true;
             $known = $best[$observed->instrumentId] ?? null;
             if (null === $known || $observed->priceDate >= $known['date']) {
                 $best[$observed->instrumentId] = ['price' => $observed->price, 'date' => $observed->priceDate, 'kind' => 'VALUATION', 'id' => $observed->valuationId];

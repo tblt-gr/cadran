@@ -1,4 +1,8 @@
 type: object
+description: >-
+  A system bucket (SECURITIES, CASH, UNSPECIFIED, OTHERS) carries its key as
+  label, which the client translates. Instrument names, class, region and
+  currency codes are carried as they are.
 additionalProperties: false
 required:
   - key

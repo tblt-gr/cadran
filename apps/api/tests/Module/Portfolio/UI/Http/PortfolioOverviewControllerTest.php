@@ -112,7 +112,7 @@ final class PortfolioOverviewControllerTest extends WebTestCase
         self::assertCount(2, $items);
         self::assertSame('UNSPECIFIED', self::map($items[0])['key']);
         self::assertSame('2471.421', self::map($items[0])['value']);
-        self::assertSame('Non renseignée', self::map($items[0])['label']);
+        self::assertSame('UNSPECIFIED', self::map($items[0])['label']);
         self::assertSame('CASH', self::map($items[1])['key']);
         self::assertNull($allocation['reason']);
         $sum = \App\Module\Foundation\Domain\ExactDecimal::addForResponse(self::string(self::map($items[0])['share']), self::string(self::map($items[1])['share']));

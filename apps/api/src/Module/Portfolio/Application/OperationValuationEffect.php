@@ -11,7 +11,8 @@ use App\Module\Portfolio\Domain\OperationType;
 
 /**
  * What an operation restates in the valuation of the day: which types a refresh follows, the net change of quantity
- * per instrument and the price of the purchase. Every other type keeps its behaviour and refreshes nothing.
+ * per instrument and the price of the purchase. A security transfer is not followed by itself, yet its quantity is
+ * known, so correcting a followed operation into one refreshes. A split, merger or spin-off has no net quantity.
  */
 final class OperationValuationEffect
 {
@@ -36,8 +37,8 @@ final class OperationValuationEffect
             return [];
         }
         $effect = match ($details->type) {
-            OperationType::BUY => 1,
-            OperationType::SELL => -1,
+            OperationType::BUY, OperationType::SECURITY_TRANSFER_IN => 1,
+            OperationType::SELL, OperationType::SECURITY_TRANSFER_OUT => -1,
             default => 0,
         };
 

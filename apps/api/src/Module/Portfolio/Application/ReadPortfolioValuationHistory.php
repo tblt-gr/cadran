@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application;
 
 use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
-use Symfony\Component\Clock\ClockInterface;
 
 /** The active valuations of an account over a range, oldest first and bounded: the series a chart plots. */
 final readonly class ReadPortfolioValuationHistory
@@ -18,7 +18,7 @@ final readonly class ReadPortfolioValuationHistory
         private PortfolioAccountGate $gate,
         private ValuationRepository $valuations,
         private PortfolioValuationPresenter $presenter,
-        private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
@@ -27,7 +27,7 @@ final readonly class ReadPortfolioValuationHistory
         $workspace = $this->caller->resolveContext()->workspace;
         $account = $this->gate->forRead($workspace, $accountId);
         $fromDay = null === $from ? null : self::day($from);
-        $today = new \DateTimeImmutable($this->clock->now()->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d'), new \DateTimeZone('UTC'));
+        $today = $this->calendar->today();
         $toDay = null === $to ? $today : self::day($to);
         if ($toDay > $today) {
             throw new InvalidHistoryRange('The range cannot end in the future.');

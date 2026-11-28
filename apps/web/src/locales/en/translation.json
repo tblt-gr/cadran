@@ -150,7 +150,8 @@
         "instrument": "asset",
         "account": "account"
       },
-      "unspecified": "Not specified"
+      "unspecified": "Not specified",
+      "unsplit": "Accounts valued as a total"
     },
     "table": {
       "caption": "Positions by asset",
@@ -2572,7 +2573,10 @@
       "atCost": "· at cost",
       "partial": "Partial valuation: the allocation is not calculable",
       "costNote": "Valuation entered as a total: the value of each line is not known, so the allocation follows the cost basis of the securities held.",
-      "plotLabel": "Portfolio allocation"
+      "plotLabel": "Portfolio allocation",
+      "securities": "Securities",
+      "cash": "Cash",
+      "others": "Other"
     },
     "positions": {
       "unknownCost": "Unknown cost",
@@ -3320,7 +3324,12 @@
         "complete": "Complete",
         "partial": "Partial",
         "statementTotal": "Statement total",
-        "note": "Note"
+        "note": "Note",
+        "origin": {
+          "label": "Origin",
+          "REFRESH": "Updated after an operation",
+          "TAKEOVER": "Position takeover"
+        }
       },
       "detailModal": {
         "titleFallback": "Valuation",

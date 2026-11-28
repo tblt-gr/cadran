@@ -23,9 +23,12 @@ use App\Module\Portfolio\Application\PriceInput;
 use App\Module\Portfolio\Application\RecordPortfolioValuation;
 use App\Module\Portfolio\Application\ValuationInput;
 use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
+use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\Takeover\PortfolioTakeover;
 use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverBlockReason;
 use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverRepository;
+use App\Module\Portfolio\Domain\Valuation\ValuationDetail;
+use App\Module\Portfolio\Domain\Valuation\ValuationSource;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -34,8 +37,6 @@ use Symfony\Component\Clock\ClockInterface;
  */
 final readonly class TakeOverPortfolioPositions
 {
-    public const string VALUATION_NOTE = 'Reprise des positions.';
-
     public function __construct(
         private CallerWorkspaceContext $caller,
         private PortfolioAccountGate $gate,
@@ -104,7 +105,7 @@ final readonly class TakeOverPortfolioPositions
         $prices = [];
         foreach ($resolved->lines as $offset => $line) {
             $operation = $this->recordOperation($context, $account, new OperationInput(
-                type: 'SECURITY_TRANSFER_IN',
+                type: OperationType::SECURITY_TRANSFER_IN->value,
                 tradeDate: $day,
                 instrumentId: $line->instrumentId,
                 quantity: $input->lines[$offset]->quantity,
@@ -115,13 +116,13 @@ final readonly class TakeOverPortfolioPositions
         }
         if (null !== $resolved->cash && !ExactDecimal::isZero($resolved->cash)) {
             $operationIds[] = $this->recordOperation($context, $account, new OperationInput(
-                type: 'DEPOSIT',
+                type: OperationType::DEPOSIT->value,
                 tradeDate: $day,
                 grossAmount: new AmountInput($resolved->cash->toString(), $account->assetCode->toString()),
             ), $today, $now, null);
         }
 
-        $valuation = ($this->recordValuation)($account->id, new ValuationInput($day, 'POSITIONS', null, $prices, null, null, self::VALUATION_NOTE, null));
+        $valuation = ($this->recordValuation)($account->id, new ValuationInput($day, ValuationDetail::POSITIONS->value, null, $prices, null, null, null, null, ValuationSource::TAKEOVER));
         $takeover = new PortfolioTakeover($this->uuid->generate(), $context->workspace, $account->id, $takenOverOn, $valuation->valuation->id, $now);
         $this->takeovers->add($takeover);
         ($this->audit)(new AuditEventRecord(
@@ -136,7 +137,8 @@ final readonly class TakeOverPortfolioPositions
     private function recordOperation(WorkspaceContext $context, Account $account, OperationInput $operation, \DateTimeImmutable $today, \DateTimeImmutable $now, ?int $line): string
     {
         // The first write freezes the account and bumps its version: each operation starts from the stored row.
-        $account = $this->gate->forWrite($context->workspace, $account->id, true);
+        // The row stays locked by `lockedAccount` for the whole transaction, so this read does not lock again.
+        $account = $this->gate->forWrite($context->workspace, $account->id, false);
         try {
             $resolved = $this->operationResolver->resolve($account, $operation, $today, true);
         } catch (InvalidPortfolioOperation $exception) {

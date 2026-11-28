@@ -61,6 +61,7 @@ final class PortfolioOperationRow
             legs: $legs,
             withheldIncomeTax: self::decimal($row, 'withheld_income_tax'),
             withheldSocialContributions: self::decimal($row, 'withheld_social_contributions'),
+            stored: true,
         );
 
         return new PortfolioOperation(

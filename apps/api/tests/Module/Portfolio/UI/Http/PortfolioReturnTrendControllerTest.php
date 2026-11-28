@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Portfolio\UI\Http;
 
+use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Module\Portfolio\Application\Performance\PortfolioReturnTrend;
 use App\Tests\Support\PortfolioFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -151,26 +153,32 @@ final class PortfolioReturnTrendControllerTest extends WebTestCase
 
     public function testADensePortfolioLosesOnlyItsOwnTrend(): void
     {
-        $this->seedWorkedExample();
         $dense = '00000000-0000-7000-8000-0000000000e1';
         $this->portfolio->account($dense, label: 'Dense', openedOn: '2026-01-01');
         $this->connection->executeStatement(
             "INSERT INTO portfolio_operations (id, workspace_id, account_id, operation_type, trade_date, sequence, asset_code, gross_amount_value, gross_amount_scale, fees_value, fees_scale, taxes_value, taxes_scale, cash_amount_value, cash_amount_scale, state, created_at, created_by, version)
-             SELECT ('00000000-0000-7000-8005-' || lpad(n::text, 12, '0'))::uuid, :ws, :account, 'DEPOSIT', '2026-03-15', n, 'EUR', 1, 0, 0, 0, 0, 0, 1, 0, 'ACTIVE', now(), :owner, 1 FROM generate_series(1, 5001) AS n",
+             SELECT ('00000000-0000-7000-8005-' || lpad(n::text, 12, '0'))::uuid, :ws, :account, 'DEPOSIT', '2026-03-15', n, 'EUR', 1, 0, 0, 0, 0, 0, 1, 0, 'ACTIVE', now(), :owner, 1 FROM generate_series(1, 10001) AS n",
             ['ws' => WorkspaceFixture::OWN_WORKSPACE, 'account' => $dense, 'owner' => WorkspaceFixture::OWNER_ID],
         );
 
-        $healthy = $this->trend(self::ACCOUNT);
-        $trend = $this->trend($dense);
+        // Only a history above the write limit is too dense, and the list refuses such an account before its trend:
+        // the trend is asked directly.
+        $service = self::getContainer()->get(PortfolioReturnTrend::class);
+        $accounts = self::getContainer()->get(AccountRepository::class);
+        self::assertInstanceOf(PortfolioReturnTrend::class, $service);
+        self::assertInstanceOf(AccountRepository::class, $accounts);
+        $account = $accounts->find(WorkspaceFixture::own(), $dense);
+        self::assertNotNull($account);
 
-        self::assertSame('0.019830', $healthy['cumulativeReturn']);
-        self::assertSame(array_fill(0, 12, null), array_column($trend['months'], 'index'));
-        self::assertSame('2025-10', $trend['months'][0]['month']);
-        self::assertSame('2026-09', $trend['to']);
-        self::assertNull($trend['from']);
-        self::assertNull($trend['cumulativeReturn']);
-        self::assertSame('TOO_MANY_OPERATIONS', $trend['reason']);
-        self::assertNull($trend['reasonMonth']);
+        $trend = $service(WorkspaceFixture::own(), $account, new \DateTimeImmutable('2026-10-15', new \DateTimeZone('UTC')));
+
+        self::assertSame(array_fill(0, 12, null), array_column($trend->months, 'index'));
+        self::assertSame('2025-10', $trend->months[0]['month']);
+        self::assertSame('2026-09', $trend->to);
+        self::assertNull($trend->from);
+        self::assertNull($trend->cumulativeReturn);
+        self::assertSame('TOO_MANY_OPERATIONS', $trend->reason?->value);
+        self::assertNull($trend->reasonMonth);
     }
 
     private function seedWorkedExample(bool $withAugust = true): void

@@ -1,9 +1,11 @@
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { act, render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { afterEach, describe, it, expect, vi } from 'vitest';
-import '@/i18n';
+import i18n from '@/i18n';
+import english from '@/locales/en/translation.json';
 import { AllocationCard } from './AllocationCard';
 import { allocationFixture } from '@/features/portfolio/portfolio-account/overviewFixtures';
 afterEach(cleanup);
+i18n.addResourceBundle('en', 'translation', english);
 describe('AllocationCard', () => {
   it('dates the complete observation actually used, rather than the selected day', () => {
     const allocation = allocationFixture();
@@ -52,11 +54,11 @@ describe('AllocationCard', () => {
       allocation.items = [
         {
           key: 'SECURITIES',
-          label: 'Titres',
+          label: 'SECURITIES',
           value: values.securities,
           share: values.securitiesShare,
         },
-        { key: 'CASH', label: 'Espèces', value: values.cash, share: values.cashShare },
+        { key: 'CASH', label: 'CASH', value: values.cash, share: values.cashShare },
       ];
       allocation.slices = allocation.items;
       render(<AllocationCard allocation={allocation} by="INSTRUMENT" onByChange={vi.fn()} />);
@@ -113,13 +115,40 @@ describe('AllocationCard', () => {
       by: 'REGION' as const,
       items: [
         { key: 'WORLD', label: 'WORLD', value: '75', share: '0.75' },
-        { key: 'CASH', label: 'Espèces', value: '25', share: '0.25' },
+        { key: 'CASH', label: 'CASH', value: '25', share: '0.25' },
       ],
     };
     render(<AllocationCard allocation={allocation} by="REGION" onByChange={vi.fn()} />);
     expect(screen.getByRole('rowheader', { name: 'Monde' })).toBeTruthy();
     expect(screen.getByRole('rowheader', { name: 'Espèces' })).toBeTruthy();
   });
+  it.each([
+    ['fr', ['Titres', 'Espèces', 'Non renseignée', 'Autres']],
+    ['en', ['Securities', 'Cash', 'Not specified', 'Other']],
+  ])('translates the server buckets by key in %s', async (language, names) => {
+    const items = ['SECURITIES', 'CASH', 'UNSPECIFIED', 'OTHERS'].map((key) => ({
+      key,
+      label: key,
+      value: '25',
+      share: '0.25',
+    }));
+    await act(() => i18n.changeLanguage(language));
+    try {
+      render(
+        <AllocationCard
+          allocation={{ ...allocationFixture(), items, slices: items }}
+          by="INSTRUMENT"
+          onByChange={vi.fn()}
+        />,
+      );
+      for (const name of names) {
+        expect(screen.getByRole('rowheader', { name })).toBeTruthy();
+      }
+    } finally {
+      await act(() => i18n.changeLanguage('fr'));
+    }
+  });
+
   it('splits a total-only valuation at cost and says so', () => {
     render(
       <AllocationCard

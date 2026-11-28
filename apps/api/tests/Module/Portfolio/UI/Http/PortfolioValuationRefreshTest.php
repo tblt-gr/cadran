@@ -26,7 +26,6 @@ final class PortfolioValuationRefreshTest extends WebTestCase
     private const string OTHER_PORTFOLIO = '00000000-0000-7000-8000-0000000000d9';
     private const string A = PortfolioFixture::ETF;
     private const string B = PortfolioFixture::STOCK;
-    private const string NOTE = 'Mise à jour automatique après une opération.';
     private const string TODAY = '2026-11-10';
 
     private KernelBrowser $client;
@@ -83,7 +82,8 @@ final class PortfolioValuationRefreshTest extends WebTestCase
         $this->operation($this->buy(self::A, '2', '110.00', '220.00', '1.00'));
 
         $valuation = $this->today();
-        self::assertSame(['1200', '279', '1479', 'DERIVED', 'POSITIONS', self::NOTE], [$valuation['securities'], $valuation['cash'], $valuation['total'], $valuation['source'], $valuation['detail'], $valuation['note']]);
+        self::assertSame(['1200', '279', '1479', 'DERIVED', 'POSITIONS', null], [$valuation['securities'], $valuation['cash'], $valuation['total'], $valuation['source'], $valuation['detail'], $valuation['note']]);
+        $this->assertRefreshedByServer();
         self::assertSame([[self::A, '12', '100', $this->day(-3), 'CURRENT']], $this->lines());
         self::assertSame('1479', $this->netWorthFigure());
     }
@@ -163,6 +163,56 @@ final class PortfolioValuationRefreshTest extends WebTestCase
         $valuation = $this->today();
         self::assertSame(['1500', '-51', '1449'], [$valuation['securities'], $valuation['cash'], $valuation['total']]);
         self::assertSame([[self::A, '15', '100', $this->day(-3), 'CURRENT']], $this->lines());
+    }
+
+    public function testCorrectingABuyIntoATransferInOfTheSameQuantityRestatesTheCash(): void
+    {
+        $this->baseWithPositions();
+        $buy = $this->operation($this->buy(self::A, '2', '110.00', '220.00', '1.00'));
+        self::assertSame('279', $this->today()['cash']);
+
+        $this->correct($buy, ['type' => 'SECURITY_TRANSFER_IN', 'tradeDate' => $this->day(0), 'instrumentId' => self::A, 'quantity' => '2', 'costBasis' => self::eur('220.00')]);
+
+        $valuation = $this->today();
+        self::assertSame(['1200', '500', '1700'], [$valuation['securities'], $valuation['cash'], $valuation['total']]);
+        self::assertSame([[self::A, '12', '100', $this->day(-3), 'CURRENT']], $this->lines());
+        $this->assertRefreshedByServer();
+    }
+
+    public function testCorrectingASaleIntoADepositRestatesTheLinesAndTheCash(): void
+    {
+        $this->baseWithPositions();
+        $sale = $this->operation($this->sell('4', '120.00', '480.00', '2.00'));
+
+        $this->correct($sale, ['type' => 'DEPOSIT', 'tradeDate' => $this->day(0), 'grossAmount' => self::eur('100.00')]);
+
+        $valuation = $this->today();
+        self::assertSame(['1000', '600', '1600'], [$valuation['securities'], $valuation['cash'], $valuation['total']]);
+        self::assertSame([[self::A, '10', '100', $this->day(-3), 'CURRENT']], $this->lines());
+    }
+
+    public function testCorrectingABuyIntoASplitRecordsNothing(): void
+    {
+        $this->baseWithPositions();
+        $buy = $this->operation($this->buy(self::A, '2', '110.00', '220.00'));
+        $before = $this->countValuations();
+
+        $this->correct($buy, ['type' => 'SPLIT', 'tradeDate' => $this->day(0), 'instrumentId' => self::A, 'ratio' => ['numerator' => '3', 'denominator' => '1']]);
+
+        self::assertSame($before, $this->countValuations());
+    }
+
+    public function testARefreshedValuationAnswersItsOriginWithoutANote(): void
+    {
+        $this->baseWithPositions();
+        $this->operation($this->buy(self::A, '2', '110.00', '220.00'));
+
+        $id = self::text($this->connection->fetchOne('SELECT id FROM portfolio_valuations WHERE account_id = :account AND valued_on = :day AND superseded_at IS NULL', ['account' => self::PORTFOLIO, 'day' => $this->day(0)]));
+        $this->client->request('GET', '/api/v1/portfolio-valuations/'.$id, server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseIsSuccessful((string) $this->client->getResponse()->getContent());
+        $body = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertIsArray($body);
+        self::assertSame(['REFRESH', null], [$body['source'], $body['note']]);
     }
 
     public function testTwoBuysOfTheSameDayLeaveOneActiveValuation(): void
@@ -329,7 +379,8 @@ final class PortfolioValuationRefreshTest extends WebTestCase
         $this->operation(['type' => 'DEPOSIT', 'tradeDate' => $this->day(0), 'grossAmount' => self::eur('100.00')]);
 
         $valuation = $this->today();
-        self::assertSame(['TOTAL', '1600', '600', self::NOTE], [$valuation['detail'], $valuation['total'], $valuation['cash'], $valuation['note']]);
+        self::assertSame(['TOTAL', '1600', '600', null], [$valuation['detail'], $valuation['total'], $valuation['cash'], $valuation['note']]);
+        $this->assertRefreshedByServer();
     }
 
     public function testASaleOnATotalBaseRecordsNoValuation(): void
@@ -401,6 +452,18 @@ final class PortfolioValuationRefreshTest extends WebTestCase
         self::assertResponseStatusCodeSame(201);
         self::assertSame($valuations, $this->countValuations());
         self::assertSame(1, $this->activeToday());
+    }
+
+    /** @param array<string, mixed> $operation */
+    private function correct(string $id, array $operation): void
+    {
+        $this->send('POST', '/api/v1/portfolio-operations/'.$id.'/correct', ['version' => 1, 'operation' => $operation]);
+        self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+    }
+
+    private function assertRefreshedByServer(): void
+    {
+        self::assertSame('REFRESH', $this->connection->fetchOne('SELECT source FROM portfolio_valuations WHERE account_id = :account AND valued_on = :day AND superseded_at IS NULL', ['account' => self::PORTFOLIO, 'day' => $this->day(0)]));
     }
 
     private function totalBase(): void

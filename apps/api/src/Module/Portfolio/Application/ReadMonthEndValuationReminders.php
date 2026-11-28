@@ -22,7 +22,7 @@ final readonly class ReadMonthEndValuationReminders
     /** @return array{today: string, items: list<array{accountId: string, accountLabel: string, month: string, valuationDate: string}>} */
     public function __invoke(WorkspaceScope $workspace): array
     {
-        $today = $this->dueMonths->today($workspace);
+        $today = $this->dueMonths->today();
         $accounts = array_slice(($this->accounts)($workspace), 0, ListPortfolios::MAX_ACCOUNTS);
         $labels = [];
         foreach ($accounts as $account) {

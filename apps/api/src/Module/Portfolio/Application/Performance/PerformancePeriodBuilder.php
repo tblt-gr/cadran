@@ -25,8 +25,6 @@ use App\Module\Reference\Application\AssetCatalog;
 /** Resolves the two anchors of a period and the operations between them; it computes no figure. */
 final readonly class PerformancePeriodBuilder
 {
-    public const int MAX_OPERATIONS = 5000;
-
     public function __construct(
         private ValuationRepository $valuations,
         private PortfolioOperationRepository $operations,
@@ -37,7 +35,7 @@ final readonly class PerformancePeriodBuilder
     }
 
     /**
-     * The active history of the account, read once and bounded; a series of periods shares it through `build`.
+     * The active history of the account, read once and bounded.
      *
      * @return list<PortfolioOperation>
      *
@@ -45,7 +43,7 @@ final readonly class PerformancePeriodBuilder
      */
     public function history(WorkspaceScope $workspace, Account $account): array
     {
-        if ($this->operations->countActive($workspace, $account->id) > self::MAX_OPERATIONS) {
+        if ($this->operations->countActive($workspace, $account->id) > PortfolioOperation::MAX_ACTIVE_PER_ACCOUNT) {
             throw new PerformanceRangeTooDense('The portfolio history exceeds the performance read bound.');
         }
 
@@ -53,12 +51,27 @@ final readonly class PerformancePeriodBuilder
     }
 
     /**
-     * @param list<PortfolioOperation>|null $loadedHistory the account history already read and bounded for this request,
-     *                                                     which a series of periods shares instead of reloading it
+     * What a request shares between the periods it reads of one account.
+     *
+     * @throws PerformanceRangeTooDense
      */
-    public function build(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null, PerformanceHistoryStart $historyStart = PerformanceHistoryStart::FIRST_OBSERVATION): PerformancePeriodData
+    public function series(WorkspaceScope $workspace, Account $account): PerformanceSeries
     {
-        $history = $loadedHistory ?? $this->history($workspace, $account);
+        return new PerformanceSeries($workspace, $account->id, $this->history($workspace, $account));
+    }
+
+    /** A series passed by the caller resolves each of its periods once. */
+    public function build(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?PerformanceSeries $series = null, PerformanceHistoryStart $historyStart = PerformanceHistoryStart::FIRST_OBSERVATION): PerformancePeriodData
+    {
+        $series ??= $this->series($workspace, $account);
+
+        return $series->period($workspace, $account->id, $period, $historyStart,
+            fn (): PerformancePeriodData => $this->resolve($workspace, $account, $period, $today, $series, $historyStart));
+    }
+
+    private function resolve(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, PerformanceSeries $series, PerformanceHistoryStart $historyStart): PerformancePeriodData
+    {
+        $history = $series->history;
         $precision = ($this->assets->findByCode($account->assetCode) ?? throw new \LogicException('An account asset is missing from the reference.'))->precision->display;
         $blocking = [];
         $takeover = $this->takeovers->findByAccount($workspace, $account->id);
@@ -121,7 +134,7 @@ final readonly class PerformancePeriodBuilder
             $blocking[] = new PerformanceFinding($endPartial ? PerformanceReason::END_VALUATION_PARTIAL : PerformanceReason::NO_END_VALUATION, $endMissing);
         }
 
-        $views = $this->presenter->present($workspace, array_values(array_filter([$startValuation, $endValuation])));
+        $views = $this->presenter->present($workspace, array_values(array_filter([$startValuation, $endValuation])), $series->loaded);
         $start = $startOpening ?? (null === $startValuation ? null : self::anchor($views[0]->valuation, $views[0]->flags));
         $end = null === $endValuation ? null : self::anchor($views[null === $startValuation ? 0 : 1]->valuation, $views[null === $startValuation ? 0 : 1]->flags);
 

@@ -8,11 +8,13 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Portfolio\Application\Performance\ComputePortfolioPerformance;
+use App\Module\Portfolio\Application\Takeover\TakeoverInput;
 use App\Module\Portfolio\Domain\Performance\PerformanceHistoryStart;
 use App\Module\Portfolio\Domain\Performance\PerformancePeriod;
 use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\PortfolioFixture;
 use App\Tests\Support\WorkspaceFixture;
+use Doctrine\Bundle\DoctrineBundle\Middleware\BacktraceDebugDataHolder;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Psr\Cache\CacheItemPoolInterface;
@@ -200,14 +202,19 @@ final class PortfolioTakeoverControllerTest extends WebTestCase
         self::assertSame('480', self::plain($operations[0]['cost_basis_value']));
         self::assertNull($operations[1]['cost_basis_value']);
         self::assertSame('120', self::plain($operations[2]['gross_amount_value']));
-        $valuation = $this->connection->fetchAssociative('SELECT valued_on, detail, completeness, total_value_value, securities_value_value, cash_value, cash_source, note, observed_total_value FROM portfolio_valuations WHERE account_id = ?', [self::ACCOUNT]);
+        $valuation = $this->connection->fetchAssociative('SELECT valued_on, detail, completeness, total_value_value, securities_value_value, cash_value, cash_source, source, note, observed_total_value FROM portfolio_valuations WHERE account_id = ?', [self::ACCOUNT]);
         self::assertIsArray($valuation);
         self::assertSame(['valued_on' => '2026-10-31', 'detail' => 'POSITIONS', 'completeness' => 'COMPLETE', 'total_value' => '1627.5', 'securities' => '1507.5', 'cash' => '120'], [
             'valued_on' => $valuation['valued_on'], 'detail' => $valuation['detail'], 'completeness' => $valuation['completeness'],
             'total_value' => self::plain($valuation['total_value_value']), 'securities' => self::plain($valuation['securities_value_value']), 'cash' => self::plain($valuation['cash_value']),
         ]);
         self::assertSame('DERIVED', $valuation['cash_source']);
-        self::assertSame('Reprise des positions.', $valuation['note']);
+        self::assertSame('TAKEOVER', $valuation['source']);
+        self::assertNull($valuation['note']);
+        $this->get('/api/v1/portfolio-valuations/'.self::plain($takeover['valuationId']));
+        self::assertResponseIsSuccessful();
+        self::assertSame(['TAKEOVER', null], [$this->decode()['source'], $this->decode()['note']]);
+        $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-takeover');
         self::assertNull($valuation['observed_total_value']);
         self::assertSame(1, $this->rows('portfolio_takeovers'));
         self::assertSame('1627.5', self::plain($this->connection->fetchOne("SELECT amount_literal FROM account_balance_snapshots WHERE account_id = ? AND source = 'CALCULATED' AND superseded_at IS NULL", [self::ACCOUNT])));
@@ -220,6 +227,28 @@ final class PortfolioTakeoverControllerTest extends WebTestCase
         self::assertSame($takeover['id'], self::member($state, 'takeover', 'id'));
         self::assertSame($takeover['valuationId'], self::member($state, 'takeover', 'valuationId'));
         self::assertSame($takeover['operationIds'], self::member($state, 'takeover', 'operationIds'));
+    }
+
+    public function testATakeoverOfTwoHundredLinesLocksTheAccountOnceBeforeTheValuationLocksIt(): void
+    {
+        $portfolio = new PortfolioFixture($this->connection);
+        $lines = [];
+        for ($index = 1; $index <= TakeoverInput::MAX_LINES; ++$index) {
+            $id = sprintf('00000000-0000-7000-8000-%012d', 900000 + $index);
+            $portfolio->instrument($id, name: 'Titre '.$index);
+            $lines[] = ['instrumentId' => $id, 'quantity' => '1', 'price' => '10.00', 'costBasis' => '9.00'];
+        }
+        $holder = self::getContainer()->get('doctrine.debug_data_holder');
+        self::assertInstanceOf(BacktraceDebugDataHolder::class, $holder);
+        $holder->reset();
+
+        $this->post('', ['takenOverOn' => '2026-10-31', 'lines' => $lines], self::KEY);
+
+        self::assertResponseStatusCodeSame(201, (string) $this->client->getResponse()->getContent());
+        $queries = array_merge(...array_values($holder->getData()));
+        $locks = array_filter($queries, static fn (array $query): bool => is_string($query['sql']) && str_contains($query['sql'], 'FROM account_financial_accounts') && str_contains($query['sql'], 'FOR UPDATE'));
+        // The takeover, the valuation use case it ends with and its net worth publication: none per line.
+        self::assertCount(3, $locks);
     }
 
     public function testTheAuditTrailCarriesIdentifiersAndCountsOnly(): void

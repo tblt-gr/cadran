@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\Application\LifeInsurance;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Portfolio\Application\Performance\ComputePortfolioPerformance;
 use App\Module\Portfolio\Application\Performance\PerformancePeriodBuilder;
+use App\Module\Portfolio\Application\Performance\PerformanceSeries;
 use App\Module\Portfolio\Application\PortfolioAccountGate;
 use App\Module\Portfolio\Application\PortfolioOverviewQuery;
 use App\Module\Portfolio\Application\ValuationResolver;
@@ -103,7 +104,7 @@ final readonly class ReadLifeInsuranceSummary
 
         return ['asOf' => $asOf->format('Y-m-d'), 'assetCode' => $account->assetCode->toString(), 'contract' => $contract,
             'valuation' => $valuation, 'allocation' => ['status' => $status, 'items' => $items], 'cumulative' => $cumulative,
-            'gainSinceOpening' => ($this->performance)($workspace, $account, PerformancePeriod::of('INCEPTION', null, $asOf, $account->openedOn), $asOf, $history, PerformanceHistoryStart::OPENING),
+            'gainSinceOpening' => ($this->performance)($workspace, $account, PerformancePeriod::of('INCEPTION', null, $asOf, $account->openedOn), $asOf, new PerformanceSeries($workspace, $account->id, $history), PerformanceHistoryStart::OPENING),
             'supports' => $supportData['supports'] ?? [], 'taxYears' => $years,
             'contractAge' => null === $age ? null : ['taxStartOn' => $contract->taxStartOn->format('Y-m-d'), 'years' => $age->y, 'months' => $age->m],
             'taxEstimate' => ['status' => 'NO_RULE_SET', 'ruleSetId' => null], 'qualityIssues' => $issues];

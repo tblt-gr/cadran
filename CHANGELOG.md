@@ -16,6 +16,8 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   time, and refuse a duplicate recurrence.
 - Show the right error message when a request is refused instead of a server error.
 - Refuse a dated category replacement that would change a closed month, and explain the refusal.
+- Read performance of portfolio accounts holding more than 5 000 operations, and translate
+  allocation labels in English.
 
 ### Security
 

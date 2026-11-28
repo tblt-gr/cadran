@@ -277,6 +277,22 @@ final class PortfolioOperationControllerTest extends WebTestCase
         self::assertNull($this->connection->fetchOne('SELECT used_at FROM portfolio_instruments WHERE id = ?', [self::ETF]));
     }
 
+    public function testAStoredRowBreakingACurrentRuleIsStillReadWhileTheSameInputIsRefused(): void
+    {
+        $input = ['type' => 'DEPOSIT', 'tradeDate' => '2026-03-02', 'grossAmount' => $this->eur('10')];
+        $id = self::string($this->record($input)['id']);
+        // Accepted once, settled 40 days after the trade: today's rule allows 31.
+        $this->connection->executeStatement("UPDATE portfolio_operations SET settlement_date = '2026-04-11' WHERE id = ?", [$id]);
+
+        $this->get('/api/v1/portfolio-operations/'.$id);
+        self::assertResponseStatusCodeSame(200, (string) $this->client->getResponse()->getContent());
+        self::assertSame('2026-04-11', $this->decode()['settlementDate']);
+
+        $this->post(['settlementDate' => '2026-04-11'] + $input);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('invalid_settlement_date', $this->decode()['code']);
+    }
+
     public function testTheForeignInstrumentAnswersLikeAnUnknownOne(): void
     {
         $answer = static function (self $test, string $id): string {

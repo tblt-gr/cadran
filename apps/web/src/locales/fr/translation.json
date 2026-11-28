@@ -150,7 +150,8 @@
         "instrument": "actif",
         "account": "compte"
       },
-      "unspecified": "Non renseignée"
+      "unspecified": "Non renseignée",
+      "unsplit": "Comptes valorisés en total"
     },
     "table": {
       "caption": "Positions par actif",
@@ -2572,7 +2573,10 @@
       "atCost": "· au prix de revient",
       "partial": "Valorisation partielle : la répartition n’est pas calculable",
       "costNote": "Valorisation saisie en total : la valeur de chaque ligne n’est pas connue, la répartition suit le prix de revient des titres détenus.",
-      "plotLabel": "Répartition du portefeuille"
+      "plotLabel": "Répartition du portefeuille",
+      "securities": "Titres",
+      "cash": "Espèces",
+      "others": "Autres"
     },
     "positions": {
       "unknownCost": "Coût inconnu",
@@ -3320,7 +3324,12 @@
         "complete": "Complète",
         "partial": "Partielle",
         "statementTotal": "Total du relevé",
-        "note": "Note"
+        "note": "Note",
+        "origin": {
+          "label": "Origine",
+          "REFRESH": "Mise à jour après une opération",
+          "TAKEOVER": "Reprise des positions"
+        }
       },
       "detailModal": {
         "titleFallback": "Valorisation",

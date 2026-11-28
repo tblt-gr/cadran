@@ -163,7 +163,7 @@ final class InstrumentHoldingControllerTest extends WebTestCase
         $seed = $this->connection->fetchAssociative('SELECT * FROM portfolio_operations WHERE workspace_id = :workspace AND account_id = :account AND operation_type = :type', ['workspace' => WorkspaceFixture::OWN_WORKSPACE, 'account' => self::PEA, 'type' => 'DEPOSIT']);
         self::assertIsArray($seed);
         $this->connection->transactional(function () use ($seed): void {
-            for ($index = 2; $index <= 5000; ++$index) {
+            for ($index = 2; $index <= 10000; ++$index) {
                 $row = $seed;
                 $row['id'] = '00000000-0000-7000-8000-'.sprintf('%012x', 100000 + $index);
                 $row['sequence'] = $index;

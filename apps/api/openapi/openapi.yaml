@@ -2103,7 +2103,7 @@ paths:
     get:
       operationId: readInstrumentHolding
       summary: Read an instrument holding and lifetime account gains
-      description: Uses retained valuations and one bounded active history per account, up to 50 accounts. Unknown, malformed and foreign instruments answer the same instrument_not_found 404. Histories beyond 5000 operations return an account row with all figures, count and dates null and HISTORY_TOO_LARGE; other accounts remain computed. No financial data is logged.
+      description: Uses retained valuations and one bounded active history per account, up to 50 accounts. Unknown, malformed and foreign instruments answer the same instrument_not_found 404. Histories beyond 10000 operations return an account row with all figures, count and dates null and HISTORY_TOO_LARGE; other accounts remain computed. No financial data is logged.
       tags:
         - Portfolio
       security:
@@ -3125,7 +3125,7 @@ paths:
       operationId: readLifeInsuranceSummary
       x-cadran-bounded: Supports are instruments of the workspace, at most 500; flags and reasons come from closed enumerations.
       summary: Read observed life-insurance summary and informative tax tracking
-      description: Latest active COMPLETE valuation on or before asOf, with frozen supports and cash. No projection or tax estimate. Active operations stop at asOf. At most 60 calendar years, 5000 history operations, 2000 operations per year and 20 source previews. Served rates are recorded percentages, never contract returns.
+      description: Latest active COMPLETE valuation on or before asOf, with frozen supports and cash. No projection or tax estimate. Active operations stop at asOf. At most 60 calendar years, 10000 history operations, 2000 operations per year and 20 source previews. Served rates are recorded percentages, never contract returns.
       tags:
         - Portfolio
       security:
@@ -9108,7 +9108,7 @@ components:
             - integer
             - 'null'
           minimum: 0
-          maximum: 5000
+          maximum: 10000
         firstOperationOn:
           type:
             - string
@@ -9275,6 +9275,7 @@ components:
             - type: 'null'
     HoldingAllocationSlice:
       type: object
+      description: A system bucket (UNSPLIT, UNSPECIFIED) carries its key as label, which the client translates. Instrument names, account labels, class and region codes are carried as they are.
       additionalProperties: false
       required:
         - key
@@ -9788,6 +9789,7 @@ components:
       description: Latest active COMPLETE valuation on or before asOf, falling back to the latest PARTIAL only when no complete exists. A newer partial stays explicit and contributes reconciliation warnings and sources. Unrealized gain uses frozen average cost, COMPLETE only. Cash is the one frozen with the selected valuation (observed when the statement gave it, otherwise derived on its date), so it shares the total value date; without valuation it is derived at asOf. Deposits and costs are year-to-date. Reconciliation excludes UNLINKED_EXTERNAL_FLOW and ROUNDING_RESIDUALS. Sources are limited to 50 per KPI.
     PortfolioAllocationItem:
       type: object
+      description: A system bucket (SECURITIES, CASH, UNSPECIFIED, OTHERS) carries its key as label, which the client translates. Instrument names, class, region and currency codes are carried as they are.
       additionalProperties: false
       required:
         - key
@@ -23932,9 +23934,12 @@ components:
           $ref: '#/components/schemas/PortfolioValuationDetail'
         source:
           type: string
+          description: REFRESH and TAKEOVER are recorded by the server itself, after an operation or when the account took over its positions; such a valuation has no note. A request body cannot set the source.
           enum:
             - MANUAL
             - IMPORT
+            - REFRESH
+            - TAKEOVER
         totalValue:
           description: 'Null when the valuation is partial: never zero by default.'
           oneOf:

@@ -51,8 +51,8 @@ final readonly class ReadPortfolioAllocation
             [$items, $slices] = self::split($view, $by, $total,
                 static fn (PositionSnapshot $position): string => $position->averageCostBasis?->toString() ?? throw new \LogicException('Costs are known here.'));
         } elseif ('NOT_DETAILED' === $reason) {
-            $items = [['key' => 'SECURITIES', 'label' => 'Titres', 'value' => $valuation->securitiesValue?->toString(), 'share' => null],
-                ['key' => 'CASH', 'label' => 'Espèces', 'value' => $valuation->cash->toString(), 'share' => null]];
+            $items = [['key' => 'SECURITIES', 'label' => 'SECURITIES', 'value' => $valuation->securitiesValue?->toString(), 'share' => null],
+                ['key' => 'CASH', 'label' => 'CASH', 'value' => $valuation->cash->toString(), 'share' => null]];
         }
 
         return ['asOf' => $asOf->format('Y-m-d'), 'by' => $by, 'assetCode' => $account->assetCode->toString(),
@@ -87,12 +87,12 @@ final readonly class ReadPortfolioAllocation
                 'CURRENCY' => $instrument->currencyCode->toString(),
                 default => $instrument->id,
             };
-            $label = 'INSTRUMENT' === $by ? $instrument->name : ('UNSPECIFIED' === $key ? 'Non renseignée' : $key);
+            $label = 'INSTRUMENT' === $by ? $instrument->name : $key;
             $previous = $buckets[$key]['value'] ?? '0';
             $buckets[$key] = ['key' => $key, 'label' => $label, 'value' => ExactDecimal::addForResponse($previous, $valueOf($position))];
         }
         uasort($buckets, static fn (array $left, array $right): int => strcasecmp($left['label'], $right['label']));
-        $buckets['CASH'] = ['key' => 'CASH', 'label' => 'Espèces', 'value' => $view->valuation->cash->toString()];
+        $buckets['CASH'] = ['key' => 'CASH', 'label' => 'CASH', 'value' => $view->valuation->cash->toString()];
         $figures = OverviewFigures::allocation(array_values($buckets), $total);
 
         return [$figures['items'], $figures['slices']];

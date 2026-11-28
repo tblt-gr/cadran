@@ -45,10 +45,10 @@ final readonly class ComputePortfolioPerformance
     ) {
     }
 
-    /** @param list<PortfolioOperation>|null $loadedHistory the account history read once by the caller for a series of periods */
-    public function __invoke(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?array $loadedHistory = null, PerformanceHistoryStart $historyStart = PerformanceHistoryStart::FIRST_OBSERVATION): PortfolioPerformance
+    public function __invoke(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, \DateTimeImmutable $today, ?PerformanceSeries $series = null, PerformanceHistoryStart $historyStart = PerformanceHistoryStart::FIRST_OBSERVATION): PortfolioPerformance
     {
-        $data = $this->builder->build($workspace, $account, $period, $today, $loadedHistory, $historyStart);
+        $series ??= $this->builder->series($workspace, $account);
+        $data = $this->builder->build($workspace, $account, $period, $today, $series, $historyStart);
 
         $flows = [];
         $total = null;
@@ -57,7 +57,7 @@ final readonly class ComputePortfolioPerformance
                 $data->start ?? throw new \LogicException('A calculable period has a start.'),
                 $data->end ?? throw new \LogicException('A calculable period has an end.'),
                 $data->operations,
-                $this->reconcile->replayOf($workspace, $data->history),
+                $this->reconcile->releasedCostsOf($workspace, $series->loaded, $data->history),
                 $data->displayPrecision,
             );
             $flows = array_values(array_filter($data->operations, ExternalFlow::isExternal(...)));
@@ -75,8 +75,8 @@ final readonly class ComputePortfolioPerformance
         $startValue = $total->startValue ?? $canonical($data->start?->totalValue);
         $endValue = $total->endValue ?? $canonical($data->end?->totalValue);
         $monthly = PerformanceScope::MONTH === $period->scope;
-        $dietz = ($this->modifiedDietz)($workspace, $account, $period, $data, $today);
-        $twr = ($this->timeWeighted)($workspace, $account->id, $period->scope, $data);
+        $dietz = ($this->modifiedDietz)($workspace, $account, $period, $data, $today, $series);
+        $twr = ($this->timeWeighted)($workspace, $account->id, $period->scope, $data, $series->loaded);
         $mwr = ($this->moneyWeighted)($data, $blocking, $warnings);
         $findings = [...$blocking, ...$warnings];
         $twrSources = $this->withAnchors($sources, $twr);

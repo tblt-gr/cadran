@@ -21,16 +21,17 @@ final readonly class PositionsChangedDetector
     /**
      * One replay of the account's operations serves every valuation, whatever their number.
      *
-     * @param list<Valuation> $valuations active valuations of the account
+     * @param list<Valuation>             $valuations active valuations of the account
+     * @param LoadedOperationHistory|null $loaded     the history of the account, when already read
      *
      * @return array<string, bool> valuation identifier => the positions changed since
      */
-    public function changedAmong(WorkspaceScope $workspace, string $accountId, array $valuations): array
+    public function changedAmong(WorkspaceScope $workspace, string $accountId, array $valuations, ?LoadedOperationHistory $loaded = null): array
     {
         if ([] === $valuations) {
             return [];
         }
-        $held = $this->reconcile->quantitiesAt($workspace, $accountId, array_map(static fn (Valuation $valuation): \DateTimeImmutable => $valuation->valuedOn, $valuations));
+        $held = $this->reconcile->quantitiesAt($workspace, $accountId, array_map(static fn (Valuation $valuation): \DateTimeImmutable => $valuation->valuedOn, $valuations), $loaded);
         $changed = [];
         foreach ($valuations as $valuation) {
             $current = $held[$valuation->valuedOn->format('Y-m-d')] ?? null;

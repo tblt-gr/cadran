@@ -46,7 +46,8 @@ final readonly class ReadPortfolioAnnualPerformance
             throw new InvalidPortfolioOperation('The year is between the opening year of the account and the current year.', 'invalid_performance_period');
         }
         $year = (int) $yearLiteral;
-        $history = $this->builder->history($workspace, $account);
+        $series = $this->builder->series($workspace, $account);
+        $history = $series->history;
 
         $months = [];
         foreach (range(1, 12) as $number) {
@@ -55,12 +56,12 @@ final readonly class ReadPortfolioAnnualPerformance
             $months[] = match (true) {
                 $first->modify('last day of this month') < $account->openedOn->modify('first day of this month') => new AnnualPerformanceMonth($label, AnnualPerformanceMonth::BEFORE_OPENING),
                 $first > $today => new AnnualPerformanceMonth($label, AnnualPerformanceMonth::FUTURE),
-                default => $this->month($account, $label, $today, $history, $workspace),
+                default => $this->month($account, $label, $today, $series, $workspace),
             };
         }
 
-        $yearTotal = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::YEAR->value, $yearLiteral, $today, $account->openedOn), $today, $history);
-        $inception = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::INCEPTION->value, null, $today, $account->openedOn), $today, $history);
+        $yearTotal = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::YEAR->value, $yearLiteral, $today, $account->openedOn), $today, $series);
+        $inception = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::INCEPTION->value, null, $today, $account->openedOn), $today, $series);
 
         return new PortfolioAnnualPerformance(
             $account->id, $account->assetCode->toString(), $year, $firstYear, $lastYear,
@@ -95,10 +96,9 @@ final readonly class ReadPortfolioAnnualPerformance
         return $list;
     }
 
-    /** @param list<PortfolioOperation> $history */
-    private function month(Account $account, string $label, \DateTimeImmutable $today, array $history, WorkspaceScope $workspace): AnnualPerformanceMonth
+    private function month(Account $account, string $label, \DateTimeImmutable $today, PerformanceSeries $series, WorkspaceScope $workspace): AnnualPerformanceMonth
     {
-        $performance = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::MONTH->value, $label, $today, $account->openedOn), $today, $history);
+        $performance = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::MONTH->value, $label, $today, $account->openedOn), $today, $series);
         $end = $performance->end;
         $endCash = null === $end || null === $performance->gain ? null : PerformanceAmount::canonical(
             CalculatedDecimal::fromDecimal(ExactDecimal::subtract($end->totalValue, $end->securitiesValue)),

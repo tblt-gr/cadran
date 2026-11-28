@@ -68,7 +68,7 @@ final readonly class RecordPortfolioValuation
             $now = $this->clock->now();
             $this->freeze($account, $resolved, $now);
 
-            $valuation = $this->build($context, $account, $resolved, $current, $now);
+            $valuation = $this->build($context, $account, $resolved, $current, $now, $input->source);
             $flags = $valuation->flags($resolved->displayPrecision);
             if (null !== $current) {
                 $superseded = $current->supersededAt($now, false);
@@ -114,7 +114,7 @@ final readonly class RecordPortfolioValuation
         }
     }
 
-    private function build(WorkspaceContext $context, Account $account, ResolvedValuation $resolved, ?Valuation $current, \DateTimeImmutable $now): Valuation
+    private function build(WorkspaceContext $context, Account $account, ResolvedValuation $resolved, ?Valuation $current, \DateTimeImmutable $now, ValuationSource $source): Valuation
     {
         $id = $this->uuid->generate();
         $figures = $resolved->figures;
@@ -128,7 +128,7 @@ final readonly class RecordPortfolioValuation
             cash: $figures->cash, derivedCash: $resolved->derivedCash,
             cashSource: $figures->cashObserved ? CashSource::OBSERVED : CashSource::DERIVED,
             securitiesValue: $figures->securitiesValue, totalValue: $figures->totalValue, observedTotal: $resolved->observedTotal,
-            detail: $resolved->detail, completeness: $figures->completeness, source: ValuationSource::MANUAL, note: $resolved->note,
+            detail: $resolved->detail, completeness: $figures->completeness, source: $source, note: $resolved->note,
             supersedesId: $current?->id, supersededAt: null, withdrawn: false, recordedAt: $now, recordedBy: $context->actorId,
             version: 1, positions: $snapshots,
         );

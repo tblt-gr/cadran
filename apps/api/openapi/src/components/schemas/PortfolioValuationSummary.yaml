@@ -27,9 +27,15 @@ properties:
     $ref: ./PortfolioValuationDetail.yaml
   source:
     type: string
+    description: >-
+      REFRESH and TAKEOVER are recorded by the server itself, after an operation
+      or when the account took over its positions; such a valuation has no note.
+      A request body cannot set the source.
     enum:
       - MANUAL
       - IMPORT
+      - REFRESH
+      - TAKEOVER
   totalValue:
     description: 'Null when the valuation is partial: never zero by default.'
     oneOf:

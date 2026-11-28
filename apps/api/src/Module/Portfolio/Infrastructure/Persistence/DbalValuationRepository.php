@@ -135,11 +135,11 @@ final readonly class DbalValuationRepository implements ValuationRepository
             return [];
         }
         $rows = $this->connection->fetchAllAssociative(
-            'SELECT s.instrument_id, s.unit_price_value, s.unit_price_scale, s.price_date, s.valuation_id'
+            'SELECT DISTINCT ON (s.instrument_id) s.instrument_id, s.unit_price_value, s.unit_price_scale, s.price_date, s.valuation_id'
             .' FROM portfolio_position_snapshots s JOIN portfolio_valuations v ON v.id = s.valuation_id AND v.workspace_id = s.workspace_id'
             .' WHERE s.workspace_id = :workspace_id AND v.workspace_id = :workspace_id AND v.account_id = :account_id AND v.superseded_at IS NULL'
             .' AND s.unit_price_value IS NOT NULL AND s.price_date <= :on_or_before AND s.instrument_id IN (:instruments)'
-            .' ORDER BY s.price_date DESC, v.recorded_at DESC, s.id',
+            .' ORDER BY s.instrument_id, s.price_date DESC, v.recorded_at DESC, s.id',
             ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'on_or_before' => $onOrBefore->format('Y-m-d'), 'instruments' => $instrumentIds],
             ['instruments' => ArrayParameterType::STRING],
         );

@@ -42,7 +42,7 @@ final class OverviewFigures
             foreach (array_slice($items, 7) as $item) {
                 $others = ExactDecimal::addForResponse($others, $item['value']);
             }
-            $items = [...array_slice($items, 0, 7), ['key' => 'OTHERS', 'label' => 'Autres', 'value' => $others]];
+            $items = [...array_slice($items, 0, 7), ['key' => 'OTHERS', 'label' => 'OTHERS', 'value' => $others]];
         }
 
         return ['items' => $table, 'slices' => self::withShares($items, $total, true)];

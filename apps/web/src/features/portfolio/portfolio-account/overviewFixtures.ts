@@ -68,12 +68,12 @@ export function allocationFixture(): PortfolioOverviewAllocation {
     reason: null,
     basis: 'MARKET',
     items: [
-      { key: 'UNSPECIFIED', label: 'Non renseignée', value: '75', share: '0.75' },
-      { key: 'CASH', label: 'Espèces', value: '25', share: '0.25' },
+      { key: 'UNSPECIFIED', label: 'UNSPECIFIED', value: '75', share: '0.75' },
+      { key: 'CASH', label: 'CASH', value: '25', share: '0.25' },
     ],
     slices: [
-      { key: 'UNSPECIFIED', label: 'Non renseignée', value: '75', share: '0.75' },
-      { key: 'CASH', label: 'Espèces', value: '25', share: '0.25' },
+      { key: 'UNSPECIFIED', label: 'UNSPECIFIED', value: '75', share: '0.75' },
+      { key: 'CASH', label: 'CASH', value: '25', share: '0.25' },
     ],
   };
 }

@@ -785,7 +785,7 @@ export const createInstrument = <ThrowOnError extends boolean = false>(options: 
 /**
  * Read an instrument holding and lifetime account gains
  *
- * Uses retained valuations and one bounded active history per account, up to 50 accounts. Unknown, malformed and foreign instruments answer the same instrument_not_found 404. Histories beyond 5000 operations return an account row with all figures, count and dates null and HISTORY_TOO_LARGE; other accounts remain computed. No financial data is logged.
+ * Uses retained valuations and one bounded active history per account, up to 50 accounts. Unknown, malformed and foreign instruments answer the same instrument_not_found 404. Histories beyond 10000 operations return an account row with all figures, count and dates null and HISTORY_TOO_LARGE; other accounts remain computed. No financial data is logged.
  */
 export const readInstrumentHolding = <ThrowOnError extends boolean = false>(options: Options<ReadInstrumentHoldingData, ThrowOnError>): RequestResult<ReadInstrumentHoldingResponses, ReadInstrumentHoldingErrors, ThrowOnError> => (options.client ?? client).get<ReadInstrumentHoldingResponses, ReadInstrumentHoldingErrors, ThrowOnError>({
     security: [{
@@ -1138,7 +1138,7 @@ export const withdrawPortfolioValuation = <ThrowOnError extends boolean = false>
 /**
  * Read observed life-insurance summary and informative tax tracking
  *
- * Latest active COMPLETE valuation on or before asOf, with frozen supports and cash. No projection or tax estimate. Active operations stop at asOf. At most 60 calendar years, 5000 history operations, 2000 operations per year and 20 source previews. Served rates are recorded percentages, never contract returns.
+ * Latest active COMPLETE valuation on or before asOf, with frozen supports and cash. No projection or tax estimate. Active operations stop at asOf. At most 60 calendar years, 10000 history operations, 2000 operations per year and 20 source previews. Served rates are recorded percentages, never contract returns.
  */
 export const readLifeInsuranceSummary = <ThrowOnError extends boolean = false>(options: Options<ReadLifeInsuranceSummaryData, ThrowOnError>): RequestResult<ReadLifeInsuranceSummaryResponses, ReadLifeInsuranceSummaryErrors, ThrowOnError> => (options.client ?? client).get<ReadLifeInsuranceSummaryResponses, ReadLifeInsuranceSummaryErrors, ThrowOnError>({
     security: [{

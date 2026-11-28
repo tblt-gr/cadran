@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\Application;
 
+use App\Module\Portfolio\Domain\Valuation\ValuationSource;
+
 final readonly class ValuationInput
 {
     /** @param list<PriceInput>|null $prices */
@@ -16,6 +18,8 @@ final readonly class ValuationInput
         public ?AmountInput $observedTotal,
         public ?string $note,
         public ?int $version,
+        /** Set by server code only, never read from an HTTP body. */
+        public ValuationSource $source = ValuationSource::MANUAL,
     ) {
     }
 }

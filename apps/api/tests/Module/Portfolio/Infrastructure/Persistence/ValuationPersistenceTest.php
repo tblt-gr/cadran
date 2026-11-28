@@ -149,7 +149,22 @@ final class ValuationPersistenceTest extends KernelTestCase
         self::assertSame([], $this->valuations->observedPrices(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, [], self::day('2026-03-30')));
     }
 
-    private function valuation(string $id, string $valuedOn, string $snapshotId = '00000000-0000-7000-8000-000000000d01', ?string $supersedes = null): Valuation
+    public function testObservedPricesReturnOneRowPerInstrumentTheMostRecentThenTheLastRecorded(): void
+    {
+        // Same price date for the two later valuations: the one recorded last wins; the earlier price date never does.
+        $this->valuations->add($this->valuation(self::V1, '2026-03-29', priceDate: '2026-03-28', recordedAt: '2026-04-03 09:00:00+00'));
+        $this->valuations->add($this->valuation(self::V2, '2026-03-30', '00000000-0000-7000-8000-000000000d02', priceDate: '2026-03-30', recordedAt: '2026-04-01 09:00:00+00'));
+        $this->valuations->add($this->valuation(self::V3, '2026-03-31', '00000000-0000-7000-8000-000000000d03', priceDate: '2026-03-30', recordedAt: '2026-04-02 09:00:00+00'));
+
+        $prices = $this->valuations->observedPrices(WorkspaceFixture::own(), PortfolioFixture::ACCOUNT, [PortfolioFixture::ETF], self::day('2026-12-31'));
+
+        self::assertCount(1, $prices);
+        self::assertSame(self::V3, $prices[0]->valuationId);
+        self::assertSame('2026-03-30', $prices[0]->priceDate->format('Y-m-d'));
+        self::assertSame([], $this->valuations->observedPrices(WorkspaceFixture::other(), PortfolioFixture::ACCOUNT, [PortfolioFixture::ETF], self::day('2026-12-31')));
+    }
+
+    private function valuation(string $id, string $valuedOn, string $snapshotId = '00000000-0000-7000-8000-000000000d01', ?string $supersedes = null, string $priceDate = '2026-03-30', string $recordedAt = '2026-04-01 09:00:00+00'): Valuation
     {
         return new Valuation(
             id: $id, workspace: WorkspaceFixture::own(), accountId: PortfolioFixture::ACCOUNT, valuedOn: self::day($valuedOn),
@@ -157,10 +172,10 @@ final class ValuationPersistenceTest extends KernelTestCase
             cashSource: CashSource::DERIVED, securitiesValue: DecimalValue::fromString('2471.421'), totalValue: DecimalValue::fromString('3664.701'),
             observedTotal: DecimalValue::fromString('3664.70'), detail: ValuationDetail::POSITIONS, completeness: ValuationCompleteness::COMPLETE,
             source: ValuationSource::MANUAL, note: null, supersedesId: $supersedes, supersededAt: null, withdrawn: false,
-            recordedAt: new \DateTimeImmutable('2026-04-01 09:00:00+00'), recordedBy: WorkspaceFixture::OWNER_ID, version: 1,
+            recordedAt: new \DateTimeImmutable($recordedAt), recordedBy: WorkspaceFixture::OWNER_ID, version: 1,
             positions: [new PositionSnapshot(
                 $snapshotId, $id, PortfolioFixture::ETF, DecimalValue::fromString('1.123456789012'), DecimalValue::fromString('12.123456789012'),
-                self::day('2026-03-30'), PriceSource::MANUAL, DecimalValue::fromString('13.620179835909153483936144'), null, PriceQuality::CURRENT,
+                self::day($priceDate), PriceSource::MANUAL, DecimalValue::fromString('13.620179835909153483936144'), null, PriceQuality::CURRENT,
             )],
         );
     }
