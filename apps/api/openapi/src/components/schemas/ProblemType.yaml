@@ -559,6 +559,9 @@ oneOf:
   - const: /problems/recurrences.archived
     description: >-
       The recurrence is archived.
+  - const: /problems/recurrences.duplicate
+    description: >-
+      An identical active recurrence already exists on the account.
   - const: /problems/recurrences.forbidden
     description: >-
       The caller may not use recurrences of this workspace.

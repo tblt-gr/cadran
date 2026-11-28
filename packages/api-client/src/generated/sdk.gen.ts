@@ -2081,7 +2081,7 @@ export const listRecurrences = <ThrowOnError extends boolean = false>(options?: 
 /**
  * Confirm a candidate or manually create a recurrence
  *
- * Creates a forecast schedule and snapshots expected occurrences through the twelve-month horizon.
+ * Creates a forecast schedule and snapshots expected occurrences through the twelve-month horizon. The `Idempotency-Key` header is required, and an active recurrence with the same account, label, rhythm, day and amount is refused.
  */
 export const confirmRecurrence = <ThrowOnError extends boolean = false>(options: Options<ConfirmRecurrenceData, ThrowOnError>): RequestResult<ConfirmRecurrenceResponses, ConfirmRecurrenceErrors, ThrowOnError> => (options.client ?? client).post<ConfirmRecurrenceResponses, ConfirmRecurrenceErrors, ThrowOnError>({
     security: [{

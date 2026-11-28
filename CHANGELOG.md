@@ -10,6 +10,11 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 - Open annual reports and goal previews faster by loading months in one batch.
 
+### Fixed
+
+- Stop recurrence edits, refunds and transaction edits from failing when they run at the same
+  time, and refuse a duplicate recurrence.
+
 ### Security
 
 - Symfony components updated to patch the advisories published on 2026-11-25 (redirects and

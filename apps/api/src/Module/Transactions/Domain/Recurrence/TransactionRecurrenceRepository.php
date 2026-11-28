@@ -31,6 +31,13 @@ interface TransactionRecurrenceRepository
     /** @return list<TransactionRecurrence> the live recurrences of one account, in schedule order */
     public function activeForAccount(WorkspaceScope $workspace, string $accountId): array;
 
+    /**
+     * The live recurrence of the same workspace that forecasts the same thing:
+     * account, label (ignoring case and surrounding blanks), rhythm, day, amount
+     * value and asset.
+     */
+    public function findActiveEquivalent(TransactionRecurrence $candidate): ?TransactionRecurrence;
+
     public function add(TransactionRecurrence $recurrence): void;
 
     /** Returns false when the expected version is stale. */

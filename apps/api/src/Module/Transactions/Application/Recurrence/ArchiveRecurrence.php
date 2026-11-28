@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
 
 /**
@@ -26,6 +27,7 @@ final readonly class ArchiveRecurrence
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
         private DiscardGeneratedTransactions $discard,
+        private CategorizationWriteLock $writeLock,
     ) {
     }
 
@@ -35,6 +37,7 @@ final readonly class ArchiveRecurrence
         $context = $this->caller->resolveContext();
 
         return $this->boundary->transactional(function () use ($context, $id, $version): array {
+            $this->writeLock->acquire($context->workspace);
             $current = $this->recurrences->findForUpdate($context->workspace, $id) ?? throw new RecurrenceNotFound();
             if ($version !== $current->version) {
                 throw new StaleRecurrence();

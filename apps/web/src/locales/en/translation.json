@@ -4499,6 +4499,7 @@
     },
     "errors": {
       "archived": "This recurring transaction is archived. Restore it before editing it.",
+      "duplicate": "This recurrence already exists.",
       "forbidden": "You do not have access to this recurring transaction.",
       "invalid": "The recurring transaction could not be saved: check the fields entered.",
       "network": "Saving failed. Reload the data, then try again.",

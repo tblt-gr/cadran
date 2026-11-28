@@ -10,6 +10,7 @@ use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceSchedule;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrenceRepository;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
@@ -36,6 +37,7 @@ final readonly class EditRecurrence
         private WorkspaceCalendar $calendar,
         private DiscardGeneratedTransactions $discard,
         private MaterializeRecurrenceOccurrences $materialize,
+        private CategorizationWriteLock $writeLock,
     ) {
     }
 
@@ -45,6 +47,7 @@ final readonly class EditRecurrence
         $context = $this->caller->resolveContext();
 
         return $this->boundary->transactional(function () use ($context, $id, $input): array {
+            $this->writeLock->acquire($context->workspace);
             $current = $this->recurrences->findForUpdate($context->workspace, $id) ?? throw new RecurrenceNotFound();
             if ($input->version !== $current->version) {
                 throw new StaleRecurrence();

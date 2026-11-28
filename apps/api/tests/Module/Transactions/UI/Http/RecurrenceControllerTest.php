@@ -602,7 +602,7 @@ final class RecurrenceControllerTest extends WebTestCase
     /** @param array<string, mixed> $body */
     private function requestCreate(array $body): void
     {
-        $this->client->request('POST', '/api/v1/recurrences', server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
+        $this->client->request('POST', '/api/v1/recurrences', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'recurrence-'.bin2hex(random_bytes(12))], content: json_encode($body, JSON_THROW_ON_ERROR));
     }
 
     /** @param array<string, mixed> $body */
@@ -879,6 +879,67 @@ final class RecurrenceControllerTest extends WebTestCase
     private static function jsonHeaders(): array
     {
         return ['CONTENT_TYPE' => 'application/json'];
+    }
+
+    public function testCreationWithoutAnIdempotencyKeyIsRefused(): void
+    {
+        $this->client->request('POST', '/api/v1/recurrences', server: self::jsonHeaders(), content: json_encode($this->recurrencePayload(), JSON_THROW_ON_ERROR));
+
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame('/problems/idempotency.required', $this->decode()['type']);
+        self::assertSame('Cette opération nécessite une clé d’idempotence.', $this->decode()['detail']);
+        self::assertSame(0, $this->recurrenceCount());
+    }
+
+    public function testAnIdenticalActiveRecurrenceIsRefusedUnderAnotherKey(): void
+    {
+        $this->requestCreate([...$this->recurrencePayload(), 'expectedAmount' => '-12.50']);
+        self::assertResponseStatusCodeSame(201);
+
+        // Neither letter case nor a trailing zero makes it another recurrence.
+        $this->requestCreate([...$this->recurrencePayload(), 'label' => 'NETFLIX', 'expectedAmount' => '-12.5']);
+
+        self::assertResponseStatusCodeSame(409);
+        $problem = $this->decode();
+        self::assertSame('/problems/recurrences.duplicate', $problem['type']);
+        self::assertSame('Récurrence déjà confirmée', $problem['title']);
+        self::assertSame('Une récurrence active identique existe déjà pour ce compte.', $problem['detail']);
+        self::assertSame(1, $this->recurrenceCount());
+    }
+
+    /** @return iterable<string, array{array<string, mixed>}> */
+    public static function differingRecurrences(): iterable
+    {
+        yield 'another account' => [['accountId' => self::OWN_SECOND_ACCOUNT]];
+        yield 'another day' => [['dayOfPeriod' => 21, 'firstExpectedOn' => '2026-03-21']];
+        yield 'another amount' => [['expectedAmount' => '-15.99']];
+    }
+
+    /** @param array<string, mixed> $difference */
+    #[\PHPUnit\Framework\Attributes\DataProvider('differingRecurrences')]
+    public function testARecurrenceThatDiffersIsAccepted(array $difference): void
+    {
+        $this->requestCreate($this->recurrencePayload());
+        self::assertResponseStatusCodeSame(201);
+
+        $this->requestCreate([...$this->recurrencePayload(), ...$difference]);
+
+        self::assertResponseStatusCodeSame(201);
+        self::assertSame(2, $this->recurrenceCount());
+    }
+
+    public function testAnArchivedRecurrenceDoesNotBlockAnIdenticalOne(): void
+    {
+        $this->requestCreate($this->recurrencePayload());
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->decode()['id'];
+        self::assertIsString($id);
+        $this->requestArchive($id, 1);
+        self::assertResponseIsSuccessful();
+
+        $this->requestCreate($this->recurrencePayload());
+
+        self::assertResponseStatusCodeSame(201);
     }
 
     public function testCreationReplaysTheFirstResponseForTheSameKeyAndBodyAndRefusesAChangedBody(): void

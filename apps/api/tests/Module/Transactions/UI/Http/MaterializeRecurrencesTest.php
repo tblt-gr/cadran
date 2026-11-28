@@ -765,7 +765,7 @@ final class MaterializeRecurrencesTest extends WebTestCase
     /** @param array<string, mixed> $body */
     private function requestCreate(array $body): void
     {
-        $this->client->request('POST', '/api/v1/recurrences', server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
+        $this->client->request('POST', '/api/v1/recurrences', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'recurrence-'.bin2hex(random_bytes(12))], content: json_encode($body, JSON_THROW_ON_ERROR));
     }
 
     /** @param array<string, mixed> $body */

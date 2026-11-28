@@ -157,6 +157,18 @@ describe('useRecurrenceMutations', () => {
     expect(queryClient.getQueryData(['recurrences'])).toEqual({ items: ['kept'] });
   });
 
+  it('classifies the refusal of an identical recurrence', async () => {
+    api.confirmRecurrence.mockImplementation(() =>
+      refused(409, { type: '/problems/recurrences.duplicate' }),
+    );
+    const { callbacks, result } = setup('create');
+
+    act(() => result.current.save.mutate(body));
+
+    await waitFor(() => expect(result.current.submitErrorKind).toBe('duplicate'));
+    expect(callbacks.onSaved).not.toHaveBeenCalled();
+  });
+
   it('reports a plain network error for an unclassified failure', async () => {
     api.confirmRecurrence.mockRejectedValue(new TypeError('offline'));
     const { result } = setup('create');

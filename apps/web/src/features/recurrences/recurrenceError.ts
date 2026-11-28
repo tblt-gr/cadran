@@ -3,7 +3,7 @@ import type { Problem } from '@cadran/api-client';
 import { classifyProblem } from '@/lib/apiProblem';
 
 export type RecurrenceErrorKind =
-  'archived' | 'forbidden' | 'invalid' | 'network' | 'notFound' | 'stale';
+  'archived' | 'duplicate' | 'forbidden' | 'invalid' | 'network' | 'notFound' | 'stale';
 
 /**
  * A refused recurrence request, classified by its RFC 9457 problem type rather than by
@@ -25,6 +25,7 @@ export class RecurrenceRequestError extends Error {
 
 const PROBLEM_KINDS: Record<string, RecurrenceErrorKind> = {
   '/problems/recurrences.archived': 'archived',
+  '/problems/recurrences.duplicate': 'duplicate',
   '/problems/recurrences.not_found': 'notFound',
   '/problems/recurrences.forbidden': 'forbidden',
 };

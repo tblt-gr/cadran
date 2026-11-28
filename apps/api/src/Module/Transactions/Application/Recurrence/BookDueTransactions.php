@@ -11,6 +11,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\TransactionAuditEvents;
 use App\Module\Transactions\Application\TransactionAuditFingerprint;
 use App\Module\Transactions\Domain\InvalidTransaction;
@@ -39,6 +40,7 @@ final readonly class BookDueTransactions
         private AssertPeriodOpen $assertPeriodOpen,
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
+        private CategorizationWriteLock $writeLock,
         private int $maxPerRun = self::MAX_PER_RUN,
     ) {
     }
@@ -47,6 +49,7 @@ final readonly class BookDueTransactions
     public function __invoke(WorkspaceContext $context, \DateTimeImmutable $today, MaterializationTally $tally): void
     {
         $workspace = $context->workspace;
+        $this->writeLock->acquire($workspace);
         // Rows a run could not book (closed period, concurrent change) are excluded from the next
         // page, so a backlog of unbookable old rows never starves a newer bookable one.
         $unbooked = [];

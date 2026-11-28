@@ -7,6 +7,7 @@ namespace App\Module\Transactions\Application\Recurrence;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceSchedule;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
 
@@ -20,6 +21,7 @@ final readonly class RefreshOccurrenceHorizon
         private OccurrenceGenerator $generator,
         private TransactionBoundary $boundary,
         private WorkspaceCalendar $calendar,
+        private CategorizationWriteLock $writeLock,
     ) {
     }
 
@@ -30,6 +32,7 @@ final readonly class RefreshOccurrenceHorizon
         $today = $this->calendar->today();
 
         return $this->boundary->transactional(function () use ($workspace, $today): array {
+            $this->writeLock->acquire($workspace);
             $recurrences = $this->recurrences->activeInOrder($workspace, self::MAX_RECURRENCES);
             $generated = 0;
             foreach ($recurrences as $recurrence) {
