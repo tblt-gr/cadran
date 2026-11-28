@@ -6,6 +6,11 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+### Security
+
+- Symfony components updated to patch the advisories published on 2026-11-25 (redirects and
+  generated URLs reaching another host, access control rules, exception output).
+
 ## [1.0.1] - 2026-11-22
 
 ### Added
