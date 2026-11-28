@@ -158,7 +158,7 @@ const account = {
 
 const recap = {
   month: '2026-03',
-  metricPolicy: { version: 1, label: 'Tous les comptes' },
+  metricPolicy: { version: 1, label: 'All accounts' },
   previousAsOf: '2026-02-28',
   currentAsOf: '2026-03-15',
   provisional: true,

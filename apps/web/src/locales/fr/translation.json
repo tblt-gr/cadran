@@ -479,6 +479,7 @@
       "benefitSpending": "Dépenses des avantages"
     },
     "annual": {
+      "unknownReference": "Référence introuvable",
       "title": "Rapport",
       "caption": "Rapport {{year}}",
       "month": "Mois",
@@ -5500,6 +5501,8 @@
     "error": "La politique d’indicateurs est indisponible",
     "unauthorized": "Vous n’êtes pas autorisé à consulter cette politique",
     "version": "Version {{version}} · {{label}}",
+    "builtInLabel": "Tous les comptes",
+    "unknownLabel": "Politique introuvable",
     "badge": {
       "version": "Politique v{{version}}",
       "mixed": "Politiques mixtes"

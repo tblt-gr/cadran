@@ -2,7 +2,7 @@ import type { MetricPolicy, MetricPolicyCatalog } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '@/i18n';
+import { setLanguage } from '@/i18n';
 import { MetricPolicyPage } from './MetricPolicyPage';
 
 const api = vi.hoisted(() => ({
@@ -18,7 +18,7 @@ vi.mock('@cadran/api-client', async (importOriginal) => ({
 
 const v1: MetricPolicy = {
   version: 1,
-  label: 'Tous les comptes',
+  label: 'All accounts',
   cashExcludedAccountKinds: [],
   savingsRateFormula: 'BUDGET_SURPLUS_OVER_CASH_INCOME',
   netSavingsRateFormula: 'NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME',
@@ -121,6 +121,24 @@ describe('MetricPolicyPage', () => {
     await waitFor(() => expect(api.listMetricPolicies).toHaveBeenCalledTimes(2));
     expect(screen.getByRole('region', { name: 'Politique active' })).toBeTruthy();
     expect(screen.queryByTestId('metric-policy-skeleton')).toBeNull();
+  });
+
+  it('names the built-in policy in English and an unavailable one as not found', async () => {
+    await setLanguage('en');
+    try {
+      api.listMetricPolicies.mockReturnValue(ok(onlySystem));
+      renderPage();
+      expect(await screen.findByRole('row', { name: /All accounts/ })).toBeTruthy();
+      cleanup();
+
+      api.listMetricPolicies.mockReturnValue(
+        ok({ active: null, activeVersion: 7, activeSince: null, versions: [v1] }),
+      );
+      renderPage();
+      expect((await screen.findByRole('alert')).textContent).toContain('Version 7 not found');
+    } finally {
+      await setLanguage('fr');
+    }
   });
 
   it('shows an empty history message when only the built-in version exists', async () => {

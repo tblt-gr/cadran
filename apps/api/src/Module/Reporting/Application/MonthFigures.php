@@ -103,7 +103,7 @@ final readonly class MonthFigures
 
         return new self(
             $projection->month,
-            $projection->metricPolicy->version ?? 1,
+            $projection->metricPolicy->version ?? throw new \LogicException('A single month always carries its resolved policy version.'),
             $projection->quality,
             $projection->pendingCount,
             $projection->netWorthAsOf,

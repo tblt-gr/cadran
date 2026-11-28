@@ -17,6 +17,6 @@ final readonly class ResolvedMetricPolicy
 
     public function reference(): MetricPolicyReference
     {
-        return new MetricPolicyReference($this->version, $this->policy->label ?? MetricPolicyReference::UNKNOWN_LABEL);
+        return new MetricPolicyReference($this->version, $this->policy?->label);
     }
 }

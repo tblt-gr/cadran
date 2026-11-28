@@ -15,7 +15,7 @@ final class ProblemTableAssertions
     {
         Assert::assertNotSame([], $rules);
         foreach ($rules as $class => $rule) {
-            Assert::assertTrue(class_exists($class), sprintf('%s does not exist.', $class));
+            Assert::assertTrue(class_exists($class) || interface_exists($class), sprintf('%s does not exist.', $class));
             if ($rule instanceof ProblemRule) {
                 Assert::assertGreaterThanOrEqual(400, $rule->status, $class);
                 Assert::assertLessThan(500, $rule->status, $class);

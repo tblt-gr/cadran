@@ -4,24 +4,14 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\DuplicateTransaction;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
-use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\Reconciliation\ReconcileTransaction;
-use App\Module\Transactions\Application\StaleTransactionVersion;
-use App\Module\Transactions\Application\TransactionBelongsToRefund;
-use App\Module\Transactions\Application\TransactionBelongsToTransfer;
-use App\Module\Transactions\Application\TransactionConflict;
-use App\Module\Transactions\Application\TransactionHasRefunds;
-use App\Module\Transactions\Application\TransactionNotFound;
 use App\Module\Transactions\Application\VoidTransaction;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,6 +26,7 @@ final readonly class TransactionLifecycleController
 {
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private IdempotentExecution $idempotentExecution,
     ) {
     }
@@ -54,23 +45,8 @@ final readonly class TransactionLifecycleController
         try {
             $payload = JsonPayload::of($body, ['version']);
             $transaction = $voidTransaction($id, $payload->integer('version'));
-        } catch (InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (TransactionBelongsToTransfer $exception) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
-                ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
-            );
-        } catch (TransactionHasRefunds) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_has_refunds', '/problems/transaction.has_refunds');
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (StaleTransactionVersion) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::void());
         }
 
         return $this->envelope->json(TransactionRepresentation::one($transaction));
@@ -94,16 +70,8 @@ final readonly class TransactionLifecycleController
                 $payload->integer('version'),
                 $payload->nullableUuid('matchedTransactionId'),
             );
-        } catch (InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (StaleTransactionVersion) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::reconcile());
         }
 
         return $this->envelope->json(TransactionRepresentation::one($transaction));
@@ -138,25 +106,8 @@ final readonly class TransactionLifecycleController
                     return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id, [$transaction->bookedOn]);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (InvalidSplitsInput $exception) {
-            return $this->envelope->invalidSplitsProblem($exception);
-        } catch (PortfolioAccountRequiresOperations $exception) {
-            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
-        } catch (InvalidTransactionInput) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (TransactionBelongsToRefund $exception) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_refund',
-                ['originalId' => $exception->originalTransactionId], '/problems/transaction.belongs_to_refund',
-            );
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::duplicate());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);

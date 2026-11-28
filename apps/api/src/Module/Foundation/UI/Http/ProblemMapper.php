@@ -41,7 +41,7 @@ final readonly class ProblemMapper
                 $rule = new ProblemRule($rule, 'api.problem.'.$exception->problemCode(), extensions: $exception->problemExtensions());
             }
 
-            return $this->envelope->problem($rule->status, $rule->translationKey, $rule->type, $rule->extensions, $rule->headers);
+            return $this->envelope->problem($rule->status, $rule->translationKey, $rule->type, $rule->extensions, $rule->headers, $rule->parameters);
         }
 
         throw $exception;

@@ -3714,6 +3714,10 @@ export type AnnualColumn = {
     kind: AnnualColumnKind;
     assetCode: string | null;
     /**
+     * False when the category, group or account of the column no longer resolves: its cells are then null and its label is a fallback.
+     */
+    known: boolean;
+    /**
      * Institution of an account column, shown under its label; null for any other column.
      */
     institution?: string | null;

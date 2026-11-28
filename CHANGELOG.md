@@ -9,6 +9,8 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 ### Changed
 
 - Open annual reports and goal previews faster by loading months in one batch.
+- Show a metric policy that cannot be loaded as unavailable instead of version 1, and translate
+  the built-in policy name.
 
 ### Fixed
 
@@ -18,6 +20,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Refuse a dated category replacement that would change a closed month, and explain the refusal.
 - Read performance of portfolio accounts holding more than 5 000 operations, and translate
   allocation labels in English.
+- Report an internal data inconsistency as a server error instead of an invalid request.
 
 ### Security
 

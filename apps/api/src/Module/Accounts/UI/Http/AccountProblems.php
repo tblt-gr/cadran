@@ -16,6 +16,7 @@ use App\Module\Accounts\Application\StaleAccountOrder;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\Domain\InvalidAccountMove;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Foundation\UI\Http\ProblemRule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -83,7 +84,7 @@ final class AccountProblems
         return [
             AccountArchived::class => self::archived(),
             InvalidAccountInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             ...($creating ? [] : [
                 AccountNotFound::class => self::notFound(),
                 StaleAccountVersion::class => self::staleVersion(),
@@ -99,7 +100,7 @@ final class AccountProblems
         return [
             AccountArchived::class => self::archived(),
             InvalidAccountInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             AccountNotFound::class => self::notFound(),
             StaleAccountVersion::class => self::staleVersion(),
             WorkspaceAccessDenied::class => self::forbidden(),
@@ -112,7 +113,7 @@ final class AccountProblems
         $invalidMove = new ProblemRule(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_move');
 
         return [
-            \UnexpectedValueException::class => $invalidMove,
+            MalformedPayload::class => $invalidMove,
             InvalidAccountMove::class => $invalidMove,
             AccountNotFound::class => self::notFound(),
             StaleAccountOrder::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.account_stale_order', AccountOverviewProblems::TYPE_STALE_ORDER),
@@ -131,7 +132,7 @@ final class AccountProblems
             AccountArchived::class => self::archived(),
             InvalidAccountRuleOverrideInput::class => self::invalidRuleOverride(),
             InvalidDeclaredRuleInput::class => self::invalidRuleOverride(),
-            \UnexpectedValueException::class => self::invalidRuleOverride(),
+            MalformedPayload::class => self::invalidRuleOverride(),
             AccountNotFound::class => self::notFound(),
             AccountRuleOverrideConflict::class => self::ruleOverrideConflict(),
             WorkspaceAccessDenied::class => self::forbidden(),
@@ -145,7 +146,7 @@ final class AccountProblems
 
         return [
             AccountArchived::class => self::archived(),
-            \UnexpectedValueException::class => self::invalidRuleOverride(),
+            MalformedPayload::class => self::invalidRuleOverride(),
             AccountNotFound::class => $overrideNotFound,
             AccountRuleOverrideNotFound::class => $overrideNotFound,
             AccountRuleOverrideConflict::class => self::ruleOverrideConflict(),

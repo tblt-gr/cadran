@@ -71,7 +71,7 @@ final class AnnualReportControllerTest extends WebTestCase
 
         self::assertSame($this->year, $report['year']);
         self::assertSame('exclude', $report['incompleteMonths']);
-        self::assertSame(['state' => 'SINGLE', 'version' => 1, 'label' => 'Tous les comptes', 'versions' => [1]], $report['metricPolicy']);
+        self::assertSame(['state' => 'SINGLE', 'version' => 1, 'label' => 'All accounts', 'versions' => [1]], $report['metricPolicy']);
         $rows = self::rows($report);
         self::assertCount(12, $rows);
         $monthlySum = [];
@@ -439,7 +439,8 @@ final class AnnualReportControllerTest extends WebTestCase
         $row = self::rows($report)[0];
         $foreign = self::fields(self::fields($row['cells'])['category:00000000-0000-7000-8000-0000000000c9']);
         self::assertSame(['value' => null, 'reason' => 'UNKNOWN_REFERENCE'], $foreign);
-        self::assertSame('Référence inconnue', self::rowsOf($report['columns'])[1]['label']);
+        self::assertSame('Unknown reference', self::rowsOf($report['columns'])[1]['label']);
+        self::assertSame([true, false, false], array_column(self::rowsOf($report['columns']), 'known'));
         self::assertNull(self::aggregate($report, 'category:00000000-0000-7000-8000-0000000000c9')['total']);
     }
 
@@ -482,6 +483,66 @@ final class AnnualReportControllerTest extends WebTestCase
     private function annual(int $year, string $query = ''): array
     {
         return $this->get('/api/v1/reports/annual/'.$year.$query);
+    }
+
+    public function testAnUnloadableDefinitionKeepsItsVersionAndNeverConcludesVersionOne(): void
+    {
+        $this->signIn();
+        $this->seedYear();
+        $this->activateWithoutDefinition();
+
+        $report = $this->annual($this->year);
+
+        self::assertSame(['state' => 'SINGLE', 'version' => 7, 'label' => null, 'versions' => [7]], $report['metricPolicy']);
+        self::assertSame(['value' => null, 'reason' => 'UNKNOWN_METRIC_POLICY'], self::fields(self::fields(self::rows($report)[0]['cells'])['cashIncome']));
+        foreach (['cashIncome', 'budgetExpenses', 'cashSavingsRate'] as $column) {
+            $aggregate = self::aggregate($report, $column);
+            foreach (['total', 'average', 'median'] as $figure) {
+                self::assertNull($aggregate[$figure], $column.' '.$figure);
+                self::assertSame('UNKNOWN_METRIC_POLICY', $aggregate[$figure.'Reason'], $column.' '.$figure);
+            }
+            self::assertSame('UNKNOWN_METRIC_POLICY', $aggregate['extremesReason'], $column);
+        }
+    }
+
+    public function testClosingUnderAnUnloadableDefinitionWritesNothingUntilItIsRestored(): void
+    {
+        $this->signIn();
+        $this->seedYear();
+        $this->activateWithoutDefinition();
+
+        $this->closeThroughTheApi(3);
+        $this->captureSnapshots();
+
+        self::assertSame(0, $this->snapshotCount());
+
+        $this->insertPolicyDefinition(7);
+        $this->captureSnapshots();
+
+        self::assertSame(1, $this->snapshotCount());
+        $row = self::rows($this->annual($this->year))[2];
+        self::assertTrue($row['snapshot']);
+        self::assertSame(7, $row['policyVersion']);
+        self::assertNotNull(self::cell($row, 'cashIncome'));
+    }
+
+    private function activateWithoutDefinition(): void
+    {
+        $this->connection->insert('reporting_metric_policy_activations', [
+            'id' => '00000000-0000-7000-8000-000000000017', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'policy_version' => 7,
+            'active_from' => '2020-01-01 10:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID,
+        ]);
+    }
+
+    private function insertPolicyDefinition(int $version): void
+    {
+        $this->connection->insert('reporting_metric_policies', [
+            'id' => sprintf('00000000-0000-7000-8000-%012d', $version), 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'version' => $version,
+            'label' => 'Restored', 'cash_excluded_account_kinds' => '[]',
+            'savings_rate_formula' => 'BUDGET_SURPLUS_OVER_CASH_INCOME',
+            'net_savings_rate_formula' => 'NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME',
+            'created_at' => '2020-01-01 10:00:00+00', 'created_by' => WorkspaceFixture::OWNER_ID,
+        ]);
     }
 
     private function closeThroughTheApi(int $month): void

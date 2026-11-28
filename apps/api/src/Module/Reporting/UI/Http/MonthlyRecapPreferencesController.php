@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Reporting\Application\InvalidRecapPreferencesInput;
 use App\Module\Reporting\Application\ReadRecapPreferences;
 use App\Module\Reporting\Application\RecapPreferencesView;
@@ -19,7 +19,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Reads and stores which optional breakdowns the compact monthly recap shows.
@@ -31,7 +30,7 @@ final readonly class MonthlyRecapPreferencesController
 {
     private const array FIELDS = ['visibleCategoryIds', 'visibleAxes', 'version'];
 
-    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -41,10 +40,10 @@ final readonly class MonthlyRecapPreferencesController
         try {
             $preferences = $read();
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
         }
 
-        return $this->json($preferences);
+        return $this->answer($preferences);
     }
 
     #[Route('/api/v1/reports/monthly/recap-preferences', name: 'api_v1_reports_monthly_recap_preferences_save', methods: ['PUT'])]
@@ -57,15 +56,15 @@ final readonly class MonthlyRecapPreferencesController
 
         try {
             $preferences = $save(self::input($body));
-        } catch (InvalidRecapPreferencesInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_recap_preferences');
+        } catch (InvalidRecapPreferencesInput|MalformedPayload) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_recap_preferences');
         } catch (StaleRecapPreferencesVersion) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.recap_preferences_conflict');
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.recap_preferences_conflict');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
         }
 
-        return $this->json($preferences);
+        return $this->answer($preferences);
     }
 
     /** @param array<mixed> $body */
@@ -81,21 +80,12 @@ final readonly class MonthlyRecapPreferencesController
         );
     }
 
-    private function json(RecapPreferencesView $view): JsonResponse
+    private function answer(RecapPreferencesView $view): JsonResponse
     {
-        return new JsonResponse([
+        return $this->envelope->json([
             'visibleCategoryIds' => $view->visibleCategoryIds,
             'visibleAxes' => $view->visibleAxes,
             'version' => $view->version,
-        ], Response::HTTP_OK, ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $key): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail'),
-        );
+        ]);
     }
 }

@@ -4,20 +4,16 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
-use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Foundation\UI\Http\MalformedPayload;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\Recurrence\ArchiveRecurrence;
 use App\Module\Transactions\Application\Recurrence\ConfirmRecurrence;
 use App\Module\Transactions\Application\Recurrence\DismissRecurrenceCandidate;
-use App\Module\Transactions\Application\Recurrence\DuplicateRecurrence;
 use App\Module\Transactions\Application\Recurrence\EditRecurrence;
-use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceInput;
-use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceReference;
 use App\Module\Transactions\Application\Recurrence\MaterializeRecurrenceOccurrences;
 use App\Module\Transactions\Application\Recurrence\RecurrenceEditInput;
 use App\Module\Transactions\Application\Recurrence\RecurrenceInput;
@@ -25,7 +21,6 @@ use App\Module\Transactions\Application\Recurrence\RecurrenceNotFound;
 use App\Module\Transactions\Application\Recurrence\RefreshOccurrenceHorizon;
 use App\Module\Transactions\Application\Recurrence\RestoreRecurrence;
 use App\Module\Transactions\Application\Recurrence\RestoreRecurrenceCandidate;
-use App\Module\Transactions\Application\Recurrence\StaleRecurrence;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -46,7 +41,7 @@ final readonly class RecurrenceWriteController
     public function __construct(
         private TransactionHttpEnvelope $envelope,
         private IdempotentExecution $idempotentExecution,
-        private RecurrenceProblems $problems,
+        private ProblemMapper $problems,
     ) {
     }
 
@@ -63,10 +58,8 @@ final readonly class RecurrenceWriteController
             $dismiss($fingerprint);
 
             return new Response(status: 204);
-        } catch (\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::dismiss());
         }
     }
 
@@ -74,16 +67,14 @@ final readonly class RecurrenceWriteController
     public function restore(string $fingerprint, RestoreRecurrenceCandidate $restore): Response
     {
         if (!self::validFingerprint($fingerprint)) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
+            return $this->problems->respond(new RecurrenceNotFound(), RecurrenceProblems::restoreCandidate());
         }
         try {
             $restore($fingerprint);
 
             return new Response(status: 204);
-        } catch (RecurrenceNotFound) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::restoreCandidate());
         }
     }
 
@@ -112,14 +103,8 @@ final readonly class RecurrenceWriteController
                     return new IdempotentResponse($view, 201, is_string($view['id'] ?? null) ? $view['id'] : null);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (DuplicateRecurrence) {
-            return $this->problems->problem(409, '/problems/recurrences.duplicate');
-        } catch (InvalidRecurrenceInput|InvalidRecurrenceReference|\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::create());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -136,10 +121,8 @@ final readonly class RecurrenceWriteController
             JsonPayload::of($body, []);
 
             return $this->envelope->json($refresh());
-        } catch (\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::run());
         }
     }
 
@@ -154,10 +137,8 @@ final readonly class RecurrenceWriteController
             JsonPayload::of($body, []);
 
             return $this->envelope->json($materialize()->toArray());
-        } catch (\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::run());
         }
     }
 
@@ -165,7 +146,7 @@ final readonly class RecurrenceWriteController
     public function update(string $id, Request $request, EditRecurrence $edit): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
+            return $this->problems->respond(new RecurrenceNotFound(), RecurrenceProblems::update());
         }
         $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
@@ -180,14 +161,8 @@ final readonly class RecurrenceWriteController
                 $payload->nullableString('note'), $payload->nullableString('paymentMethod'),
                 $payload->nullableString('firstExpectedOn'),
             ));
-        } catch (RecurrenceNotFound) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
-        } catch (StaleRecurrence $exception) {
-            return $this->problems->problem(409, StaleRecurrence::ARCHIVED === $exception->getMessage() ? '/problems/recurrences.archived' : '/problems/stale-version');
-        } catch (InvalidRecurrenceInput|InvalidRecurrenceReference|\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::update());
         }
 
         return $this->envelope->json($view);
@@ -197,7 +172,7 @@ final readonly class RecurrenceWriteController
     public function archive(string $id, Request $request, ArchiveRecurrence $archive): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
+            return $this->problems->respond(new RecurrenceNotFound(), RecurrenceProblems::archive());
         }
         $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
@@ -207,14 +182,8 @@ final readonly class RecurrenceWriteController
             $version = JsonPayload::of($body, ['version'])->integer('version');
 
             return $this->envelope->json($archive($id, $version));
-        } catch (RecurrenceNotFound) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
-        } catch (StaleRecurrence $exception) {
-            return $this->problems->problem(409, StaleRecurrence::ARCHIVED === $exception->getMessage() ? '/problems/recurrences.archived' : '/problems/stale-version');
-        } catch (InvalidRecurrenceInput|\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::archive());
         }
     }
 
@@ -222,7 +191,7 @@ final readonly class RecurrenceWriteController
     public function restoreRecurrence(string $id, Request $request, RestoreRecurrence $restore): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
+            return $this->problems->respond(new RecurrenceNotFound(), RecurrenceProblems::restore());
         }
         $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
@@ -232,21 +201,15 @@ final readonly class RecurrenceWriteController
             $version = JsonPayload::of($body, ['version'])->integer('version');
 
             return $this->envelope->json($restore($id, $version));
-        } catch (RecurrenceNotFound) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
-        } catch (StaleRecurrence $exception) {
-            return $this->problems->problem(409, StaleRecurrence::NOT_ARCHIVED === $exception->getMessage() ? '/problems/recurrences.not_archived' : '/problems/stale-version');
-        } catch (InvalidRecurrenceInput|\UnexpectedValueException) {
-            return $this->problems->problem(422, '/problems/recurrences.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::restore());
         }
     }
 
     private static function fingerprint(string $value): void
     {
         if (!self::validFingerprint($value)) {
-            throw new \UnexpectedValueException('A candidate fingerprint is a SHA-256 digest.');
+            throw new MalformedPayload('A candidate fingerprint is a SHA-256 digest.');
         }
     }
 

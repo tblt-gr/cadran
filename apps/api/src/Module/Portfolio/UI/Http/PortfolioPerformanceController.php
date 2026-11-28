@@ -4,25 +4,17 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
-use App\Module\Foundation\UI\Http\Identifier;
-use App\Module\Portfolio\Application\Performance\PerformanceRangeTooDense;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Portfolio\Application\Performance\ReadPortfolioAnnualPerformance;
 use App\Module\Portfolio\Application\Performance\ReadPortfolioPerformance;
-use App\Module\Portfolio\Application\PortfolioAccountNotFound;
-use App\Module\Portfolio\Domain\Cash\CashReplayFailed;
-use App\Module\Portfolio\Domain\InvalidPortfolioOperation;
-use App\Module\Portfolio\Domain\Positions\PositionReplayFailed;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class PortfolioPerformanceController
 {
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -30,7 +22,7 @@ final readonly class PortfolioPerformanceController
     public function performance(string $accountId, Request $request, ReadPortfolioPerformance $read): Response
     {
         return $this->respond(static fn (): array => PortfolioPerformanceRepresentation::of(
-            $read(self::accountId($accountId), self::scalar($request, 'scope', 'invalid_performance_scope'), self::scalar($request, 'period', 'invalid_performance_period')),
+            $read(PortfolioQueryParameters::accountId($accountId), PortfolioQueryParameters::string($request, 'scope', 'invalid_performance_scope'), PortfolioQueryParameters::string($request, 'period', 'invalid_performance_period')),
         ));
     }
 
@@ -38,7 +30,7 @@ final readonly class PortfolioPerformanceController
     public function annual(string $accountId, Request $request, ReadPortfolioAnnualPerformance $read): Response
     {
         return $this->respond(static fn (): array => PortfolioAnnualPerformanceRepresentation::of(
-            $read(self::accountId($accountId), self::scalar($request, 'year', 'invalid_performance_period')),
+            $read(PortfolioQueryParameters::accountId($accountId), PortfolioQueryParameters::string($request, 'year', 'invalid_performance_period')),
         ));
     }
 
@@ -46,41 +38,9 @@ final readonly class PortfolioPerformanceController
     private function respond(\Closure $body): Response
     {
         try {
-            $response = new JsonResponse($body());
-            $response->headers->set('Cache-Control', 'no-store');
-
-            return $response;
+            return $this->envelope->json($body());
         } catch (\Throwable $exception) {
-            [$status, $code] = match (true) {
-                $exception instanceof PortfolioAccountNotFound => [404, 'portfolio_account_not_found'],
-                $exception instanceof InvalidPortfolioOperation => [422, $exception->problemCode],
-                $exception instanceof PerformanceRangeTooDense => [422, 'performance_range_too_dense'],
-                $exception instanceof CashReplayFailed => [422, 'cash_amount_too_large'],
-                $exception instanceof PositionReplayFailed => [422, $exception->problemCode],
-                $exception instanceof WorkspaceAccessDenied => [403, 'portfolio_forbidden'],
-                default => throw $exception,
-            };
-
-            return ApiProblem::response($status, $this->translator->trans('api.problem.'.$code.'.title'), $this->translator->trans('api.problem.'.$code.'.detail'), extensions: ['code' => $code]);
+            return $this->problems->respond($exception, PortfolioReadProblems::performance());
         }
-    }
-
-    private static function accountId(string $literal): string
-    {
-        if (!Identifier::isValid($literal)) {
-            throw new PortfolioAccountNotFound();
-        }
-
-        return $literal;
-    }
-
-    private static function scalar(Request $request, string $key, string $code): ?string
-    {
-        $value = $request->query->all()[$key] ?? null;
-        if (null !== $value && !is_string($value)) {
-            throw new InvalidPortfolioOperation('A query parameter must be a string.', $code);
-        }
-
-        return $value;
     }
 }

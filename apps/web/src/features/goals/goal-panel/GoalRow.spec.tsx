@@ -1,3 +1,4 @@
+import type { GoalSummary } from '@cadran/api-client';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, expect, it, vi } from 'vitest';
 import '@/i18n';
@@ -124,4 +125,25 @@ it('renders the server start, dated valuation and behind pace for a yearly stock
       .getAttribute('href'),
   ).toBe('/accounts');
   expect(document.querySelector('[data-tone]')?.getAttribute('data-tone')).toBe('negative');
+});
+it('names an axis scope from the interface translations rather than the server label', () => {
+  render(
+    <ul>
+      <GoalRow
+        row={{
+          evaluation: goalEvaluation({ scopeType: 'AXIS', scopeRef: 'ESSENTIAL' }),
+          summary: {
+            periodicity: 'MONTHLY',
+            startPeriod: '2026-11',
+            endPeriod: null,
+            scope: { type: 'AXIS', axis: 'ESSENTIAL', label: 'Essential', archived: false },
+          } as GoalSummary,
+          replaced: [],
+        }}
+        handlers={{ onEdit: vi.fn(), onHistory: vi.fn(), onStop: vi.fn(), onDelete: vi.fn() }}
+      />
+    </ul>,
+  );
+  expect(screen.getByRole('listitem').textContent).toContain('Essentiel');
+  expect(screen.queryByText('Essential')).toBeNull();
 });
