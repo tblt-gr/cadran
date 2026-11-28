@@ -42,6 +42,23 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
         ));
     }
 
+    public function findAnchorsAround(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from): AccountBalanceSnapshots
+    {
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT '.self::COLUMNS.' FROM account_balance_snapshots WHERE workspace_id = :workspace_id AND account_id = :account_id'
+            .' AND superseded_at IS NULL AND as_of >= COALESCE((SELECT MAX(as_of) FROM account_balance_snapshots'
+            .' WHERE workspace_id = :workspace_id AND account_id = :account_id AND superseded_at IS NULL AND as_of < :from_day),'
+            ." CAST('-infinity' AS date))"
+            .' ORDER BY as_of, recorded_at, id',
+            ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'from_day' => $from->format('Y-m-d')],
+        );
+
+        return new AccountBalanceSnapshots(array_map(
+            static fn (array $row): AccountBalanceSnapshot => AccountBalanceSnapshotRow::hydrate($row, $workspace),
+            $rows,
+        ));
+    }
+
     public function find(WorkspaceScope $workspace, string $accountId, string $id): ?AccountBalanceSnapshot
     {
         $row = $this->connection->fetchAssociative(

@@ -6,21 +6,17 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountGroup;
-use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\AccountShareInput;
 use App\Module\Accounts\Domain\ExclusiveGroupRollup;
 use App\Module\Accounts\Domain\GroupLineage;
 use App\Module\Accounts\Domain\NetWorth;
-use App\Module\Accounts\Domain\NetWorthCalculator;
-use App\Module\Accounts\Domain\NetWorthContribution;
 use App\Module\Accounts\Domain\NetWorthDelta;
-use App\Module\Accounts\Domain\NetWorthShareCalculator;
 use App\Module\Accounts\Domain\NetWorthShares;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Reference\Application\AssetCatalog;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * The explainable net worth of the calling workspace on one business day.
@@ -31,28 +27,22 @@ use Symfony\Component\Clock\ClockInterface;
  */
 final readonly class ReadNetWorth
 {
-    /**
-     * The exclusive tree is at most eight levels deep and a personal workspace
-     * keeps tens of buckets. The cap only stops an aggregate from turning into
-     * an unbounded scan.
-     */
-    public const int MAX_GROUPS = 500;
-
     public function __construct(
         private CallerWorkspace $caller,
         private ResolveNetWorthContributions $contributions,
-        private AccountGroupRepository $groups,
+        private LoadGroupTree $groupTree,
         private AssetCatalog $assets,
-        private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
     public function __invoke(?string $asOf = null, ?string $comparedTo = null): NetWorthView
     {
-        $requestedOn = NetWorthDay::parse($asOf, $this->clock);
+        $today = $this->calendar->today();
+        $requestedOn = NetWorthDay::parse($asOf, $today);
         $comparedOn = null === $comparedTo || '' === $comparedTo
             ? NetWorthDay::previousMonth($requestedOn)
-            : NetWorthDay::parse($comparedTo, $this->clock);
+            : NetWorthDay::parse($comparedTo, $today);
 
         if ($comparedOn >= $requestedOn) {
             throw new InvalidNetWorthQuery('The compared day must precede the requested day.');
@@ -62,29 +52,17 @@ final readonly class ReadNetWorth
         $set = $this->contributions->on($workspace, [$requestedOn, $comparedOn]);
         $currentContributions = $set->on($requestedOn);
         $previousContributions = $set->on($comparedOn);
-        $current = NetWorthCalculator::compute($currentContributions, $requestedOn);
-        $previous = NetWorthCalculator::compute($previousContributions, $comparedOn);
 
         // Archived buckets still carry the lineage of the accounts that point
         // at them, so they are read for the roll-up and dropped from the
         // published allocation rather than being missing from both.
-        $groups = $this->groups->list($workspace, true, self::MAX_GROUPS + 1, 0);
-        if (count($groups) > self::MAX_GROUPS) {
-            // Truncating would drop the deepest buckets and publish the
-            // remaining ones as if they held everything.
-            throw new NetWorthScopeTooLarge('This workspace holds more groups than one net-worth allocation reads.');
-        }
-
-        $lineages = AccountGroupTree::lineages($groups);
-        $shareInputs = array_map(
-            static fn (NetWorthContribution $contribution): AccountShareInput => $contribution->share(),
-            $currentContributions,
-        );
-        $shares = NetWorthShareCalculator::compute($shareInputs, $lineages);
-        $previousShareInputs = array_map(
-            static fn (NetWorthContribution $contribution): AccountShareInput => $contribution->share(),
-            $previousContributions,
-        );
+        $tree = ($this->groupTree)($workspace);
+        $groups = $tree->groups;
+        $currentFigures = NetWorthDayFigures::of($currentContributions, $requestedOn, $tree->lineages);
+        $previousFigures = NetWorthDayFigures::of($previousContributions, $comparedOn, $tree->lineages);
+        $current = $currentFigures->netWorth;
+        $previous = $previousFigures->netWorth;
+        $shares = $currentFigures->shares();
         $references = new NetWorthAssetReferences($this->assets);
 
         return NetWorthView::of(
@@ -98,7 +76,7 @@ final readonly class ReadNetWorth
                 StaleValuationView::listFor($set->accounts, $previousContributions),
             ),
             self::contributionViews($set, $current, $groups, $shares, $references),
-            self::allocationViews($current, $previous, $groups, $lineages, $shareInputs, $previousShareInputs, $shares, $references),
+            self::allocationViews($current, $previous, $groups, $tree->lineages, $currentFigures->shareInputs, $previousFigures->shareInputs, $shares, $references),
             $references->for($current->asset),
             StaleValuationView::listFor($set->accounts, $currentContributions),
         );

@@ -13,15 +13,21 @@ export type GroupErrorKind =
 export class GroupRequestError extends Error {
   readonly status: number;
   readonly kind: GroupErrorKind;
+  /** A conflict too, but renaming the group would not help: the workspace is full. */
+  readonly limitReached: boolean;
 
   constructor(status: number, problemType: string | undefined, invalidColor = false) {
     super(`Account group request failed with status ${status}.`);
     this.status = status;
+    this.limitReached = problemType === LIMIT_REACHED;
     this.kind = invalidColor ? 'color' : classifyProblem(status, problemType, PROBLEM_KINDS);
   }
 }
 
+const LIMIT_REACHED = '/problems/account-group-limit-reached';
+
 const PROBLEM_KINDS: Record<string, GroupErrorKind> = {
+  [LIMIT_REACHED]: 'conflict',
   '/problems/stale-account-group-order': 'staleOrder',
   '/problems/account-group-label-taken': 'conflict',
 };

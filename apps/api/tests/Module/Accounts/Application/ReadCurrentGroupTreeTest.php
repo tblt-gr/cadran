@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Accounts\Application;
 
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\ReadCurrentGroupTree;
 use App\Module\Accounts\Application\ReadReportReferences;
 use App\Module\Accounts\Domain\GroupLineage;
@@ -51,7 +52,7 @@ final class ReadCurrentGroupTreeTest extends TestCase
 
     public function testReportReferencesLabelEachGroupByItsOwnNameWithItsParentLabelInDepthFirstOrder(): void
     {
-        $references = (new ReadReportReferences(new InMemoryAccountRepository(), $this->tree()))(WorkspaceScope::fromString(AccountGroupFixture::WORKSPACE));
+        $references = (new ReadReportReferences(new InMemoryAccountRepository(), new LoadGroupTree($this->tree())))(WorkspaceScope::fromString(AccountGroupFixture::WORKSPACE));
 
         self::assertSame([
             AccountGroupFixture::ID => 'Investissement',
@@ -73,7 +74,7 @@ final class ReadCurrentGroupTreeTest extends TestCase
     /** @param list<\App\Module\Accounts\Domain\Account> $accounts */
     private function reader(array $accounts): ReadCurrentGroupTree
     {
-        return new ReadCurrentGroupTree(new InMemoryAccountRepository(...$accounts), $this->tree());
+        return new ReadCurrentGroupTree(new InMemoryAccountRepository(...$accounts), new LoadGroupTree($this->tree()));
     }
 
     private function tree(): InMemoryAccountGroupRepository

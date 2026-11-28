@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Domain;
 
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
+use App\Module\Accounts\Domain\AccountBalanceSnapshots;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\ConflictingAccountBalanceSnapshot;
 use App\Module\Accounts\Domain\InvalidAccountBalanceSnapshot;
@@ -98,6 +99,26 @@ final class AccountBalanceSnapshotTest extends TestCase
         $this->expectException(ConflictingAccountBalanceSnapshot::class);
 
         $this->snapshot()->assertCompatibleWith($this->snapshot(id: self::NEXT_ID, amount: '240.00'));
+    }
+
+    public function testFifteenHundredDailySnapshotsBuildAndADuplicateDayAndSourceStillConflicts(): void
+    {
+        $snapshots = [];
+        $day = new \DateTimeImmutable('2022-01-01', new \DateTimeZone('UTC'));
+        for ($i = 0; $i < 1500; ++$i) {
+            $snapshots[] = $this->snapshot(
+                id: sprintf('00000000-0000-7000-8000-1%011d', $i),
+                asOf: $day->modify("+{$i} days")->format('Y-m-d'),
+            );
+        }
+
+        $started = hrtime(true);
+        self::assertCount(1500, (new AccountBalanceSnapshots($snapshots))->snapshots);
+        // A pairwise comparison would walk over a million pairs; one pass stays far under this bound.
+        self::assertLessThan(0.2, (hrtime(true) - $started) / 1e9);
+
+        $this->expectException(ConflictingAccountBalanceSnapshot::class);
+        new AccountBalanceSnapshots([...$snapshots, $this->snapshot(id: self::NEXT_ID, asOf: '2022-01-01')]);
     }
 
     public function testADifferentSourceOnTheSameDayDoesNotConflict(): void

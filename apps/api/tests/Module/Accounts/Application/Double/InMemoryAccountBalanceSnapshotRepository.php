@@ -30,6 +30,26 @@ final class InMemoryAccountBalanceSnapshotRepository implements AccountBalanceSn
         )));
     }
 
+    public function findAnchorsAround(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from): AccountBalanceSnapshots
+    {
+        $active = array_values(array_filter(
+            $this->findForAccount($workspace, $accountId)->snapshots,
+            static fn (AccountBalanceSnapshot $snapshot): bool => $snapshot->isActive(),
+        ));
+        $floor = '';
+        foreach ($active as $snapshot) {
+            $day = $snapshot->asOf->format('Y-m-d');
+            if ($day < $from->format('Y-m-d') && $day > $floor) {
+                $floor = $day;
+            }
+        }
+
+        return new AccountBalanceSnapshots(array_values(array_filter(
+            $active,
+            static fn (AccountBalanceSnapshot $snapshot): bool => $snapshot->asOf->format('Y-m-d') >= $floor,
+        )));
+    }
+
     public function find(WorkspaceScope $workspace, string $accountId, string $id): ?AccountBalanceSnapshot
     {
         foreach ($this->snapshots as $snapshot) {

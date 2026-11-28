@@ -1,7 +1,7 @@
-import { listAccountGroups, type AccountGroup } from '@cadran/api-client';
+import type { AccountGroup } from '@cadran/api-client';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { authApiOptions } from '@/features/auth/apiOptions';
+import { listAllAccountGroups } from '@/features/accounts/groups/listAllAccountGroups';
 import styles from './ParentGroupField.module.css';
 
 interface ParentGroupFieldProps {
@@ -14,20 +14,10 @@ export function ParentGroupField({ currentId, onChange, value }: ParentGroupFiel
   const { t } = useTranslation();
   const candidates = useQuery({
     queryKey: ['account-group-parent-candidates'],
-    queryFn: async ({ signal }) => {
-      const result = await listAccountGroups({
-        ...authApiOptions(),
-        query: { parentEligible: true, page: 1, pageSize: 100 },
-        signal,
-      });
-      if (!result.response?.ok || !result.data) {
-        throw new Error('Unable to load group parent candidates.');
-      }
-      return result.data;
-    },
+    queryFn: ({ signal }) => listAllAccountGroups(false, signal, true),
     retry: false,
   });
-  const parents = (candidates.data?.items ?? []).filter((group) => group.id !== currentId);
+  const parents = (candidates.data ?? []).filter((group) => group.id !== currentId);
   const loading = undefined === candidates.data && !candidates.isError;
 
   return (

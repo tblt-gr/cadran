@@ -6,6 +6,7 @@ namespace App\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\AccountGroupArchived;
 use App\Module\Accounts\Application\AccountGroupConflict;
+use App\Module\Accounts\Application\AccountGroupLimitReached;
 use App\Module\Accounts\Application\AccountGroupNotFound;
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
 use App\Module\Accounts\Application\InvalidAccountGroupMove;
@@ -25,6 +26,7 @@ use Symfony\Component\HttpFoundation\Response;
 final class AccountGroupProblems
 {
     public const string TYPE_LABEL_TAKEN = '/problems/account-group-label-taken';
+    public const string TYPE_LIMIT_REACHED = '/problems/account-group-limit-reached';
     public const string TYPE_STALE_VERSION = '/problems/stale-version';
     public const string TYPE_ARCHIVED = '/problems/account-group-archived';
     public const string TYPE_STALE_ORDER = '/problems/stale-account-group-order';
@@ -56,6 +58,7 @@ final class AccountGroupProblems
             MalformedPayload::class => self::invalid(),
             AccountGroupNotFound::class => self::notFound(),
             StaleAccountGroupVersion::class => self::staleVersion(),
+            AccountGroupLimitReached::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.account_group_limit_reached', self::TYPE_LIMIT_REACHED),
             AccountGroupConflict::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.account_group_label_taken', self::TYPE_LABEL_TAKEN),
             WorkspaceAccessDenied::class => self::forbidden(),
         ];

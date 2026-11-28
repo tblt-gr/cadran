@@ -6,7 +6,6 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountGroupColors;
-use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
 use App\Module\Accounts\Domain\CalendarMonth;
@@ -23,7 +22,7 @@ final readonly class ReadMonthlyAccountFacts
         private AccountRepository $accounts,
         private ResolveAccountValuations $valuations,
         private WorkspaceTimezoneReader $timezones,
-        private AccountGroupRepository $groups,
+        private LoadGroupTree $groupTree,
     ) {
     }
 
@@ -85,13 +84,7 @@ final readonly class ReadMonthlyAccountFacts
 
     private function colors(WorkspaceScope $workspace): AccountGroupColors
     {
-        $groups = $this->groups->list($workspace, true, ReadNetWorth::MAX_GROUPS + 1, 0);
-        if (count($groups) > ReadNetWorth::MAX_GROUPS) {
-            // A truncated tree would silently drop the colors of the deepest groups.
-            throw new NetWorthScopeTooLarge('This workspace holds more groups than one monthly read colors.');
-        }
-
-        return AccountGroupColors::of($groups);
+        return AccountGroupColors::of(($this->groupTree)($workspace)->groups);
     }
 
     private static function valuation(

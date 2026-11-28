@@ -141,6 +141,7 @@ export function AccountGroupsPage() {
           <GroupForm
             group={editor === 'create' ? undefined : editor}
             key={editor === 'create' ? 'create' : editor.id}
+            limitReached={save.error instanceof GroupRequestError && save.error.limitReached}
             onCancel={closeEditor}
             onSubmit={(body) => save.mutate(body)}
             pending={save.isPending}

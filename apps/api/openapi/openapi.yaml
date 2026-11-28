@@ -1736,7 +1736,7 @@ paths:
         '403':
           $ref: '#/components/responses/WorkspaceForbidden'
         '409':
-          description: An active sibling already uses the normalized label.
+          description: An active sibling already uses the normalized label, or the workspace already holds 500 groups (`/problems/account-group-limit-reached`).
           content:
             application/problem+json:
               schema:
@@ -22979,6 +22979,8 @@ components:
           description: The account group is archived and cannot be changed.
         - const: /problems/account-group-label-taken
           description: Another account group of the workspace already uses this label.
+        - const: /problems/account-group-limit-reached
+          description: The workspace already holds 500 account groups, archived included.
         - const: /problems/account-label-taken
           description: Another account of the workspace already uses this label.
         - const: /problems/account-not-life-insurance

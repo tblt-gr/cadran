@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\ReadGroupColors;
 use App\Module\Accounts\Application\UpdateAccountGroup;
 use App\Module\Accounts\Application\UpdateAccountGroupInput;
@@ -257,7 +258,7 @@ final class UpdateAccountGroupTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, new SequenceUuidGenerator()),
             new MockClock('2026-09-05 10:00:00'),
-            new ReadGroupColors($groups),
+            new ReadGroupColors(new LoadGroupTree($groups)),
         );
     }
 }

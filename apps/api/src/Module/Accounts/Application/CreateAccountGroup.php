@@ -35,6 +35,11 @@ final readonly class CreateAccountGroup
         $label = trim($input->label);
 
         return $this->transactionBoundary->transactional(function () use ($context, $parentId, $label, $input): AccountGroupView {
+            $this->groups->lockWorkspace($context->workspace);
+            if ($this->groups->count($context->workspace, true) >= AccountGroup::MAX_PER_WORKSPACE) {
+                throw new AccountGroupLimitReached('The workspace group limit is reached.');
+            }
+
             $parent = null;
             if (null !== $parentId) {
                 $parent = $this->groups->findForUpdate($context->workspace, $parentId);

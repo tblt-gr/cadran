@@ -6,6 +6,7 @@ namespace App\Tests\Module\Accounts\UI\Http;
 
 use App\Module\Accounts\Application\AccountGroupArchived;
 use App\Module\Accounts\Application\AccountGroupConflict;
+use App\Module\Accounts\Application\AccountGroupLimitReached;
 use App\Module\Accounts\Application\AccountGroupNotFound;
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
 use App\Module\Accounts\Application\InvalidAccountGroupMove;
@@ -32,6 +33,7 @@ final class AccountGroupProblemsTest extends ProblemTableTestCase
         ]];
         yield 'write' => [AccountGroupProblems::write(), [
             $archived, $invalid, $malformed, $notFound, $stale,
+            [new AccountGroupLimitReached(), 409, 'api.problem.account_group_limit_reached', '/problems/account-group-limit-reached'],
             [new AccountGroupConflict(), 409, 'api.problem.account_group_label_taken', '/problems/account-group-label-taken'],
             $forbidden,
         ]];

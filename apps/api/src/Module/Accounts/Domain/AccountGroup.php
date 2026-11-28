@@ -20,6 +20,8 @@ final readonly class AccountGroup
     public AccountGroupColorMode $colorMode;
 
     public const int MAX_LABEL_LENGTH = 80;
+    /** Archived included: a whole tree is read at once, so it has to stay bounded. */
+    public const int MAX_PER_WORKSPACE = 500;
     public const int MAX_TREE_DEPTH = 8;
     public const int MAX_SORT_ORDER = 32767;
     public const int MAX_COLOR_SLOT = 32767;

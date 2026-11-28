@@ -22,6 +22,8 @@ oneOf:
   - const: /problems/account-group-label-taken
     description: >-
       Another account group of the workspace already uses this label.
+  - const: /problems/account-group-limit-reached
+    description: The workspace already holds 500 account groups, archived included.
   - const: /problems/account-label-taken
     description: >-
       Another account of the workspace already uses this label.

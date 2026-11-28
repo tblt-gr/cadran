@@ -8,13 +8,19 @@ const PAGE_SIZE = 100;
 export async function listAllAccountGroups(
   includeArchived: boolean,
   signal?: AbortSignal,
+  parentEligible = false,
 ): Promise<AccountGroup[]> {
   const items: AccountGroup[] = [];
   let totalPages = 1;
   for (let page = 1; page <= totalPages; page += 1) {
     const result = await listAccountGroups({
       ...authApiOptions(),
-      query: { includeArchived, page, pageSize: PAGE_SIZE },
+      query: {
+        includeArchived,
+        page,
+        pageSize: PAGE_SIZE,
+        ...(parentEligible ? { parentEligible } : {}),
+      },
       ...(signal ? { signal } : {}),
     });
     if (!result.response?.ok || !result.data) {

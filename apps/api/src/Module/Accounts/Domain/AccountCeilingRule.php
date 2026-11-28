@@ -6,6 +6,7 @@ namespace App\Module\Accounts\Domain;
 
 use App\Module\Catalog\Domain\CeilingBasis;
 use App\Module\Catalog\Domain\RuleKind;
+use App\Module\Foundation\Domain\AssetAmount;
 
 /**
  * One ceiling kind seen through every authority that states it on a business
@@ -51,5 +52,15 @@ final readonly class AccountCeilingRule
     {
         return $this->override ?? $this->inherited ?? $this->catalog
             ?? throw new \LogicException('A layered rule always carries at least one layer.');
+    }
+
+    /** The ceiling in force against the figure its basis names; any other basis is unmeasurable here. */
+    public function compareTo(?AssetAmount $balance, ?AssetAmount $contributions): CeilingComparison
+    {
+        return $this->effective()->compare(match ($this->basis) {
+            CeilingBasis::TOTAL_BALANCE, CeilingBasis::BALANCE_EXCLUDING_INTEREST => $balance,
+            CeilingBasis::CONTRIBUTIONS => $contributions,
+            default => null,
+        });
     }
 }

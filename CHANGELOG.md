@@ -21,6 +21,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Read performance of portfolio accounts holding more than 5 000 operations, and translate
   allocation labels in English.
 - Report an internal data inconsistency as a server error instead of an invalid request.
+- List every eligible parent group and use the local day for net worth and account rules.
 
 ### Security
 

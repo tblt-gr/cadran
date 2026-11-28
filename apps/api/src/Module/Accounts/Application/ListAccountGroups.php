@@ -25,13 +25,7 @@ final readonly class ListAccountGroups
             ?? throw new InvalidAccountGroupInput('The group page is outside its bounds.');
 
         $workspace = $this->caller->resolve();
-        $groups = $this->groups->list($workspace, $includeArchived && !$parentEligible, $request->pageSize, $request->offset());
-        if ($parentEligible) {
-            $groups = array_values(array_filter(
-                $groups,
-                static fn ($group): bool => null === $group->archivedAt && $group->depth < \App\Module\Accounts\Domain\AccountGroup::MAX_TREE_DEPTH,
-            ));
-        }
+        $groups = $this->groups->list($workspace, $includeArchived, $request->pageSize, $request->offset(), $parentEligible);
 
         $parentIds = array_flip($this->groups->parentIdsWithChildren($workspace, array_column($groups, 'id')));
         $parentLabels = $this->groups->labelsByIds(
@@ -53,7 +47,7 @@ final readonly class ListAccountGroups
             ),
             page: $request->page,
             pageSize: $request->pageSize,
-            total: $this->groups->count($workspace, $includeArchived && !$parentEligible),
+            total: $this->groups->count($workspace, $includeArchived, $parentEligible),
         );
     }
 }

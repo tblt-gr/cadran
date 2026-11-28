@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Reporting\Application;
 
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\ReadReportReferences;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
@@ -57,7 +58,7 @@ final class ReadAnnualCatalogueTest extends TestCase
 
         $catalogue = (new ReadAnnualCatalogue(
             new ReadBudgetCategoryFacts($categories),
-            new ReadReportReferences(new InMemoryAccountRepository(), new InMemoryAccountGroupRepository()),
+            new ReadReportReferences(new InMemoryAccountRepository(), new LoadGroupTree(new InMemoryAccountGroupRepository())),
         ))(WorkspaceScope::fromString(AccountGroupFixture::WORKSPACE));
 
         self::assertNull($catalogue->categoryColor('00000000-0000-7000-8000-0000000000e4'));
@@ -77,7 +78,7 @@ final class ReadAnnualCatalogueTest extends TestCase
 
         return (new ReadAnnualCatalogue(
             new ReadBudgetCategoryFacts($categories),
-            new ReadReportReferences(new InMemoryAccountRepository(), $groups),
+            new ReadReportReferences(new InMemoryAccountRepository(), new LoadGroupTree($groups)),
         ))(WorkspaceScope::fromString($workspace));
     }
 

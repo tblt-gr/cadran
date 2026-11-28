@@ -321,6 +321,37 @@ final class AccountBalanceSnapshotPersistenceTest extends KernelTestCase
         self::assertNull($this->snapshots->earliestActiveAsOf(WorkspaceFixture::own(), self::FOREIGN_ACCOUNT));
     }
 
+    public function testTheAnchorsAroundADayAreTheLatestEarlierDayAndEverythingAfter(): void
+    {
+        $this->snapshots->add($this->snapshot(self::FIRST, '10', '2026-06-01'));
+        $this->snapshots->add($this->snapshot(self::SECOND, '20', '2026-08-01'));
+        $this->snapshots->add($this->snapshot(self::THIRD, '30', '2026-08-01', source: BalanceSnapshotSource::IMPORT));
+        $this->snapshots->add($this->snapshot('00000000-0000-7000-8000-0000000000b4', '40', '2026-09-03'));
+        $this->snapshots->add($this->snapshot('00000000-0000-7000-8000-0000000000b5', '50', '2026-08-20'));
+        $this->connection->update('account_balance_snapshots', ['superseded_at' => '2026-09-04 10:00:00+00'], ['id' => '00000000-0000-7000-8000-0000000000b5']);
+
+        self::assertSame(['20', '30', '40'], $this->anchorsAround('2026-08-25'));
+        // A day carrying an anchor still reads the earlier one: that write may remove it.
+        self::assertSame(['20', '30', '40'], $this->anchorsAround('2026-09-03'));
+        self::assertSame(['10', '20', '30', '40'], $this->anchorsAround('2026-06-01'));
+        self::assertSame(['10', '20', '30', '40'], $this->anchorsAround('2020-01-01'));
+        self::assertSame(['40'], $this->anchorsAround('2026-10-01'));
+        self::assertSame([], $this->snapshots->findAnchorsAround(WorkspaceFixture::own(), self::FOREIGN_ACCOUNT, new \DateTimeImmutable('2026-10-01'))->snapshots);
+        self::assertSame([], $this->snapshots->findAnchorsAround(WorkspaceScope::fromString(WorkspaceFixture::OTHER_WORKSPACE), self::ACCOUNT, new \DateTimeImmutable('2026-10-01'))->snapshots);
+    }
+
+    /** @return list<string> amounts, sorted */
+    private function anchorsAround(string $from): array
+    {
+        $amounts = array_map(
+            static fn (AccountBalanceSnapshot $snapshot): string => $snapshot->amount->value->toString(),
+            $this->snapshots->findAnchorsAround(WorkspaceFixture::own(), self::ACCOUNT, new \DateTimeImmutable($from, new \DateTimeZone('UTC')))->snapshots,
+        );
+        sort($amounts);
+
+        return $amounts;
+    }
+
     private function earliestDay(WorkspaceScope $workspace, string $accountId): ?string
     {
         return $this->snapshots->earliestActiveAsOf($workspace, $accountId)?->format('Y-m-d');

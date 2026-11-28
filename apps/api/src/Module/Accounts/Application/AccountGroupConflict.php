@@ -4,6 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
-final class AccountGroupConflict extends \RuntimeException
+class AccountGroupConflict extends \RuntimeException
 {
 }

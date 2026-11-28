@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\AssessPeriodClosing;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\PeriodClosingBlocker;
 use App\Module\Accounts\Application\PeriodClosingFacts;
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
@@ -87,7 +88,7 @@ final class AssessPeriodClosingPortfolioTest extends TestCase
         $assess = new AssessPeriodClosing(
             new InMemoryAccountRepository($account),
             new InMemoryAccountBalanceSnapshotRepository(...$snapshots),
-            new InMemoryAccountGroupRepository(),
+            new LoadGroupTree(new InMemoryAccountGroupRepository()),
             $facts,
             new FixedWorkspaceTimezoneReader(),
         );

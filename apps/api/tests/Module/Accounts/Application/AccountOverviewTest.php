@@ -11,6 +11,7 @@ use App\Module\Accounts\Application\AccountOverviewGrouping;
 use App\Module\Accounts\Application\AccountOverviewRowPage;
 use App\Module\Accounts\Application\InvalidAccountOverviewQuery;
 use App\Module\Accounts\Application\ListAccountOverviewRows;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\MoveAccount;
 use App\Module\Accounts\Application\ReadAccountOverview;
 use App\Module\Accounts\Application\ResolveAccountValuations;
@@ -25,6 +26,7 @@ use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -79,6 +81,15 @@ final class AccountOverviewTest extends TestCase
     /** @var list<\App\Module\Accounts\Domain\AccountGroup>|null */
     private ?array $groupSet = null;
     private CollectingAuditEventRepository $trail;
+
+    public function testTheDefaultDayIsTheLocalDayOfTheWorkspaceCalendar(): void
+    {
+        $figures = $this->figures($this->accounts(), $this->snapshots(), '2026-09-04 23:30:00', 'Europe/Paris');
+        $workspace = WorkspaceScope::fromString(self::WORKSPACE);
+
+        self::assertSame('2026-09-05', $figures->on($workspace, null)->day->format('Y-m-d'));
+        self::assertSame('2026-09-03', $figures->on($workspace, '2026-09-03')->day->format('Y-m-d'));
+    }
 
     public function testSubGroupHeadingsCarryDirectTotalsSharesAndTheParentLabel(): void
     {
@@ -563,7 +574,7 @@ final class AccountOverviewTest extends TestCase
      * @param list<Account>                $accounts
      * @param list<AccountBalanceSnapshot> $snapshots
      */
-    private function figures(array $accounts, array $snapshots): AccountOverviewFigures
+    private function figures(array $accounts, array $snapshots, string $now = '2026-09-05 09:00:00', string $timezone = 'UTC'): AccountOverviewFigures
     {
         return new AccountOverviewFigures(
             new ResolveNetWorthContributions(
@@ -571,8 +582,8 @@ final class AccountOverviewTest extends TestCase
                 new ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(...$snapshots), new EmptyBookedMovementTotals()),
                 new FixedWorkspaceTimezoneReader(),
             ),
-            $this->groupRepository(),
-            new MockClock('2026-09-05 09:00:00', 'UTC'),
+            new LoadGroupTree($this->groupRepository()),
+            new WorkspaceCalendar(new MockClock($now, 'UTC'), new FixedCallerWorkspace(self::WORKSPACE), new FixedWorkspaceTimezoneReader($timezone)),
         );
     }
 

@@ -20,11 +20,12 @@ interface GroupFormProps {
   group?: AccountGroup;
   pending: boolean;
   submitError: GroupErrorKind | null;
+  limitReached?: boolean;
   onCancel: () => void;
   onSubmit: (body: CreateAccountGroupRequest | UpdateAccountGroupRequest) => void;
 }
 
-export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormProps) {
+export function GroupForm({ group, pending, submitError, limitReached, onSubmit }: GroupFormProps) {
   const { t } = useTranslation();
   const [colorChoice, setColorChoice] = useState<GroupColorChange>({
     mode: group?.colorMode ?? 'AUTO',
@@ -74,7 +75,7 @@ export function GroupForm({ group, pending, submitError, onSubmit }: GroupFormPr
     <ModalForm className={styles.form} noValidate onSubmit={submit}>
       {submitError ? (
         <p className={styles.alert} role="alert">
-          {t(`accountGroups.errors.${submitError}`)}
+          {t(`accountGroups.errors.${limitReached ? 'limitReached' : submitError}`)}
         </p>
       ) : null}
 

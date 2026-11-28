@@ -581,6 +581,44 @@ describe('AccountGroupsPage mutations and failures', () => {
     expect(await screen.findByText('Réserve')).toBeTruthy();
   });
 
+  it('says the group limit is reached rather than blaming the label', async () => {
+    serveOne();
+    api.createAccountGroup.mockImplementation(() =>
+      problem(409, '/problems/account-group-limit-reached'),
+    );
+    renderPage();
+    await loadedGroupsTree();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau groupe' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Libellé'), { target: { value: 'De trop' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Enregistrer' }));
+
+    expect((await within(dialog).findByRole('alert')).textContent).toContain(
+      'contient déjà 500 groupes',
+    );
+  });
+
+  it('offers the eligible parents of every page', async () => {
+    api.listAccountGroups.mockImplementation(({ query }) =>
+      query.parentEligible
+        ? success({
+            items: [{ ...group, id: `parent-${query.page}`, label: `Parent ${query.page}` }],
+            page: query.page,
+            pageSize: 100,
+            total: 101,
+          })
+        : success({ items: [group], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderPage();
+    await loadedGroupsTree();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Nouveau groupe' }));
+
+    expect(await screen.findByRole('option', { name: 'Parent 2' })).toBeTruthy();
+    expect(screen.getByRole('option', { name: 'Parent 1' })).toBeTruthy();
+  });
+
   it('keeps the modal and the listed groups when a taken label answers 409 on creation', async () => {
     serveOne();
     api.createAccountGroup.mockImplementation(() =>

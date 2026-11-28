@@ -37,16 +37,20 @@ final class InMemoryAccountGroupRepository implements AccountGroupRepository
         return $this->find($workspace, $id);
     }
 
-    public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset): array
+    public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset, bool $parentEligible = false): array
     {
         ++$this->listCalls;
 
-        return array_slice($this->matching($workspace, $includeArchived), $offset, $limit);
+        return array_slice($this->matching($workspace, $includeArchived, $parentEligible), $offset, $limit);
     }
 
-    public function count(WorkspaceScope $workspace, bool $includeArchived): int
+    public function count(WorkspaceScope $workspace, bool $includeArchived, bool $parentEligible = false): int
     {
-        return count($this->matching($workspace, $includeArchived));
+        return count($this->matching($workspace, $includeArchived, $parentEligible));
+    }
+
+    public function lockWorkspace(WorkspaceScope $workspace): void
+    {
     }
 
     public function hasActiveSiblingLabel(
@@ -207,12 +211,13 @@ final class InMemoryAccountGroupRepository implements AccountGroupRepository
     }
 
     /** @return list<AccountGroup> */
-    private function matching(WorkspaceScope $workspace, bool $includeArchived): array
+    private function matching(WorkspaceScope $workspace, bool $includeArchived, bool $parentEligible): array
     {
         return array_values(array_filter(
             $this->groups,
             static fn (AccountGroup $group): bool => $group->workspace->equals($workspace)
-                && ($includeArchived || null === $group->archivedAt),
+                && (($includeArchived && !$parentEligible) || null === $group->archivedAt)
+                && (!$parentEligible || $group->depth < AccountGroup::MAX_TREE_DEPTH),
         ));
     }
 }

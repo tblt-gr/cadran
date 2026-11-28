@@ -17,6 +17,7 @@ use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -247,7 +248,7 @@ final class NetWorthHistoryPerformanceTest extends TestCase
         return new ReadNetWorthHistory(
             new FixedCallerWorkspace(WorkspaceFixture::OWN_WORKSPACE),
             new ResolveNetWorthContributions(new InMemoryAccountRepository(...([] === $amounts ? [] : [$account])), new \App\Module\Accounts\Application\ResolveAccountValuations($repository ?? new InMemoryAccountBalanceSnapshotRepository(...$snapshots), new Double\EmptyBookedMovementTotals()), new FixedWorkspaceTimezoneReader()),
-            InMemoryAssetCatalog::withCodes('EUR'), new MockClock($now), $first,
+            InMemoryAssetCatalog::withCodes('EUR'), new WorkspaceCalendar(new MockClock($now), new FixedCallerWorkspace(WorkspaceFixture::OWN_WORKSPACE), new FixedWorkspaceTimezoneReader()), $first,
         );
     }
 }

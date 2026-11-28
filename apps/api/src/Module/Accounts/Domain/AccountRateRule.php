@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Domain;
 
+use App\Module\Catalog\Domain\AppliedRate;
 use App\Module\Catalog\Domain\RuleKind;
+use App\Module\Foundation\Domain\AssetAmount;
 
 /**
  * One rate kind seen through every authority that states it on a business
@@ -41,5 +43,11 @@ final readonly class AccountRateRule
     {
         return $this->override ?? $this->inherited ?? $this->catalog
             ?? throw new \LogicException('A layered rule always carries at least one layer.');
+    }
+
+    /** What the rate in force pays on this balance; null without a balance, never zero. */
+    public function applyTo(?AssetAmount $balance): ?AppliedRate
+    {
+        return null === $balance ? null : $this->effective()->scale->apply($balance->value);
     }
 }

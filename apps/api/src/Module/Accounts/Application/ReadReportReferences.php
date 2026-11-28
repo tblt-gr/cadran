@@ -6,7 +6,6 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountGroupColors;
-use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -19,17 +18,17 @@ final readonly class ReadReportReferences
 {
     public function __construct(
         private AccountRepository $accounts,
-        private AccountGroupRepository $groups,
+        private LoadGroupTree $groupTree,
     ) {
     }
 
     public function __invoke(WorkspaceScope $workspace): ReportReferences
     {
         $accounts = $this->accounts->list($workspace, true, true, ReadMonthlyAccountFacts::MAX_ACCOUNTS + 1, 0);
-        $groups = $this->groups->list($workspace, true, ReadNetWorth::MAX_GROUPS + 1, 0);
-        if (count($accounts) > ReadMonthlyAccountFacts::MAX_ACCOUNTS || count($groups) > ReadNetWorth::MAX_GROUPS) {
-            throw new NetWorthScopeTooLarge('A report reads at most 500 accounts and 500 groups.');
+        if (count($accounts) > ReadMonthlyAccountFacts::MAX_ACCOUNTS) {
+            throw new NetWorthScopeTooLarge('A report reads at most 500 accounts.');
         }
+        $groups = ($this->groupTree)($workspace)->groups;
         $references = array_map(static fn (Account $account): ReportAccountReference => new ReportAccountReference(
             $account->id,
             $account->label,

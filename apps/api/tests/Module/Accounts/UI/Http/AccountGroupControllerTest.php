@@ -589,6 +589,80 @@ final class AccountGroupControllerTest extends WebTestCase
         $this->client->request($method, $uri, server: self::jsonHeaders(), content: json_encode($body, JSON_THROW_ON_ERROR));
     }
 
+    public function testEligibleParentsArePagedInSqlSoNoPageComesBackShort(): void
+    {
+        // A chain from depth 1 to 7, so the depth 8 groups have a legal parent.
+        for ($index = 0; $index < 7; ++$index) {
+            $this->insertBulkGroup($index, WorkspaceFixture::OWN_WORKSPACE, depth: $index + 1, parent: 0 === $index ? null : $index - 1);
+        }
+        // 15 archived and 15 at the maximum depth, spread among the 113 remaining groups.
+        for ($index = 7; $index < 120; ++$index) {
+            $step = $index - 7;
+            $deep = 3 === $step % 7 && $step < 105;
+            $this->insertBulkGroup(
+                $index,
+                WorkspaceFixture::OWN_WORKSPACE,
+                archived: 0 === $step % 7 && $step < 105,
+                depth: $deep ? 8 : 1,
+                parent: $deep ? 6 : null,
+            );
+        }
+        $this->insertBulkGroup(900, WorkspaceFixture::OTHER_WORKSPACE);
+
+        $seen = [];
+        foreach ([1 => 50, 2 => 40] as $page => $expected) {
+            $this->client->request('GET', '/api/v1/account-groups?parentEligible=true&includeArchived=true&pageSize=50&page='.$page);
+            self::assertResponseIsSuccessful();
+            $body = $this->decode();
+            self::assertSame(90, $body['total']);
+            $items = $this->items();
+            self::assertCount($expected, $items);
+            foreach ($items as $item) {
+                self::assertNull($item['archivedAt']);
+                self::assertLessThan(8, $item['depth']);
+                $seen[] = $item['id'];
+            }
+        }
+        self::assertCount(90, array_unique($seen, SORT_REGULAR));
+
+        $this->client->request('GET', '/api/v1/account-groups?includeArchived=true&pageSize=50');
+        self::assertSame(120, $this->decode()['total']);
+        $this->client->request('GET', '/api/v1/account-groups?pageSize=50');
+        self::assertSame(105, $this->decode()['total']);
+    }
+
+    public function testTheFiveHundredAndFirstGroupIsAConflictThatChangesNothing(): void
+    {
+        for ($index = 0; $index < 499; ++$index) {
+            $this->insertBulkGroup($index, WorkspaceFixture::OWN_WORKSPACE, archived: 0 === $index % 2);
+        }
+        $this->insertBulkGroup(900, WorkspaceFixture::OTHER_WORKSPACE);
+
+        // Another workspace's groups never count: the 500th is still accepted.
+        $this->createGroup('Dernier');
+        $this->requestCreate('De trop');
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/account-group-limit-reached', $this->decode()['type']);
+        self::assertSame(500, $this->ownGroupCount());
+    }
+
+    private function insertBulkGroup(int $index, string $workspaceId, bool $archived = false, int $depth = 1, ?int $parent = null): void
+    {
+        $this->connection->insert('account_groups', [
+            'id' => sprintf('00000000-0000-7000-8000-9%011d', $index),
+            'workspace_id' => $workspaceId,
+            'label' => 'Bulk '.$index,
+            'parent_id' => null === $parent ? null : sprintf('00000000-0000-7000-8000-9%011d', $parent),
+            'sort_order' => $index % 100,
+            'depth' => $depth,
+            'version' => 1,
+            'created_at' => '2026-09-01 12:00:00+00',
+            'updated_at' => '2026-09-01 12:00:00+00',
+            'archived_at' => $archived ? '2026-09-02 12:00:00+00' : null,
+        ]);
+    }
+
     private function signIn(): void
     {
         $this->client->request('POST', '/api/v1/session', server: self::jsonHeaders(), content: json_encode([

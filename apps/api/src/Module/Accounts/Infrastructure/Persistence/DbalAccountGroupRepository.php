@@ -28,27 +28,17 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
 
     public function find(WorkspaceScope $workspace, string $id): ?AccountGroup
     {
-        $row = $this->connection->fetchAssociative(
-            'SELECT '.self::COLUMNS.' FROM account_groups WHERE workspace_id = :workspace_id AND id = :id',
-            ['workspace_id' => $workspace->id, 'id' => $id],
-        );
-
-        return false === $row ? null : AccountGroupRow::hydrate($row, $workspace);
+        return $this->read($workspace, $id, '');
     }
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?AccountGroup
     {
-        $row = $this->connection->fetchAssociative(
-            'SELECT '.self::COLUMNS.' FROM account_groups WHERE workspace_id = :workspace_id AND id = :id FOR UPDATE',
-            ['workspace_id' => $workspace->id, 'id' => $id],
-        );
-
-        return false === $row ? null : AccountGroupRow::hydrate($row, $workspace);
+        return $this->read($workspace, $id, ' FOR UPDATE');
     }
 
-    public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset): array
+    public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset, bool $parentEligible = false): array
     {
-        [$where, $parameters] = self::filters($workspace, $includeArchived);
+        [$where, $parameters] = self::filters($workspace, $includeArchived, $parentEligible);
         $parameters['limit'] = $limit;
         $parameters['offset'] = $offset;
         $rows = $this->connection->fetchAllAssociative(
@@ -61,9 +51,14 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         return array_map(static fn (array $row): AccountGroup => AccountGroupRow::hydrate($row, $workspace), $rows);
     }
 
-    public function count(WorkspaceScope $workspace, bool $includeArchived): int
+    public function lockWorkspace(WorkspaceScope $workspace): void
     {
-        [$where, $parameters] = self::filters($workspace, $includeArchived);
+        $this->connection->executeQuery('SELECT pg_advisory_xact_lock(hashtextextended(:workspace_id, 31031))', ['workspace_id' => $workspace->id]);
+    }
+
+    public function count(WorkspaceScope $workspace, bool $includeArchived, bool $parentEligible = false): int
+    {
+        [$where, $parameters] = self::filters($workspace, $includeArchived, $parentEligible);
 
         return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM account_groups WHERE workspace_id = :workspace_id AND ('.$where.')',
@@ -71,12 +66,8 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         ));
     }
 
-    public function hasActiveSiblingLabel(
-        WorkspaceScope $workspace,
-        ?string $parentId,
-        string $label,
-        ?string $excludingId = null,
-    ): bool {
+    public function hasActiveSiblingLabel(WorkspaceScope $workspace, ?string $parentId, string $label, ?string $excludingId = null): bool
+    {
         $excludeClause = null === $excludingId ? '' : ' AND id <> :excluding_id';
         $parameters = [
             'workspace_id' => $workspace->id,
@@ -269,6 +260,16 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         }
     }
 
+    private function read(WorkspaceScope $workspace, string $id, string $lock): ?AccountGroup
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT '.self::COLUMNS.' FROM account_groups WHERE workspace_id = :workspace_id AND id = :id'.$lock,
+            ['workspace_id' => $workspace->id, 'id' => $id],
+        );
+
+        return false === $row ? null : AccountGroupRow::hydrate($row, $workspace);
+    }
+
     /** Id order, so two writers on the same parent never deadlock. */
     private function lockSiblingRows(WorkspaceScope $workspace, ?string $parentId): void
     {
@@ -279,15 +280,17 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
         );
     }
 
-    /**
-     * @return array{string, array<string, mixed>}
-     */
-    private static function filters(WorkspaceScope $workspace, bool $includeArchived): array
+    /** @return array{string, array<string, mixed>} */
+    private static function filters(WorkspaceScope $workspace, bool $includeArchived, bool $parentEligible): array
     {
         $conditions = ['workspace_id = :workspace_id'];
         $parameters = ['workspace_id' => $workspace->id];
-        if (!$includeArchived) {
+        if (!$includeArchived || $parentEligible) {
             $conditions[] = 'archived_at IS NULL';
+        }
+        if ($parentEligible) {
+            $conditions[] = 'depth < :max_depth';
+            $parameters['max_depth'] = AccountGroup::MAX_TREE_DEPTH;
         }
 
         return [implode(' AND ', $conditions), $parameters];

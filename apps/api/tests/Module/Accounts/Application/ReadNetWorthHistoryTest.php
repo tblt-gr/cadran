@@ -15,6 +15,7 @@ use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -137,7 +138,15 @@ final class ReadNetWorthHistoryTest extends TestCase
         ($this->read())(months: 12, period: 'ALL');
     }
 
-    private function read(?string $firstMonth = '2026-07'): ReadNetWorthHistory
+    public function testTheDefaultDayIsTheLocalDayOfTheWorkspaceCalendar(): void
+    {
+        $read = $this->read(now: '2026-09-04 23:30:00', timezone: 'Europe/Paris');
+
+        self::assertSame('2026-09-05', $read()->asOf);
+        self::assertSame('2026-09-03', $read('2026-09-03')->asOf);
+    }
+
+    private function read(?string $firstMonth = '2026-07', string $now = '2026-09-05 09:00:00', string $timezone = 'UTC'): ReadNetWorthHistory
     {
         $first = $this->createStub(FirstNetWorthDataDayReader::class);
         $first->method('onOrBefore')->willReturn(null === $firstMonth ? null : new \DateTimeImmutable($firstMonth.'-01'));
@@ -153,7 +162,7 @@ final class ReadNetWorthHistoryTest extends TestCase
                 new FixedWorkspaceTimezoneReader(),
             ),
             InMemoryAssetCatalog::withCodes('EUR'),
-            new MockClock('2026-09-05 09:00:00', 'UTC'),
+            new WorkspaceCalendar(new MockClock($now, 'UTC'), new FixedCallerWorkspace(self::WORKSPACE), new FixedWorkspaceTimezoneReader($timezone)),
             $first,
         );
     }
