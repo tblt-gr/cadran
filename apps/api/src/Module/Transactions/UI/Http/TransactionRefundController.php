@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\IdempotencyConflict;
@@ -66,11 +67,11 @@ final readonly class TransactionRefundController
         }
         try {
             $body += ['splits' => null];
-            $payload = TransactionPayload::of($body, self::REFUND_FIELDS);
+            $payload = JsonPayload::of($body, self::REFUND_FIELDS);
             $input = new CreateRefundInput(
                 $payload->uuid('accountId'), $payload->amount('amount'), $payload->string('bookedOn'),
                 $payload->string('rawLabel'), $payload->nullableString('counterparty'), $payload->nullableString('note'),
-                $payload->nullableSplitRows('splits'),
+                TransactionPayload::nullableSplitRows($payload, 'splits'),
             );
             $result = $this->idempotentExecution->execute(
                 'refund.create',

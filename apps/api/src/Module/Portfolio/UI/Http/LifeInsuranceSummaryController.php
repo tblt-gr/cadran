@@ -6,6 +6,7 @@ namespace App\Module\Portfolio\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Portfolio\Application\CashRangeTooDense;
 use App\Module\Portfolio\Application\LifeInsurance\ReadLifeInsuranceSummary;
 use App\Module\Portfolio\Application\Performance\PerformanceRangeTooDense;
@@ -29,7 +30,7 @@ final readonly class LifeInsuranceSummaryController
     public function __invoke(string $accountId, Request $request, ReadLifeInsuranceSummary $read): Response
     {
         try {
-            if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $accountId)) {
+            if (!Identifier::isValid($accountId)) {
                 throw new PortfolioAccountNotFound();
             }
             $asOf = $request->query->all()['asOf'] ?? null;

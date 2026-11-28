@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Catalog\Domain;
 
+use App\Module\Foundation\Domain\BoundedText;
+
 /**
  * A read-only, system-scoped product model: what a Livret A or a PEA is,
  * independently of anyone's account.
@@ -28,7 +30,7 @@ final readonly class FinancialProduct
         public int $catalogVersion,
         public ?\DateTimeImmutable $archivedAt = null,
     ) {
-        if ($displayName !== trim($displayName) || '' === $displayName || mb_strlen($displayName) > self::MAX_DISPLAY_NAME_LENGTH) {
+        if (!BoundedText::isValid($displayName, 1, self::MAX_DISPLAY_NAME_LENGTH)) {
             throw new InvalidCatalogEntry(sprintf('A product name contains between 1 and %d characters.', self::MAX_DISPLAY_NAME_LENGTH));
         }
 

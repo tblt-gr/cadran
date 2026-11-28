@@ -10,6 +10,7 @@ use App\Module\Accounts\Domain\MovementTotal;
 use App\Module\Accounts\Domain\MovementWindow;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 
 final readonly class DbalBookedMovementTotals implements BookedMovementTotals
@@ -55,12 +56,12 @@ final readonly class DbalBookedMovementTotals implements BookedMovementTotals
             ],
         );
         foreach ($rows as $row) {
-            $key = TransactionRow::text($row['account_id']).'|'.TransactionRow::text($row['after_exclusive']).'|'.TransactionRow::text($row['up_to_inclusive']);
+            $key = DbalValue::text($row['account_id']).'|'.DbalValue::text($row['after_exclusive']).'|'.DbalValue::text($row['up_to_inclusive']);
             $result[$key] = new MovementTotal(
-                null === $row['total'] ? null : DecimalValue::fromString(TransactionRow::canonicalNumeric(TransactionRow::text($row['total']))),
-                (int) TransactionRow::text($row['booked_count']),
-                (int) TransactionRow::text($row['pending_count']),
-                0 < (int) TransactionRow::text($row['foreign_count']),
+                null === $row['total'] ? null : DecimalValue::fromString(TransactionRow::canonicalNumeric(DbalValue::text($row['total']))),
+                (int) DbalValue::text($row['booked_count']),
+                (int) DbalValue::text($row['pending_count']),
+                0 < (int) DbalValue::text($row['foreign_count']),
             );
         }
 

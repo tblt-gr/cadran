@@ -21,6 +21,7 @@ use App\Module\Categories\Application\CreateCategory;
 use App\Module\Categories\Application\CreateCategoryInput;
 use App\Module\Foundation\Application\DemoAccountBalanceContributor;
 use App\Module\Foundation\Application\DemoDataContributor;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\CreateTransaction;
@@ -286,10 +287,7 @@ final readonly class SeedDemoData
     /** @return array<string, string> key => account id */
     private function accounts(): array
     {
-        $existing = [];
-        foreach ($this->listGroups->__invoke(false, 1, ListAccountGroups::MAX_PAGE_SIZE)->items as $item) {
-            $existing[$item->label] = $item->id;
-        }
+        $existing = array_column($this->listGroups->__invoke(false, 1, PageRequest::MAX_PAGE_SIZE)->items, 'id', 'label');
         // System primary groups ship with a provisioned workspace: reuse them, create only what is missing.
         $group = fn (string $label): string => $existing[$label]
             ?? $this->createGroup->__invoke(new CreateAccountGroupInput($label, null))->id;

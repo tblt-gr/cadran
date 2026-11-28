@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Domain\Recurrence;
 
 use App\Module\Foundation\Domain\AssetAmount;
+use App\Module\Foundation\Domain\BoundedText;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Foundation\Domain\Uuid;
 
 /**
  * The checks a recurrence and its occurrences state the same way, kept in one
@@ -18,14 +20,14 @@ final class RecurrenceIdentity
 {
     public static function identifier(string $id, string $field): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidRecurrence(sprintf('A recurrence %s must be a canonical UUID.', $field));
         }
     }
 
     public static function text(string $value, int $maximum, string $field): void
     {
-        if ($value !== trim($value) || '' === $value || mb_strlen($value) > $maximum) {
+        if (!BoundedText::isValid($value, 1, $maximum)) {
             throw new InvalidRecurrence(sprintf('A recurrence %s must contain between 1 and %d characters.', $field, $maximum));
         }
     }

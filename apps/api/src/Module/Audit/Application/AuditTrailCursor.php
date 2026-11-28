@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Audit\Application;
 
+use App\Module\Foundation\Domain\Uuid;
+
 /**
  * Keyset position in the trail, ordered newest first on (occurred_at, id).
  * Both parts are needed: events written inside one transaction share a
@@ -44,7 +46,7 @@ final readonly class AuditTrailCursor
 
         [$timestamp, $eventId] = $parts;
         $occurredAt = \DateTimeImmutable::createFromFormat(self::TIMESTAMP_FORMAT, $timestamp);
-        if (false === $occurredAt || 1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}\z/i', $eventId)) {
+        if (false === $occurredAt || !Uuid::isValid($eventId)) {
             throw new InvalidAuditTrailQuery('The audit trail cursor does not name a known position.');
         }
 

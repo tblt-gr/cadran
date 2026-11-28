@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -56,7 +57,7 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            $fingerprint = RecurrencePayload::of($body, ['fingerprint'])->string('fingerprint');
+            $fingerprint = JsonPayload::of($body, ['fingerprint'])->string('fingerprint');
             self::fingerprint($fingerprint);
             $dismiss($fingerprint);
 
@@ -93,12 +94,12 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            $payload = RecurrencePayload::of($body, self::CREATE_FIELDS, self::AUTO_CREATE_FIELDS);
+            $payload = JsonPayload::of($body, self::CREATE_FIELDS, self::AUTO_CREATE_FIELDS);
             $input = new RecurrenceInput(
                 $payload->uuid('accountId'), $payload->string('label'), $payload->nullableString('counterparty'),
                 $payload->string('expectedAmount'), $payload->string('amountTolerance'), $payload->string('intervalKind'),
                 $payload->integer('dayOfPeriod'), $payload->string('firstExpectedOn'),
-                $payload->boolean('autoCreate'), $payload->nullableIdentifier('categoryId'),
+                null !== $payload->raw('autoCreate') && $payload->boolean('autoCreate'), $payload->nullableUuid('categoryId'),
                 $payload->nullableString('note'), $payload->nullableString('paymentMethod'),
             );
             $result = $this->idempotentExecution->execute(
@@ -129,7 +130,7 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            RecurrencePayload::of($body, []);
+            JsonPayload::of($body, []);
 
             return $this->envelope->json($refresh());
         } catch (\UnexpectedValueException) {
@@ -147,7 +148,7 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            RecurrencePayload::of($body, []);
+            JsonPayload::of($body, []);
 
             return $this->envelope->json($materialize()->toArray());
         } catch (\UnexpectedValueException) {
@@ -168,11 +169,11 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            $payload = RecurrencePayload::of($body, self::UPDATE_FIELDS, self::UPDATE_OPTIONAL_FIELDS);
+            $payload = JsonPayload::of($body, self::UPDATE_FIELDS, self::UPDATE_OPTIONAL_FIELDS);
             $view = $edit($id, new RecurrenceEditInput(
                 $payload->string('label'), $payload->nullableString('counterparty'), $payload->string('expectedAmount'),
                 $payload->string('amountTolerance'), $payload->string('intervalKind'), $payload->integer('dayOfPeriod'),
-                $payload->integer('version'), $payload->boolean('autoCreate'), $payload->nullableIdentifier('categoryId'),
+                $payload->integer('version'), null !== $payload->raw('autoCreate') && $payload->boolean('autoCreate'), $payload->nullableUuid('categoryId'),
                 $payload->nullableString('note'), $payload->nullableString('paymentMethod'),
                 $payload->nullableString('firstExpectedOn'),
             ));
@@ -200,7 +201,7 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            $version = RecurrencePayload::of($body, ['version'])->integer('version');
+            $version = JsonPayload::of($body, ['version'])->integer('version');
 
             return $this->envelope->json($archive($id, $version));
         } catch (RecurrenceNotFound) {
@@ -225,7 +226,7 @@ final readonly class RecurrenceWriteController
             return $body;
         }
         try {
-            $version = RecurrencePayload::of($body, ['version'])->integer('version');
+            $version = JsonPayload::of($body, ['version'])->integer('version');
 
             return $this->envelope->json($restore($id, $version));
         } catch (RecurrenceNotFound) {

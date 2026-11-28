@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Domain;
 
+use App\Module\Foundation\Domain\Uuid;
+
 /**
  * Which optional category and axis breakdowns one workspace wants to see in
  * its compact monthly recap.
@@ -20,8 +22,6 @@ final readonly class RecapVisibility
      * stored preference from growing into an unbounded payload.
      */
     public const int MAX_ITEMS = 100;
-
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i';
 
     /**
      * @param list<string> $categoryIds
@@ -43,7 +43,7 @@ final readonly class RecapVisibility
         self::assertBounded($categoryIds, 'categories');
         self::assertBounded($axes, 'axes');
         foreach ($categoryIds as $categoryId) {
-            if (1 !== preg_match(self::UUID_PATTERN, $categoryId)) {
+            if (!Uuid::isValid($categoryId)) {
                 throw new InvalidRecapVisibility('A recap category must be an identifier.');
             }
         }

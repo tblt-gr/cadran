@@ -8,6 +8,7 @@ use App\Module\Accounts\Application\ReadAccountReference;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
 use App\Module\Categories\Application\ReadCategoryReference;
 use App\Module\Categories\Domain\AnalyticAxis;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final readonly class ResolveGoalScope
@@ -32,7 +33,7 @@ final readonly class ResolveGoalScope
 
             return new GoalScopeView($type->value, null, $axis->value, ucfirst(strtolower($axis->value)), false);
         }
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $ref)) {
+        if (!Uuid::isValid($ref)) {
             throw new GoalInputError('unknown_goal_reference', 'The goal reference is unknown.');
         }
         if (GoalScopeType::CATEGORY === $type) {

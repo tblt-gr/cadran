@@ -14,8 +14,10 @@ use App\Module\Accounts\Application\RecordAccountBalanceInput;
 use App\Module\Accounts\Application\WithdrawAccountBalance;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -80,15 +82,15 @@ final readonly class AccountBalanceController
 
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)) {
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_balance_query');
         }
 
         try {
             $snapshots = $listBalances(
                 $id,
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
             );
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountBalanceProblems::list());
@@ -110,7 +112,7 @@ final readonly class AccountBalanceController
         }
 
         try {
-            $payload = AccountPayload::of($body, self::RECORD_FIELDS);
+            $payload = JsonPayload::of($body, self::RECORD_FIELDS);
             $snapshot = $recordBalance($id, new RecordAccountBalanceInput(
                 asOf: $payload->string('asOf'),
                 amount: $payload->raw('amount'),
@@ -151,7 +153,7 @@ final readonly class AccountBalanceController
         }
 
         try {
-            $payload = AccountPayload::of($body, self::CORRECT_FIELDS);
+            $payload = JsonPayload::of($body, self::CORRECT_FIELDS);
             $snapshot = $correctBalance($id, $snapshotId, new CorrectAccountBalanceInput(
                 amount: $payload->raw('amount'),
                 amountAssetCode: $payload->raw('amountAssetCode'),
@@ -190,17 +192,12 @@ final readonly class AccountBalanceController
         }
 
         try {
-            $payload = AccountPayload::of($body, ['version']);
+            $payload = JsonPayload::of($body, ['version']);
             $snapshot = $withdrawBalance($id, $snapshotId, $payload->integer('version'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountBalanceProblems::withdraw());
         }
 
         return $this->envelope->json(AccountBalanceSnapshotRepresentation::one($snapshot));
-    }
-
-    private static function unsignedIntegerOrEmpty(string $value): bool
-    {
-        return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
     }
 }

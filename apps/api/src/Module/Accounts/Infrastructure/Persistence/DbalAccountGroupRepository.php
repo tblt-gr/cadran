@@ -10,6 +10,7 @@ use App\Module\Accounts\Application\MoveAccountGroup;
 use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -64,7 +65,7 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
     {
         [$where, $parameters] = self::filters($workspace, $includeArchived);
 
-        return (int) AccountGroupRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM account_groups WHERE workspace_id = :workspace_id AND ('.$where.')',
             $parameters,
         ));
@@ -135,7 +136,7 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
             ['workspace_id' => $workspace->id, 'parent_id' => $parentId],
         );
 
-        return array_map(static fn (mixed $value): int => (int) AccountGroupRow::text($value), $values);
+        return array_map(static fn (mixed $value): int => (int) DbalValue::text($value), $values);
     }
 
     public function isReferencedByAccount(WorkspaceScope $workspace, string $id): bool
@@ -160,7 +161,7 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
             ['ids' => ArrayParameterType::STRING],
         );
 
-        return array_map(AccountGroupRow::text(...), $values);
+        return array_map(DbalValue::text(...), $values);
     }
 
     public function labelsByIds(WorkspaceScope $workspace, array $ids): array
@@ -177,7 +178,7 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
 
         $labels = [];
         foreach ($rows as $row) {
-            $labels[AccountGroupRow::text($row['id'])] = AccountGroupRow::text($row['label']);
+            $labels[DbalValue::text($row['id'])] = DbalValue::text($row['label']);
         }
 
         return $labels;
@@ -218,7 +219,7 @@ final readonly class DbalAccountGroupRepository implements AccountGroupRepositor
     public function appendPosition(WorkspaceScope $workspace, ?string $parentId): int
     {
         $this->lockSiblingRows($workspace, $parentId);
-        $next = (int) AccountGroupRow::text($this->connection->fetchOne(
+        $next = (int) DbalValue::text($this->connection->fetchOne(
             'SELECT COALESCE(MAX(sort_order), -1) + 1 FROM account_groups'
             .' WHERE workspace_id = :workspace_id AND parent_id IS NOT DISTINCT FROM :parent_id',
             ['workspace_id' => $workspace->id, 'parent_id' => $parentId],

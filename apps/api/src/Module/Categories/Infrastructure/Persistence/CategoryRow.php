@@ -8,6 +8,7 @@ use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Categories\Domain\Category;
 use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 /**
  * Translates between a category and the `category_categories` row that stores
@@ -29,35 +30,35 @@ final readonly class CategoryRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace): Category
     {
-        if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A category row escaped its requested workspace.');
         }
 
-        $axes = json_decode(self::text($row['default_analytic_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
+        $axes = json_decode(DbalValue::text($row['default_analytic_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($axes)) {
             throw new \UnexpectedValueException('Expected category axes to be an array.');
         }
 
         return new Category(
-            id: self::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            type: CategoryType::from(self::text($row['type'] ?? null)),
-            label: self::text($row['label'] ?? null),
-            parentId: self::nullableText($row['parent_id'] ?? null),
-            icon: self::nullableText($row['icon'] ?? null),
-            color: self::nullableText($row['color'] ?? null),
+            type: CategoryType::from(DbalValue::text($row['type'] ?? null)),
+            label: DbalValue::text($row['label'] ?? null),
+            parentId: DbalValue::nullableText($row['parent_id'] ?? null),
+            icon: DbalValue::nullableText($row['icon'] ?? null),
+            color: DbalValue::nullableText($row['color'] ?? null),
             defaultAnalyticAxes: array_map(
-                static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(self::text($axis)),
+                static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(DbalValue::text($axis)),
                 array_values($axes),
             ),
-            budgetIncluded: self::boolean($row['budget_included'] ?? null),
-            sortOrder: (int) self::text($row['sort_order'] ?? null),
-            depth: (int) self::text($row['depth'] ?? null),
-            version: (int) self::text($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
-            usedAt: self::date($row['used_at'] ?? null),
-            archivedAt: self::date($row['archived_at'] ?? null),
+            budgetIncluded: DbalValue::boolean($row['budget_included'] ?? null),
+            sortOrder: (int) DbalValue::text($row['sort_order'] ?? null),
+            depth: (int) DbalValue::text($row['depth'] ?? null),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            updatedAt: new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            usedAt: DbalValue::nullableInstant($row['used_at'] ?? null),
+            archivedAt: DbalValue::nullableInstant($row['archived_at'] ?? null),
         );
     }
 
@@ -87,33 +88,5 @@ final readonly class CategoryRow
             'used_at' => $category->usedAt?->format('Y-m-d H:i:s.uP'),
             'archived_at' => $category->archivedAt?->format('Y-m-d H:i:s.uP'),
         ];
-    }
-
-    public static function text(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
-    }
-
-    public static function nullableText(mixed $value): ?string
-    {
-        return null === $value ? null : self::text($value);
-    }
-
-    private static function boolean(mixed $value): bool
-    {
-        return match ($value) {
-            true, 1, '1', 't', 'true' => true,
-            false, 0, '0', 'f', 'false' => false,
-            default => throw new \UnexpectedValueException('Expected a boolean database value.'),
-        };
-    }
-
-    private static function date(mixed $value): ?\DateTimeImmutable
-    {
-        return null === $value ? null : new \DateTimeImmutable(self::text($value));
     }
 }

@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
 use App\Module\Transactions\Application\IdempotencyConflict;
@@ -69,7 +70,7 @@ final readonly class TransactionController
             // Optional on the wire, always present here: the exact-field check
             // below refuses anything it was not told to expect.
             $body += ['source' => TransactionSource::MANUAL->value, 'sourceRef' => null, 'reconcile' => false];
-            $payload = TransactionPayload::of($body, self::CREATE_FIELDS);
+            $payload = JsonPayload::of($body, self::CREATE_FIELDS);
             $source = $payload->string('source');
             if (TransactionSource::RECURRENCE->value === $source) {
                 // Only a recurrence creates this source, through its own use case.
@@ -133,7 +134,7 @@ final readonly class TransactionController
         }
 
         try {
-            $payload = TransactionPayload::of($body, self::UPDATE_FIELDS);
+            $payload = JsonPayload::of($body, self::UPDATE_FIELDS);
             $transaction = $updateTransaction($id, self::updateInput($payload));
         } catch (InvalidRefundRule $exception) {
             return $this->envelope->invalidRefundRuleProblem($exception);
@@ -168,7 +169,7 @@ final readonly class TransactionController
         return $this->envelope->json(TransactionRepresentation::one($transaction));
     }
 
-    private static function createInput(TransactionPayload $payload): CreateTransactionInput
+    private static function createInput(JsonPayload $payload): CreateTransactionInput
     {
         return new CreateTransactionInput(
             accountId: $payload->uuid('accountId'),
@@ -185,15 +186,15 @@ final readonly class TransactionController
             mcc: $payload->nullableString('mcc'),
             maskedCard: $payload->nullableString('maskedCard'),
             bankReference: $payload->nullableString('bankReference'),
-            categoryId: $payload->nullableIdentifier('categoryId'),
-            splits: $payload->nullableSplitRows('splits'),
+            categoryId: $payload->nullableUuid('categoryId'),
+            splits: TransactionPayload::nullableSplitRows($payload, 'splits'),
             source: $payload->string('source'),
             sourceRef: $payload->nullableString('sourceRef'),
             reconcile: $payload->boolean('reconcile'),
         );
     }
 
-    private static function updateInput(TransactionPayload $payload): UpdateTransactionInput
+    private static function updateInput(JsonPayload $payload): UpdateTransactionInput
     {
         return new UpdateTransactionInput(
             accountId: $payload->uuid('accountId'),
@@ -210,8 +211,8 @@ final readonly class TransactionController
             mcc: $payload->nullableString('mcc'),
             maskedCard: $payload->nullableString('maskedCard'),
             bankReference: $payload->nullableString('bankReference'),
-            categoryId: $payload->nullableIdentifier('categoryId'),
-            splits: $payload->nullableSplitRows('splits'),
+            categoryId: $payload->nullableUuid('categoryId'),
+            splits: TransactionPayload::nullableSplitRows($payload, 'splits'),
             version: $payload->integer('version'),
             userLabel: $payload->nullableString('userLabel'),
         );

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Demo\Application;
 
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Portfolio\Application\AmountInput;
 use App\Module\Portfolio\Application\BuildValuationDraft;
 use App\Module\Portfolio\Application\CorrectPortfolioOperation;
@@ -224,7 +225,7 @@ final class SeedDemoPortfolio
     private function instrument(string $name): string
     {
         if ([] === $this->instruments) {
-            foreach ($this->listInstruments->__invoke('Démo', 'all', 1, ListInstruments::MAX_PAGE_SIZE)->items as $item) {
+            foreach ($this->listInstruments->__invoke('Démo', 'all', 1, PageRequest::MAX_PAGE_SIZE)->items as $item) {
                 $this->instruments[$item->name] = $item->id;
             }
         }

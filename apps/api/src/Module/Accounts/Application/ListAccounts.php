@@ -7,16 +7,16 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use App\Module\Reference\Application\AssetCatalog;
 
 final readonly class ListAccounts
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
-    public const int MAX_PAGE = 1000;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -35,11 +35,8 @@ final readonly class ListAccounts
         ?string $kind = null,
         ?string $asOf = null,
     ): AccountPage {
-        $requestedPage = $page ?? 1;
-        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidAccountInput('The account page is outside its bounds.');
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidAccountInput('The account page is outside its bounds.');
 
         $accountKind = null === $kind ? null : AccountInputParser::kind($kind);
         $requestedOn = $this->requestedOn($asOf);
@@ -49,8 +46,8 @@ final readonly class ListAccounts
             $workspace,
             $includeArchived,
             $includeClosed,
-            $resolvedPageSize,
-            ($requestedPage - 1) * $resolvedPageSize,
+            $request->pageSize,
+            $request->offset(),
             $accountKind,
         );
 
@@ -64,8 +61,8 @@ final readonly class ListAccounts
                 ),
                 $accounts,
             ),
-            page: $requestedPage,
-            pageSize: $resolvedPageSize,
+            page: $request->page,
+            pageSize: $request->pageSize,
             total: $this->accounts->count($workspace, $includeArchived, $includeClosed, $accountKind),
         );
     }
@@ -83,7 +80,7 @@ final readonly class ListAccounts
 
         try {
             return BusinessDay::fromIsoDate($asOf)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidAccountBalanceInput('The valuation date must be an ISO 8601 calendar day.', previous: $exception);
         }
     }

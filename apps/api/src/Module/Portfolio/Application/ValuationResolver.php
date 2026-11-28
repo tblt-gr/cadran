@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\Account;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Portfolio\Domain\EuroFundPrice;
 use App\Module\Portfolio\Domain\Instrument;
 use App\Module\Portfolio\Domain\InstrumentType;
@@ -25,8 +26,6 @@ use App\Module\Reference\Domain\Asset;
  */
 final readonly class ValuationResolver
 {
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
-
     public function __construct(private AssetCatalog $assets, private ValuationHoldings $holdings)
     {
     }
@@ -117,7 +116,7 @@ final readonly class ValuationResolver
         foreach ($inputs as $index => $input) {
             $path = '/prices/'.$index;
             $instrument = $held[$input->instrumentId] ?? null;
-            if (1 !== preg_match(self::UUID_PATTERN, $input->instrumentId) || null === $instrument) {
+            if (!Uuid::isValid($input->instrumentId) || null === $instrument) {
                 throw InvalidPortfolioOperation::field('unknown_valuation_instrument', $path.'/instrumentId');
             }
             if (isset($entries[$input->instrumentId])) {

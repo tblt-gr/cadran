@@ -6,6 +6,7 @@ namespace App\Module\Reporting\Infrastructure\Persistence;
 
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Reporting\Domain\InvalidMetricPolicy;
 use App\Module\Reporting\Domain\MetricPolicy;
 use App\Module\Reporting\Domain\MetricPolicyActivation;
@@ -75,7 +76,7 @@ final readonly class DbalMetricPolicyRepository implements MetricPolicyRepositor
 
     public function countStored(WorkspaceScope $workspace): int
     {
-        return (int) self::scalar($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT COUNT(*) FROM reporting_metric_policies WHERE workspace_id = :workspace_id',
             ['workspace_id' => $workspace->id],
         ));
@@ -83,7 +84,7 @@ final readonly class DbalMetricPolicyRepository implements MetricPolicyRepositor
 
     public function latestVersion(WorkspaceScope $workspace): int
     {
-        return max(MetricPolicy::SYSTEM_VERSION, (int) self::scalar($this->connection->fetchOne(
+        return max(MetricPolicy::SYSTEM_VERSION, (int) DbalValue::text($this->connection->fetchOne(
             'SELECT COALESCE(MAX(version), 1) FROM reporting_metric_policies WHERE workspace_id = :workspace_id',
             ['workspace_id' => $workspace->id],
         )));
@@ -112,10 +113,10 @@ final readonly class DbalMetricPolicyRepository implements MetricPolicyRepositor
         );
 
         return array_map(static fn (array $row): MetricPolicyActivation => new MetricPolicyActivation(
-            (int) self::scalar($row['policy_version'] ?? null),
-            self::instant($row['active_from'] ?? null),
-            null === ($row['reason'] ?? null) ? null : self::scalar($row['reason']),
-            self::scalar($row['created_by'] ?? null),
+            (int) DbalValue::text($row['policy_version'] ?? null),
+            self::utcInstant($row['active_from'] ?? null),
+            null === ($row['reason'] ?? null) ? null : DbalValue::text($row['reason']),
+            DbalValue::text($row['created_by'] ?? null),
         ), $rows);
     }
 
@@ -134,33 +135,24 @@ final readonly class DbalMetricPolicyRepository implements MetricPolicyRepositor
     /** @param array<string, mixed> $row */
     private static function hydrate(array $row): MetricPolicy
     {
-        $kinds = json_decode(self::scalar($row['cash_excluded_account_kinds'] ?? null), true, 4, JSON_THROW_ON_ERROR);
+        $kinds = json_decode(DbalValue::text($row['cash_excluded_account_kinds'] ?? null), true, 4, JSON_THROW_ON_ERROR);
         if (!is_array($kinds)) {
             throw new \UnexpectedValueException('A stored metric policy holds a list of account kinds.');
         }
 
         return MetricPolicy::rehydrate(
-            (int) self::scalar($row['version'] ?? null),
-            self::scalar($row['label'] ?? null),
-            array_map(static fn (mixed $kind): AccountKind => AccountKind::from(self::scalar($kind)), array_values($kinds)),
-            SavingsRateFormula::from(self::scalar($row['savings_rate_formula'] ?? null)),
-            NetSavingsRateFormula::from(self::scalar($row['net_savings_rate_formula'] ?? null)),
-            self::instant($row['created_at'] ?? null),
-            self::scalar($row['created_by'] ?? null),
+            (int) DbalValue::text($row['version'] ?? null),
+            DbalValue::text($row['label'] ?? null),
+            array_map(static fn (mixed $kind): AccountKind => AccountKind::from(DbalValue::text($kind)), array_values($kinds)),
+            SavingsRateFormula::from(DbalValue::text($row['savings_rate_formula'] ?? null)),
+            NetSavingsRateFormula::from(DbalValue::text($row['net_savings_rate_formula'] ?? null)),
+            self::utcInstant($row['created_at'] ?? null),
+            DbalValue::text($row['created_by'] ?? null),
         );
     }
 
-    private static function instant(mixed $value): \DateTimeImmutable
+    private static function utcInstant(mixed $value): \DateTimeImmutable
     {
-        return (new \DateTimeImmutable(self::scalar($value)))->setTimezone(new \DateTimeZone('UTC'));
-    }
-
-    private static function scalar(mixed $value): string
-    {
-        if (!is_string($value) && !is_int($value)) {
-            throw new \UnexpectedValueException('A stored metric policy column holds a scalar.');
-        }
-
-        return (string) $value;
+        return DbalValue::instant($value)->setTimezone(new \DateTimeZone('UTC'));
     }
 }

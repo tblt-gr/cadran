@@ -6,7 +6,9 @@ namespace App\Module\Transactions\Domain;
 
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\AssetAmount;
+use App\Module\Foundation\Domain\BoundedText;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final readonly class TransactionSplit
@@ -46,14 +48,14 @@ final readonly class TransactionSplit
 
     private static function identifier(string $id): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidTransaction('A transaction split identifier must be a canonical UUID.');
         }
     }
 
     private static function optionalText(?string $value, int $maximum, string $field): void
     {
-        if (null !== $value && ($value !== trim($value) || '' === $value || mb_strlen($value) > $maximum)) {
+        if (null !== $value && !BoundedText::isValid($value, 1, $maximum)) {
             throw new InvalidTransaction(sprintf('A %s must contain between 1 and %d characters.', $field, $maximum));
         }
     }

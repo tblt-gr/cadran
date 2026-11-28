@@ -16,10 +16,11 @@ use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use App\Module\Foundation\Domain\UuidGenerator;
 use Symfony\Component\Clock\ClockInterface;
 
@@ -132,7 +133,7 @@ final readonly class RecordAccountBalance
     {
         try {
             $asOf = BusinessDay::fromIsoDate($input->asOf)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidAccountBalanceInput('The snapshot date must be an ISO 8601 calendar day.', previous: $exception);
         }
 

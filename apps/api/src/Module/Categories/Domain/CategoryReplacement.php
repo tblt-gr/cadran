@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Domain;
 
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -90,7 +91,7 @@ final readonly class CategoryReplacement
 
     private static function assertIdentifier(string $id): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidCategoryReplacement('A category replacement identifier must be a canonical UUID.');
         }
     }

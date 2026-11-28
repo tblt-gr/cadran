@@ -10,6 +10,7 @@ use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 final class GoalVersionRow
 {
@@ -19,20 +20,20 @@ final class GoalVersionRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace, array $parts): GoalVersion
     {
-        if ($workspace->id !== GoalRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A goal version row escaped its requested workspace.');
         }
-        $common = [GoalRow::text($row['id'] ?? null), $workspace, GoalRow::text($row['goal_id'] ?? null), (int) GoalRow::text($row['version_no'] ?? null), GoalRow::text($row['effective_from'] ?? null)];
-        $createdAt = new \DateTimeImmutable(GoalRow::text($row['created_at'] ?? null));
-        $createdBy = GoalRow::text($row['created_by'] ?? null);
+        $common = [DbalValue::text($row['id'] ?? null), $workspace, DbalValue::text($row['goal_id'] ?? null), (int) DbalValue::text($row['version_no'] ?? null), DbalValue::text($row['effective_from'] ?? null)];
+        $createdAt = new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null));
+        $createdBy = DbalValue::text($row['created_by'] ?? null);
         $retroactive = filter_var($row['retroactive'] ?? false, FILTER_VALIDATE_BOOL);
-        $reason = null === ($row['reason'] ?? null) ? null : GoalRow::text($row['reason']);
-        $valueType = GoalValueType::from(GoalRow::text($row['value_type'] ?? null));
+        $reason = null === ($row['reason'] ?? null) ? null : DbalValue::text($row['reason']);
+        $valueType = GoalValueType::from(DbalValue::text($row['value_type'] ?? null));
         $tolerance = DecimalValue::fromString(self::decimal($row['tolerance'] ?? '0', $row['tolerance_scale'] ?? 0));
         if (GoalValueType::AMOUNT === $valueType) {
             $target = DecimalValue::fromString(self::decimal($row['target_amount'], $row['target_scale']));
             $mode = $row['schedule_mode'] ?? null;
-            $schedule = null === $mode ? null : GoalSchedule::restore(GoalScheduleMode::from(GoalRow::text($mode)), $target, array_map(static fn (array $part): DecimalValue => DecimalValue::fromString(self::decimal($part['amount'] ?? null, $part['amount_scale'] ?? null)), $parts));
+            $schedule = null === $mode ? null : GoalSchedule::restore(GoalScheduleMode::from(DbalValue::text($mode)), $target, array_map(static fn (array $part): DecimalValue => DecimalValue::fromString(self::decimal($part['amount'] ?? null, $part['amount_scale'] ?? null)), $parts));
 
             return GoalVersion::amount(...[...$common, $target, $schedule, $createdAt, $createdBy, $retroactive, $reason, $tolerance]);
         }
@@ -51,8 +52,8 @@ final class GoalVersionRow
 
     private static function decimal(mixed $value, mixed $scale): string
     {
-        $numeric = GoalRow::text($value);
-        $requestedScale = (int) GoalRow::text($scale);
+        $numeric = DbalValue::text($value);
+        $requestedScale = (int) DbalValue::text($scale);
         [$integer, $fraction] = array_pad(explode('.', $numeric, 2), 2, '');
 
         return 0 === $requestedScale ? $integer : $integer.'.'.substr(str_pad($fraction, $requestedScale, '0'), 0, $requestedScale);

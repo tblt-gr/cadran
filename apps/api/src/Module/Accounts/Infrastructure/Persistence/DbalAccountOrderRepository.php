@@ -7,6 +7,7 @@ namespace App\Module\Accounts\Infrastructure\Persistence;
 use App\Module\Accounts\Domain\AccountOrdering;
 use App\Module\Accounts\Domain\AccountOrderRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
@@ -26,7 +27,7 @@ final readonly class DbalAccountOrderRepository implements AccountOrderRepositor
             $parameters,
         );
 
-        return (int) AccountRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT version FROM account_overview_orders WHERE workspace_id = :workspace_id AND group_key = :group_key FOR UPDATE',
             $parameters,
         ));
@@ -48,7 +49,7 @@ final readonly class DbalAccountOrderRepository implements AccountOrderRepositor
             'SELECT group_key, version FROM account_overview_orders WHERE workspace_id = :workspace_id AND version > 0',
             ['workspace_id' => $workspace->id],
         ) as $row) {
-            $versions[AccountRow::text($row['group_key'] ?? null)] = (int) AccountRow::text($row['version'] ?? null);
+            $versions[DbalValue::text($row['group_key'] ?? null)] = (int) DbalValue::text($row['version'] ?? null);
         }
 
         return $versions;

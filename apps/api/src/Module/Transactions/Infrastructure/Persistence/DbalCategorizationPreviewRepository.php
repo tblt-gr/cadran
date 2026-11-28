@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Categorization\CategorizationPreview;
 use App\Module\Transactions\Domain\Categorization\CategorizationPreviewRepository;
 use Doctrine\DBAL\Connection;
@@ -38,10 +39,10 @@ final readonly class DbalCategorizationPreviewRepository implements Categorizati
         }
 
         return new CategorizationPreview(
-            TransactionRow::text($row['id'] ?? null), $workspace, TransactionRow::text($row['preview_token'] ?? null),
-            null === ($row['rule_id'] ?? null) ? null : TransactionRow::text($row['rule_id']),
-            new \DateTimeImmutable(TransactionRow::text($row['from_date'] ?? null)), new \DateTimeImmutable(TransactionRow::text($row['to_date'] ?? null)),
-            new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)), new \DateTimeImmutable(TransactionRow::text($row['expires_at'] ?? null)),
+            DbalValue::text($row['id'] ?? null), $workspace, DbalValue::text($row['preview_token'] ?? null),
+            null === ($row['rule_id'] ?? null) ? null : DbalValue::text($row['rule_id']),
+            new \DateTimeImmutable(DbalValue::text($row['from_date'] ?? null)), new \DateTimeImmutable(DbalValue::text($row['to_date'] ?? null)),
+            new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)), new \DateTimeImmutable(DbalValue::text($row['expires_at'] ?? null)),
         );
     }
 

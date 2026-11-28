@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Application;
 
+use App\Module\Foundation\Domain\Uuid;
+
 final readonly class MonthlyLedgerCursor
 {
     public function __construct(
@@ -47,6 +49,6 @@ final readonly class MonthlyLedgerCursor
 
     private static function uuid(string $value): bool
     {
-        return 1 === preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $value);
+        return Uuid::isValid($value);
     }
 }

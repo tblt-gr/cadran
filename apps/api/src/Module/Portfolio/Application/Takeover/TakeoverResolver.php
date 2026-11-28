@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\Account;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Portfolio\Application\ValuationResolver;
 use App\Module\Portfolio\Domain\Instrument;
 use App\Module\Portfolio\Domain\InstrumentRepository;
@@ -23,8 +24,6 @@ use App\Module\Reference\Domain\Asset;
  */
 final readonly class TakeoverResolver
 {
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
-
     public function __construct(private AssetCatalog $assets, private InstrumentRepository $instruments)
     {
     }
@@ -90,7 +89,7 @@ final readonly class TakeoverResolver
     {
         $ids = array_values(array_unique(array_filter(
             array_map(static fn (TakeoverLineInput $line): string => $line->instrumentId, $inputs),
-            static fn (string $id): bool => 1 === preg_match(self::UUID_PATTERN, $id),
+            static fn (string $id): bool => Uuid::isValid($id),
         )));
         $known = [];
         foreach ($this->instruments->findMany($account->workspace, $ids) as $instrument) {

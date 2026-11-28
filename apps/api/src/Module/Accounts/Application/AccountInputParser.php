@@ -10,6 +10,8 @@ use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\MaskedIdentifier;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 
 /**
  * Turns the strings of a request into the closed types the domain accepts.
@@ -87,11 +89,10 @@ final class AccountInputParser
      */
     public static function businessDay(string $value, string $field): \DateTimeImmutable
     {
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, new \DateTimeZone('UTC'));
-        if (false === $date || $date->format('Y-m-d') !== $value) {
-            throw new InvalidAccountInput(sprintf('The account %s must be an ISO 8601 calendar day.', $field));
+        try {
+            return BusinessDay::fromIsoDate($value)->date;
+        } catch (InvalidBusinessDay $exception) {
+            throw new InvalidAccountInput(sprintf('The account %s must be an ISO 8601 calendar day.', $field), previous: $exception);
         }
-
-        return $date;
     }
 }

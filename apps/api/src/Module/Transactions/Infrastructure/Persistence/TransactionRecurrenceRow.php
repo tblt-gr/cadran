@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\PaymentMethod;
 use App\Module\Transactions\Domain\Recurrence\OccurrenceStatus;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceIntervalKind;
@@ -36,35 +37,35 @@ final readonly class TransactionRecurrenceRow
     /** @param array<string, mixed> $row */
     public static function hydrate(array $row, WorkspaceScope $workspace): TransactionRecurrence
     {
-        if ($workspace->id !== TransactionRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A recurrence row escaped its requested workspace.');
         }
-        $asset = AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null));
+        $asset = AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null));
         $counterparty = $row['counterparty'] ?? null;
         $category = $row['category_id'] ?? null;
         $note = $row['note'] ?? null;
         $method = $row['payment_method'] ?? null;
 
         return new TransactionRecurrence(
-            id: TransactionRow::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            accountId: TransactionRow::text($row['account_id'] ?? null),
-            label: TransactionRow::text($row['label'] ?? null),
-            counterparty: null === $counterparty ? null : TransactionRow::text($counterparty),
+            accountId: DbalValue::text($row['account_id'] ?? null),
+            label: DbalValue::text($row['label'] ?? null),
+            counterparty: null === $counterparty ? null : DbalValue::text($counterparty),
             expectedAmount: self::amount($row['expected_amount_value'] ?? null, $row['expected_amount_scale'] ?? null, $asset),
             amountTolerance: self::amount($row['amount_tolerance_value'] ?? null, $row['amount_tolerance_scale'] ?? null, $asset),
-            intervalKind: RecurrenceIntervalKind::from(TransactionRow::text($row['interval_kind'] ?? null)),
-            dayOfPeriod: (int) TransactionRow::text($row['day_of_period'] ?? null),
+            intervalKind: RecurrenceIntervalKind::from(DbalValue::text($row['interval_kind'] ?? null)),
+            dayOfPeriod: (int) DbalValue::text($row['day_of_period'] ?? null),
             nextExpectedOn: self::day($row['next_expected_on'] ?? null),
-            confirmedAt: new \DateTimeImmutable(TransactionRow::text($row['confirmed_at'] ?? null)),
-            version: (int) TransactionRow::text($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(TransactionRow::text($row['updated_at'] ?? null)),
-            archivedAt: null === ($row['archived_at'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['archived_at'])),
+            confirmedAt: new \DateTimeImmutable(DbalValue::text($row['confirmed_at'] ?? null)),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            updatedAt: new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            archivedAt: null === ($row['archived_at'] ?? null) ? null : new \DateTimeImmutable(DbalValue::text($row['archived_at'])),
             autoCreate: true === ($row['auto_create'] ?? false),
-            categoryId: null === $category ? null : TransactionRow::text($category),
-            note: null === $note ? null : TransactionRow::text($note),
-            paymentMethod: null === $method ? null : PaymentMethod::from(TransactionRow::text($method)),
+            categoryId: null === $category ? null : DbalValue::text($category),
+            note: null === $note ? null : DbalValue::text($note),
+            paymentMethod: null === $method ? null : PaymentMethod::from(DbalValue::text($method)),
         );
     }
 
@@ -77,26 +78,26 @@ final readonly class TransactionRecurrenceRow
      */
     public static function hydrateOccurrence(array $row, WorkspaceScope $workspace): TransactionRecurrenceOccurrence
     {
-        if ($workspace->id !== TransactionRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A recurrence occurrence row escaped its requested workspace.');
         }
-        $asset = AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null));
+        $asset = AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null));
         $matched = $row['matched_transaction_id'] ?? null;
         $generated = $row['generated_transaction_id'] ?? null;
         $generatedVersion = $row['generated_version'] ?? null;
 
         return new TransactionRecurrenceOccurrence(
-            TransactionRow::text($row['id'] ?? null),
+            DbalValue::text($row['id'] ?? null),
             $workspace,
-            TransactionRow::text($row['recurrence_id'] ?? null),
+            DbalValue::text($row['recurrence_id'] ?? null),
             self::day($row['expected_on'] ?? null),
             self::amount($row['expected_amount_value'] ?? null, $row['expected_amount_scale'] ?? null, $asset),
             self::amount($row['amount_tolerance_value'] ?? null, $row['amount_tolerance_scale'] ?? null, $asset),
-            null === $matched ? null : TransactionRow::text($matched),
-            null === ($row['matched_at'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['matched_at'])),
-            OccurrenceStatus::from(TransactionRow::text($row['status'] ?? null)),
-            null === $generated ? null : TransactionRow::text($generated),
-            null === $generatedVersion ? null : (int) TransactionRow::text($generatedVersion),
+            null === $matched ? null : DbalValue::text($matched),
+            null === ($row['matched_at'] ?? null) ? null : new \DateTimeImmutable(DbalValue::text($row['matched_at'])),
+            OccurrenceStatus::from(DbalValue::text($row['status'] ?? null)),
+            null === $generated ? null : DbalValue::text($generated),
+            null === $generatedVersion ? null : (int) DbalValue::text($generatedVersion),
         );
     }
 
@@ -154,6 +155,6 @@ final readonly class TransactionRecurrenceRow
 
     private static function day(mixed $value): \DateTimeImmutable
     {
-        return new \DateTimeImmutable(TransactionRow::text($value), new \DateTimeZone('UTC'));
+        return new \DateTimeImmutable(DbalValue::text($value), new \DateTimeZone('UTC'));
     }
 }

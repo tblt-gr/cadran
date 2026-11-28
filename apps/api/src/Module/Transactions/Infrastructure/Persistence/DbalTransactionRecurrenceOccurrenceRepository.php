@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Recurrence\OccurrenceStatus;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrence;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceOccurrenceRepository;
@@ -52,7 +53,7 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
 
     public function scheduledDatesFrom(WorkspaceScope $workspace, string $recurrenceId, \DateTimeImmutable $from): array
     {
-        return array_map(TransactionRow::text(...), $this->connection->fetchFirstColumn(
+        return array_map(DbalValue::text(...), $this->connection->fetchFirstColumn(
             'SELECT o.expected_on FROM transaction_recurrence_occurrences o JOIN transaction_recurrences r ON r.workspace_id = o.workspace_id AND r.id = o.recurrence_id WHERE o.workspace_id = :workspace_id AND r.workspace_id = :workspace_id AND o.recurrence_id = :recurrence_id AND o.expected_on >= :from_date ORDER BY o.expected_on',
             ['workspace_id' => $workspace->id, 'recurrence_id' => $recurrenceId, 'from_date' => $from->format('Y-m-d')],
         ));
@@ -198,6 +199,6 @@ final readonly class DbalTransactionRecurrenceOccurrenceRepository implements Tr
     {
         return false === $value || null === $value
             ? null
-            : new \DateTimeImmutable(TransactionRow::text($value), new \DateTimeZone('UTC'));
+            : new \DateTimeImmutable(DbalValue::text($value), new \DateTimeZone('UTC'));
     }
 }

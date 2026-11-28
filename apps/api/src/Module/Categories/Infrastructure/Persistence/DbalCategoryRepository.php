@@ -10,6 +10,7 @@ use App\Module\Categories\Domain\CategoryAppearanceResolver;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Categories\Domain\CategoryType;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -76,7 +77,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
     ): int {
         [$where, $parameters] = self::filters($workspace, $includeArchived, $type, $search, $parentEligible);
 
-        return (int) CategoryRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM category_categories WHERE workspace_id = :workspace_id AND ('.$where.')',
             $parameters,
         ));
@@ -142,7 +143,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             ['ids' => ArrayParameterType::STRING],
         );
 
-        return array_map(CategoryRow::text(...), $values);
+        return array_map(DbalValue::text(...), $values);
     }
 
     /**
@@ -164,7 +165,7 @@ final readonly class DbalCategoryRepository implements CategoryRepository
 
         $labels = [];
         foreach ($rows as $row) {
-            $labels[CategoryRow::text($row['id'])] = CategoryRow::text($row['label']);
+            $labels[DbalValue::text($row['id'])] = DbalValue::text($row['label']);
         }
 
         return $labels;
@@ -190,10 +191,10 @@ final readonly class DbalCategoryRepository implements CategoryRepository
         $appearances = $this->effectiveAppearanceByIds($workspace, $ids);
         $identities = [];
         foreach ($rows as $row) {
-            $identities[CategoryRow::text($row['id'])] = [
-                'label' => CategoryRow::text($row['label']),
-                'icon' => $appearances[CategoryRow::text($row['id'])]['icon'] ?? null,
-                'color' => $appearances[CategoryRow::text($row['id'])]['color'] ?? null,
+            $identities[DbalValue::text($row['id'])] = [
+                'label' => DbalValue::text($row['label']),
+                'icon' => $appearances[DbalValue::text($row['id'])]['icon'] ?? null,
+                'color' => $appearances[DbalValue::text($row['id'])]['color'] ?? null,
             ];
         }
 
@@ -214,9 +215,9 @@ final readonly class DbalCategoryRepository implements CategoryRepository
             );
             $frontier = [];
             foreach ($rows as $row) {
-                $id = CategoryRow::text($row['id']);
-                $parentId = CategoryRow::nullableText($row['parent_id']);
-                $nodes[$id] = ['parentId' => $parentId, 'color' => CategoryRow::nullableText($row['color']), 'icon' => CategoryRow::nullableText($row['icon'])];
+                $id = DbalValue::text($row['id']);
+                $parentId = DbalValue::nullableText($row['parent_id']);
+                $nodes[$id] = ['parentId' => $parentId, 'color' => DbalValue::nullableText($row['color']), 'icon' => DbalValue::nullableText($row['icon'])];
                 if (null !== $parentId && !isset($nodes[$parentId])) {
                     $frontier[] = $parentId;
                 }

@@ -6,12 +6,11 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 
 final readonly class ListAccountGroups
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
-    public const int MAX_PAGE = 1000;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -22,14 +21,11 @@ final readonly class ListAccountGroups
 
     public function __invoke(bool $includeArchived, ?int $page, ?int $pageSize, bool $parentEligible = false): AccountGroupPage
     {
-        $requestedPage = $page ?? 1;
-        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidAccountGroupInput('The group page is outside its bounds.');
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidAccountGroupInput('The group page is outside its bounds.');
 
         $workspace = $this->caller->resolve();
-        $groups = $this->groups->list($workspace, $includeArchived && !$parentEligible, $resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize);
+        $groups = $this->groups->list($workspace, $includeArchived && !$parentEligible, $request->pageSize, $request->offset());
         if ($parentEligible) {
             $groups = array_values(array_filter(
                 $groups,
@@ -55,8 +51,8 @@ final readonly class ListAccountGroups
                 ),
                 $groups,
             ),
-            page: $requestedPage,
-            pageSize: $resolvedPageSize,
+            page: $request->page,
+            pageSize: $request->pageSize,
             total: $this->groups->count($workspace, $includeArchived && !$parentEligible),
         );
     }

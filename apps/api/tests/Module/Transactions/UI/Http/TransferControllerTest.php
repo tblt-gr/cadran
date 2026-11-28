@@ -342,6 +342,13 @@ final class TransferControllerTest extends WebTestCase
         self::assertSame('Virement épargne corrigé', self::arrayValue($this->decode(), 'source')['rawLabel']);
     }
 
+    public function testACoercedVersionIsRefused(): void
+    {
+        $id = self::stringValue($this->createTransfer(), 'id');
+        $this->client->request('POST', '/api/v1/transfers/'.$id.'/void', server: self::jsonHeaders(), content: '{"version":"1"}');
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testEditingWithAStaleVersionIsRejected(): void
     {
         $created = $this->createTransfer();

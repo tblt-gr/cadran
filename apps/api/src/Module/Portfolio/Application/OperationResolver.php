@@ -10,6 +10,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Portfolio\Domain\EuroFundPrice;
 use App\Module\Portfolio\Domain\Instrument;
 use App\Module\Portfolio\Domain\InstrumentRepository;
@@ -33,8 +34,6 @@ use App\Module\Transactions\Application\ReadTransferLeg;
  */
 final readonly class OperationResolver
 {
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
-
     public function __construct(
         private AssetCatalog $assets,
         private InstrumentRepository $instruments,
@@ -155,7 +154,7 @@ final readonly class OperationResolver
         sort($ids);
         $resolved = [];
         foreach ($ids as $id) {
-            $instrument = 1 === preg_match(self::UUID_PATTERN, $id)
+            $instrument = Uuid::isValid($id)
                 ? ($lock ? $this->instruments->findForUpdate($account->workspace, $id) : $this->instruments->find($account->workspace, $id))
                 : null;
             if (null === $instrument) {
@@ -209,7 +208,7 @@ final readonly class OperationResolver
         if (null === $linkedId) {
             return;
         }
-        $leg = 1 === preg_match(self::UUID_PATTERN, $linkedId) ? ($this->transferLegs)($account->workspace, $linkedId) : null;
+        $leg = Uuid::isValid($linkedId) ? ($this->transferLegs)($account->workspace, $linkedId) : null;
         $gross = ExternalFlow::linkedAmount($details);
         $mismatch = static fn (): InvalidPortfolioOperation => new InvalidPortfolioOperation('The linked transfer leg does not mirror this operation.', 'linked_transfer_mismatch');
         if (null === $leg || null === $gross

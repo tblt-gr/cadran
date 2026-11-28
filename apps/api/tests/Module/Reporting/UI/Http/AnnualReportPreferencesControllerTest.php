@@ -188,6 +188,20 @@ final class AnnualReportPreferencesControllerTest extends WebTestCase
         self::assertSame(0, $this->read()['version']);
     }
 
+    public function testACoercedVersionOrFlagIsRefused(): void
+    {
+        $this->signIn();
+        foreach ([
+            '{"columns":["cashIncome"],"incompleteMonths":"exclude","version":"0"}',
+            '{"columns":["cashIncome"],"incompleteMonths":"exclude","version":0,"goalMarks":"true"}',
+            '{"columns":["cashIncome"],"incompleteMonths":"exclude","version":0,"goalMarks":null}',
+        ] as $body) {
+            $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: $body);
+            self::assertResponseStatusCodeSame(422);
+        }
+        self::assertSame(0, $this->read()['version']);
+    }
+
     public function testExactlyFortyColumnsAreAccepted(): void
     {
         $this->signIn();

@@ -193,6 +193,13 @@ final class RecurrenceControllerTest extends WebTestCase
         self::assertSame(0, $this->recurrenceCount());
     }
 
+    public function testACoercedFlagIsRefused(): void
+    {
+        $this->requestCreate([...$this->recurrencePayload(), 'autoCreate' => 'true']);
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->recurrenceCount());
+    }
+
     public function testAnEditRegeneratesOnlyUnmatchedFutureInstalments(): void
     {
         $recurrence = $this->createRecurrence(['dayOfPeriod' => 20, 'firstExpectedOn' => '2026-03-20']);

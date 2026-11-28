@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Audit\Application;
 
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Domain\Uuid;
 
 /**
  * Reads one event of the caller's own trail. The identifier arrives from the
@@ -13,8 +14,6 @@ use App\Module\Foundation\Application\CallerWorkspace;
  */
 final readonly class ReadAuditEvent
 {
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i';
-
     public function __construct(
         private CallerWorkspace $callerWorkspace,
         private AuditTrailReader $reader,
@@ -27,7 +26,7 @@ final readonly class ReadAuditEvent
         // caller learns nothing about the shape of an identifier either.
         $workspace = $this->callerWorkspace->resolve();
 
-        if (1 !== preg_match(self::UUID_PATTERN, $eventId)) {
+        if (!Uuid::isValid($eventId)) {
             throw new AuditEventNotFound('An audit event identifier is a UUID.');
         }
 

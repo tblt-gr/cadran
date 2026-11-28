@@ -616,6 +616,13 @@ final class TransactionControllerTest extends WebTestCase
         self::assertSame(0, $this->ownTransactionCount());
     }
 
+    public function testACoercedFlagIsRefused(): void
+    {
+        $this->requestCreate($this->payload(overrides: ['reconcile' => 'true']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownTransactionCount());
+    }
+
     public function testAnUpdateUsesOptimisticVersioningAndKeepsTheAccountImmutable(): void
     {
         $created = $this->createTransaction();

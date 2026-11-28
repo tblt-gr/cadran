@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Catalog\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
-use App\Module\Catalog\Domain\InvalidCatalogEntry;
+use App\Module\Foundation\Application\PageRequest;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -18,9 +19,6 @@ use Symfony\Component\Clock\ClockInterface;
 final readonly class ListProducts
 {
     public const int DEFAULT_PAGE_SIZE = 25;
-    public const int MAX_PAGE_SIZE = 100;
-    /** Caps the offset, so a page number cannot make PostgreSQL walk the table. */
-    public const int MAX_PAGE = 1000;
 
     public function __construct(
         private ProductCatalog $catalog,
@@ -30,29 +28,21 @@ final readonly class ListProducts
 
     public function __invoke(?int $page, ?int $pageSize, ?string $asOf): ProductPage
     {
-        $requestedPage = $page ?? 1;
-        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
-
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE) {
-            throw new InvalidProductQuery(sprintf('The page number must be between 1 and %d.', self::MAX_PAGE));
-        }
-
-        if ($resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidProductQuery(sprintf('The page size must be between 1 and %d.', self::MAX_PAGE_SIZE));
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidProductQuery(sprintf('The page number must be between 1 and %d and the page size between 1 and %d.', PageRequest::MAX_PAGE, PageRequest::MAX_PAGE_SIZE));
 
         $today = BusinessDay::fromDateTime($this->clock->now());
         $businessDay = null === $asOf ? $today : self::parse($asOf);
 
         $products = [];
-        foreach ($this->catalog->readPage($resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize) as $entry) {
+        foreach ($this->catalog->readPage($request->pageSize, $request->offset()) as $entry) {
             $products[] = $entry->effectiveOn($businessDay->date, $today->date);
         }
 
         return new ProductPage(
             products: $products,
-            page: $requestedPage,
-            pageSize: $resolvedPageSize,
+            page: $request->page,
+            pageSize: $request->pageSize,
             total: $this->catalog->count(),
         );
     }
@@ -61,7 +51,7 @@ final readonly class ListProducts
     {
         try {
             return BusinessDay::fromIsoDate($asOf);
-        } catch (InvalidCatalogEntry $failure) {
+        } catch (InvalidBusinessDay $failure) {
             throw new InvalidProductQuery($failure->getMessage(), previous: $failure);
         }
     }

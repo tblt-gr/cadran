@@ -8,12 +8,11 @@ use App\Module\Categories\Domain\CategoryReplacement;
 use App\Module\Categories\Domain\CategoryReplacementRepository;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 
 final readonly class ListCategories
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
-    public const int MAX_PAGE = 1000;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -30,11 +29,8 @@ final readonly class ListCategories
         ?string $search = null,
         bool $parentEligible = false,
     ): CategoryPage {
-        $requestedPage = $page ?? 1;
-        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidCategoryInput('The category page is outside its bounds.');
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidCategoryInput('The category page is outside its bounds.');
         $categoryType = null === $type ? null : CategoryInputParser::type($type);
         $trimmedSearch = null === $search ? null : trim($search);
         if (null !== $trimmedSearch && (mb_strlen($trimmedSearch) > 80 || 1 === preg_match('/[\p{Cc}\p{Cf}]/u', $trimmedSearch))) {
@@ -45,8 +41,8 @@ final readonly class ListCategories
         $categories = $this->categories->list(
             $workspace,
             $includeArchived,
-            $resolvedPageSize,
-            ($requestedPage - 1) * $resolvedPageSize,
+            $request->pageSize,
+            $request->offset(),
             $categoryType,
             $trimmedSearch,
             $parentEligible,
@@ -88,8 +84,8 @@ final readonly class ListCategories
                 },
                 $categories,
             ),
-            page: $requestedPage,
-            pageSize: $resolvedPageSize,
+            page: $request->page,
+            pageSize: $request->pageSize,
             total: $this->categories->count($workspace, $includeArchived, $categoryType, $trimmedSearch, $parentEligible),
         );
     }

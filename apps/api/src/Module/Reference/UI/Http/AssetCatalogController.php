@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reference\UI\Http;
 
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use App\Module\Reference\Application\AssetNotFound;
 use App\Module\Reference\Application\AssetPage;
 use App\Module\Reference\Application\InvalidAssetQuery;
@@ -35,16 +36,14 @@ final class AssetCatalogController
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
 
-        foreach ([$page, $pageSize] as $parameter) {
-            if ('' !== $parameter && 1 !== preg_match('/^[0-9]{1,4}$/D', $parameter)) {
-                return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
-            }
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
         }
 
         try {
             $catalogue = $listAssets(
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
             );
         } catch (InvalidAssetQuery) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');

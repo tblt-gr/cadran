@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Domain;
 
 use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final readonly class Instrument
@@ -241,7 +242,7 @@ final readonly class Instrument
 
     private static function assertIdentifier(string $id): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidInstrument('An instrument identifier must be a canonical UUID.', 'invalid_instrument_identifier');
         }
     }

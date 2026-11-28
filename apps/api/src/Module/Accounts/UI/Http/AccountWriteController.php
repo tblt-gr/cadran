@@ -10,6 +10,7 @@ use App\Module\Accounts\Application\CreateAccountInput;
 use App\Module\Accounts\Application\UpdateAccount;
 use App\Module\Accounts\Application\UpdateAccountInput;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,7 +19,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Write side of the account resource: create, update and archive. Field-level
- * validation lives in {@see AccountPayload}; reads stay in {@see AccountController}.
+ * validation lives in {@see JsonPayload}; reads stay in {@see AccountController}.
  */
 final readonly class AccountWriteController
 {
@@ -44,7 +45,7 @@ final readonly class AccountWriteController
         }
 
         try {
-            $payload = AccountPayload::of($body, [...self::WRITE_FIELDS, 'assetCode']);
+            $payload = JsonPayload::of($body, [...self::WRITE_FIELDS, 'assetCode']);
             $account = $createAccount(new CreateAccountInput(
                 label: $payload->string('label'),
                 assetCode: $payload->string('assetCode'),
@@ -81,7 +82,7 @@ final readonly class AccountWriteController
         }
 
         try {
-            $payload = AccountPayload::of($body, [...self::WRITE_FIELDS, 'version', ...(array_key_exists('isPrimary', $body) ? ['isPrimary'] : [])]);
+            $payload = JsonPayload::of($body, [...self::WRITE_FIELDS, 'version', ...(array_key_exists('isPrimary', $body) ? ['isPrimary'] : [])]);
             $account = $updateAccount($id, new UpdateAccountInput(
                 label: $payload->string('label'),
                 kind: $payload->string('kind'),
@@ -124,7 +125,7 @@ final readonly class AccountWriteController
         }
 
         try {
-            $account = $archiveAccount($id, AccountPayload::of($body, ['version'])->integer('version'));
+            $account = $archiveAccount($id, JsonPayload::of($body, ['version'])->integer('version'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountProblems::archive());
         }

@@ -343,6 +343,13 @@ final class ProductModelControllerTest extends WebTestCase
         self::assertSame(0, $this->ownModelCount());
     }
 
+    public function testACoercedVersionIsRefused(): void
+    {
+        $id = self::stringValue($this->createModel(), 'id');
+        $this->request('POST', '/api/v1/product-models/'.$id.'/archive', ['version' => '1']);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testARateSentAsAJsonNumberIsRefusedRatherThanRounded(): void
     {
         $body = $this->payload();

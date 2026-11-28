@@ -14,6 +14,7 @@ use App\Module\Accounts\Application\ResolveAuthorNames;
 use App\Module\Accounts\Application\WithdrawAccountRuleOverride;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
@@ -83,7 +84,7 @@ final readonly class AccountRuleOverrideController
         }
 
         try {
-            $override = $recordOverride($id, self::override(AccountPayload::of($body, self::OVERRIDE_FIELDS)));
+            $override = $recordOverride($id, self::override(JsonPayload::of($body, self::OVERRIDE_FIELDS)));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountProblems::ruleOverrides());
         }
@@ -120,7 +121,7 @@ final readonly class AccountRuleOverrideController
             // The body carries no field. It is still read and narrowed, so a
             // replayed form cannot smuggle one in and a client cannot reach
             // this route with a payload it believes was applied.
-            AccountPayload::of($body, []);
+            JsonPayload::of($body, []);
             $override = $withdrawOverride($id, $overrideId);
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountProblems::withdrawRuleOverride());
@@ -129,7 +130,7 @@ final readonly class AccountRuleOverrideController
         return $this->envelope->json(AccountRuleOverrideRepresentation::one($override));
     }
 
-    private static function override(AccountPayload $payload): AccountRuleOverrideInput
+    private static function override(JsonPayload $payload): AccountRuleOverrideInput
     {
         return new AccountRuleOverrideInput(
             rule: new DeclaredRuleInput(
@@ -139,7 +140,7 @@ final readonly class AccountRuleOverrideController
                 text: $payload->nullableString('text'),
                 rateApplication: $payload->nullableString('rateApplication'),
                 brackets: array_map(
-                    static fn (AccountPayload $bracket): RateBracketInput => new RateBracketInput(
+                    static fn (JsonPayload $bracket): RateBracketInput => new RateBracketInput(
                         lowerBound: $bracket->string('lowerBound'),
                         upperBound: $bracket->nullableString('upperBound'),
                         percentage: $bracket->string('percentage'),

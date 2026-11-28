@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Domain;
 
 use App\Module\Foundation\Domain\AssetAmount;
+use App\Module\Foundation\Domain\BoundedText;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\Reconciliation\ReviewReason;
 
@@ -52,9 +54,7 @@ final readonly class Transaction
     ) {
         self::identifier($id, 'transaction');
         self::identifier($accountId, 'account');
-        if (null !== $lastEditorId) {
-            self::identifier($lastEditorId, 'editor');
-        }
+        self::identifier($lastEditorId, 'editor');
         if (0 === $amount->value->compareTo(DecimalValue::zero())) {
             throw new InvalidTransaction('A transaction amount cannot be zero.');
         }
@@ -350,16 +350,16 @@ final readonly class Transaction
         }
     }
 
-    private static function identifier(string $id, string $field): void
+    private static function identifier(?string $id, string $field): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $id)) {
+        if (null !== $id && !Uuid::isValid($id)) {
             throw new InvalidTransaction(sprintf('A %s identifier must be a canonical UUID.', $field));
         }
     }
 
     private static function requiredText(string $value, int $maximum, string $field): void
     {
-        if ($value !== trim($value) || '' === $value || mb_strlen($value) > $maximum) {
+        if (!BoundedText::isValid($value, 1, $maximum)) {
             throw new InvalidTransaction(sprintf('A %s must contain between 1 and %d characters.', $field, $maximum));
         }
     }

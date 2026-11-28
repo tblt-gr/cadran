@@ -3,7 +3,6 @@
 # and must be removed from this list once it is back under the threshold.
 465 apps/api/src/Module/Accounts/Domain/Account.php entity invariants kept together
 338 apps/api/src/Module/Accounts/Domain/AccountRules.php rule set kept together, one responsibility
-303 apps/api/src/Module/Accounts/Domain/ProductModel.php entity invariants kept together
 431 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalAccountRepository.php exhaustive row mapping, one responsibility
 369 apps/api/src/Module/Accounts/Infrastructure/Persistence/DbalProductModelRepository.php exhaustive row mapping, one responsibility
 324 apps/api/src/Module/Categories/Infrastructure/Persistence/DbalCategoryRepository.php exhaustive row mapping, one responsibility

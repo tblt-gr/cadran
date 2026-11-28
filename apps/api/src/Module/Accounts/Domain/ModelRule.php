@@ -6,6 +6,7 @@ namespace App\Module\Accounts\Domain;
 
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\RuleKind;
+use App\Module\Foundation\Domain\Uuid;
 
 /**
  * One dated rule period of a workspace product model.
@@ -24,7 +25,7 @@ final readonly class ModelRule
         public DeclaredRuleValue $value,
         public EffectivePeriod $period,
     ) {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidProductModel('A model rule identifier must be a canonical UUID.');
         }
 

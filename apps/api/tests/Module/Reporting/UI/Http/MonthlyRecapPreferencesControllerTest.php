@@ -136,6 +136,14 @@ final class MonthlyRecapPreferencesControllerTest extends WebTestCase
         self::assertSame(0, $this->read()['version']);
     }
 
+    public function testACoercedVersionIsRefused(): void
+    {
+        $this->signIn();
+        $this->client->request('PUT', self::URI, server: ['CONTENT_TYPE' => 'application/json'], content: '{"visibleCategoryIds":[],"visibleAxes":[],"version":"0"}');
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->read()['version']);
+    }
+
     public function testOneWorkspaceNeverReadsOrOverwritesTheSelectionOfAnother(): void
     {
         $this->signIn();

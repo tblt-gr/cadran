@@ -14,6 +14,7 @@ use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -82,7 +83,7 @@ final readonly class GoalController
         if (null === $raw) {
             return $default;
         }
-        if (1 !== preg_match('/^[0-9]{1,4}$/D', $raw)) {
+        if ('' === $raw || !QueryParameters::isUnsignedIntegerOrEmpty($raw)) {
             throw new GoalInputError('invalid_goal_query', 'A pagination value is a positive integer.');
         }
 

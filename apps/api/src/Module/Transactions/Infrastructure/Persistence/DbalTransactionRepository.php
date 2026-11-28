@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\CategorizationOrigin;
 use App\Module\Transactions\Domain\CategorySubtrees;
 use App\Module\Transactions\Domain\DuplicateSourceReference;
@@ -106,10 +107,7 @@ final readonly class DbalTransactionRepository implements TransactionRepository
             ['workspace_id' => $workspace->id],
         );
 
-        return false === $row ? null : new TransactionWatermark(
-            new \DateTimeImmutable(TransactionRow::text($row['updated_at'] ?? null)),
-            TransactionRow::text($row['id'] ?? null),
-        );
+        return false === $row ? null : new TransactionWatermark(DbalValue::instant($row['updated_at'] ?? null), DbalValue::text($row['id'] ?? null));
     }
 
     public function listForCategorization(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to, int $limit, bool $lock): array
@@ -202,8 +200,8 @@ final readonly class DbalTransactionRepository implements TransactionRepository
 
         return array_map(
             static fn (array $row): AssetAmount => new AssetAmount(
-                DecimalValue::fromString(TransactionRow::canonicalNumeric(TransactionRow::text($row['total'] ?? null))),
-                AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null)),
+                DecimalValue::fromString(TransactionRow::canonicalNumeric(DbalValue::text($row['total'] ?? null))),
+                AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null)),
             ),
             $rows,
         );
@@ -239,7 +237,7 @@ final readonly class DbalTransactionRepository implements TransactionRepository
         \DateTimeImmutable $from,
         \DateTimeImmutable $to,
     ): int {
-        return (int) TransactionRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
             ."AND t.account_id = :account_id AND t.state = 'PENDING' AND t.booked_on BETWEEN :from_date AND :to_date",
             [
@@ -253,7 +251,7 @@ final readonly class DbalTransactionRepository implements TransactionRepository
 
     public function countPendingInWorkspace(WorkspaceScope $workspace, \DateTimeImmutable $from, \DateTimeImmutable $to): int
     {
-        return (int) TransactionRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_transactions t WHERE t.workspace_id = :workspace_id '
             ."AND t.state = 'PENDING' AND t.booked_on BETWEEN :from_date AND :to_date",
             [
@@ -274,7 +272,7 @@ final readonly class DbalTransactionRepository implements TransactionRepository
             ['limit' => ParameterType::INTEGER],
         );
 
-        return array_map(TransactionRow::text(...), $ids);
+        return array_map(DbalValue::text(...), $ids);
     }
 
     public function findBySourceRef(WorkspaceScope $workspace, string $accountId, string $sourceRef, bool $lock): ?Transaction
@@ -290,7 +288,7 @@ final readonly class DbalTransactionRepository implements TransactionRepository
         );
 
         return false === $row ? null : TransactionRow::hydrate(
-            $row, $workspace, $this->splits($workspace, [TransactionRow::text($row['id'] ?? null)])[TransactionRow::text($row['id'] ?? null)] ?? [],
+            $row, $workspace, $this->splits($workspace, [DbalValue::text($row['id'] ?? null)])[DbalValue::text($row['id'] ?? null)] ?? [],
         );
     }
 
@@ -385,14 +383,14 @@ final readonly class DbalTransactionRepository implements TransactionRepository
      */
     private function hydrateMany(WorkspaceScope $workspace, array $rows): array
     {
-        $ids = array_map(static fn (array $row): string => TransactionRow::text($row['id'] ?? null), $rows);
+        $ids = array_map(static fn (array $row): string => DbalValue::text($row['id'] ?? null), $rows);
         $splits = $this->splits($workspace, $ids);
 
         return array_map(
             static fn (array $row): Transaction => TransactionRow::hydrate(
                 $row,
                 $workspace,
-                $splits[TransactionRow::text($row['id'] ?? null)] ?? [],
+                $splits[DbalValue::text($row['id'] ?? null)] ?? [],
             ),
             $rows,
         );
@@ -416,29 +414,29 @@ final readonly class DbalTransactionRepository implements TransactionRepository
         );
         $grouped = [];
         foreach ($rows as $row) {
-            $transactionId = TransactionRow::text($row['transaction_id'] ?? null);
-            $axes = json_decode(TransactionRow::text($row['analytic_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
+            $transactionId = DbalValue::text($row['transaction_id'] ?? null);
+            $axes = json_decode(DbalValue::text($row['analytic_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
             if (!is_array($axes)) {
                 throw new \UnexpectedValueException('Expected a transaction split axes to be an array.');
             }
             $grouped[$transactionId][] = new TransactionSplit(
-                id: TransactionRow::text($row['id'] ?? null),
+                id: DbalValue::text($row['id'] ?? null),
                 workspace: $workspace,
                 transactionId: $transactionId,
-                categoryId: TransactionRow::text($row['category_id'] ?? null),
+                categoryId: DbalValue::text($row['category_id'] ?? null),
                 amount: new AssetAmount(
                     DecimalValue::fromString(TransactionRow::decimal($row['amount_value'] ?? null, $row['amount_scale'] ?? null)),
-                    AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null)),
+                    AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null)),
                 ),
                 analyticAxes: array_map(
-                    static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(TransactionRow::text($axis)),
+                    static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(DbalValue::text($axis)),
                     array_values($axes),
                 ),
-                note: null === ($row['note'] ?? null) ? null : TransactionRow::text($row['note']),
-                createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
-                position: (int) TransactionRow::text($row['position'] ?? null),
-                origin: CategorizationOrigin::from(TransactionRow::text($row['categorization_origin'] ?? null)),
-                ruleId: null === ($row['categorization_rule_id'] ?? null) ? null : TransactionRow::text($row['categorization_rule_id']),
+                note: null === ($row['note'] ?? null) ? null : DbalValue::text($row['note']),
+                createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+                position: (int) DbalValue::text($row['position'] ?? null),
+                origin: CategorizationOrigin::from(DbalValue::text($row['categorization_origin'] ?? null)),
+                ruleId: null === ($row['categorization_rule_id'] ?? null) ? null : DbalValue::text($row['categorization_rule_id']),
             );
         }
 

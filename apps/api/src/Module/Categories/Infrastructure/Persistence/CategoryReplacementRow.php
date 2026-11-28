@@ -7,6 +7,7 @@ namespace App\Module\Categories\Infrastructure\Persistence;
 use App\Module\Categories\Domain\CategoryReplacement;
 use App\Module\Categories\Domain\CategoryReplacementKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 /**
  * Rebuilds a redirection from the `category_replacements` row that stores it.
@@ -19,22 +20,22 @@ final readonly class CategoryReplacementRow
     /** @param array<string, mixed> $row */
     public static function hydrate(array $row, WorkspaceScope $workspace): CategoryReplacement
     {
-        if ($workspace->id !== CategoryRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A category replacement row escaped its requested workspace.');
         }
 
         $effectiveFrom = $row['effective_from'] ?? null;
 
         return new CategoryReplacement(
-            id: CategoryRow::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            sourceCategoryId: CategoryRow::text($row['source_category_id'] ?? null),
-            targetCategoryId: CategoryRow::text($row['target_category_id'] ?? null),
-            kind: CategoryReplacementKind::from(CategoryRow::text($row['kind'] ?? null)),
+            sourceCategoryId: DbalValue::text($row['source_category_id'] ?? null),
+            targetCategoryId: DbalValue::text($row['target_category_id'] ?? null),
+            kind: CategoryReplacementKind::from(DbalValue::text($row['kind'] ?? null)),
             effectiveFrom: null === $effectiveFrom
                 ? null
-                : new \DateTimeImmutable(CategoryRow::text($effectiveFrom)),
-            createdAt: new \DateTimeImmutable(CategoryRow::text($row['created_at'] ?? null)),
+                : new \DateTimeImmutable(DbalValue::text($effectiveFrom)),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
         );
     }
 }

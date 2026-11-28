@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceDismissalRepository;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -20,7 +21,7 @@ final readonly class DbalRecurrenceDismissalRepository implements RecurrenceDism
 
     public function fingerprints(WorkspaceScope $workspace): array
     {
-        return array_map(TransactionRow::text(...), $this->connection->fetchFirstColumn(
+        return array_map(DbalValue::text(...), $this->connection->fetchFirstColumn(
             'SELECT candidate_fingerprint FROM transaction_recurrence_dismissals WHERE workspace_id = :workspace_id ORDER BY candidate_fingerprint',
             ['workspace_id' => $workspace->id],
         ));
@@ -66,6 +67,6 @@ final readonly class DbalRecurrenceDismissalRepository implements RecurrenceDism
             ['workspace_id' => $workspace->id, 'fingerprint' => $fingerprint],
         );
 
-        return false === $id ? null : TransactionRow::text($id);
+        return false === $id ? null : DbalValue::text($id);
     }
 }

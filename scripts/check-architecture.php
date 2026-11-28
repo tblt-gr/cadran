@@ -9,6 +9,13 @@ const ALLOWED_LAYER_DEPENDENCIES = [
     'UI' => ['Domain', 'Application', 'UI'],
 ];
 
+// [forbidden pattern, the only file allowed to hold it, diagnostic]
+const SHARED_KNOWLEDGE = [
+    ['~\[(?:0-9a-f(?:A-F)?|a-f0-9)\]\{8\}~', '/Foundation/Domain/Uuid.php', 'check identifiers through Uuid, not a raw UUID pattern'],
+    ['~\bfunction\s+(?:text|scalar|asString)\s*\(\s*mixed\b~', '/Foundation/Infrastructure/Persistence/DbalValue.php', 'read database values through DbalValue'],
+    ['~\bMAX_PAGE\s*=~', '/Foundation/Application/PageRequest.php', 'bound pagination through PageRequest'],
+];
+
 $sourceDirectory = $argv[1] ?? null;
 
 if (null === $sourceDirectory || !is_dir($sourceDirectory)) {
@@ -25,16 +32,27 @@ foreach ($iterator as $file) {
     }
 
     $path = str_replace('\\', '/', $file->getPathname());
-    if (1 !== preg_match('~/Module/[^/]+/(Domain|Application|Infrastructure|UI)/~', $path, $sourceMatch)) {
-        continue;
-    }
-
-    $sourceLayer = $sourceMatch[1];
     $contents = file_get_contents($file->getPathname());
     if (false === $contents) {
         fwrite(STDERR, sprintf("Cannot read %s\n", $path));
         exit(2);
     }
+
+    // Knowledge with one home in Foundation; a second copy drifts into a silent variant.
+    foreach (SHARED_KNOWLEDGE as [$pattern, $owner, $diagnostic]) {
+        if (!str_ends_with($path, $owner) && 1 === preg_match($pattern, $contents)) {
+            $violations[] = sprintf('%s: %s', $path, $diagnostic);
+        }
+    }
+    if (str_contains($path, '/UI/Http/') && str_contains($contents, 'unsignedIntegerOrEmpty')) {
+        $violations[] = sprintf('%s: read query parameters through QueryParameters', $path);
+    }
+
+    if (1 !== preg_match('~/Module/[^/]+/(Domain|Application|Infrastructure|UI)/~', $path, $sourceMatch)) {
+        continue;
+    }
+
+    $sourceLayer = $sourceMatch[1];
 
     // Request plumbing lives in Foundation\UI\Http (JsonRequestEnvelope, BodyLimit, Identifier).
     if ('UI' === $sourceLayer && str_contains($path, '/UI/Http/') && !str_ends_with($path, '/Foundation/UI/Http/JsonRequestEnvelope.php')) {

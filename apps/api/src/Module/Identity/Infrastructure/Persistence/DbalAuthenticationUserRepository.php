@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Infrastructure\Persistence;
 
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Identity\Application\AuthenticatedUser;
 use App\Module\Identity\Application\AuthenticationUserRepository;
 use App\Module\Identity\Application\OwnerCredentials;
@@ -13,8 +14,6 @@ use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 #[AsAlias(AuthenticationUserRepository::class)]
 final readonly class DbalAuthenticationUserRepository implements AuthenticationUserRepository
 {
-    use DbalRowValues;
-
     private const string COLUMNS = 'id, email, display_name, password_hash, disabled_at';
 
     public function __construct(private Connection $connection)
@@ -78,9 +77,9 @@ final readonly class DbalAuthenticationUserRepository implements AuthenticationU
         }
 
         return new OwnerCredentials(
-            email: self::asString($row['email'] ?? null),
-            passwordHash: self::asString($row['password_hash']),
-            disabledAt: self::toDate(self::asNullableString($row['disabled_at'] ?? null)),
+            email: DbalValue::text($row['email'] ?? null),
+            passwordHash: DbalValue::text($row['password_hash']),
+            disabledAt: self::toDate(DbalValue::nullableText($row['disabled_at'] ?? null)),
         );
     }
 
@@ -90,11 +89,11 @@ final readonly class DbalAuthenticationUserRepository implements AuthenticationU
     private function hydrateUser(array $row): AuthenticatedUser
     {
         return new AuthenticatedUser(
-            id: self::asString($row['id'] ?? null),
-            email: self::asString($row['email'] ?? null),
-            displayName: self::asString($row['display_name'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
+            email: DbalValue::text($row['email'] ?? null),
+            displayName: DbalValue::text($row['display_name'] ?? null),
             hasPassword: null !== ($row['password_hash'] ?? null),
-            disabledAt: self::toDate(self::asNullableString($row['disabled_at'] ?? null)),
+            disabledAt: self::toDate(DbalValue::nullableText($row['disabled_at'] ?? null)),
         );
     }
 

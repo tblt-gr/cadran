@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Transactions\Domain\TransactionPosition;
 use App\Module\Transactions\Domain\TransactionWatermark;
 
@@ -34,8 +35,8 @@ final readonly class TransactionCursor
         $decoded = base64_decode(strtr($encoded, '-_', '+/'), true);
         $parts = false === $decoded ? [] : explode(' ', $decoded);
         if (4 !== count($parts)
-            || 1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $parts[1])
-            || 1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $parts[3])
+            || !Uuid::isValid($parts[1])
+            || !Uuid::isValid($parts[3])
         ) {
             throw new InvalidTransactionInput('The transaction cursor is invalid.');
         }

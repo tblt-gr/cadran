@@ -12,17 +12,20 @@ use App\Module\Categories\Application\InvalidCategoryInput;
 use App\Module\Categories\Application\ListCategories;
 use App\Module\Categories\Application\UpdateCategory;
 use App\Module\Categories\Application\UpdateCategoryInput;
+use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Adapts HTTP to the category read and edit use cases. Field-level validation
- * lives in {@see CategoryPayload}, the wire shape in
+ * lives in {@see JsonPayload}, the wire shape in
  * {@see CategoryRepresentation} and the envelope in
  * {@see JsonRequestEnvelope}; what remains here is the routing and the status
  * mapping. The lifecycle operations have their own controller.
@@ -49,18 +52,18 @@ final readonly class CategoryController
         $type = $request->query->getString('type');
         $search = $request->query->getString('search');
         $parentEligible = $request->query->getString('parentEligible');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
-            || !in_array($includeArchived, ['', 'true', 'false'], true)
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)
+            || !QueryParameters::isFlagOrEmpty($includeArchived)
             || !in_array($type, ['', 'EXPENSE', 'INCOME'], true)
-            || !in_array($parentEligible, ['', 'true', 'false'], true)) {
+            || !QueryParameters::isFlagOrEmpty($parentEligible)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_category_query');
         }
 
         try {
             $categories = $listCategories(
                 'true' === $includeArchived,
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
                 '' === $type ? null : $type,
                 '' === $search ? null : $search,
                 'true' === $parentEligible,
@@ -83,14 +86,14 @@ final readonly class CategoryController
         }
 
         try {
-            $payload = CategoryPayload::of($body, self::CREATE_FIELDS);
+            $payload = JsonPayload::of($body, self::CREATE_FIELDS);
             $input = new CreateCategoryInput(
                 type: $payload->string('type'),
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
                 icon: $payload->nullableString('icon'),
                 color: $payload->nullableString('color'),
-                defaultAnalyticAxes: $payload->stringList('defaultAnalyticAxes'),
+                defaultAnalyticAxes: $payload->stringList('defaultAnalyticAxes', count(AnalyticAxis::cases())),
                 budgetIncluded: $payload->boolean('budgetIncluded'),
                 sortOrder: $payload->integer('sortOrder'),
             );
@@ -119,13 +122,13 @@ final readonly class CategoryController
         }
 
         try {
-            $payload = CategoryPayload::of($body, self::UPDATE_FIELDS);
+            $payload = JsonPayload::of($body, self::UPDATE_FIELDS);
             $input = new UpdateCategoryInput(
                 type: $payload->string('type'),
                 label: $payload->string('label'),
                 icon: $payload->nullableString('icon'),
                 color: $payload->nullableString('color'),
-                defaultAnalyticAxes: $payload->stringList('defaultAnalyticAxes'),
+                defaultAnalyticAxes: $payload->stringList('defaultAnalyticAxes', count(AnalyticAxis::cases())),
                 budgetIncluded: $payload->boolean('budgetIncluded'),
                 sortOrder: $payload->integer('sortOrder'),
                 version: $payload->integer('version'),
@@ -142,10 +145,5 @@ final readonly class CategoryController
         }
 
         return $this->envelope->json(CategoryRepresentation::one($category));
-    }
-
-    private static function unsignedIntegerOrEmpty(string $value): bool
-    {
-        return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
     }
 }

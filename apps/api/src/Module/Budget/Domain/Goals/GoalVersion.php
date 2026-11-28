@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Budget\Domain\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Foundation\Domain\BoundedText;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -35,7 +36,7 @@ final readonly class GoalVersion
         if ($versionNo < 1) {
             throw new InvalidGoal('A goal definition version number must be positive.');
         }
-        if (null !== $reason && ($reason !== trim($reason) || mb_strlen($reason) < 3 || mb_strlen($reason) > 200)) {
+        if (null !== $reason && !BoundedText::isValid($reason, 3, 200)) {
             throw new InvalidGoal('A correction reason contains between 3 and 200 trimmed characters.');
         }
         if ($retroactive !== (null !== $reason)) {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Domain\Valuation\ObservedPrice;
 use App\Module\Portfolio\Domain\Valuation\Valuation;
 use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
@@ -85,7 +86,7 @@ final readonly class DbalValuationRepository implements ValuationRepository
 
     public function countActive(WorkspaceScope $workspace, string $accountId): int
     {
-        return (int) ValuationRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM portfolio_valuations WHERE workspace_id = :workspace_id AND account_id = :account_id AND superseded_at IS NULL',
             ['workspace_id' => $workspace->id, 'account_id' => $accountId],
         ));
@@ -106,7 +107,7 @@ final readonly class DbalValuationRepository implements ValuationRepository
     {
         [$where, $parameters] = $this->filter($workspace, $accountId, $from, $to);
 
-        return (int) ValuationRow::text($this->connection->fetchOne('SELECT count(*) FROM portfolio_valuations WHERE workspace_id = :workspace_id'.$where, $parameters));
+        return (int) DbalValue::text($this->connection->fetchOne('SELECT count(*) FROM portfolio_valuations WHERE workspace_id = :workspace_id'.$where, $parameters));
     }
 
     public function completeMonths(WorkspaceScope $workspace, array $accountIds, \DateTimeImmutable $from, \DateTimeImmutable $to): array
@@ -122,7 +123,7 @@ final readonly class DbalValuationRepository implements ValuationRepository
         );
         $months = [];
         foreach ($rows as $row) {
-            $months[ValuationRow::text($row['account_id'] ?? null)][] = ValuationRow::text($row['month'] ?? null);
+            $months[DbalValue::text($row['account_id'] ?? null)][] = DbalValue::text($row['month'] ?? null);
         }
 
         return $months;
@@ -144,10 +145,10 @@ final readonly class DbalValuationRepository implements ValuationRepository
         );
 
         return array_map(static fn (array $row): ObservedPrice => new ObservedPrice(
-            ValuationRow::text($row['instrument_id']),
+            DbalValue::text($row['instrument_id']),
             ValuationRow::decimal($row, 'unit_price') ?? throw new \UnexpectedValueException('A priced snapshot has a price.'),
-            ValuationRow::day($row['price_date']),
-            ValuationRow::text($row['valuation_id']),
+            DbalValue::businessDay($row['price_date']),
+            DbalValue::text($row['valuation_id']),
         ), $rows);
     }
 
@@ -188,7 +189,7 @@ final readonly class DbalValuationRepository implements ValuationRepository
      */
     private function withPositions(WorkspaceScope $workspace, array $rows): array
     {
-        $ids = array_map(static fn (array $row): string => ValuationRow::text($row['id']), $rows);
+        $ids = array_map(static fn (array $row): string => DbalValue::text($row['id']), $rows);
         $byValuation = [];
         if ([] !== $ids) {
             $snapshotRows = $this->connection->fetchAllAssociative(
@@ -203,7 +204,7 @@ final readonly class DbalValuationRepository implements ValuationRepository
         }
 
         return array_map(
-            static fn (array $row): Valuation => ValuationRow::hydrate($row, $workspace, $byValuation[ValuationRow::text($row['id'])] ?? []),
+            static fn (array $row): Valuation => ValuationRow::hydrate($row, $workspace, $byValuation[DbalValue::text($row['id'])] ?? []),
             $rows,
         );
     }

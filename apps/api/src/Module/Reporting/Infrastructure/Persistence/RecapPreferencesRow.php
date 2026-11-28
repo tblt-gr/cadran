@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Reporting\Domain\RecapPreferences;
 use App\Module\Reporting\Domain\RecapVisibility;
 
@@ -24,7 +25,7 @@ final readonly class RecapPreferencesRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace, array $knownAxes): RecapPreferences
     {
-        if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A recap preference row escaped its requested workspace.');
         }
 
@@ -35,8 +36,8 @@ final readonly class RecapPreferencesRow
                 self::strings($row['visible_axes'] ?? null),
                 $knownAxes,
             ),
-            (int) self::text($row['version'] ?? null),
-            new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
+            (int) DbalValue::text($row['version'] ?? null),
+            new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
         );
     }
 
@@ -55,26 +56,14 @@ final readonly class RecapPreferencesRow
         ];
     }
 
-    public static function text(mixed $value): string
-    {
-        if (is_string($value)) {
-            return $value;
-        }
-        if (is_int($value)) {
-            return (string) $value;
-        }
-
-        throw new \UnexpectedValueException('Expected a textual recap preference column.');
-    }
-
     /** @return list<string> */
     private static function strings(mixed $value): array
     {
-        $decoded = json_decode(self::text($value), true, flags: JSON_THROW_ON_ERROR);
+        $decoded = json_decode(DbalValue::text($value), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($decoded)) {
             throw new \UnexpectedValueException('Expected a recap preference array column.');
         }
 
-        return array_values(array_map(self::text(...), $decoded));
+        return array_values(array_map(DbalValue::text(...), $decoded));
     }
 }

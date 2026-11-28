@@ -13,8 +13,10 @@ use App\Module\Accounts\Application\UpdateAccountGroup;
 use App\Module\Accounts\Application\UpdateAccountGroupInput;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -38,17 +40,17 @@ final readonly class AccountGroupController
         $pageSize = $request->query->getString('pageSize');
         $includeArchived = $request->query->getString('includeArchived');
         $parentEligible = $request->query->getString('parentEligible');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)
-            || !in_array($includeArchived, ['', 'true', 'false'], true)
-            || !in_array($parentEligible, ['', 'true', 'false'], true)) {
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)
+            || !QueryParameters::isFlagOrEmpty($includeArchived)
+            || !QueryParameters::isFlagOrEmpty($parentEligible)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_group_query');
         }
 
         try {
             $groups = $listAccountGroups(
                 'true' === $includeArchived,
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
                 'true' === $parentEligible,
             );
         } catch (\Throwable $exception) {
@@ -76,7 +78,7 @@ final readonly class AccountGroupController
         }
 
         try {
-            $payload = AccountGroupPayload::of($body, self::CREATE_FIELDS, ['color', 'colorMode', ...self::DEPRECATED_FIELDS]);
+            $payload = JsonPayload::of($body, self::CREATE_FIELDS, ['color', 'colorMode', ...self::DEPRECATED_FIELDS]);
             $group = $createAccountGroup(new CreateAccountGroupInput(
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
@@ -112,7 +114,7 @@ final readonly class AccountGroupController
         }
 
         try {
-            $payload = AccountGroupPayload::of($body, self::UPDATE_FIELDS, ['color', 'colorMode', ...self::DEPRECATED_FIELDS]);
+            $payload = JsonPayload::of($body, self::UPDATE_FIELDS, ['color', 'colorMode', ...self::DEPRECATED_FIELDS]);
             $group = $updateAccountGroup($id, new UpdateAccountGroupInput(
                 label: $payload->string('label'),
                 parentId: $payload->nullableString('parentId'),
@@ -142,7 +144,7 @@ final readonly class AccountGroupController
         }
 
         try {
-            $group = $archiveAccountGroup($id, AccountGroupPayload::of($body, ['version'])->integer('version'));
+            $group = $archiveAccountGroup($id, JsonPayload::of($body, ['version'])->integer('version'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountGroupProblems::archive());
         }
@@ -167,7 +169,7 @@ final readonly class AccountGroupController
         }
 
         try {
-            $payload = AccountGroupPayload::of($body, ['beforeGroupId', 'expectedSiblingIds']);
+            $payload = JsonPayload::of($body, ['beforeGroupId', 'expectedSiblingIds']);
             $beforeGroupId = $payload->nullableString('beforeGroupId');
             $expected = $body['expectedSiblingIds'] ?? null;
             if ((null !== $beforeGroupId && !Identifier::isValid($beforeGroupId)) || !self::siblingIds($expected)) {
@@ -195,10 +197,5 @@ final readonly class AccountGroupController
         }
 
         return count(array_unique($value)) === count($value);
-    }
-
-    private static function unsignedIntegerOrEmpty(string $value): bool
-    {
-        return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
     }
 }

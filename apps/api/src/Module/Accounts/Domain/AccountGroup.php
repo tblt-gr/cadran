@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Domain;
 
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -212,18 +214,18 @@ final readonly class AccountGroup
 
     private static function assertIdentifier(string $id): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidAccountGroup('A group identifier must be a canonical UUID.');
         }
     }
 
     private static function assertLabel(string $label): void
     {
-        if ($label !== trim($label) || '' === $label || mb_strlen($label) > self::MAX_LABEL_LENGTH) {
+        if (!BoundedText::isValid($label, 1, self::MAX_LABEL_LENGTH)) {
             throw new InvalidAccountGroup(sprintf('A group label must contain between 1 and %d characters.', self::MAX_LABEL_LENGTH));
         }
 
-        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $label)) {
+        if (BoundedText::hasControlCharacters($label)) {
             throw new InvalidAccountGroup('A group label cannot contain control characters.');
         }
     }

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application;
 
 use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
 
 final readonly class ListPortfolioValuations
 {
     public const int DEFAULT_PAGE_SIZE = 24;
-    public const int MAX_PAGE_SIZE = 100;
 
     public function __construct(
         private CallerWorkspaceContext $caller,
@@ -30,7 +30,7 @@ final readonly class ListPortfolioValuations
             throw new InvalidValuationQuery('The range ends before it starts.');
         }
         $pageNumber = self::integer($page, 1, 1, 1_000_000);
-        $size = self::integer($pageSize, self::DEFAULT_PAGE_SIZE, 1, self::MAX_PAGE_SIZE);
+        $size = self::integer($pageSize, self::DEFAULT_PAGE_SIZE, 1, PageRequest::MAX_PAGE_SIZE);
 
         $found = $this->valuations->search($workspace, $accountId, $fromDay, $toDay, $size, ($pageNumber - 1) * $size);
 

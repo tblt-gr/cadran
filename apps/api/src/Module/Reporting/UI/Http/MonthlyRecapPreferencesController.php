@@ -7,6 +7,7 @@ namespace App\Module\Reporting\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Reporting\Application\InvalidRecapPreferencesInput;
 use App\Module\Reporting\Application\ReadRecapPreferences;
@@ -70,39 +71,14 @@ final readonly class MonthlyRecapPreferencesController
     /** @param array<mixed> $body */
     private static function input(array $body): SaveRecapPreferencesInput
     {
-        $submitted = array_keys($body);
-        sort($submitted);
-        $expected = self::FIELDS;
-        sort($expected);
-        if ($submitted !== $expected) {
-            throw new \UnexpectedValueException('A recap preference body carries exactly its declared fields.');
-        }
-        if (!is_int($body['version'])) {
-            throw new \UnexpectedValueException('A recap preference version is an integer.');
-        }
+        $payload = JsonPayload::of($body, self::FIELDS);
 
+        // The selection is bounded by the use case, and by the body ceiling before it.
         return new SaveRecapPreferencesInput(
-            self::strings($body['visibleCategoryIds']),
-            self::strings($body['visibleAxes']),
-            $body['version'],
+            $payload->stringList('visibleCategoryIds', \PHP_INT_MAX),
+            $payload->stringList('visibleAxes', \PHP_INT_MAX),
+            $payload->integer('version'),
         );
-    }
-
-    /** @return list<string> */
-    private static function strings(mixed $value): array
-    {
-        if (!is_array($value) || !array_is_list($value)) {
-            throw new \UnexpectedValueException('A recap preference selection is a list.');
-        }
-        $items = [];
-        foreach ($value as $item) {
-            if (!is_string($item)) {
-                throw new \UnexpectedValueException('A recap preference selection holds strings.');
-            }
-            $items[] = $item;
-        }
-
-        return $items;
     }
 
     private function json(RecapPreferencesView $view): JsonResponse

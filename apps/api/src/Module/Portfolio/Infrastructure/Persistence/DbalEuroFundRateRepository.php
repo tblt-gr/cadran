@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Domain\LifeInsurance\EuroFundRate;
 use App\Module\Portfolio\Domain\LifeInsurance\EuroFundRateBasis;
 use App\Module\Portfolio\Domain\LifeInsurance\EuroFundRateRepository;
@@ -42,7 +43,7 @@ final readonly class DbalEuroFundRateRepository implements EuroFundRateRepositor
 
     public function count(WorkspaceScope $workspace, string $contractId): int
     {
-        return (int) ValuationRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM portfolio_euro_fund_rates WHERE workspace_id = :workspace_id AND contract_id = :contract_id',
             ['workspace_id' => $workspace->id, 'contract_id' => $contractId],
         ));
@@ -84,17 +85,17 @@ final readonly class DbalEuroFundRateRepository implements EuroFundRateRepositor
     private static function hydrate(array $row, WorkspaceScope $workspace): EuroFundRate
     {
         return new EuroFundRate(
-            id: ValuationRow::text($row['id']),
+            id: DbalValue::text($row['id']),
             workspace: $workspace,
-            contractId: ValuationRow::text($row['contract_id']),
-            instrumentId: ValuationRow::text($row['instrument_id']),
-            year: (int) ValuationRow::text($row['year']),
+            contractId: DbalValue::text($row['contract_id']),
+            instrumentId: DbalValue::text($row['instrument_id']),
+            year: (int) DbalValue::text($row['year']),
             servedRate: ValuationRow::decimal($row, 'served_rate') ?? throw new \LogicException('A served rate is required.'),
             bonusRate: ValuationRow::decimal($row, 'bonus_rate'),
-            basis: EuroFundRateBasis::from(ValuationRow::text($row['basis'])),
-            sourceNote: null === $row['source_note'] ? null : ValuationRow::text($row['source_note']),
-            recordedAt: new \DateTimeImmutable(ValuationRow::text($row['recorded_at'])),
-            recordedBy: ValuationRow::text($row['recorded_by']),
+            basis: EuroFundRateBasis::from(DbalValue::text($row['basis'])),
+            sourceNote: null === $row['source_note'] ? null : DbalValue::text($row['source_note']),
+            recordedAt: new \DateTimeImmutable(DbalValue::text($row['recorded_at'])),
+            recordedBy: DbalValue::text($row['recorded_by']),
         );
     }
 }

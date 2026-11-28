@@ -7,6 +7,7 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 
 /**
  * The snapshot history of one account, superseded rows included. The trail
@@ -16,8 +17,6 @@ use App\Module\Foundation\Application\CallerWorkspace;
 final readonly class ListAccountBalances
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
-    public const int MAX_PAGE = 1000;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -28,11 +27,8 @@ final readonly class ListAccountBalances
 
     public function __invoke(string $accountId, ?int $page, ?int $pageSize): AccountBalanceSnapshotPage
     {
-        $requestedPage = $page ?? 1;
-        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidAccountBalanceInput('The snapshot page is outside its bounds.');
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidAccountBalanceInput('The snapshot page is outside its bounds.');
 
         $workspace = $this->caller->resolve();
         $account = $this->accounts->find($workspace, $accountId);
@@ -44,11 +40,11 @@ final readonly class ListAccountBalances
             items: $this->snapshots->pageForAccount(
                 $workspace,
                 $account->id,
-                $resolvedPageSize,
-                ($requestedPage - 1) * $resolvedPageSize,
+                $request->pageSize,
+                $request->offset(),
             ),
-            page: $requestedPage,
-            pageSize: $resolvedPageSize,
+            page: $request->page,
+            pageSize: $request->pageSize,
             total: $this->snapshots->countForAccount($workspace, $account->id),
         );
     }

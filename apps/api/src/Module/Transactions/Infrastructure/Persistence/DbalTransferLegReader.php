@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Application\TransferLegFact;
 use App\Module\Transactions\Application\TransferLegReader;
 use Doctrine\DBAL\ArrayParameterType;
@@ -63,19 +64,19 @@ final readonly class DbalTransferLegReader implements TransferLegReader
     /** @param array<string, mixed> $row */
     private static function fact(array $row): TransferLegFact
     {
-        $state = TransactionRow::text($row['state'] ?? null);
+        $state = DbalValue::text($row['state'] ?? null);
 
         return new TransferLegFact(
-            TransactionRow::text($row['id'] ?? null),
-            TransactionRow::text($row['account_id'] ?? null),
+            DbalValue::text($row['id'] ?? null),
+            DbalValue::text($row['account_id'] ?? null),
             new AssetAmount(
                 DecimalValue::fromString(TransactionRow::decimal($row['amount_value'] ?? null, $row['amount_scale'] ?? null)),
-                AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null)),
+                AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null)),
             ),
-            new \DateTimeImmutable(TransactionRow::text($row['booked_on'] ?? null), new \DateTimeZone('UTC')),
+            new \DateTimeImmutable(DbalValue::text($row['booked_on'] ?? null), new \DateTimeZone('UTC')),
             $state,
             'VOIDED' === $state || null !== ($row['voided_at'] ?? null),
-            null === ($row['raw_label'] ?? null) ? null : TransactionRow::text($row['raw_label']),
+            null === ($row['raw_label'] ?? null) ? null : DbalValue::text($row['raw_label']),
         );
     }
 }

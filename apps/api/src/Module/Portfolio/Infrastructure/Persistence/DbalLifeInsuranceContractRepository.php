@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Domain\LifeInsurance\ContractNumberSuffix;
 use App\Module\Portfolio\Domain\LifeInsurance\ContractStatus;
 use App\Module\Portfolio\Domain\LifeInsurance\LifeInsuranceContract;
@@ -89,7 +90,7 @@ final readonly class DbalLifeInsuranceContractRepository implements LifeInsuranc
     /** @param array<string, mixed> $row */
     private static function hydrate(array $row, WorkspaceScope $workspace): LifeInsuranceContract
     {
-        $text = InstrumentRow::text(...);
+        $text = DbalValue::text(...);
         $suffix = $row['contract_number_suffix'];
 
         return new LifeInsuranceContract(
@@ -100,15 +101,15 @@ final readonly class DbalLifeInsuranceContractRepository implements LifeInsuranc
             distributor: null === $row['distributor'] ? null : $text($row['distributor']),
             commercialName: null === $row['commercial_name'] ? null : $text($row['commercial_name']),
             numberSuffix: null === $suffix ? null : ContractNumberSuffix::fromStored($text($suffix)),
-            subscribedOn: ValuationRow::day($row['subscribed_on']),
-            taxStartOn: ValuationRow::day($row['tax_start_on']),
+            subscribedOn: DbalValue::businessDay($row['subscribed_on']),
+            taxStartOn: DbalValue::businessDay($row['tax_start_on']),
             managementMode: ManagementMode::from($text($row['management_mode'])),
             status: ContractStatus::from($text($row['status'])),
-            closedOn: null === $row['closed_on'] ? null : ValuationRow::day($row['closed_on']),
+            closedOn: null === $row['closed_on'] ? null : DbalValue::businessDay($row['closed_on']),
             createdAt: new \DateTimeImmutable($text($row['created_at'])),
             createdBy: $text($row['created_by']),
             updatedAt: new \DateTimeImmutable($text($row['updated_at'])),
-            version: InstrumentRow::integer($row['version']),
+            version: DbalValue::integer($row['version']),
         );
     }
 }

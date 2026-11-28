@@ -9,6 +9,7 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Portfolio\Application\PortfolioAccountGate;
 use App\Module\Portfolio\Domain\InstrumentRepository;
@@ -24,7 +25,6 @@ use Symfony\Component\Clock\ClockInterface;
 final readonly class RecordEuroFundRate
 {
     public const int MAX_PER_CONTRACT = 200;
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
     public function __construct(
         private CallerWorkspaceContext $caller,
@@ -49,7 +49,7 @@ final readonly class RecordEuroFundRate
             $found = $this->contracts->findByAccount($context->workspace, $account->id) ?? throw new LifeInsuranceNotFound('life_insurance_contract_not_found');
             $contract = $this->contracts->findForUpdate($context->workspace, $found->id) ?? throw new LifeInsuranceNotFound('life_insurance_contract_not_found');
 
-            $instrument = 1 === preg_match(self::UUID_PATTERN, $input->instrumentId) ? $this->instruments->findForUpdate($context->workspace, $input->instrumentId) : null;
+            $instrument = Uuid::isValid($input->instrumentId) ? $this->instruments->findForUpdate($context->workspace, $input->instrumentId) : null;
             if (null === $instrument || InstrumentType::EURO_FUND !== $instrument->instrumentType) {
                 throw new InvalidLifeInsurance('The support is not a euro fund of the workspace.', 'instrument_not_euro_fund');
             }

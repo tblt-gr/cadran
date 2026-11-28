@@ -6,6 +6,7 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 
 /**
  * Reads one page of the models of the calling workspace.
@@ -17,9 +18,6 @@ use App\Module\Foundation\Application\CallerWorkspace;
 final readonly class ListProductModels
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
-    /** Caps the offset, so a page number cannot make PostgreSQL walk the table. */
-    public const int MAX_PAGE = 1000;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -29,21 +27,18 @@ final readonly class ListProductModels
 
     public function __invoke(bool $includeArchived, ?int $page, ?int $pageSize): ProductModelPage
     {
-        $requestedPage = $page ?? 1;
-        $resolvedPageSize = $pageSize ?? self::DEFAULT_PAGE_SIZE;
-        if ($requestedPage < 1 || $requestedPage > self::MAX_PAGE || $resolvedPageSize < 1 || $resolvedPageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidProductModelInput('The model page is outside its bounds.');
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidProductModelInput('The model page is outside its bounds.');
 
         $workspace = $this->caller->resolve();
 
         return new ProductModelPage(
             items: array_map(
                 ProductModelView::fromModel(...),
-                $this->models->list($workspace, $includeArchived, $resolvedPageSize, ($requestedPage - 1) * $resolvedPageSize),
+                $this->models->list($workspace, $includeArchived, $request->pageSize, $request->offset()),
             ),
-            page: $requestedPage,
-            pageSize: $resolvedPageSize,
+            page: $request->page,
+            pageSize: $request->pageSize,
             total: $this->models->count($workspace, $includeArchived),
         );
     }

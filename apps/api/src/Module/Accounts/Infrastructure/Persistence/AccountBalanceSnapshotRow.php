@@ -11,6 +11,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 /**
  * Translates between a snapshot and the row that stores it.
@@ -26,28 +27,28 @@ final readonly class AccountBalanceSnapshotRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace): AccountBalanceSnapshot
     {
-        if ($workspace->id !== AccountRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A snapshot row escaped its requested workspace.');
         }
 
         return new AccountBalanceSnapshot(
-            id: AccountRow::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            accountId: AccountRow::text($row['account_id'] ?? null),
-            asOf: new \DateTimeImmutable(AccountRow::text($row['as_of'] ?? null), new \DateTimeZone('UTC')),
+            accountId: DbalValue::text($row['account_id'] ?? null),
+            asOf: new \DateTimeImmutable(DbalValue::text($row['as_of'] ?? null), new \DateTimeZone('UTC')),
             amount: new AssetAmount(
-                DecimalValue::fromString(AccountRow::text($row['amount_literal'] ?? null)),
-                AssetCode::fromString(AccountRow::text($row['amount_asset'] ?? null)),
+                DecimalValue::fromString(DbalValue::text($row['amount_literal'] ?? null)),
+                AssetCode::fromString(DbalValue::text($row['amount_asset'] ?? null)),
             ),
-            source: BalanceSnapshotSource::from(AccountRow::text($row['source'] ?? null)),
-            reconciliationStatus: ReconciliationStatus::from(AccountRow::text($row['reconciliation_status'] ?? null)),
-            comment: null === ($row['comment'] ?? null) ? null : AccountRow::text($row['comment']),
-            version: (int) AccountRow::text($row['version'] ?? null),
-            recordedAt: new \DateTimeImmutable(AccountRow::text($row['recorded_at'] ?? null)),
-            recordedBy: AccountRow::text($row['recorded_by'] ?? null),
+            source: BalanceSnapshotSource::from(DbalValue::text($row['source'] ?? null)),
+            reconciliationStatus: ReconciliationStatus::from(DbalValue::text($row['reconciliation_status'] ?? null)),
+            comment: null === ($row['comment'] ?? null) ? null : DbalValue::text($row['comment']),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            recordedAt: new \DateTimeImmutable(DbalValue::text($row['recorded_at'] ?? null)),
+            recordedBy: DbalValue::text($row['recorded_by'] ?? null),
             supersededAt: null === ($row['superseded_at'] ?? null)
                 ? null
-                : new \DateTimeImmutable(AccountRow::text($row['superseded_at'])),
+                : new \DateTimeImmutable(DbalValue::text($row['superseded_at'])),
         );
     }
 

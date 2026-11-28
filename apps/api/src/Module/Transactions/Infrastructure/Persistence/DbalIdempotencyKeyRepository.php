@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\IdempotencyKey;
 use App\Module\Transactions\Domain\IdempotencyKeyRepository;
 use Doctrine\DBAL\Connection;
@@ -50,7 +51,7 @@ final readonly class DbalIdempotencyKeyRepository implements IdempotencyKeyRepos
         /** @var array<string, mixed>|null $body */
         $body = null;
         if (null !== ($row['response_body'] ?? null)) {
-            $decoded = json_decode(self::text($row['response_body']), true, flags: JSON_THROW_ON_ERROR);
+            $decoded = json_decode(DbalValue::text($row['response_body']), true, flags: JSON_THROW_ON_ERROR);
             if (!is_array($decoded) || array_is_list($decoded)) {
                 throw new \UnexpectedValueException('An idempotency response must be an object.');
             }
@@ -66,15 +67,15 @@ final readonly class DbalIdempotencyKeyRepository implements IdempotencyKeyRepos
         $days = null;
         if (null !== ($row['period_days'] ?? null)) {
             $days = [];
-            $decodedDays = json_decode(self::text($row['period_days']), true, flags: JSON_THROW_ON_ERROR);
+            $decodedDays = json_decode(DbalValue::text($row['period_days']), true, flags: JSON_THROW_ON_ERROR);
             foreach (is_array($decodedDays) ? $decodedDays : [] as $day) {
-                $days[] = self::text($day);
+                $days[] = DbalValue::text($day);
             }
         }
 
         return new IdempotencyKey(
-            self::text($row['id'] ?? null), self::text($row['request_fingerprint'] ?? null), self::text($row['status'] ?? null),
-            null === ($row['response_status'] ?? null) ? null : (int) self::text($row['response_status']), $body, false, $days,
+            DbalValue::text($row['id'] ?? null), DbalValue::text($row['request_fingerprint'] ?? null), DbalValue::text($row['status'] ?? null),
+            null === ($row['response_status'] ?? null) ? null : (int) DbalValue::text($row['response_status']), $body, false, $days,
         );
     }
 
@@ -107,14 +108,5 @@ final readonly class DbalIdempotencyKeyRepository implements IdempotencyKeyRepos
     private function newId(): string
     {
         return $this->uuidGenerator->generate();
-    }
-
-    private static function text(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
     }
 }

@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\RoundingMode;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\TransactionRefund;
 use Doctrine\DBAL\ArrayParameterType;
@@ -79,9 +80,9 @@ final readonly class DbalRefundRepository implements RefundRepository
 
         $byRefundId = [];
         foreach ($rows as $row) {
-            $byRefundId[self::scalar($row['refund_transaction_id'] ?? null)] = [
-                'originalId' => self::scalar($row['original_id'] ?? null),
-                'originalLabel' => self::scalar($row['original_label'] ?? null),
+            $byRefundId[DbalValue::text($row['refund_transaction_id'] ?? null)] = [
+                'originalId' => DbalValue::text($row['original_id'] ?? null),
+                'originalLabel' => DbalValue::text($row['original_label'] ?? null),
             ];
         }
 
@@ -106,9 +107,9 @@ final readonly class DbalRefundRepository implements RefundRepository
 
         $byOriginalId = [];
         foreach ($rows as $row) {
-            $value = DecimalValue::fromString(self::scalar($row['value'] ?? null));
-            $byOriginalId[self::scalar($row['original_transaction_id'] ?? null)] =
-                ExactDecimal::round($value, (int) self::scalar($row['scale'] ?? null), RoundingMode::DOWN);
+            $value = DecimalValue::fromString(DbalValue::text($row['value'] ?? null));
+            $byOriginalId[DbalValue::text($row['original_transaction_id'] ?? null)] =
+                ExactDecimal::round($value, (int) DbalValue::text($row['scale'] ?? null), RoundingMode::DOWN);
         }
 
         return $byOriginalId;
@@ -118,17 +119,8 @@ final readonly class DbalRefundRepository implements RefundRepository
     private static function hydrate(WorkspaceScope $workspace, array $row): TransactionRefund
     {
         return new TransactionRefund(
-            self::scalar($row['id'] ?? null), $workspace, self::scalar($row['refund_transaction_id'] ?? null),
-            self::scalar($row['original_transaction_id'] ?? null), new \DateTimeImmutable(self::scalar($row['created_at'] ?? null)),
+            DbalValue::text($row['id'] ?? null), $workspace, DbalValue::text($row['refund_transaction_id'] ?? null),
+            DbalValue::text($row['original_transaction_id'] ?? null), new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
         );
-    }
-
-    private static function scalar(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
     }
 }

@@ -10,6 +10,7 @@ use App\Module\Accounts\Application\ListAccountGroups;
 use App\Module\Accounts\Application\ListAccounts;
 use App\Module\Foundation\Application\DemoAccountBalanceAdjustment;
 use App\Module\Foundation\Application\DemoAccountBalanceContributor;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Foundation\Domain\CalculatedDecimal;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
@@ -49,7 +50,7 @@ final readonly class SeedDemoLifeInsurance implements DemoAccountBalanceContribu
     public function seed(): void
     {
         $groupId = null;
-        foreach ($this->listGroups->__invoke(false, 1, ListAccountGroups::MAX_PAGE_SIZE)->items as $group) {
+        foreach ($this->listGroups->__invoke(false, 1, PageRequest::MAX_PAGE_SIZE)->items as $group) {
             if ('Investissements' === $group->label) {
                 $groupId = $group->id;
                 break;

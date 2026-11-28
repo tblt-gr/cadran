@@ -7,6 +7,7 @@ namespace App\Module\Transactions\Domain;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -104,7 +105,7 @@ final readonly class Transfer
 
     private static function identifier(string $id, string $field): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidTransfer(sprintf('A %s identifier must be a canonical UUID.', $field));
         }
     }

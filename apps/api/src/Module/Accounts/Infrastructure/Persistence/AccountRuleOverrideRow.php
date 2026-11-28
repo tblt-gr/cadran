@@ -16,6 +16,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 /**
  * Translates between an account rule override and the two row sets that store
@@ -38,38 +39,38 @@ final readonly class AccountRuleOverrideRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace, array $brackets): AccountRuleOverride
     {
-        if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('An account rule override row escaped its requested workspace.');
         }
 
-        $kind = RuleKind::from(self::text($row['rule_kind'] ?? null));
+        $kind = RuleKind::from(DbalValue::text($row['rule_kind'] ?? null));
         $withdrawnAt = $row['withdrawn_at'] ?? null;
 
         return new AccountRuleOverride(
-            id: self::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            accountId: self::text($row['account_id'] ?? null),
+            accountId: DbalValue::text($row['account_id'] ?? null),
             kind: $kind,
             value: match ($kind->valueType()) {
                 RuleValueType::AMOUNT => DeclaredRuleValue::amount(new AssetAmount(
-                    DecimalValue::fromString(self::text($row['amount_value'] ?? null)),
-                    AssetCode::fromString(self::text($row['amount_asset'] ?? null)),
+                    DecimalValue::fromString(DbalValue::text($row['amount_value'] ?? null)),
+                    AssetCode::fromString(DbalValue::text($row['amount_asset'] ?? null)),
                 )),
                 RuleValueType::PERCENTAGE => DeclaredRuleValue::rate(new RateScale(
                     array_map(self::bracket(...), $brackets),
-                    RateApplication::from(self::text($row['rate_application'] ?? null)),
+                    RateApplication::from(DbalValue::text($row['rate_application'] ?? null)),
                 )),
-                RuleValueType::TEXT => DeclaredRuleValue::text(self::text($row['text_value'] ?? null)),
+                RuleValueType::TEXT => DeclaredRuleValue::text(DbalValue::text($row['text_value'] ?? null)),
             },
             period: new EffectivePeriod(
-                validFrom: self::day($row['valid_from'] ?? null),
-                validTo: null === ($row['valid_to'] ?? null) ? null : self::day($row['valid_to']),
+                validFrom: DbalValue::businessDay($row['valid_from'] ?? null),
+                validTo: null === ($row['valid_to'] ?? null) ? null : DbalValue::businessDay($row['valid_to']),
             ),
-            reason: self::text($row['reason'] ?? null),
-            authorId: self::text($row['author_id'] ?? null),
-            recordedAt: new \DateTimeImmutable(self::text($row['recorded_at'] ?? null)),
-            withdrawnAt: null === $withdrawnAt ? null : new \DateTimeImmutable(self::text($withdrawnAt)),
-            withdrawnBy: null === ($row['withdrawn_by'] ?? null) ? null : self::text($row['withdrawn_by']),
+            reason: DbalValue::text($row['reason'] ?? null),
+            authorId: DbalValue::text($row['author_id'] ?? null),
+            recordedAt: new \DateTimeImmutable(DbalValue::text($row['recorded_at'] ?? null)),
+            withdrawnAt: null === $withdrawnAt ? null : new \DateTimeImmutable(DbalValue::text($withdrawnAt)),
+            withdrawnBy: null === ($row['withdrawn_by'] ?? null) ? null : DbalValue::text($row['withdrawn_by']),
         );
     }
 
@@ -112,27 +113,9 @@ final readonly class AccountRuleOverrideRow
         $upperBound = $row['upper_bound'] ?? null;
 
         return new RateBracket(
-            DecimalValue::fromString(self::text($row['lower_bound'] ?? null)),
-            null === $upperBound ? null : DecimalValue::fromString(self::text($upperBound)),
-            DecimalValue::fromString(self::text($row['percentage'] ?? null)),
+            DecimalValue::fromString(DbalValue::text($row['lower_bound'] ?? null)),
+            null === $upperBound ? null : DecimalValue::fromString(DbalValue::text($upperBound)),
+            DecimalValue::fromString(DbalValue::text($row['percentage'] ?? null)),
         );
-    }
-
-    /**
-     * A `DATE` column carries no time and no zone; the domain reads it as the
-     * UTC calendar day it is, rather than as midnight in the server timezone.
-     */
-    private static function day(mixed $value): \DateTimeImmutable
-    {
-        return new \DateTimeImmutable(self::text($value), new \DateTimeZone('UTC'));
-    }
-
-    public static function text(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
     }
 }

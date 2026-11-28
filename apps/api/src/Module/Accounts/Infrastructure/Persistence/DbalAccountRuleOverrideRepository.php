@@ -9,6 +9,7 @@ use App\Module\Accounts\Domain\AccountRuleOverride;
 use App\Module\Accounts\Domain\AccountRuleOverrideRepository;
 use App\Module\Accounts\Domain\AccountRuleOverrides;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -78,7 +79,7 @@ final readonly class DbalAccountRuleOverrideRepository implements AccountRuleOve
         /** @var array<string, array{row: array<string, mixed>, brackets: list<array<string, mixed>>}> $grouped */
         $grouped = [];
         foreach ($rows as $row) {
-            $id = AccountRuleOverrideRow::text($row['id'] ?? null);
+            $id = DbalValue::text($row['id'] ?? null);
             $grouped[$id] ??= ['row' => $row, 'brackets' => []];
             if (null !== ($row['position'] ?? null)) {
                 $grouped[$id]['brackets'][] = $row;

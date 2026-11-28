@@ -10,10 +10,10 @@ use App\Module\Accounts\Domain\AccountRules;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Catalog\Application\ProductCatalog;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Catalog\Domain\EffectiveProduct;
-use App\Module\Catalog\Domain\InvalidCatalogEntry;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -110,7 +110,7 @@ final readonly class ReadAccountRules
     {
         try {
             return BusinessDay::fromIsoDate($asOf);
-        } catch (InvalidCatalogEntry $failure) {
+        } catch (InvalidBusinessDay $failure) {
             throw new InvalidAccountInput($failure->getMessage(), previous: $failure);
         }
     }

@@ -8,6 +8,7 @@ use App\Module\Accounts\Application\ReadNetWorth;
 use App\Module\Accounts\Application\ReadNetWorthHistory;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -51,12 +52,12 @@ final readonly class NetWorthController
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_net_worth_query');
         }
         $months = $request->query->getString('months');
-        if (!self::isoDayOrEmpty($asOf) || !self::unsignedIntegerOrEmpty($months)) {
+        if (!self::isoDayOrEmpty($asOf) || !QueryParameters::isUnsignedIntegerOrEmpty($months, 3)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_net_worth_query');
         }
 
         try {
-            $history = $readHistory($asOf ?: null, '' === $months ? null : (int) $months, is_string($period) ? $period : null);
+            $history = $readHistory($asOf ?: null, QueryParameters::integerOrNull($months), is_string($period) ? $period : null);
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, AccountOverviewProblems::netWorthHistory());
         }
@@ -67,10 +68,5 @@ final readonly class NetWorthController
     private static function isoDayOrEmpty(string $value): bool
     {
         return '' === $value || 1 === preg_match('/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/D', $value);
-    }
-
-    private static function unsignedIntegerOrEmpty(string $value): bool
-    {
-        return '' === $value || 1 === preg_match('/^[0-9]{1,3}$/D', $value);
     }
 }
