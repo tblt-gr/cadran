@@ -4499,6 +4499,7 @@
     },
     "errors": {
       "archived": "Cette récurrence est archivée. Restaurez-la avant de la modifier.",
+      "duplicate": "Cette récurrence existe déjà.",
       "forbidden": "Vous n’avez pas accès à cette récurrence.",
       "invalid": "La récurrence n’a pas pu être enregistrée : vérifiez les champs saisis.",
       "network": "L’enregistrement a échoué. Rechargez les données puis réessayez.",

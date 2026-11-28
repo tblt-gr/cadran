@@ -639,6 +639,9 @@ api:
     recurrence_archived:
       title: 'Récurrence archivée'
       detail: 'Une récurrence archivée est en lecture seule.'
+    recurrence_duplicate:
+      title: 'Récurrence déjà confirmée'
+      detail: 'Une récurrence active identique existe déjà pour ce compte.'
     recurrence_stale_version:
       title: 'Récurrence modifiée entre-temps'
       detail: 'Rechargez la récurrence puis réappliquez la modification.'
@@ -647,7 +650,7 @@ api:
       detail: 'La clé doit contenir de 16 à 255 caractères alphanumériques, points, tirets bas, deux-points ou tirets.'
     idempotency_required:
       title: 'Clé d’idempotence requise'
-      detail: 'Les transactions importées ou fournies par un connecteur nécessitent une clé d’idempotence.'
+      detail: 'Cette opération nécessite une clé d’idempotence.'
     idempotency_key_reused:
       title: 'Clé d’idempotence réutilisée'
       detail: 'Cette clé a déjà été utilisée pour une requête différente.'

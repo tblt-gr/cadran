@@ -5806,14 +5806,14 @@ paths:
     post:
       operationId: confirmRecurrence
       summary: Confirm a candidate or manually create a recurrence
-      description: Creates a forecast schedule and snapshots expected occurrences through the twelve-month horizon.
+      description: Creates a forecast schedule and snapshots expected occurrences through the twelve-month horizon. The `Idempotency-Key` header is required, and an active recurrence with the same account, label, rhythm, day and amount is refused.
       tags:
         - Transactions
       security:
         - sessionCookie: []
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
-        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/RequiredIdempotencyKey'
       requestBody:
         required: true
         content:
@@ -5835,7 +5835,7 @@ paths:
         '403':
           $ref: '#/components/responses/Forbidden'
         '409':
-          description: The Idempotency-Key was reused with a different body, or the first request is still in flight.
+          description: An identical active recurrence already exists on the account, the Idempotency-Key was reused with a different body, or the first request is still in flight.
           content:
             application/problem+json:
               schema:
@@ -23331,6 +23331,8 @@ components:
           description: The requested range of report years spans more years than one report may cover.
         - const: /problems/recurrences.archived
           description: The recurrence is archived.
+        - const: /problems/recurrences.duplicate
+          description: An identical active recurrence already exists on the account.
         - const: /problems/recurrences.forbidden
           description: The caller may not use recurrences of this workspace.
         - const: /problems/recurrences.invalid

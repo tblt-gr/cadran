@@ -284,7 +284,7 @@ final class PlannedTransactionsTest extends WebTestCase
 
     public function testARecurrenceGeneratedPendingRowCarriesTheMarkerAndCountsLikeAManualOne(): void
     {
-        $this->client->request('POST', '/api/v1/recurrences', server: self::jsonHeaders(), content: json_encode([
+        $this->client->request('POST', '/api/v1/recurrences', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'recurrence-'.bin2hex(random_bytes(12))], content: json_encode([
             'accountId' => self::ACCOUNT, 'label' => 'Netflix', 'counterparty' => null, 'expectedAmount' => '-17.99',
             'amountTolerance' => '0.00', 'intervalKind' => 'MONTHLY', 'dayOfPeriod' => 15, 'firstExpectedOn' => '2026-11-15',
             'autoCreate' => true, 'categoryId' => self::SUBSCRIPTIONS,
@@ -454,7 +454,7 @@ final class PlannedTransactionsTest extends WebTestCase
     public function testSeveralAutomaticRecurrencesScanThePlannedRowsOnceAndCountEachSkippedRowOnce(): void
     {
         foreach (['Un', 'Deux', 'Trois'] as $index => $label) {
-            $this->client->request('POST', '/api/v1/recurrences', server: self::jsonHeaders(), content: json_encode([
+            $this->client->request('POST', '/api/v1/recurrences', server: [...self::jsonHeaders(), 'HTTP_IDEMPOTENCY_KEY' => 'recurrence-'.bin2hex(random_bytes(12))], content: json_encode([
                 'accountId' => self::ACCOUNT, 'label' => $label, 'counterparty' => null, 'expectedAmount' => '-1.00',
                 'amountTolerance' => '0.00', 'intervalKind' => 'MONTHLY', 'dayOfPeriod' => 28 - $index, 'firstExpectedOn' => '2026-11-'.(28 - $index),
                 'autoCreate' => true, 'categoryId' => self::SUBSCRIPTIONS,

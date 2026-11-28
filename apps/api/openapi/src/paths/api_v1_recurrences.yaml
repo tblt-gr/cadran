@@ -44,14 +44,16 @@ post:
   summary: Confirm a candidate or manually create a recurrence
   description: >-
     Creates a forecast schedule and snapshots expected occurrences through the
-    twelve-month horizon.
+    twelve-month horizon. The `Idempotency-Key` header is required, and an
+    active recurrence with the same account, label, rhythm, day and amount is
+    refused.
   tags:
     - Transactions
   security:
     - sessionCookie: []
   parameters:
     - $ref: ../components/parameters/CsrfToken.yaml
-    - $ref: ../components/parameters/IdempotencyKey.yaml
+    - $ref: ../components/parameters/RequiredIdempotencyKey.yaml
   requestBody:
     required: true
     content:
@@ -74,8 +76,9 @@ post:
       $ref: ../components/responses/Forbidden.yaml
     '409':
       description: >-
-        The Idempotency-Key was reused with a different body, or the first
-        request is still in flight.
+        An identical active recurrence already exists on the account, the
+        Idempotency-Key was reused with a different body, or the first request
+        is still in flight.
       content:
         application/problem+json:
           schema:

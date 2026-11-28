@@ -13,6 +13,7 @@ use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\Application\Recurrence\ArchiveRecurrence;
 use App\Module\Transactions\Application\Recurrence\ConfirmRecurrence;
 use App\Module\Transactions\Application\Recurrence\DismissRecurrenceCandidate;
+use App\Module\Transactions\Application\Recurrence\DuplicateRecurrence;
 use App\Module\Transactions\Application\Recurrence\EditRecurrence;
 use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceInput;
 use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceReference;
@@ -103,7 +104,7 @@ final readonly class RecurrenceWriteController
             );
             $result = $this->idempotentExecution->execute(
                 'recurrence.create',
-                $this->envelope->idempotency($request, false),
+                $this->envelope->idempotency($request, true),
                 static function () use ($confirm, $input): IdempotentResponse {
                     $view = $confirm($input);
 
@@ -112,6 +113,8 @@ final readonly class RecurrenceWriteController
             );
         } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
             return $this->envelope->idempotencyProblem($exception);
+        } catch (DuplicateRecurrence) {
+            return $this->problems->problem(409, '/problems/recurrences.duplicate');
         } catch (InvalidRecurrenceInput|InvalidRecurrenceReference|\UnexpectedValueException) {
             return $this->problems->problem(422, '/problems/recurrences.invalid');
         } catch (WorkspaceAccessDenied) {

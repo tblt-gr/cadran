@@ -11,6 +11,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
 
 /**
@@ -30,6 +31,7 @@ final readonly class ConfirmRecurrence
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
         private MaterializeRecurrenceOccurrences $materialize,
+        private CategorizationWriteLock $writeLock,
     ) {
     }
 
@@ -39,8 +41,12 @@ final readonly class ConfirmRecurrence
         $context = $this->caller->resolveContext();
 
         return $this->boundary->transactional(function () use ($context, $input): array {
+            $this->writeLock->acquire($context->workspace);
             $now = $this->calendar->now();
             $recurrence = $this->factory->create($this->ids->generate(), $context->workspace, $input, $now);
+            if (null !== $this->recurrences->findActiveEquivalent($recurrence)) {
+                throw new DuplicateRecurrence();
+            }
             $this->recurrences->add($recurrence);
             $today = $this->calendar->today();
             $this->generator->extend($recurrence, $recurrence->nextExpectedOn, $today);

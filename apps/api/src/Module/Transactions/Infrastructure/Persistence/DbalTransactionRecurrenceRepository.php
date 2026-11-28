@@ -84,6 +84,26 @@ final readonly class DbalTransactionRecurrenceRepository implements TransactionR
         return array_map(static fn (array $row): TransactionRecurrence => TransactionRecurrenceRow::hydrate($row, $workspace), $rows);
     }
 
+    public function findActiveEquivalent(TransactionRecurrence $candidate): ?TransactionRecurrence
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT '.TransactionRecurrenceRow::COLUMNS.' FROM transaction_recurrences WHERE workspace_id = :workspace_id AND archived_at IS NULL'
+            .' AND account_id = :account_id AND lower(btrim(label)) = lower(btrim(:label)) AND interval_kind = :interval_kind'
+            .' AND day_of_period = :day_of_period AND expected_amount_value = CAST(:amount AS numeric) AND asset_code = :asset_code LIMIT 1',
+            [
+                'workspace_id' => $candidate->workspace->id,
+                'account_id' => $candidate->accountId,
+                'label' => $candidate->label,
+                'interval_kind' => $candidate->intervalKind->value,
+                'day_of_period' => $candidate->dayOfPeriod,
+                'amount' => $candidate->expectedAmount->value->toString(),
+                'asset_code' => $candidate->expectedAmount->asset->toString(),
+            ],
+        );
+
+        return false === $row ? null : TransactionRecurrenceRow::hydrate($row, $candidate->workspace);
+    }
+
     public function add(TransactionRecurrence $recurrence): void
     {
         $this->connection->insert(self::TABLE, [

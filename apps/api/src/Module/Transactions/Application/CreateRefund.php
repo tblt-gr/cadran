@@ -19,6 +19,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\UuidGenerator;
 use App\Module\Reference\Application\AssetCatalog;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Domain\InvalidTransaction;
 use App\Module\Transactions\Domain\RefundRepository;
 use App\Module\Transactions\Domain\Transaction;
@@ -48,6 +49,7 @@ final readonly class CreateRefund
         private ClockInterface $clock,
         private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $assertPeriodOpen,
+        private CategorizationWriteLock $writeLock,
     ) {
     }
 
@@ -65,8 +67,10 @@ final readonly class CreateRefund
         }
 
         return $this->transactionBoundary->transactional(function () use ($context, $originalId, $input, $magnitude, $bookedOn): CreatedRefund {
-            // This is deliberately the first transaction lock. Every refund
-            // writer serialises here before observing and consuming the cap.
+            // The workspace lock comes first, so a rules application never works
+            // from a snapshot that misses this refund. The original is then the
+            // first row lock: refund writers serialise on it to consume the cap.
+            $this->writeLock->acquire($context->workspace);
             $original = $this->transactions->findForUpdate($context->workspace, $originalId);
             if (null === $original) {
                 throw new TransactionNotFound();

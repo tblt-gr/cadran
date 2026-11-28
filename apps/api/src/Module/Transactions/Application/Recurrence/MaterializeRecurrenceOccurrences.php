@@ -12,6 +12,7 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
@@ -30,8 +31,8 @@ use App\Module\Transactions\Domain\TransactionState;
  * current calendar month only, then books, through {@see BookDueTransactions}, the planned rows whose day has come.
  *
  * Every step is expressed as "what is still missing", so repeating a run, or
- * racing two of them, produces nothing twice: the recurrence row is locked
- * while it is processed, and a unique link plus the transaction `source_ref`
+ * racing two of them, produces nothing twice: the workspace and then the
+ * recurrence row are locked while it is processed, and a unique link plus the transaction `source_ref`
  * (the instalment identifier) back that up in the database. A generated row the
  * owner voided or rejected keeps its link, so it is never created again.
  */
@@ -51,6 +52,7 @@ final readonly class MaterializeRecurrenceOccurrences
         private RecordAuditEvent $audit,
         private WorkspaceCalendar $calendar,
         private BookDueTransactions $bookDue,
+        private CategorizationWriteLock $writeLock,
     ) {
     }
 
@@ -63,6 +65,7 @@ final readonly class MaterializeRecurrenceOccurrences
         foreach ($this->recurrences->activeAutoCreating($context->workspace, self::MAX_RECURRENCES) as $listed) {
             ++$examined;
             $total->add($this->boundary->transactional(function () use ($context, $listed, $today): MaterializationTally {
+                $this->writeLock->acquire($context->workspace);
                 $current = $this->recurrences->findForUpdate($context->workspace, $listed->id);
                 if (null === $current || null !== $current->archivedAt || !$current->autoCreate) {
                     return new MaterializationTally();
@@ -74,6 +77,7 @@ final readonly class MaterializeRecurrenceOccurrences
 
         // Planned rows are booked once per run, whether or not the workspace has an automatic recurrence.
         $total->add($this->boundary->transactional(function () use ($context, $today): MaterializationTally {
+            $this->writeLock->acquire($context->workspace);
             $tally = new MaterializationTally();
             ($this->bookDue)($context, $today, $tally);
 
