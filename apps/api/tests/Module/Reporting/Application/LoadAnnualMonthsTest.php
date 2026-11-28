@@ -21,10 +21,14 @@ use App\Module\Reporting\Application\MonthFigures;
 use App\Module\Reporting\Application\MonthlyMetricView;
 use App\Module\Reporting\Application\MonthlyProjectionScopeTooLarge;
 use App\Module\Reporting\Application\RegroupMonthFigures;
+use App\Module\Reporting\Application\ResolveMetricPolicy;
 use App\Module\Reporting\Domain\Aggregation\ColumnKind;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
+use App\Module\Reporting\Domain\MetricPolicy;
+use App\Module\Reporting\Domain\MetricPolicyActivation;
 use App\Tests\Module\Reporting\Application\Double\CountingMonthlyProjector;
 use App\Tests\Module\Reporting\Application\Double\FixedGroupTree;
+use App\Tests\Module\Reporting\Application\Double\InMemoryMetricPolicyRepository;
 use App\Tests\Module\Reporting\Application\Double\InMemoryMonthSnapshotStore;
 use App\Tests\Module\Reporting\Application\Double\InMemoryPeriodClosureRepository;
 use App\Tests\Module\Reporting\Application\Double\MonthlyProjectionFixture;
@@ -38,6 +42,7 @@ final class LoadAnnualMonthsTest extends TestCase
     private InMemoryPeriodClosureRepository $closures;
     private InMemoryMonthSnapshotStore $snapshots;
     private FixedGroupTree $groupTree;
+    private InMemoryMetricPolicyRepository $policies;
     private LoadAnnualMonths $load;
 
     protected function setUp(): void
@@ -46,7 +51,15 @@ final class LoadAnnualMonthsTest extends TestCase
         $this->closures = new InMemoryPeriodClosureRepository();
         $this->snapshots = new InMemoryMonthSnapshotStore();
         $this->groupTree = new FixedGroupTree();
-        $this->load = new LoadAnnualMonths($this->projector, $this->closures, $this->snapshots, $this->calendar(), new RegroupMonthFigures($this->groupTree));
+        $this->policies = new InMemoryMetricPolicyRepository();
+        $this->load = new LoadAnnualMonths(
+            $this->projector,
+            $this->closures,
+            $this->snapshots,
+            $this->calendar(),
+            new RegroupMonthFigures($this->groupTree),
+            new ResolveMetricPolicy($this->policies, $this->closures, new MockClock('2026-09-24T12:00:00+00:00')),
+        );
     }
 
     public function testAnOpenYearComputesEveryMonthLive(): void
@@ -76,17 +89,88 @@ final class LoadAnnualMonthsTest extends TestCase
         self::assertSame('2000', $months[5]->figures?->cells['cashIncome']->value);
     }
 
-    public function testAClosedMonthWithoutSnapshotIsCapturedOnceOnRead(): void
+    public function testAClosedMonthWithoutSnapshotIsComputedLiveOnEveryRead(): void
     {
         $month = new CalendarMonth(2025, 3);
         $this->closures->add($this->closure('c3', $month));
 
+        $months = ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
+
+        self::assertTrue($months[2]->closed);
+        self::assertFalse($months[2]->snapshot);
+        self::assertSame('2000', $months[2]->figures?->cells['cashIncome']->value);
         ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
-        self::assertSame(12, $this->projector->calls);
-        self::assertNotNull($this->snapshots->find(WorkspaceFixture::own(), $month, 'c3'));
+        self::assertSame(24, $this->projector->calls);
+        self::assertSame(0, $this->snapshots->writes);
+    }
+
+    public function testAYearIsReadInOneBatchWhateverTheNumberOfClosedMonths(): void
+    {
+        $this->policies->add(WorkspaceFixture::own(), 'p2', MetricPolicy::create(2, 'Deux', [], new \DateTimeImmutable('2026-09-01T00:00:00+00:00'), WorkspaceFixture::OWNER_ID));
+        $this->policies->addActivation(WorkspaceFixture::own(), 'a2', new MetricPolicyActivation(2, new \DateTimeImmutable('2026-09-10T00:00:00+00:00')));
+        foreach (range(1, 10) as $number) {
+            $month = new CalendarMonth(2025, $number);
+            $this->closures->add($this->closure('c'.$number, $month));
+            if ($number <= 5) {
+                $this->snapshots->capture(WorkspaceFixture::own(), $month, 'c'.$number, MonthFigures::fromProjection(MonthlyProjectionFixture::view($month->key())), new \DateTimeImmutable());
+            }
+        }
 
         ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
-        self::assertSame(23, $this->projector->calls);
+
+        self::assertSame(1, $this->closures->rangeReads);
+        self::assertSame(0, $this->closures->monthReads);
+        self::assertSame(1, $this->snapshots->batchReads);
+        self::assertSame(0, $this->snapshots->reads);
+        self::assertSame(1, $this->policies->activationReads);
+        // Closed before the activation: version 1. Still open: version 2. One definition read each.
+        self::assertSame([1, 2], $this->policies->definitionReads);
+        self::assertSame(7, $this->projector->calls);
+        self::assertSame(1, $this->projector->policies['2025-06']?->version);
+        self::assertSame(2, $this->projector->policies['2025-11']?->version);
+    }
+
+    public function testNothingIsReadWhenNoMonthCanHoldData(): void
+    {
+        ($this->load)(WorkspaceFixture::own(), 2024, new CalendarMonth(2025, 1));
+
+        self::assertSame([0, 0, 0], [$this->closures->rangeReads, $this->snapshots->batchReads, $this->policies->activationReads]);
+    }
+
+    public function testAReadNeverChangesTheStoreForAMissingALegacyOrAReopenedMonth(): void
+    {
+        $legacy = new CalendarMonth(2025, 4);
+        $this->closures->add($this->closure('c3', new CalendarMonth(2025, 3)));
+        $this->closures->add($this->closure('c4', $legacy));
+        $this->closures->add($this->closure('c5', new CalendarMonth(2025, 5))->reopen('Corrections', new \DateTimeImmutable('2026-09-02T10:00:00+00:00')));
+        $this->snapshots->capture(WorkspaceFixture::own(), $legacy, 'c4', new MonthFigures('2025-04', 1, 'CURRENT', 0, '2025-04-30', [], [], [], null), new \DateTimeImmutable());
+        $this->snapshots->capture(WorkspaceFixture::own(), new CalendarMonth(2025, 5), 'c5', MonthFigures::fromProjection(MonthlyProjectionFixture::view('2025-05', '999')), new \DateTimeImmutable());
+        $before = $this->snapshots->snapshots;
+        $this->snapshots->writes = 0;
+
+        $months = ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
+
+        self::assertSame(0, $this->snapshots->writes);
+        self::assertSame($before, $this->snapshots->snapshots);
+        self::assertSame([true, true, false], [$months[2]->closed, $months[3]->closed, $months[4]->closed]);
+        self::assertSame([false, false, false], [$months[2]->snapshot, $months[3]->snapshot, $months[4]->snapshot]);
+        self::assertSame('2000', $months[3]->figures?->cells['cashIncome']->value);
+        self::assertSame('2000', $months[4]->figures?->cells['cashIncome']->value);
+    }
+
+    public function testAnotherWorkspaceClosuresAndSnapshotsAreNeverServed(): void
+    {
+        $month = new CalendarMonth(2025, 3);
+        $this->closures->add(new PeriodClosure('c3', WorkspaceFixture::other(), $month, new \DateTimeImmutable('2026-09-01T10:00:00+00:00'), WorkspaceFixture::OWNER_ID, 1));
+        $this->snapshots->capture(WorkspaceFixture::other(), $month, 'c3', MonthFigures::fromProjection(MonthlyProjectionFixture::view($month->key(), '999')), new \DateTimeImmutable());
+
+        $own = ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1))[2];
+        $other = ($this->load)(WorkspaceFixture::other(), 2025, new CalendarMonth(2025, 1))[2];
+
+        self::assertFalse($own->closed);
+        self::assertSame('2000', $own->figures?->cells['cashIncome']->value);
+        self::assertTrue($other->snapshot);
+        self::assertSame('999', $other->figures?->cells['cashIncome']->value);
     }
 
     public function testAClosedMonthIsRegroupedAtReadTimeFromItsFrozenAccountValues(): void
@@ -117,29 +201,6 @@ final class LoadAnnualMonthsTest extends TestCase
         self::assertSame('1000.00', $figures->cells['endNetWorth']->value);
         // The stored snapshot is untouched: regrouping happens on read only.
         self::assertSame('0', $this->snapshots->find(WorkspaceFixture::own(), $month, 'c3')?->cells['group:bourse']->value);
-    }
-
-    public function testASnapshotWrittenBeforeAccountWeightsIsRecapturedOnce(): void
-    {
-        $month = new CalendarMonth(2025, 3);
-        $this->closures->add($this->closure('c3', $month));
-        $this->snapshots->capture(WorkspaceFixture::own(), $month, 'c3', new MonthFigures(
-            '2025-03', 1, 'CURRENT', 0, '2025-03-31',
-            ['cashIncome' => new MonthlyMetricView('1', 'EUR', null)],
-            [],
-            [],
-            null,
-        ), new \DateTimeImmutable());
-
-        $months = ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
-        $afterFirstRead = $this->projector->calls;
-
-        self::assertSame('2000', $months[2]->figures?->cells['cashIncome']->value);
-        self::assertSame([], $this->snapshots->find(WorkspaceFixture::own(), $month, 'c3')?->accountWeights);
-
-        ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
-        // Only the eleven open months are projected again, the recaptured month is not.
-        self::assertSame($afterFirstRead + 11, $this->projector->calls);
     }
 
     public function testAnOversizedWorkspaceIsAScopeErrorNotAServerError(): void
@@ -191,7 +252,8 @@ final class LoadAnnualMonthsTest extends TestCase
         $months = ($this->load)(WorkspaceFixture::own(), 2025, new CalendarMonth(2025, 1));
 
         self::assertSame('2000', $months[2]->figures?->cells['cashIncome']->value);
-        self::assertNotNull($this->snapshots->find(WorkspaceFixture::own(), $month, 'new-closure'));
+        self::assertFalse($months[2]->snapshot);
+        self::assertNull($this->snapshots->find(WorkspaceFixture::own(), $month, 'new-closure'));
     }
 
     public function testTheRunningMonthIsProvisionalAndLaterMonthsAreNeverRead(): void

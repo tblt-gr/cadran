@@ -6,6 +6,10 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ## [Unreleased]
 
+### Changed
+
+- Open annual reports and goal previews faster by loading months in one batch.
+
 ### Security
 
 - Symfony components updated to patch the advisories published on 2026-11-25 (redirects and

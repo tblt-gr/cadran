@@ -50,9 +50,13 @@ final readonly class PreviewGoalCorrection
         if (null !== $goalLastMonth) {
             $lastMonth = min($lastMonth, $goalLastMonth);
         }
+        if ($cursor->key() > $lastMonth) {
+            return new GoalCorrectionPreviewView([]);
+        }
+        // One load for the whole preview: every month reads its own figures out of the shared run.
+        $inputs = $this->metrics->inputsBetween($context->workspace, new CalendarMonth($cursor->year, 1), CalendarMonth::fromString($lastMonth), [$goal]);
         $months = [];
         while ($cursor->key() <= $lastMonth) {
-            $inputs = $this->metrics->inputs($context->workspace, $cursor, [$goal]);
             $before = $this->statuses->forGoal($goal, $versions, $cursor, $inputs);
             $after = $this->statuses->forGoal($goal, $afterVersions, $cursor, $inputs);
             $months[] = new GoalCorrectionPreviewMonthView($cursor->key(), self::state($before), self::state($after));

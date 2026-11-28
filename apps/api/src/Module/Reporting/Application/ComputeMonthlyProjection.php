@@ -47,9 +47,9 @@ final readonly class ComputeMonthlyProjection implements MonthlyProjector
     ) {
     }
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false, ?ResolvedMetricPolicy $policy = null): MonthlyProjectionView
     {
-        $policy = ($this->metricPolicy)($workspace, $month);
+        $policy ??= ($this->metricPolicy)($workspace, $month);
         // N−1 is the last day of the preceding month, and an unfinished month
         // stops on the day the workspace is living in. See MonthlyRecapWindow.
         $window = MonthlyRecapWindow::of($month, $today);

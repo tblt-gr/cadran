@@ -15,8 +15,10 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Psr\Cache\CacheItemPoolInterface;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Console\Tester\CommandTester;
 
 /**
  * NFR-001 backend budgets. Not part of the default PHPUnit suite: it lives outside `tests/`, so the normal
@@ -104,6 +106,9 @@ final class ReportBudgetPerformanceTest extends WebTestCase
             ."AND a.valuation_mode = 'TRANSACTIONS' AND (EXTRACT(MONTH FROM s.as_of)::int % 2 = 0 OR s.as_of >= :current_month)",
             ['workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'current_month' => $today->format('Y-m-01')],
         );
+        // Reads never write snapshots: capture them as closing each month would have.
+        $capture = (new Application(self::$kernel ?? self::bootKernel()))->find('cadran:reporting:capture-snapshots');
+        self::assertSame(0, (new CommandTester($capture))->execute(['email' => WorkspaceFixture::OWNER_EMAIL]));
         $this->signIn();
 
         $year = (int) $today->format('Y');

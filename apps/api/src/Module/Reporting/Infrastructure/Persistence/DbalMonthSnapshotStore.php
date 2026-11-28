@@ -8,6 +8,7 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Application\MonthFigures;
 use App\Module\Reporting\Application\MonthSnapshotStore;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
 
@@ -30,17 +31,39 @@ final readonly class DbalMonthSnapshotStore implements MonthSnapshotStore
                 'schema_version' => MonthFigures::SCHEMA_VERSION,
             ],
         );
-        if (!is_string($payload)) {
-            return null;
-        }
-        try {
-            $decoded = json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
 
-            return is_array($decoded) ? MonthFigures::fromPayload($decoded) : null;
-        } catch (\JsonException|\UnexpectedValueException) {
-            // An unreadable snapshot is recaptured rather than served.
-            return null;
+        return self::decode($payload);
+    }
+
+    public function findMany(WorkspaceScope $workspace, array $closureIdByMonthKey): array
+    {
+        if ([] === $closureIdByMonthKey) {
+            return [];
         }
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT month, closure_id, payload FROM reporting_month_snapshots
+             WHERE workspace_id = :workspace_id AND schema_version = :schema_version AND month IN (:months)',
+            [
+                'workspace_id' => $workspace->id,
+                'schema_version' => MonthFigures::SCHEMA_VERSION,
+                'months' => array_keys($closureIdByMonthKey),
+            ],
+            ['months' => ArrayParameterType::STRING],
+        );
+        $found = [];
+        foreach ($rows as $row) {
+            $month = $row['month'];
+            // A snapshot of an earlier closure of the same month is never served.
+            if (!is_string($month) || ($closureIdByMonthKey[$month] ?? null) !== $row['closure_id']) {
+                continue;
+            }
+            $figures = self::decode($row['payload']);
+            if (null !== $figures) {
+                $found[$month] = $figures;
+            }
+        }
+
+        return $found;
     }
 
     public function capture(WorkspaceScope $workspace, CalendarMonth $month, string $closureId, MonthFigures $figures, \DateTimeImmutable $at): void
@@ -70,5 +93,20 @@ final readonly class DbalMonthSnapshotStore implements MonthSnapshotStore
             'DELETE FROM reporting_month_snapshots WHERE workspace_id = :workspace_id AND month = :month',
             ['workspace_id' => $workspace->id, 'month' => $month->key()],
         );
+    }
+
+    private static function decode(mixed $payload): ?MonthFigures
+    {
+        if (!is_string($payload)) {
+            return null;
+        }
+        try {
+            $decoded = json_decode($payload, true, flags: JSON_THROW_ON_ERROR);
+
+            return is_array($decoded) ? MonthFigures::fromPayload($decoded) : null;
+        } catch (\JsonException|\UnexpectedValueException) {
+            // An unreadable snapshot is never served: the month is computed instead.
+            return null;
+        }
     }
 }

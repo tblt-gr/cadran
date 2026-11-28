@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Accounts\Domain\PeriodClosure;
 use App\Module\Accounts\Domain\PeriodClosureRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Domain\MetricPolicyRepository;
@@ -31,23 +32,53 @@ final readonly class ResolveMetricPolicy
     }
 
     /**
-     * @param list<CalendarMonth> $months
+     * Reads the activations once and each definition once, whatever the number of months.
+     *
+     * @param list<CalendarMonth>               $months
+     * @param array<string, PeriodClosure>|null $closuresByMonthKey the active closures the caller already read, keyed
+     *                                                              by `YYYY-MM`; a month absent from it is open
      *
      * @return non-empty-list<ResolvedMetricPolicy>
      */
-    public function forMonths(WorkspaceScope $workspace, array $months): array
+    public function forMonths(WorkspaceScope $workspace, array $months, ?array $closuresByMonthKey = null): array
     {
         if ([] === $months) {
             throw new \InvalidArgumentException('At least one month is required to resolve a metric policy.');
         }
+        $closuresByMonthKey ??= $this->closuresOf($workspace, $months);
         $activations = $this->policies->activations($workspace);
         $now = $this->clock->now();
+        $definitions = [];
         $resolved = [];
         foreach ($months as $month) {
-            $version = MetricPolicyResolver::forMonth($this->closures->findActive($workspace, $month)?->closedAt, $now, $activations);
-            $resolved[] = new ResolvedMetricPolicy($version, $this->policies->find($workspace, $version));
+            $version = MetricPolicyResolver::forMonth(($closuresByMonthKey[$month->key()] ?? null)?->closedAt, $now, $activations);
+            if (!array_key_exists($version, $definitions)) {
+                $definitions[$version] = $this->policies->find($workspace, $version);
+            }
+            $resolved[] = new ResolvedMetricPolicy($version, $definitions[$version]);
         }
 
         return $resolved;
+    }
+
+    /**
+     * @param non-empty-list<CalendarMonth> $months
+     *
+     * @return array<string, PeriodClosure>
+     */
+    private function closuresOf(WorkspaceScope $workspace, array $months): array
+    {
+        $first = $months[0];
+        $last = $months[0];
+        foreach ($months as $month) {
+            $first = $month->key() < $first->key() ? $month : $first;
+            $last = $month->key() > $last->key() ? $month : $last;
+        }
+        $closures = [];
+        foreach ($this->closures->activeClosuresBetween($workspace, $first, $last) as $closure) {
+            $closures[$closure->month->key()] = $closure;
+        }
+
+        return $closures;
     }
 }

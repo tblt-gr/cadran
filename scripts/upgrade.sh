@@ -24,7 +24,9 @@
 #      show the status. The app is stopped before the migration so the previous
 #      image never runs on a newer schema. An interruption (INT, TERM, HUP)
 #      after step 3 prints the rollback command like any failure;
-#   5. record finishedAt.
+#   5. record finishedAt;
+#   6. make snapshots-capture, so a snapshot schema change never leaves closed
+#      months computed live. A failure is only reported: the upgrade is done.
 # By default the backup is taken while the application still serves requests:
 # whatever is written between the backup and the stop of the app in step 4 is not
 # in the pre-upgrade backup. With MAINTENANCE=1 the order becomes: refusals, stop
@@ -408,6 +410,11 @@ upgrade() {
     trap - INT TERM HUP
     s_finished=$(now)
     write_state || printf 'upgrade: could not record finishedAt in last-upgrade.json\n' >&2
+    # Reports never write snapshots, so a new snapshot schema needs this capture.
+    trap 'exit 1' INT TERM HUP
+    make --no-print-directory snapshots-capture ||
+        printf 'upgrade: the snapshot capture failed; the upgrade is kept. Run make snapshots-capture once the cause is fixed.\n' >&2
+    trap - INT TERM HUP
     printf 'Upgrade to %s complete. HEAD is detached at the tag; git switch main returns to the branch.\n' "$version"
     printf 'The pre-upgrade backup %s is kept; make rollback restores it.\n' "$backup_name"
 }

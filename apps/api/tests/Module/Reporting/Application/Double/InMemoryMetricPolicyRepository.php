@@ -16,12 +16,19 @@ final class InMemoryMetricPolicyRepository implements MetricPolicyRepository
     /** @var array<string, list<MetricPolicyActivation>> */
     private array $activations = [];
 
+    public int $activationReads = 0;
+
+    /** @var list<int> the version of every definition read */
+    public array $definitionReads = [];
+
     public function lock(WorkspaceScope $workspace): void
     {
     }
 
     public function find(WorkspaceScope $workspace, int $version): ?MetricPolicy
     {
+        $this->definitionReads[] = $version;
+
         return MetricPolicy::SYSTEM_VERSION === $version ? MetricPolicy::systemV1() : ($this->policies[$workspace->id][$version] ?? null);
     }
 
@@ -50,6 +57,8 @@ final class InMemoryMetricPolicyRepository implements MetricPolicyRepository
 
     public function activations(WorkspaceScope $workspace): array
     {
+        ++$this->activationReads;
+
         return $this->activations[$workspace->id] ?? [];
     }
 

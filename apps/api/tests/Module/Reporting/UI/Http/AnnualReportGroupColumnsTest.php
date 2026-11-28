@@ -6,6 +6,7 @@ namespace App\Tests\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\CapturesSnapshots;
 use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -20,6 +21,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
  */
 final class AnnualReportGroupColumnsTest extends WebTestCase
 {
+    use CapturesSnapshots;
     use ClosesPeriods;
 
     private const string INVEST = '00000000-0000-7000-8000-0000000000b1';
@@ -79,6 +81,7 @@ final class AnnualReportGroupColumnsTest extends WebTestCase
     public function testMovingAnAccountToASubGroupRegroupsOpenAndClosedMonthsAlike(): void
     {
         $this->closeMonthInDatabase($this->connection, $this->year, 3);
+        $this->captureSnapshots();
         $before = $this->rows();
         self::assertTrue($before[2]['closed']);
         self::assertFalse($before[5]['closed']);
@@ -103,7 +106,7 @@ final class AnnualReportGroupColumnsTest extends WebTestCase
     public function testAGroupMovedUnderAnotherParentChangesEveryMonthToo(): void
     {
         $this->closeMonthInDatabase($this->connection, $this->year, 3);
-        $this->rows();
+        $this->captureSnapshots();
 
         $this->connection->executeStatement('UPDATE account_groups SET parent_id = NULL, depth = 1 WHERE id = ?', [self::IMMO]);
         $after = $this->rows();
@@ -114,13 +117,19 @@ final class AnnualReportGroupColumnsTest extends WebTestCase
         }
     }
 
-    public function testASnapshotWithoutAccountWeightsIsRecapturedOnce(): void
+    public function testASnapshotWithoutAccountWeightsIsOnlyReplacedByTheCapture(): void
     {
         $this->closeMonthInDatabase($this->connection, $this->year, 3);
-        $this->rows();
+        $this->captureSnapshots();
         $this->connection->executeStatement("UPDATE reporting_month_snapshots SET payload = payload - 'accountWeights'");
 
-        $this->rows();
+        $row = $this->rows()[2];
+
+        self::assertFalse($row['snapshot']);
+        self::assertSame('1500', $this->cell($row, 'group:'.self::INVEST));
+        self::assertFalse((bool) $this->connection->fetchOne("SELECT jsonb_exists(payload, 'accountWeights') FROM reporting_month_snapshots"));
+
+        $this->captureSnapshots();
 
         self::assertSame(1, $this->connection->fetchOne('SELECT COUNT(*) FROM reporting_month_snapshots'));
         self::assertTrue((bool) $this->connection->fetchOne("SELECT jsonb_exists(payload, 'accountWeights') FROM reporting_month_snapshots"));
