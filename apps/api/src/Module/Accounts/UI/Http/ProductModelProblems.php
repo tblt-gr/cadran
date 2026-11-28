@@ -10,6 +10,7 @@ use App\Module\Accounts\Application\ProductModelConflict;
 use App\Module\Accounts\Application\ProductModelNotFound;
 use App\Module\Accounts\Application\StaleProductModelVersion;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Foundation\UI\Http\ProblemRule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -64,7 +65,7 @@ final class ProductModelProblems
         return [
             ProductModelArchived::class => new ProblemRule(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.product_model_archived', self::TYPE_ARCHIVED),
             InvalidProductModelInput::class => $invalid,
-            \UnexpectedValueException::class => $invalid,
+            MalformedPayload::class => $invalid,
             ProductModelNotFound::class => self::notFound(),
             StaleProductModelVersion::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.product_model_stale_version', self::TYPE_STALE_VERSION),
             ProductModelConflict::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.product_model_name_taken', self::TYPE_NAME_TAKEN),

@@ -162,6 +162,31 @@ final readonly class JsonPayload
         return ['value' => $amount->string('value'), 'assetCode' => $amount->string('assetCode')];
     }
 
+    /** @return array{value: string, assetCode: string}|null */
+    public function nullableAmount(string $field): ?array
+    {
+        return null === $this->raw($field) ? null : $this->amount($field);
+    }
+
+    /**
+     * A nested object, narrowed against its own exact field set.
+     *
+     * @param list<string> $required
+     * @param list<string> $optional
+     */
+    public function nullableObject(string $field, array $required, array $optional = []): ?self
+    {
+        $value = $this->raw($field);
+        if (null === $value) {
+            return null;
+        }
+        if (!is_array($value) || array_is_list($value)) {
+            throw new MalformedPayload(sprintf('%s must be an object.', $field));
+        }
+
+        return self::of($value, $required, $optional);
+    }
+
     /** @return list<mixed> */
     private function items(string $field, int $maxItems): array
     {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\Recurrence\DetectRecurrenceCandidates;
 use App\Module\Transactions\Application\Recurrence\InvalidRecurrenceInput;
 use App\Module\Transactions\Application\Recurrence\ListRecurrenceOccurrences;
@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class RecurrenceController
 {
-    public function __construct(private TransactionHttpEnvelope $envelope, private RecurrenceProblems $problems)
+    public function __construct(private TransactionHttpEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -25,12 +25,12 @@ final readonly class RecurrenceController
     public function candidates(Request $request, DetectRecurrenceCandidates $detect): Response
     {
         if ([] !== $request->query->all()) {
-            return $this->problems->problem(400, '/problems/recurrences.invalid_query');
+            return $this->problems->respond(new InvalidRecurrenceInput(), RecurrenceProblems::candidates());
         }
         try {
             return $this->envelope->json($detect());
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::candidates());
         }
     }
 
@@ -38,20 +38,18 @@ final readonly class RecurrenceController
     public function list(Request $request, ListRecurrences $list): Response
     {
         if ([] !== array_diff(array_keys($request->query->all()), ['includeArchived', 'page', 'pageSize'])) {
-            return $this->problems->problem(400, '/problems/recurrences.invalid_query');
+            return $this->problems->respond(new InvalidRecurrenceInput(), RecurrenceProblems::list());
         }
         $archived = $request->query->getString('includeArchived');
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
         if (!in_array($archived, ['', 'true', 'false'], true) || !self::digits($page) || !self::digits($pageSize)) {
-            return $this->problems->problem(400, '/problems/recurrences.invalid_query');
+            return $this->problems->respond(new InvalidRecurrenceInput(), RecurrenceProblems::list());
         }
         try {
             return $this->envelope->json($list('true' === $archived, '' === $page ? 1 : (int) $page, '' === $pageSize ? 50 : (int) $pageSize));
-        } catch (InvalidRecurrenceInput) {
-            return $this->problems->problem(400, '/problems/recurrences.invalid_query');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::list());
         }
     }
 
@@ -59,10 +57,10 @@ final readonly class RecurrenceController
     public function occurrences(string $id, Request $request, ListRecurrenceOccurrences $list): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
+            return $this->problems->respond(new RecurrenceNotFound(), RecurrenceProblems::occurrences());
         }
         if ([] !== array_diff(array_keys($request->query->all()), ['from', 'to'])) {
-            return $this->problems->problem(400, '/problems/recurrences.invalid_query');
+            return $this->problems->respond(new InvalidRecurrenceInput(), RecurrenceProblems::occurrences());
         }
         try {
             $from = $request->query->has('from') ? self::day($request->query->getString('from')) : null;
@@ -72,12 +70,8 @@ final readonly class RecurrenceController
             }
 
             return $this->envelope->json($list($id, $from, $to));
-        } catch (RecurrenceNotFound) {
-            return $this->problems->problem(404, '/problems/recurrences.not_found');
-        } catch (InvalidRecurrenceInput|\UnexpectedValueException) {
-            return $this->problems->problem(400, '/problems/recurrences.invalid_query');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->problem(403, '/problems/recurrences.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, RecurrenceProblems::occurrences());
         }
     }
 

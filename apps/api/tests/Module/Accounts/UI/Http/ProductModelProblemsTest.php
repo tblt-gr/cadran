@@ -11,6 +11,7 @@ use App\Module\Accounts\Application\ProductModelNotFound;
 use App\Module\Accounts\Application\StaleProductModelVersion;
 use App\Module\Accounts\UI\Http\ProductModelProblems;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 
 final class ProductModelProblemsTest extends ProblemTableTestCase
 {
@@ -27,7 +28,7 @@ final class ProductModelProblemsTest extends ProblemTableTestCase
         yield 'write' => [ProductModelProblems::write(), [
             [new ProductModelArchived(), 422, 'api.problem.product_model_archived', '/problems/product-model-archived'],
             [new InvalidProductModelInput(), 422, 'api.problem.invalid_product_model'],
-            [new \UnexpectedValueException(), 422, 'api.problem.invalid_product_model'],
+            [new MalformedPayload(), 422, 'api.problem.invalid_product_model'],
             $notFound,
             [new StaleProductModelVersion(), 409, 'api.problem.product_model_stale_version', '/problems/stale-version'],
             [new ProductModelConflict(), 409, 'api.problem.product_model_name_taken', '/problems/product-model-name-taken'],

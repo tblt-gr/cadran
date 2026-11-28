@@ -18,6 +18,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
   time, and refuse a duplicate recurrence.
 - Show the right error message when a request is refused instead of a server error.
 - Refuse a dated category replacement that would change a closed month, and explain the refusal.
+- Report an internal data inconsistency as a server error instead of an invalid request.
 
 ### Security
 

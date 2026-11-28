@@ -10,6 +10,7 @@ final readonly class ProblemRule
     /**
      * @param array<string, mixed>  $extensions RFC 9457 extension members
      * @param array<string, string> $headers    extra response headers
+     * @param array<string, mixed>  $parameters translation parameters of the detail
      */
     public function __construct(
         public int $status,
@@ -17,6 +18,7 @@ final readonly class ProblemRule
         public string $type = ApiProblem::TYPE_BLANK,
         public array $extensions = [],
         public array $headers = [],
+        public array $parameters = [],
     ) {
     }
 }

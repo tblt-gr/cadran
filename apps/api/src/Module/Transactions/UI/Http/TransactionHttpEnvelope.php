@@ -7,13 +7,8 @@ namespace App\Module\Transactions\UI\Http;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotencyRequest;
 use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidRefundRule;
-use App\Module\Transactions\Application\InvalidSplitsInput;
-use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
-use App\Module\Transactions\Application\RefundConflict;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -83,94 +78,6 @@ final readonly class TransactionHttpEnvelope
             $this->translator->trans($translationKey.'.detail'),
             $type,
             $headers,
-        );
-    }
-
-    /** @param array<string, mixed> $extensions */
-    public function problemWithExtensions(int $status, string $translationKey, array $extensions, string $type = ApiProblem::TYPE_BLANK): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-            $type,
-            extensions: $extensions,
-        );
-    }
-
-    public function invalidRefundRuleProblem(InvalidRefundRule $exception): JsonResponse
-    {
-        $key = 'api.problem.invalid_refund_'.str_replace('.', '_', $exception->ruleCode);
-
-        return ApiProblem::response(
-            Response::HTTP_UNPROCESSABLE_ENTITY,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail'),
-            '/problems/refund.'.$exception->ruleCode,
-        );
-    }
-
-    public function portfolioAccountRequiresOperationsProblem(PortfolioAccountRequiresOperations $exception): JsonResponse
-    {
-        return ApiProblem::response(
-            Response::HTTP_UNPROCESSABLE_ENTITY,
-            $this->translator->trans('api.problem.portfolio_account_requires_operations.title'),
-            $this->translator->trans('api.problem.portfolio_account_requires_operations.detail'),
-            '/problems/portfolio-account-requires-operations',
-            extensions: ['code' => 'portfolio_account_requires_operations', 'accountId' => $exception->accountId],
-        );
-    }
-
-    public function refundConflictProblem(RefundConflict $exception): JsonResponse
-    {
-        $key = 'api.problem.refund_'.$exception->ruleCode;
-
-        return ApiProblem::response(
-            Response::HTTP_CONFLICT,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail', ['%remaining%' => $exception->remaining->value->toString()]),
-            '/problems/refund.'.$exception->ruleCode,
-            extensions: ['remaining' => [
-                'value' => $exception->remaining->value->toString(),
-                'assetCode' => $exception->remaining->asset->toString(),
-            ]],
-        );
-    }
-
-    public function idempotencyProblem(InvalidIdempotencyKey|IdempotencyConflict $exception): JsonResponse
-    {
-        $rule = $exception->ruleCode;
-        $key = 'api.problem.idempotency_'.$rule;
-        $headers = IdempotencyConflict::IN_FLIGHT === $rule ? ['Retry-After' => '1'] : [];
-
-        return ApiProblem::response(
-            IdempotencyConflict::class === $exception::class ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail'),
-            '/problems/idempotency.'.$rule,
-            $headers,
-        );
-    }
-
-    /**
-     * The rule code both selects the translated title and detail - one entry
-     * per rule, `api.problem.invalid_splits_<rule>` - and names the RFC 9457
-     * problem type, so a new split rule needs no controller change.
-     *
-     * Every rule code carries the fixed `splits.` prefix (never a second dot),
-     * so it is stripped rather than replaced: replacing it would double up
-     * with the `invalid_splits_` translation prefix and silently miss every
-     * catalogue entry, which the `type` field alone was not enough to catch.
-     */
-    public function invalidSplitsProblem(InvalidSplitsInput $exception): JsonResponse
-    {
-        $key = 'api.problem.invalid_splits_'.substr($exception->ruleCode, strlen('splits.'));
-
-        return ApiProblem::response(
-            Response::HTTP_UNPROCESSABLE_ENTITY,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail', $exception->parameters),
-            '/problems/'.$exception->ruleCode,
         );
     }
 

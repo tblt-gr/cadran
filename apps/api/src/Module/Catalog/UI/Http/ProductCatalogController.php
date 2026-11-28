@@ -13,13 +13,12 @@ use App\Module\Catalog\Domain\EffectiveProduct;
 use App\Module\Catalog\Domain\EffectiveRule;
 use App\Module\Catalog\Domain\ProductRule;
 use App\Module\Catalog\Domain\RuleKind;
-use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Read-only view of the system product catalogue, resolved on a business date.
@@ -29,7 +28,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class ProductCatalogController
 {
-    public function __construct(private readonly TranslatorInterface $translator)
+    public function __construct(private readonly JsonRequestEnvelope $envelope)
     {
     }
 
@@ -41,7 +40,7 @@ final class ProductCatalogController
         $asOf = $request->query->getString('asOf');
 
         if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
         }
 
         try {
@@ -51,10 +50,10 @@ final class ProductCatalogController
                 '' === $asOf ? null : $asOf,
             );
         } catch (InvalidProductQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
         }
 
-        return self::jsonPage($catalogue);
+        return $this->jsonPage($catalogue);
     }
 
     #[Route('/api/v1/products/{code}', name: 'api_v1_products_read', methods: ['GET'])]
@@ -65,17 +64,17 @@ final class ProductCatalogController
         try {
             $product = $readProduct($code, '' === $asOf ? null : $asOf);
         } catch (InvalidProductQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
         } catch (ProductNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.product_not_found');
         }
 
-        return self::json(self::represent($product));
+        return $this->envelope->json(self::represent($product));
     }
 
-    private static function jsonPage(ProductPage $catalogue): JsonResponse
+    private function jsonPage(ProductPage $catalogue): JsonResponse
     {
-        return self::json([
+        return $this->envelope->json([
             'items' => array_map(self::represent(...), $catalogue->products),
             'page' => $catalogue->page,
             'pageSize' => $catalogue->pageSize,
@@ -165,22 +164,5 @@ final class ProductCatalogController
             'publishedOn' => $rule->source->publishedOn?->format('Y-m-d'),
             'retrievedOn' => $rule->source->retrievedOn->format('Y-m-d'),
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private static function json(array $data): JsonResponse
-    {
-        return new JsonResponse(data: $data, headers: ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-        );
     }
 }

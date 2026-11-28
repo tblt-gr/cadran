@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\UI\Http;
 
-use App\Module\Categories\Application\CategoryConflict;
-use App\Module\Categories\Application\CategoryNotFound;
 use App\Module\Categories\Application\CreateCategory;
 use App\Module\Categories\Application\CreateCategoryInput;
 use App\Module\Categories\Application\InvalidCategoryInput;
@@ -18,6 +16,7 @@ use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,7 +38,7 @@ final readonly class CategoryController
         'type', 'label', 'icon', 'color', 'defaultAnalyticAxes', 'budgetIncluded', 'sortOrder', 'version',
     ];
 
-    public function __construct(private JsonRequestEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -98,12 +97,8 @@ final readonly class CategoryController
                 sortOrder: $payload->integer('sortOrder'),
             );
             $category = $createCategory($input);
-        } catch (InvalidCategoryInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
-        } catch (CategoryConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategoryProblems::write());
         }
 
         return $this->envelope->json(CategoryRepresentation::one($category), Response::HTTP_CREATED);
@@ -134,14 +129,8 @@ final readonly class CategoryController
                 version: $payload->integer('version'),
             );
             $category = $updateCategory($id, $input);
-        } catch (InvalidCategoryInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
-        } catch (CategoryNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
-        } catch (CategoryConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategoryProblems::write());
         }
 
         return $this->envelope->json(CategoryRepresentation::one($category));

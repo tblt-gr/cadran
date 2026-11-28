@@ -26,7 +26,7 @@ final readonly class EmergencyFundController
     /** A months target needs none of these: a body that omits them keeps the months mode. */
     private const array TARGET_FIELDS = ['targetMode', 'targetAmount', 'targetRatio'];
 
-    public function __construct(private JsonRequestEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope, private GoalProblems $problems)
     {
     }
 
@@ -37,11 +37,11 @@ final readonly class EmergencyFundController
         try {
             return $this->envelope->json(self::coverageRepresentation($read($request->query->get('asOf'))));
         } catch (EmergencyFundInputError $error) {
-            return $this->problem('future_emergency_fund_as_of' === $error->errorCode ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_BAD_REQUEST, $error->errorCode);
+            return $this->problems->problem('future_emergency_fund_as_of' === $error->errorCode ? Response::HTTP_UNPROCESSABLE_ENTITY : Response::HTTP_BAD_REQUEST, $error->errorCode);
         } catch (EmergencyFundScopeTooLarge) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'emergency_fund_scope_too_large');
+            return $this->problems->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'emergency_fund_scope_too_large');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'emergency_fund_forbidden');
+            return $this->problems->problem(Response::HTTP_FORBIDDEN, 'emergency_fund_forbidden');
         }
     }
 
@@ -51,7 +51,7 @@ final readonly class EmergencyFundController
         try {
             return $this->envelope->json(self::policyRepresentation($read()));
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'emergency_fund_forbidden');
+            return $this->problems->problem(Response::HTTP_FORBIDDEN, 'emergency_fund_forbidden');
         }
     }
 
@@ -65,11 +65,11 @@ final readonly class EmergencyFundController
         try {
             $result = $update(self::policyInput($body));
         } catch (EmergencyFundInputError $error) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode);
+            return $this->problems->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $error->errorCode);
         } catch (EmergencyFundConflict $error) {
-            return $this->problem(Response::HTTP_CONFLICT, $error->errorCode);
+            return $this->problems->problem(Response::HTTP_CONFLICT, $error->errorCode);
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'emergency_fund_forbidden');
+            return $this->problems->problem(Response::HTTP_FORBIDDEN, 'emergency_fund_forbidden');
         }
 
         return $this->envelope->json(self::policyRepresentation($result));
@@ -165,10 +165,5 @@ final readonly class EmergencyFundController
             'reason' => $view->reason,
             'quality' => $view->quality,
         ];
-    }
-
-    private function problem(int $status, string $code): Response
-    {
-        return $this->envelope->problem($status, 'api.problem.goal_error', '/problems/'.$code, ['code' => $code]);
     }
 }

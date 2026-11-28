@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\UI\Http;
 
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Identity\Application\DefineInitialPassword;
 use App\Module\Identity\Application\DefineInitialPasswordInput;
 use App\Module\Identity\Application\DescribeSession;
@@ -21,7 +22,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * The /api/v1/session resource. POST and DELETE are handled by the firewall's
@@ -30,7 +30,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class SessionController
 {
-    public function __construct(private readonly TranslatorInterface $translator)
+    public function __construct(private readonly JsonRequestEnvelope $envelope)
     {
     }
 
@@ -39,7 +39,7 @@ final class SessionController
     {
         $view = $describeSession($user?->getUserIdentifier());
 
-        return $this->json($view);
+        return $this->envelope->json(self::represent($view));
     }
 
     /**
@@ -50,7 +50,7 @@ final class SessionController
     #[Route('/api/v1/session', name: 'api_v1_session_create', methods: ['POST'])]
     public function create(): Response
     {
-        return $this->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
+        return $this->envelope->problem(Response::HTTP_UNSUPPORTED_MEDIA_TYPE, 'api.problem.unsupported_media_type');
     }
 
     #[Route('/api/v1/session', name: 'api_v1_session_delete', methods: ['DELETE'])]
@@ -82,61 +82,42 @@ final class SessionController
     {
         $payload = json_decode($request->getContent(), true);
         if (!is_array($payload) || !is_string($payload['password'] ?? null)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_request');
         }
 
         try {
             $defineInitialPassword(new DefineInitialPasswordInput($payload['password']));
         } catch (CommonPassword) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.common_password', ProfileHttpEnvelope::TYPE_COMMON_PASSWORD);
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.common_password', ProfileHttpEnvelope::TYPE_COMMON_PASSWORD);
         } catch (WeakPassword) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.weak_password', ProfileHttpEnvelope::TYPE_WEAK_PASSWORD);
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.weak_password', ProfileHttpEnvelope::TYPE_WEAK_PASSWORD);
         } catch (InitialPasswordAlreadyDefined) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.password_already_set');
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.password_already_set');
         } catch (OwnerAccountNotProvisioned) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.owner_not_provisioned');
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.owner_not_provisioned');
         }
 
         return new Response(status: Response::HTTP_NO_CONTENT, headers: ['Cache-Control' => 'no-store']);
     }
 
-    private function json(SessionView $view): JsonResponse
+    /** @return array<string, mixed> */
+    private static function represent(SessionView $view): array
     {
-        return new JsonResponse(
-            data: [
-                'provisioned' => $view->provisioned,
-                'authenticated' => $view->authenticated,
-                'setupRequired' => $view->setupRequired,
-                'user' => null === $view->user ? null : [
-                    'id' => $view->user->id,
-                    'email' => $view->user->email,
-                    'displayName' => $view->user->displayName,
-                ],
-                'workspace' => null === $view->workspace ? null : [
-                    'id' => $view->workspace->id,
-                    'role' => $view->workspace->role,
-                    'timeZone' => $view->workspace->timeZone,
-                    'baseCurrency' => $view->workspace->baseCurrency,
-                ],
+        return [
+            'provisioned' => $view->provisioned,
+            'authenticated' => $view->authenticated,
+            'setupRequired' => $view->setupRequired,
+            'user' => null === $view->user ? null : [
+                'id' => $view->user->id,
+                'email' => $view->user->email,
+                'displayName' => $view->user->displayName,
             ],
-            headers: ['Cache-Control' => 'no-store'],
-        );
-    }
-
-    private function problem(int $status, string $translationKey, string $type = 'about:blank'): JsonResponse
-    {
-        return new JsonResponse(
-            data: [
-                'type' => $type,
-                'title' => $this->translator->trans($translationKey.'.title'),
-                'status' => $status,
-                'detail' => $this->translator->trans($translationKey.'.detail'),
+            'workspace' => null === $view->workspace ? null : [
+                'id' => $view->workspace->id,
+                'role' => $view->workspace->role,
+                'timeZone' => $view->workspace->timeZone,
+                'baseCurrency' => $view->workspace->baseCurrency,
             ],
-            status: $status,
-            headers: [
-                'Cache-Control' => 'no-store',
-                'Content-Type' => 'application/problem+json',
-            ],
-        );
+        ];
     }
 }

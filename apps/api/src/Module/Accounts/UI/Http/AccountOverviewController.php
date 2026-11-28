@@ -12,6 +12,7 @@ use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
@@ -118,7 +119,7 @@ final readonly class AccountOverviewController
             $version = $payload->integer('orderVersion');
             if ($version < 0 || (null !== $groupId && !Identifier::isValid($groupId))
                 || (null !== $beforeAccountId && !Identifier::isValid($beforeAccountId))) {
-                throw new \UnexpectedValueException('The move identifiers or version are malformed.');
+                throw new MalformedPayload('The move identifiers or version are malformed.');
             }
 
             $moved = $moveAccount($id, $groupId, $beforeAccountId, $version);

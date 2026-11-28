@@ -12,6 +12,7 @@ use App\Module\Accounts\Application\InvalidAccountGroupMove;
 use App\Module\Accounts\Application\StaleAccountGroupOrder;
 use App\Module\Accounts\Application\StaleAccountGroupVersion;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Foundation\UI\Http\ProblemRule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -52,7 +53,7 @@ final class AccountGroupProblems
         return [
             AccountGroupArchived::class => self::archived(),
             InvalidAccountGroupInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             AccountGroupNotFound::class => self::notFound(),
             StaleAccountGroupVersion::class => self::staleVersion(),
             AccountGroupConflict::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.account_group_label_taken', self::TYPE_LABEL_TAKEN),
@@ -66,7 +67,7 @@ final class AccountGroupProblems
         return [
             AccountGroupArchived::class => self::archived(),
             InvalidAccountGroupInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             AccountGroupNotFound::class => self::notFound(),
             StaleAccountGroupVersion::class => self::staleVersion(),
             WorkspaceAccessDenied::class => self::forbidden(),
@@ -81,7 +82,7 @@ final class AccountGroupProblems
             InvalidAccountGroupMove::class => static fn (InvalidAccountGroupMove $e): ProblemRule => InvalidAccountGroupMove::INVALID_ANCHOR === $e->reason
                 ? new ProblemRule(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_group_invalid_anchor', self::TYPE_INVALID_ANCHOR)
                 : self::invalidMove(),
-            \UnexpectedValueException::class => self::invalidMove(),
+            MalformedPayload::class => self::invalidMove(),
             AccountGroupNotFound::class => self::notFound(),
             StaleAccountGroupOrder::class => new ProblemRule(Response::HTTP_CONFLICT, 'api.problem.account_group_stale_order', self::TYPE_STALE_ORDER),
             WorkspaceAccessDenied::class => self::forbidden(),

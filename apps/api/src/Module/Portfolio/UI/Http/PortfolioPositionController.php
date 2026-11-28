@@ -4,27 +4,25 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
-use App\Module\Portfolio\Application\InvalidCashQuery;
 use App\Module\Portfolio\Application\InvalidPositionQuery;
+use App\Module\Portfolio\Application\PortfolioAccountNotFound;
+use App\Module\Portfolio\Application\PortfolioInstrumentNotFound;
 use App\Module\Portfolio\Application\ReadPortfolioCash;
 use App\Module\Portfolio\Application\ReadPortfolioLots;
 use App\Module\Portfolio\Application\ReadPortfolioPositions;
 use App\Module\Portfolio\Application\ReorderPortfolioOperations;
-use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class PortfolioPositionController
 {
-    /** 10 000 UUIDs plus JSON structure, bounded with room for insignificant whitespace. */
-    public function __construct(private TranslatorInterface $translator, private JsonRequestEnvelope $requestEnvelope, private ProblemMapper $problems)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -32,11 +30,11 @@ final readonly class PortfolioPositionController
     public function positions(string $accountId, Request $request, ReadPortfolioPositions $read): Response
     {
         if (!Identifier::isValid($accountId)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
+            return $this->problems->respond(new PortfolioAccountNotFound(), PortfolioProblems::position());
         }
         try {
-            $asOf = self::scalar($request->query->all(), 'asOf');
-            $includeClosedLiteral = self::scalar($request->query->all(), 'includeClosed');
+            $asOf = PortfolioQueryParameters::string($request, 'asOf', 'invalid_position_query');
+            $includeClosedLiteral = PortfolioQueryParameters::string($request, 'includeClosed', 'invalid_position_query');
             $includeClosed = match ($includeClosedLiteral) {
                 null, 'false' => false,
                 'true' => true,
@@ -47,41 +45,40 @@ final readonly class PortfolioPositionController
             return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
-        return self::json(['asOf' => $view->asOf, 'valuedOn' => $view->valuedOn, 'items' => $view->items]);
+        return $this->envelope->json(['asOf' => $view->asOf, 'valuedOn' => $view->valuedOn, 'items' => $view->items]);
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-cash', name: 'api_v1_portfolio_cash', methods: ['GET'])]
     public function cash(string $accountId, Request $request, ReadPortfolioCash $read): Response
     {
         if (!Identifier::isValid($accountId)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
+            return $this->problems->respond(new PortfolioAccountNotFound(), PortfolioProblems::position());
         }
         try {
-            $query = $request->query->all();
-            $view = $read($accountId, self::cashScalar($query, 'from'), self::cashScalar($query, 'to'));
+            $view = $read($accountId, PortfolioQueryParameters::string($request, 'from', 'invalid_cash_query'), PortfolioQueryParameters::string($request, 'to', 'invalid_cash_query'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
-        return self::json(PortfolioCashRepresentation::of($view));
+        return $this->envelope->json(PortfolioCashRepresentation::of($view));
     }
 
     #[Route('/api/v1/accounts/{accountId}/portfolio-positions/{instrumentId}/lots', name: 'api_v1_portfolio_position_lots', methods: ['GET'])]
     public function lots(string $accountId, string $instrumentId, Request $request, ReadPortfolioLots $read): Response
     {
         if (!Identifier::isValid($accountId)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
+            return $this->problems->respond(new PortfolioAccountNotFound(), PortfolioProblems::position());
         }
         if (!Identifier::isValid($instrumentId)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_instrument_not_found');
+            return $this->problems->respond(new PortfolioInstrumentNotFound(), PortfolioProblems::position());
         }
         try {
-            $view = $read($accountId, $instrumentId, self::scalar($request->query->all(), 'asOf'));
+            $view = $read($accountId, $instrumentId, PortfolioQueryParameters::string($request, 'asOf', 'invalid_position_query'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
-        return self::json([
+        return $this->envelope->json([
             'asOf' => $view->asOf,
             'instrument' => $view->instrument,
             'openLots' => $view->openLots,
@@ -94,80 +91,32 @@ final readonly class PortfolioPositionController
     public function reorder(string $accountId, Request $request, ReorderPortfolioOperations $reorder): Response
     {
         if (!Identifier::isValid($accountId)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'portfolio_account_not_found');
+            return $this->problems->respond(new PortfolioAccountNotFound(), PortfolioProblems::position());
         }
-        $body = $this->readBody($request);
+        // 10 000 UUIDs plus JSON structure, bounded with room for insignificant whitespace.
+        $body = $this->envelope->body($request, BodyLimit::Batch, 'api.problem.portfolio_payload_too_large', PortfolioProblems::refusal($this->envelope));
         if ($body instanceof Response) {
             return $body;
         }
         try {
-            $fields = OperationPayload::shape($body, ['tradeDate', 'operationIds']);
-            if (!is_string($fields['tradeDate']) || !is_array($fields['operationIds']) || !array_is_list($fields['operationIds'])) {
+            $payload = JsonPayload::of($body, ['tradeDate', 'operationIds']);
+            $tradeDate = $payload->raw('tradeDate');
+            $operationIds = $payload->raw('operationIds');
+            if (!is_string($tradeDate) || !is_array($operationIds) || !array_is_list($operationIds)) {
                 throw new InvalidPositionQuery('The operation order payload is invalid.');
             }
             $ids = [];
-            foreach ($fields['operationIds'] as $id) {
+            foreach ($operationIds as $id) {
                 if (!is_string($id)) {
                     throw new InvalidPositionQuery('Operation identifiers are strings.');
                 }
                 $ids[] = $id;
             }
-            $view = $reorder($accountId, $fields['tradeDate'], $ids);
+            $view = $reorder($accountId, $tradeDate, $ids);
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, PortfolioProblems::position());
         }
 
-        return self::json(['tradeDate' => $view->tradeDate, 'operationIds' => $view->operationIds]);
-    }
-
-    /** @return array<mixed>|Response */
-    private function readBody(Request $request): array|Response
-    {
-        return $this->requestEnvelope->body(
-            $request,
-            BodyLimit::Batch,
-            'api.problem.portfolio_payload_too_large',
-            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
-        );
-    }
-
-    /** @param array<string, string|int|list<string>> $extensions */
-    private function problem(int $status, string $code, array $extensions = []): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans('api.problem.'.$code.'.title'),
-            $this->translator->trans('api.problem.'.$code.'.detail'),
-            '/problems/'.str_replace('_', '-', $code),
-            extensions: ['code' => $code, ...$extensions],
-        );
-    }
-
-    /** @param array<string, mixed> $data */
-    private static function json(array $data): JsonResponse
-    {
-        return new JsonResponse($data, Response::HTTP_OK, ['Cache-Control' => 'no-store']);
-    }
-
-    /** @param array<string, mixed> $query */
-    private static function cashScalar(array $query, string $key): ?string
-    {
-        $value = $query[$key] ?? null;
-        if (null !== $value && !is_string($value)) {
-            throw new InvalidCashQuery('A query parameter is a single value.');
-        }
-
-        return $value;
-    }
-
-    /** @param array<string, mixed> $query */
-    private static function scalar(array $query, string $key): ?string
-    {
-        $value = $query[$key] ?? null;
-        if (null !== $value && !is_string($value)) {
-            throw new InvalidPositionQuery('A query parameter is a single value.');
-        }
-
-        return $value;
+        return $this->envelope->json(['tradeDate' => $view->tradeDate, 'operationIds' => $view->operationIds]);
     }
 }

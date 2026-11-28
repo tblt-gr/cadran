@@ -4,27 +4,20 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
+use App\Module\Foundation\UI\Http\MalformedPayload;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\Categorization\ApplyCategorizationRules;
 use App\Module\Transactions\Application\Categorization\ArchiveCategorizationRule;
-use App\Module\Transactions\Application\Categorization\CategorizationExecutionLimitExceeded;
-use App\Module\Transactions\Application\Categorization\CategorizationRangeTooLarge;
 use App\Module\Transactions\Application\Categorization\CategorizationRuleNotFound;
 use App\Module\Transactions\Application\Categorization\CreateCategorizationRule;
-use App\Module\Transactions\Application\Categorization\InvalidCategorizationReference;
 use App\Module\Transactions\Application\Categorization\InvalidCategorizationRuleInput;
 use App\Module\Transactions\Application\Categorization\ListCategorizationRules;
 use App\Module\Transactions\Application\Categorization\PreviewCategorizationRules;
-use App\Module\Transactions\Application\Categorization\PreviewStale;
-use App\Module\Transactions\Application\Categorization\StaleCategorizationRule;
 use App\Module\Transactions\Application\Categorization\UpdateCategorizationRule;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Domain\Categorization\UnsafeRulePattern;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -34,7 +27,7 @@ final readonly class CategorizationRuleController
     private const array CREATE_FIELDS = ['label', 'priority', 'accountScope', 'conditions', 'targetCategoryId', 'targetAxes', 'targetCounterparty', 'effectiveFrom', 'effectiveTo'];
     private const array UPDATE_FIELDS = ['label', 'priority', 'accountScope', 'conditions', 'targetCategoryId', 'targetAxes', 'targetCounterparty', 'effectiveFrom', 'effectiveTo', 'active', 'version'];
 
-    public function __construct(private TransactionHttpEnvelope $envelope, private IdempotentExecution $idempotentExecution)
+    public function __construct(private TransactionHttpEnvelope $envelope, private IdempotentExecution $idempotentExecution, private ProblemMapper $problems)
     {
     }
 
@@ -42,20 +35,18 @@ final readonly class CategorizationRuleController
     public function list(Request $request, ListCategorizationRules $list): Response
     {
         if ([] !== array_diff(array_keys($request->query->all()), ['includeArchived', 'page', 'pageSize'])) {
-            return $this->problem(400, '/problems/rules.invalid_query');
+            return $this->problems->respond(new InvalidCategorizationRuleInput(), CategorizationRuleProblems::list());
         }
         $archived = $request->query->getString('includeArchived');
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
         if (!in_array($archived, ['', 'true', 'false'], true) || !self::digits($page) || !self::digits($pageSize)) {
-            return $this->problem(400, '/problems/rules.invalid_query');
+            return $this->problems->respond(new InvalidCategorizationRuleInput(), CategorizationRuleProblems::list());
         }
         try {
             return $this->envelope->json($list('true' === $archived, '' === $page ? 1 : (int) $page, '' === $pageSize ? 50 : (int) $pageSize));
-        } catch (InvalidCategorizationRuleInput) {
-            return $this->problem(400, '/problems/rules.invalid_query');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, '/problems/rules.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategorizationRuleProblems::list());
         }
     }
 
@@ -77,18 +68,8 @@ final readonly class CategorizationRuleController
                     return new IdempotentResponse($view, 201, is_string($view['id'] ?? null) ? $view['id'] : null);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (UnsafeRulePattern $exception) {
-            return $this->problem(422, '/problems/rules.unsafe_pattern', ['reason' => $exception->reason, 'field' => $exception->field]);
-        } catch (InvalidCategorizationReference) {
-            return $this->problem(422, '/problems/rules.invalid_reference');
-        } catch (CategorizationExecutionLimitExceeded) {
-            return $this->problem(422, '/problems/rules.execution_limit');
-        } catch (InvalidCategorizationRuleInput|\UnexpectedValueException) {
-            return $this->problem(422, '/problems/rules.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, '/problems/rules.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategorizationRuleProblems::create());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -98,7 +79,7 @@ final readonly class CategorizationRuleController
     public function update(string $id, Request $request, UpdateCategorizationRule $update): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(404, '/problems/rules.not_found');
+            return $this->problems->respond(new CategorizationRuleNotFound(), CategorizationRuleProblems::update());
         }
         $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
@@ -106,20 +87,8 @@ final readonly class CategorizationRuleController
         }
         try {
             $view = $update($id, CategorizationRulePayload::input(JsonPayload::of($body, self::UPDATE_FIELDS), true));
-        } catch (UnsafeRulePattern $exception) {
-            return $this->problem(422, '/problems/rules.unsafe_pattern', ['reason' => $exception->reason, 'field' => $exception->field]);
-        } catch (InvalidCategorizationReference) {
-            return $this->problem(422, '/problems/rules.invalid_reference');
-        } catch (CategorizationRuleNotFound) {
-            return $this->problem(404, '/problems/rules.not_found');
-        } catch (StaleCategorizationRule $exception) {
-            return 'archived' === $exception->getMessage() ? $this->problem(409, '/problems/rules.archived') : $this->problem(409, '/problems/stale-version');
-        } catch (CategorizationExecutionLimitExceeded) {
-            return $this->problem(422, '/problems/rules.execution_limit');
-        } catch (InvalidCategorizationRuleInput|\UnexpectedValueException) {
-            return $this->problem(422, '/problems/rules.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, '/problems/rules.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategorizationRuleProblems::update());
         }
 
         return $this->envelope->json($view);
@@ -129,7 +98,7 @@ final readonly class CategorizationRuleController
     public function archive(string $id, Request $request, ArchiveCategorizationRule $archive): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(404, '/problems/rules.not_found');
+            return $this->problems->respond(new CategorizationRuleNotFound(), CategorizationRuleProblems::archive());
         }
         $body = $this->envelope->readBody($request);
         if ($body instanceof Response) {
@@ -139,14 +108,8 @@ final readonly class CategorizationRuleController
             $payload = JsonPayload::of($body, ['version']);
 
             return $this->envelope->json($archive($id, $payload->integer('version')));
-        } catch (CategorizationRuleNotFound) {
-            return $this->problem(404, '/problems/rules.not_found');
-        } catch (StaleCategorizationRule $exception) {
-            return 'archived' === $exception->getMessage() ? $this->problem(409, '/problems/rules.archived') : $this->problem(409, '/problems/stale-version');
-        } catch (\UnexpectedValueException) {
-            return $this->problem(422, '/problems/rules.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, '/problems/rules.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategorizationRuleProblems::archive());
         }
     }
 
@@ -161,20 +124,12 @@ final readonly class CategorizationRuleController
             $payload = JsonPayload::of($body, ['ruleId', 'from', 'to']);
             $ruleId = $payload->nullableString('ruleId');
             if (null !== $ruleId && !Identifier::isValid($ruleId)) {
-                throw new \UnexpectedValueException();
+                throw new MalformedPayload();
             }
 
             return $this->envelope->json($preview($ruleId, self::day($payload->string('from')), self::day($payload->string('to'))));
-        } catch (CategorizationRuleNotFound) {
-            return $this->problem(404, '/problems/rules.not_found');
-        } catch (CategorizationRangeTooLarge) {
-            return $this->problem(422, '/problems/rules.range_too_large');
-        } catch (CategorizationExecutionLimitExceeded) {
-            return $this->problem(422, '/problems/rules.execution_limit');
-        } catch (InvalidCategorizationRuleInput|\UnexpectedValueException) {
-            return $this->problem(422, '/problems/rules.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, '/problems/rules.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategorizationRuleProblems::preview());
         }
     }
 
@@ -189,25 +144,13 @@ final readonly class CategorizationRuleController
             $payload = JsonPayload::of($body, ['previewToken']);
             $token = $payload->string('previewToken');
             if (1 !== preg_match('/^[0-9a-f]{64}$/D', $token)) {
-                throw new \UnexpectedValueException();
+                throw new MalformedPayload();
             }
 
             return $this->envelope->json($apply($token));
-        } catch (PreviewStale) {
-            return $this->problem(409, '/problems/rules.preview_stale');
-        } catch (CategorizationExecutionLimitExceeded) {
-            return $this->problem(422, '/problems/rules.execution_limit');
-        } catch (\UnexpectedValueException) {
-            return $this->problem(422, '/problems/rules.invalid');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, '/problems/rules.forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategorizationRuleProblems::apply());
         }
-    }
-
-    /** @param array<string, mixed> $extensions */
-    private function problem(int $status, string $type, array $extensions = []): Response
-    {
-        return $this->envelope->problemWithExtensions($status, 'api.problem.invalid_transaction', $extensions, $type);
     }
 
     private static function digits(string $value): bool
@@ -219,7 +162,7 @@ final readonly class CategorizationRuleController
     {
         $date = \DateTimeImmutable::createFromFormat('!Y-m-d', $value, new \DateTimeZone('UTC'));
         if (false === $date || $date->format('Y-m-d') !== $value) {
-            throw new \UnexpectedValueException();
+            throw new MalformedPayload();
         }
 
         return $date;

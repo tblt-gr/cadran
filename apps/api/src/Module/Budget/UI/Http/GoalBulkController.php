@@ -5,19 +5,16 @@ declare(strict_types=1);
 namespace App\Module\Budget\UI\Http;
 
 use App\Module\Budget\Application\Goals\BulkGoalLifecycle;
-use App\Module\Budget\Application\Goals\GoalBulkConflict;
-use App\Module\Budget\Application\Goals\GoalInputError;
-use App\Module\Budget\Application\Goals\GoalNotFound;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalBulkController
 {
-    public function __construct(private JsonRequestEnvelope $envelope, private BulkGoalLifecycle $bulk)
+    public function __construct(private JsonRequestEnvelope $envelope, private BulkGoalLifecycle $bulk, private ProblemMapper $problems)
     {
     }
 
@@ -43,20 +40,8 @@ final readonly class GoalBulkController
             ($this->bulk)(GoalBulkRequest::from($body, $stop), $stop);
 
             return new Response(status: Response::HTTP_NO_CONTENT);
-        } catch (GoalInputError $error) {
-            return $this->problem(422, $error->errorCode, $error->details);
-        } catch (GoalBulkConflict $error) {
-            return $this->problem(409, $error->errorCode, ['goalId' => $error->goalId, 'field' => $error->field]);
-        } catch (GoalNotFound) {
-            return $this->problem(404, 'goal_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(403, 'goal_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, GoalProblems::bulk());
         }
-    }
-
-    /** @param array<string, string> $details */
-    private function problem(int $status, string $code, array $details = []): Response
-    {
-        return $this->envelope->problem($status, 'api.problem.goal_error', '/problems/'.$code, ['code' => $code, ...$details]);
     }
 }

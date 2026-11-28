@@ -15,6 +15,7 @@ use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
@@ -173,7 +174,7 @@ final readonly class AccountGroupController
             $beforeGroupId = $payload->nullableString('beforeGroupId');
             $expected = $body['expectedSiblingIds'] ?? null;
             if ((null !== $beforeGroupId && !Identifier::isValid($beforeGroupId)) || !self::siblingIds($expected)) {
-                throw new \UnexpectedValueException('The move identifiers are malformed.');
+                throw new MalformedPayload('The move identifiers are malformed.');
             }
 
             $moved = $moveAccountGroup($id, $beforeGroupId, $expected);

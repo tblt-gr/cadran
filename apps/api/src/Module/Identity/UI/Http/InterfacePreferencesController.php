@@ -8,6 +8,7 @@ use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Identity\Application\InterfacePreferencesView;
 use App\Module\Identity\Application\InvalidInterfacePreferencesInput;
 use App\Module\Identity\Application\ReadInterfacePreferences;
@@ -40,10 +41,10 @@ final readonly class InterfacePreferencesController
         try {
             $preferences = $read();
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.interface_preferences_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.interface_preferences_forbidden');
         }
 
-        return $this->json($preferences);
+        return $this->answer($preferences);
     }
 
     #[Route('/api/v1/interface-preferences', name: 'api_v1_interface_preferences_save', methods: ['PUT'])]
@@ -56,15 +57,15 @@ final readonly class InterfacePreferencesController
 
         try {
             $preferences = $save(self::input($body));
-        } catch (InvalidInterfacePreferencesInput|\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_interface_preferences');
+        } catch (InvalidInterfacePreferencesInput|MalformedPayload) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_interface_preferences');
         } catch (StaleInterfacePreferencesVersion) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.interface_preferences_conflict');
+            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.interface_preferences_conflict');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.interface_preferences_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.interface_preferences_forbidden');
         }
 
-        return $this->json($preferences);
+        return $this->answer($preferences);
     }
 
     /** @param array<mixed> $body */
@@ -75,13 +76,8 @@ final readonly class InterfacePreferencesController
         return new SaveInterfacePreferencesInput($payload->boolean('includeUpcoming'), $payload->integer('version'));
     }
 
-    private function json(InterfacePreferencesView $view): JsonResponse
+    private function answer(InterfacePreferencesView $view): JsonResponse
     {
         return $this->envelope->json(['includeUpcoming' => $view->includeUpcoming, 'version' => $view->version]);
-    }
-
-    private function problem(int $status, string $key): JsonResponse
-    {
-        return $this->envelope->problem($status, $key);
     }
 }

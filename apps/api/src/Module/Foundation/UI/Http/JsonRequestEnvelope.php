@@ -53,6 +53,7 @@ final readonly class JsonRequestEnvelope
     /**
      * @param array<string, mixed>  $extensions RFC 9457 extension members
      * @param array<string, string> $headers    extra response headers
+     * @param array<string, mixed>  $parameters translation parameters of the detail
      */
     public function problem(
         int $status,
@@ -60,11 +61,12 @@ final readonly class JsonRequestEnvelope
         string $type = ApiProblem::TYPE_BLANK,
         array $extensions = [],
         array $headers = [],
+        array $parameters = [],
     ): JsonResponse {
         return ApiProblem::response(
             $status,
             $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
+            $this->translator->trans($translationKey.'.detail', $parameters),
             $type,
             $headers,
             $extensions,

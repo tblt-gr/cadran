@@ -4,24 +4,14 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
-use App\Module\Transactions\Application\IdempotencyConflict;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidTransactionInput;
-use App\Module\Transactions\Application\Reconciliation\AccountReconciliationConflict;
-use App\Module\Transactions\Application\Reconciliation\AccountReconciliationNotFound;
-use App\Module\Transactions\Application\Reconciliation\InvalidAccountReconciliation;
 use App\Module\Transactions\Application\Reconciliation\ReadAccountReconciliation;
 use App\Module\Transactions\Application\Reconciliation\ReconcileAccountBalance;
 use App\Module\Transactions\Application\Reconciliation\ReconcileAccountBalanceInput;
-use App\Module\Transactions\Application\Reconciliation\StaleAccountReconciliation;
-use App\Module\Transactions\Application\TransactionConflict;
-use App\Module\Transactions\Application\TransactionNotFound;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -34,6 +24,7 @@ final readonly class AccountReconciliationController
 
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private IdempotentExecution $idempotentExecution,
     ) {
     }
@@ -54,12 +45,8 @@ final readonly class AccountReconciliationController
 
         try {
             $view = $readAccountReconciliation($accountId, $snapshotId, $periodStart);
-        } catch (AccountReconciliationNotFound) {
-            return $this->notFound();
-        } catch (InvalidAccountReconciliation) {
-            return $this->invalid();
-        } catch (WorkspaceAccessDenied) {
-            return $this->forbidden();
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::accountReconciliationRead());
         }
 
         return $this->envelope->json(AccountReconciliationRepresentation::one($view));
@@ -93,25 +80,8 @@ final readonly class AccountReconciliationController
                     return new IdempotentResponse(AccountReconciliationRepresentation::one($view), Response::HTTP_OK, $view->snapshotId, [$view->periodEnd]);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (PortfolioAccountValuedByPortfolio) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.portfolio_account_valued_by_portfolio',
-                ['code' => 'portfolio_account_valued_by_portfolio'], '/problems/portfolio-account-valued-by-portfolio',
-            );
-        } catch (InvalidAccountReconciliation|InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->invalid();
-        } catch (AccountReconciliationNotFound|TransactionNotFound) {
-            return $this->notFound();
-        } catch (StaleAccountReconciliation) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.account_reconciliation_stale', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (AccountReconciliationConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.account_reconciliation_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.account_reconciliation_adjustment_refused', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->forbidden();
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::accountReconciliationResolve());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -125,10 +95,5 @@ final readonly class AccountReconciliationController
     private function invalid(): Response
     {
         return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.account_reconciliation_invalid');
-    }
-
-    private function forbidden(): Response
-    {
-        return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_reconciliation_forbidden');
     }
 }
