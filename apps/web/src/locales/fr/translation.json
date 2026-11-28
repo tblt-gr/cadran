@@ -1565,6 +1565,7 @@
       "conflict": "Ce libellé est déjà utilisé au même niveau ou la catégorie a été modifiée ailleurs. Rechargez puis réessayez.",
       "invalid": "La catégorie est invalide. Vérifiez son type, son parent et ses métadonnées.",
       "network": "L’enregistrement a échoué. Réessayez.",
+      "periodClosed": "Un mois clos empêche cette modification. Rouvrez le mois concerné, puis réessayez.",
       "refused": "L’opération est refusée. Les raisons sont listées ci-dessous.",
       "stale": "Cette catégorie a été modifiée ailleurs entre-temps. Rechargez la liste puis recommencez.",
       "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez."
@@ -1738,6 +1739,7 @@
         "conflict": "Ce libellé existe déjà sous ce parent. Choisissez-en un autre.",
         "invalid": "Vérifiez le libellé, le type et la catégorie parente.",
         "network": "La création a échoué. Vérifiez la connexion, puis réessayez.",
+        "periodClosed": "Un mois clos empêche cette modification. Rouvrez le mois concerné, puis réessayez.",
         "refused": "Cette catégorie ne peut pas être créée à cet emplacement.",
         "unauthorized": "Votre session a expiré ou n’autorise pas cette création. Reconnectez-vous, puis recommencez."
       }

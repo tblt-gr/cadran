@@ -17,6 +17,10 @@ use Symfony\Component\Clock\ClockInterface;
  * Retires a category without deleting it. A used category keeps its history and
  * its identifier for good; archiving only takes it out of the choices offered
  * for new classifications.
+ *
+ * No closed-period guard: archiving rewrites no classification, so a closed
+ * month keeps its amounts, totals and rows, and a new classification dated in
+ * it is already refused by the period guard.
  */
 final readonly class ArchiveCategory
 {

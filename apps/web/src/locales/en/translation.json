@@ -1565,6 +1565,7 @@
       "conflict": "This label is already used at the same level, or the category was changed elsewhere. Reload and try again.",
       "invalid": "The category is invalid. Check its type, its parent and its metadata.",
       "network": "Saving failed. Try again.",
+      "periodClosed": "A closed month prevents this change. Reopen the month concerned, then try again.",
       "refused": "The operation is refused. The reasons are listed below.",
       "stale": "This category was changed elsewhere in the meantime. Reload the list and start again.",
       "unauthorized": "Your session has expired or does not allow this operation. Sign in again, then start over."
@@ -1738,6 +1739,7 @@
         "conflict": "This label already exists under this parent. Choose another one.",
         "invalid": "Check the label, the type and the parent category.",
         "network": "Creation failed. Check your connection, then try again.",
+        "periodClosed": "A closed month prevents this change. Reopen the month concerned, then try again.",
         "refused": "This category cannot be created at this location.",
         "unauthorized": "Your session has expired or does not allow this creation. Sign in again, then start over."
       }

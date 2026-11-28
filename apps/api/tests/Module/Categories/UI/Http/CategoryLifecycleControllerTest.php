@@ -10,6 +10,7 @@ use App\Module\Identity\Domain\PasswordHasher;
 use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
@@ -523,6 +524,126 @@ final class CategoryLifecycleControllerTest extends WebTestCase
         self::assertSame('/problems/period-closed', $this->decode()['type']);
         $unchanged = $this->row($restaurants['id']);
         self::assertNull($unchanged['archivedAt']);
+    }
+
+    public function testAReplacementDatedAfterEveryClosedMonthIsAccepted(): void
+    {
+        $restaurants = $this->createCategory('Restaurants');
+        $eatingOut = $this->createCategory('Sorties');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->replace($restaurants['id'], $eatingOut['id'], '2026-04-01', $restaurants['version']);
+
+        self::assertResponseIsSuccessful();
+        self::assertSame(1, $this->rowCount('category_replacements'));
+    }
+
+    public function testAReplacementReachingAClosedMonthIsRefusedUntilTheMonthIsReopened(): void
+    {
+        $restaurants = $this->createCategory('Restaurants');
+        $eatingOut = $this->createCategory('Sorties');
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+
+        $this->replace($restaurants['id'], $eatingOut['id'], '2026-03-10', $restaurants['version']);
+
+        self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/period-closed', $this->decode()['type']);
+        self::assertSame(0, $this->rowCount('category_replacements'));
+        self::assertSame($restaurants['version'], $this->connection->fetchOne(
+            'SELECT version FROM category_categories WHERE workspace_id = ? AND id = ?',
+            [WorkspaceFixture::OWN_WORKSPACE, $restaurants['id']],
+        ));
+        self::assertSame(0, $this->connection->fetchOne(
+            "SELECT count(*) FROM audit_events WHERE workspace_id = ? AND event_type = 'category.replaced'",
+            [WorkspaceFixture::OWN_WORKSPACE],
+        ));
+
+        $this->client->request(
+            'POST',
+            '/api/v1/periods/2026-03/reopening',
+            server: self::jsonHeaders(),
+            content: json_encode(['version' => 1, 'reason' => 'Late invoice'], JSON_THROW_ON_ERROR),
+        );
+        self::assertResponseIsSuccessful();
+
+        $this->replace($restaurants['id'], $eatingOut['id'], '2026-03-10', $restaurants['version']);
+        self::assertResponseIsSuccessful();
+        self::assertSame(1, $this->rowCount('category_replacements'));
+    }
+
+    public function testAForeignWorkspaceClosureDoesNotBlockAReplacement(): void
+    {
+        $restaurants = $this->createCategory('Restaurants');
+        $eatingOut = $this->createCategory('Sorties');
+        $this->closeMonthInDatabase(
+            $this->connection,
+            2026,
+            3,
+            WorkspaceFixture::OTHER_WORKSPACE,
+            WorkspaceFixture::OTHER_OWNER_ID,
+        );
+
+        $this->replace($restaurants['id'], $eatingOut['id'], '2026-03-10', $restaurants['version']);
+
+        self::assertResponseIsSuccessful();
+    }
+
+    public function testArchivingDuringAClosureLeavesTheClosedMonthReportUnchanged(): void
+    {
+        $restaurants = $this->createCategory('Restaurants');
+        $this->insertExpenseInMarch($restaurants['id']);
+        $this->closeMonthInDatabase($this->connection, 2026, 3);
+        $report = $this->read('/api/v1/reports/monthly?month=2026-03');
+        $ledger = $this->read('/api/v1/reports/monthly/ledger?month=2026-03');
+        self::assertStringContainsString('42.50', json_encode($ledger, JSON_THROW_ON_ERROR));
+
+        $this->archive($restaurants['id'], $restaurants['version']);
+        self::assertResponseIsSuccessful();
+
+        self::assertSame($report, $this->read('/api/v1/reports/monthly?month=2026-03'));
+        // The row of the archived category only gains its flag.
+        $after = json_encode($this->read('/api/v1/reports/monthly/ledger?month=2026-03'), JSON_THROW_ON_ERROR);
+        self::assertStringContainsString('"archived":true', $after);
+        self::assertSame(
+            json_encode($ledger, JSON_THROW_ON_ERROR),
+            str_replace('"archived":true', '"archived":false', $after),
+        );
+    }
+
+    /** @return array<string, mixed> */
+    private function read(string $uri): array
+    {
+        $this->client->request('GET', $uri);
+        self::assertResponseIsSuccessful();
+
+        return $this->decode();
+    }
+
+    private function insertExpenseInMarch(string $categoryId): void
+    {
+        $account = '00000000-0000-7000-8000-0000000000a1';
+        $transaction = '00000000-0000-7000-8000-000000000101';
+        $at = '2026-03-15 12:00:00+00';
+        $this->connection->insert('account_financial_accounts', [
+            'id' => $account, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'label' => 'Courant',
+            'asset_code' => 'EUR', 'kind' => 'CURRENT', 'valuation_mode' => 'TRANSACTIONS',
+            'liquidity_level' => 'IMMEDIATE', 'include_in_net_worth' => true, 'include_in_emergency_fund' => false,
+            'opened_on' => '2026-01-01', 'version' => 1, 'created_at' => $at, 'updated_at' => $at,
+        ], ['include_in_net_worth' => ParameterType::BOOLEAN, 'include_in_emergency_fund' => ParameterType::BOOLEAN]);
+        $this->connection->transactional(function () use ($account, $transaction, $categoryId, $at): void {
+            $this->connection->insert('transaction_transactions', [
+                'id' => $transaction, 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE, 'account_id' => $account,
+                'asset_code' => 'EUR', 'amount_value' => '-42.50', 'amount_scale' => 2, 'state' => 'BOOKED',
+                'nature' => 'EXPENSE', 'source' => 'MANUAL', 'booked_on' => '2026-03-15', 'raw_label' => 'Dinner',
+                'version' => 1, 'created_at' => $at, 'updated_at' => $at,
+            ]);
+            $this->connection->insert('transaction_splits', [
+                'id' => '00000000-0000-7000-8000-000000000201', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+                'transaction_id' => $transaction, 'category_id' => $categoryId, 'amount_value' => '-42.50',
+                'amount_scale' => 2, 'asset_code' => 'EUR', 'analytic_axes' => '[]', 'position' => 0,
+                'created_at' => $at,
+            ]);
+        });
     }
 
     /** @return array<string, mixed> */

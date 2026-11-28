@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
+use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Audit\Application\AuditEventRecord;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Audit\Domain\AuditDiff;
@@ -29,6 +30,7 @@ final readonly class ReplaceCategory
         private CallerWorkspaceContext $caller,
         private CategoryReplacementRepository $replacements,
         private AssessCategoryImpact $assessImpact,
+        private AssertPeriodOpen $periods,
         private PresentCategory $presentCategory,
         private UuidGenerator $uuidGenerator,
         private TransactionBoundary $transactionBoundary,
@@ -44,6 +46,7 @@ final readonly class ReplaceCategory
         $effectiveDate = CategoryInputParser::businessDay($effectiveFrom);
 
         return $this->transactionBoundary->transactional(function () use ($id, $targetId, $effectiveDate, $expectedVersion, $context): CategoryView {
+            $this->periods->assertNoActiveClosureFrom($context->workspace, $effectiveDate);
             $impact = ($this->assessImpact)(
                 $context->workspace,
                 CategoryLifecycleOperation::REPLACE,
