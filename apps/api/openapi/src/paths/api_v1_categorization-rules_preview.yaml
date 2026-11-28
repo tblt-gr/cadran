@@ -27,6 +27,14 @@ post:
       $ref: ../components/responses/Forbidden.yaml
     '404':
       $ref: ../components/responses/NotFound.yaml
+    '409':
+      description: >-
+        A rule was edited while the preview was running
+        (`type: /problems/rules.preview_stale`).
+      content:
+        application/problem+json:
+          schema:
+            $ref: ../components/schemas/Problem.yaml
     '415':
       $ref: ../components/responses/UnsupportedMediaType.yaml
     '422':

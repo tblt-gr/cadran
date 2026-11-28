@@ -4,34 +4,23 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Categorization;
 
+use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Domain\UuidGenerator;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\Categorization\CategorizationRuleRepository;
-use App\Module\Transactions\Domain\CategorizationOrigin;
-use App\Module\Transactions\Domain\Transaction;
-use App\Module\Transactions\Domain\TransactionSplit;
 
 final readonly class AutoCategorizeTransaction
 {
-    public function __construct(private BuildCategorizationRun $buildRun, private CategorizationRuleRepository $rules, private UuidGenerator $ids)
+    public function __construct(private CategorizationRuleRepository $rules, private CategoryRepository $categories, private CategorizationResolver $resolver, private ElapsedTime $elapsedTime, private CategorizationExecutionBudget $budget, private DeactivateTrippedRules $deactivate, private UuidGenerator $ids)
     {
     }
 
-    public function __invoke(Transaction $transaction, ?string $actorId, \DateTimeImmutable $now): Transaction
+    /** The caller holds the workspace lock and calls finish() inside the same database transaction. */
+    public function begin(WorkspaceScope $workspace, ?string $actorId, \DateTimeImmutable $now): AutoCategorizationBatch
     {
-        $run = ($this->buildRun)($transaction->workspace, [$transaction], $actorId, $now);
-        if ($run->executionLimitExceeded) {
-            return $transaction;
-        }
-        $winner = $run->resolutions[$transaction->id]->winner;
-        if (null === $winner) {
-            return $transaction;
-        }
-        $split = new TransactionSplit(
-            $this->ids->generate(), $transaction->workspace, $transaction->id, $winner->targetCategoryId,
-            $transaction->amount, $winner->targetAxes, null, $now, 0, CategorizationOrigin::RULE, $winner->id,
+        return new AutoCategorizationBatch(
+            $workspace, $actorId, $now, $this->rules, $this->categories, $this->resolver,
+            $this->elapsedTime, $this->budget, $this->deactivate, $this->ids,
         );
-        $this->rules->incrementAppliedCount($transaction->workspace, $winner->id, 1);
-
-        return $transaction->categorize($split, $winner->targetCounterparty, $now, false);
     }
 }

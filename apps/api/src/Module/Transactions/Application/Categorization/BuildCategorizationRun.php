@@ -4,45 +4,44 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application\Categorization;
 
-use App\Module\Audit\Application\AuditEventRecord;
-use App\Module\Audit\Application\RecordAuditEvent;
-use App\Module\Audit\Domain\AuditDiff;
 use App\Module\Categories\Domain\Category;
 use App\Module\Categories\Domain\CategoryRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Domain\Categorization\CategorizationRule;
 use App\Module\Transactions\Domain\Categorization\CategorizationRuleRepository;
 use App\Module\Transactions\Domain\Categorization\CategorizationSubject;
-use App\Module\Transactions\Domain\Categorization\RuleDeactivationReason;
 use App\Module\Transactions\Domain\Transaction;
 
 final readonly class BuildCategorizationRun
 {
-    public function __construct(private CategorizationRuleRepository $rules, private CategoryRepository $categories, private CategorizationResolver $resolver, private ElapsedTime $elapsedTime, private CategorizationExecutionBudget $budget, private RecordAuditEvent $audit)
+    public function __construct(private CategorizationRuleRepository $rules, private CategoryRepository $categories, private CategorizationResolver $resolver, private ElapsedTime $elapsedTime, private CategorizationExecutionBudget $budget, private DeactivateTrippedRules $deactivate)
     {
     }
 
-    /** @param list<Transaction> $transactions */
-    public function __invoke(WorkspaceScope $workspace, array $transactions, ?string $actorId, \DateTimeImmutable $now): CategorizationRun
+    /**
+     * @param list<Transaction> $transactions
+     * @param bool              $lockTargets  true when the run writes categorizations, false for a read-only preview
+     */
+    public function __invoke(WorkspaceScope $workspace, array $transactions, ?string $actorId, \DateTimeImmutable $now, bool $lockTargets): CategorizationRun
     {
         $rules = $this->activeRules($workspace);
-        $targets = $this->targets($workspace, $rules);
+        $targets = $this->targets($workspace, $rules, $lockTargets);
         $deactivated = [];
         $matching = new RuleMatchingRun($this->elapsedTime, $this->budget->maxRuleEvaluations, $this->budget->maxRunNanoseconds);
         try {
             [$resolutions, $tripped] = $this->resolve($transactions, $rules, $targets, $matching);
         } catch (CategorizationExecutionLimitExceeded $exception) {
-            $deactivated = $this->deactivate($workspace, $rules, $exception->trippedRuleIds, $actorId, $now);
+            $deactivated = ($this->deactivate)($workspace, $rules, $exception->trippedRuleIds, $actorId, $now);
 
             return new CategorizationRun($workspace->id, $this->activeRules($workspace), $transactions, [], $deactivated, true);
         }
         if ([] !== $tripped) {
-            $deactivated = $this->deactivate($workspace, $rules, $tripped, $actorId, $now);
+            $deactivated = ($this->deactivate)($workspace, $rules, $tripped, $actorId, $now);
             $rules = array_values(array_filter($this->activeRules($workspace), static fn (CategorizationRule $rule): bool => !in_array($rule->id, $tripped, true)));
             try {
-                [$resolutions, $trippedAgain] = $this->resolve($transactions, $rules, $this->targets($workspace, $rules), $matching->nextPass());
+                [$resolutions, $trippedAgain] = $this->resolve($transactions, $rules, $this->targets($workspace, $rules, $lockTargets), $matching->nextPass());
             } catch (CategorizationExecutionLimitExceeded $exception) {
-                $laterDeactivated = $this->deactivate($workspace, $rules, $exception->trippedRuleIds, $actorId, $now);
+                $laterDeactivated = ($this->deactivate)($workspace, $rules, $exception->trippedRuleIds, $actorId, $now);
 
                 return new CategorizationRun($workspace->id, $this->activeRules($workspace), $transactions, [], array_values(array_unique([...$deactivated, ...$laterDeactivated])), true);
             }
@@ -51,7 +50,7 @@ final readonly class BuildCategorizationRun
             // so dropping it from each resolution is exact and needs no third pass.
             $laterTripped = array_values(array_diff($trippedAgain, $tripped));
             if ([] !== $laterTripped) {
-                $deactivated = array_values(array_unique([...$deactivated, ...$this->deactivate($workspace, $rules, $laterTripped, $actorId, $now)]));
+                $deactivated = array_values(array_unique([...$deactivated, ...($this->deactivate)($workspace, $rules, $laterTripped, $actorId, $now)]));
                 $rules = array_values(array_filter($rules, static fn (CategorizationRule $rule): bool => !in_array($rule->id, $laterTripped, true)));
                 $rulesById = array_combine(array_map(static fn (CategorizationRule $rule): string => $rule->id, $rules), $rules);
                 $resolutions = array_map(static fn (RuleResolution $resolution): RuleResolution => $resolution->withoutRules($laterTripped, $rulesById), $resolutions);
@@ -91,42 +90,16 @@ final readonly class BuildCategorizationRun
 
     /**
      * @param list<CategorizationRule> $rules
-     * @param list<string>             $tripped
-     *
-     * @return list<string>
-     */
-    private function deactivate(WorkspaceScope $workspace, array $rules, array $tripped, ?string $actorId, \DateTimeImmutable $now): array
-    {
-        $deactivatedIds = [];
-        foreach ($rules as $rule) {
-            if (!in_array($rule->id, $tripped, true)) {
-                continue;
-            }
-            $current = $this->rules->findForUpdate($workspace, $rule->id);
-            if (null === $current || !$current->active) {
-                continue;
-            }
-            $deactivated = $current->deactivate(RuleDeactivationReason::PATTERN_BUDGET_EXCEEDED, $now);
-            if (!$this->rules->update($deactivated, $current->version)) {
-                throw new StaleCategorizationRule();
-            }
-            $deactivatedIds[] = $rule->id;
-            ($this->audit)(new AuditEventRecord($workspace, $actorId, 'categorization_rule.deactivated', 'categorization_rule', $rule->id, AuditDiff::change(['active' => true], ['active' => false, 'reason' => RuleDeactivationReason::PATTERN_BUDGET_EXCEEDED->value])));
-        }
-
-        return $deactivatedIds;
-    }
-
-    /**
-     * @param list<CategorizationRule> $rules
      *
      * @return array<string, Category>
      */
-    private function targets(WorkspaceScope $workspace, array $rules): array
+    private function targets(WorkspaceScope $workspace, array $rules, bool $lockTargets): array
     {
         $targets = [];
         foreach ($rules as $rule) {
-            $category = $this->categories->findForUpdate($workspace, $rule->targetCategoryId);
+            $category = $lockTargets
+                ? $this->categories->findForUpdate($workspace, $rule->targetCategoryId)
+                : $this->categories->find($workspace, $rule->targetCategoryId);
             if (null !== $category) {
                 $targets[$category->id] = $category;
             }

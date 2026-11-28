@@ -542,6 +542,7 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         $this->requestApply($token);
         self::assertResponseStatusCodeSame(409);
+        self::assertSame('/problems/rules.preview_stale', $this->decode()['type']);
 
         $fresh = $this->preview(null);
         $this->connection->executeStatement("UPDATE transaction_categorization_previews SET expires_at = now() - interval '1 second', created_at = now() - interval '16 minutes' WHERE workspace_id = ?", [WorkspaceFixture::OWN_WORKSPACE]);

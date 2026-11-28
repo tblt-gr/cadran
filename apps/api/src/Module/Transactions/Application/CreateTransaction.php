@@ -90,6 +90,7 @@ final readonly class CreateTransaction
                 );
             }
             $id = $this->uuidGenerator->generate();
+            $categorization = null;
 
             try {
                 $splits = null === $input->splits
@@ -112,7 +113,8 @@ final readonly class CreateTransaction
                     autoBook: self::plans($draft->state, $source, $match?->reviewReason, $draft->bookedOn, $today) && null === $match,
                 );
                 if ($input->automation && null === $input->splits && null === $input->categoryId) {
-                    $transaction = ($this->autoCategorize)($transaction, $context->actorId, $now);
+                    $categorization = $input->categorization ?? $this->autoCategorize->begin($context->workspace, $context->actorId, $now);
+                    $transaction = $categorization->categorize($transaction);
                 }
             } catch (InvalidTransaction $exception) {
                 throw new InvalidTransactionInput('The transaction input is invalid.', previous: $exception);
@@ -139,6 +141,11 @@ final readonly class CreateTransaction
             ));
             if ($input->automation && $input->matchRecurrence) {
                 ($this->matchRecurrence)($transaction);
+            }
+            // Counted last, once nothing can refuse the row anymore.
+            $categorization?->countApplied($transaction);
+            if (null === $input->categorization) {
+                $categorization?->finish();
             }
 
             return $this->presentTransaction->one($transaction);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
+use App\Module\Transactions\Application\Categorization\AutoCategorizationBatch;
+
 final readonly class CreateTransactionInput
 {
     /**
@@ -52,6 +54,8 @@ final readonly class CreateTransactionInput
         public bool $matchRecurrence = true,
         /** False for a row the recurrence job plans: it records a planned fact, never a refused spend. */
         public bool $guardBalance = true,
+        /** The batch a caller creating several rows shares and finishes itself. */
+        public ?AutoCategorizationBatch $categorization = null,
     ) {
     }
 }

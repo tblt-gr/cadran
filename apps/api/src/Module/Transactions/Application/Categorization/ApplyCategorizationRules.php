@@ -37,7 +37,7 @@ final readonly class ApplyCategorizationRules
                 if (count($transactions) > PreviewCategorizationRules::MAX_TRANSACTIONS) {
                     throw new PreviewStale();
                 }
-                $run = ($this->buildRun)($context->workspace, $transactions, $context->actorId, $now);
+                $run = ($this->buildRun)($context->workspace, $transactions, $context->actorId, $now, lockTargets: true);
                 if ($run->executionLimitExceeded) {
                     return new CategorizationExecutionLimitExceeded();
                 }

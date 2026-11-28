@@ -13668,6 +13668,10 @@ export type PreviewCategorizationRulesErrors = {
      */
     404: Problem;
     /**
+     * A rule was edited while the preview was running (`type: /problems/rules.preview_stale`).
+     */
+    409: Problem;
+    /**
      * The endpoint requires an application/json request body.
      */
     415: Problem;

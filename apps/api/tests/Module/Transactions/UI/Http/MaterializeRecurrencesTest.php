@@ -99,6 +99,53 @@ final class MaterializeRecurrencesTest extends WebTestCase
         self::assertNull($this->instalment('2026-12-05')['generated_transaction_id']);
     }
 
+    public function testInstalmentsOfOneRecurrenceAreCategorizedByARuleAndCountedOncePerRow(): void
+    {
+        $rule = $this->createRentRule();
+
+        $this->createRecurrence($this->weeklyRent(autoCreate: true));
+
+        self::assertSame(
+            ['RULE', 'RULE', 'RULE'],
+            $this->connection->fetchFirstColumn('SELECT categorization_origin FROM transaction_splits WHERE categorization_rule_id = ?', [$rule]),
+        );
+        self::assertSame(3, $this->appliedCount($rule));
+    }
+
+    public function testInstalmentsRefusedByAClosedPeriodAreNotCounted(): void
+    {
+        $rule = $this->createRentRule();
+        $this->createRecurrence($this->weeklyRent(autoCreate: false));
+        $this->switchAutoCreateOnInDatabase();
+        $this->closeMonthInDatabase($this->connection, 2026, 11);
+
+        $result = $this->materialize();
+
+        self::assertSame(3, $result['skippedClosedPeriod']);
+        self::assertSame(0, $this->appliedCount($rule));
+    }
+
+    public function testAnInstalmentRefusedAfterItsCategorizationIsNotCounted(): void
+    {
+        $rule = $this->createRentRule();
+        $this->createRecurrence($this->weeklyRent(autoCreate: false));
+        // The row already holding the identifier makes the insert fail, once the rule has matched.
+        $this->connection->insert('transaction_transactions', [
+            'id' => '00000000-0000-7000-8000-000000000701', 'workspace_id' => WorkspaceFixture::OWN_WORKSPACE,
+            'account_id' => self::OWN_ACCOUNT, 'asset_code' => 'EUR', 'amount_value' => '-850.00', 'amount_scale' => 2,
+            'state' => 'REJECTED', 'nature' => 'EXPENSE', 'source' => 'RECURRENCE',
+            'source_ref' => $this->instalment('2026-11-19')['id'], 'booked_on' => '2026-11-19', 'raw_label' => 'Loyer',
+            'version' => 1, 'created_at' => '2026-11-01 09:00:00+00', 'updated_at' => '2026-11-01 09:00:00+00',
+        ]);
+        $this->switchAutoCreateOnInDatabase();
+
+        $result = $this->materialize();
+
+        self::assertSame(2, $result['transactionsCreated']);
+        self::assertSame(1, $result['skippedRefused']);
+        self::assertSame(2, $this->appliedCount($rule));
+    }
+
     public function testAPlannedInstalmentIsNeverRefusedForALowBalance(): void
     {
         $this->connection->insert('account_balance_snapshots', [
@@ -848,6 +895,39 @@ final class MaterializeRecurrencesTest extends WebTestCase
         self::assertIsArray($row);
 
         return $row;
+    }
+
+    /** @return array<string, mixed> three instalments in the current month: 12, 19 and 26 November */
+    private function weeklyRent(bool $autoCreate): array
+    {
+        return ['intervalKind' => 'WEEKLY', 'dayOfPeriod' => 4, 'firstExpectedOn' => '2026-11-12', 'autoCreate' => $autoCreate];
+    }
+
+    private function createRentRule(): string
+    {
+        $this->client->request('POST', '/api/v1/categorization-rules', server: self::jsonHeaders(), content: json_encode([
+            'label' => 'Loyer', 'priority' => 10, 'accountScope' => [],
+            'conditions' => ['text' => ['combinator' => 'AND', 'predicates' => [[
+                'source' => 'RAW_LABEL', 'operator' => 'CONTAINS', 'value' => 'loyer', 'negated' => false,
+            ]]]],
+            'targetCategoryId' => self::EXPENSE_CATEGORY, 'targetAxes' => [], 'targetCounterparty' => null,
+            'effectiveFrom' => '2026-01-01', 'effectiveTo' => null,
+        ], JSON_THROW_ON_ERROR));
+        self::assertResponseStatusCodeSame(201);
+        $id = $this->decode()['id'];
+        self::assertIsString($id);
+
+        return $id;
+    }
+
+    private function switchAutoCreateOnInDatabase(): void
+    {
+        $this->connection->executeStatement('UPDATE transaction_recurrences SET auto_create = TRUE');
+    }
+
+    private function appliedCount(string $ruleId): int
+    {
+        return $this->scalarCount('SELECT applied_count FROM transaction_categorization_rules WHERE id = ?', [$ruleId]);
     }
 
     private function recurrenceCount(): int
