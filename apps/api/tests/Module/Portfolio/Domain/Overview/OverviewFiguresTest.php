@@ -26,15 +26,15 @@ final class OverviewFiguresTest extends TestCase
         $result = OverviewFigures::allocation($items, DecimalValue::fromString('55'));
         self::assertCount(10, $result['items']);
         self::assertCount(8, $result['slices']);
-        self::assertSame(['key' => 'OTHERS', 'label' => 'Autres', 'value' => '6', 'share' => '0.109090909090909090909091'], $result['slices'][7]);
+        self::assertSame(['key' => 'OTHERS', 'label' => 'OTHERS', 'value' => '6', 'share' => '0.109090909090909090909091'], $result['slices'][7]);
         self::assertSame('0.018181818181818181818182', $result['items'][0]['share']);
     }
 
     public function testLargeSignedValuesKeepResponseSharesBeyondStorageWidth(): void
     {
         $items = [
-            ['key' => 'SECURITIES', 'label' => 'Titres', 'value' => '10000000000000000000000000'],
-            ['key' => 'CASH', 'label' => 'Espèces', 'value' => '-9999999999999999999999999.99'],
+            ['key' => 'SECURITIES', 'label' => 'SECURITIES', 'value' => '10000000000000000000000000'],
+            ['key' => 'CASH', 'label' => 'CASH', 'value' => '-9999999999999999999999999.99'],
         ];
         $result = OverviewFigures::allocation($items, DecimalValue::fromString('0.01'));
         self::assertSame('1000000000000000000000000000.000000000000000000000000', $result['items'][0]['share']);
@@ -46,7 +46,7 @@ final class OverviewFiguresTest extends TestCase
     public function testNonPositiveTotalHasNoShares(): void
     {
         foreach (['0', '-1'] as $total) {
-            $result = OverviewFigures::allocation([['key' => 'CASH', 'label' => 'Espèces', 'value' => $total]], DecimalValue::fromString($total));
+            $result = OverviewFigures::allocation([['key' => 'CASH', 'label' => 'CASH', 'value' => $total]], DecimalValue::fromString($total));
             self::assertNull($result['items'][0]['share']);
             self::assertSame([], $result['slices']);
         }

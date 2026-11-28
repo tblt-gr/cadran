@@ -52,10 +52,15 @@ export function AllocationCard({
     ASSET_CLASS: new Map(instrumentClassOptions(t)),
     REGION: new Map(instrumentRegionOptions(t)),
   };
+  // The server names its own buckets by their key; the label is only the fallback for user data.
+  const systemNames = new Map([
+    ['SECURITIES', t('portfolio.allocation.securities')],
+    ['CASH', t('portfolio.allocation.cash')],
+    ['UNSPECIFIED', t('portfolio.allocation.unspecified')],
+    ['OTHERS', t('portfolio.allocation.others')],
+  ]);
   const label = (key: string, text: string) =>
-    key === 'UNSPECIFIED'
-      ? t('portfolio.allocation.unspecified')
-      : ((allocation && groupNames[allocation.by]?.get(key)) ?? text);
+    systemNames.get(key) ?? (allocation && groupNames[allocation.by]?.get(key)) ?? text;
   // A negative share (a debit cash balance) stays in the table but is left out of the donut.
   const ignored = allocation
     ? allocation.items.filter((item) => isNegativeRatio(item.share)).length

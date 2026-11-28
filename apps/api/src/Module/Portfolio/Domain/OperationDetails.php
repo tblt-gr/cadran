@@ -47,7 +47,17 @@ final readonly class OperationDetails
         bool $allowUnbalancedSwitch = false,
         public ?LifeInsurance\InterestBasis $interestBasis = null,
         public ?int $rateYear = null,
+        bool $stored = false,
     ) {
+        // A stored row was accepted by the rules of its day: reading it back derives and normalizes, never refuses.
+        if ($stored) {
+            $this->taxes = $this->derivedTaxes($taxes);
+            $this->grossAmount = $this->derivedGrossAmount($grossAmount);
+            $this->reference = OperationText::normalize($reference, OperationText::MAX_REFERENCE);
+            $this->note = OperationText::normalize($note, OperationText::MAX_NOTE);
+
+            return;
+        }
         if ((null === $ratioNumerator) !== (null === $ratioDenominator)) {
             throw new InvalidPortfolioOperation('A ratio carries a numerator and a denominator.', 'invalid_corporate_action');
         }
@@ -73,11 +83,7 @@ final readonly class OperationDetails
 
         self::assertNotNegative($withheldIncomeTax);
         self::assertNotNegative($withheldSocialContributions);
-        try {
-            $this->taxes = $type->isSurrender() ? ExactDecimal::add($withheldIncomeTax ?? DecimalValue::zero(), $withheldSocialContributions ?? DecimalValue::zero()) : $taxes;
-        } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
-            throw new InvalidPortfolioOperation('The observed withholdings are too large to store exactly.', 'invalid_operation_amount');
-        }
+        $this->taxes = $this->derivedTaxes($taxes);
         if (count($legs) > 20) {
             throw new InvalidPortfolioOperation('At most twenty support legs are allowed.', 'too_many_operation_legs');
         }
@@ -92,7 +98,7 @@ final readonly class OperationDetails
             }
             $seen[$key] = true;
         }
-        $this->grossAmount = OperationType::SWITCH === $type ? $this->supportsAmount(LegDirection::OUT) : $grossAmount;
+        $this->grossAmount = $this->derivedGrossAmount($grossAmount);
         if (OperationType::SWITCH === $type) {
             foreach ([LegDirection::OUT, LegDirection::IN] as $direction) {
                 $side = array_filter($legs, static fn (OperationLeg $leg): bool => $leg->direction === $direction);
@@ -136,6 +142,22 @@ final readonly class OperationDetails
 
         $this->reference = OperationText::normalize($reference, OperationText::MAX_REFERENCE);
         $this->note = OperationText::normalize($note, OperationText::MAX_NOTE);
+    }
+
+    /** A surrender states its two withholdings: their sum is the tax of the operation. */
+    private function derivedTaxes(?DecimalValue $taxes): ?DecimalValue
+    {
+        try {
+            return $this->type->isSurrender() ? ExactDecimal::add($this->withheldIncomeTax ?? DecimalValue::zero(), $this->withheldSocialContributions ?? DecimalValue::zero()) : $taxes;
+        } catch (\App\Module\Foundation\Domain\PrecisionExceeded|\App\Module\Foundation\Domain\MalformedDecimal) {
+            throw new InvalidPortfolioOperation('The observed withholdings are too large to store exactly.', 'invalid_operation_amount');
+        }
+    }
+
+    /** A switch is worth what it sells. */
+    private function derivedGrossAmount(?DecimalValue $grossAmount): ?DecimalValue
+    {
+        return OperationType::SWITCH === $this->type ? $this->supportsAmount(LegDirection::OUT) : $grossAmount;
     }
 
     public function netCreditedAmount(): ?DecimalValue

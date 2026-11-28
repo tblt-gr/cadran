@@ -9,4 +9,8 @@ enum ValuationSource: string
 {
     case MANUAL = 'MANUAL';
     case IMPORT = 'IMPORT';
+    /** Recorded by the server after an operation. */
+    case REFRESH = 'REFRESH';
+    /** Recorded by the server when the account took over its positions. */
+    case TAKEOVER = 'TAKEOVER';
 }

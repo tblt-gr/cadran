@@ -247,7 +247,7 @@ export const totalAccountSummary: HoldingsAccountSummary = {
 
 const unsplitSlice = {
   key: 'UNSPLIT',
-  label: 'Comptes valorisés en total',
+  label: 'UNSPLIT',
   value: '800.00',
   share: '1',
 };

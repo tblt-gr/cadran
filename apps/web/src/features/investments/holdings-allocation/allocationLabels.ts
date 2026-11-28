@@ -14,8 +14,7 @@ export function sliceLabel(
   unspecified: string,
   t: TFunction,
 ): string {
-  // Accounts valued as a total carry their own label from the server.
-  if (slice.key === 'UNSPLIT') return slice.label;
+  if (slice.key === 'UNSPLIT') return t('investments.allocation.unsplit');
   if (slice.key === 'UNSPECIFIED') return unspecified;
   const group = nameGroups[criterion];
   return group

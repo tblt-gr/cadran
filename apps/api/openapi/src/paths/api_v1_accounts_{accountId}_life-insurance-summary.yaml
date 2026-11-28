@@ -7,7 +7,7 @@ get:
   description: >-
     Latest active COMPLETE valuation on or before asOf, with frozen supports and
     cash. No projection or tax estimate. Active operations stop at asOf. At most
-    60 calendar years, 5000 history operations, 2000 operations per year and 20
+    60 calendar years, 10000 history operations, 2000 operations per year and 20
     source previews. Served rates are recorded percentages, never contract
     returns.
   tags:

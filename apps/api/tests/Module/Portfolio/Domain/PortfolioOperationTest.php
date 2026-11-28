@@ -101,6 +101,23 @@ final class PortfolioOperationTest extends TestCase
         self::assertSame('0.00', $details->taxes?->toString());
     }
 
+    public function testAStoredRowIsReadBackWithoutReplayingTheRules(): void
+    {
+        $stored = new OperationDetails(
+            type: OperationType::DEPOSIT,
+            tradeDate: new \DateTimeImmutable('2026-03-01', new \DateTimeZone('UTC')),
+            settlementDate: new \DateTimeImmutable('2026-04-10', new \DateTimeZone('UTC')),
+            instrumentId: null, counterInstrumentId: null, quantity: null, unitPrice: null,
+            grossAmount: DecimalValue::fromString('10'), fees: null, taxes: null, costBasis: null, counterQuantity: null,
+            ratioNumerator: null, ratioDenominator: null, costAllocationRatio: null, reference: '  REF  ', note: null, linkedTransactionId: null,
+            stored: true,
+        );
+
+        self::assertSame('2026-04-10', $stored->settlementDate?->format('Y-m-d'));
+        self::assertSame('10', $stored->grossAmount?->toString());
+        self::assertSame('REF', $stored->reference);
+    }
+
     public function testTextIsTrimmed(): void
     {
         $details = self::buy(reference: '  REF-1  ', note: ' hello ');

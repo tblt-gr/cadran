@@ -105,6 +105,25 @@ final class MonthEndValuationReminderControllerTest extends WebTestCase
         self::assertSame('2026-09-30', $this->reminders()['today']);
     }
 
+    public function testTheRemindersAndTheValuationHistoryFollowTheLocalDayAtTwentyThreeThirtyUtc(): void
+    {
+        $this->opened('2026-09-01');
+        // 23:30 UTC on 30 September is already 1 October in Paris.
+        $this->at('2026-09-30T23:30:00+00:00');
+
+        self::assertSame('2026-10-01', $this->reminders()['today']);
+        self::assertSame(['2026-09'], $this->months());
+        $this->client->request('GET', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-valuation-history', server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseStatusCodeSame(200);
+        $history = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertIsArray($history);
+        self::assertSame('2026-10-01', $history['to']);
+        $this->client->request('GET', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-valuation-history?to=2026-10-01', server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseStatusCodeSame(200);
+        $this->client->request('GET', '/api/v1/accounts/'.self::ACCOUNT.'/portfolio-valuation-history?to=2026-10-02', server: ['HTTP_ACCEPT' => 'application/json']);
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testTheWindowIsTwelveMonthsBackAndNeverBeforeTheOpeningMonth(): void
     {
         $this->opened('2020-01-01');

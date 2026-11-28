@@ -4,8 +4,39 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Portfolio\UI\Http;
 
+use App\Module\Accounts\Infrastructure\Persistence\DbalAccountRepository;
+use App\Module\Foundation\Application\CallerWorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Foundation\Application\WorkspaceTimezoneReader;
+use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Module\Portfolio\Application\Performance\AnnualPerformanceMonth;
+use App\Module\Portfolio\Application\Performance\ComputeModifiedDietz;
+use App\Module\Portfolio\Application\Performance\ComputeMoneyWeightedReturn;
+use App\Module\Portfolio\Application\Performance\ComputePortfolioPerformance;
+use App\Module\Portfolio\Application\Performance\ComputeTimeWeightedReturn;
+use App\Module\Portfolio\Application\Performance\PerformanceFigureFactory;
+use App\Module\Portfolio\Application\Performance\PerformancePeriodBuilder;
+use App\Module\Portfolio\Application\Performance\ReadPortfolioAnnualPerformance;
+use App\Module\Portfolio\Application\Performance\ReadPortfolioPerformance;
+use App\Module\Portfolio\Application\PortfolioAccountGate;
+use App\Module\Portfolio\Application\PortfolioValuationPresenter;
+use App\Module\Portfolio\Application\PositionsChangedDetector;
+use App\Module\Portfolio\Application\ReconcilePortfolioPositions;
+use App\Module\Portfolio\Domain\Performance\ModifiedDietzCalculator;
+use App\Module\Portfolio\Domain\Performance\MoneyWeightedReturnCalculator;
+use App\Module\Portfolio\Domain\Performance\MoneyWeightedReturnSolver;
+use App\Module\Portfolio\Domain\Performance\TimeWeightedReturnCalculator;
+use App\Module\Portfolio\Domain\Performance\TotalGainCalculator;
+use App\Module\Portfolio\Domain\PortfolioOperationRepository;
+use App\Module\Portfolio\Domain\Positions\PositionLedger;
+use App\Module\Portfolio\Infrastructure\Persistence\DbalInstrumentRepository;
+use App\Module\Portfolio\Infrastructure\Persistence\DbalPortfolioOperationRepository;
+use App\Module\Portfolio\Infrastructure\Persistence\DbalPortfolioTakeoverRepository;
+use App\Module\Portfolio\Infrastructure\Persistence\DbalValuationRepository;
+use App\Module\Reference\Application\AssetCatalog;
 use App\Tests\Support\PortfolioFixture;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -87,6 +118,34 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         self::assertSame(['CALCULATED', 'CALCULATED', 'CALCULATED'], [$months[1]['status'], $months[2]['status'], $months[3]['status']]);
         self::assertEquals($this->expectedLine($this->single('YEAR', '2026')), self::without(self::map($annual['yearTotal']), ['deposits', 'withdrawals']));
         self::assertEquals($this->expectedLine($this->single('INCEPTION', null)), self::without(self::map($annual['inception']), ['deposits', 'withdrawals']));
+    }
+
+    public function testTheAnnualReadLoadsTheHistoryOnceAndItsMonthsEqualTheSingleMonthRead(): void
+    {
+        $this->seedThroughApril();
+        $stored = self::service(DbalPortfolioOperationRepository::class);
+        $loads = 0;
+        $operations = $this->createMock(PortfolioOperationRepository::class);
+        $operations->method('countActive')->willReturnCallback($stored->countActive(...));
+        $operations->expects(self::exactly(5))->method('activeForAccount')->willReturnCallback(
+            static function (WorkspaceScope $workspace, string $accountId, ?\DateTimeImmutable $asOf = null) use ($stored, &$loads): array {
+                ++$loads;
+
+                return $stored->activeForAccount($workspace, $accountId, $asOf);
+            },
+        );
+        [$annual, $single] = $this->performanceReads($operations);
+
+        $year = $annual(self::ACCOUNT, '2026');
+
+        self::assertSame(1, $loads, 'twelve months, the year and the whole life share one read of the history');
+        foreach (array_slice($year->months, 0, 4) as $month) {
+            // One load per single-month read: with the annual one, the five expected.
+            self::assertEquals($single(self::ACCOUNT, 'MONTH', $month->month), $month->performance, $month->month);
+        }
+        foreach (array_slice($year->months, 4) as $month) {
+            self::assertSame(AnnualPerformanceMonth::FUTURE, $month->status);
+        }
     }
 
     public function testTheReferenceMonthShowsItsFlowsAndEndCash(): void
@@ -240,7 +299,7 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
                 state, created_at, created_by, version)
             SELECT ('00000000-0000-7000-8000-' || lpad(to_hex(n), 12, '0'))::uuid, ?::uuid, ?::uuid, 'DEPOSIT', '2026-03-10'::date, n, 'EUR',
                 1, 0, 0, 0, 0, 0, 1, 0, 'ACTIVE', now(), ?::uuid, 1
-            FROM generate_series(1, 5001) AS n
+            FROM generate_series(1, 10001) AS n
             SQL, [WorkspaceFixture::OWN_WORKSPACE, self::ACCOUNT, WorkspaceFixture::OWNER_ID]);
 
         $this->get('/api/v1/accounts/'.self::ACCOUNT.'/portfolio-performance/annual?year=2026');
@@ -328,6 +387,52 @@ final class PortfolioAnnualPerformanceControllerTest extends WebTestCase
         }
 
         return sprintf('%s%d.%02d', $cents < 0 ? '-' : '', intdiv(abs($cents), 100), abs($cents) % 100);
+    }
+
+    /**
+     * The annual and the single-period reads assembled by hand around the given operation repository.
+     *
+     * @return array{ReadPortfolioAnnualPerformance, ReadPortfolioPerformance}
+     */
+    private function performanceReads(PortfolioOperationRepository $operations): array
+    {
+        $caller = $this->createStub(CallerWorkspaceContext::class);
+        $caller->method('resolveContext')->willReturn(new WorkspaceContext(WorkspaceFixture::own(), WorkspaceFixture::OWNER_ID));
+        $timezones = $this->createStub(WorkspaceTimezoneReader::class);
+        $timezones->method('timezone')->willReturn('Europe/Paris');
+        $calendar = new WorkspaceCalendar(new MockClock('2026-04-30T12:00:00+00:00'), $caller, $timezones);
+        $gate = new PortfolioAccountGate(self::service(DbalAccountRepository::class));
+        $valuations = self::service(DbalValuationRepository::class);
+        $takeovers = self::service(DbalPortfolioTakeoverRepository::class);
+        $assets = self::service(AssetCatalog::class);
+        $reconcile = new ReconcilePortfolioPositions($operations, self::service(DbalInstrumentRepository::class), new PositionLedger());
+        $presenter = new PortfolioValuationPresenter(self::service(DbalInstrumentRepository::class), $assets, new PositionsChangedDetector($reconcile));
+        $builder = new PerformancePeriodBuilder($valuations, $operations, $presenter, $assets, $takeovers);
+        $compute = new ComputePortfolioPerformance(
+            $builder, $reconcile, new TotalGainCalculator(), new ComputeModifiedDietz($builder, new ModifiedDietzCalculator()),
+            new ComputeTimeWeightedReturn($valuations, $presenter, new TimeWeightedReturnCalculator()),
+            new ComputeMoneyWeightedReturn(new MoneyWeightedReturnCalculator(new MoneyWeightedReturnSolver())), new PerformanceFigureFactory(),
+        );
+
+        return [
+            new ReadPortfolioAnnualPerformance($caller, $gate, $calendar, $builder, $compute, $takeovers),
+            new ReadPortfolioPerformance($caller, $gate, $calendar, $compute),
+        ];
+    }
+
+    /**
+     * @template T of object
+     *
+     * @param class-string<T> $class
+     *
+     * @return T
+     */
+    private static function service(string $class): object
+    {
+        $service = self::getContainer()->get($class);
+        self::assertInstanceOf($class, $service);
+
+        return $service;
     }
 
     private function seedThroughApril(): void

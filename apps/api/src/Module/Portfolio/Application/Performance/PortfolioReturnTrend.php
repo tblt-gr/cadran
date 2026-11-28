@@ -32,11 +32,12 @@ final readonly class PortfolioReturnTrend
     {
         $window = ReturnTrend::windowBefore($today);
         try {
-            $history = $this->builder->history($workspace, $account);
+            $series = $this->builder->series($workspace, $account);
         } catch (PerformanceRangeTooDense) {
             // One heavy account must not take the whole list down: only its own trend is unavailable.
             return ReturnTrend::unavailable($window, ReturnTrendReason::TOO_MANY_OPERATIONS);
         }
+        $history = $series->history;
         if ([] === $history) {
             return ReturnTrend::compute($window, array_fill(0, ReturnTrend::MONTHS, null), ReturnTrend::MONTHS);
         }
@@ -58,7 +59,7 @@ final readonly class PortfolioReturnTrend
 
                 continue;
             }
-            $rate = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::MONTH->value, $month, $today, $account->openedOn), $today, $history)
+            $rate = ($this->compute)($workspace, $account, PerformancePeriod::of(PerformanceScope::MONTH->value, $month, $today, $account->openedOn), $today, $series)
                 ->modifiedDietz->unroundedRate;
             $rates[] = $rate?->toString();
         }

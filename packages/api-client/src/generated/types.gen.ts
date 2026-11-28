@@ -293,6 +293,9 @@ export type HoldingsTotals = {
     knownCost: HoldingsKnownCostFigures | null;
 };
 
+/**
+ * A system bucket (UNSPLIT, UNSPECIFIED) carries its key as label, which the client translates. Instrument names, account labels, class and region codes are carried as they are.
+ */
 export type HoldingAllocationSlice = {
     key: string;
     label: string;
@@ -461,6 +464,9 @@ export type PortfolioOverviewSummary = {
     };
 };
 
+/**
+ * A system bucket (SECURITIES, CASH, UNSPECIFIED, OTHERS) carries its key as label, which the client translates. Instrument names, class, region and currency codes are carried as they are.
+ */
 export type PortfolioAllocationItem = {
     key: string;
     label: string;
@@ -5720,7 +5726,10 @@ export type PortfolioValuationSummary = {
     accountId: string;
     valuedOn: string;
     detail: PortfolioValuationDetail;
-    source: 'MANUAL' | 'IMPORT';
+    /**
+     * REFRESH and TAKEOVER are recorded by the server itself, after an operation or when the account took over its positions; such a valuation has no note. A request body cannot set the source.
+     */
+    source: 'MANUAL' | 'IMPORT' | 'REFRESH' | 'TAKEOVER';
     /**
      * Null when the valuation is partial: never zero by default.
      */

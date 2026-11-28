@@ -6,6 +6,7 @@ namespace App\Tests\Module\Portfolio\Application;
 
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Portfolio\Application\LoadedOperationHistory;
 use App\Module\Portfolio\Application\PositionsChangedDetector;
 use App\Module\Portfolio\Application\ReconcilePortfolioPositions;
 use App\Module\Portfolio\Domain\AssetClass;
@@ -88,6 +89,32 @@ final class PositionsChangedDetectorTest extends TestCase
     }
 
     #[Test]
+    public function aLoadedHistoryGivesTheSameQuantitiesWithoutReadingItAgain(): void
+    {
+        $history = [
+            $this->buy('01', '2026-01-02', '10'),
+            $this->buy('02', '2026-01-20', '5'),
+            $this->operation('03', OperationType::SELL, '2026-02-10', '30', gross: '300.00'),
+        ];
+        $days = array_map(static fn (string $day): \DateTimeImmutable => new \DateTimeImmutable($day, new \DateTimeZone('UTC')),
+            ['2026-03-31', '2026-01-01', '2026-01-02', '2026-01-19', '2026-01-20', '2026-02-09', '2026-02-10']);
+        $reading = $this->createStub(PortfolioOperationRepository::class);
+        $reading->method('activeForAccount')->willReturn($history);
+        $expected = $this->reconcile($reading)->quantitiesAt(WorkspaceFixture::own(), self::ACCOUNT, $days);
+
+        $operations = $this->createMock(PortfolioOperationRepository::class);
+        $operations->expects(self::never())->method('activeForAccount');
+        $reconcile = $this->reconcile($operations);
+        $loaded = new LoadedOperationHistory($history);
+        $reconcile->quantitiesAt(WorkspaceFixture::own(), self::ACCOUNT, [$days[1]], $loaded);
+        $actual = $reconcile->quantitiesAt(WorkspaceFixture::own(), self::ACCOUNT, $days, $loaded);
+
+        self::assertEquals($expected, $actual);
+        self::assertNull($actual['2026-02-10']);
+        self::assertSame([], $actual['2026-01-01']);
+    }
+
+    #[Test]
     public function noValuationMeansNoReplay(): void
     {
         $operations = $this->createMock(PortfolioOperationRepository::class);
@@ -98,6 +125,11 @@ final class PositionsChangedDetectorTest extends TestCase
 
     private function detector(PortfolioOperationRepository $operations): PositionsChangedDetector
     {
+        return new PositionsChangedDetector($this->reconcile($operations));
+    }
+
+    private function reconcile(PortfolioOperationRepository $operations): ReconcilePortfolioPositions
+    {
         $now = new \DateTimeImmutable('2026-01-01T10:00:00Z');
         $instruments = $this->createStub(InstrumentRepository::class);
         $instruments->method('findMany')->willReturn([new Instrument(
@@ -106,7 +138,7 @@ final class PositionsChangedDetectorTest extends TestCase
             null, $now, WorkspaceFixture::OWNER_ID, $now, 1,
         )]);
 
-        return new PositionsChangedDetector(new ReconcilePortfolioPositions($operations, $instruments, new PositionLedger()));
+        return new ReconcilePortfolioPositions($operations, $instruments, new PositionLedger());
     }
 
     private function buy(string $suffix, string $date, string $quantity): PortfolioOperation

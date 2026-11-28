@@ -1,4 +1,8 @@
 type: object
+description: >-
+  A system bucket (UNSPLIT, UNSPECIFIED) carries its key as label, which the
+  client translates. Instrument names, account labels, class and region codes are
+  carried as they are.
 additionalProperties: false
 required:
   - key

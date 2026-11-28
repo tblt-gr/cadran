@@ -636,9 +636,26 @@ final class PortfolioPerformanceControllerTest extends WebTestCase
         self::assertSame('101.00', $performance['netFlows']);
     }
 
+    /** @return iterable<string, array{int}> */
+    public static function operationCountsWithinTheBound(): iterable
+    {
+        yield 'just above the former bound' => [5001];
+        yield 'the active operation limit of an account' => [10000];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('operationCountsWithinTheBound')]
+    public function testAnAccountWithinTheOperationLimitIsRead(int $count): void
+    {
+        $this->seedOperations($count, '2026-03-10');
+
+        $this->get($this->url('MONTH', '2026-03'));
+
+        self::assertResponseStatusCodeSame(200);
+    }
+
     public function testAnAccountOverTheOperationBoundIsRefused(): void
     {
-        $this->seedOperations(5001, '2026-03-10');
+        $this->seedOperations(10001, '2026-03-10');
 
         $this->get($this->url('MONTH', '2026-03'));
 

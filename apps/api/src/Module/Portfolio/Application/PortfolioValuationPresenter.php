@@ -21,11 +21,13 @@ final readonly class PortfolioValuationPresenter
     }
 
     /**
-     * @param list<Valuation> $valuations
+     * @param list<Valuation>             $valuations
+     * @param LoadedOperationHistory|null $loaded     the history already read, when every valuation is of that one
+     *                                                account and none is dated after it
      *
      * @return list<ValuationView>
      */
-    public function present(WorkspaceScope $workspace, array $valuations): array
+    public function present(WorkspaceScope $workspace, array $valuations, ?LoadedOperationHistory $loaded = null): array
     {
         $ids = [];
         foreach ($valuations as $valuation) {
@@ -38,7 +40,7 @@ final readonly class PortfolioValuationPresenter
             $instruments[$instrument->id] = $instrument;
         }
 
-        $changed = $this->changedIdentifiers($workspace, $valuations);
+        $changed = $this->changedIdentifiers($workspace, $valuations, $loaded);
         $views = [];
         foreach ($valuations as $valuation) {
             $precision = ($this->assets->findByCode($valuation->assetCode) ?? throw new \LogicException('A valuation asset is missing from the reference.'))->precision->display;
@@ -58,7 +60,7 @@ final readonly class PortfolioValuationPresenter
      *
      * @return array<string, bool> active valuation identifier => its positions changed, one replay per account
      */
-    private function changedIdentifiers(WorkspaceScope $workspace, array $valuations): array
+    private function changedIdentifiers(WorkspaceScope $workspace, array $valuations, ?LoadedOperationHistory $loaded): array
     {
         $byAccount = [];
         foreach ($valuations as $valuation) {
@@ -68,7 +70,7 @@ final readonly class PortfolioValuationPresenter
         }
         $changed = [];
         foreach ($byAccount as $accountId => $active) {
-            $changed += $this->changed->changedAmong($workspace, (string) $accountId, $active);
+            $changed += $this->changed->changedAmong($workspace, (string) $accountId, $active, $loaded);
         }
 
         return $changed;

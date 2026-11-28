@@ -1,9 +1,10 @@
 import type { Account } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import '@/i18n';
+import i18n from '@/i18n';
+import english from '@/locales/en/translation.json';
 import {
   draftFixture,
   positionsValuationFixture,
@@ -129,6 +130,8 @@ afterEach(() => {
   vi.useRealTimers();
   vi.clearAllMocks();
 });
+
+i18n.addResourceBundle('en', 'translation', english);
 
 describe('ValuationsTab month end', () => {
   it('proposes the oldest due month end, then titles the draft with its date', async () => {
@@ -403,6 +406,35 @@ describe('ValuationsTab', () => {
     const lines = within(positions).getAllByRole('row');
     expect(lines[1]?.textContent).toContain('Action Démo Industrie');
     expect(lines[2]?.textContent).toMatch(/2\s314,521/);
+  });
+
+  it.each([
+    ['fr', 'REFRESH', 'Origine', 'Mise à jour après une opération'],
+    ['fr', 'TAKEOVER', 'Origine', 'Reprise des positions'],
+    ['en', 'REFRESH', 'Origin', 'Updated after an operation'],
+    ['en', 'TAKEOVER', 'Origin', 'Position takeover'],
+  ] as const)('names the %s origin of a %s valuation', async (language, source, label, origin) => {
+    api.readPortfolioValuation.mockImplementation(() => ok(positionsValuationFixture({ source })));
+    renderTab();
+    await loaded();
+    await act(() => i18n.changeLanguage(language));
+    try {
+      fireEvent.click(valuationRow(0));
+      const dialog = await screen.findByRole('dialog');
+      expect((await within(dialog).findByText(label)).nextElementSibling?.textContent).toBe(origin);
+    } finally {
+      await act(() => i18n.changeLanguage('fr'));
+    }
+  });
+
+  it('shows no origin for a valuation the owner recorded', async () => {
+    api.readPortfolioValuation.mockImplementation(() => ok(positionsValuationFixture()));
+    renderTab();
+    await loaded();
+    fireEvent.click(valuationRow(0));
+    const dialog = await screen.findByRole('dialog');
+    await within(dialog).findByText('Tolérance');
+    expect(within(dialog).queryByText('Origine')).toBeNull();
   });
 
   it('shows Non détaillé for the price columns of a TOTAL valuation', async () => {

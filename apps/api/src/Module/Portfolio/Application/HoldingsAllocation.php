@@ -34,7 +34,7 @@ final class HoldingsAllocation
         $unsplitSlice = [];
         $unsplitSecurities = HoldingsAggregator::sum(array_map(static fn (array $account): ?string => $account['securitiesValue'], $unsplit));
         if (null !== $unsplitSecurities && ExactDecimal::compareForResponse($unsplitSecurities, '0') > 0) {
-            $unsplitSlice = [['key' => 'UNSPLIT', 'label' => 'Comptes valorisés en total', 'value' => $unsplitSecurities]];
+            $unsplitSlice = [['key' => 'UNSPLIT', 'label' => 'UNSPLIT', 'value' => $unsplitSecurities]];
         }
         $byAccount = [];
         foreach ($summaries as $summary) {
@@ -60,7 +60,7 @@ final class HoldingsAllocation
         $buckets = [];
         foreach ($items as $item) {
             $key = $by($item) ?? 'UNSPECIFIED';
-            $buckets[$key] = ['key' => $key, 'label' => 'UNSPECIFIED' === $key ? 'Non renseignée' : $key,
+            $buckets[$key] = ['key' => $key, 'label' => $key,
                 'value' => ExactDecimal::addForResponse($buckets[$key]['value'] ?? '0', $item->value ?? throw new \LogicException('A known securities value has known lines.'))];
         }
         $groups = array_values($buckets);

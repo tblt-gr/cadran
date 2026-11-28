@@ -69,7 +69,7 @@ final readonly class CorrectPortfolioOperation
             $replacement = $this->recorder->record($context, $account, $resolved, $now, $original->id,
                 $original->details->tradeDate == $newTradeDate ? $original->sequence : null,
             );
-            if (OperationValuationEffect::followed($original->details) && OperationValuationEffect::followed($replacement->details)) {
+            if (OperationValuationEffect::followed($original->details) || OperationValuationEffect::followed($replacement->details)) {
                 ($this->refreshValuation)(
                     $context->workspace, $account,
                     OperationValuationEffect::net(OperationValuationEffect::quantityChanges($replacement->details), OperationValuationEffect::quantityChanges($original->details, -1)),

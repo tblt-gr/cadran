@@ -7,11 +7,10 @@ namespace App\Module\Portfolio\Application;
 use App\Module\Accounts\Application\AccountView;
 use App\Module\Accounts\Application\AssertPeriodOpen;
 use App\Module\Accounts\Domain\CalendarMonth;
-use App\Module\Foundation\Application\WorkspaceTimezoneReader;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Portfolio\Domain\Valuation\DueMonthWindow;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Month-end valuations still owed, computed from source data on every read and
@@ -21,20 +20,16 @@ use Symfony\Component\Clock\ClockInterface;
 final readonly class PortfolioDueMonths
 {
     public function __construct(
-        private ClockInterface $clock,
-        private WorkspaceTimezoneReader $timezones,
+        private WorkspaceCalendar $calendar,
         private AssertPeriodOpen $periods,
         private ValuationRepository $valuations,
     ) {
     }
 
     /** The calendar day of the workspace, from its own time zone and never the server's. */
-    public function today(WorkspaceScope $workspace): \DateTimeImmutable
+    public function today(): \DateTimeImmutable
     {
-        return new \DateTimeImmutable(
-            $this->clock->now()->setTimezone(new \DateTimeZone($this->timezones->timezone($workspace)))->format('Y-m-d'),
-            new \DateTimeZone('UTC'),
-        );
+        return $this->calendar->today();
     }
 
     /**

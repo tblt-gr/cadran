@@ -23,7 +23,7 @@ use App\Module\Portfolio\Domain\PortfolioOperation;
 
 /**
  * Modified Dietz of a requested period: one Dietz for a month, and for a year or the whole life the geometric chain
- * of the monthly ones, each month resolved like a MONTH request on the history read once.
+ * of the monthly ones, each month resolved like a MONTH request, once per series.
  */
 final readonly class ComputeModifiedDietz
 {
@@ -33,7 +33,7 @@ final readonly class ComputeModifiedDietz
     ) {
     }
 
-    public function __invoke(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, PerformancePeriodData $data, \DateTimeImmutable $today): ModifiedDietzFigure
+    public function __invoke(WorkspaceScope $workspace, Account $account, PerformancePeriod $period, PerformancePeriodData $data, \DateTimeImmutable $today, PerformanceSeries $series): ModifiedDietzFigure
     {
         $start = $data->start;
         $end = $data->end;
@@ -52,7 +52,7 @@ final readonly class ComputeModifiedDietz
         [$first, $count] = self::span($account, $period, $data);
         $initialMonth = null;
         if (PerformanceScope::INCEPTION === $period->scope && AnchorKind::VALUATION === $start->kind) {
-            $initialMonth = $this->initialObservedMonth($workspace, $account, $first->format('Y-m'), $today, $data);
+            $initialMonth = $this->initialObservedMonth($workspace, $account, $first->format('Y-m'), $today, $data, $series);
             if (null === $initialMonth) {
                 $first = $first->modify('+1 month');
                 --$count;
@@ -75,7 +75,7 @@ final readonly class ComputeModifiedDietz
         foreach ($labels as $label) {
             $month = PerformanceScope::INCEPTION === $period->scope && AnchorKind::VALUATION === $start->kind && $label === $start->date->format('Y-m')
                 ? $initialMonth
-                : $this->month($workspace, $account, $label, $today, $data->history);
+                : $this->month($workspace, $account, $label, $today, $series);
             if (null === $month) {
                 continue;
             }
@@ -101,10 +101,10 @@ final readonly class ComputeModifiedDietz
     }
 
     /** The observation month contributes only when a later complete anchor exists in that month. */
-    private function initialObservedMonth(WorkspaceScope $workspace, Account $account, string $label, \DateTimeImmutable $today, PerformancePeriodData $data): ?ModifiedDietz
+    private function initialObservedMonth(WorkspaceScope $workspace, Account $account, string $label, \DateTimeImmutable $today, PerformancePeriodData $data, PerformanceSeries $series): ?ModifiedDietz
     {
         $period = PerformancePeriod::of(PerformanceScope::MONTH->value, $label, $today, $account->openedOn);
-        $month = $this->builder->build($workspace, $account, $period, $today, $data->history);
+        $month = $this->builder->build($workspace, $account, $period, $today, $series);
         $start = $data->start ?? throw new \LogicException('An observed period has a start.');
         $end = $month->end;
         if (null === $end || $end->date <= $start->date) {
@@ -116,11 +116,10 @@ final readonly class ComputeModifiedDietz
         return new ModifiedDietz($result->rate, $result->averageCapital, $result->reason, $result->weights, $result->weightCount, $result->blocking, [...$month->warnings, ...$result->warnings]);
     }
 
-    /** @param list<PortfolioOperation> $history */
-    private function month(WorkspaceScope $workspace, Account $account, string $label, \DateTimeImmutable $today, array $history): ModifiedDietz
+    private function month(WorkspaceScope $workspace, Account $account, string $label, \DateTimeImmutable $today, PerformanceSeries $series): ModifiedDietz
     {
         $period = PerformancePeriod::of(PerformanceScope::MONTH->value, $label, $today, $account->openedOn);
-        $data = $this->builder->build($workspace, $account, $period, $today, $history);
+        $data = $this->builder->build($workspace, $account, $period, $today, $series);
         if (null === $data->start || null === $data->end || !$data->isCalculable()) {
             $blocking = $data->blocking;
 

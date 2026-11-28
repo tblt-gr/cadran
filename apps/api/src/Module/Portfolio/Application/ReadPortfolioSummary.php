@@ -60,7 +60,7 @@ final readonly class ReadPortfolioSummary
         $costs = array_values(array_filter($range, static fn (PortfolioOperation $operation): bool => (null !== $operation->details->fees && !ExactDecimal::isZero($operation->details->fees)) || (null !== $operation->details->taxes && !ExactDecimal::isZero($operation->details->taxes))));
         $accountView = AccountView::fromAccount($account);
         $workspace = $this->caller->resolveContext()->workspace;
-        $dueMonths = ($this->dueMonths)($workspace, [$accountView], $this->dueMonths->today($workspace))[$accountId] ?? [];
+        $dueMonths = ($this->dueMonths)($workspace, [$accountView], $this->dueMonths->today())[$accountId] ?? [];
 
         return [
             'asOf' => $to,

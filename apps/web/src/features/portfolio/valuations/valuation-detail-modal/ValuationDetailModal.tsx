@@ -121,6 +121,11 @@ export function ValuationDetailModal({
             <Row label={t('portfolio.lifeInsurance.explain.tolerance')}>
               {value((v) => exact(v.tolerance))}
             </Row>
+            {valuation?.source === 'REFRESH' || valuation?.source === 'TAKEOVER' ? (
+              <Row label={t('portfolio.valuations.common.origin.label')}>
+                <span>{t(`portfolio.valuations.common.origin.${valuation.source}`)}</span>
+              </Row>
+            ) : null}
             {valuation?.note ? (
               <Row label={t('portfolio.valuations.common.note')}>{valuation.note}</Row>
             ) : null}

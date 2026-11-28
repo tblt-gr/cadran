@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application\Performance;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Portfolio\Application\LoadedOperationHistory;
 use App\Module\Portfolio\Application\PortfolioValuationPresenter;
 use App\Module\Portfolio\Domain\Performance\PerformanceScope;
 use App\Module\Portfolio\Domain\Performance\PeriodAnchor;
@@ -13,12 +14,11 @@ use App\Module\Portfolio\Domain\Performance\TimeWeightedReturnCalculator;
 use App\Module\Portfolio\Domain\Valuation\Valuation;
 use App\Module\Portfolio\Domain\Valuation\ValuationCompleteness;
 use App\Module\Portfolio\Domain\Valuation\ValuationRepository;
+use App\Module\Portfolio\Domain\Valuation\ValuationRules;
 
 /** Loads active complete observations once; a missing flow-day observation is never filled from another day. */
 final readonly class ComputeTimeWeightedReturn
 {
-    private const int MAX_VALUATIONS = 5000;
-
     public function __construct(
         private ValuationRepository $valuations,
         private PortfolioValuationPresenter $presenter,
@@ -26,21 +26,21 @@ final readonly class ComputeTimeWeightedReturn
     ) {
     }
 
-    public function __invoke(WorkspaceScope $workspace, string $accountId, PerformanceScope $scope, PerformancePeriodData $data): TimeWeightedReturn
+    public function __invoke(WorkspaceScope $workspace, string $accountId, PerformanceScope $scope, PerformancePeriodData $data, LoadedOperationHistory $loaded): TimeWeightedReturn
     {
         if (!$data->isCalculable() || null === $data->start || null === $data->end) {
             return new TimeWeightedReturn(null, [], 0, 0, $data->blocking, $data->warnings);
         }
         $from = $data->start->date;
         $to = $data->end->date;
-        if ($this->valuations->count($workspace, $accountId, $from, $to) > self::MAX_VALUATIONS) {
+        if ($this->valuations->count($workspace, $accountId, $from, $to) > ValuationRules::MAX_ACTIVE_PER_ACCOUNT) {
             throw new PerformanceRangeTooDense('The portfolio valuations exceed the performance read bound.');
         }
-        $active = $this->valuations->search($workspace, $accountId, $from, $to, self::MAX_VALUATIONS, 0);
+        $active = $this->valuations->search($workspace, $accountId, $from, $to, ValuationRules::MAX_ACTIVE_PER_ACCOUNT, 0);
         $complete = array_values(array_filter($active, static fn (Valuation $valuation): bool => $valuation->isActive() && ValuationCompleteness::COMPLETE === $valuation->completeness));
         $anchors = [];
         $months = [];
-        foreach ($this->presenter->present($workspace, $complete) as $view) {
+        foreach ($this->presenter->present($workspace, $complete, $loaded) as $view) {
             $valuation = $view->valuation;
             $anchor = PeriodAnchor::valuation(
                 $valuation->id, $valuation->valuedOn,

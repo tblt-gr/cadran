@@ -1,10 +1,12 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import '@/i18n';
+import i18n from '@/i18n';
+import english from '@/locales/en/translation.json';
 import { allTotalHoldings, holdingsFixture } from '@/features/investments/holdingsFixture';
 import { HoldingsAllocationCard } from './HoldingsAllocationCard';
 
 afterEach(cleanup);
+i18n.addResourceBundle('en', 'translation', english);
 
 describe('HoldingsAllocationCard', () => {
   it('lists the asset classes in a captioned legend table and switches criterion', () => {
@@ -61,6 +63,21 @@ describe('HoldingsAllocationCard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Actif' }));
     expect(within(table).getByText('Comptes valorisés en total')).toBeTruthy();
     expect(within(table).getByText(/800,00/)).toBeTruthy();
+  });
+
+  it('translates the unsplit and unspecified buckets in English', async () => {
+    await act(() => i18n.changeLanguage('en'));
+    try {
+      render(<HoldingsAllocationCard holdings={allTotalHoldings()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Asset' }));
+      expect(screen.getByText('Accounts valued as a total')).toBeTruthy();
+      cleanup();
+      render(<HoldingsAllocationCard holdings={holdingsFixture()} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Region' }));
+      expect(screen.getByText('Not specified')).toBeTruthy();
+    } finally {
+      await act(() => i18n.changeLanguage('fr'));
+    }
   });
 
   it('keeps the asset class default when lines are held', () => {
