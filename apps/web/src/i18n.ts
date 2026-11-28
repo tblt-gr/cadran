@@ -46,7 +46,6 @@ export function i18nOptions(resource: Resource[string], language: Language = DEF
     resources: { [language]: resource },
     lng: language,
     fallbackLng: DEFAULT_LANGUAGE,
-    showSupportNotice: false,
     interpolation: {
       escapeValue: false,
     },

@@ -28,6 +28,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 ### Security
 
+- i18next updated to patch a denial of service in deep translation merging.
 - Symfony components updated to patch the advisories published on 2026-11-25 (redirects and
   generated URLs reaching another host, access control rules, exception output).
 
