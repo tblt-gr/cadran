@@ -287,6 +287,16 @@ assert_no_leak() {
 target_short=$(git -C "$clone" rev-parse --short v0.11.0)
 previous_short=$(git -C "$clone" rev-parse --short v0.10.0)
 
+# --- A failed snapshot capture is reported, the upgrade stays -----------------
+reset_flow
+if ! STUB_FAIL=snapshots-capture flow upgrade v0.11.0; then
+    fail "a failed snapshot capture must not fail the upgrade: $(cat "$scratch/out")"
+fi
+grep -q 'snapshot capture failed' "$scratch/out" || fail 'a failed snapshot capture must be reported'
+grep -q '"finishedAt": "' "$clone/var/upgrade/last-upgrade.json" || fail 'the upgrade must be recorded as finished'
+[ ! -d "$clone/var/upgrade/lock" ] || fail 'the lock must be released after a failed capture'
+[ "$(git -C "$clone" rev-parse --short HEAD)" = "$target_short" ] || fail 'a failed capture must keep the installed tag'
+
 # --- Successful upgrade and rollback ------------------------------------------
 reset_flow
 if ! flow upgrade v0.11.0; then
@@ -299,7 +309,9 @@ assert_before 'the backup must be verified before the checkout' 'make db-backup-
 assert_before 'the app must be stopped before the migration' ' stop app ' 'make migrate'
 assert_before 'the migration must follow the build' ' build ' 'make migrate'
 assert_before 'the app must start after the migration' 'make migrate' ' up --detach --wait'
-assert_before 'the status must be read last' ' up --detach --wait' 'make status'
+assert_before 'the status must be read after the start' ' up --detach --wait' 'make status'
+assert_before 'the snapshots must be captured after the migration' 'make migrate' 'make snapshots-capture'
+assert_before 'the snapshots must be captured once the application is healthy' 'make status' 'make snapshots-capture'
 if ! grep -q "docker .* build head=$target_short version=0.11.0" "$flow_log"; then
     fail 'the image must be built with the version of the tag being installed'
 fi

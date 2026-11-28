@@ -20,9 +20,12 @@ use App\Module\Reporting\Application\MonthlyProjectionView;
 use App\Module\Reporting\Application\MonthlyProjector;
 use App\Module\Reporting\Application\ReadFirstDataMonth;
 use App\Module\Reporting\Application\RegroupMonthFigures;
+use App\Module\Reporting\Application\ResolvedMetricPolicy;
+use App\Module\Reporting\Application\ResolveMetricPolicy;
 use App\Module\Reporting\Application\WorkspaceToday;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
 use App\Tests\Module\Reporting\Application\Double\FixedGroupTree;
+use App\Tests\Module\Reporting\Application\Double\InMemoryMetricPolicyRepository;
 use App\Tests\Module\Reporting\Application\Double\InMemoryMonthSnapshotStore;
 use App\Tests\Module\Reporting\Application\Double\InMemoryPeriodClosureRepository;
 use App\Tests\Module\Reporting\Application\Double\MonthlyProjectionFixture;
@@ -85,6 +88,18 @@ final class ReportingGoalMonthSourceTest extends TestCase
         self::assertContains('2026-08', $excludedMonths);
     }
 
+    public function testARangeReturnsExactlyItsMonthsAcrossThirtyYears(): void
+    {
+        $months = $this->source([])->between(WorkspaceFixture::own(), new CalendarMonth(1997, 1), new CalendarMonth(2026, 12));
+
+        self::assertCount(360, $months);
+        self::assertSame('1997-01', $months[0]->month->key());
+        self::assertSame('2026-12', $months[359]->month->key());
+        self::assertSame(MonthState::NO_DATA, $months[0]->state);
+        self::assertSame(MonthState::FUTURE, $months[359]->state);
+        self::assertSame([], $this->source([])->between(WorkspaceFixture::own(), new CalendarMonth(2026, 3), new CalendarMonth(2026, 2)));
+    }
+
     /** @param array<string, string|null> $incomes month key => cash income, null for a complete month without value */
     private function source(array $incomes, ?string $incomeWithUpcoming = null): ReportingGoalMonthSource
     {
@@ -93,12 +108,14 @@ final class ReportingGoalMonthSourceTest extends TestCase
         $timezones = $this->createStub(WorkspaceTimezoneReader::class);
         $timezones->method('timezone')->willReturn('UTC');
 
+        $closures = new InMemoryPeriodClosureRepository();
         $load = new LoadAnnualMonths(
             new FixedIncomeProjector($incomes, $incomeWithUpcoming),
-            new InMemoryPeriodClosureRepository(),
+            $closures,
             new InMemoryMonthSnapshotStore(),
             $this->calendar(),
             new RegroupMonthFigures(new FixedGroupTree()),
+            new ResolveMetricPolicy(new InMemoryMetricPolicyRepository(), $closures, new MockClock('2026-09-14T09:12:00+00:00')),
         );
 
         return new ReportingGoalMonthSource($load, new ReadFirstDataMonth($first, new WorkspaceToday(new MockClock('2026-09-14T09:12:00+00:00'), $timezones)));
@@ -126,7 +143,7 @@ final readonly class FixedIncomeProjector implements MonthlyProjector
     {
     }
 
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false, ?ResolvedMetricPolicy $policy = null): MonthlyProjectionView
     {
         $income = array_key_exists($month->key(), $this->incomes) ? $this->incomes[$month->key()] : '2500.00';
         if ($includeUpcoming && null !== $this->incomeWithUpcoming) {

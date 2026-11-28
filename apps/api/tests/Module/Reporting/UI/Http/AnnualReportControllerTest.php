@@ -9,6 +9,7 @@ use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
 use App\Module\Reporting\Application\MonthFigures;
+use App\Tests\Support\CapturesSnapshots;
 use App\Tests\Support\ClosesPeriods;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
@@ -19,6 +20,7 @@ use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 final class AnnualReportControllerTest extends WebTestCase
 {
+    use CapturesSnapshots;
     use ClosesPeriods;
 
     private const string ACCOUNT = '00000000-0000-7000-8000-0000000000a1';
@@ -185,17 +187,51 @@ final class AnnualReportControllerTest extends WebTestCase
         self::assertSame('300.00', self::cell($row, 'budgetExpenses'));
     }
 
-    public function testAClosedMonthWithoutSnapshotIsCapturedByTheFirstRead(): void
+    public function testAClosedMonthWithoutSnapshotReadsTheSameCellsAsItsLaterCapturedSnapshot(): void
     {
         $this->signIn();
         $this->seedYear();
         $this->closeMonthInDatabase($this->connection, $this->year, 5);
 
-        $row = self::rows($this->annual($this->year))[4];
+        $live = self::rows($this->annual($this->year))[4];
 
-        self::assertTrue($row['snapshot']);
-        self::assertSame(1, $this->snapshotCount());
+        self::assertTrue($live['closed']);
+        self::assertFalse($live['snapshot']);
+        self::assertSame(0, $this->snapshotCount());
+
+        $this->captureSnapshots();
         self::assertSame(1, $this->connection->fetchOne('SELECT policy_version FROM reporting_month_snapshots'));
+        $frozen = self::rows($this->annual($this->year))[4];
+
+        self::assertTrue($frozen['snapshot']);
+        self::assertSame($live['cells'], $frozen['cells']);
+        self::assertSame($live['policyVersion'], $frozen['policyVersion']);
+    }
+
+    public function testReadingReportsAndGoalStatusesNeverWritesASnapshotRow(): void
+    {
+        $this->signIn();
+        $this->seedYear();
+        $this->closeMonthInDatabase($this->connection, $this->year, 3);
+        $this->closeMonthInDatabase($this->connection, $this->year, 4);
+        $this->captureSnapshots();
+        // Month 3 keeps a legacy payload, month 4 loses its closure, month 5 is closed without snapshot.
+        $this->connection->executeStatement("UPDATE reporting_month_snapshots SET payload = payload - 'accountWeights' WHERE month = ?", [$this->year.'-03']);
+        $this->connection->executeStatement("UPDATE account_period_closures SET reopened_at = now(), reopen_reason = 'Corrections', version = 2 WHERE year = ? AND month = 4", [$this->year]);
+        $this->closeMonthInDatabase($this->connection, $this->year, 5);
+        $before = $this->snapshotRows();
+        $this->call('POST', '/api/v1/goals', [
+            'label' => 'Savings', 'periodicity' => 'MONTHLY', 'metric' => 'NET_SAVINGS_TRANSFERS', 'scope' => ['type' => 'WORKSPACE', 'ref' => null],
+            'startPeriod' => $this->year.'-01', 'endPeriod' => null, 'valueType' => 'AMOUNT', 'targetAmount' => ['value' => '800.00', 'assetCode' => 'EUR'],
+        ]);
+        self::assertResponseStatusCodeSame(201);
+        $goal = self::text(self::fields(json_decode((string) $this->client->getResponse()->getContent(), true))['id']);
+
+        $this->annual($this->year);
+        $this->get(sprintf('/api/v1/reports/multi-year?from=%d&to=%d', $this->year - 14, $this->year));
+        $this->get('/api/v1/goals/'.$goal.'/status?year='.$this->year);
+
+        self::assertSame($before, $this->snapshotRows());
     }
 
     public function testASnapshotOfAnEarlierClosureIsNeverServed(): void
@@ -203,27 +239,33 @@ final class AnnualReportControllerTest extends WebTestCase
         $this->signIn();
         $this->seedYear();
         $this->closeMonthInDatabase($this->connection, $this->year, 5);
-        $this->annual($this->year);
+        $this->captureSnapshots();
         $this->connection->executeStatement("UPDATE reporting_month_snapshots SET closure_id = '00000000-0000-7000-8000-00000000dead', payload = jsonb_set(payload, '{cells,cashIncome,value}', '\"999999\"')");
 
         $row = self::rows($this->annual($this->year))[4];
 
+        self::assertFalse($row['snapshot']);
         self::assertDecimal('5000', self::cell($row, 'cashIncome'));
-        self::assertSame(2, $this->snapshotCount());
+        self::assertSame(1, $this->snapshotCount());
     }
 
-    public function testASnapshotWithAnotherSchemaVersionIsRecaptured(): void
+    public function testASnapshotWithAnotherSchemaVersionIsComputedLiveUntilCapturedAgain(): void
     {
         $this->signIn();
         $this->seedYear();
         $this->closeMonthInDatabase($this->connection, $this->year, 5);
-        $this->annual($this->year);
+        $this->captureSnapshots();
         $this->connection->executeStatement("UPDATE reporting_month_snapshots SET schema_version = 99, payload = jsonb_set(payload, '{cells,cashIncome,value}', '\"999999\"')");
 
         $row = self::rows($this->annual($this->year))[4];
 
+        self::assertFalse($row['snapshot']);
         self::assertDecimal('5000', self::cell($row, 'cashIncome'));
+        self::assertSame(99, $this->connection->fetchOne('SELECT schema_version FROM reporting_month_snapshots'));
+
+        $this->captureSnapshots();
         self::assertSame(MonthFigures::SCHEMA_VERSION, $this->connection->fetchOne('SELECT schema_version FROM reporting_month_snapshots'));
+        self::assertTrue(self::rows($this->annual($this->year))[4]['snapshot']);
     }
 
     public function testAPreviousYearUnderAnotherPolicyGivesAPolicyMismatchAverage(): void
@@ -349,7 +391,7 @@ final class AnnualReportControllerTest extends WebTestCase
         $this->signIn();
         $this->seedYear();
         $this->closeMonthInDatabase($this->connection, $this->year, 5);
-        $this->annual($this->year);
+        $this->captureSnapshots();
         $this->put(['cashIncome', 'category:'.self::CATEGORY], 'exclude', 0);
         $this->account(self::OTHER_ACCOUNT, WorkspaceFixture::OTHER_WORKSPACE, 'Secret', 'CURRENT');
         $this->transaction('91', self::OTHER_ACCOUNT, '999999.00', 'INCOME', $this->year.'-02-10', WorkspaceFixture::OTHER_WORKSPACE);
@@ -455,6 +497,15 @@ final class AnnualReportControllerTest extends WebTestCase
             $this->call('PUT', $uri, ['overrides' => $overrides]);
         }
         self::assertResponseStatusCodeSame(201);
+    }
+
+    /** @return list<array<string, mixed>> */
+    private function snapshotRows(): array
+    {
+        return $this->connection->fetchAllAssociative(
+            'SELECT workspace_id, month, closure_id, policy_version, schema_version, payload::text, captured_at::text, xmin::text
+             FROM reporting_month_snapshots ORDER BY workspace_id, month, closure_id',
+        );
     }
 
     private function snapshotCount(): int

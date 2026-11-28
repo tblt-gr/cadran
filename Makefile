@@ -70,8 +70,8 @@ recurrences-materialize: tools
 	$(COMPOSE) up --detach --wait db
 	$(TOOLS_RUN_WITH_DB) php apps/api/bin/console --no-debug cadran:transactions:materialize-recurrences $(EMAIL)
 
-# Captures the missing or outdated snapshots of the closed months so the first
-# multi-year report read is fast (idempotent; run it after a historical import).
+# Captures the missing or outdated snapshots of the closed months, which reports
+# otherwise compute live (idempotent; run it after a historical import).
 # Pass EMAIL=... to target another owner than the provisioned one.
 snapshots-capture: tools
 	sh scripts/check-local-runtime.sh

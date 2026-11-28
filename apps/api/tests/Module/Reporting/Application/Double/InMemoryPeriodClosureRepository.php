@@ -14,6 +14,10 @@ final class InMemoryPeriodClosureRepository implements PeriodClosureRepository
     /** @var list<PeriodClosure> */
     private array $closures = [];
 
+    public int $rangeReads = 0;
+
+    public int $monthReads = 0;
+
     public function lockShared(WorkspaceScope $workspace): void
     {
     }
@@ -46,8 +50,24 @@ final class InMemoryPeriodClosureRepository implements PeriodClosureRepository
         return array_values($months);
     }
 
+    public function activeClosuresBetween(WorkspaceScope $workspace, CalendarMonth $from, CalendarMonth $to): array
+    {
+        ++$this->rangeReads;
+        $found = [];
+        foreach ($this->closures as $closure) {
+            $key = $closure->month->key();
+            if ($closure->workspace->id === $workspace->id && $closure->isActive() && $key >= $from->key() && $key <= $to->key()) {
+                $found[$key] = $closure;
+            }
+        }
+        ksort($found);
+
+        return array_values($found);
+    }
+
     public function findActive(WorkspaceScope $workspace, CalendarMonth $month): ?PeriodClosure
     {
+        ++$this->monthReads;
         foreach ($this->closures as $closure) {
             if ($closure->workspace->id === $workspace->id && $closure->month->equals($month) && $closure->isActive()) {
                 return $closure;

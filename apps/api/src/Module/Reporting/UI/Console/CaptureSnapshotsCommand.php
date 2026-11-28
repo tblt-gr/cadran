@@ -17,7 +17,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'cadran:reporting:capture-snapshots',
-    description: 'Capture the missing or outdated snapshots of the closed months ahead of the first report read.',
+    description: 'Capture the missing or outdated snapshots of the closed months so reports do not compute them live.',
 )]
 final class CaptureSnapshotsCommand extends Command
 {

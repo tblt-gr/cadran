@@ -13,8 +13,8 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 
 /**
  * Keeps the frozen months in step with the closures. It never fails a closing or a reopening: a
- * month whose snapshot is missing is captured by the next annual read. Only the event, the
- * workspace and the month are logged, never an amount.
+ * month whose snapshot is missing is computed live by reads until the capture command writes it.
+ * Only the event, the workspace and the month are logged, never an amount.
  */
 final readonly class MonthSnapshotListener
 {

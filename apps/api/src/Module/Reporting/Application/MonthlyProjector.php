@@ -10,5 +10,6 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 /** Computes the projection of one month live; the seam that lets a test count how often a year pays for it. */
 interface MonthlyProjector
 {
-    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false): MonthlyProjectionView;
+    /** @param ?ResolvedMetricPolicy $policy the policy of the month when the caller already resolved it */
+    public function __invoke(WorkspaceScope $workspace, CalendarMonth $month, \DateTimeImmutable $today, bool $includeUpcoming = false, ?ResolvedMetricPolicy $policy = null): MonthlyProjectionView;
 }

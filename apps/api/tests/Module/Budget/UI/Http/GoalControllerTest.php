@@ -6,6 +6,7 @@ namespace App\Tests\Module\Budget\UI\Http;
 
 use App\Module\Foundation\UI\Http\SignedCsrfToken;
 use App\Module\Identity\Domain\PasswordHasher;
+use App\Tests\Support\CapturesSnapshots;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\Connection;
 use Psr\Cache\CacheItemPoolInterface;
@@ -16,6 +17,7 @@ use Symfony\Component\Clock\MockClock;
 
 final class GoalControllerTest extends WebTestCase
 {
+    use CapturesSnapshots;
     private const string TODAY = '2026-09-14T09:12:04+00:00';
 
     private KernelBrowser $client;
@@ -162,6 +164,9 @@ final class GoalControllerTest extends WebTestCase
         $this->closeMonth(2026, 10, '00000000-0000-7000-8000-0000000000e1');
         $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-10&to=2026-10');
         self::assertResponseIsSuccessful();
+        self::assertSame($emptyItems, self::items(self::arr(self::items($this->decode()['months'])[0])['items']));
+        $this->captureSnapshots();
+        $this->client->request('GET', '/api/v1/goals/evaluations?from=2026-10&to=2026-10');
         self::assertSame($emptyItems, self::items(self::arr(self::items($this->decode()['months'])[0])['items']));
         self::assertSame('false', $this->connection->fetchOne("SELECT payload->>'hasTransactions' FROM reporting_month_snapshots WHERE workspace_id = :workspace AND month = '2026-10'", ['workspace' => WorkspaceFixture::OWN_WORKSPACE]));
         $this->client->request('DELETE', '/api/v1/session');

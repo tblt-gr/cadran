@@ -161,8 +161,9 @@ make down
 ```
 
 Stopping preserves database and certificate volumes. Never remove volumes to fix a startup problem.
-After a historical import, run `make snapshots-capture` once so the first multi-year report does
-not capture the closed months on the spot.
+After a historical import, run `make snapshots-capture` once: reports never write, so until then
+they compute the imported closed months live and open more slowly. It is also the way to refresh
+snapshots after a snapshot schema bump (`make upgrade` runs it).
 
 Status reports application health, its built version and backup freshness; a backup warning does
 not mean a backup has been verified.
@@ -355,7 +356,8 @@ make upgrade VERSION=vX.Y.Z IDENTITY=/secure/offline/backup-identity.txt
 The placeholder `vX.Y.Z` must be replaced. The command validates the remote release tag and its
 version, takes and restore-verifies a pre-upgrade backup, records recovery state in
 `var/upgrade/last-upgrade.json`, checks out the verified commit, builds, stops the application,
-migrates and checks health. Do not delete the state file or pre-upgrade backup. The checkout
+migrates, checks health and captures the month snapshots (a failed capture is only reported). Do
+not delete the state file or pre-upgrade backup. The checkout
 remains detached at the release commit. If your checkout is not exactly the installed release
 tag, additionally pass `FROM=vX.Y.Z` naming the release actually running; the first upgrade from
 0.7.0 requires current upgrade tooling checked out and `FROM=v0.7.0`.

@@ -11,10 +11,11 @@ use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
- * Captures ahead of time the snapshot of every closed month that has none, or only one written
- * before account values were kept (the criterion of {@see LoadAnnualMonths}), so the first report
- * read after a historical import does not pay for it. A month already up to date is not counted as
- * skipped: skipped means a month reopened between the listing and its capture.
+ * Captures the snapshot of every closed month that has none, or only one written before account
+ * values were kept (the criterion of {@see LoadAnnualMonths}). Reads never write, so after a
+ * historical import or a snapshot schema change such months are computed live until this runs. A
+ * month already up to date is not counted as skipped: skipped means a month reopened between the
+ * listing and its capture.
  *
  * Each month runs in its own transaction under the shared closure lock, so a reopening waits for at
  * most one month and a month reopened meanwhile is left alone.

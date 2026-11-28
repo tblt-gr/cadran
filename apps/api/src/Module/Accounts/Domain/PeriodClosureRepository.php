@@ -37,6 +37,13 @@ interface PeriodClosureRepository
      */
     public function activeBetween(WorkspaceScope $workspace, CalendarMonth $from, ?CalendarMonth $to): array;
 
+    /**
+     * The active closures between the inclusive bounds, oldest first, read in one query.
+     *
+     * @return list<PeriodClosure>
+     */
+    public function activeClosuresBetween(WorkspaceScope $workspace, CalendarMonth $from, CalendarMonth $to): array;
+
     public function findActive(WorkspaceScope $workspace, CalendarMonth $month): ?PeriodClosure;
 
     /**
