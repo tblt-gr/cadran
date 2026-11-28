@@ -11,6 +11,7 @@ use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionPosition;
 use App\Module\Transactions\Domain\TransactionState;
 use App\Module\Transactions\Infrastructure\Persistence\DbalTransactionRepository;
+use App\Module\Transactions\Infrastructure\Persistence\TransactionFilterPredicates;
 use App\Tests\Support\WorkspaceFixture;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -76,7 +77,7 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
         $this->connection->executeStatement('ANALYZE transaction_transactions');
         // The same goes for the GIN pending list: right after a bulk insert it inflates the cost estimate of the
         // trigram indexes until autovacuum flushes it, which made the planner pick a sequential scan at random.
-        $this->connection->executeStatement("SELECT gin_clean_pending_list('transaction_transactions_label_trgm_index'), gin_clean_pending_list('transaction_transactions_counterparty_trgm_index')");
+        $this->connection->executeStatement("SELECT gin_clean_pending_list('transaction_transactions_label_trgm_index'), gin_clean_pending_list('transaction_transactions_counterparty_trgm_index'), gin_clean_pending_list('transaction_transactions_user_label_trgm_index')");
 
         $repository = new DbalTransactionRepository($this->connection);
         $workspace = WorkspaceScope::fromString(self::WORKSPACE);
@@ -127,22 +128,15 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
             ['states' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER],
         );
 
-        // The free-text branch, which relies on the trigram GIN index rather
+        // The free-text branches, which rely on the three trigram GIN indexes rather
         // than the listing btree index.
         $start = hrtime(true);
         $textFilters = new TransactionFilters(states: [TransactionState::PENDING, TransactionState::BOOKED], q: 'carrefour');
         $textPage = $repository->search($workspace, $textFilters, 50, null);
-        $textMs = (hrtime(true) - $start) / 1_000_000;
+        $report['text_search_ms'] = (hrtime(true) - $start) / 1_000_000;
         $report['text_search_row_count'] = count($textPage);
-        $report['text_search_ms'] = $textMs;
-        $report['text_search_plan'] = $this->explain(
-            "SELECT t.id FROM transaction_transactions t
-             WHERE t.workspace_id = :workspace_id AND t.state IN (:states)
-             AND (t.normalized_label LIKE :pattern ESCAPE '\\' OR lower(t.counterparty) LIKE :pattern ESCAPE '\\')
-             ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit",
-            ['workspace_id' => self::WORKSPACE, 'states' => ['PENDING', 'BOOKED'], 'limit' => 50, 'pattern' => '%carrefour%'],
-            ['states' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER],
-        );
+        $report['text_search_plan'] = $this->explainSearch($textFilters);
+        $report['text_search_plan_row_count'] = $this->planRowCount($textFilters);
 
         // The unsigned amount branches rely on the (workspace_id, abs(amount_value)) expression index.
         $start = hrtime(true);
@@ -170,14 +164,7 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
         $amountTextPage = $repository->search($workspace, $amountTextFilters, 50, null);
         $report['amount_search_ms'] = (hrtime(true) - $start) / 1_000_000;
         $report['amount_search_row_count'] = count($amountTextPage);
-        $report['amount_search_plan'] = $this->explain(
-            "SELECT t.id FROM transaction_transactions t
-             WHERE t.workspace_id = :workspace_id AND t.state IN (:states)
-             AND (t.normalized_label LIKE :pattern ESCAPE '\\' OR lower(t.counterparty) LIKE :pattern ESCAPE '\\' OR abs(t.amount_value) = :q_amount)
-             ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit",
-            ['workspace_id' => self::WORKSPACE, 'states' => ['PENDING', 'BOOKED'], 'limit' => 50, 'pattern' => '%777,77 €%', 'q_amount' => '777.77'],
-            ['states' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER],
-        );
+        $report['amount_search_plan'] = $this->explainSearch($amountTextFilters);
 
         fwrite(STDOUT, "\nPERF-RESULT-BEGIN\n".json_encode($report, \JSON_PRETTY_PRINT | \JSON_THROW_ON_ERROR)."\nPERF-RESULT-END\n");
 
@@ -191,11 +178,47 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
 
         self::assertStringContainsString('transaction_transactions_listing_index', $report['first_page_plan']);
         self::assertStringContainsString('transaction_transactions_listing_index', $report['deep_page_plan']);
-        self::assertStringContainsString('_trgm_index', $report['text_search_plan']);
+        self::assertStringContainsString('BitmapOr', $report['text_search_plan']);
+        foreach (['label', 'counterparty', 'user_label'] as $column) {
+            self::assertMatchesRegularExpression(
+                '/Bitmap Index Scan on transaction_transactions_'.$column.'_trgm_index/',
+                $report['text_search_plan'],
+            );
+        }
+        self::assertSame(self::ROW_COUNT / 2500, $report['text_search_row_count']);
+        self::assertSame($report['text_search_row_count'], $report['text_search_plan_row_count']);
         self::assertSame(self::ROW_COUNT / 2500, $report['abs_range_row_count']);
         self::assertSame(self::ROW_COUNT / 2500, $report['amount_search_row_count']);
         self::assertStringContainsString('transaction_transactions_abs_amount_index', $report['abs_range_plan']);
         self::assertStringContainsString('transaction_transactions_abs_amount_index', $report['amount_search_plan']);
+    }
+
+    /**
+     * The listing statement built from the predicates the repository runs, so a new search branch
+     * cannot be left out of the plan check.
+     *
+     * @return array{string, array<string, mixed>, array<string, ArrayParameterType|ParameterType>}
+     */
+    private function searchStatement(TransactionFilters $filters): array
+    {
+        $predicates = TransactionFilterPredicates::of($filters);
+
+        return [
+            'SELECT t.id FROM transaction_transactions t WHERE t.workspace_id = :workspace_id'.$predicates->sql
+                .' ORDER BY t.booked_on DESC, t.id DESC LIMIT :limit',
+            [...$predicates->parameters, 'workspace_id' => self::WORKSPACE, 'limit' => 50],
+            [...$predicates->types, 'limit' => ParameterType::INTEGER],
+        ];
+    }
+
+    private function explainSearch(TransactionFilters $filters): string
+    {
+        return $this->explain(...$this->searchStatement($filters));
+    }
+
+    private function planRowCount(TransactionFilters $filters): int
+    {
+        return count($this->connection->fetchAllAssociative(...$this->searchStatement($filters)));
     }
 
     private function explain(string $sql, array $parameters, array $types = []): string
@@ -272,7 +295,7 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
                 // keep.
                 $rawLabel = 0 === $index % 2500 ? 'CB CARREFOUR PARIS '.$index : 'CB AUCHAN LYON '.$index;
 
-                $values[] = '(?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
+                $values[] = '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)';
                 array_push(
                     $parameters,
                     self::uuid(),
@@ -287,6 +310,7 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
                     'MANUAL',
                     $bookedOn,
                     $rawLabel,
+                    0 === $index % 2500 ? 'Courses Carrefour Drive' : null,
                     1,
                     '2026-08-31 09:00:00+00',
                     '2026-08-31 09:00:00+00',
@@ -294,7 +318,7 @@ final class TransactionSearchPerformanceTest extends KernelTestCase
             }
 
             $sql = 'INSERT INTO transaction_transactions '
-                .'(id, workspace_id, account_id, asset_code, amount_value, amount_scale, state, nature, source, booked_on, raw_label, version, created_at, updated_at) '
+                .'(id, workspace_id, account_id, asset_code, amount_value, amount_scale, state, nature, source, booked_on, raw_label, user_label, version, created_at, updated_at) '
                 .'VALUES '.implode(', ', $values);
             $this->connection->executeStatement($sql, $parameters);
 

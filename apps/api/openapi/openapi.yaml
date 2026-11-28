@@ -6317,6 +6317,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: 'A rule was edited while the preview was running (`type: /problems/rules.preview_stale`).'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '415':
           $ref: '#/components/responses/UnsupportedMediaType'
         '422':

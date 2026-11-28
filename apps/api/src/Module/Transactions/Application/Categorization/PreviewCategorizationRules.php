@@ -18,7 +18,7 @@ final readonly class PreviewCategorizationRules
 {
     public const int MAX_TRANSACTIONS = 5_000;
 
-    public function __construct(private CallerWorkspaceContext $caller, private TransactionRepository $transactions, private CategorizationRuleRepository $rules, private CategorizationPreviewRepository $previews, private BuildCategorizationRun $buildRun, private UuidGenerator $ids, private TransactionBoundary $boundary, private CategorizationWriteLock $writeLock, private ClockInterface $clock)
+    public function __construct(private CallerWorkspaceContext $caller, private TransactionRepository $transactions, private CategorizationRuleRepository $rules, private CategorizationPreviewRepository $previews, private BuildCategorizationRun $buildRun, private UuidGenerator $ids, private TransactionBoundary $boundary, private ClockInterface $clock)
     {
     }
 
@@ -30,26 +30,31 @@ final readonly class PreviewCategorizationRules
         }
         $context = $this->caller->resolveContext();
 
-        $result = $this->boundary->transactional(function () use ($context, $ruleId, $from, $to): array|CategorizationExecutionLimitExceeded {
-            $this->writeLock->acquire($context->workspace);
-            if (null !== $ruleId && null === $this->rules->find($context->workspace, $ruleId)) {
-                throw new CategorizationRuleNotFound();
-            }
-            $transactions = $this->transactions->listForCategorization($context->workspace, $from, $to, self::MAX_TRANSACTIONS + 1, false);
-            if (count($transactions) > self::MAX_TRANSACTIONS) {
-                throw new CategorizationRangeTooLarge();
-            }
-            $now = $this->clock->now();
-            $run = ($this->buildRun)($context->workspace, $transactions, $context->actorId, $now);
-            if ($run->executionLimitExceeded) {
-                return new CategorizationExecutionLimitExceeded();
-            }
-            $token = $run->token($ruleId, $from, $to);
-            $this->previews->purgeExpired($context->workspace, $now);
-            $this->previews->add(new CategorizationPreview($this->ids->generate(), $context->workspace, $token, $ruleId, $from, $to, $now, $now->modify(CategorizationPreview::LIFETIME)));
+        // No workspace lock: a preview must not make writes wait. Apply recomputes the token under
+        // that lock, so a preview built from a state that moved mid-scan is refused there.
+        try {
+            $result = $this->boundary->transactional(function () use ($context, $ruleId, $from, $to): array|CategorizationExecutionLimitExceeded {
+                if (null !== $ruleId && null === $this->rules->find($context->workspace, $ruleId)) {
+                    throw new CategorizationRuleNotFound();
+                }
+                $transactions = $this->transactions->listForCategorization($context->workspace, $from, $to, self::MAX_TRANSACTIONS + 1, false);
+                if (count($transactions) > self::MAX_TRANSACTIONS) {
+                    throw new CategorizationRangeTooLarge();
+                }
+                $now = $this->clock->now();
+                $run = ($this->buildRun)($context->workspace, $transactions, $context->actorId, $now, lockTargets: false);
+                if ($run->executionLimitExceeded) {
+                    return new CategorizationExecutionLimitExceeded();
+                }
+                $token = $run->token($ruleId, $from, $to);
+                $this->previews->purgeExpired($context->workspace, $now);
+                $this->previews->add(new CategorizationPreview($this->ids->generate(), $context->workspace, $token, $ruleId, $from, $to, $now, $now->modify(CategorizationPreview::LIFETIME)));
 
-            return $this->report($run, $ruleId, $token);
-        });
+                return $this->report($run, $ruleId, $token);
+            });
+        } catch (StaleCategorizationRule) {
+            throw new PreviewStale();
+        }
         if ($result instanceof CategorizationExecutionLimitExceeded) {
             throw $result;
         }

@@ -12,6 +12,8 @@ use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Application\WorkspaceContext;
+use App\Module\Transactions\Application\Categorization\AutoCategorizationBatch;
+use App\Module\Transactions\Application\Categorization\AutoCategorizeTransaction;
 use App\Module\Transactions\Application\Categorization\CategorizationWriteLock;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
@@ -53,6 +55,7 @@ final readonly class MaterializeRecurrenceOccurrences
         private WorkspaceCalendar $calendar,
         private BookDueTransactions $bookDue,
         private CategorizationWriteLock $writeLock,
+        private AutoCategorizeTransaction $autoCategorize,
     ) {
     }
 
@@ -101,9 +104,14 @@ final readonly class MaterializeRecurrenceOccurrences
         $pending = $this->occurrences->listUngenerated(
             $recurrence->workspace, $recurrence->id, self::monthStart($today), self::monthEnd($today), self::MAX_INSTALMENTS,
         );
+        // No batch when nothing can be categorized: no instalment to create, or the recurrence names its category.
+        $categorization = [] === $pending || null !== $recurrence->categoryId
+            ? null
+            : $this->autoCategorize->begin($recurrence->workspace, $context->actorId, $this->calendar->now());
         foreach ($pending as $occurrence) {
-            $this->create($context, $recurrence, $occurrence, $today, $tally);
+            $this->create($context, $recurrence, $occurrence, $today, $tally, $categorization);
         }
+        $categorization?->finish();
         if ($book) {
             ($this->bookDue)($context, $today, $tally);
         }
@@ -127,6 +135,7 @@ final readonly class MaterializeRecurrenceOccurrences
         TransactionRecurrenceOccurrence $occurrence,
         \DateTimeImmutable $today,
         MaterializationTally $tally,
+        ?AutoCategorizationBatch $categorization,
     ): void {
         $booked = $occurrence->expectedOn <= $today;
         try {
@@ -142,6 +151,7 @@ final readonly class MaterializeRecurrenceOccurrences
                 categoryId: $recurrence->categoryId, splits: null,
                 source: TransactionSource::RECURRENCE->value, sourceRef: $occurrence->id,
                 reconcile: false, automation: true, matchRecurrence: false, guardBalance: false,
+                categorization: $categorization,
             ));
         } catch (PeriodClosed) {
             ++$tally->skippedClosedPeriod;

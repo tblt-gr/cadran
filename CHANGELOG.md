@@ -11,6 +11,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 - Open annual reports and goal previews faster by loading months in one batch.
 - Show a metric policy that cannot be loaded as unavailable instead of version 1, and translate
   the built-in policy name.
+- Speed up transaction search by label and keep rule previews from blocking other edits.
 
 ### Fixed
 

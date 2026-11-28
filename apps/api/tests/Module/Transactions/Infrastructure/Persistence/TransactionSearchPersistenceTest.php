@@ -215,6 +215,18 @@ final class TransactionSearchPersistenceTest extends KernelTestCase
         self::assertSame('PRLV SEPA 8841', $cleared->displayLabel());
     }
 
+    public function testAWordOnlyInTheUserLabelIsFoundAndItsWildcardsStayLiteral(): void
+    {
+        $literal = $this->add('00000000-0000-7000-8000-000000000105', '-1.00', userLabel: 'Remise 50%_drive');
+        $this->add('00000000-0000-7000-8000-000000000106', '-1.00', userLabel: 'Remise 500 drive');
+
+        foreach (['drive' => 2, '50%_' => 1, '50%' => 1] as $query => $expected) {
+            $found = array_column($this->repository->search(WorkspaceFixture::own(), new TransactionFilters(q: (string) $query), 10, null), 'id');
+            self::assertCount($expected, $found, (string) $query);
+            self::assertContains($literal, $found, (string) $query);
+        }
+    }
+
     public function testASearchOnAUserLabelNeverLeaksAnotherWorkspace(): void
     {
         $this->add('00000000-0000-7000-8000-000000000104', '-1.00', userLabel: 'Secret perso');

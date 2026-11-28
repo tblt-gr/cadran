@@ -79,6 +79,7 @@ final class CategorizationRuleProblems
     {
         return [
             ...self::notFound(),
+            ...self::previewStale(),
             CategorizationRangeTooLarge::class => self::rule(Response::HTTP_UNPROCESSABLE_ENTITY, '/problems/rules.range_too_large'),
             ...self::executionLimit(),
             ...self::invalid(),
@@ -90,7 +91,7 @@ final class CategorizationRuleProblems
     public static function apply(): array
     {
         return [
-            PreviewStale::class => self::rule(Response::HTTP_CONFLICT, '/problems/rules.preview_stale'),
+            ...self::previewStale(),
             ...self::executionLimit(),
             MalformedPayload::class => self::rule(Response::HTTP_UNPROCESSABLE_ENTITY, '/problems/rules.invalid'),
             ...self::forbidden(),
@@ -150,6 +151,12 @@ final class CategorizationRuleProblems
                 'archived' === $e->getMessage() ? '/problems/rules.archived' : '/problems/stale-version',
             ),
         ];
+    }
+
+    /** @return array<class-string<\Throwable>, ProblemRule> */
+    private static function previewStale(): array
+    {
+        return [PreviewStale::class => self::rule(Response::HTTP_CONFLICT, '/problems/rules.preview_stale')];
     }
 
     /** @return array<class-string<\Throwable>, ProblemRule> */
