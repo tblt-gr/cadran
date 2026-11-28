@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Transactions\Application\BulkEditChanges;
 use App\Module\Transactions\Application\BulkEditInput;
 use App\Module\Transactions\Application\BulkFieldChange;
@@ -36,39 +38,39 @@ final readonly class BulkEditPayload
     /**
      * @param array<mixed> $body
      *
-     * @throws \UnexpectedValueException
+     * @throws MalformedPayload
      */
     public function parse(array $body): BulkEditInput
     {
         $unknown = array_diff(array_keys($body), ['changes', 'scope', 'preview', 'previewToken']);
         if ([] !== $unknown || !isset($body['changes'], $body['scope'])) {
-            throw new \UnexpectedValueException('A bulk edit carries changes, a scope, and optionally a preview flag and token.');
+            throw new MalformedPayload('A bulk edit carries changes, a scope, and optionally a preview flag and token.');
         }
         $preview = $body['preview'] ?? false;
         $token = $body['previewToken'] ?? null;
         if (!is_bool($preview) || (null !== $token && (!is_string($token) || '' === $token || strlen($token) > self::MAX_TOKEN_LENGTH))) {
-            throw new \UnexpectedValueException('preview must be a boolean and previewToken a bounded string.');
+            throw new MalformedPayload('preview must be a boolean and previewToken a bounded string.');
         }
         $changes = $this->changes($body['changes']);
         $scope = $body['scope'];
         if (!is_array($scope) || !isset($scope['type']) || !is_string($scope['type'])) {
-            throw new \UnexpectedValueException('The scope must be an object with a type.');
+            throw new MalformedPayload('The scope must be an object with a type.');
         }
 
         return match ($scope['type']) {
             'IDS' => $this->byIds($changes, $scope, $preview, $token),
             'FILTER' => $this->byFilters($changes, $scope, $preview, $token),
-            default => throw new \UnexpectedValueException('Unknown bulk scope type.'),
+            default => throw new MalformedPayload('Unknown bulk scope type.'),
         };
     }
 
     private function changes(mixed $changes): BulkEditChanges
     {
         if (!is_array($changes) || [] === $changes || array_is_list($changes)) {
-            throw new \UnexpectedValueException('changes must be an object naming at least one field.');
+            throw new MalformedPayload('changes must be an object naming at least one field.');
         }
         if ([] !== array_diff(array_keys($changes), self::CHANGE_FIELDS)) {
-            throw new \UnexpectedValueException('Unknown change field.');
+            throw new MalformedPayload('Unknown change field.');
         }
 
         return new BulkEditChanges(
@@ -85,19 +87,19 @@ final readonly class BulkEditPayload
     private function day(mixed $day): \DateTimeImmutable
     {
         if (!is_string($day)) {
-            throw new \UnexpectedValueException('bookedOn must be an ISO 8601 calendar day.');
+            throw new MalformedPayload('bookedOn must be an ISO 8601 calendar day.');
         }
         try {
             return BusinessDay::fromIsoDate($day)->date;
-        } catch (\Throwable $exception) {
-            throw new \UnexpectedValueException('bookedOn must be an ISO 8601 calendar day.', previous: $exception);
+        } catch (InvalidBusinessDay $exception) {
+            throw new MalformedPayload('bookedOn must be an ISO 8601 calendar day.', previous: $exception);
         }
     }
 
     private function label(mixed $label): BulkLabelChange
     {
         if (!is_array($label) || !isset($label['mode']) || !is_string($label['mode'])) {
-            throw new \UnexpectedValueException('label must be an object with a mode.');
+            throw new MalformedPayload('label must be an object with a mode.');
         }
         if ('SAME' === $label['mode']) {
             JsonPayload::of($label, ['mode', 'value']);
@@ -105,22 +107,22 @@ final readonly class BulkEditPayload
             return BulkLabelChange::same($this->boundedText($label['value'], Transaction::MAX_RAW_LABEL_LENGTH));
         }
         if ('EACH' !== $label['mode']) {
-            throw new \UnexpectedValueException('Unknown label mode.');
+            throw new MalformedPayload('Unknown label mode.');
         }
         JsonPayload::of($label, ['mode', 'values']);
         $values = $label['values'];
         if (!is_array($values) || !array_is_list($values) || [] === $values || count($values) > self::MAX_EACH_VALUES) {
-            throw new \UnexpectedValueException('values must hold between 1 and 100 entries.');
+            throw new MalformedPayload('values must hold between 1 and 100 entries.');
         }
         $each = [];
         foreach ($values as $entry) {
             if (!is_array($entry)) {
-                throw new \UnexpectedValueException('Each label value must be an object.');
+                throw new MalformedPayload('Each label value must be an object.');
             }
             JsonPayload::of($entry, ['id', 'value']);
             $id = $entry['id'];
             if (!is_string($id) || !Identifier::isValid($id) || isset($each[$id])) {
-                throw new \UnexpectedValueException('Each label value names a distinct canonical UUID.');
+                throw new MalformedPayload('Each label value names a distinct canonical UUID.');
             }
             $each[$id] = $this->boundedText($entry['value'], Transaction::MAX_RAW_LABEL_LENGTH);
         }
@@ -131,7 +133,7 @@ final readonly class BulkEditPayload
     private function paymentMethod(mixed $method): BulkFieldChange
     {
         if (null !== $method && (!is_string($method) || null === PaymentMethod::tryFrom($method))) {
-            throw new \UnexpectedValueException('Unknown payment method.');
+            throw new MalformedPayload('Unknown payment method.');
         }
 
         return new BulkFieldChange($method);
@@ -145,7 +147,7 @@ final readonly class BulkEditPayload
     private function boundedText(mixed $text, int $maximum): string
     {
         if (!is_string($text) || mb_strlen($text) > $maximum) {
-            throw new \UnexpectedValueException(sprintf('A text must be a string of at most %d characters.', $maximum));
+            throw new MalformedPayload(sprintf('A text must be a string of at most %d characters.', $maximum));
         }
 
         return $text;
@@ -157,12 +159,12 @@ final readonly class BulkEditPayload
         JsonPayload::of($scope, ['type', 'ids']);
         $ids = $scope['ids'] ?? null;
         if (!is_array($ids) || !array_is_list($ids) || [] === $ids) {
-            throw new \UnexpectedValueException('ids must be a non-empty list.');
+            throw new MalformedPayload('ids must be a non-empty list.');
         }
         // Not bounded here: the use case owns the cap and answers it with its own problem.
         foreach ($ids as $id) {
             if (!is_string($id) || !Identifier::isValid($id)) {
-                throw new \UnexpectedValueException('Each id must be a canonical UUID.');
+                throw new MalformedPayload('Each id must be a canonical UUID.');
             }
         }
 
@@ -172,7 +174,7 @@ final readonly class BulkEditPayload
             sort($selected);
             sort($named);
             if ($selected !== $named) {
-                throw new \UnexpectedValueException('A label per transaction needs exactly the selected identifiers.');
+                throw new MalformedPayload('A label per transaction needs exactly the selected identifiers.');
             }
         }
 
@@ -184,15 +186,15 @@ final readonly class BulkEditPayload
     {
         JsonPayload::of($scope, ['type', 'filters', 'expectedCount']);
         if (null !== $changes->label?->eachIds()) {
-            throw new \UnexpectedValueException('A label per transaction needs an explicit selection.');
+            throw new MalformedPayload('A label per transaction needs an explicit selection.');
         }
         $expected = $scope['expectedCount'];
         $filters = $scope['filters'];
         if (!is_int($expected) || $expected < 0 || !is_array($filters) || ([] !== $filters && array_is_list($filters))) {
-            throw new \UnexpectedValueException('A filter scope needs filters and a confirmed count.');
+            throw new MalformedPayload('A filter scope needs filters and a confirmed count.');
         }
         if ([] !== array_diff(array_keys($filters), self::FILTER_FIELDS)) {
-            throw new \UnexpectedValueException('Unknown filter field.');
+            throw new MalformedPayload('Unknown filter field.');
         }
 
         $query = $this->shape->query(
@@ -203,7 +205,7 @@ final readonly class BulkEditPayload
             self::text($filters, 'categorization'), self::text($filters, 'q'),
             self::text($filters, 'minAmount'), self::text($filters, 'maxAmount'), self::text($filters, 'assetCode'),
             self::text($filters, 'direction'), categoryType: self::text($filters, 'categoryType'),
-        ) ?? throw new \UnexpectedValueException('A filter is malformed.');
+        ) ?? throw new MalformedPayload('A filter is malformed.');
 
         return BulkEditInput::forFilters($changes, $query, $expected, $preview, $token);
     }
@@ -213,7 +215,7 @@ final readonly class BulkEditPayload
     {
         $value = $filters[$field] ?? null;
         if (null !== $value && !is_string($value)) {
-            throw new \UnexpectedValueException(sprintf('%s must be a string.', $field));
+            throw new MalformedPayload(sprintf('%s must be a string.', $field));
         }
 
         return $value;
@@ -228,11 +230,11 @@ final readonly class BulkEditPayload
     {
         $value = $filters[$field] ?? [];
         if (!is_array($value) || !array_is_list($value)) {
-            throw new \UnexpectedValueException(sprintf('%s must be a list.', $field));
+            throw new MalformedPayload(sprintf('%s must be a list.', $field));
         }
         foreach ($value as $item) {
             if (!is_string($item)) {
-                throw new \UnexpectedValueException(sprintf('%s must hold strings.', $field));
+                throw new MalformedPayload(sprintf('%s must hold strings.', $field));
             }
         }
 
@@ -244,7 +246,7 @@ final readonly class BulkEditPayload
     {
         $value = $filters[$field] ?? null;
         if (null !== $value && !is_bool($value)) {
-            throw new \UnexpectedValueException(sprintf('%s must be a boolean.', $field));
+            throw new MalformedPayload(sprintf('%s must be a boolean.', $field));
         }
 
         return null === $value ? null : ($value ? 'true' : 'false');

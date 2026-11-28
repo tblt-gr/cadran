@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Categories\UI\Http;
 
 use App\Module\Categories\Application\ArchiveCategory;
-use App\Module\Categories\Application\CategoryConflict;
 use App\Module\Categories\Application\CategoryNotFound;
-use App\Module\Categories\Application\CategoryOperationRefused;
 use App\Module\Categories\Application\InvalidCategoryInput;
 use App\Module\Categories\Application\MergeCategory;
 use App\Module\Categories\Application\MoveCategory;
@@ -18,7 +16,7 @@ use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use Doctrine\DBAL\Exception\RetryableException;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -41,7 +39,7 @@ final readonly class CategoryLifecycleController
     private const array ARCHIVE_FIELDS = ['version'];
     private const array REPLACE_FIELDS = ['targetId', 'effectiveFrom', 'version'];
 
-    public function __construct(private JsonRequestEnvelope $envelope)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -130,26 +128,8 @@ final readonly class CategoryLifecycleController
 
         try {
             $category = $operation(JsonPayload::of($body, $fields));
-        } catch (CategoryOperationRefused $refusal) {
-            return $this->envelope->problem(
-                Response::HTTP_UNPROCESSABLE_ENTITY,
-                'api.problem.category_operation_refused',
-                self::TYPE_OPERATION_REFUSED,
-                ['blockers' => array_map(static fn ($blocker): string => $blocker->value, $refusal->blockers)],
-            );
-        } catch (InvalidCategoryInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_category');
-        } catch (CategoryNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
-        } catch (CategoryConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.category_conflict');
-        } catch (RetryableException) {
-            // Two lifecycle operations on overlapping branches lock their rows in the
-            // order their own request implies, so PostgreSQL can break the tie. That is a
-            // concurrency outcome the client should retry, not a server fault.
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.category_concurrent_operation');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.category_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, CategoryProblems::lifecycle());
         }
 
         return $this->envelope->json(CategoryRepresentation::one($category));

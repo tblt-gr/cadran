@@ -27,5 +27,9 @@ final class PortfolioProblemsTest extends TestCase
         yield 'takeover' => [PortfolioProblems::takeover()];
         yield 'life insurance' => [PortfolioProblems::lifeInsurance()];
         yield 'position' => [PortfolioProblems::position()];
+        yield 'instrumentList' => [PortfolioProblems::instrumentList()];
+        yield 'instrumentRead' => [PortfolioProblems::instrumentRead()];
+        yield 'instrumentWrite' => [PortfolioProblems::instrumentWrite()];
+        yield 'holdings' => [PortfolioProblems::holdings()];
     }
 }

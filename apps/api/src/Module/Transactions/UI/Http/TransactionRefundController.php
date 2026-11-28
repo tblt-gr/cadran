@@ -4,23 +4,14 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidRefundRule;
-use App\Module\Transactions\Application\InvalidSplitsInput;
-use App\Module\Transactions\Application\InvalidTransactionInput;
-use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\ReadRefundable;
-use App\Module\Transactions\Application\RefundConflict;
-use App\Module\Transactions\Application\TransactionConflict;
-use App\Module\Transactions\Application\TransactionNotFound;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -32,6 +23,7 @@ final readonly class TransactionRefundController
 
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private IdempotentExecution $idempotentExecution,
     ) {
     }
@@ -44,12 +36,8 @@ final readonly class TransactionRefundController
         }
         try {
             $view = $readRefundable($id);
-        } catch (InvalidRefundRule $exception) {
-            return $this->envelope->invalidRefundRuleProblem($exception);
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::refundable());
         }
 
         return $this->envelope->json(RefundRepresentation::refundable($view));
@@ -86,24 +74,8 @@ final readonly class TransactionRefundController
                     );
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (InvalidSplitsInput $exception) {
-            return $this->envelope->invalidSplitsProblem($exception);
-        } catch (InvalidRefundRule $exception) {
-            return $this->envelope->invalidRefundRuleProblem($exception);
-        } catch (RefundConflict $exception) {
-            return $this->envelope->refundConflictProblem($exception);
-        } catch (PortfolioAccountRequiresOperations $exception) {
-            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
-        } catch (InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::createRefund());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);

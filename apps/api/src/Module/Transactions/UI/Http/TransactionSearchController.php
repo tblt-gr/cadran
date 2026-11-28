@@ -4,15 +4,11 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\CountTransactions;
-use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\ListTransactions;
 use App\Module\Transactions\Application\ListTransactionsQuery;
 use App\Module\Transactions\Application\ReadTransactionFacets;
-use App\Module\Transactions\Application\TransactionCursorStale;
-use App\Module\Transactions\Application\TransactionFacetScopeTooLarge;
-use App\Module\Transactions\Application\TransactionFilterAccountNotFound;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -37,6 +33,7 @@ final readonly class TransactionSearchController
 
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private TransactionFilterShape $shape,
         // Its own budget: the counts aggregate over the whole ledger on every filter change, and the
         // search they accompany stays unthrottled.
@@ -55,12 +52,8 @@ final readonly class TransactionSearchController
 
         try {
             $page = $listTransactions($listQuery);
-        } catch (InvalidTransactionInput) {
-            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
-        } catch (TransactionCursorStale) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_cursor_stale', '/problems/transactions.cursor_stale');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::list());
         }
 
         return $this->envelope->json(TransactionRepresentation::page($page));
@@ -81,10 +74,8 @@ final readonly class TransactionSearchController
 
         try {
             $count = $countTransactions($query);
-        } catch (InvalidTransactionInput) {
-            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::count());
         }
 
         return $this->envelope->json(['count' => $count]);
@@ -115,14 +106,8 @@ final readonly class TransactionSearchController
 
         try {
             $facets = $readTransactionFacets($query);
-        } catch (InvalidTransactionInput) {
-            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_transaction_query');
-        } catch (TransactionFilterAccountNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (TransactionFacetScopeTooLarge) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_facets_scope_too_large');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::facets());
         }
 
         return $this->envelope->json(TransactionFacetsRepresentation::of($facets));

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Reference\UI\Http;
 
-use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use App\Module\Reference\Application\AssetNotFound;
 use App\Module\Reference\Application\AssetPage;
@@ -16,7 +16,6 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Read-only view of the system asset reference. The catalogue is global and
@@ -26,7 +25,7 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final class AssetCatalogController
 {
-    public function __construct(private readonly TranslatorInterface $translator)
+    public function __construct(private readonly JsonRequestEnvelope $envelope)
     {
     }
 
@@ -37,7 +36,7 @@ final class AssetCatalogController
         $pageSize = $request->query->getString('pageSize');
 
         if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
         }
 
         try {
@@ -46,10 +45,10 @@ final class AssetCatalogController
                 QueryParameters::integerOrNull($pageSize),
             );
         } catch (InvalidAssetQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_asset_query');
         }
 
-        return self::jsonPage($catalogue);
+        return $this->jsonPage($catalogue);
     }
 
     #[Route('/api/v1/assets/{code}', name: 'api_v1_assets_read', methods: ['GET'])]
@@ -58,15 +57,15 @@ final class AssetCatalogController
         try {
             $asset = $readAsset($code);
         } catch (AssetNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.asset_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.asset_not_found');
         }
 
-        return self::json(self::represent($asset));
+        return $this->envelope->json(self::represent($asset));
     }
 
-    private static function jsonPage(AssetPage $catalogue): JsonResponse
+    private function jsonPage(AssetPage $catalogue): JsonResponse
     {
-        return self::json([
+        return $this->envelope->json([
             'items' => array_map(self::represent(...), $catalogue->assets),
             'page' => $catalogue->page,
             'pageSize' => $catalogue->pageSize,
@@ -95,22 +94,5 @@ final class AssetCatalogController
                 'assetCode' => $step->asset->toString(),
             ],
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private static function json(array $data): JsonResponse
-    {
-        return new JsonResponse(data: $data, headers: ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-        );
     }
 }

@@ -14,6 +14,7 @@ use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -21,7 +22,7 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final readonly class GoalController
 {
-    public function __construct(private JsonRequestEnvelope $envelope, private GoalProblems $problems)
+    public function __construct(private JsonRequestEnvelope $envelope, private GoalProblems $problems, private ProblemMapper $mapper)
     {
     }
 
@@ -120,10 +121,8 @@ final readonly class GoalController
         }
         try {
             return $this->envelope->json(GoalRepresentation::detail($read($id)));
-        } catch (GoalNotFound) {
-            return $this->problems->notFound();
-        } catch (WorkspaceAccessDenied) {
-            return $this->problems->forbidden();
+        } catch (\Throwable $exception) {
+            return $this->mapper->respond($exception, GoalProblems::read());
         }
     }
 }

@@ -4,49 +4,34 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Foundation\UI\Http\QueryParameters;
 use App\Module\Portfolio\Application\CreateInstrument;
-use App\Module\Portfolio\Application\CreateInstrumentInput;
 use App\Module\Portfolio\Application\DeactivateInstrument;
-use App\Module\Portfolio\Application\InstrumentDuplicateCandidates;
-use App\Module\Portfolio\Application\InstrumentIsinExists;
-use App\Module\Portfolio\Application\InstrumentLimitReached;
 use App\Module\Portfolio\Application\InstrumentNotFound;
 use App\Module\Portfolio\Application\InvalidInstrumentInput;
 use App\Module\Portfolio\Application\ListInstruments;
 use App\Module\Portfolio\Application\ReactivateInstrument;
 use App\Module\Portfolio\Application\ReadInstrument;
 use App\Module\Portfolio\Application\ReadInstrumentHolding;
-use App\Module\Portfolio\Application\StaleInstrumentVersion;
 use App\Module\Portfolio\Application\UpdateInstrument;
-use App\Module\Portfolio\Application\UpdateInstrumentInput;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
 use App\Module\Transactions\UI\Http\TransactionHttpEnvelope;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Module\Transactions\UI\Http\TransactionProblems;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class InstrumentController
 {
-    private const array REQUIRED_WRITE_FIELDS = ['name', 'instrumentType', 'currencyCode'];
-    private const array OPTIONAL_WRITE_FIELDS = [
-        'isin', 'ticker', 'venueMic', 'assetClass', 'region', 'quantityPrecision', 'pricePrecision', 'confirmDuplicate',
-    ];
-
     public function __construct(
-        private TranslatorInterface $translator,
-        private JsonRequestEnvelope $requestEnvelope,
-        private TransactionHttpEnvelope $idempotencyEnvelope,
+        private JsonRequestEnvelope $envelope,
+        private ProblemMapper $problems,
+        private TransactionHttpEnvelope $idempotency,
         private IdempotentExecution $idempotentExecution,
     ) {
     }
@@ -57,7 +42,7 @@ final readonly class InstrumentController
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
         if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_instrument_query');
+            return $this->problems->respond(new InvalidInstrumentInput('The pagination is invalid.', 'invalid_instrument_query'), PortfolioProblems::instrumentList());
         }
         try {
             $result = $list(
@@ -68,132 +53,86 @@ final readonly class InstrumentController
                 $request->query->has('currencyCode') ? $request->query->getString('currencyCode') : null,
                 $request->query->has('instrumentType') ? $request->query->getString('instrumentType') : null,
             );
-        } catch (InvalidInstrumentInput $exception) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, $exception->problemCode);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, PortfolioProblems::instrumentList());
         }
 
-        return self::json(InstrumentRepresentation::page($result));
+        return $this->envelope->json(InstrumentRepresentation::page($result));
     }
 
     #[Route('/api/v1/instruments', name: 'api_v1_instruments_create', methods: ['POST'])]
     public function create(Request $request, CreateInstrument $create): Response
     {
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.instrument_payload_too_large', PortfolioProblems::refusal($this->envelope));
         if ($body instanceof Response) {
             return $body;
         }
         try {
-            $payload = InstrumentPayload::of($body, self::REQUIRED_WRITE_FIELDS, self::OPTIONAL_WRITE_FIELDS);
-            $input = new CreateInstrumentInput(
-                $payload->string('name'), $payload->nullableString('isin'), $payload->nullableString('ticker'),
-                $payload->nullableString('venueMic'), $payload->string('instrumentType'), $payload->nullableString('assetClass'),
-                $payload->nullableString('region'), $payload->string('currencyCode'), $payload->nullableInteger('quantityPrecision'),
-                $payload->nullableInteger('pricePrecision'), $payload->boolean('confirmDuplicate'),
-            );
+            $input = InstrumentPayload::create($body);
             $result = $this->idempotentExecution->execute(
                 'instrument.create',
-                $this->idempotencyEnvelope->idempotency($request, false),
+                $this->idempotency->idempotency($request, false),
                 static function () use ($create, $input): IdempotentResponse {
                     $instrument = $create($input);
 
                     return new IdempotentResponse(InstrumentRepresentation::one($instrument), Response::HTTP_CREATED, $instrument->id);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->idempotencyEnvelope->idempotencyProblem($exception);
-        } catch (\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_instrument_payload');
-        } catch (InvalidInstrumentInput $exception) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode);
-        } catch (InstrumentIsinExists $exception) {
-            return $this->problem(Response::HTTP_CONFLICT, 'instrument_isin_exists', ['existingId' => $exception->existingId]);
-        } catch (InstrumentDuplicateCandidates $exception) {
-            return $this->problem(Response::HTTP_CONFLICT, 'instrument_duplicate_candidates', [
-                'candidates' => array_map(InstrumentRepresentation::candidate(...), $exception->candidates),
-            ]);
-        } catch (InstrumentLimitReached) {
-            return $this->problem(Response::HTTP_CONFLICT, 'instrument_limit_reached');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, [...TransactionProblems::idempotency(), ...PortfolioProblems::instrumentWrite()]);
         }
 
-        return new JsonResponse($result->body, $result->status, ['Cache-Control' => 'no-store', ...($result->replayed ? ['Idempotency-Replayed' => 'true'] : [])]);
+        return $this->idempotency->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
     }
 
     #[Route('/api/v1/instruments/{id}', name: 'api_v1_instruments_show', methods: ['GET'])]
     public function show(string $id, ReadInstrument $read): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
+            return $this->problems->respond(new InstrumentNotFound(), PortfolioProblems::instrumentRead());
         }
         try {
             $instrument = $read($id);
-        } catch (InstrumentNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, PortfolioProblems::instrumentRead());
         }
 
-        return self::json(InstrumentRepresentation::one($instrument));
+        return $this->envelope->json(InstrumentRepresentation::one($instrument));
     }
 
     #[Route('/api/v1/instruments/{id}/holding', name: 'api_v1_instruments_holding', methods: ['GET'])]
     public function holding(string $id, ReadInstrumentHolding $read): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
+            return $this->problems->respond(new InstrumentNotFound(), PortfolioProblems::instrumentRead());
         }
         try {
             $result = $read($id);
-        } catch (InstrumentNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, PortfolioProblems::instrumentRead());
         }
         $result['instrument'] = InstrumentRepresentation::one($result['instrument']);
 
-        return self::json($result);
+        return $this->envelope->json($result);
     }
 
     #[Route('/api/v1/instruments/{id}', name: 'api_v1_instruments_update', methods: ['PUT'])]
     public function update(string $id, Request $request, UpdateInstrument $update): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
+            return $this->problems->respond(new InstrumentNotFound(), PortfolioProblems::instrumentRead());
         }
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.instrument_payload_too_large', PortfolioProblems::refusal($this->envelope));
         if ($body instanceof Response) {
             return $body;
         }
         try {
-            $payload = InstrumentPayload::of($body, [...self::REQUIRED_WRITE_FIELDS, 'version'], self::OPTIONAL_WRITE_FIELDS);
-            $instrument = $update($id, new UpdateInstrumentInput(
-                $payload->string('name'), $payload->nullableString('isin'), $payload->nullableString('ticker'),
-                $payload->nullableString('venueMic'), $payload->string('instrumentType'), $payload->nullableString('assetClass'),
-                $payload->nullableString('region'), $payload->string('currencyCode'), $payload->nullableInteger('quantityPrecision'),
-                $payload->nullableInteger('pricePrecision'), $payload->boolean('confirmDuplicate'), $payload->integer('version'),
-            ));
-        } catch (\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_instrument_payload');
-        } catch (InvalidInstrumentInput $exception) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, $exception->problemCode);
-        } catch (InstrumentNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
-        } catch (StaleInstrumentVersion) {
-            return $this->problem(Response::HTTP_CONFLICT, 'stale_instrument_version');
-        } catch (InstrumentIsinExists $exception) {
-            return $this->problem(Response::HTTP_CONFLICT, 'instrument_isin_exists', ['existingId' => $exception->existingId]);
-        } catch (InstrumentDuplicateCandidates $exception) {
-            return $this->problem(Response::HTTP_CONFLICT, 'instrument_duplicate_candidates', [
-                'candidates' => array_map(InstrumentRepresentation::candidate(...), $exception->candidates),
-            ]);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+            $instrument = $update($id, InstrumentPayload::update($body));
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, PortfolioProblems::instrumentWrite());
         }
 
-        return self::json(InstrumentRepresentation::one($instrument));
+        return $this->envelope->json(InstrumentRepresentation::one($instrument));
     }
 
     #[Route('/api/v1/instruments/{id}/deactivate', name: 'api_v1_instruments_deactivate', methods: ['POST'])]
@@ -212,59 +151,18 @@ final readonly class InstrumentController
     private function lifecycle(string $id, Request $request, callable $change): Response
     {
         if (!Identifier::isValid($id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
+            return $this->problems->respond(new InstrumentNotFound(), PortfolioProblems::instrumentRead());
         }
-        $body = $this->readBody($request);
+        $body = $this->envelope->body($request, BodyLimit::Standard, 'api.problem.instrument_payload_too_large', PortfolioProblems::refusal($this->envelope));
         if ($body instanceof Response) {
             return $body;
         }
         try {
-            $version = InstrumentPayload::of($body, ['version'])->integer('version');
-            $instrument = $change($id, $version);
-        } catch (\UnexpectedValueException) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'invalid_instrument_payload');
-        } catch (InvalidInstrumentInput $exception) {
-            $status = in_array($exception->problemCode, ['instrument_already_active', 'instrument_already_inactive'], true)
-                ? Response::HTTP_CONFLICT : Response::HTTP_UNPROCESSABLE_ENTITY;
-
-            return $this->problem($status, $exception->problemCode);
-        } catch (InstrumentNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'instrument_not_found');
-        } catch (StaleInstrumentVersion) {
-            return $this->problem(Response::HTTP_CONFLICT, 'stale_instrument_version');
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'instrument_forbidden');
+            $instrument = $change($id, InstrumentPayload::version($body));
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, PortfolioProblems::instrumentWrite());
         }
 
-        return self::json(InstrumentRepresentation::one($instrument));
-    }
-
-    /** @return array<mixed>|Response */
-    private function readBody(Request $request): array|Response
-    {
-        return $this->requestEnvelope->body(
-            $request,
-            BodyLimit::Standard,
-            'api.problem.instrument_payload_too_large',
-            fn (int $status, string $translationKey): JsonResponse => $this->problem($status, substr($translationKey, strlen('api.problem.'))),
-        );
-    }
-
-    /** @param array<string, mixed> $extensions */
-    private function problem(int $status, string $code, array $extensions = []): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans('api.problem.'.$code.'.title'),
-            $this->translator->trans('api.problem.'.$code.'.detail'),
-            '/problems/'.str_replace('_', '-', $code),
-            extensions: ['code' => $code, ...$extensions],
-        );
-    }
-
-    /** @param array<string, mixed> $data */
-    private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
-    {
-        return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
+        return $this->envelope->json(InstrumentRepresentation::one($instrument));
     }
 }

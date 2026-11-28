@@ -4,24 +4,13 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\BulkEditResult;
 use App\Module\Transactions\Application\BulkEditTransactions;
 use App\Module\Transactions\Application\BulkPreview;
-use App\Module\Transactions\Application\BulkPreviewRequired;
-use App\Module\Transactions\Application\BulkPreviewStale;
-use App\Module\Transactions\Application\BulkScopeChanged;
-use App\Module\Transactions\Application\BulkScopeTooLarge;
-use App\Module\Transactions\Application\BulkTargetAccountNotFound;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\PreviewBulkEdit;
-use App\Module\Transactions\Application\StaleTransactionVersion;
-use App\Module\Transactions\Application\TransactionConflict;
-use App\Module\Transactions\Application\TransactionNotFound;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -31,6 +20,7 @@ final readonly class TransactionBulkController
 {
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private IdempotentExecution $idempotentExecution,
         private BulkEditPayload $payload,
     ) {
@@ -59,33 +49,8 @@ final readonly class TransactionBulkController
                     return new IdempotentResponse(self::representation($outcome), Response::HTTP_OK, null, $outcome->periodDays);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (BulkScopeTooLarge) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.bulk_scope_too_large',
-                ['limit' => BulkEditTransactions::MAX_TRANSACTIONS],
-                '/problems/transactions.bulk-scope-too-large',
-            );
-        } catch (BulkScopeChanged $exception) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_CONFLICT, 'api.problem.bulk_scope_changed',
-                ['actualCount' => $exception->actualCount], '/problems/transactions.bulk-scope-changed',
-            );
-        } catch (BulkPreviewRequired) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.bulk_preview_required', '/problems/transactions.bulk-preview-required');
-        } catch (BulkPreviewStale) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.bulk_preview_stale', '/problems/transactions.bulk-preview-stale');
-        } catch (BulkTargetAccountNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.bulk_target_account_not_found');
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.category_not_found');
-        } catch (StaleTransactionVersion|TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::bulk());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);

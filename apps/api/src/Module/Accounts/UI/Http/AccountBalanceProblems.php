@@ -12,6 +12,7 @@ use App\Module\Accounts\Application\InvalidAccountBalanceInput;
 use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Foundation\UI\Http\ProblemRule;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -59,7 +60,7 @@ final class AccountBalanceProblems
             AccountArchived::class => self::archived(),
             PortfolioAccountValuedByPortfolio::class => self::valuedByPortfolio(),
             InvalidAccountBalanceInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             AccountNotFound::class => self::accountNotFound(),
             StaleAccountVersion::class => self::staleVersion(),
             AccountBalanceConflict::class => self::conflict(),
@@ -74,7 +75,7 @@ final class AccountBalanceProblems
             AccountArchived::class => self::archived(),
             PortfolioAccountValuedByPortfolio::class => self::valuedByPortfolio(),
             InvalidAccountBalanceInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             AccountNotFound::class => self::snapshotNotFound(),
             AccountBalanceNotFound::class => self::snapshotNotFound(),
             StaleAccountVersion::class => self::staleVersion(),
@@ -89,7 +90,7 @@ final class AccountBalanceProblems
         return [
             AccountArchived::class => self::archived(),
             InvalidAccountBalanceInput::class => self::invalid(),
-            \UnexpectedValueException::class => self::invalid(),
+            MalformedPayload::class => self::invalid(),
             AccountNotFound::class => self::snapshotNotFound(),
             AccountBalanceNotFound::class => self::snapshotNotFound(),
             StaleAccountVersion::class => self::staleVersion(),

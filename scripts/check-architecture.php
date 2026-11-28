@@ -48,6 +48,16 @@ foreach ($iterator as $file) {
         $violations[] = sprintf('%s: read query parameters through QueryParameters', $path);
     }
 
+    if (str_contains($path, '/UI/Http/')) {
+        // An internal inconsistency throws it, so the HTTP layer must never turn it into a client error.
+        if (str_contains($contents, 'UnexpectedValueException')) {
+            $violations[] = sprintf('%s: refuse a body with MalformedPayload, never UnexpectedValueException', $path);
+        }
+        if (1 === preg_match('/\bprivate\s+(?:static\s+)?function\s+(problem|json|readBody)\s*\(/', $contents, $helper)) {
+            $violations[] = sprintf('%s: private %s() duplicates JsonRequestEnvelope', $path, $helper[1]);
+        }
+    }
+
     if (1 !== preg_match('~/Module/[^/]+/(Domain|Application|Infrastructure|UI)/~', $path, $sourceMatch)) {
         continue;
     }

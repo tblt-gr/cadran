@@ -4,26 +4,15 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonPayload;
+use App\Module\Foundation\UI\Http\MalformedPayload;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\CreateTransaction;
 use App\Module\Transactions\Application\CreateTransactionInput;
-use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
-use App\Module\Transactions\Application\InvalidIdempotencyKey;
-use App\Module\Transactions\Application\InvalidRefundRule;
-use App\Module\Transactions\Application\InvalidSplitsInput;
-use App\Module\Transactions\Application\InvalidTransactionInput;
-use App\Module\Transactions\Application\PortfolioAccountRequiresOperations;
 use App\Module\Transactions\Application\ReadTransaction;
-use App\Module\Transactions\Application\StaleTransactionVersion;
-use App\Module\Transactions\Application\TransactionBelongsToRefund;
-use App\Module\Transactions\Application\TransactionBelongsToTransfer;
-use App\Module\Transactions\Application\TransactionConflict;
-use App\Module\Transactions\Application\TransactionHasRefunds;
-use App\Module\Transactions\Application\TransactionNotFound;
 use App\Module\Transactions\Application\UpdateTransaction;
 use App\Module\Transactions\Application\UpdateTransactionInput;
 use App\Module\Transactions\Domain\TransactionSource;
@@ -54,6 +43,7 @@ final readonly class TransactionController
 
     public function __construct(
         private TransactionHttpEnvelope $envelope,
+        private ProblemMapper $problems,
         private IdempotentExecution $idempotentExecution,
     ) {
     }
@@ -74,7 +64,7 @@ final readonly class TransactionController
             $source = $payload->string('source');
             if (TransactionSource::RECURRENCE->value === $source) {
                 // Only a recurrence creates this source, through its own use case.
-                throw new \UnexpectedValueException('A client cannot create a recurrence-sourced transaction.');
+                throw new MalformedPayload('A client cannot create a recurrence-sourced transaction.');
             }
             $result = $this->idempotentExecution->execute(
                 'transaction.create',
@@ -85,20 +75,8 @@ final readonly class TransactionController
                     return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id, [$transaction->bookedOn]);
                 },
             );
-        } catch (InvalidIdempotencyKey|IdempotencyConflict $exception) {
-            return $this->envelope->idempotencyProblem($exception);
-        } catch (InvalidSplitsInput $exception) {
-            return $this->envelope->invalidSplitsProblem($exception);
-        } catch (PortfolioAccountRequiresOperations $exception) {
-            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
-        } catch (InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::create());
         }
 
         return $this->envelope->json($result->body, $result->status, $result->replayed ? ['Idempotency-Replayed' => 'true'] : []);
@@ -113,10 +91,8 @@ final readonly class TransactionController
 
         try {
             $transaction = $readTransaction($id);
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::read());
         }
 
         return $this->envelope->json(TransactionRepresentation::one($transaction));
@@ -136,34 +112,8 @@ final readonly class TransactionController
         try {
             $payload = JsonPayload::of($body, self::UPDATE_FIELDS);
             $transaction = $updateTransaction($id, self::updateInput($payload));
-        } catch (InvalidRefundRule $exception) {
-            return $this->envelope->invalidRefundRuleProblem($exception);
-        } catch (InvalidSplitsInput $exception) {
-            return $this->envelope->invalidSplitsProblem($exception);
-        } catch (PortfolioAccountRequiresOperations $exception) {
-            return $this->envelope->portfolioAccountRequiresOperationsProblem($exception);
-        } catch (InvalidTransactionInput|\UnexpectedValueException) {
-            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
-        } catch (TransactionBelongsToTransfer $exception) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_transfer',
-                ['transferId' => $exception->transferId], '/problems/transaction-belongs-to-transfer',
-            );
-        } catch (TransactionBelongsToRefund $exception) {
-            return $this->envelope->problemWithExtensions(
-                Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.transaction_belongs_to_refund',
-                ['originalId' => $exception->originalTransactionId], '/problems/transaction.belongs_to_refund',
-            );
-        } catch (TransactionHasRefunds) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_has_refunds', '/problems/transaction.has_refunds');
-        } catch (TransactionNotFound) {
-            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.transaction_not_found');
-        } catch (StaleTransactionVersion) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_stale_version', TransactionHttpEnvelope::TYPE_STALE_VERSION);
-        } catch (TransactionConflict) {
-            return $this->envelope->problem(Response::HTTP_CONFLICT, 'api.problem.transaction_conflict', TransactionHttpEnvelope::TYPE_CONFLICT);
-        } catch (WorkspaceAccessDenied) {
-            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.transaction_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, TransactionProblems::update());
         }
 
         return $this->envelope->json(TransactionRepresentation::one($transaction));

@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Reporting\Application\ActivateMetricPolicy;
 use App\Module\Reporting\Application\ActivateMetricPolicyInput;
 use App\Module\Reporting\Application\CreateMetricPolicy;
@@ -24,12 +25,11 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /** Lists, creates and activates the workspace metric policy versions. No version is ever edited or deleted. */
 final readonly class MetricPolicyController
 {
-    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -39,7 +39,7 @@ final readonly class MetricPolicyController
         try {
             $catalog = $read();
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
         }
 
         return new JsonResponse(MetricPolicyRepresentation::catalog($catalog), Response::HTTP_OK, ['Cache-Control' => 'no-store']);
@@ -48,26 +48,23 @@ final readonly class MetricPolicyController
     #[Route('/api/v1/reports/metric-policies', name: 'api_v1_reports_metric_policies_create', methods: ['POST'])]
     public function create(Request $request, CreateMetricPolicy $create): Response
     {
-        $body = $this->readBody($request, ['label', 'cashExcludedAccountKinds']);
+        $body = $this->envelope->body($request, BodyLimit::Small, 'api.problem.invalid_metric_policy');
         if ($body instanceof Response) {
             return $body;
         }
-        $kinds = $body['cashExcludedAccountKinds'];
-        if (!is_string($body['label']) || !is_array($kinds) || !array_is_list($kinds) || [] !== array_filter($kinds, static fn (mixed $kind): bool => !is_string($kind))) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
-        }
 
         try {
-            /** @var list<string> $kinds */
-            $policy = $create(new CreateMetricPolicyInput($body['label'], $kinds));
-        } catch (InvalidMetricPolicyInput) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
+            $payload = JsonPayload::of($body, ['label', 'cashExcludedAccountKinds']);
+            // The use case bounds the selection against the account kinds.
+            $policy = $create(new CreateMetricPolicyInput($payload->string('label'), $payload->stringList('cashExcludedAccountKinds', \PHP_INT_MAX)));
+        } catch (InvalidMetricPolicyInput|MalformedPayload) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
         } catch (MetricPolicyDefinitionExists $exception) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.metric_policy_definition_exists', 'policy_definition_exists', ['version' => $exception->existingVersion]);
+            return $this->refusal(Response::HTTP_CONFLICT, 'api.problem.metric_policy_definition_exists', 'policy_definition_exists', ['version' => $exception->existingVersion]);
         } catch (MetricPolicyVersionLimit) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.metric_policy_version_limit', 'policy_version_limit');
+            return $this->refusal(Response::HTTP_CONFLICT, 'api.problem.metric_policy_version_limit', 'policy_version_limit');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.metric_policy_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.metric_policy_forbidden');
         }
 
         return new JsonResponse(MetricPolicyRepresentation::policy($policy), Response::HTTP_CREATED, ['Cache-Control' => 'no-store']);
@@ -76,29 +73,30 @@ final readonly class MetricPolicyController
     #[Route('/api/v1/reports/metric-policies/active', name: 'api_v1_reports_metric_policies_activate', methods: ['PUT'])]
     public function activate(Request $request, ActivateMetricPolicy $activate): Response
     {
-        $body = $this->readBody($request, ['version', 'expectedActiveVersion'], ['reason']);
+        $body = $this->envelope->body($request, BodyLimit::Small, 'api.problem.invalid_metric_policy');
         if ($body instanceof Response) {
             return $body;
         }
-        $reason = $body['reason'] ?? null;
-        if (!is_int($body['version']) || !is_int($body['expectedActiveVersion']) || (null !== $reason && !is_string($reason))) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
-        }
 
         try {
-            $result = $activate(new ActivateMetricPolicyInput($body['version'], $body['expectedActiveVersion'], $reason));
-        } catch (InvalidMetricPolicyInput) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
+            $payload = JsonPayload::of($body, ['version', 'expectedActiveVersion'], ['reason']);
+            $result = $activate(new ActivateMetricPolicyInput(
+                $payload->integer('version'),
+                $payload->integer('expectedActiveVersion'),
+                $payload->nullableString('reason'),
+            ));
+        } catch (InvalidMetricPolicyInput|MalformedPayload) {
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
         } catch (UnknownMetricPolicyVersion) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.unknown_policy_version', 'unknown_policy_version');
+            return $this->refusal(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.unknown_policy_version', 'unknown_policy_version');
         } catch (StaleActiveMetricPolicy) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.stale_active_policy', 'stale_active_policy');
+            return $this->refusal(Response::HTTP_CONFLICT, 'api.problem.stale_active_policy', 'stale_active_policy');
         } catch (MetricPolicyActivationLimit) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.metric_policy_activation_limit', 'activation_limit');
+            return $this->refusal(Response::HTTP_CONFLICT, 'api.problem.metric_policy_activation_limit', 'activation_limit');
         } catch (MetricPolicyAlreadyActive) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.policy_already_active', 'policy_already_active');
+            return $this->refusal(Response::HTTP_CONFLICT, 'api.problem.policy_already_active', 'policy_already_active');
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.metric_policy_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.metric_policy_forbidden');
         }
 
         return new JsonResponse([
@@ -108,35 +106,12 @@ final readonly class MetricPolicyController
     }
 
     /**
-     * @param list<string> $required
-     * @param list<string> $optional
+     * A refusal the client tells apart by its code, carried as type and member.
      *
-     * @return array<mixed>|Response
+     * @param array<string, mixed> $extensions
      */
-    private function readBody(Request $request, array $required, array $optional = []): array|Response
+    private function refusal(int $status, string $key, string $code, array $extensions = []): JsonResponse
     {
-        $body = $this->envelope->body($request, BodyLimit::Small, 'api.problem.invalid_metric_policy');
-        if ($body instanceof Response) {
-            return $body;
-        }
-        $keys = array_keys($body);
-        if ([] !== array_diff($required, $keys) || [] !== array_diff($keys, [...$required, ...$optional])) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_metric_policy');
-        }
-
-        return $body;
-    }
-
-    /** @param array<string, mixed> $extensions */
-    private function problem(int $status, string $key, ?string $code = null, array $extensions = []): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail'),
-            null === $code ? ApiProblem::TYPE_BLANK : '/problems/'.str_replace('_', '-', $code),
-            [],
-            null === $code ? $extensions : ['code' => $code, ...$extensions],
-        );
+        return $this->envelope->problem($status, $key, '/problems/'.str_replace('_', '-', $code), ['code' => $code, ...$extensions]);
     }
 }

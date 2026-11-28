@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Portfolio\UI\Http;
 
+use App\Module\Foundation\UI\Http\JsonPayload;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 use App\Module\Portfolio\Application\AmountInput;
 use App\Module\Portfolio\Application\OperationInput;
 use App\Module\Portfolio\Application\OperationLegInput;
@@ -21,163 +23,76 @@ final class OperationPayload
         'costBasis', 'counterInstrumentId', 'counterQuantity', 'ratio', 'costAllocationRatio', 'reference', 'note',
         'linkedTransactionId', 'legs', 'withheldIncomeTax', 'withheldSocialContributions', 'interestBasis', 'rateYear',
     ];
+    private const int MAX_LEGS = 20;
 
     /**
      * @param array<mixed> $body
      *
-     * @throws \UnexpectedValueException
+     * @throws MalformedPayload
      */
     public static function operation(array $body): OperationInput
     {
-        foreach (array_keys($body) as $key) {
-            if (!is_string($key) || !in_array($key, self::FIELDS, true)) {
-                throw new \UnexpectedValueException('The operation body carries only declared fields.');
-            }
-        }
-        if (isset($body['rateYear']) && !is_int($body['rateYear'])) {
-            throw new \UnexpectedValueException('rateYear must be an integer.');
-        }
-        $ratio = self::object($body, 'ratio', ['numerator', 'denominator']);
+        $payload = JsonPayload::of($body, [], self::FIELDS);
+        $rateYear = $payload->nullableInteger('rateYear');
+        $ratio = $payload->nullableObject('ratio', ['numerator', 'denominator']);
 
         return new OperationInput(
-            interestBasis: self::string($body, 'interestBasis'),
-            rateYear: $body['rateYear'] ?? null,
-            type: self::requiredString($body, 'type'),
-            tradeDate: self::requiredString($body, 'tradeDate'),
-            settlementDate: self::string($body, 'settlementDate'),
-            instrumentId: self::string($body, 'instrumentId'),
-            quantity: self::string($body, 'quantity'),
-            unitPrice: self::string($body, 'unitPrice'),
-            grossAmount: self::amount($body, 'grossAmount'),
-            fees: self::amount($body, 'fees'),
-            taxes: self::amount($body, 'taxes'),
-            costBasis: self::amount($body, 'costBasis'),
-            counterInstrumentId: self::string($body, 'counterInstrumentId'),
-            counterQuantity: self::string($body, 'counterQuantity'),
-            ratioNumerator: $ratio['numerator'] ?? null,
-            ratioDenominator: $ratio['denominator'] ?? null,
-            costAllocationRatio: self::string($body, 'costAllocationRatio'),
-            reference: self::string($body, 'reference'),
-            note: self::string($body, 'note'),
-            linkedTransactionId: self::string($body, 'linkedTransactionId'),
-            legs: self::legs($body),
-            withheldIncomeTax: self::amount($body, 'withheldIncomeTax'),
-            withheldSocialContributions: self::amount($body, 'withheldSocialContributions'),
+            interestBasis: $payload->nullableString('interestBasis'),
+            rateYear: $rateYear,
+            type: $payload->string('type'),
+            tradeDate: $payload->string('tradeDate'),
+            settlementDate: $payload->nullableString('settlementDate'),
+            instrumentId: $payload->nullableString('instrumentId'),
+            quantity: $payload->nullableString('quantity'),
+            unitPrice: $payload->nullableString('unitPrice'),
+            grossAmount: self::amountInput($payload, 'grossAmount'),
+            fees: self::amountInput($payload, 'fees'),
+            taxes: self::amountInput($payload, 'taxes'),
+            costBasis: self::amountInput($payload, 'costBasis'),
+            counterInstrumentId: $payload->nullableString('counterInstrumentId'),
+            counterQuantity: $payload->nullableString('counterQuantity'),
+            ratioNumerator: $ratio?->string('numerator'),
+            ratioDenominator: $ratio?->string('denominator'),
+            costAllocationRatio: $payload->nullableString('costAllocationRatio'),
+            reference: $payload->nullableString('reference'),
+            note: $payload->nullableString('note'),
+            linkedTransactionId: $payload->nullableString('linkedTransactionId'),
+            legs: self::legs($payload->raw('legs') ?? []),
+            withheldIncomeTax: self::amountInput($payload, 'withheldIncomeTax'),
+            withheldSocialContributions: self::amountInput($payload, 'withheldSocialContributions'),
         );
     }
 
-    /** @param array<mixed> $body
-     * @return list<OperationLegInput>
-     */
-    private static function legs(array $body): array
+    /** An optional `{value, assetCode}` object, shared by the portfolio bodies. */
+    public static function amountInput(JsonPayload $payload, string $field): ?AmountInput
     {
-        $rows = $body['legs'] ?? [];
+        $amount = $payload->nullableAmount($field);
+
+        return null === $amount ? null : new AmountInput($amount['value'], $amount['assetCode']);
+    }
+
+    /** @return list<OperationLegInput> */
+    private static function legs(mixed $rows): array
+    {
         if (!is_array($rows) || !array_is_list($rows)) {
-            throw new \UnexpectedValueException('Legs must be a list.');
+            throw new MalformedPayload('Legs must be a list.');
         }
-        if (count($rows) > 20) {
+        if (count($rows) > self::MAX_LEGS) {
             throw new InvalidPortfolioOperation('At most twenty support legs are allowed.', 'too_many_operation_legs');
         }
         $legs = [];
         foreach ($rows as $row) {
             if (!is_array($row)) {
-                throw new \UnexpectedValueException('A leg is an object.');
+                throw new MalformedPayload('A leg is an object.');
             }
-            self::shape($row, ['direction', 'instrumentId', 'amount'], ['quantity', 'unitPrice']);
+            $leg = JsonPayload::of($row, ['direction', 'instrumentId', 'amount'], ['quantity', 'unitPrice']);
             $legs[] = new OperationLegInput(
-                self::requiredString($row, 'direction'), self::requiredString($row, 'instrumentId'),
-                self::string($row, 'quantity'), self::string($row, 'unitPrice'),
-                self::amount($row, 'amount') ?? throw new \UnexpectedValueException('A leg amount is required.'),
+                $leg->string('direction'), $leg->string('instrumentId'),
+                $leg->nullableString('quantity'), $leg->nullableString('unitPrice'),
+                self::amountInput($leg, 'amount') ?? throw new MalformedPayload('A leg amount is required.'),
             );
         }
 
         return $legs;
-    }
-
-    /**
-     * @param array<mixed> $body
-     * @param list<string> $required
-     * @param list<string> $optional
-     *
-     * @return array<string, mixed>
-     *
-     * @throws \UnexpectedValueException
-     */
-    public static function shape(array $body, array $required, array $optional = []): array
-    {
-        $fields = [];
-        foreach ($body as $key => $value) {
-            if (!is_string($key) || !in_array($key, [...$required, ...$optional], true)) {
-                throw new \UnexpectedValueException('The body carries only declared fields.');
-            }
-            $fields[$key] = $value;
-        }
-        foreach ($required as $field) {
-            if (!array_key_exists($field, $fields)) {
-                throw new \UnexpectedValueException(sprintf('%s is required.', $field));
-            }
-        }
-
-        return $fields;
-    }
-
-    /** @param array<mixed> $body */
-    private static function requiredString(array $body, string $field): string
-    {
-        return self::string($body, $field) ?? throw new \UnexpectedValueException(sprintf('%s is required.', $field));
-    }
-
-    /** @param array<mixed> $body */
-    private static function string(array $body, string $field): ?string
-    {
-        $value = $body[$field] ?? null;
-        if (null !== $value && !is_string($value)) {
-            throw new \UnexpectedValueException(sprintf('%s must be a string.', $field));
-        }
-
-        return $value;
-    }
-
-    /** @param array<mixed> $body */
-    private static function amount(array $body, string $field): ?AmountInput
-    {
-        $fields = self::object($body, $field, ['value', 'assetCode']);
-        if (null === $fields) {
-            return null;
-        }
-        if (!isset($fields['value'], $fields['assetCode'])) {
-            throw new \UnexpectedValueException(sprintf('%s needs a value and an assetCode.', $field));
-        }
-
-        return new AmountInput($fields['value'], $fields['assetCode']);
-    }
-
-    /**
-     * @param array<mixed> $body
-     * @param list<string> $keys
-     *
-     * @return array<string, string>|null
-     */
-    private static function object(array $body, string $field, array $keys): ?array
-    {
-        $value = $body[$field] ?? null;
-        if (null === $value) {
-            return null;
-        }
-        if (!is_array($value) || array_is_list($value) && [] !== $value) {
-            throw new \UnexpectedValueException(sprintf('%s must be an object.', $field));
-        }
-        $typed = [];
-        foreach ($value as $key => $item) {
-            if (!is_string($key) || !in_array($key, $keys, true) || !is_string($item)) {
-                throw new \UnexpectedValueException(sprintf('%s carries only string members %s.', $field, implode(', ', $keys)));
-            }
-            $typed[$key] = $item;
-        }
-        if (count($typed) !== count($keys)) {
-            throw new \UnexpectedValueException(sprintf('%s needs %s.', $field, implode(' and ', $keys)));
-        }
-
-        return $typed;
     }
 }

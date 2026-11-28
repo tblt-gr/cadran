@@ -11,7 +11,6 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ControllerArgumentsEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 #[AsEventListener(event: KernelEvents::CONTROLLER_ARGUMENTS)]
 final readonly class ListRevisionListener
@@ -21,7 +20,7 @@ final readonly class ListRevisionListener
         'api_v1_categorization_rules_list', 'api_v1_portfolio_operations_list', 'api_v1_portfolio_valuations_list',
     ];
 
-    public function __construct(private ReadConsistentList $read, private TranslatorInterface $translator)
+    public function __construct(private ReadConsistentList $read, private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -43,7 +42,7 @@ final readonly class ListRevisionListener
             || ('start' === $expected && !in_array($request->query->get('page', '1'), ['1', 1], true));
         $event->setController(function () use ($invalid, $expected, $scope, $route, $controller, $arguments): Response {
             if ($invalid) {
-                return $this->problem(400, 'list_revision_invalid');
+                return $this->refusal(400, 'list_revision_invalid');
             }
             try {
                 $result = ($this->read)($expected, $scope, 'api_v1_products_list' === $route, static function () use ($controller, $arguments): Response {
@@ -55,9 +54,9 @@ final readonly class ListRevisionListener
                     return $response;
                 });
             } catch (ListRevisionStale) {
-                return $this->problem(409, 'list_revision_stale');
+                return $this->refusal(409, 'list_revision_stale');
             } catch (WorkspaceAccessDenied) {
-                return $this->problem(403, 'list_revision_forbidden');
+                return $this->refusal(403, 'list_revision_forbidden');
             }
             $response = $result['value'];
             if ($response->isSuccessful()) {
@@ -69,9 +68,9 @@ final readonly class ListRevisionListener
         $event->setArguments([]);
     }
 
-    private function problem(int $status, string $key): Response
+    private function refusal(int $status, string $key): Response
     {
-        return ApiProblem::response($status, $this->translator->trans('api.problem.'.$key.'.title'), $this->translator->trans('api.problem.'.$key.'.detail'), '/problems/lists.'.match ($key) {
+        return $this->envelope->problem($status, 'api.problem.'.$key, '/problems/lists.'.match ($key) {
             'list_revision_stale' => 'revision_stale',
             'list_revision_forbidden' => 'forbidden',
             default => 'invalid_revision',

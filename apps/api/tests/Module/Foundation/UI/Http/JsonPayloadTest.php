@@ -75,4 +75,16 @@ final class JsonPayloadTest extends TestCase
         yield 'extra nested field' => [[['value' => 1, 'x' => 1]], static fn (JsonPayload $p): array => $p->objects('field', ['value'], 5)];
         yield 'numeric amount' => [['value' => 1.5, 'assetCode' => 'EUR'], static fn (JsonPayload $p): array => $p->amount('field')];
     }
+
+    public function testANullableAmountAndObjectReadAbsenceAsNullAndRefuseAWrongShape(): void
+    {
+        $payload = JsonPayload::of(['amount' => null, 'scope' => ['type' => 'A'], 'list' => []], ['amount', 'scope', 'list']);
+
+        self::assertNull($payload->nullableAmount('amount'));
+        self::assertNull($payload->nullableObject('missing', ['type']));
+        self::assertSame('A', $payload->nullableObject('scope', ['type'])?->string('type'));
+
+        $this->expectException(MalformedPayload::class);
+        $payload->nullableObject('list', [], ['type']);
+    }
 }

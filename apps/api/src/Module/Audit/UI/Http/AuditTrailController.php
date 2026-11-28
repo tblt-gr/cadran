@@ -11,12 +11,11 @@ use App\Module\Audit\Application\InvalidAuditTrailQuery;
 use App\Module\Audit\Application\ListAuditTrail;
 use App\Module\Audit\Application\ReadAuditEvent;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Read-only view of the workspace audit trail. The firewall already denies an
@@ -27,7 +26,7 @@ final class AuditTrailController
 {
     private const string TIMESTAMP_FORMAT = 'Y-m-d\TH:i:s.uP';
 
-    public function __construct(private readonly TranslatorInterface $translator)
+    public function __construct(private readonly JsonRequestEnvelope $envelope)
     {
     }
 
@@ -38,7 +37,7 @@ final class AuditTrailController
     ): Response {
         $pageSize = $request->query->getString('pageSize');
         if ('' !== $pageSize && 1 !== preg_match('/^[0-9]{1,3}$/', $pageSize)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_audit_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_audit_query');
         }
 
         $cursor = $request->query->getString('cursor');
@@ -49,12 +48,12 @@ final class AuditTrailController
                 '' === $cursor ? null : $cursor,
             );
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.audit_trail_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.audit_trail_forbidden');
         } catch (InvalidAuditTrailQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_audit_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_audit_query');
         }
 
-        return self::jsonPage($page);
+        return $this->jsonPage($page);
     }
 
     #[Route('/api/v1/audit-events/{id}', name: 'api_v1_audit_events_read', methods: ['GET'])]
@@ -65,19 +64,19 @@ final class AuditTrailController
         try {
             $entry = $readAuditEvent($id);
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.audit_trail_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.audit_trail_forbidden');
         } catch (AuditEventNotFound) {
             // Identical for an unknown identifier and for one that belongs to
             // another workspace, so the answer never confirms existence.
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.audit_event_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.audit_event_not_found');
         }
 
-        return self::json(self::represent($entry));
+        return $this->envelope->json(self::represent($entry));
     }
 
-    private static function jsonPage(AuditTrailPage $page): JsonResponse
+    private function jsonPage(AuditTrailPage $page): JsonResponse
     {
-        return self::json([
+        return $this->envelope->json([
             'items' => array_map(self::represent(...), $page->entries),
             'nextCursor' => $page->nextCursor,
         ]);
@@ -101,22 +100,5 @@ final class AuditTrailController
             'before' => $entry->before,
             'after' => $entry->after,
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $data
-     */
-    private static function json(array $data): JsonResponse
-    {
-        return new JsonResponse(data: $data, headers: ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-        );
     }
 }

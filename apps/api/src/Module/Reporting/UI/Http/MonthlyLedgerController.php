@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Reporting\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\IncludeUpcomingQuery;
+use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Reporting\Application\InvalidMonthlyLedgerQuery;
 use App\Module\Reporting\Application\MonthlyLedgerRowNotFound;
 use App\Module\Reporting\Application\MonthlyProjectionScopeTooLarge;
@@ -16,13 +16,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 final readonly class MonthlyLedgerController
 {
     public const string TYPE_SCOPE_TOO_LARGE = '/problems/monthly-ledger-scope-too-large';
 
-    public function __construct(private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope)
     {
     }
 
@@ -31,16 +30,16 @@ final readonly class MonthlyLedgerController
     {
         $includeUpcoming = IncludeUpcomingQuery::of($request);
         if (null === $includeUpcoming) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
         }
         try {
             $view = $read($request->query->getString('month'), self::optional($request, 'axis'), $includeUpcoming);
         } catch (InvalidMonthlyLedgerQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
         } catch (MonthlyProjectionScopeTooLarge) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.monthly_ledger_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.monthly_ledger_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
         }
 
         return new JsonResponse(MonthlyLedgerRepresentation::summary($view), headers: ['Cache-Control' => 'no-store']);
@@ -60,7 +59,7 @@ final readonly class MonthlyLedgerController
     ): Response {
         $includeUpcoming = IncludeUpcomingQuery::of($request);
         if (null === $includeUpcoming) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
         }
         try {
             $page = $read(
@@ -73,13 +72,13 @@ final readonly class MonthlyLedgerController
                 $includeUpcoming,
             );
         } catch (InvalidMonthlyLedgerQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_monthly_ledger_query');
         } catch (MonthlyLedgerRowNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.monthly_ledger_row_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.monthly_ledger_row_not_found');
         } catch (MonthlyProjectionScopeTooLarge) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.monthly_ledger_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
+            return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.monthly_ledger_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
         } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
+            return $this->envelope->problem(Response::HTTP_FORBIDDEN, 'api.problem.monthly_projection_forbidden');
         }
 
         return new JsonResponse(MonthlyLedgerRepresentation::page($page), headers: ['Cache-Control' => 'no-store']);
@@ -90,15 +89,5 @@ final readonly class MonthlyLedgerController
         $value = $request->query->get($key);
 
         return is_string($value) && '' !== $value ? $value : null;
-    }
-
-    private function problem(int $status, string $key, string $type = ApiProblem::TYPE_BLANK): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($key.'.title'),
-            $this->translator->trans($key.'.detail'),
-            $type,
-        );
     }
 }

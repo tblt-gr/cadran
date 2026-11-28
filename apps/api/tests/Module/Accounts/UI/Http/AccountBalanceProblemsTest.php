@@ -13,6 +13,7 @@ use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Accounts\Application\StaleAccountVersion;
 use App\Module\Accounts\UI\Http\AccountBalanceProblems;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
+use App\Module\Foundation\UI\Http\MalformedPayload;
 
 final class AccountBalanceProblemsTest extends ProblemTableTestCase
 {
@@ -26,7 +27,7 @@ final class AccountBalanceProblemsTest extends ProblemTableTestCase
             '/problems/portfolio-account-valued-by-portfolio', ['code' => 'portfolio_account_valued_by_portfolio'],
         ];
         $invalid = [new InvalidAccountBalanceInput(), 422, 'api.problem.invalid_account_balance'];
-        $malformed = [new \UnexpectedValueException(), 422, 'api.problem.invalid_account_balance'];
+        $malformed = [new MalformedPayload(), 422, 'api.problem.invalid_account_balance'];
         $stale = [new StaleAccountVersion(), 409, 'api.problem.account_balance_stale_version', '/problems/stale-version'];
         $conflict = [new AccountBalanceConflict(), 409, 'api.problem.account_balance_conflict', '/problems/account-balance-conflict'];
         $snapshotAccountMissing = [new AccountNotFound(), 404, 'api.problem.account_balance_not_found'];
