@@ -13,18 +13,6 @@ parameters:
                 containerXmlPaths:
                     - var/cache/test/App_KernelTestDebugContainer.xml
     ignoreErrors:
-        # Kept so stored MonthlyProjectionReason values still decode.
-        -
-            message: '#^Unused App\\Module\\Reporting\\Domain\\MonthlyProjectionReason::MIXED_METRIC_POLICIES$#'
-            identifier: shipmonk.deadEnumCase
-            count: 1
-            path: src/Module/Reporting/Domain/MonthlyProjectionReason.php
-        # Kept so stored MonthlyProjectionReason values still decode (decision of the metric policy ticket RPT-006).
-        -
-            message: '#^Unused App\\Module\\Reporting\\Domain\\MonthlyProjectionReason::MISSING_BENEFIT_SOURCE$#'
-            identifier: shipmonk.deadEnumCase
-            count: 1
-            path: src/Module/Reporting/Domain/MonthlyProjectionReason.php
         # Tests keep explicit assertions on values PHPStan already infers; they guard regressions of the contract.
         -
             identifier: staticMethod.alreadyNarrowedType

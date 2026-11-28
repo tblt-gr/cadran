@@ -14,6 +14,7 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 
 - Stop recurrence edits, refunds and transaction edits from failing when they run at the same
   time, and refuse a duplicate recurrence.
+- Show the right error message when a request is refused instead of a server error.
 
 ### Security
 
