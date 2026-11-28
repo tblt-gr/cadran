@@ -50,7 +50,7 @@ final readonly class GoalPeriodEvaluator
             $item = $months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
             $version = GoalVersionResolver::forMonth($versions, $month);
             $metric = $this->metrics->metric($goal, $item, $categoryIds, $inputs);
-            $values[] = new MonthValue($month, $item->state, $metric['value'], $goal->assetCode, $metric['reason']?->value, $item->figures?->policyVersion);
+            $values[] = new MonthValue($month, $item->state, $metric['value'], $goal->assetCode, $metric['reason']?->value, $item->policyVersion());
 
             $part = $version?->schedule?->parts[$index - 1] ?? null;
             if (null === $part) {
@@ -74,7 +74,7 @@ final readonly class GoalPeriodEvaluator
                 $actualMissing || !$actualStarted ? null : $cumulativeActual,
                 $expectedMissing ? null : $expectedTotal,
                 $version?->versionNo,
-                $item->figures?->policyVersion,
+                $item->policyVersion(),
             );
         }
 
@@ -213,7 +213,7 @@ final readonly class GoalPeriodEvaluator
     {
         $item = $inputs->months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
         $metric = $this->metrics->metric($goal, $item, $categoryIds, $inputs);
-        $policyVersion = $item->figures?->policyVersion;
+        $policyVersion = $item->policyVersion();
         $target = null === $version ? new GoalTarget() : $this->targets->forMonth($version, $item, $month, $inputs);
         $reason = $target->reason;
         if (null !== $version && null === $reason && (null === $metric['value'] || MonthState::NO_DATA === $item->state)) {

@@ -12,6 +12,7 @@ use App\Module\Budget\Domain\Goals\GoalPace;
 use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
 
 /**
  * Builds the evaluation row of one goal for one period: target and achieved figures, gap, status,
@@ -64,13 +65,13 @@ final readonly class GoalEvaluationItems
     {
         return match ($goal->metric) {
             GoalMetric::CATEGORY_SPENDING => 'category:'.$goal->scopeRef,
-            GoalMetric::AXIS_SPENDING => 'axis:'.$goal->scopeRef,
-            GoalMetric::TOTAL_INCOME => 'cashIncome',
-            GoalMetric::TOTAL_SPENDING => 'budgetExpenses',
-            GoalMetric::NET_SAVINGS_TRANSFERS => 'netSavingsTransfers',
-            GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
-            GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
-            GoalMetric::NET_SAVINGS_RATE => 'netSavingsRate',
+            GoalMetric::AXIS_SPENDING => ReportFigureKey::axisSpending($goal->scopeRef ?? throw new \LogicException('An axis goal carries its axis.'))->id,
+            GoalMetric::TOTAL_INCOME => ReportFigureKey::cashIncome()->id,
+            GoalMetric::TOTAL_SPENDING => ReportFigureKey::budgetExpenses()->id,
+            GoalMetric::NET_SAVINGS_TRANSFERS => ReportFigureKey::netSavingsTransfers()->id,
+            GoalMetric::BUDGET_SURPLUS => ReportFigureKey::budgetSurplus()->id,
+            GoalMetric::SAVINGS_RATE => ReportFigureKey::cashSavingsRate()->id,
+            GoalMetric::NET_SAVINGS_RATE => ReportFigureKey::netSavingsRate()->id,
             GoalMetric::ACCOUNT_CONTRIBUTIONS, GoalMetric::ACCOUNT_BALANCE, GoalMetric::NET_WORTH => null,
         };
     }

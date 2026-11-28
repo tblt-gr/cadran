@@ -10,6 +10,7 @@ use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Application\AnnualMonth;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
 
 final readonly class ReadReferenceIncome
@@ -45,10 +46,10 @@ final readonly class ReadReferenceIncome
             if ($item->month->key() < $start->key() || $item->month->key() > $end->key()) {
                 continue;
             }
-            $income = $item->figures?->cells['cashIncome'] ?? null;
-            if (MonthState::COMPLETE === $item->state && null !== $income?->value) {
-                $values[] = $income->value;
-                $policyVersions[] = $item->figures->policyVersion;
+            $income = $item->figure(ReportFigureKey::cashIncome());
+            if (MonthState::COMPLETE === $item->state && null !== $income->value) {
+                $values[] = $income->value->toString();
+                $policyVersions[] = $item->policyVersion() ?? throw new \LogicException('A month with an income carries its policy version.');
                 continue;
             }
             $excluded[] = ['month' => $item->month->key(), 'reason' => MonthState::COMPLETE === $item->state ? ($income->reason ?? GoalReason::MISSING_CASH_INCOME->value) : $item->state->value];

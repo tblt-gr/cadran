@@ -16,10 +16,9 @@ use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
-use App\Module\Reporting\Application\AnnualColumnSeries;
 use App\Module\Reporting\Application\AnnualMonth;
-use App\Module\Reporting\Application\MonthFigures;
-use App\Module\Reporting\Application\MonthlyMetricView;
+use App\Module\Reporting\Application\Facade\ReportFigure;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
 use App\Module\Reporting\Domain\Aggregation\MonthValue;
 use App\Module\Transactions\Application\ReadMonthlyAccountTransferNet;
@@ -129,7 +128,7 @@ final readonly class GoalMetricReader
         if (MonthState::NO_DATA === $month->state || MonthState::FUTURE === $month->state) {
             return ['value' => null, 'reason' => MonthState::FUTURE === $month->state ? GoalReason::FUTURE_MONTH : GoalReason::NO_DATA];
         }
-        if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true) && false === $month->figures?->hasTransactions) {
+        if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true) && false === $month->hasTransactions()) {
             return ['value' => null, 'reason' => GoalReason::NO_DATA];
         }
         if (GoalMetric::ACCOUNT_CONTRIBUTIONS === $goal->metric) {
@@ -141,75 +140,64 @@ final readonly class GoalMetricReader
             return ['value' => $net['value'], 'reason' => $net['reason']];
         }
         if (GoalMetric::CATEGORY_SPENDING === $goal->metric) {
-            $budgetExpenses = $month->figures?->cells['budgetExpenses'] ?? null;
-            if (null === $budgetExpenses) {
-                return ['value' => null, 'reason' => GoalReason::MISSING_MONTH_VALUE];
-            }
+            $budgetExpenses = $month->figure(ReportFigureKey::budgetExpenses());
             if (null === $budgetExpenses->value) {
                 return self::withoutValue($budgetExpenses);
             }
-            $included = array_flip($month->figures->budgetExpenseCategoryIds);
+            $included = array_flip($month->budgetExpenseCategoryIds());
             $values = [];
             foreach ($categoryIds as $categoryId) {
                 if (!isset($included[$categoryId])) {
                     continue;
                 }
-                $category = $month->figures?->cells[MonthFigures::OWN_CATEGORY_PREFIX.$categoryId] ?? null;
-                if (null === $category) {
-                    return ['value' => null, 'reason' => GoalReason::MISSING_MONTH_VALUE];
+                $category = $month->figure(ReportFigureKey::ownCategorySpending($categoryId));
+                if ($category->noMovements) {
+                    continue;
                 }
                 if (null === $category->value) {
-                    if (AnnualColumnSeries::NO_MOVEMENTS === $category->reason) {
-                        continue;
-                    }
-
                     return self::withoutValue($category);
                 }
                 if (!self::inCurrency($category, $goal)) {
                     return ['value' => null, 'reason' => GoalReason::MIXED_ASSETS];
                 }
-                $values[] = DecimalValue::fromString($category->value);
+                $values[] = $category->value;
             }
 
             return ['value' => ExactDecimal::sum(...$values), 'reason' => null];
         }
-        $cell = match ($goal->metric) {
-            GoalMetric::TOTAL_INCOME => 'cashIncome',
-            GoalMetric::TOTAL_SPENDING => 'budgetExpenses',
-            GoalMetric::NET_SAVINGS_TRANSFERS => 'netSavingsTransfers',
-            GoalMetric::BUDGET_SURPLUS => 'budgetSurplus',
-            GoalMetric::SAVINGS_RATE => 'cashSavingsRate',
-            GoalMetric::NET_SAVINGS_RATE => 'netSavingsRate',
+        $figure = $month->figure(match ($goal->metric) {
+            GoalMetric::TOTAL_INCOME => ReportFigureKey::cashIncome(),
+            GoalMetric::TOTAL_SPENDING => ReportFigureKey::budgetExpenses(),
+            GoalMetric::NET_SAVINGS_TRANSFERS => ReportFigureKey::netSavingsTransfers(),
+            GoalMetric::BUDGET_SURPLUS => ReportFigureKey::budgetSurplus(),
+            GoalMetric::SAVINGS_RATE => ReportFigureKey::cashSavingsRate(),
+            GoalMetric::NET_SAVINGS_RATE => ReportFigureKey::netSavingsRate(),
             GoalMetric::NET_WORTH, GoalMetric::ACCOUNT_BALANCE => throw new \LogicException('Stock metrics use dated valuations.'),
-            GoalMetric::AXIS_SPENDING => 'axis:'.$goal->scopeRef,
-        };
-        $metric = $month->figures?->cells[$cell] ?? null;
-        if (null === $metric) {
-            return ['value' => null, 'reason' => GoalReason::MISSING_MONTH_VALUE];
-        }
-        if (null === $metric->value) {
-            return self::withoutValue($metric);
+            GoalMetric::AXIS_SPENDING => ReportFigureKey::axisSpending($goal->scopeRef ?? throw new \LogicException('An axis goal carries its axis.')),
+        });
+        if (null === $figure->value) {
+            return self::withoutValue($figure);
         }
 
-        if (!self::inCurrency($metric, $goal)) {
+        if (!self::inCurrency($figure, $goal)) {
             return ['value' => null, 'reason' => GoalReason::MIXED_ASSETS];
         }
 
-        return ['value' => DecimalValue::fromString($metric->value), 'reason' => GoalReason::fromReport($metric->reason)];
+        return ['value' => $figure->value, 'reason' => GoalReason::fromReport($figure->reason)];
     }
 
     /** @return array{value: ?DecimalValue, reason: ?GoalReason} */
-    private static function withoutValue(MonthlyMetricView $metric): array
+    private static function withoutValue(ReportFigure $figure): array
     {
-        return AnnualColumnSeries::NO_MOVEMENTS === $metric->reason
+        return $figure->noMovements
             ? ['value' => DecimalValue::zero(), 'reason' => null]
-            : ['value' => null, 'reason' => GoalReason::fromReport($metric->reason) ?? GoalReason::MISSING_MONTH_VALUE];
+            : ['value' => null, 'reason' => GoalReason::fromReport($figure->reason) ?? GoalReason::MISSING_MONTH_VALUE];
     }
 
     /** A figure is only summed in the goal's currency when its own asset is that currency. */
-    private static function inCurrency(MonthlyMetricView $metric, Goal $goal): bool
+    private static function inCurrency(ReportFigure $figure, Goal $goal): bool
     {
-        return null === $metric->assetCode || AssetCode::fromString($metric->assetCode)->equals($goal->assetCode);
+        return null === $figure->asset || $figure->asset->equals($goal->assetCode);
     }
 
     /** @return list<string> */

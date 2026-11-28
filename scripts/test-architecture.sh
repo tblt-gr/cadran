@@ -45,6 +45,20 @@ done
 
 printf '%s\n' 'Masked server faults and private envelope helpers were rejected.'
 
+for forbidden in 'MonthFigures' 'LoadAnnualMonths'; do
+  if ! grep -q "ForbiddenReportingImport.php: Budget reads Reporting through its facade, not App\\\\Module\\\\Reporting\\\\Application\\\\$forbidden\$" "$result_file"; then
+    printf 'A Budget import of Reporting internals was not rejected: %s\n' "$forbidden" >&2
+    exit 1
+  fi
+done
+
+if grep -q 'ForbiddenReportingImport.php:.*Facade' "$result_file"; then
+  printf '%s\n' 'The Reporting facade was rejected as a Budget import.' >&2
+  exit 1
+fi
+
+printf '%s\n' 'Budget imports of Reporting internals were rejected.'
+
 if php scripts/check-workspace-scope.php tests/architecture/fixtures/unscoped apps/api/migrations >"$result_file" 2>&1; then
   printf '%s\n' 'The representative unscoped query was not rejected.' >&2
   exit 1

@@ -11,6 +11,7 @@ use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Reporting\Application\AnnualMonth;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
 
 /**
  * The only translation of a goal definition into a target. It reads nothing itself: every figure
@@ -25,9 +26,9 @@ final readonly class ResolveGoalTarget
             case GoalValueType::RATE:
                 return self::fixed($version);
             case GoalValueType::INCOME_SHARE:
-                $income = $item->figures?->cells['cashIncome'] ?? null;
+                $income = $item->figure(ReportFigureKey::cashIncome());
 
-                return self::share($version, $income?->value, GoalReason::fromReport($income?->reason));
+                return self::share($version, $income->value?->toString(), GoalReason::fromReport($income->reason));
             case GoalValueType::ROLLING_INCOME_SHARE:
                 $reference = $source instanceof EvaluationContext
                     ? $source->reference($month)
