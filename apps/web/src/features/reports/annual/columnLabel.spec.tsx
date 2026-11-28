@@ -18,6 +18,12 @@ describe('useAnnualColumnLabel', () => {
     expect(label()({ id: 'group:3', label: 'Épargne' })).toBe('Épargne');
   });
 
+  it('names a reference that no longer resolves as unknown', () => {
+    expect(label()({ id: 'category:1', label: 'Unknown reference', known: false })).toBe(
+      'Référence introuvable',
+    );
+  });
+
   it('falls back to the backend label for an unknown indicator or axis', () => {
     expect(label()({ id: 'futureIndicator', label: 'Nouveau' })).toBe('Nouveau');
     expect(label()({ id: 'axis:OTHER', label: 'Dépenses : Autre' })).toBe('Dépenses : Autre');

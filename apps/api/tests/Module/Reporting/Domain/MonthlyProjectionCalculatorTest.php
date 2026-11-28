@@ -8,11 +8,13 @@ use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Reporting\Domain\MetricPolicy;
+use App\Module\Reporting\Domain\MonthlyMetric;
 use App\Module\Reporting\Domain\MonthlyMovement;
 use App\Module\Reporting\Domain\MonthlyMovementKind;
 use App\Module\Reporting\Domain\MonthlyProjectionCalculator;
 use App\Module\Reporting\Domain\MonthlyProjectionReason;
 use App\Module\Reporting\Domain\MonthlySplit;
+use App\Module\Reporting\Domain\MonthlyTransactionMetrics;
 use PHPUnit\Framework\TestCase;
 
 final class MonthlyProjectionCalculatorTest extends TestCase
@@ -199,21 +201,46 @@ final class MonthlyProjectionCalculatorTest extends TestCase
         self::assertSame(MonthlyProjectionReason::ZERO_CASH_INCOME, $metrics->cashSavingsRate->reason);
     }
 
-    public function testAnUnknownPolicyMakesEveryPolicyDependentKpiNonCalculable(): void
+    public function testAnUnknownPolicyClassifiesNothingButKeepsTheSavingsTransfers(): void
     {
-        $metrics = MonthlyProjectionCalculator::compute(
-            ['EUR'],
-            [self::movement('200.00', MonthlyMovementKind::INCOME, transactionId: 'income', accountKind: 'CURRENT')],
-            [],
-            null,
-        );
+        $movements = [
+            self::movement('200.00', MonthlyMovementKind::INCOME, transactionId: 'income', accountKind: 'CURRENT'),
+            self::movement('-80.00', MonthlyMovementKind::EXPENSE, transactionId: 'expense', accountKind: 'CURRENT'),
+            self::movement('50.00', MonthlyMovementKind::TRANSFER, savingsDestination: true, transactionId: 'savings'),
+            self::movement('-50.00', MonthlyMovementKind::TRANSFER, savingsDestination: true, transactionId: 'withdrawal'),
+        ];
 
-        foreach ([$metrics->cashIncome, $metrics->nonCashBenefits, $metrics->benefitSpending, $metrics->budgetExpenses,
-            $metrics->uncategorizedExpenses, $metrics->budgetSurplus, $metrics->cashSavingsRate] as $metric) {
+        $metrics = MonthlyProjectionCalculator::compute(['EUR'], $movements, [], null, $movements);
+
+        foreach (self::policyDependent($metrics) as $metric) {
             self::assertNull($metric->value);
             self::assertSame(MonthlyProjectionReason::UNKNOWN_METRIC_POLICY, $metric->reason);
+            self::assertSame([], $metric->sourceTransactionIds);
+            self::assertSame(0, $metric->pendingCount);
         }
-        self::assertSame('0', $metrics->savingsTransfers->value?->toString());
+        self::assertSame('50.00', $metrics->savingsTransfers->value?->toString());
+        self::assertSame(['savings'], $metrics->savingsTransfers->sourceTransactionIds);
+        self::assertSame(1, $metrics->savingsTransfers->pendingCount);
+    }
+
+    public function testAnUnknownPolicyWinsOverTheAssetReasonOnlyForTheDependentKpis(): void
+    {
+        foreach ([[['EUR', 'USD'], MonthlyProjectionReason::MIXED_ASSETS], [[], MonthlyProjectionReason::NO_ACCOUNT]] as [$assets, $reason]) {
+            $metrics = MonthlyProjectionCalculator::compute($assets, [], [], null);
+
+            foreach (self::policyDependent($metrics) as $metric) {
+                self::assertSame(MonthlyProjectionReason::UNKNOWN_METRIC_POLICY, $metric->reason);
+            }
+            self::assertNull($metrics->savingsTransfers->value);
+            self::assertSame($reason, $metrics->savingsTransfers->reason);
+        }
+    }
+
+    /** @return list<MonthlyMetric> */
+    private static function policyDependent(MonthlyTransactionMetrics $metrics): array
+    {
+        return [$metrics->cashIncome, $metrics->nonCashBenefits, $metrics->benefitSpending, $metrics->budgetExpenses,
+            $metrics->uncategorizedExpenses, $metrics->budgetSurplus, $metrics->cashSavingsRate];
     }
 
     public function testVeryLargeDecimalsStayExactOnTheCashPerimeter(): void

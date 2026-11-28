@@ -18127,6 +18127,7 @@ components:
         - label
         - kind
         - assetCode
+        - known
       properties:
         id:
           type: string
@@ -18138,6 +18139,9 @@ components:
           type:
             - string
             - 'null'
+        known:
+          description: 'False when the category, group or account of the column no longer resolves: its cells are then null and its label is a fallback.'
+          type: boolean
         institution:
           description: Institution of an account column, shown under its label; null for any other column.
           type:

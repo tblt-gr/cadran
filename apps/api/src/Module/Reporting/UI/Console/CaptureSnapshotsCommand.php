@@ -48,7 +48,7 @@ final class CaptureSnapshotsCommand extends Command
 
         $result = ($this->capture)($this->caller->resolveContext()->workspace);
         // Counts only: no amount or label reaches the console or its logs.
-        $io->success(sprintf('%d month(s) captured, %d skipped (reopened meanwhile).', $result->captured, $result->skipped));
+        $io->success(sprintf('%d month(s) captured, %d skipped (reopened meanwhile or policy definition unavailable).', $result->captured, $result->skipped));
 
         return Command::SUCCESS;
     }

@@ -27,6 +27,7 @@ final class AnnualReportRepresentation
                 'label' => $column->label,
                 'kind' => $column->kind,
                 'assetCode' => $column->assetCode,
+                'known' => $column->known,
                 'institution' => $column->institution,
                 'parentLabel' => $column->parentLabel,
             ], $report->columns),

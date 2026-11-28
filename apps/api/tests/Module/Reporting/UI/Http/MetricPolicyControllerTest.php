@@ -83,7 +83,7 @@ final class MetricPolicyControllerTest extends WebTestCase
         self::assertSame('0', self::metric($report, 'nonCashBenefits'));
         self::assertSame('0', self::metric($report, 'benefitSpending'));
         self::assertSame('500.00', self::metric($report, 'budgetExpenses'));
-        self::assertSame(['version' => 1, 'label' => 'Tous les comptes'], $report['metricPolicy']);
+        self::assertSame(['version' => 1, 'label' => 'All accounts'], $report['metricPolicy']);
 
         self::assertSame('0.772727272727272727272727', self::metric($report, 'cashSavingsRate'));
         self::assertSame('0.000000000000000000000000', self::metric($report, 'netSavingsRate'));

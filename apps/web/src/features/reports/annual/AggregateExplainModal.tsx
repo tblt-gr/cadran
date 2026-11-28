@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { useMetricPolicyLabel } from '@/features/metric-policy/useMetricPolicyLabel';
 import { AggregateExplainSkeleton } from './AggregateExplainSkeleton';
 import { AnnualCellValue } from './AnnualCellValue';
 import { monthLabel } from './annualRowLabels';
@@ -22,6 +23,7 @@ export function AggregateExplainModal({
   year,
 }: AggregateExplainModalProps) {
   const { t, i18n } = useTranslation();
+  const policyLabelOf = useMetricPolicyLabel();
   const explanation = useAnnualColumnExplanation(year, columnId);
 
   return (
@@ -84,7 +86,7 @@ export function AggregateExplainModal({
                 ? t('reports.annual.mixedPolicy', {
                     versions: explanation.data.policy.versions.join(', '),
                   })
-                : `${explanation.data.policy.label ?? ''} (v${explanation.data.policy.version ?? ''})`}
+                : `${policyLabelOf(explanation.data.policy) ?? ''} (v${explanation.data.policy.version ?? ''})`}
             </dd>
             {explanation.data.aggregate.periodEnd ? (
               <>

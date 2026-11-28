@@ -154,8 +154,8 @@ describe('AnnualMonthCards collapsible months', () => {
     const report: AnnualReport = {
       ...annualReport,
       columns: [
-        { id: 'cashIncome', label: 'Revenus', kind: 'FLOW', assetCode: 'EUR' },
-        { id: 'budgetExpenses', label: 'Dépenses', kind: 'FLOW', assetCode: 'EUR' },
+        { id: 'cashIncome', label: 'Revenus', kind: 'FLOW', assetCode: 'EUR', known: true },
+        { id: 'budgetExpenses', label: 'Dépenses', kind: 'FLOW', assetCode: 'EUR', known: true },
       ],
       rows: annualReport.rows.map((row) => ({
         ...row,

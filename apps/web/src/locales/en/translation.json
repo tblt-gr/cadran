@@ -478,6 +478,7 @@
       "benefitSpending": "Benefit spending"
     },
     "annual": {
+      "unknownReference": "Unknown reference",
       "title": "Report",
       "caption": "{{year}} report",
       "month": "Month",
@@ -5491,6 +5492,8 @@
     "error": "The metric policy is unavailable",
     "unauthorized": "You are not authorized to view this policy",
     "version": "Version {{version}} · {{label}}",
+    "builtInLabel": "All accounts",
+    "unknownLabel": "Policy not found",
     "badge": {
       "version": "Policy v{{version}}",
       "mixed": "Mixed policies"

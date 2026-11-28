@@ -13,6 +13,8 @@ use App\Module\Catalog\Domain\AccountKind;
 final readonly class MetricPolicy
 {
     public const int SYSTEM_VERSION = 1;
+    /** The web translates the built-in name; this is the API text. */
+    public const string SYSTEM_LABEL = 'All accounts';
     public const int MAX_LABEL_LENGTH = 80;
     public const int MAX_EXCLUDED_KINDS = 8;
 
@@ -32,7 +34,7 @@ final readonly class MetricPolicy
     {
         return new self(
             self::SYSTEM_VERSION,
-            'Tous les comptes',
+            self::SYSTEM_LABEL,
             [],
             SavingsRateFormula::BUDGET_SURPLUS_OVER_CASH_INCOME,
             NetSavingsRateFormula::NET_SAVINGS_TRANSFERS_OVER_CASH_INCOME,

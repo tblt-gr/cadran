@@ -183,6 +183,6 @@ final class AnnualCharts
             $items[] = new AnnualCategoryShareView($id, $label, $color, $amount->toString(), ExactDecimal::divide($amount, $total)->toString());
         }
 
-        return new AnnualCategoryShareView(null, 'Autres', null, $sum->toString(), ExactDecimal::divide($sum, $total)->toString(), $items);
+        return new AnnualCategoryShareView(null, 'Other', null, $sum->toString(), ExactDecimal::divide($sum, $total)->toString(), $items);
     }
 }

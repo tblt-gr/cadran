@@ -15,7 +15,8 @@ final class MonthlyProjectionCalculator
      * @param list<string>          $accountAssets
      * @param list<MonthlyMovement> $movements                booked, live source movements only
      * @param array<string, bool>   $budgetIncludedByCategory
-     * @param ?MetricPolicy         $policy                   null when the governing version cannot be loaded
+     * @param ?MetricPolicy         $policy                   null when the governing version cannot be loaded: nothing
+     *                                                        is then classified, only savings transfers are computed
      * @param list<MonthlyMovement> $pendingMovements
      */
     public static function compute(
@@ -25,15 +26,14 @@ final class MonthlyProjectionCalculator
         ?MetricPolicy $policy,
         array $pendingMovements = [],
     ): MonthlyTransactionMetrics {
-        $known = $policy ?? MetricPolicy::systemV1();
-        [$sources] = self::provenance($movements, $budgetIncludedByCategory, $known);
-        [, $pendingCounts] = self::provenance($pendingMovements, $budgetIncludedByCategory, $known);
+        [$sources] = self::provenance($movements, $budgetIncludedByCategory, $policy);
+        [, $pendingCounts] = self::provenance($pendingMovements, $budgetIncludedByCategory, $policy);
         $assets = array_values(array_unique($accountAssets));
         if (count($assets) > 1) {
-            return self::allMissing(MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCounts);
+            return self::allMissing(MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCounts, $policy);
         }
         if ([] === $assets) {
-            return self::allMissing(MonthlyProjectionReason::NO_ACCOUNT, $sources, $pendingCounts);
+            return self::allMissing(MonthlyProjectionReason::NO_ACCOUNT, $sources, $pendingCounts, $policy);
         }
 
         $asset = AssetCode::fromString($assets[0]);
@@ -46,10 +46,10 @@ final class MonthlyProjectionCalculator
 
         foreach ($movements as $movement) {
             if (!$movement->asset->equals($asset)) {
-                return self::allMissing(MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCounts);
+                return self::allMissing(MonthlyProjectionReason::MIXED_ASSETS, $sources, $pendingCounts, $policy);
             }
 
-            if ($known->isExcluded($movement->accountKind)) {
+            if ($policy?->isExcluded($movement->accountKind) ?? false) {
                 if (MonthlyMovementKind::INCOME === $movement->kind) {
                     $nonCash = ExactDecimal::add($nonCash, $movement->amount);
                     continue;
@@ -126,7 +126,7 @@ final class MonthlyProjectionCalculator
      *
      * @return array{array<string, list<string>>, array<string, int>}
      */
-    private static function provenance(array $movements, array $budgetIncludedByCategory, MetricPolicy $policy): array
+    private static function provenance(array $movements, array $budgetIncludedByCategory, ?MetricPolicy $policy): array
     {
         $sourceSets = [
             'cashIncome' => [],
@@ -159,8 +159,15 @@ final class MonthlyProjectionCalculator
      *
      * @return list<string>
      */
-    private static function metricKeys(MonthlyMovement $movement, array $budgetIncludedByCategory, MetricPolicy $policy): array
+    private static function metricKeys(MonthlyMovement $movement, array $budgetIncludedByCategory, ?MetricPolicy $policy): array
     {
+        // A transfer is never classified by the policy, so it stays traceable without one.
+        if (MonthlyMovementKind::TRANSFER === $movement->kind) {
+            return $movement->savingsDestination && !$movement->amount->isNegative() ? ['savingsTransfers'] : [];
+        }
+        if (null === $policy) {
+            return [];
+        }
         if ($policy->isExcluded($movement->accountKind)) {
             if (MonthlyMovementKind::INCOME === $movement->kind) {
                 return ['nonCashBenefits'];
@@ -171,9 +178,6 @@ final class MonthlyProjectionCalculator
         }
         if (MonthlyMovementKind::INCOME === $movement->kind) {
             return ['cashIncome', 'budgetSurplus', 'cashSavingsRate'];
-        }
-        if (MonthlyMovementKind::TRANSFER === $movement->kind) {
-            return $movement->savingsDestination && !$movement->amount->isNegative() ? ['savingsTransfers'] : [];
         }
         if (!self::contributesToBudgetExpenses($movement->kind)) {
             return [];
@@ -212,6 +216,9 @@ final class MonthlyProjectionCalculator
     }
 
     /**
+     * Without a policy the seven dependent metrics report that first, whatever the assets; only the
+     * savings transfers carry the asset reason.
+     *
      * @param array<string, list<string>> $sources
      * @param array<string, int>          $pendingCounts
      */
@@ -219,16 +226,19 @@ final class MonthlyProjectionCalculator
         MonthlyProjectionReason $reason,
         array $sources,
         array $pendingCounts,
+        ?MetricPolicy $policy,
     ): MonthlyTransactionMetrics {
+        $dependent = null === $policy ? MonthlyProjectionReason::UNKNOWN_METRIC_POLICY : $reason;
+
         return new MonthlyTransactionMetrics(
-            MonthlyMetric::missing($reason, $sources['cashIncome'], $pendingCounts['cashIncome']),
-            MonthlyMetric::missing($reason, $sources['nonCashBenefits'], $pendingCounts['nonCashBenefits']),
-            MonthlyMetric::missing($reason, $sources['benefitSpending'], $pendingCounts['benefitSpending']),
-            MonthlyMetric::missing($reason, $sources['budgetExpenses'], $pendingCounts['budgetExpenses']),
-            MonthlyMetric::missing($reason, $sources['uncategorizedExpenses'], $pendingCounts['uncategorizedExpenses']),
-            MonthlyMetric::missing($reason, $sources['budgetSurplus'], $pendingCounts['budgetSurplus']),
+            MonthlyMetric::missing($dependent, $sources['cashIncome'], $pendingCounts['cashIncome']),
+            MonthlyMetric::missing($dependent, $sources['nonCashBenefits'], $pendingCounts['nonCashBenefits']),
+            MonthlyMetric::missing($dependent, $sources['benefitSpending'], $pendingCounts['benefitSpending']),
+            MonthlyMetric::missing($dependent, $sources['budgetExpenses'], $pendingCounts['budgetExpenses']),
+            MonthlyMetric::missing($dependent, $sources['uncategorizedExpenses'], $pendingCounts['uncategorizedExpenses']),
+            MonthlyMetric::missing($dependent, $sources['budgetSurplus'], $pendingCounts['budgetSurplus']),
             MonthlyMetric::missing($reason, $sources['savingsTransfers'], $pendingCounts['savingsTransfers']),
-            MonthlyMetric::missing($reason, $sources['cashSavingsRate'], $pendingCounts['cashSavingsRate']),
+            MonthlyMetric::missing($dependent, $sources['cashSavingsRate'], $pendingCounts['cashSavingsRate']),
         );
     }
 }

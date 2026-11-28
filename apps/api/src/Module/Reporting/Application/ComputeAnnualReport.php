@@ -11,8 +11,10 @@ use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Domain\Aggregation\Aggregate;
 use App\Module\Reporting\Domain\Aggregation\AggregateReason;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
+use App\Module\Reporting\Domain\Aggregation\MonthValue;
 use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
 use App\Module\Reporting\Domain\MetricPolicyRepository;
+use App\Module\Reporting\Domain\MonthlyProjectionReason;
 
 /**
  * The per-year computation shared by the annual report and the multi-year report: resolves the
@@ -155,7 +157,13 @@ final readonly class ComputeAnnualReport
             default => [$before->average?->toString(), $before->averageReason?->value],
         };
 
-        return [AnnualAggregateView::of($current, $average, $reason), $current];
+        $unknownPolicy = MonthlyProjectionReason::UNKNOWN_METRIC_POLICY->value;
+        $unknown = array_any(
+            AnnualColumnSeries::values($column->id, $column->known, $months),
+            static fn (MonthValue $value): bool => $value->reason === $unknownPolicy,
+        );
+
+        return [AnnualAggregateView::of($current, $average, $reason, $unknown ? $unknownPolicy : null), $current];
     }
 
     /** @param list<AnnualMonth> $months */
@@ -176,7 +184,7 @@ final readonly class ComputeAnnualReport
         return new AnnualPolicyView(
             AnnualPolicyView::SINGLE,
             $version,
-            $this->policyRepository->find($workspace, $version)->label ?? MetricPolicyReference::UNKNOWN_LABEL,
+            $this->policyRepository->find($workspace, $version)?->label,
             [$version],
         );
     }

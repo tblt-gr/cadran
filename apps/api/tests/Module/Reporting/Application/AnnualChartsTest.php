@@ -49,7 +49,7 @@ final class AnnualChartsTest extends TestCase
         // c7 (110) and c8 (3.15) are the rest: 113.15.
         self::assertNotNull($chart->other);
         self::assertSame('113.15', $chart->other->total);
-        self::assertSame('Autres', $chart->other->label);
+        self::assertSame('Other', $chart->other->label);
         self::assertStringStartsWith('0.1131', $chart->other->share);
         // The drill-down lists every aggregated category, largest first, and sums back to other exactly.
         self::assertSame(['c7', 'c8'], array_map(static fn (AnnualCategoryShareView $i): ?string => $i->categoryId, $chart->other->items));
