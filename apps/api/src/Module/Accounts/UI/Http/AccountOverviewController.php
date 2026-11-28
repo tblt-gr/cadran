@@ -4,24 +4,16 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\UI\Http;
 
-use App\Module\Accounts\Application\AccountNotFound;
 use App\Module\Accounts\Application\AccountOverviewGrouping;
-use App\Module\Accounts\Application\InvalidAccountOverviewQuery;
 use App\Module\Accounts\Application\ListAccountOverviewRows;
 use App\Module\Accounts\Application\MoveAccount;
-use App\Module\Accounts\Application\NetWorthScopeTooLarge;
 use App\Module\Accounts\Application\ReadAccountOverview;
-use App\Module\Accounts\Application\StaleAccountOrder;
-use App\Module\Accounts\Domain\InvalidAccountMove;
-use App\Module\Foundation\Application\WorkspaceAccessDenied;
-use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
-use Symfony\Component\HttpFoundation\JsonResponse;
+use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
-use Symfony\Contracts\Translation\TranslatorInterface;
 
 /**
  * Adapts HTTP to the unified account overview: group headings, the bounded
@@ -29,14 +21,11 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class AccountOverviewController
 {
-    public const string TYPE_STALE_ORDER = '/problems/stale-account-order';
-    public const string TYPE_SCOPE_TOO_LARGE = '/problems/net-worth-scope-too-large';
-
     private const int MAX_CURSOR_LENGTH = 200;
     private const string UNGROUPED = 'ungrouped';
     private const string UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
-    public function __construct(private JsonRequestEnvelope $envelope, private TranslatorInterface $translator)
+    public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
     }
 
@@ -47,7 +36,7 @@ final readonly class AccountOverviewController
         $includeClosed = $request->query->getString('includeClosed');
         $includeArchived = $request->query->getString('includeArchived');
         if (!self::flag($includeClosed) || !self::flag($includeArchived)) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
         }
 
         $grouping = $this->grouping($request);
@@ -62,22 +51,18 @@ final readonly class AccountOverviewController
                 'true' === $includeArchived,
                 $grouping,
             );
-        } catch (InvalidAccountOverviewQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
-        } catch (NetWorthScopeTooLarge) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.net_worth_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountOverviewProblems::overview());
         }
 
-        return self::json(AccountOverviewRepresentation::overview($overview));
+        return $this->envelope->json(AccountOverviewRepresentation::overview($overview));
     }
 
     #[Route('/api/v1/accounts/overview/{groupKey}/accounts', name: 'api_v1_accounts_overview_rows', methods: ['GET'], priority: 10)]
     public function rows(string $groupKey, Request $request, ListAccountOverviewRows $listRows): Response
     {
         if (self::UNGROUPED !== $groupKey && 1 !== preg_match(self::UUID, $groupKey)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
         $includeClosed = $request->query->getString('includeClosed');
@@ -85,7 +70,7 @@ final readonly class AccountOverviewController
         $cursor = $request->query->getString('cursor');
         if (!self::flag($includeClosed) || !self::flag($includeArchived)
             || strlen($cursor) > self::MAX_CURSOR_LENGTH) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
+            return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
         }
 
         $grouping = $this->grouping($request);
@@ -102,19 +87,11 @@ final readonly class AccountOverviewController
                 'true' === $includeArchived,
                 $grouping,
             );
-        } catch (InvalidAccountOverviewQuery) {
-            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
-        } catch (AccountNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (StaleAccountOrder) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_stale_order', self::TYPE_STALE_ORDER);
-        } catch (NetWorthScopeTooLarge) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.net_worth_scope_too_large', self::TYPE_SCOPE_TOO_LARGE);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountOverviewProblems::rows());
         }
 
-        return self::json(AccountOverviewRepresentation::rows($page));
+        return $this->envelope->json(AccountOverviewRepresentation::rows($page));
     }
 
     /**
@@ -125,7 +102,7 @@ final readonly class AccountOverviewController
     public function move(string $id, Request $request, MoveAccount $moveAccount): Response
     {
         if (1 !== preg_match(self::UUID, $id)) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
+            return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
         $body = $this->envelope->body($request, BodyLimit::Tiny, 'api.problem.account_payload_too_large');
         if ($body instanceof Response) {
@@ -143,17 +120,11 @@ final readonly class AccountOverviewController
             }
 
             $moved = $moveAccount($id, $groupId, $beforeAccountId, $version);
-        } catch (\UnexpectedValueException|InvalidAccountMove) {
-            return $this->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_account_move');
-        } catch (AccountNotFound) {
-            return $this->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
-        } catch (StaleAccountOrder) {
-            return $this->problem(Response::HTTP_CONFLICT, 'api.problem.account_stale_order', self::TYPE_STALE_ORDER);
-        } catch (WorkspaceAccessDenied) {
-            return $this->problem(Response::HTTP_FORBIDDEN, 'api.problem.account_forbidden');
+        } catch (\Throwable $exception) {
+            return $this->problems->respond($exception, AccountProblems::move());
         }
 
-        return self::json(AccountOverviewRepresentation::move($moved));
+        return $this->envelope->json(AccountOverviewRepresentation::move($moved));
     }
 
     private function grouping(Request $request): AccountOverviewGrouping|Response
@@ -167,10 +138,9 @@ final readonly class AccountOverviewController
             return $grouping;
         }
 
-        return ApiProblem::response(
+        return $this->envelope->problem(
             Response::HTTP_UNPROCESSABLE_ENTITY,
-            $this->translator->trans('api.problem.invalid_account_overview_query.title'),
-            $this->translator->trans('api.problem.invalid_account_overview_query.detail'),
+            'api.problem.invalid_account_overview_query',
             extensions: ['errors' => [['field' => 'grouping', 'code' => 'invalid_choice']]],
         );
     }
@@ -178,21 +148,5 @@ final readonly class AccountOverviewController
     private static function flag(string $value): bool
     {
         return in_array($value, ['', 'true', 'false'], true);
-    }
-
-    /** @param array<string, mixed> $data */
-    private static function json(array $data): JsonResponse
-    {
-        return new JsonResponse($data, Response::HTTP_OK, ['Cache-Control' => 'no-store']);
-    }
-
-    private function problem(int $status, string $translationKey, string $type = ApiProblem::TYPE_BLANK): JsonResponse
-    {
-        return ApiProblem::response(
-            $status,
-            $this->translator->trans($translationKey.'.title'),
-            $this->translator->trans($translationKey.'.detail'),
-            $type,
-        );
     }
 }
