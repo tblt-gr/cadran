@@ -6,10 +6,10 @@ namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\AssessPeriodClosing;
 use App\Module\Accounts\Application\InvalidPeriodClosureInput;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\PeriodClosingBlocker;
 use App\Module\Accounts\Application\PeriodClosingBlockerItem;
 use App\Module\Accounts\Application\PeriodClosingFacts;
-use App\Module\Accounts\Application\ReadNetWorth;
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
 use App\Module\Accounts\Domain\AccountGroup;
@@ -214,7 +214,7 @@ final class AssessPeriodClosingItemsTest extends TestCase
     private function manyGroups(): array
     {
         $groups = [];
-        for ($i = 1; $i <= ReadNetWorth::MAX_GROUPS + 1; ++$i) {
+        for ($i = 1; $i <= AccountGroup::MAX_PER_WORKSPACE + 1; ++$i) {
             $groups[] = AccountGroupFixture::group(id: sprintf('00000000-0000-7000-8000-%012d', 5000 + $i), label: 'G'.$i, sortOrder: $i);
         }
 
@@ -250,7 +250,7 @@ final class AssessPeriodClosingItemsTest extends TestCase
         $assess = new AssessPeriodClosing(
             new InMemoryAccountRepository(...$accounts),
             new InMemoryAccountBalanceSnapshotRepository(...$snapshots),
-            $groupRepository ?? new InMemoryAccountGroupRepository(...$groups),
+            new LoadGroupTree($groupRepository ?? new InMemoryAccountGroupRepository(...$groups)),
             $facts,
             new FixedWorkspaceTimezoneReader(),
         );

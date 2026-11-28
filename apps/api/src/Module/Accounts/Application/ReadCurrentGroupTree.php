@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
-use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -18,17 +17,17 @@ final readonly class ReadCurrentGroupTree implements ReadsCurrentGroupTree
 {
     public function __construct(
         private AccountRepository $accounts,
-        private AccountGroupRepository $groups,
+        private LoadGroupTree $groupTree,
     ) {
     }
 
     public function __invoke(WorkspaceScope $workspace): CurrentGroupTree
     {
         $accounts = $this->accounts->list($workspace, true, true, ReadMonthlyAccountFacts::MAX_ACCOUNTS + 1, 0);
-        $groups = $this->groups->list($workspace, true, ReadNetWorth::MAX_GROUPS + 1, 0);
-        if (count($accounts) > ReadMonthlyAccountFacts::MAX_ACCOUNTS || count($groups) > ReadNetWorth::MAX_GROUPS) {
-            throw new NetWorthScopeTooLarge('A group tree read covers at most 500 accounts and 500 groups.');
+        if (count($accounts) > ReadMonthlyAccountFacts::MAX_ACCOUNTS) {
+            throw new NetWorthScopeTooLarge('A group tree read covers at most 500 accounts.');
         }
+        $groups = ($this->groupTree)($workspace)->groups;
 
         $primary = [];
         foreach ($accounts as $account) {

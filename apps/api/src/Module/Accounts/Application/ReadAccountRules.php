@@ -12,16 +12,16 @@ use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Catalog\Application\ProductCatalog;
 use App\Module\Catalog\Domain\EffectiveProduct;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\BusinessDay;
 use App\Module\Foundation\Domain\InvalidBusinessDay;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Resolves the ceilings, rates and terms in force for one account of the
  * calling workspace on a business date, through every authority that states
  * them.
  *
- * The business date drives the whole read and the clock decides nothing but
+ * The business date drives the whole read and the workspace's current day decides nothing but
  * how fresh each verification looks. Asking for 2023 answers with the rules
  * of 2023, including the ones since revised, which is what makes a past
  * statement re-readable instead of re-interpreted.
@@ -34,14 +34,15 @@ final readonly class ReadAccountRules
         private ProductCatalog $catalog,
         private ProductModelRepository $models,
         private AccountRuleOverrideRepository $overrides,
-        private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
     ) {
     }
 
     public function __invoke(string $id, ?string $asOf): AccountRules
     {
-        $today = BusinessDay::fromDateTime($this->clock->now());
-        $businessDay = null === $asOf ? $today : self::businessDay($asOf);
+        $requested = null === $asOf ? null : self::businessDay($asOf);
+        $today = BusinessDay::fromIsoDate($this->calendar->today()->format('Y-m-d'));
+        $businessDay = $requested ?? $today;
 
         $workspace = $this->caller->resolve();
         $account = $this->accounts->find($workspace, $id);

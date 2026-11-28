@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\AccountGroupConflict;
+use App\Module\Accounts\Application\AccountGroupLimitReached;
 use App\Module\Accounts\Application\CreateAccountGroup;
 use App\Module\Accounts\Application\CreateAccountGroupInput;
 use App\Module\Accounts\Application\InvalidAccountGroupInput;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\ReadGroupColors;
 use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Audit\Application\RecordAuditEvent;
@@ -189,6 +191,29 @@ final class CreateAccountGroupTest extends TestCase
         self::assertNull($view->color);
     }
 
+    public function testTheFiveHundredAndFirstGroupIsRefusedArchivedGroupsCounted(): void
+    {
+        $existing = [];
+        for ($index = 0; $index < AccountGroup::MAX_PER_WORKSPACE; ++$index) {
+            $existing[] = AccountGroupFixture::group(
+                id: sprintf('00000000-0000-7000-8000-1%011d', $index),
+                label: 'Groupe '.$index,
+                archivedAt: 0 === $index % 2 ? new \DateTimeImmutable('2026-09-06T10:00:00+00:00') : null,
+            );
+        }
+        $groups = new InMemoryAccountGroupRepository(...$existing);
+        $workspace = \App\Module\Foundation\Domain\WorkspaceScope::fromString(AccountGroupFixture::WORKSPACE);
+
+        try {
+            ($this->create($groups))(new CreateAccountGroupInput(label: 'De trop', parentId: null));
+            self::fail('The 501st group must be refused.');
+        } catch (AccountGroupLimitReached) {
+        }
+
+        self::assertSame(AccountGroup::MAX_PER_WORKSPACE, $groups->count($workspace, true));
+        self::assertSame([], $this->trail->events);
+    }
+
     private function create(InMemoryAccountGroupRepository $groups): CreateAccountGroup
     {
         $uuids = new SequenceUuidGenerator();
@@ -200,7 +225,7 @@ final class CreateAccountGroupTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($this->trail, $uuids),
             new MockClock('2026-09-05 10:00:00'),
-            new ReadGroupColors($groups),
+            new ReadGroupColors(new LoadGroupTree($groups)),
         );
     }
 }

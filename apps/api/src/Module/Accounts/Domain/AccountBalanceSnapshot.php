@@ -175,6 +175,12 @@ final readonly class AccountBalanceSnapshot
         );
     }
 
+    /** Two active snapshots sharing this key claim the same account, UTC day and source. */
+    public function collisionKey(): string
+    {
+        return $this->accountId.'|'.self::utcDay($this->asOf).'|'.$this->source->value;
+    }
+
     /**
      * Two active snapshots of the same account, day and source cannot both
      * answer. A different source on the same day is a second claim, not a
@@ -190,10 +196,7 @@ final readonly class AccountBalanceSnapshot
             return;
         }
 
-        if ($this->accountId === $other->accountId
-            && self::utcDay($this->asOf) === self::utcDay($other->asOf)
-            && $this->source === $other->source
-        ) {
+        if ($this->collisionKey() === $other->collisionKey()) {
             throw new ConflictingAccountBalanceSnapshot('An active snapshot already exists for this account, date and source.');
         }
     }

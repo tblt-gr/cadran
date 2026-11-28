@@ -7,7 +7,6 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\Account;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountGroup;
-use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\AccountGroupTree;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuationMode;
@@ -39,7 +38,7 @@ final readonly class AssessPeriodClosing
     public function __construct(
         private AccountRepository $accounts,
         private AccountBalanceSnapshotRepository $snapshots,
-        private AccountGroupRepository $groups,
+        private LoadGroupTree $groupTree,
         private PeriodClosingFacts $facts,
         private WorkspaceTimezoneReader $timezones,
     ) {
@@ -131,9 +130,10 @@ final readonly class AssessPeriodClosing
      */
     private function overviewOrder(WorkspaceScope $workspace, array $accounts): array
     {
-        $groups = $this->groups->list($workspace, true, ReadNetWorth::MAX_GROUPS + 1, 0);
         // Too many groups to rank them: fall back to the saved order of the accounts rather than refuse the closing.
-        if (count($groups) > ReadNetWorth::MAX_GROUPS) {
+        try {
+            $groups = ($this->groupTree)($workspace)->groups;
+        } catch (NetWorthScopeTooLarge) {
             $groups = [];
         }
 

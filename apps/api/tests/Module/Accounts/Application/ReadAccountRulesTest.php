@@ -19,7 +19,9 @@ use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\RuleSchedule;
 use App\Module\Catalog\Domain\VerificationState;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Tests\Module\Accounts\Application\Double\FixedCallerWorkspace;
+use App\Tests\Module\Accounts\Application\Double\FixedWorkspaceTimezoneReader;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryAccountRuleOverrideRepository;
 use App\Tests\Module\Accounts\Application\Double\InMemoryProductModelRepository;
@@ -54,6 +56,16 @@ final class ReadAccountRulesTest extends TestCase
 
         self::assertSame('2026-09-02', $rules->asOf->format('Y-m-d'));
         self::assertSame('1.7', $rules->rates[0]->effective()->scale->brackets[0]->percentage->toString());
+    }
+
+    public function testTheDefaultDayIsTheLocalDayOfTheWorkspaceCalendar(): void
+    {
+        $readRules = $this->readRules(now: '2026-07-31 23:30:00', timezone: 'Europe/Paris');
+
+        $today = $readRules(AccountFixture::ID, null);
+        self::assertSame('2026-08-01', $today->asOf->format('Y-m-d'));
+        self::assertSame('1.7', $today->rates[0]->effective()->scale->brackets[0]->percentage->toString());
+        self::assertSame('2026-07-31', $readRules(AccountFixture::ID, '2026-07-31')->asOf->format('Y-m-d'));
     }
 
     /**
@@ -222,7 +234,7 @@ final class ReadAccountRulesTest extends TestCase
             new InMemoryAccountRuleOverrideRepository(
                 AccountRuleOverrideFixture::ceiling('00000000-0000-7000-8000-0000000000c1', '30000.00', '2026-01-01'),
             ),
-            new MockClock('2026-09-02 08:30:00', 'UTC'),
+            new WorkspaceCalendar(new MockClock('2026-09-02 08:30:00', 'UTC'), new FixedCallerWorkspace(AccountFixture::WORKSPACE), new FixedWorkspaceTimezoneReader()),
         );
 
         $rules = $readRules($other->id, '2026-09-02');
@@ -278,6 +290,7 @@ final class ReadAccountRulesTest extends TestCase
         ?array $catalog = null,
         ?array $models = null,
         ?array $overrides = null,
+        string $timezone = 'UTC',
     ): ReadAccountRules {
         return new ReadAccountRules(
             new FixedCallerWorkspace($caller),
@@ -285,7 +298,7 @@ final class ReadAccountRulesTest extends TestCase
             new InMemoryProductCatalog($catalog ?? [$this->livretA()]),
             new InMemoryProductModelRepository(...($models ?? [])),
             new InMemoryAccountRuleOverrideRepository(...($overrides ?? [])),
-            new MockClock($now, 'UTC'),
+            new WorkspaceCalendar(new MockClock($now, 'UTC'), new FixedCallerWorkspace($caller), new FixedWorkspaceTimezoneReader($timezone)),
         );
     }
 

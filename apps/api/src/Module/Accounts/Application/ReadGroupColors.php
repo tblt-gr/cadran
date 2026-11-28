@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountGroupColors;
-use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -14,12 +13,12 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  */
 final readonly class ReadGroupColors
 {
-    public function __construct(private AccountGroupRepository $groups)
+    public function __construct(private LoadGroupTree $groupTree)
     {
     }
 
     public function __invoke(WorkspaceScope $workspace): AccountGroupColors
     {
-        return AccountGroupColors::of($this->groups->list($workspace, true, ReadNetWorth::MAX_GROUPS + 1, 0));
+        return AccountGroupColors::of(($this->groupTree)($workspace)->groups);
     }
 }

@@ -10,6 +10,12 @@ interface AccountBalanceSnapshotRepository
 {
     public function findForAccount(WorkspaceScope $workspace, string $accountId): AccountBalanceSnapshots;
 
+    /**
+     * The active snapshots that can anchor a day end on or after $from: the latest
+     * day strictly before it, every source of that day, and everything later.
+     */
+    public function findAnchorsAround(WorkspaceScope $workspace, string $accountId, \DateTimeImmutable $from): AccountBalanceSnapshots;
+
     /** One snapshot of this account by identifier, active or superseded. */
     public function find(WorkspaceScope $workspace, string $accountId, string $id): ?AccountBalanceSnapshot;
 

@@ -15,10 +15,17 @@ final readonly class AccountBalanceSnapshots
     /** @param SnapshotList $snapshots */
     public function __construct(public array $snapshots)
     {
-        foreach ($this->snapshots as $index => $snapshot) {
-            foreach (array_slice($this->snapshots, $index + 1) as $other) {
-                $snapshot->assertCompatibleWith($other);
+        $active = [];
+        foreach ($this->snapshots as $snapshot) {
+            if (!$snapshot->isActive()) {
+                continue;
             }
+            $key = $snapshot->collisionKey();
+            if (isset($active[$key])) {
+                $active[$key]->assertCompatibleWith($snapshot);
+                continue;
+            }
+            $active[$key] = $snapshot;
         }
     }
 

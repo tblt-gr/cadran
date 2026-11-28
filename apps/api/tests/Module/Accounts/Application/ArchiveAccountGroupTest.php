@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\ArchiveAccountGroup;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\ReadGroupColors;
 use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -38,7 +39,7 @@ final class ArchiveAccountGroupTest extends TestCase
             new ImmediateTransactionBoundary(),
             new RecordAuditEvent($trail, new SequenceUuidGenerator()),
             new MockClock('2026-09-05 10:00:00'),
-            new ReadGroupColors($groups),
+            new ReadGroupColors(new LoadGroupTree($groups)),
         ))($parent->id, 1);
 
         self::assertNotNull($archived->archivedAt);

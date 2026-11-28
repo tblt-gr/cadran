@@ -33,11 +33,18 @@ final readonly class PresentAccountRules
         $account = $this->accounts->find($workspace, $rules->accountId) ?? throw new AccountNotFound();
         $valuation = $this->valuations->forAccounts($workspace, [$account], [$rules->asOf])[$rules->asOf->format('Y-m-d')][$account->id];
 
-        return new AccountRulePresentation(
-            $valuation,
-            $this->authors->forIds(self::authorIds($rules)),
-            $this->contributions->cumulative($workspace, $account->id, $rules->asOf),
-        );
+        $contributions = $this->contributions->cumulative($workspace, $account->id, $rules->asOf);
+
+        $ceilingChecks = [];
+        foreach ($rules->ceilings as $rule) {
+            $ceilingChecks[$rule->kind->value] = $rule->compareTo($valuation->amount, $contributions);
+        }
+        $appliedRates = [];
+        foreach ($rules->rates as $rule) {
+            $appliedRates[$rule->kind->value] = $rule->applyTo($valuation->amount);
+        }
+
+        return new AccountRulePresentation($this->authors->forIds(self::authorIds($rules)), $ceilingChecks, $appliedRates);
     }
 
     /**

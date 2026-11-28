@@ -12,10 +12,17 @@ interface AccountGroupRepository
 
     public function findForUpdate(WorkspaceScope $workspace, string $id): ?AccountGroup;
 
-    /** @return list<AccountGroup> */
-    public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset): array;
+    /**
+     * @param bool $parentEligible keeps only active groups below the maximum depth, whatever $includeArchived says
+     *
+     * @return list<AccountGroup>
+     */
+    public function list(WorkspaceScope $workspace, bool $includeArchived, int $limit, int $offset, bool $parentEligible = false): array;
 
-    public function count(WorkspaceScope $workspace, bool $includeArchived): int;
+    public function count(WorkspaceScope $workspace, bool $includeArchived, bool $parentEligible = false): int;
+
+    /** Serialises group creations of one workspace until the transaction ends, so the group limit holds. */
+    public function lockWorkspace(WorkspaceScope $workspace): void;
 
     public function hasActiveSiblingLabel(
         WorkspaceScope $workspace,

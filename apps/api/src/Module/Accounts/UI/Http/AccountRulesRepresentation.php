@@ -16,12 +16,10 @@ use App\Module\Accounts\Domain\AccountTermRule;
 use App\Module\Accounts\Domain\CeilingComparison;
 use App\Module\Catalog\Domain\AppliedRate;
 use App\Module\Catalog\Domain\CatalogSource;
-use App\Module\Catalog\Domain\CeilingBasis;
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\RateBracket;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\VerificationState;
-use App\Module\Foundation\Domain\AssetAmount;
 
 /**
  * The wire shape of the rules in force for an account on a business date.
@@ -43,10 +41,9 @@ final readonly class AccountRulesRepresentation
     /**
      * @return array<string, mixed>
      */
-    public static function of(AccountRules $rules, ?AccountRulePresentation $presentation = null): array
+    public static function of(AccountRules $rules, AccountRulePresentation $presentation): array
     {
-        $authorNames = null === $presentation ? [] : $presentation->authorNames;
-        $measured = $presentation?->valuation?->amount;
+        $authorNames = $presentation->authorNames;
 
         return [
             'accountId' => $rules->accountId,
@@ -56,11 +53,11 @@ final readonly class AccountRulesRepresentation
             'origin' => $rules->origin->value,
             'asOf' => $rules->asOf->format('Y-m-d'),
             'ceilings' => array_map(
-                static fn (AccountCeilingRule $rule): array => self::ceilingRule($rule, $measured, $presentation?->contributions, $authorNames),
+                static fn (AccountCeilingRule $rule): array => self::ceilingRule($rule, $presentation->ceilingChecks[$rule->kind->value], $authorNames),
                 $rules->ceilings,
             ),
             'rates' => array_map(
-                static fn (AccountRateRule $rule): array => self::rateRule($rule, $measured, $authorNames),
+                static fn (AccountRateRule $rule): array => self::rateRule($rule, $presentation->appliedRates[$rule->kind->value], $authorNames),
                 $rules->rates,
             ),
             'terms' => array_map(
@@ -83,10 +80,8 @@ final readonly class AccountRulesRepresentation
      *
      * @return array<string, mixed>
      */
-    private static function ceilingRule(AccountCeilingRule $rule, ?AssetAmount $measured, ?AssetAmount $contributions, array $authorNames): array
+    private static function ceilingRule(AccountCeilingRule $rule, CeilingComparison $check, array $authorNames): array
     {
-        $check = $rule->effective()->compare(self::measureFor($rule->basis, $measured, $contributions));
-
         return [
             'kind' => $rule->kind->value,
             // The figure the amounts below are compared to. Without it, the
@@ -109,7 +104,7 @@ final readonly class AccountRulesRepresentation
      *
      * @return array<string, mixed>
      */
-    private static function rateRule(AccountRateRule $rule, ?AssetAmount $measured, array $authorNames): array
+    private static function rateRule(AccountRateRule $rule, ?AppliedRate $applied, array $authorNames): array
     {
         return [
             'kind' => $rule->kind->value,
@@ -117,7 +112,7 @@ final readonly class AccountRulesRepresentation
             'catalog' => null === $rule->catalog ? null : self::rate($rule->catalog, $authorNames),
             'inherited' => null === $rule->inherited ? null : self::rate($rule->inherited, $authorNames),
             'override' => null === $rule->override ? null : self::rate($rule->override, $authorNames),
-            'applied' => null === $measured ? null : self::applied($rule->effective()->scale->apply($measured->value)),
+            'applied' => null === $applied ? null : self::applied($applied),
         ];
     }
 
@@ -228,15 +223,6 @@ final readonly class AccountRulesRepresentation
             'observed' => null,
             'observedReason' => 'NO_RETURN_SERIES',
         ];
-    }
-
-    private static function measureFor(CeilingBasis $basis, ?AssetAmount $measured, ?AssetAmount $contributions): ?AssetAmount
-    {
-        return match ($basis) {
-            CeilingBasis::TOTAL_BALANCE, CeilingBasis::BALANCE_EXCLUDING_INTEREST => $measured,
-            CeilingBasis::CONTRIBUTIONS => $contributions,
-            default => null,
-        };
     }
 
     /** @return array<string, mixed> */

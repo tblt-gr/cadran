@@ -7,8 +7,8 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\NetWorthCalculator;
 use App\Module\Accounts\Domain\NetWorthDelta;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Reference\Application\AssetCatalog;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * The net-worth curve of the calling workspace: the comparison day, one point
@@ -32,7 +32,7 @@ final readonly class ReadNetWorthHistory
         private CallerWorkspace $caller,
         private ResolveNetWorthContributions $contributions,
         private AssetCatalog $assets,
-        private ClockInterface $clock,
+        private WorkspaceCalendar $calendar,
         private FirstNetWorthDataDayReader $firstData,
     ) {
     }
@@ -49,7 +49,7 @@ final readonly class ReadNetWorthHistory
             throw new InvalidNetWorthQuery(sprintf('A net-worth history spans 1 to %d months.', self::MAX_MONTHS));
         }
 
-        $requestedOn = NetWorthDay::parse($asOf, $this->clock);
+        $requestedOn = NetWorthDay::parse($asOf, $this->calendar->today());
         $workspace = $this->caller->resolve();
         $firstDataDay = $this->firstData->onOrBefore($workspace, $requestedOn);
         $firstDataMonth = $firstDataDay?->format('Y-m');

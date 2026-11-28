@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Accounts\Application;
 
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\NetWorthScopeTooLarge;
 use App\Module\Accounts\Application\ReadMonthlyAccountFacts;
-use App\Module\Accounts\Application\ReadNetWorth;
 use App\Module\Accounts\Application\ResolveAccountValuations;
+use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Accounts\Domain\AccountGroupColorMode;
 use App\Module\Accounts\Domain\AccountGroupRepository;
 use App\Module\Accounts\Domain\CalendarMonth;
@@ -64,7 +65,7 @@ final class ReadMonthlyAccountFactsTest extends TestCase
     public function testMoreGroupsThanTheLimitIsRefusedInsteadOfTruncatingColors(): void
     {
         $groups = [];
-        for ($i = 0; $i <= ReadNetWorth::MAX_GROUPS; ++$i) {
+        for ($i = 0; $i <= AccountGroup::MAX_PER_WORKSPACE; ++$i) {
             $groups[] = AccountGroupFixture::group(id: sprintf('00000000-0000-7000-8000-%012x', 0x1000 + $i), label: 'G'.$i);
         }
 
@@ -79,7 +80,7 @@ final class ReadMonthlyAccountFactsTest extends TestCase
             new InMemoryAccountRepository(...$accounts),
             new ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(), new EmptyBookedMovementTotals()),
             new FixedWorkspaceTimezoneReader(),
-            $groups,
+            new LoadGroupTree($groups),
         );
     }
 }

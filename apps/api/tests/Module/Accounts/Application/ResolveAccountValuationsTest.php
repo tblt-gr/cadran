@@ -119,23 +119,16 @@ final class ResolveAccountValuationsTest extends TestCase
         $list = (new \App\Module\Accounts\Application\ListAccounts($caller, $accounts, $resolver, $assets, new \App\Module\Foundation\Application\WorkspaceCalendar($clock, $caller, $timezone)))(false, false, null, null);
         $detail = (new \App\Module\Accounts\Application\ReadAccount($caller, $accounts, $single))($account->id);
         $worth = (new \App\Module\Accounts\Application\ResolveNetWorthContributions($accounts, $resolver, $timezone))->on($account->workspace, [$day]);
-        $monthly = (new \App\Module\Accounts\Application\ReadMonthlyAccountFacts($accounts, $resolver, $timezone, $this->createStub(\App\Module\Accounts\Domain\AccountGroupRepository::class)))($account->workspace, new \App\Module\Accounts\Domain\CalendarMonth(2026, 10), $day);
-        $rules = \App\Module\Accounts\Domain\AccountRules::withoutProduct($account, $day, \App\Module\Accounts\Domain\AccountRuleOverrides::none());
+        $monthly = (new \App\Module\Accounts\Application\ReadMonthlyAccountFacts($accounts, $resolver, $timezone, new \App\Module\Accounts\Application\LoadGroupTree($this->createStub(\App\Module\Accounts\Domain\AccountGroupRepository::class))))($account->workspace, new \App\Module\Accounts\Domain\CalendarMonth(2026, 10), $day);
+        $rules = \App\Module\Accounts\Domain\AccountRules::withoutProduct($account, $day, new \App\Module\Accounts\Domain\AccountRuleOverrides([
+            \App\Tests\Module\Accounts\Domain\AccountRuleOverrideFixture::ceiling('00000000-0000-7000-8000-0000000000c1', '2500.00', '2026-01-01'),
+        ]));
         $presentation = (new \App\Module\Accounts\Application\PresentAccountRules($caller, $accounts, $resolver, new \App\Module\Accounts\Application\ResolveAuthorNames($this->createStub(\App\Module\Identity\Application\AuthenticationUserRepository::class)), $this->createStub(\App\Module\Accounts\Application\ContributionTotalsReader::class)))($rules);
         self::assertSame('2708.30', $list->items[0]->valuation?->amount);
         self::assertSame('2708.30', $detail->valuation?->amount);
         self::assertSame('2708.30', $worth->on($day)[0]->amount?->value->toString());
         self::assertSame('2708.30', $monthly->accounts[0]->end->amount?->value->toString());
-        self::assertSame('2708.30', $presentation->valuation?->amount?->value->toString());
-        $ceiling = new \App\Module\Accounts\Domain\AccountCeiling(
-            \App\Module\Catalog\Domain\RuleKind::BALANCE_CEILING,
-            new AssetAmount(DecimalValue::fromString('2500.00'), AssetCode::fromString('EUR')),
-            new \App\Module\Catalog\Domain\EffectivePeriod(new \DateTimeImmutable('2026-01-01'), null),
-            null,
-            null,
-            AssetCode::fromString('EUR'),
-        );
-        $check = $ceiling->compare($presentation->valuation->amount);
+        $check = $presentation->ceilingChecks['DEPOSIT_CEILING'];
         self::assertSame('2708.30', $check->measured?->value->toString());
         self::assertSame('208.30', $check->excess?->value->toString());
         self::assertSame('EXCEEDED', $check->status->value);

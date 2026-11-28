@@ -1443,6 +1443,7 @@
       "color": "Choisissez un mode de couleur valide et, si besoin, une couleur au format #RRGGBB.",
       "conflict": "Un groupe actif porte déjà ce libellé au même niveau. Choisissez-en un autre.",
       "invalid": "Le groupe est invalide. Vérifiez son libellé, son parent et l’absence de cycle.",
+      "limitReached": "Cet espace contient déjà 500 groupes, archivés compris. Aucun groupe ne peut être ajouté.",
       "network": "L’enregistrement a échoué. Réessayez.",
       "unauthorized": "Votre session a expiré ou n’autorise pas cette opération. Reconnectez-vous, puis recommencez.",
       "staleOrder": "L’ordre des groupes a changé. Rechargez pour réessayer.",

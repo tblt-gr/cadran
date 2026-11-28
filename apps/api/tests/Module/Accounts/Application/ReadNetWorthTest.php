@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tests\Module\Accounts\Application;
 
 use App\Module\Accounts\Application\InvalidNetWorthQuery;
+use App\Module\Accounts\Application\LoadGroupTree;
 use App\Module\Accounts\Application\NetWorthScopeTooLarge;
 use App\Module\Accounts\Application\ReadNetWorth;
 use App\Module\Accounts\Application\ResolveNetWorthContributions;
@@ -16,6 +17,7 @@ use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Accounts\Domain\LiquidityLevel;
 use App\Module\Accounts\Domain\ReconciliationStatus;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -184,7 +186,7 @@ final class ReadNetWorthTest extends TestCase
     public function testAWorkspaceBeyondTheGroupCapIsRefusedRatherThanTruncated(): void
     {
         $groups = [];
-        for ($index = 0; $index <= ReadNetWorth::MAX_GROUPS; ++$index) {
+        for ($index = 0; $index <= AccountGroup::MAX_PER_WORKSPACE; ++$index) {
             $groups[] = AccountGroupFixture::group(
                 id: sprintf('00000000-0000-7000-8000-1%011d', $index),
                 label: 'Groupe '.$index,
@@ -194,6 +196,14 @@ final class ReadNetWorthTest extends TestCase
         $this->expectException(NetWorthScopeTooLarge::class);
 
         ($this->read(groups: $groups))();
+    }
+
+    public function testTheDefaultDayIsTheLocalDayOfTheWorkspaceCalendar(): void
+    {
+        $read = $this->read(now: '2026-09-04 23:30:00', timezone: 'Europe/Paris');
+
+        self::assertSame('2026-09-05', $read()->asOf);
+        self::assertSame('2026-09-03', $read('2026-09-03', '2026-08-03')->asOf);
     }
 
     public function testAMissingValuationLeavesTheTotalNullWithItsReason(): void
@@ -330,8 +340,10 @@ final class ReadNetWorthTest extends TestCase
         string $caller = self::WORKSPACE,
         ?string $closedOn = null,
         ?array $groups = null,
+        string $now = '2026-09-05 09:00:00',
+        string $timezone = 'UTC',
     ): ReadNetWorth {
-        $clock = new MockClock('2026-09-05 09:00:00', 'UTC');
+        $clock = new MockClock($now, 'UTC');
 
         return new ReadNetWorth(
             new FixedCallerWorkspace($caller),
@@ -339,12 +351,12 @@ final class ReadNetWorthTest extends TestCase
                 new InMemoryAccountRepository(...($accounts ?? $this->accounts($closedOn))), new \App\Module\Accounts\Application\ResolveAccountValuations(new InMemoryAccountBalanceSnapshotRepository(...($snapshots ?? $this->snapshots())), new Double\EmptyBookedMovementTotals()),
                 new FixedWorkspaceTimezoneReader(),
             ),
-            new InMemoryAccountGroupRepository(...($groups ?? [
+            new LoadGroupTree(new InMemoryAccountGroupRepository(...($groups ?? [
                 AccountGroupFixture::group(id: self::LIQUID, label: 'Liquidités'),
                 AccountGroupFixture::group(id: self::SAVINGS, label: 'Épargne', parentId: self::LIQUID, depth: 2),
-            ])),
+            ]))),
             InMemoryAssetCatalog::withCodes('EUR', 'BTC'),
-            $clock,
+            new WorkspaceCalendar($clock, new FixedCallerWorkspace($caller), new FixedWorkspaceTimezoneReader($timezone)),
         );
     }
 

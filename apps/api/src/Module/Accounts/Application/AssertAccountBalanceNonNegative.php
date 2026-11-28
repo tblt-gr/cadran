@@ -182,10 +182,7 @@ final readonly class AssertAccountBalanceNonNegative
     ): void {
         $anchorsBefore = [];
         $anchorsAfter = [];
-        foreach ($this->snapshots->findForAccount($workspace, $account->id)->snapshots as $snapshot) {
-            if (!$snapshot->isActive()) {
-                continue;
-            }
+        foreach ($this->snapshots->findAnchorsAround($workspace, $account->id, $from)->snapshots as $snapshot) {
             $anchor = new DayBalance($snapshot->asOf, $snapshot->amount->value);
             $anchorsBefore[] = $anchor;
             if ($snapshot->id === $replacedSnapshotId) {

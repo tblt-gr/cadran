@@ -1443,6 +1443,7 @@
       "color": "Choose a valid color mode and, if needed, a color in #RRGGBB format.",
       "conflict": "An active group already has this label at the same level. Choose another one.",
       "invalid": "The group is invalid. Check its label, its parent and that there is no cycle.",
+      "limitReached": "This workspace already holds 500 groups, archived ones included. No more groups can be added.",
       "network": "Saving failed. Try again.",
       "unauthorized": "Your session has expired or does not allow this operation. Sign in again, then start over.",
       "staleOrder": "The order of the groups has changed. Reload to try again.",

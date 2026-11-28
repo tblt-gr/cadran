@@ -6,20 +6,19 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Foundation\Domain\BusinessDay;
 use App\Module\Foundation\Domain\InvalidBusinessDay;
-use Symfony\Component\Clock\ClockInterface;
 
 /**
  * Reads the business days a net-worth query is answered for.
  *
- * A missing day means today, never an open-ended range: an aggregate is
+ * A missing day means the current day of the workspace calendar, never an open-ended range: an aggregate is
  * always dated, and the date is what makes the figure reproducible.
  */
 final readonly class NetWorthDay
 {
-    public static function parse(?string $value, ClockInterface $clock): \DateTimeImmutable
+    public static function parse(?string $value, \DateTimeImmutable $today): \DateTimeImmutable
     {
         if (null === $value || '' === $value) {
-            return BusinessDay::fromDateTime($clock->now())->date;
+            return $today;
         }
 
         try {

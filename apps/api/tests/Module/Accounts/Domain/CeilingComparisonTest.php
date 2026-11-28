@@ -7,6 +7,7 @@ namespace App\Tests\Module\Accounts\Domain;
 use App\Module\Accounts\Domain\CeilingCheckStatus;
 use App\Module\Accounts\Domain\CeilingUnsettledReason;
 use App\Module\Catalog\Domain\CatalogEntry;
+use App\Module\Catalog\Domain\CeilingBasis;
 use App\Module\Catalog\Domain\RuleSchedule;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
@@ -114,6 +115,46 @@ final class CeilingComparisonTest extends TestCase
         );
 
         self::assertSame(CeilingCheckStatus::NOT_COMPARABLE, $check->status);
+    }
+
+    public function testTheRuleComparesTheInterestFreeBasisToTheBalanceNotToContributions(): void
+    {
+        $rule = $this->rules(CatalogFixture::product(), CatalogFixture::ceiling('22950.00', '2025-04-25'), CatalogFixture::rate('1.7', '2026-08-01'))->ceilings[0];
+
+        $check = $rule->compareTo(self::euros('23950.00'), self::euros('1.00'));
+
+        self::assertSame(CeilingBasis::BALANCE_EXCLUDING_INTEREST, $rule->basis);
+        self::assertSame(CeilingCheckStatus::EXCEEDED, $check->status);
+        self::assertSame('23950.00', $check->measured?->value->toString());
+        self::assertSame('1000.00', $check->excess?->value->toString());
+        self::assertSame(CeilingUnsettledReason::MISSING_VALUATION, $rule->compareTo(null, self::euros('1.00'))->unsettledReason);
+    }
+
+    public function testTheRuleComparesAContributionCeilingToContributionsNotToTheBalance(): void
+    {
+        $rule = $this->rules(CatalogFixture::taxWrapperProduct(), CatalogFixture::contributionCeiling('150000.00', '2014-01-01'))->ceilings[0];
+
+        self::assertSame(CeilingCheckStatus::WITHIN, $rule->compareTo(self::euros('180000'), self::euros('6200'))->status);
+        self::assertSame(CeilingUnsettledReason::CONTRIBUTIONS_NOT_TRACKED, $rule->compareTo(self::euros('180000'), null)->unsettledReason);
+    }
+
+    public function testARateAppliesToTheBalanceAndStaysNullWithoutOne(): void
+    {
+        $rule = $this->rules(CatalogFixture::product(), CatalogFixture::rate('1.7', '2026-08-01'))->rates[0];
+
+        self::assertNull($rule->applyTo(null));
+        self::assertSame(0, $rule->applyTo(self::euros('1000.00'))?->interest?->compareTo(DecimalValue::fromString('17')));
+    }
+
+    private function rules(\App\Module\Catalog\Domain\FinancialProduct $product, \App\Module\Catalog\Domain\ProductRule ...$schedule): \App\Module\Accounts\Domain\AccountRules
+    {
+        $pea = \App\Module\Catalog\Domain\AccountKind::PORTFOLIO === $product->accountKind;
+
+        return \App\Module\Accounts\Domain\AccountRules::fromProduct(
+            $pea ? AccountFixture::account(productCode: 'FR_PEA', kind: $product->accountKind) : AccountFixture::account(),
+            (new CatalogEntry($product, new RuleSchedule(array_values($schedule))))->effectiveOn(CatalogFixture::day('2026-09-02'), CatalogFixture::day('2026-09-03')),
+            \App\Module\Accounts\Domain\AccountRuleOverrides::none(),
+        );
     }
 
     private function livretACeiling(): \App\Module\Accounts\Domain\AccountCeiling

@@ -89,7 +89,7 @@ post:
     '403':
       $ref: ../components/responses/WorkspaceForbidden.yaml
     '409':
-      description: An active sibling already uses the normalized label.
+      description: 'An active sibling already uses the normalized label, or the workspace already holds 500 groups (`/problems/account-group-limit-reached`).'
       content:
         application/problem+json:
           schema:

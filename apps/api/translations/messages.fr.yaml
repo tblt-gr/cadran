@@ -522,6 +522,9 @@ api:
     account_group_label_taken:
       title: 'Libellé de groupe déjà utilisé'
       detail: 'Un groupe frère actif porte déjà ce libellé. Choisissez un autre libellé.'
+    account_group_limit_reached:
+      title: 'Limite de groupes atteinte'
+      detail: 'Un espace de travail contient au plus 500 groupes, archivés compris.'
     account_group_stale_version:
       title: 'Groupe modifié entre-temps'
       detail: 'Le groupe a été modifié par une autre requête. Rechargez le groupe puis réappliquez la modification.'
