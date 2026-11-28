@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrence;
 use App\Module\Transactions\Domain\Recurrence\TransactionRecurrenceRepository;
 use Doctrine\DBAL\Connection;
@@ -45,7 +46,7 @@ final readonly class DbalTransactionRecurrenceRepository implements TransactionR
 
     public function count(WorkspaceScope $workspace, bool $includeArchived): int
     {
-        return (int) TransactionRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_recurrences WHERE workspace_id = :workspace_id'
             .($includeArchived ? '' : ' AND archived_at IS NULL'),
             ['workspace_id' => $workspace->id],

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Catalog\Domain;
 
+use App\Module\Foundation\Domain\BoundedText;
+
 /**
  * The official publication a rule was read from.
  *
@@ -40,7 +42,7 @@ final readonly class CatalogSource
 
     private static function assertText(string $value, int $maxLength, string $field): void
     {
-        if ($value !== trim($value) || '' === $value || mb_strlen($value) > $maxLength) {
+        if (!BoundedText::isValid($value, 1, $maxLength)) {
             throw new InvalidCatalogEntry(sprintf('A catalogue source %s contains between 1 and %d characters.', $field, $maxLength));
         }
     }

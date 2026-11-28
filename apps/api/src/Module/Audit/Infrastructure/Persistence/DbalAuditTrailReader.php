@@ -8,6 +8,7 @@ use App\Module\Audit\Application\AuditTrailCursor;
 use App\Module\Audit\Application\AuditTrailEntry;
 use App\Module\Audit\Application\AuditTrailReader;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -65,24 +66,15 @@ final readonly class DbalAuditTrailReader implements AuditTrailReader
     private static function hydrate(array $row): AuditTrailEntry
     {
         return new AuditTrailEntry(
-            id: self::asString($row['id'] ?? null),
-            actorId: null === ($row['actor_id'] ?? null) ? null : self::asString($row['actor_id']),
-            eventType: self::asString($row['event_type'] ?? null),
-            entityType: self::asString($row['entity_type'] ?? null),
-            entityId: self::asString($row['entity_id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
+            actorId: null === ($row['actor_id'] ?? null) ? null : DbalValue::text($row['actor_id']),
+            eventType: DbalValue::text($row['event_type'] ?? null),
+            entityType: DbalValue::text($row['entity_type'] ?? null),
+            entityId: DbalValue::text($row['entity_id'] ?? null),
             before: self::decode($row['before_json'] ?? null),
             after: self::decode($row['after_json'] ?? null),
-            occurredAt: new \DateTimeImmutable(self::asString($row['occurred_at'] ?? null)),
+            occurredAt: new \DateTimeImmutable(DbalValue::text($row['occurred_at'] ?? null)),
         );
-    }
-
-    private static function asString(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
     }
 
     /**
@@ -94,14 +86,14 @@ final readonly class DbalAuditTrailReader implements AuditTrailReader
             return null;
         }
 
-        $decoded = json_decode(self::asString($json), true, flags: JSON_THROW_ON_ERROR);
+        $decoded = json_decode(DbalValue::text($json), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($decoded)) {
             throw new \UnexpectedValueException('An audit diff must be stored as a JSON object.');
         }
 
         $attributes = [];
         foreach ($decoded as $name => $value) {
-            $attributes[(string) $name] = null === $value ? null : self::asString($value);
+            $attributes[(string) $name] = null === $value ? null : DbalValue::text($value);
         }
 
         return $attributes;

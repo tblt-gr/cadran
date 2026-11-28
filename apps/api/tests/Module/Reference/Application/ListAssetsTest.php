@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tests\Module\Reference\Application;
 
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Reference\Application\InvalidAssetQuery;
 use App\Module\Reference\Application\ListAssets;
 use App\Tests\Module\Reference\Application\Double\InMemoryAssetCatalog;
@@ -67,12 +68,12 @@ final class ListAssetsTest extends TestCase
      */
     public static function unboundedQueries(): iterable
     {
-        yield 'a page size above the ceiling' => [1, ListAssets::MAX_PAGE_SIZE + 1];
+        yield 'a page size above the ceiling' => [1, PageRequest::MAX_PAGE_SIZE + 1];
         yield 'a page size of zero' => [1, 0];
         yield 'a negative page size' => [1, -1];
         yield 'a page below one' => [0, 10];
         yield 'a negative page' => [-3, 10];
-        yield 'a page beyond the offset ceiling' => [ListAssets::MAX_PAGE + 1, 10];
+        yield 'a page beyond the offset ceiling' => [PageRequest::MAX_PAGE + 1, 10];
     }
 
     /**

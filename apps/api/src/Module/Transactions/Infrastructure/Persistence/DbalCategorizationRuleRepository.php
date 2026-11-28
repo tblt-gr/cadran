@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Categorization\CategorizationRule;
 use App\Module\Transactions\Domain\Categorization\CategorizationRuleRepository;
 use App\Module\Transactions\Domain\Categorization\RuleConditions;
@@ -47,7 +48,7 @@ final readonly class DbalCategorizationRuleRepository implements CategorizationR
 
     public function count(WorkspaceScope $workspace, bool $includeArchived): int
     {
-        return (int) TransactionRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM transaction_categorization_rules WHERE workspace_id = :workspace_id'.($includeArchived ? '' : ' AND archived_at IS NULL'),
             ['workspace_id' => $workspace->id],
         ));
@@ -118,29 +119,29 @@ final readonly class DbalCategorizationRuleRepository implements CategorizationR
     /** @param array<string, mixed> $row */
     private function hydrate(WorkspaceScope $workspace, array $row): CategorizationRule
     {
-        if ($workspace->id !== TransactionRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A categorization rule escaped its requested workspace.');
         }
-        $scope = json_decode(TransactionRow::text($row['account_scope'] ?? null), true, flags: JSON_THROW_ON_ERROR);
-        $conditions = json_decode(TransactionRow::text($row['conditions'] ?? null), true, flags: JSON_THROW_ON_ERROR);
-        $axes = json_decode(TransactionRow::text($row['target_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
+        $scope = json_decode(DbalValue::text($row['account_scope'] ?? null), true, flags: JSON_THROW_ON_ERROR);
+        $conditions = json_decode(DbalValue::text($row['conditions'] ?? null), true, flags: JSON_THROW_ON_ERROR);
+        $axes = json_decode(DbalValue::text($row['target_axes'] ?? null), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($scope) || !is_array($conditions) || !is_array($axes)) {
             throw new \UnexpectedValueException('A categorization rule JSON document is malformed.');
         }
-        $reason = null === ($row['deactivated_reason'] ?? null) ? null : RuleDeactivationReason::from(TransactionRow::text($row['deactivated_reason']));
+        $reason = null === ($row['deactivated_reason'] ?? null) ? null : RuleDeactivationReason::from(DbalValue::text($row['deactivated_reason']));
 
         return new CategorizationRule(
-            TransactionRow::text($row['id'] ?? null), $workspace, TransactionRow::text($row['label'] ?? null),
-            (int) TransactionRow::text($row['priority'] ?? null), array_map(TransactionRow::text(...), array_values($scope)),
-            RuleConditions::fromDocument($conditions), TransactionRow::text($row['target_category_id'] ?? null),
-            array_map(static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(TransactionRow::text($axis)), array_values($axes)),
-            null === ($row['target_counterparty'] ?? null) ? null : TransactionRow::text($row['target_counterparty']),
-            new \DateTimeImmutable(TransactionRow::text($row['effective_from'] ?? null)),
-            null === ($row['effective_to'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['effective_to'])),
-            (bool) $row['active'], $reason, (int) TransactionRow::text($row['applied_count'] ?? null),
-            (int) TransactionRow::text($row['version'] ?? null), new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
-            new \DateTimeImmutable(TransactionRow::text($row['updated_at'] ?? null)),
-            null === ($row['archived_at'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['archived_at'])),
+            DbalValue::text($row['id'] ?? null), $workspace, DbalValue::text($row['label'] ?? null),
+            (int) DbalValue::text($row['priority'] ?? null), array_map(DbalValue::text(...), array_values($scope)),
+            RuleConditions::fromDocument($conditions), DbalValue::text($row['target_category_id'] ?? null),
+            array_map(static fn (mixed $axis): AnalyticAxis => AnalyticAxis::from(DbalValue::text($axis)), array_values($axes)),
+            null === ($row['target_counterparty'] ?? null) ? null : DbalValue::text($row['target_counterparty']),
+            new \DateTimeImmutable(DbalValue::text($row['effective_from'] ?? null)),
+            null === ($row['effective_to'] ?? null) ? null : new \DateTimeImmutable(DbalValue::text($row['effective_to'])),
+            (bool) $row['active'], $reason, (int) DbalValue::text($row['applied_count'] ?? null),
+            (int) DbalValue::text($row['version'] ?? null), new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            null === ($row['archived_at'] ?? null) ? null : new \DateTimeImmutable(DbalValue::text($row['archived_at'])),
         );
     }
 

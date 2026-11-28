@@ -6,6 +6,7 @@ namespace App\Module\Portfolio\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Application\InstrumentIsinExists;
 use App\Module\Portfolio\Domain\Instrument;
 use App\Module\Portfolio\Domain\InstrumentRepository;
@@ -103,7 +104,7 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
     {
         [$where, $parameters] = self::filters($workspace, $status, $query, $currency, $instrumentType);
 
-        return InstrumentRow::integer($this->connection->fetchOne('SELECT count(*) FROM portfolio_instruments WHERE workspace_id = :workspace_id AND ('.$where.')', $parameters));
+        return DbalValue::integer($this->connection->fetchOne('SELECT count(*) FROM portfolio_instruments WHERE workspace_id = :workspace_id AND ('.$where.')', $parameters));
     }
 
     public function lockWorkspace(WorkspaceScope $workspace): void
@@ -113,7 +114,7 @@ final readonly class DbalInstrumentRepository implements InstrumentRepository
 
     public function countAll(WorkspaceScope $workspace): int
     {
-        return InstrumentRow::integer($this->connection->fetchOne('SELECT count(*) FROM portfolio_instruments WHERE workspace_id = :workspace_id', ['workspace_id' => $workspace->id]));
+        return DbalValue::integer($this->connection->fetchOne('SELECT count(*) FROM portfolio_instruments WHERE workspace_id = :workspace_id', ['workspace_id' => $workspace->id]));
     }
 
     public function add(Instrument $instrument): void

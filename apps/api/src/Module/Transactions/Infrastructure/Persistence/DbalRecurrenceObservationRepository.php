@@ -8,6 +8,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceObservation;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceObservationRepository;
 use App\Module\Transactions\Domain\Recurrence\RecurrenceObservationWindow;
@@ -60,15 +61,15 @@ final readonly class DbalRecurrenceObservationRepository implements RecurrenceOb
     private function hydrate(WorkspaceScope $workspace, array $row): RecurrenceObservation
     {
         return new RecurrenceObservation(
-            TransactionRow::text($row['id'] ?? null),
+            DbalValue::text($row['id'] ?? null),
             $workspace,
-            TransactionRow::text($row['account_id'] ?? null),
-            TransactionRow::text($row['grouping_key'] ?? null),
-            TransactionRow::text($row['display_name'] ?? null),
-            new \DateTimeImmutable(TransactionRow::text($row['booked_on'] ?? null), new \DateTimeZone('UTC')),
+            DbalValue::text($row['account_id'] ?? null),
+            DbalValue::text($row['grouping_key'] ?? null),
+            DbalValue::text($row['display_name'] ?? null),
+            new \DateTimeImmutable(DbalValue::text($row['booked_on'] ?? null), new \DateTimeZone('UTC')),
             new AssetAmount(
                 DecimalValue::fromString(TransactionRow::decimal($row['amount_value'] ?? null, $row['amount_scale'] ?? null)),
-                AssetCode::fromString(TransactionRow::text($row['asset_code'] ?? null)),
+                AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null)),
             ),
         );
     }

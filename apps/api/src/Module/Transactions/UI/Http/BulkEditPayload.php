@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\UI\Http;
 
-use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Domain\BusinessDay;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\BulkEditChanges;
 use App\Module\Transactions\Application\BulkEditInput;
 use App\Module\Transactions\Application\BulkFieldChange;
@@ -75,8 +76,8 @@ final readonly class BulkEditPayload
             paymentMethod: array_key_exists('paymentMethod', $changes) ? $this->paymentMethod($changes['paymentMethod']) : null,
             note: array_key_exists('note', $changes) ? $this->fieldText($changes['note'], Transaction::MAX_NOTE_LENGTH) : null,
             counterparty: array_key_exists('counterparty', $changes) ? $this->fieldText($changes['counterparty'], Transaction::MAX_COUNTERPARTY_LENGTH) : null,
-            categoryId: array_key_exists('categoryId', $changes) ? TransactionPayload::of(['categoryId' => $changes['categoryId']], ['categoryId'])->uuid('categoryId') : null,
-            accountId: array_key_exists('accountId', $changes) ? TransactionPayload::of(['accountId' => $changes['accountId']], ['accountId'])->uuid('accountId') : null,
+            categoryId: array_key_exists('categoryId', $changes) ? JsonPayload::of(['categoryId' => $changes['categoryId']], ['categoryId'])->uuid('categoryId') : null,
+            accountId: array_key_exists('accountId', $changes) ? JsonPayload::of(['accountId' => $changes['accountId']], ['accountId'])->uuid('accountId') : null,
             bookedOn: array_key_exists('bookedOn', $changes) ? $this->day($changes['bookedOn']) : null,
         );
     }
@@ -99,14 +100,14 @@ final readonly class BulkEditPayload
             throw new \UnexpectedValueException('label must be an object with a mode.');
         }
         if ('SAME' === $label['mode']) {
-            TransactionPayload::of($label, ['mode', 'value']);
+            JsonPayload::of($label, ['mode', 'value']);
 
             return BulkLabelChange::same($this->boundedText($label['value'], Transaction::MAX_RAW_LABEL_LENGTH));
         }
         if ('EACH' !== $label['mode']) {
             throw new \UnexpectedValueException('Unknown label mode.');
         }
-        TransactionPayload::of($label, ['mode', 'values']);
+        JsonPayload::of($label, ['mode', 'values']);
         $values = $label['values'];
         if (!is_array($values) || !array_is_list($values) || [] === $values || count($values) > self::MAX_EACH_VALUES) {
             throw new \UnexpectedValueException('values must hold between 1 and 100 entries.');
@@ -116,7 +117,7 @@ final readonly class BulkEditPayload
             if (!is_array($entry)) {
                 throw new \UnexpectedValueException('Each label value must be an object.');
             }
-            TransactionPayload::of($entry, ['id', 'value']);
+            JsonPayload::of($entry, ['id', 'value']);
             $id = $entry['id'];
             if (!is_string($id) || !Identifier::isValid($id) || isset($each[$id])) {
                 throw new \UnexpectedValueException('Each label value names a distinct canonical UUID.');
@@ -153,7 +154,7 @@ final readonly class BulkEditPayload
     /** @param array<mixed> $scope */
     private function byIds(BulkEditChanges $changes, array $scope, bool $preview, ?string $token): BulkEditInput
     {
-        TransactionPayload::of($scope, ['type', 'ids']);
+        JsonPayload::of($scope, ['type', 'ids']);
         $ids = $scope['ids'] ?? null;
         if (!is_array($ids) || !array_is_list($ids) || [] === $ids) {
             throw new \UnexpectedValueException('ids must be a non-empty list.');
@@ -181,7 +182,7 @@ final readonly class BulkEditPayload
     /** @param array<mixed> $scope */
     private function byFilters(BulkEditChanges $changes, array $scope, bool $preview, ?string $token): BulkEditInput
     {
-        TransactionPayload::of($scope, ['type', 'filters', 'expectedCount']);
+        JsonPayload::of($scope, ['type', 'filters', 'expectedCount']);
         if (null !== $changes->label?->eachIds()) {
             throw new \UnexpectedValueException('A label per transaction needs an explicit selection.');
         }

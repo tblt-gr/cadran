@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
+use App\Module\Foundation\Domain\Uuid;
+
 final class AccountGroupInputParser
 {
     public static function optionalIdentifier(?string $value): ?string
     {
-        if (null !== $value && 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (null !== $value && !Uuid::isValid($value)) {
             throw new InvalidAccountGroupInput('The group parent identifier is malformed.');
         }
 

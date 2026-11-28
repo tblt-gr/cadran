@@ -7,8 +7,9 @@ namespace App\Module\Transactions\Application\Reconciliation;
 use App\Module\Accounts\Domain\AccountBalanceSnapshot;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\ReconciliationStatus;
-use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Domain\BusinessDay;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Transactions\Application\PresentTransaction;
 use App\Module\Transactions\Domain\Reconciliation\AccountBalanceComparison;
@@ -35,7 +36,7 @@ final readonly class AccountReconciliationCalculator
     {
         try {
             $start = BusinessDay::fromIsoDate($periodStart)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidAccountReconciliation('The period start must be an ISO 8601 calendar day.', previous: $exception);
         }
         if ($start > $closing->asOf) {

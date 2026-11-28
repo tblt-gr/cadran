@@ -16,6 +16,7 @@ use App\Module\Accounts\Application\RateBracketInput;
 use App\Module\Catalog\Domain\ProductCapability;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
 use Symfony\Component\HttpFoundation\Request;
@@ -46,7 +47,7 @@ final readonly class ProductModelWriteController
         }
 
         try {
-            $payload = ProductModelPayload::of($body, [
+            $payload = JsonPayload::of($body, [
                 'name', 'family', 'wrapperKind', 'yieldKind', 'defaultGroupCode',
                 'valuationMode', 'capabilities', 'rules',
             ]);
@@ -57,7 +58,7 @@ final readonly class ProductModelWriteController
                 yieldKind: $payload->string('yieldKind'),
                 defaultGroupCode: $payload->nullableString('defaultGroupCode'),
                 valuationMode: $payload->string('valuationMode'),
-                capabilities: $payload->strings('capabilities', count(ProductCapability::cases())),
+                capabilities: $payload->stringList('capabilities', count(ProductCapability::cases())),
                 rules: self::rules($payload),
             ));
         } catch (\Throwable $exception) {
@@ -81,7 +82,7 @@ final readonly class ProductModelWriteController
         }
 
         try {
-            $payload = ProductModelPayload::of($body, ['name', 'productCode', 'valuationMode']);
+            $payload = JsonPayload::of($body, ['name', 'productCode', 'valuationMode']);
             $model = $createFromProduct(
                 $payload->string('productCode'),
                 $payload->string('name'),
@@ -107,7 +108,7 @@ final readonly class ProductModelWriteController
         }
 
         try {
-            $model = $duplicateProductModel($id, ProductModelPayload::of($body, ['name'])->string('name'));
+            $model = $duplicateProductModel($id, JsonPayload::of($body, ['name'])->string('name'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, ProductModelProblems::write());
         }
@@ -133,7 +134,7 @@ final readonly class ProductModelWriteController
         }
 
         try {
-            $payload = ProductModelPayload::of($body, [...self::RULE_FIELDS, 'version']);
+            $payload = JsonPayload::of($body, [...self::RULE_FIELDS, 'version']);
             $model = $addProductModelRule($id, self::rule($payload), $payload->integer('version'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, ProductModelProblems::write());
@@ -155,7 +156,7 @@ final readonly class ProductModelWriteController
         }
 
         try {
-            $model = $archiveProductModel($id, ProductModelPayload::of($body, ['version'])->integer('version'));
+            $model = $archiveProductModel($id, JsonPayload::of($body, ['version'])->integer('version'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, ProductModelProblems::write());
         }
@@ -166,7 +167,7 @@ final readonly class ProductModelWriteController
     /**
      * @return list<DeclaredRuleInput>
      */
-    private static function rules(ProductModelPayload $payload): array
+    private static function rules(JsonPayload $payload): array
     {
         $rules = [];
         foreach ($payload->objects('rules', self::RULE_FIELDS, ProductModelInputParser::MAX_RULES_PER_REQUEST) as $index => $rule) {
@@ -176,7 +177,7 @@ final readonly class ProductModelWriteController
         return $rules;
     }
 
-    private static function rule(ProductModelPayload $payload, string $pointer = ''): DeclaredRuleInput
+    private static function rule(JsonPayload $payload, string $pointer = ''): DeclaredRuleInput
     {
         return new DeclaredRuleInput(
             kind: $payload->string('kind'),
@@ -185,7 +186,7 @@ final readonly class ProductModelWriteController
             text: $payload->nullableString('text'),
             rateApplication: $payload->nullableString('rateApplication'),
             brackets: array_map(
-                static fn (ProductModelPayload $bracket): RateBracketInput => new RateBracketInput(
+                static fn (JsonPayload $bracket): RateBracketInput => new RateBracketInput(
                     lowerBound: $bracket->string('lowerBound'),
                     upperBound: $bracket->nullableString('upperBound'),
                     percentage: $bracket->string('percentage'),

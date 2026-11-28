@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\Infrastructure\Persistence;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Application\LinkedTransferTaken;
 use App\Module\Portfolio\Domain\AccountCosts;
 use App\Module\Portfolio\Domain\OperationFilters;
@@ -69,12 +70,12 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             ['workspace_id' => $workspace->id, 'account_id' => $accountId, 'trade_date' => $tradeDate->format('Y-m-d')],
         );
 
-        return (null === $highest || false === $highest ? 0 : (int) PortfolioOperationRow::text($highest)) + 1;
+        return (null === $highest || false === $highest ? 0 : (int) DbalValue::text($highest)) + 1;
     }
 
     public function countActive(WorkspaceScope $workspace, string $accountId): int
     {
-        return (int) PortfolioOperationRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             "SELECT count(*) FROM portfolio_operations WHERE workspace_id = :workspace_id AND account_id = :account_id AND state = 'ACTIVE'",
             ['workspace_id' => $workspace->id, 'account_id' => $accountId],
         ));
@@ -146,9 +147,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         );
         $counts = [];
         foreach ($rows as $row) {
-            $accountId = PortfolioOperationRow::text($row['account_id']);
-            $tradeDate = PortfolioOperationRow::text($row['trade_date']);
-            $counts[$accountId.'|'.$tradeDate] = (int) PortfolioOperationRow::text($row['operation_count']);
+            $counts[DbalValue::text($row['account_id']).'|'.DbalValue::text($row['trade_date'])] = DbalValue::integer($row['operation_count']);
         }
 
         return $counts;
@@ -164,7 +163,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         $fees = [];
         $taxes = [];
         foreach ($rows as $row) {
-            $accountId = PortfolioOperationRow::text($row['account_id']);
+            $accountId = DbalValue::text($row['account_id']);
             $fees[$accountId] = ExactDecimal::add($fees[$accountId] ?? DecimalValue::zero(), PortfolioOperationRow::storedDecimal($row, 'fees'));
             $taxes[$accountId] = ExactDecimal::add($taxes[$accountId] ?? DecimalValue::zero(), PortfolioOperationRow::storedDecimal($row, 'taxes'));
         }
@@ -217,7 +216,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
     {
         [$where, $parameters, $types] = self::criteria($workspace, $accountId, $filters);
 
-        return (int) PortfolioOperationRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM portfolio_operations WHERE portfolio_operations.workspace_id = :workspace_id AND '.$where
             .(null === $filters->instrumentId ? '' : ' AND (instrument_id = :instrument_id OR counter_instrument_id = :instrument_id OR id IN (SELECT l.operation_id FROM portfolio_operation_legs l WHERE l.workspace_id = :workspace_id AND l.instrument_id = :instrument_id))'),
             $parameters,
@@ -232,7 +231,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             ['workspace_id' => $workspace->id, 'transaction_id' => $transactionId],
         );
 
-        return false === $id ? null : PortfolioOperationRow::text($id);
+        return false === $id ? null : DbalValue::text($id);
     }
 
     public function linkedAmong(WorkspaceScope $workspace, array $transactionIds): array
@@ -246,7 +245,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
             ['ids' => ArrayParameterType::STRING],
         );
 
-        return array_map(PortfolioOperationRow::text(...), $rows);
+        return array_map(DbalValue::text(...), $rows);
     }
 
     public function replacementIds(WorkspaceScope $workspace, array $operationIds): array
@@ -261,7 +260,7 @@ final readonly class DbalPortfolioOperationRepository implements PortfolioOperat
         );
         $map = [];
         foreach ($rows as $row) {
-            $map[PortfolioOperationRow::text($row['corrects_operation_id'])] = PortfolioOperationRow::text($row['id']);
+            $map[DbalValue::text($row['corrects_operation_id'])] = DbalValue::text($row['id']);
         }
 
         return $map;

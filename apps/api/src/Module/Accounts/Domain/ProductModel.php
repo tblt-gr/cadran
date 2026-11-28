@@ -12,6 +12,8 @@ use App\Module\Catalog\Domain\ProductNature;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\WrapperKind;
 use App\Module\Catalog\Domain\YieldKind;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -58,7 +60,9 @@ final readonly class ProductModel
         public \DateTimeImmutable $updatedAt,
         public ?\DateTimeImmutable $archivedAt = null,
     ) {
-        self::assertIdentifier($id);
+        if (!Uuid::isValid($id)) {
+            throw new InvalidProductModel('A model identifier must be a canonical UUID.');
+        }
         self::assertName($name);
         self::assertGroupCode($defaultGroupCode);
 
@@ -272,20 +276,13 @@ final readonly class ProductModel
         }
     }
 
-    private static function assertIdentifier(string $id): void
-    {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
-            throw new InvalidProductModel('A model identifier must be a canonical UUID.');
-        }
-    }
-
     private static function assertName(string $name): void
     {
-        if ($name !== trim($name) || '' === $name || mb_strlen($name) > self::MAX_NAME_LENGTH) {
+        if (!BoundedText::isValid($name, 1, self::MAX_NAME_LENGTH)) {
             throw new InvalidProductModel(sprintf('A model name must contain between 1 and %d characters.', self::MAX_NAME_LENGTH));
         }
 
-        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $name)) {
+        if (BoundedText::hasControlCharacters($name)) {
             throw new InvalidProductModel('A model name cannot contain control characters.');
         }
     }

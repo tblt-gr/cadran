@@ -7,6 +7,7 @@ namespace App\Module\Budget\Infrastructure\Persistence;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -25,9 +26,9 @@ final readonly class DbalGoalVersionRepository implements GoalVersionRepository
     {
         $rows = $this->connection->fetchAllAssociative('SELECT '.self::COLUMNS.' FROM budget_goal_versions WHERE workspace_id = :workspace_id AND goal_id = :goal_id ORDER BY version_no DESC LIMIT :limit', ['workspace_id' => $workspace->id, 'goal_id' => $goalId, 'limit' => $limit], ['limit' => ParameterType::INTEGER]);
 
-        $parts = $this->partsByVersion($workspace, array_map(static fn (array $row): string => GoalRow::text($row['id'] ?? null), $rows));
+        $parts = $this->partsByVersion($workspace, array_map(static fn (array $row): string => DbalValue::text($row['id'] ?? null), $rows));
 
-        return array_map(static fn (array $row): GoalVersion => GoalVersionRow::hydrate($row, $workspace, $parts[GoalRow::text($row['id'] ?? null)] ?? []), $rows);
+        return array_map(static fn (array $row): GoalVersion => GoalVersionRow::hydrate($row, $workspace, $parts[DbalValue::text($row['id'] ?? null)] ?? []), $rows);
     }
 
     public function listByGoals(WorkspaceScope $workspace, array $goalIds): array
@@ -37,10 +38,10 @@ final readonly class DbalGoalVersionRepository implements GoalVersionRepository
         }
         // A goal keeps at most 50 versions, which bounds the read.
         $rows = $this->connection->fetchAllAssociative('SELECT '.self::COLUMNS.' FROM budget_goal_versions WHERE workspace_id = :workspace_id AND goal_id IN (:goal_ids) ORDER BY goal_id, version_no DESC LIMIT :limit', ['workspace_id' => $workspace->id, 'goal_ids' => $goalIds, 'limit' => count($goalIds) * 50], ['goal_ids' => ArrayParameterType::STRING, 'limit' => ParameterType::INTEGER]);
-        $parts = $this->partsByVersion($workspace, array_map(static fn (array $row): string => GoalRow::text($row['id'] ?? null), $rows));
+        $parts = $this->partsByVersion($workspace, array_map(static fn (array $row): string => DbalValue::text($row['id'] ?? null), $rows));
         $byGoal = [];
         foreach ($rows as $row) {
-            $byGoal[GoalRow::text($row['goal_id'] ?? null)][] = GoalVersionRow::hydrate($row, $workspace, $parts[GoalRow::text($row['id'] ?? null)] ?? []);
+            $byGoal[DbalValue::text($row['goal_id'] ?? null)][] = GoalVersionRow::hydrate($row, $workspace, $parts[DbalValue::text($row['id'] ?? null)] ?? []);
         }
 
         return $byGoal;
@@ -73,7 +74,7 @@ final readonly class DbalGoalVersionRepository implements GoalVersionRepository
         $rows = $this->connection->fetchAllAssociative('SELECT goal_version_id, month_index, amount, amount_scale FROM budget_goal_schedule_parts WHERE workspace_id = :workspace_id AND goal_version_id IN (:ids) ORDER BY goal_version_id, month_index', ['workspace_id' => $workspace->id, 'ids' => $versionIds], ['ids' => ArrayParameterType::STRING]);
         $parts = [];
         foreach ($rows as $row) {
-            $parts[GoalRow::text($row['goal_version_id'] ?? null)][] = $row;
+            $parts[DbalValue::text($row['goal_version_id'] ?? null)][] = $row;
         }
 
         return $parts;

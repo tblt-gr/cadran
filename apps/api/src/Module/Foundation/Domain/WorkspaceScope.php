@@ -16,8 +16,6 @@ namespace App\Module\Foundation\Domain;
  */
 final readonly class WorkspaceScope implements \Stringable
 {
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i';
-
     private function __construct(public string $id)
     {
     }
@@ -28,7 +26,7 @@ final readonly class WorkspaceScope implements \Stringable
      */
     public static function fromString(string $id): self
     {
-        if (1 !== preg_match(self::UUID_PATTERN, $id)) {
+        if (!Uuid::isValid(strtolower($id))) {
             throw new \InvalidArgumentException('A workspace scope is a UUID.');
         }
 

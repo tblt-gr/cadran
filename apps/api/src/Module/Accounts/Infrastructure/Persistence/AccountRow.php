@@ -12,6 +12,7 @@ use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 /**
  * Translates between an account and the `account_financial_accounts` row that
@@ -33,36 +34,36 @@ final readonly class AccountRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace): Account
     {
-        if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('An account row escaped its requested workspace.');
         }
 
-        $maskedIdentifier = self::nullableText($row['masked_identifier'] ?? null);
-        $productCode = self::nullableText($row['product_code'] ?? null);
+        $maskedIdentifier = DbalValue::nullableText($row['masked_identifier'] ?? null);
+        $productCode = DbalValue::nullableText($row['product_code'] ?? null);
 
         return new Account(
-            id: self::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            label: self::text($row['label'] ?? null),
-            assetCode: AssetCode::fromString(self::text($row['asset_code'] ?? null)),
-            kind: AccountKind::from(self::text($row['kind'] ?? null)),
+            label: DbalValue::text($row['label'] ?? null),
+            assetCode: AssetCode::fromString(DbalValue::text($row['asset_code'] ?? null)),
+            kind: AccountKind::from(DbalValue::text($row['kind'] ?? null)),
             productCode: null === $productCode ? null : ProductCode::fromString($productCode),
-            productModelId: self::nullableText($row['product_model_id'] ?? null),
-            institution: self::nullableText($row['institution'] ?? null),
+            productModelId: DbalValue::nullableText($row['product_model_id'] ?? null),
+            institution: DbalValue::nullableText($row['institution'] ?? null),
             maskedIdentifier: null === $maskedIdentifier ? null : MaskedIdentifier::fromString($maskedIdentifier),
-            valuationMode: AccountValuationMode::from(self::text($row['valuation_mode'] ?? null)),
-            liquidityLevel: LiquidityLevel::from(self::text($row['liquidity_level'] ?? null)),
-            includeInNetWorth: self::boolean($row['include_in_net_worth'] ?? null),
-            includeInEmergencyFund: self::boolean($row['include_in_emergency_fund'] ?? null),
-            openedOn: self::businessDay($row['opened_on'] ?? null),
-            closedOn: null === ($row['closed_on'] ?? null) ? null : self::businessDay($row['closed_on']),
-            version: (int) self::text($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
-            usedAt: self::instant($row['used_at'] ?? null),
-            archivedAt: self::instant($row['archived_at'] ?? null),
-            primaryGroupId: self::nullableText($row['primary_group_id'] ?? null),
-            isPrimary: self::boolean($row['is_primary'] ?? false),
+            valuationMode: AccountValuationMode::from(DbalValue::text($row['valuation_mode'] ?? null)),
+            liquidityLevel: LiquidityLevel::from(DbalValue::text($row['liquidity_level'] ?? null)),
+            includeInNetWorth: DbalValue::boolean($row['include_in_net_worth'] ?? null),
+            includeInEmergencyFund: DbalValue::boolean($row['include_in_emergency_fund'] ?? null),
+            openedOn: DbalValue::businessDay($row['opened_on'] ?? null),
+            closedOn: null === ($row['closed_on'] ?? null) ? null : DbalValue::businessDay($row['closed_on']),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            updatedAt: new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            usedAt: DbalValue::nullableInstant($row['used_at'] ?? null),
+            archivedAt: DbalValue::nullableInstant($row['archived_at'] ?? null),
+            primaryGroupId: DbalValue::nullableText($row['primary_group_id'] ?? null),
+            isPrimary: DbalValue::boolean($row['is_primary'] ?? false),
         );
     }
 
@@ -95,42 +96,5 @@ final readonly class AccountRow
             'archived_at' => $account->archivedAt?->format('Y-m-d H:i:s.uP'),
             'primary_group_id' => $account->primaryGroupId,
         ];
-    }
-
-    public static function text(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
-    }
-
-    private static function nullableText(mixed $value): ?string
-    {
-        return null === $value ? null : self::text($value);
-    }
-
-    private static function boolean(mixed $value): bool
-    {
-        return match ($value) {
-            true, 1, '1', 't', 'true' => true,
-            false, 0, '0', 'f', 'false' => false,
-            default => throw new \UnexpectedValueException('Expected a boolean database value.'),
-        };
-    }
-
-    /**
-     * A `DATE` column carries no time and no zone; the domain reads it as the
-     * UTC calendar day it is, rather than as midnight in the server timezone.
-     */
-    private static function businessDay(mixed $value): \DateTimeImmutable
-    {
-        return new \DateTimeImmutable(self::text($value), new \DateTimeZone('UTC'));
-    }
-
-    private static function instant(mixed $value): ?\DateTimeImmutable
-    {
-        return null === $value ? null : new \DateTimeImmutable(self::text($value));
     }
 }

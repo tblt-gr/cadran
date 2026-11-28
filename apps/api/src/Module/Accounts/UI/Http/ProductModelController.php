@@ -7,15 +7,17 @@ namespace App\Module\Accounts\UI\Http;
 use App\Module\Accounts\Application\ListProductModels;
 use App\Module\Accounts\Application\ReadProductModel;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
  * Adds HTTP to the workspace product-model use cases. Field-level validation
- * lives in {@see ProductModelPayload}, the wire shape in
+ * lives in {@see JsonPayload}, the wire shape in
  * {@see ProductModelRepresentation} and the status mapping in
  * {@see ProductModelProblems}; what remains here is the routing. Writes live
  * in {@see ProductModelWriteController}.
@@ -36,15 +38,15 @@ final readonly class ProductModelController
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
         $includeArchived = $request->query->getString('includeArchived');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize) || !self::flag($includeArchived)) {
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize) || !QueryParameters::isFlagOrEmpty($includeArchived)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_model_query');
         }
 
         try {
             $models = $listProductModels(
                 'true' === $includeArchived,
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
             );
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, ProductModelProblems::list());
@@ -67,15 +69,5 @@ final readonly class ProductModelController
         }
 
         return $this->envelope->json(ProductModelRepresentation::one($model));
-    }
-
-    private static function flag(string $value): bool
-    {
-        return in_array($value, ['', 'true', 'false'], true);
-    }
-
-    private static function unsignedIntegerOrEmpty(string $value): bool
-    {
-        return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
     }
 }

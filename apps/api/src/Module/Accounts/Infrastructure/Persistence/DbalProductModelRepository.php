@@ -9,6 +9,7 @@ use App\Module\Accounts\Domain\ModelRule;
 use App\Module\Accounts\Domain\ProductModel;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -118,7 +119,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
             return [];
         }
 
-        $ids = array_map(static fn (array $row): string => ProductModelRow::text($row['id'] ?? null), $rows);
+        $ids = array_map(static fn (array $row): string => DbalValue::text($row['id'] ?? null), $rows);
         $capabilities = $this->readCapabilities($workspace, $ids);
         $schedules = $this->readRules($workspace, $ids);
 
@@ -126,8 +127,8 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
             static fn (array $row): ProductModel => ProductModelRow::hydrate(
                 $row,
                 $workspace,
-                $capabilities[ProductModelRow::text($row['id'] ?? null)] ?? [],
-                $schedules[ProductModelRow::text($row['id'] ?? null)] ?? [],
+                $capabilities[DbalValue::text($row['id'] ?? null)] ?? [],
+                $schedules[DbalValue::text($row['id'] ?? null)] ?? [],
             ),
             $rows,
         );
@@ -135,7 +136,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
     public function count(WorkspaceScope $workspace, bool $includeArchived): int
     {
-        return (int) ProductModelRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM account_product_models WHERE workspace_id = :workspace_id'
             .($includeArchived ? '' : ' AND archived_at IS NULL'),
             ['workspace_id' => $workspace->id],
@@ -284,7 +285,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
         $grouped = [];
         foreach ($rows as $row) {
-            $grouped[ProductModelRow::text($row['model_id'] ?? null)][] = ProductModelRow::text($row['capability_code'] ?? null);
+            $grouped[DbalValue::text($row['model_id'] ?? null)][] = DbalValue::text($row['capability_code'] ?? null);
         }
 
         return $grouped;
@@ -324,7 +325,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
         /** @var array<string, array{row: array<string, mixed>, brackets: list<array<string, mixed>>}> $periods */
         $periods = [];
         foreach ($rows as $row) {
-            $ruleId = ProductModelRow::text($row['id'] ?? null);
+            $ruleId = DbalValue::text($row['id'] ?? null);
             $periods[$ruleId] ??= ['row' => $row, 'brackets' => []];
             if (null !== ($row['position'] ?? null)) {
                 $periods[$ruleId]['brackets'][] = $row;
@@ -333,7 +334,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
         $grouped = [];
         foreach ($periods as $period) {
-            $grouped[ProductModelRow::text($period['row']['model_id'] ?? null)][] = ProductModelRow::hydrateRule(
+            $grouped[DbalValue::text($period['row']['model_id'] ?? null)][] = ProductModelRow::hydrateRule(
                 $period['row'],
                 $period['brackets'],
             );
@@ -359,9 +360,7 @@ final readonly class DbalProductModelRepository implements ProductModelRepositor
 
         $recorded = [];
         foreach ($rows as $row) {
-            $recorded[ProductModelRow::text($row['id'] ?? null)] = new \DateTimeImmutable(
-                ProductModelRow::text($row['created_at'] ?? null),
-            );
+            $recorded[DbalValue::text($row['id'] ?? null)] = DbalValue::instant($row['created_at'] ?? null);
         }
 
         return $recorded;

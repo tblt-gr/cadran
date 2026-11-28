@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\Categorization\ApplyCategorizationRules;
 use App\Module\Transactions\Application\Categorization\ArchiveCategorizationRule;
 use App\Module\Transactions\Application\Categorization\CategorizationExecutionLimitExceeded;
@@ -66,7 +67,7 @@ final readonly class CategorizationRuleController
             return $body;
         }
         try {
-            $input = CategorizationRulePayload::of($body, self::CREATE_FIELDS)->input(false);
+            $input = CategorizationRulePayload::input(JsonPayload::of($body, self::CREATE_FIELDS), false);
             $result = $this->idempotentExecution->execute(
                 'categorization_rule.create',
                 $this->envelope->idempotency($request, false),
@@ -104,7 +105,7 @@ final readonly class CategorizationRuleController
             return $body;
         }
         try {
-            $view = $update($id, CategorizationRulePayload::of($body, self::UPDATE_FIELDS)->input(true));
+            $view = $update($id, CategorizationRulePayload::input(JsonPayload::of($body, self::UPDATE_FIELDS), true));
         } catch (UnsafeRulePattern $exception) {
             return $this->problem(422, '/problems/rules.unsafe_pattern', ['reason' => $exception->reason, 'field' => $exception->field]);
         } catch (InvalidCategorizationReference) {
@@ -135,7 +136,7 @@ final readonly class CategorizationRuleController
             return $body;
         }
         try {
-            $payload = CategorizationRulePayload::of($body, ['version']);
+            $payload = JsonPayload::of($body, ['version']);
 
             return $this->envelope->json($archive($id, $payload->integer('version')));
         } catch (CategorizationRuleNotFound) {
@@ -157,7 +158,7 @@ final readonly class CategorizationRuleController
             return $body;
         }
         try {
-            $payload = CategorizationRulePayload::of($body, ['ruleId', 'from', 'to']);
+            $payload = JsonPayload::of($body, ['ruleId', 'from', 'to']);
             $ruleId = $payload->nullableString('ruleId');
             if (null !== $ruleId && !Identifier::isValid($ruleId)) {
                 throw new \UnexpectedValueException();
@@ -185,7 +186,7 @@ final readonly class CategorizationRuleController
             return $body;
         }
         try {
-            $payload = CategorizationRulePayload::of($body, ['previewToken']);
+            $payload = JsonPayload::of($body, ['previewToken']);
             $token = $payload->string('previewToken');
             if (1 !== preg_match('/^[0-9a-f]{64}$/D', $token)) {
                 throw new \UnexpectedValueException();

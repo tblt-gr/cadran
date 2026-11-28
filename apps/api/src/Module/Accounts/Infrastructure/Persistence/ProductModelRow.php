@@ -26,6 +26,7 @@ use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 /**
  * Translates between a product model and the four rows sets that store it, in
@@ -49,32 +50,32 @@ final readonly class ProductModelRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace, array $capabilities, array $rules): ProductModel
     {
-        if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A product model row escaped its requested workspace.');
         }
 
-        $sourceProduct = self::nullableText($row['derived_from_product_code'] ?? null);
+        $sourceProduct = DbalValue::nullableText($row['derived_from_product_code'] ?? null);
 
         return new ProductModel(
-            id: self::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            name: self::text($row['name'] ?? null),
-            family: AccountKind::from(self::text($row['family'] ?? null)),
-            wrapperKind: WrapperKind::from(self::text($row['wrapper_kind'] ?? null)),
-            yieldKind: YieldKind::from(self::text($row['yield_kind'] ?? null)),
-            defaultGroupCode: self::nullableText($row['default_group_code'] ?? null),
-            valuationMode: AccountValuationMode::from(self::text($row['valuation_mode'] ?? null)),
+            name: DbalValue::text($row['name'] ?? null),
+            family: AccountKind::from(DbalValue::text($row['family'] ?? null)),
+            wrapperKind: WrapperKind::from(DbalValue::text($row['wrapper_kind'] ?? null)),
+            yieldKind: YieldKind::from(DbalValue::text($row['yield_kind'] ?? null)),
+            defaultGroupCode: DbalValue::nullableText($row['default_group_code'] ?? null),
+            valuationMode: AccountValuationMode::from(DbalValue::text($row['valuation_mode'] ?? null)),
             capabilities: ProductCapabilities::fromStrings($capabilities),
             provenance: ModelProvenance::of(
-                ProductModelOrigin::from(self::text($row['origin'] ?? null)),
+                ProductModelOrigin::from(DbalValue::text($row['origin'] ?? null)),
                 null === $sourceProduct ? null : ProductCode::fromString($sourceProduct),
-                self::nullableText($row['derived_from_model_id'] ?? null),
+                DbalValue::nullableText($row['derived_from_model_id'] ?? null),
             ),
             schedule: new ModelRuleSchedule($rules),
-            version: (int) self::text($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
-            archivedAt: self::instant($row['archived_at'] ?? null),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            updatedAt: new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            archivedAt: DbalValue::nullableInstant($row['archived_at'] ?? null),
         );
     }
 
@@ -88,25 +89,25 @@ final readonly class ProductModelRow
      */
     public static function hydrateRule(array $row, array $brackets): ModelRule
     {
-        $kind = RuleKind::from(self::text($row['rule_kind'] ?? null));
+        $kind = RuleKind::from(DbalValue::text($row['rule_kind'] ?? null));
 
         return new ModelRule(
-            id: self::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             kind: $kind,
             value: match ($kind->valueType()) {
                 RuleValueType::AMOUNT => DeclaredRuleValue::amount(new AssetAmount(
-                    DecimalValue::fromString(self::text($row['amount_value'] ?? null)),
-                    AssetCode::fromString(self::text($row['amount_asset'] ?? null)),
+                    DecimalValue::fromString(DbalValue::text($row['amount_value'] ?? null)),
+                    AssetCode::fromString(DbalValue::text($row['amount_asset'] ?? null)),
                 )),
                 RuleValueType::PERCENTAGE => DeclaredRuleValue::rate(new RateScale(
                     array_map(self::hydrateBracket(...), $brackets),
-                    RateApplication::from(self::text($row['rate_application'] ?? null)),
+                    RateApplication::from(DbalValue::text($row['rate_application'] ?? null)),
                 )),
-                RuleValueType::TEXT => DeclaredRuleValue::text(self::text($row['text_value'] ?? null)),
+                RuleValueType::TEXT => DeclaredRuleValue::text(DbalValue::text($row['text_value'] ?? null)),
             },
             period: new EffectivePeriod(
-                validFrom: self::day($row['valid_from'] ?? null),
-                validTo: null === ($row['valid_to'] ?? null) ? null : self::day($row['valid_to']),
+                validFrom: DbalValue::businessDay($row['valid_from'] ?? null),
+                validTo: null === ($row['valid_to'] ?? null) ? null : DbalValue::businessDay($row['valid_to']),
             ),
         );
     }
@@ -160,40 +161,12 @@ final readonly class ProductModelRow
      */
     private static function hydrateBracket(array $row): RateBracket
     {
-        $upperBound = self::nullableText($row['upper_bound'] ?? null);
+        $upperBound = DbalValue::nullableText($row['upper_bound'] ?? null);
 
         return new RateBracket(
-            DecimalValue::fromString(self::text($row['lower_bound'] ?? null)),
+            DecimalValue::fromString(DbalValue::text($row['lower_bound'] ?? null)),
             null === $upperBound ? null : DecimalValue::fromString($upperBound),
-            DecimalValue::fromString(self::text($row['percentage'] ?? null)),
+            DecimalValue::fromString(DbalValue::text($row['percentage'] ?? null)),
         );
-    }
-
-    public static function text(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
-    }
-
-    private static function nullableText(mixed $value): ?string
-    {
-        return null === $value ? null : self::text($value);
-    }
-
-    /**
-     * A `DATE` column carries no time and no zone; the domain reads it as the
-     * UTC calendar day it is, rather than as midnight in the server timezone.
-     */
-    private static function day(mixed $value): \DateTimeImmutable
-    {
-        return new \DateTimeImmutable(self::text($value), new \DateTimeZone('UTC'));
-    }
-
-    private static function instant(mixed $value): ?\DateTimeImmutable
-    {
-        return null === $value ? null : new \DateTimeImmutable(self::text($value));
     }
 }

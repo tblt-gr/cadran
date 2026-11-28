@@ -7,9 +7,10 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\AccountValuation;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 
 /** Bounded daily resolution preserves the shared strategy, then emits lossless steps. */
 final readonly class ReadAccountValuationHistory
@@ -35,7 +36,7 @@ final readonly class ReadAccountValuationHistory
         try {
             $end = BusinessDay::fromIsoDate($to)->date;
             $start = null === $from ? $end : BusinessDay::fromIsoDate($from)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidAccountBalanceInput('History requires ISO calendar days.', previous: $exception);
         }
         $truncated = false;

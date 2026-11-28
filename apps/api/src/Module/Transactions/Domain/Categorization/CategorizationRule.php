@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Domain\Categorization;
 
 use App\Module\Categories\Domain\AnalyticAxis;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -147,14 +149,14 @@ final readonly class CategorizationRule
 
     private static function identifier(string $id): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidCategorizationRule('A rule identifier must be a canonical UUID.');
         }
     }
 
     private static function text(string $value, int $maximum, string $field): void
     {
-        if ($value !== trim($value) || '' === $value || mb_strlen($value) > $maximum) {
+        if (!BoundedText::isValid($value, 1, $maximum)) {
             throw new InvalidCategorizationRule(sprintf('A rule %s must contain between 1 and %d characters.', $field, $maximum));
         }
     }

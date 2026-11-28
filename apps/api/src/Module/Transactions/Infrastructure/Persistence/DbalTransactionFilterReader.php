@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\TransactionFilters;
 use App\Module\Transactions\Domain\TransactionPosition;
 use Doctrine\DBAL\ArrayParameterType;
@@ -59,7 +60,7 @@ final readonly class DbalTransactionFilterReader
     /** The exact number of matching rows, whatever the page. */
     public function count(WorkspaceScope $workspace, TransactionFilters $filters): int
     {
-        return (int) TransactionRow::text($this->read(FilteredRead::COUNT, $workspace, $filters)[0]['matches'] ?? null);
+        return (int) DbalValue::text($this->read(FilteredRead::COUNT, $workspace, $filters)[0]['matches'] ?? null);
     }
 
     /**

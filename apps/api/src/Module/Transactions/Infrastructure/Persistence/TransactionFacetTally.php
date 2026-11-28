@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\TransactionFacet;
 use App\Module\Transactions\Domain\TransactionFacetScope;
 use App\Module\Transactions\Domain\TransactionNature;
@@ -49,7 +50,7 @@ final readonly class TransactionFacetTally
         foreach ($tally as $combination) {
             foreach ($allowed as $key => $values) {
                 // An empty list does not restrict; a filtered column keeps the combinations whose value is listed.
-                if ([] !== $values && !in_array(TransactionRow::text($combination[$key] ?? null), $values, true)) {
+                if ([] !== $values && !in_array(DbalValue::text($combination[$key] ?? null), $values, true)) {
                     continue 2;
                 }
             }
@@ -74,9 +75,9 @@ final readonly class TransactionFacetTally
             if (null === ($combination[$column] ?? null)) {
                 continue;
             }
-            $matches = (int) TransactionRow::text($combination[$category ? 'split_matches' : 'matches'] ?? null);
+            $matches = (int) DbalValue::text($combination[$category ? 'split_matches' : 'matches'] ?? null);
             if ($matches > 0) {
-                $value = TransactionRow::text($combination[$column]);
+                $value = DbalValue::text($combination[$column]);
                 $counts[$value] = ($counts[$value] ?? 0) + $matches;
             }
         }
@@ -100,8 +101,8 @@ final readonly class TransactionFacetTally
             if (null === ($combination['axes'] ?? null)) {
                 continue;
             }
-            $matches = (int) TransactionRow::text($combination['split_matches'] ?? null);
-            foreach (self::axisList(TransactionRow::text($combination['axes'])) as $axis) {
+            $matches = (int) DbalValue::text($combination['split_matches'] ?? null);
+            foreach (self::axisList(DbalValue::text($combination['axes'])) as $axis) {
                 $byAxis[$axis] = ($byAxis[$axis] ?? 0) + $matches;
             }
         }

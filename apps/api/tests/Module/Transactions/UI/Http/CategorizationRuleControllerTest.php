@@ -255,6 +255,13 @@ final class CategorizationRuleControllerTest extends WebTestCase
         self::assertSame(0, $this->ruleCount());
     }
 
+    public function testACoercedPriorityIsRefused(): void
+    {
+        $this->requestCreate($this->rulePayload(['priority' => '10']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ruleCount());
+    }
+
     public function testRepeatedTextSourcesAndOrNegationRoundTripThroughTheApi(): void
     {
         $conditions = [

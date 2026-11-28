@@ -14,6 +14,7 @@ use App\Module\Catalog\Domain\EffectiveRule;
 use App\Module\Catalog\Domain\ProductRule;
 use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Foundation\UI\Http\ApiProblem;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -39,16 +40,14 @@ final class ProductCatalogController
         $pageSize = $request->query->getString('pageSize');
         $asOf = $request->query->getString('asOf');
 
-        foreach ([$page, $pageSize] as $parameter) {
-            if ('' !== $parameter && 1 !== preg_match('/^[0-9]{1,4}$/D', $parameter)) {
-                return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
-            }
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
+            return $this->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_product_query');
         }
 
         try {
             $catalogue = $listProducts(
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
                 '' === $asOf ? null : $asOf,
             );
         } catch (InvalidProductQuery) {

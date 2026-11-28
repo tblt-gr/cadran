@@ -22,6 +22,7 @@ use App\Module\Catalog\Domain\YieldKind;
 use App\Module\Foundation\Domain\AssetAmount;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -100,7 +101,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
         }
 
         $codes = array_map(
-            static fn (array $row): string => self::scalar($row['code'] ?? null),
+            static fn (array $row): string => DbalValue::text($row['code'] ?? null),
             $rows,
         );
         $capabilities = $this->readCapabilities($codes);
@@ -122,7 +123,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
 
     public function count(): int
     {
-        return (int) self::scalar($this->connection->fetchOne('SELECT count(*) FROM catalog_products WHERE archived_at IS NULL'));
+        return (int) DbalValue::text($this->connection->fetchOne('SELECT count(*) FROM catalog_products WHERE archived_at IS NULL'));
     }
 
     /**
@@ -148,7 +149,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
         /** @var array<string, list<ProductRule>> $grouped */
         $grouped = [];
         foreach ($rows as $row) {
-            $grouped[self::scalar($row['product_code'] ?? null)][] = self::hydrateRule($row);
+            $grouped[DbalValue::text($row['product_code'] ?? null)][] = self::hydrateRule($row);
         }
 
         return array_map(static fn (array $rules): RuleSchedule => new RuleSchedule($rules), $grouped);
@@ -177,7 +178,7 @@ final readonly class DbalProductCatalog implements ProductCatalog
         /** @var array<string, list<string>> $grouped */
         $grouped = [];
         foreach ($rows as $row) {
-            $grouped[self::scalar($row['product_code'] ?? null)][] = self::scalar($row['capability_code'] ?? null);
+            $grouped[DbalValue::text($row['product_code'] ?? null)][] = DbalValue::text($row['capability_code'] ?? null);
         }
 
         return $grouped;
@@ -189,16 +190,16 @@ final readonly class DbalProductCatalog implements ProductCatalog
     private static function hydrateProduct(array $row, ProductCapabilities $capabilities): FinancialProduct
     {
         return new FinancialProduct(
-            code: ProductCode::fromString(self::scalar($row['code'] ?? null)),
-            displayName: self::scalar($row['display_name'] ?? null),
-            jurisdiction: self::nullableScalar($row['jurisdiction'] ?? null),
-            accountKind: AccountKind::from(self::scalar($row['account_kind'] ?? null)),
-            wrapperKind: WrapperKind::from(self::scalar($row['wrapper_kind'] ?? null)),
-            yieldKind: YieldKind::from(self::scalar($row['yield_kind'] ?? null)),
-            defaultGroupCode: self::nullableScalar($row['default_group_code'] ?? null),
+            code: ProductCode::fromString(DbalValue::text($row['code'] ?? null)),
+            displayName: DbalValue::text($row['display_name'] ?? null),
+            jurisdiction: DbalValue::nullableText($row['jurisdiction'] ?? null),
+            accountKind: AccountKind::from(DbalValue::text($row['account_kind'] ?? null)),
+            wrapperKind: WrapperKind::from(DbalValue::text($row['wrapper_kind'] ?? null)),
+            yieldKind: YieldKind::from(DbalValue::text($row['yield_kind'] ?? null)),
+            defaultGroupCode: DbalValue::nullableText($row['default_group_code'] ?? null),
             capabilities: $capabilities,
-            catalogVersion: (int) self::scalar($row['catalog_version'] ?? null),
-            archivedAt: self::timestamp($row['archived_at'] ?? null),
+            catalogVersion: (int) DbalValue::text($row['catalog_version'] ?? null),
+            archivedAt: DbalValue::nullableInstant($row['archived_at'] ?? null),
         );
     }
 
@@ -207,25 +208,25 @@ final readonly class DbalProductCatalog implements ProductCatalog
      */
     private static function hydrateRule(array $row): ProductRule
     {
-        $kind = RuleKind::from(self::scalar($row['rule_kind'] ?? null));
+        $kind = RuleKind::from(DbalValue::text($row['rule_kind'] ?? null));
         $verifiedOn = self::day($row['verified_on'] ?? null);
 
         return new ProductRule(
             kind: $kind,
             value: self::hydrateValue($kind, $row),
             period: new EffectivePeriod(
-                validFrom: self::requiredDay($row['valid_from'] ?? null),
+                validFrom: DbalValue::businessDay($row['valid_from'] ?? null),
                 validTo: self::day($row['valid_to'] ?? null),
             ),
             source: new CatalogSource(
-                publisher: self::scalar($row['source_publisher'] ?? null),
-                title: self::scalar($row['source_title'] ?? null),
-                url: self::scalar($row['source_url'] ?? null),
+                publisher: DbalValue::text($row['source_publisher'] ?? null),
+                title: DbalValue::text($row['source_title'] ?? null),
+                url: DbalValue::text($row['source_url'] ?? null),
                 publishedOn: self::day($row['source_published_on'] ?? null),
-                retrievedOn: self::requiredDay($row['source_retrieved_on'] ?? null),
+                retrievedOn: DbalValue::businessDay($row['source_retrieved_on'] ?? null),
             ),
             verifiedOn: $verifiedOn,
-            verifiedBy: self::nullableScalar($row['verified_by'] ?? null),
+            verifiedBy: DbalValue::nullableText($row['verified_by'] ?? null),
         );
     }
 
@@ -236,47 +237,18 @@ final readonly class DbalProductCatalog implements ProductCatalog
     {
         return match ($kind->valueType()) {
             RuleValueType::AMOUNT => RuleValue::amount(new AssetAmount(
-                DecimalValue::fromString(self::scalar($row['amount_value'] ?? null)),
-                AssetCode::fromString(self::scalar($row['amount_asset'] ?? null)),
+                DecimalValue::fromString(DbalValue::text($row['amount_value'] ?? null)),
+                AssetCode::fromString(DbalValue::text($row['amount_asset'] ?? null)),
             )),
             RuleValueType::PERCENTAGE => RuleValue::percentage(
-                DecimalValue::fromString(self::scalar($row['percentage_value'] ?? null)),
+                DecimalValue::fromString(DbalValue::text($row['percentage_value'] ?? null)),
             ),
-            RuleValueType::TEXT => RuleValue::text(self::scalar($row['text_value'] ?? null)),
+            RuleValueType::TEXT => RuleValue::text(DbalValue::text($row['text_value'] ?? null)),
         };
     }
 
     private static function day(mixed $value): ?\DateTimeImmutable
     {
-        return null === $value ? null : self::requiredDay($value);
-    }
-
-    private static function requiredDay(mixed $value): \DateTimeImmutable
-    {
-        $date = \DateTimeImmutable::createFromFormat('!Y-m-d', self::scalar($value), new \DateTimeZone('UTC'));
-        if (false === $date) {
-            throw new \UnexpectedValueException('Expected an ISO calendar day from the catalogue.');
-        }
-
-        return $date;
-    }
-
-    private static function timestamp(mixed $value): ?\DateTimeImmutable
-    {
-        return null === $value ? null : new \DateTimeImmutable(self::scalar($value));
-    }
-
-    private static function nullableScalar(mixed $value): ?string
-    {
-        return null === $value ? null : self::scalar($value);
-    }
-
-    private static function scalar(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
+        return null === $value ? null : DbalValue::businessDay($value);
     }
 }

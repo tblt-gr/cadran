@@ -9,6 +9,7 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\PeriodClosure;
 use App\Module\Accounts\Domain\PeriodClosureRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -57,7 +58,7 @@ final readonly class DbalPeriodClosureRepository implements PeriodClosureReposit
         );
 
         return array_map(
-            static fn (array $row): CalendarMonth => new CalendarMonth((int) self::scalar($row['year'] ?? null), (int) self::scalar($row['month'] ?? null)),
+            static fn (array $row): CalendarMonth => new CalendarMonth((int) DbalValue::text($row['year'] ?? null), (int) DbalValue::text($row['month'] ?? null)),
             $rows,
         );
     }
@@ -89,7 +90,7 @@ final readonly class DbalPeriodClosureRepository implements PeriodClosureReposit
         );
 
         return array_map(
-            static fn (array $row): CalendarMonth => new CalendarMonth((int) self::scalar($row['year'] ?? null), (int) self::scalar($row['month'] ?? null)),
+            static fn (array $row): CalendarMonth => new CalendarMonth((int) DbalValue::text($row['year'] ?? null), (int) DbalValue::text($row['month'] ?? null)),
             $rows,
         );
     }
@@ -176,29 +177,20 @@ final readonly class DbalPeriodClosureRepository implements PeriodClosureReposit
     /** @param array<string, mixed> $row */
     private static function hydrate(array $row, WorkspaceScope $workspace): PeriodClosure
     {
-        if ($workspace->id !== self::scalar($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A closure row escaped its requested workspace.');
         }
         $reopenedAt = $row['reopened_at'] ?? null;
 
         return new PeriodClosure(
-            id: self::scalar($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            month: new CalendarMonth((int) self::scalar($row['year'] ?? null), (int) self::scalar($row['month'] ?? null)),
-            closedAt: new \DateTimeImmutable(self::scalar($row['closed_at'] ?? null)),
-            closedBy: self::scalar($row['closed_by'] ?? null),
-            version: (int) self::scalar($row['version'] ?? null),
-            reopenedAt: null === $reopenedAt ? null : new \DateTimeImmutable(self::scalar($reopenedAt)),
-            reopenReason: null === ($row['reopen_reason'] ?? null) ? null : self::scalar($row['reopen_reason']),
+            month: new CalendarMonth((int) DbalValue::text($row['year'] ?? null), (int) DbalValue::text($row['month'] ?? null)),
+            closedAt: new \DateTimeImmutable(DbalValue::text($row['closed_at'] ?? null)),
+            closedBy: DbalValue::text($row['closed_by'] ?? null),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            reopenedAt: null === $reopenedAt ? null : new \DateTimeImmutable(DbalValue::text($reopenedAt)),
+            reopenReason: null === ($row['reopen_reason'] ?? null) ? null : DbalValue::text($row['reopen_reason']),
         );
-    }
-
-    private static function scalar(mixed $value): string
-    {
-        if (!is_string($value) && !is_int($value)) {
-            throw new \UnexpectedValueException('A closure row carries an unexpected value.');
-        }
-
-        return (string) $value;
     }
 }

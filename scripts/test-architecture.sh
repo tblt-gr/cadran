@@ -27,6 +27,15 @@ fi
 
 printf '%s\n' 'Duplicated request plumbing was rejected.'
 
+for diagnostic in 'check identifiers through Uuid' 'read database values through DbalValue' 'bound pagination through PageRequest' 'read query parameters through QueryParameters'; do
+  if ! grep -q "DuplicatedSharedReaders.php: $diagnostic" "$result_file"; then
+    printf 'A duplicated shared reader was not rejected: %s\n' "$diagnostic" >&2
+    exit 1
+  fi
+done
+
+printf '%s\n' 'Duplicated shared readers were rejected.'
+
 if php scripts/check-workspace-scope.php tests/architecture/fixtures/unscoped apps/api/migrations >"$result_file" 2>&1; then
   printf '%s\n' 'The representative unscoped query was not rejected.' >&2
   exit 1

@@ -7,6 +7,7 @@ namespace App\Module\Accounts\Application;
 use App\Module\Accounts\Domain\AccountValuationMode;
 use App\Module\Accounts\Domain\ProductModelRepository;
 use App\Module\Catalog\Domain\AccountKind;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -41,7 +42,7 @@ final readonly class AccountProductModel
         // A malformed identifier and one that does not exist answer alike, so
         // a client cannot probe the workspace's models through the shape of
         // the refusal.
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidAccountInput('The account model must exist in the workspace.');
         }
 

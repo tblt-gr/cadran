@@ -7,6 +7,8 @@ namespace App\Module\Accounts\Domain;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Catalog\Domain\ProductCode;
 use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -330,18 +332,14 @@ final readonly class Account
 
     private static function assertIdentifier(string $id): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidAccount('An account identifier must be a canonical UUID.');
         }
     }
 
     private static function assertProductModelId(?string $productModelId): void
     {
-        if (null === $productModelId) {
-            return;
-        }
-
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $productModelId)) {
+        if (null !== $productModelId && !Uuid::isValid($productModelId)) {
             throw new InvalidAccount('A product model reference must be a canonical UUID.');
         }
     }
@@ -385,22 +383,22 @@ final readonly class Account
             return;
         }
 
-        if ($institution !== trim($institution) || '' === $institution || mb_strlen($institution) > self::MAX_INSTITUTION_LENGTH) {
+        if (!BoundedText::isValid($institution, 1, self::MAX_INSTITUTION_LENGTH)) {
             throw new InvalidAccount(sprintf('An account institution must contain between 1 and %d characters.', self::MAX_INSTITUTION_LENGTH));
         }
 
-        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $institution)) {
+        if (BoundedText::hasControlCharacters($institution)) {
             throw new InvalidAccount('An account institution cannot contain control characters.');
         }
     }
 
     private static function assertLabel(string $label): void
     {
-        if ($label !== trim($label) || '' === $label || mb_strlen($label) > self::MAX_LABEL_LENGTH) {
+        if (!BoundedText::isValid($label, 1, self::MAX_LABEL_LENGTH)) {
             throw new InvalidAccount(sprintf('An account label must contain between 1 and %d characters.', self::MAX_LABEL_LENGTH));
         }
 
-        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $label)) {
+        if (BoundedText::hasControlCharacters($label)) {
             throw new InvalidAccount('An account label cannot contain control characters.');
         }
     }

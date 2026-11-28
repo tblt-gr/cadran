@@ -6,6 +6,7 @@ namespace App\Module\Reference\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\RoundingMode;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Reference\Application\AssetCatalog;
 use App\Module\Reference\Domain\Asset;
 use App\Module\Reference\Domain\AssetKind;
@@ -53,7 +54,7 @@ final readonly class DbalAssetCatalog implements AssetCatalog
 
     public function count(): int
     {
-        return (int) self::asString($this->connection->fetchOne('SELECT count(*) FROM reference_assets'));
+        return (int) DbalValue::text($this->connection->fetchOne('SELECT count(*) FROM reference_assets'));
     }
 
     /**
@@ -62,23 +63,14 @@ final readonly class DbalAssetCatalog implements AssetCatalog
     private static function hydrate(array $row): Asset
     {
         return new Asset(
-            code: AssetCode::fromString(self::asString($row['code'] ?? null)),
-            kind: AssetKind::from(self::asString($row['kind'] ?? null)),
-            displayName: self::asString($row['display_name'] ?? null),
+            code: AssetCode::fromString(DbalValue::text($row['code'] ?? null)),
+            kind: AssetKind::from(DbalValue::text($row['kind'] ?? null)),
+            displayName: DbalValue::text($row['display_name'] ?? null),
             precision: new AssetPrecision(
-                storage: (int) self::asString($row['storage_precision'] ?? null),
-                display: (int) self::asString($row['display_precision'] ?? null),
+                storage: (int) DbalValue::text($row['storage_precision'] ?? null),
+                display: (int) DbalValue::text($row['display_precision'] ?? null),
             ),
-            roundingMode: RoundingMode::from(self::asString($row['rounding_mode'] ?? null)),
+            roundingMode: RoundingMode::from(DbalValue::text($row['rounding_mode'] ?? null)),
         );
-    }
-
-    private static function asString(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
     }
 }

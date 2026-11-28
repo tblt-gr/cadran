@@ -6,6 +6,8 @@ namespace App\Module\Budget\Domain\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Foundation\Domain\AssetCode;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 final readonly class Goal
@@ -31,7 +33,7 @@ final readonly class Goal
         }
         self::identifier($id);
         self::identifier($createdBy);
-        if ($label !== trim($label) || mb_strlen($label) < 1 || mb_strlen($label) > 80) {
+        if (!BoundedText::isValid($label, 1, 80)) {
             throw new InvalidGoal('A goal label contains between 1 and 80 trimmed characters.');
         }
         if (!$periodicity->accepts($startPeriod) || (null !== $endPeriod && !$periodicity->accepts($endPeriod))) {
@@ -131,7 +133,7 @@ final readonly class Goal
 
     private static function identifier(string $value): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (!Uuid::isValid($value)) {
             throw new InvalidGoal('A goal identifier must be a canonical UUID.');
         }
     }

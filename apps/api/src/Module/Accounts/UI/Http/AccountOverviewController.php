@@ -9,8 +9,11 @@ use App\Module\Accounts\Application\ListAccountOverviewRows;
 use App\Module\Accounts\Application\MoveAccount;
 use App\Module\Accounts\Application\ReadAccountOverview;
 use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Foundation\UI\Http\ProblemMapper;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -23,7 +26,6 @@ final readonly class AccountOverviewController
 {
     private const int MAX_CURSOR_LENGTH = 200;
     private const string UNGROUPED = 'ungrouped';
-    private const string UUID = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
 
     public function __construct(private JsonRequestEnvelope $envelope, private ProblemMapper $problems)
     {
@@ -35,7 +37,7 @@ final readonly class AccountOverviewController
     {
         $includeClosed = $request->query->getString('includeClosed');
         $includeArchived = $request->query->getString('includeArchived');
-        if (!self::flag($includeClosed) || !self::flag($includeArchived)) {
+        if (!QueryParameters::isFlagOrEmpty($includeClosed) || !QueryParameters::isFlagOrEmpty($includeArchived)) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
         }
 
@@ -61,14 +63,14 @@ final readonly class AccountOverviewController
     #[Route('/api/v1/accounts/overview/{groupKey}/accounts', name: 'api_v1_accounts_overview_rows', methods: ['GET'], priority: 10)]
     public function rows(string $groupKey, Request $request, ListAccountOverviewRows $listRows): Response
     {
-        if (self::UNGROUPED !== $groupKey && 1 !== preg_match(self::UUID, $groupKey)) {
+        if (self::UNGROUPED !== $groupKey && !Identifier::isValid($groupKey)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
 
         $includeClosed = $request->query->getString('includeClosed');
         $includeArchived = $request->query->getString('includeArchived');
         $cursor = $request->query->getString('cursor');
-        if (!self::flag($includeClosed) || !self::flag($includeArchived)
+        if (!QueryParameters::isFlagOrEmpty($includeClosed) || !QueryParameters::isFlagOrEmpty($includeArchived)
             || strlen($cursor) > self::MAX_CURSOR_LENGTH) {
             return $this->envelope->problem(Response::HTTP_BAD_REQUEST, 'api.problem.invalid_account_overview_query');
         }
@@ -101,7 +103,7 @@ final readonly class AccountOverviewController
     #[Route('/api/v1/accounts/{id}/move', name: 'api_v1_accounts_move', methods: ['POST'])]
     public function move(string $id, Request $request, MoveAccount $moveAccount): Response
     {
-        if (1 !== preg_match(self::UUID, $id)) {
+        if (!Identifier::isValid($id)) {
             return $this->envelope->problem(Response::HTTP_NOT_FOUND, 'api.problem.account_not_found');
         }
         $body = $this->envelope->body($request, BodyLimit::Tiny, 'api.problem.account_payload_too_large');
@@ -110,12 +112,12 @@ final readonly class AccountOverviewController
         }
 
         try {
-            $payload = AccountPayload::of($body, ['groupId', 'beforeAccountId', 'orderVersion']);
+            $payload = JsonPayload::of($body, ['groupId', 'beforeAccountId', 'orderVersion']);
             $groupId = $payload->nullableString('groupId');
             $beforeAccountId = $payload->nullableString('beforeAccountId');
             $version = $payload->integer('orderVersion');
-            if ($version < 0 || (null !== $groupId && 1 !== preg_match(self::UUID, $groupId))
-                || (null !== $beforeAccountId && 1 !== preg_match(self::UUID, $beforeAccountId))) {
+            if ($version < 0 || (null !== $groupId && !Identifier::isValid($groupId))
+                || (null !== $beforeAccountId && !Identifier::isValid($beforeAccountId))) {
                 throw new \UnexpectedValueException('The move identifiers or version are malformed.');
             }
 
@@ -143,10 +145,5 @@ final readonly class AccountOverviewController
             'api.problem.invalid_account_overview_query',
             extensions: ['errors' => [['field' => 'grouping', 'code' => 'invalid_choice']]],
         );
-    }
-
-    private static function flag(string $value): bool
-    {
-        return in_array($value, ['', 'true', 'false'], true);
     }
 }

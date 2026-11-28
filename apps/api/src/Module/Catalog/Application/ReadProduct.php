@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Module\Catalog\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Catalog\Domain\EffectiveProduct;
 use App\Module\Catalog\Domain\InvalidCatalogEntry;
 use App\Module\Catalog\Domain\ProductCode;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -38,7 +39,7 @@ final readonly class ReadProduct
         } else {
             try {
                 $businessDay = BusinessDay::fromIsoDate($asOf);
-            } catch (InvalidCatalogEntry $failure) {
+            } catch (InvalidBusinessDay $failure) {
                 throw new InvalidProductQuery($failure->getMessage(), previous: $failure);
             }
         }

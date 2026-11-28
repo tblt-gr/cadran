@@ -6,6 +6,7 @@ namespace App\Module\Portfolio\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Domain\LifeInsurance\FeeTerms;
 use App\Module\Portfolio\Domain\LifeInsurance\FeeTermsRepository;
 use Doctrine\DBAL\Connection;
@@ -42,7 +43,7 @@ final readonly class DbalFeeTermsRepository implements FeeTermsRepository
 
     public function count(WorkspaceScope $workspace, string $contractId): int
     {
-        return (int) ValuationRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM portfolio_life_insurance_fee_terms t WHERE t.workspace_id = :workspace_id AND contract_id = :contract_id',
             ['workspace_id' => $workspace->id, 'contract_id' => $contractId],
         ));
@@ -89,18 +90,18 @@ final readonly class DbalFeeTermsRepository implements FeeTermsRepository
     private static function hydrate(array $row, WorkspaceScope $workspace): FeeTerms
     {
         return new FeeTerms(
-            id: ValuationRow::text($row['id']),
+            id: DbalValue::text($row['id']),
             workspace: $workspace,
-            contractId: ValuationRow::text($row['contract_id']),
-            validFrom: ValuationRow::day($row['valid_from']),
+            contractId: DbalValue::text($row['contract_id']),
+            validFrom: DbalValue::businessDay($row['valid_from']),
             entryFeeRate: ValuationRow::decimal($row, 'entry_fee_rate'),
             euroFundManagementFeeRate: ValuationRow::decimal($row, 'euro_fund_management_fee_rate'),
             unitLinkedManagementFeeRate: ValuationRow::decimal($row, 'unit_linked_management_fee_rate'),
             switchFeeRate: ValuationRow::decimal($row, 'switch_fee_rate'),
             switchFeeFixed: ValuationRow::decimal($row, 'switch_fee_fixed'),
-            sourceNote: null === $row['source_note'] ? null : ValuationRow::text($row['source_note']),
-            recordedAt: new \DateTimeImmutable(ValuationRow::text($row['recorded_at'])),
-            recordedBy: ValuationRow::text($row['recorded_by']),
+            sourceNote: null === $row['source_note'] ? null : DbalValue::text($row['source_note']),
+            recordedAt: new \DateTimeImmutable(DbalValue::text($row['recorded_at'])),
+            recordedBy: DbalValue::text($row['recorded_by']),
         );
     }
 }

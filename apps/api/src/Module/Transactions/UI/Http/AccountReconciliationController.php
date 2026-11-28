@@ -7,6 +7,7 @@ namespace App\Module\Transactions\UI\Http;
 use App\Module\Accounts\Application\PortfolioAccountValuedByPortfolio;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
 use App\Module\Transactions\Application\IdempotentResponse;
@@ -76,7 +77,7 @@ final readonly class AccountReconciliationController
         }
 
         try {
-            $payload = TransactionPayload::of($body, self::RECONCILE_FIELDS);
+            $payload = JsonPayload::of($body, self::RECONCILE_FIELDS);
             $input = new ReconcileAccountBalanceInput(
                 $payload->uuid('snapshotId'),
                 $payload->integer('snapshotVersion'),

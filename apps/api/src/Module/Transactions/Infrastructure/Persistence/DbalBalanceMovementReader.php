@@ -10,6 +10,7 @@ use App\Module\Accounts\Domain\DayBalance;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 
 final readonly class DbalBalanceMovementReader implements BalanceMovementReader
@@ -49,8 +50,8 @@ final readonly class DbalBalanceMovementReader implements BalanceMovementReader
         foreach ($rows as $row) {
             $mixed = $mixed || in_array($row['foreign_asset'], [true, 't', '1', 1], true);
             $days[] = new DayBalance(
-                new \DateTimeImmutable(TransactionRow::text($row['booked_on']), new \DateTimeZone('UTC')),
-                DecimalValue::fromString(TransactionRow::canonicalNumeric(TransactionRow::text($row['net']))),
+                new \DateTimeImmutable(DbalValue::text($row['booked_on']), new \DateTimeZone('UTC')),
+                DecimalValue::fromString(TransactionRow::canonicalNumeric(DbalValue::text($row['net']))),
             );
         }
 

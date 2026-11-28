@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\InvalidSplitsInput;
 use App\Module\Transactions\Application\InvalidTransactionInput;
 use App\Module\Transactions\Application\ReplaceTransactionSplits;
@@ -39,9 +40,9 @@ final readonly class TransactionSplitsController
         }
 
         try {
-            $payload = TransactionPayload::of($body, ['version', 'splits']);
+            $payload = JsonPayload::of($body, ['version', 'splits']);
             $input = new ReplaceTransactionSplitsInput(
-                splits: $payload->splitRows('splits'),
+                splits: TransactionPayload::splitRows($payload, 'splits'),
                 version: $payload->integer('version'),
             );
             $transaction = $replaceTransactionSplits($id, $input);

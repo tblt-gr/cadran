@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 use App\Module\Reporting\Domain\AnnualReportPreferences;
 use App\Module\Reporting\Domain\AnnualReportPreferencesRepository;
@@ -33,17 +34,17 @@ final readonly class DbalAnnualReportPreferencesRepository implements AnnualRepo
         if ($workspace->id !== $row['workspace_id']) {
             throw new \UnexpectedValueException('An annual preference row escaped its requested workspace.');
         }
-        $columns = json_decode(RecapPreferencesRow::text($row['columns']), true, flags: JSON_THROW_ON_ERROR);
+        $columns = json_decode(DbalValue::text($row['columns']), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($columns)) {
             throw new \UnexpectedValueException('Expected an annual preference array column.');
         }
 
         return new AnnualReportPreferences(
             $workspace,
-            array_values(array_map(RecapPreferencesRow::text(...), $columns)),
-            IncompleteMonths::from(RecapPreferencesRow::text($row['incomplete_months'])),
-            (int) RecapPreferencesRow::text($row['version']),
-            new \DateTimeImmutable(RecapPreferencesRow::text($row['updated_at'])),
+            array_values(array_map(DbalValue::text(...), $columns)),
+            IncompleteMonths::from(DbalValue::text($row['incomplete_months'])),
+            (int) DbalValue::text($row['version']),
+            new \DateTimeImmutable(DbalValue::text($row['updated_at'])),
             (bool) $row['goal_marks'],
         );
     }

@@ -10,6 +10,7 @@ use App\Module\Audit\Application\AuditTrailReader;
 use App\Module\Audit\Application\InvalidAuditTrailQuery;
 use App\Module\Audit\Application\ListAuditTrail;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -90,7 +91,7 @@ final class ListAuditTrailTest extends TestCase
     {
         yield 'zero' => [0];
         yield 'negative' => [-1];
-        yield 'above the ceiling' => [ListAuditTrail::MAX_PAGE_SIZE + 1];
+        yield 'above the ceiling' => [PageRequest::MAX_PAGE_SIZE + 1];
     }
 
     public function testItRefusesACursorItDidNotIssue(): void

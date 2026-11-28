@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\AccountRepository;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 
 /**
  * The latest valid snapshot of one account on a requested date, with age
@@ -35,7 +36,7 @@ final readonly class ReadAccountValuation
 
         try {
             $requestedOn = BusinessDay::fromIsoDate($asOf)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidAccountBalanceInput('The valuation date must be an ISO 8601 calendar day.', previous: $exception);
         }
 

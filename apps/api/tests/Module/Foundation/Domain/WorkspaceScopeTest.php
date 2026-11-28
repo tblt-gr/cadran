@@ -59,5 +59,7 @@ final class WorkspaceScopeTest extends TestCase
         yield 'sql fragment' => ["' OR '1'='1"];
         yield 'trailing predicate' => [self::WORKSPACE_ID.' OR 1=1'];
         yield 'newline' => [self::WORKSPACE_ID."\n"];
+        yield 'variant zero' => ['00000000-0000-7000-0000-0000000000a1'];
+        yield 'nil' => ['00000000-0000-0000-0000-000000000000'];
     }
 }

@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Accounts\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use Symfony\Component\Clock\ClockInterface;
 
 /**
@@ -23,7 +24,7 @@ final readonly class NetWorthDay
 
         try {
             return BusinessDay::fromIsoDate($value)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidNetWorthQuery('A net-worth date must be an ISO 8601 calendar day.', previous: $exception);
         }
     }

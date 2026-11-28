@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Transfer;
 use App\Module\Transactions\Domain\TransferRepository;
 use Doctrine\DBAL\ArrayParameterType;
@@ -60,11 +61,11 @@ final readonly class DbalTransferRepository implements TransferRepository
 
         $markers = [];
         foreach ($rows as $row) {
-            $transferId = TransactionRow::text($row['id'] ?? null);
+            $transferId = DbalValue::text($row['id'] ?? null);
             foreach (['source_transaction_id', 'target_transaction_id', 'fee_transaction_id'] as $column) {
                 $legId = $row[$column] ?? null;
                 if (null !== $legId) {
-                    $markers[TransactionRow::text($legId)] = $transferId;
+                    $markers[DbalValue::text($legId)] = $transferId;
                 }
             }
         }
@@ -119,23 +120,23 @@ final readonly class DbalTransferRepository implements TransferRepository
     /** @param array<string, mixed> $row */
     private static function hydrate(array $row, WorkspaceScope $workspace): Transfer
     {
-        if ($workspace->id !== TransactionRow::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A transfer row escaped its requested workspace.');
         }
 
-        $rate = null === ($row['exchange_rate'] ?? null) ? null : TransactionRow::text($row['exchange_rate']);
+        $rate = null === ($row['exchange_rate'] ?? null) ? null : DbalValue::text($row['exchange_rate']);
 
         return new Transfer(
-            id: TransactionRow::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            sourceTransactionId: TransactionRow::text($row['source_transaction_id'] ?? null),
-            targetTransactionId: TransactionRow::text($row['target_transaction_id'] ?? null),
-            feeTransactionId: null === ($row['fee_transaction_id'] ?? null) ? null : TransactionRow::text($row['fee_transaction_id']),
+            sourceTransactionId: DbalValue::text($row['source_transaction_id'] ?? null),
+            targetTransactionId: DbalValue::text($row['target_transaction_id'] ?? null),
+            feeTransactionId: null === ($row['fee_transaction_id'] ?? null) ? null : DbalValue::text($row['fee_transaction_id']),
             exchangeRate: null === $rate ? null : DecimalValue::fromString(self::trimNumeric($rate)),
-            version: (int) TransactionRow::text($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(TransactionRow::text($row['updated_at'] ?? null)),
-            voidedAt: null === ($row['voided_at'] ?? null) ? null : new \DateTimeImmutable(TransactionRow::text($row['voided_at'])),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            updatedAt: new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            voidedAt: null === ($row['voided_at'] ?? null) ? null : new \DateTimeImmutable(DbalValue::text($row['voided_at'])),
         );
     }
 

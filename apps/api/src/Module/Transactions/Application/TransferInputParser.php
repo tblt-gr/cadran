@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use App\Module\Transactions\Domain\Transaction;
 use App\Module\Transactions\Domain\TransactionState;
 
@@ -43,14 +45,14 @@ final readonly class TransferInputParser
     {
         try {
             return BusinessDay::fromIsoDate($day)->date;
-        } catch (\Throwable $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidTransferInput('A transfer date is not a valid calendar day.', previous: $exception);
         }
     }
 
     private static function parseLabel(string $label): string
     {
-        if ($label !== trim($label) || '' === $label || mb_strlen($label) > Transaction::MAX_RAW_LABEL_LENGTH) {
+        if (!BoundedText::isValid($label, 1, Transaction::MAX_RAW_LABEL_LENGTH)) {
             throw new InvalidTransferInput('A transfer label must contain between 1 and '.Transaction::MAX_RAW_LABEL_LENGTH.' characters.');
         }
 

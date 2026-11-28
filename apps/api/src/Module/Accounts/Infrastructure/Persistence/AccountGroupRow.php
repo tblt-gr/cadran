@@ -7,6 +7,7 @@ namespace App\Module\Accounts\Infrastructure\Persistence;
 use App\Module\Accounts\Domain\AccountGroup;
 use App\Module\Accounts\Domain\AccountGroupColorMode;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 
 final readonly class AccountGroupRow
 {
@@ -15,24 +16,24 @@ final readonly class AccountGroupRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace): AccountGroup
     {
-        if ($workspace->id !== self::text($row['workspace_id'] ?? null)) {
+        if ($workspace->id !== DbalValue::text($row['workspace_id'] ?? null)) {
             throw new \UnexpectedValueException('A group row escaped its requested workspace.');
         }
 
         return new AccountGroup(
-            id: self::text($row['id'] ?? null),
+            id: DbalValue::text($row['id'] ?? null),
             workspace: $workspace,
-            label: self::text($row['label'] ?? null),
-            parentId: self::nullableText($row['parent_id'] ?? null),
-            sortOrder: (int) self::text($row['sort_order'] ?? null),
-            depth: (int) self::text($row['depth'] ?? null),
-            version: (int) self::text($row['version'] ?? null),
-            createdAt: new \DateTimeImmutable(self::text($row['created_at'] ?? null)),
-            updatedAt: new \DateTimeImmutable(self::text($row['updated_at'] ?? null)),
-            archivedAt: self::instant($row['archived_at'] ?? null),
-            color: self::nullableText($row['color'] ?? null),
-            colorMode: AccountGroupColorMode::from(self::text($row['color_mode'] ?? null)),
-            colorSlot: (int) self::text($row['color_slot'] ?? null),
+            label: DbalValue::text($row['label'] ?? null),
+            parentId: DbalValue::nullableText($row['parent_id'] ?? null),
+            sortOrder: (int) DbalValue::text($row['sort_order'] ?? null),
+            depth: (int) DbalValue::text($row['depth'] ?? null),
+            version: (int) DbalValue::text($row['version'] ?? null),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
+            updatedAt: new \DateTimeImmutable(DbalValue::text($row['updated_at'] ?? null)),
+            archivedAt: DbalValue::nullableInstant($row['archived_at'] ?? null),
+            color: DbalValue::nullableText($row['color'] ?? null),
+            colorMode: AccountGroupColorMode::from(DbalValue::text($row['color_mode'] ?? null)),
+            colorSlot: (int) DbalValue::text($row['color_slot'] ?? null),
         );
     }
 
@@ -51,24 +52,5 @@ final readonly class AccountGroupRow
             'updated_at' => $group->updatedAt->format('Y-m-d H:i:s.uP'),
             'archived_at' => $group->archivedAt?->format('Y-m-d H:i:s.uP'),
         ];
-    }
-
-    public static function text(mixed $value): string
-    {
-        if (!is_scalar($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return (string) $value;
-    }
-
-    private static function nullableText(mixed $value): ?string
-    {
-        return null === $value ? null : self::text($value);
-    }
-
-    private static function instant(mixed $value): ?\DateTimeImmutable
-    {
-        return null === $value ? null : new \DateTimeImmutable(self::text($value));
     }
 }

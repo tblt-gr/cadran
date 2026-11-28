@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace App\Module\Categories\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
-use App\Module\Catalog\Domain\InvalidCatalogEntry;
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Categories\Domain\CategoryType;
+use App\Module\Foundation\Domain\BusinessDay;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
+use App\Module\Foundation\Domain\Uuid;
 
 final class CategoryInputParser
 {
     public static function optionalIdentifier(?string $value): ?string
     {
-        if (null !== $value && 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (null !== $value && !Uuid::isValid($value)) {
             throw new InvalidCategoryInput('The category parent identifier is malformed.');
         }
 
@@ -46,7 +47,7 @@ final class CategoryInputParser
     {
         try {
             return BusinessDay::fromIsoDate($value)->date;
-        } catch (InvalidCatalogEntry $exception) {
+        } catch (InvalidBusinessDay $exception) {
             throw new InvalidCategoryInput($exception->getMessage(), previous: $exception);
         }
     }

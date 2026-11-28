@@ -7,6 +7,7 @@ namespace App\Module\Portfolio\Infrastructure\Persistence;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Domain\OperationDetails;
 use App\Module\Portfolio\Domain\OperationFieldMatrix;
 use App\Module\Portfolio\Domain\OperationLeg;
@@ -29,21 +30,20 @@ final class PortfolioOperationRow
      */
     public static function hydrate(array $row, WorkspaceScope $workspace, array $legs = []): PortfolioOperation
     {
-        $type = OperationType::from(self::text($row['operation_type']));
+        $type = OperationType::from(DbalValue::text($row['operation_type']));
         $storedFees = self::decimal($row, 'fees') ?? DecimalValue::zero();
         $storedTaxes = self::decimal($row, 'taxes') ?? DecimalValue::zero();
         $rules = OperationFieldMatrix::rules($type);
         $allowed = [...$rules['required'], ...$rules['optional']];
-        $date = static fn (mixed $value): \DateTimeImmutable => new \DateTimeImmutable(self::text($value), new \DateTimeZone('UTC'));
 
         $details = new OperationDetails(
-            interestBasis: null === ($row['interest_basis'] ?? null) ? null : \App\Module\Portfolio\Domain\LifeInsurance\InterestBasis::from(self::text($row['interest_basis'])),
-            rateYear: null === ($row['rate_year'] ?? null) ? null : (int) self::text($row['rate_year']),
+            interestBasis: null === ($row['interest_basis'] ?? null) ? null : \App\Module\Portfolio\Domain\LifeInsurance\InterestBasis::from(DbalValue::text($row['interest_basis'])),
+            rateYear: null === ($row['rate_year'] ?? null) ? null : (int) DbalValue::text($row['rate_year']),
             type: $type,
-            tradeDate: $date($row['trade_date']),
-            settlementDate: null === $row['settlement_date'] ? null : $date($row['settlement_date']),
-            instrumentId: self::nullableText($row['instrument_id']),
-            counterInstrumentId: self::nullableText($row['counter_instrument_id']),
+            tradeDate: DbalValue::businessDay($row['trade_date']),
+            settlementDate: null === $row['settlement_date'] ? null : DbalValue::businessDay($row['settlement_date']),
+            instrumentId: DbalValue::nullableText($row['instrument_id']),
+            counterInstrumentId: DbalValue::nullableText($row['counter_instrument_id']),
             quantity: self::decimal($row, 'quantity'),
             unitPrice: self::decimal($row, 'unit_price'),
             grossAmount: self::decimal($row, 'gross_amount'),
@@ -55,32 +55,32 @@ final class PortfolioOperationRow
             ratioNumerator: self::decimal($row, 'ratio_numerator'),
             ratioDenominator: self::decimal($row, 'ratio_denominator'),
             costAllocationRatio: self::decimal($row, 'cost_allocation_ratio'),
-            reference: self::nullableText($row['reference']),
-            note: self::nullableText($row['note']),
-            linkedTransactionId: self::nullableText($row['linked_transaction_id']),
+            reference: DbalValue::nullableText($row['reference']),
+            note: DbalValue::nullableText($row['note']),
+            linkedTransactionId: DbalValue::nullableText($row['linked_transaction_id']),
             legs: $legs,
             withheldIncomeTax: self::decimal($row, 'withheld_income_tax'),
             withheldSocialContributions: self::decimal($row, 'withheld_social_contributions'),
         );
 
         return new PortfolioOperation(
-            id: self::text($row['id']),
+            id: DbalValue::text($row['id']),
             workspace: $workspace,
-            accountId: self::text($row['account_id']),
-            assetCode: AssetCode::fromString(self::text($row['asset_code'])),
+            accountId: DbalValue::text($row['account_id']),
+            assetCode: AssetCode::fromString(DbalValue::text($row['asset_code'])),
             details: $details,
-            sequence: (int) self::text($row['sequence']),
+            sequence: (int) DbalValue::text($row['sequence']),
             cashAmount: self::decimal($row, 'cash_amount') ?? throw new \UnexpectedValueException('Operation cash amount is required.'),
             roundingResidual: self::decimal($row, 'rounding_residual'),
-            state: OperationState::from(self::text($row['state'])),
-            voidedAt: null === $row['voided_at'] ? null : new \DateTimeImmutable(self::text($row['voided_at'])),
-            voidedBy: self::nullableText($row['voided_by']),
-            voidReason: self::nullableText($row['void_reason']),
-            voidKind: null === $row['void_kind'] ? null : OperationVoidKind::from(self::text($row['void_kind'])),
-            correctsOperationId: self::nullableText($row['corrects_operation_id']),
-            createdAt: new \DateTimeImmutable(self::text($row['created_at'])),
-            createdBy: self::text($row['created_by']),
-            version: (int) self::text($row['version']),
+            state: OperationState::from(DbalValue::text($row['state'])),
+            voidedAt: null === $row['voided_at'] ? null : new \DateTimeImmutable(DbalValue::text($row['voided_at'])),
+            voidedBy: DbalValue::nullableText($row['voided_by']),
+            voidReason: DbalValue::nullableText($row['void_reason']),
+            voidKind: null === $row['void_kind'] ? null : OperationVoidKind::from(DbalValue::text($row['void_kind'])),
+            correctsOperationId: DbalValue::nullableText($row['corrects_operation_id']),
+            createdAt: new \DateTimeImmutable(DbalValue::text($row['created_at'])),
+            createdBy: DbalValue::text($row['created_by']),
+            version: (int) DbalValue::text($row['version']),
         );
     }
 
@@ -138,20 +138,6 @@ final class PortfolioOperationRow
         ];
     }
 
-    public static function text(mixed $value): string
-    {
-        if (!is_string($value) && !is_int($value)) {
-            throw new \UnexpectedValueException('Expected a scalar database value.');
-        }
-
-        return trim((string) $value);
-    }
-
-    public static function nullableText(mixed $value): ?string
-    {
-        return null === $value ? null : self::text($value);
-    }
-
     /** @return array<string, mixed> */
     public static function decimalColumns(string $name, ?DecimalValue $value): array
     {
@@ -172,8 +158,8 @@ final class PortfolioOperationRow
         if (null === $value || null === $scale) {
             return null;
         }
-        [$integer, $fraction] = array_pad(explode('.', self::text($value), 2), 2, '');
-        $digits = (int) self::text($scale);
+        [$integer, $fraction] = array_pad(explode('.', DbalValue::text($value), 2), 2, '');
+        $digits = (int) DbalValue::text($scale);
 
         return DecimalValue::fromString(0 === $digits ? $integer : $integer.'.'.substr(str_pad($fraction, $digits, '0'), 0, $digits));
     }

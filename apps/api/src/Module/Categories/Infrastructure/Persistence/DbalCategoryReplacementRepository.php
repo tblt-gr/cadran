@@ -8,6 +8,7 @@ use App\Module\Categories\Application\CategoryConflict;
 use App\Module\Categories\Domain\CategoryReplacement;
 use App\Module\Categories\Domain\CategoryReplacementRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -86,7 +87,7 @@ final readonly class DbalCategoryReplacementRepository implements CategoryReplac
                 return $chain;
             }
 
-            $cursor = CategoryRow::text($next);
+            $cursor = DbalValue::text($next);
             $chain[] = $cursor;
             if ($cursor === $sourceCategoryId) {
                 return $chain;

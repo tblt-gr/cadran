@@ -11,6 +11,7 @@ use App\Module\Accounts\Domain\AccountRepository;
 use App\Module\Accounts\Domain\RankedAccount;
 use App\Module\Catalog\Domain\AccountKind;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
@@ -119,7 +120,7 @@ final readonly class DbalAccountRepository implements AccountRepository
     ): int {
         [$where, $parameters] = self::filters($workspace, $includeArchived, $includeClosed, $kind);
 
-        return (int) AccountRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM account_financial_accounts WHERE workspace_id = :workspace_id AND ('.$where.')',
             $parameters,
         ));
@@ -209,7 +210,7 @@ final readonly class DbalAccountRepository implements AccountRepository
         $accounts = $this->hydrateMany($rows, $workspace);
 
         return array_map(
-            static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) AccountRow::text($row['member_rank'] ?? null)),
+            static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) DbalValue::text($row['member_rank'] ?? null)),
             $accounts,
             $rows,
         );
@@ -244,7 +245,7 @@ final readonly class DbalAccountRepository implements AccountRepository
         );
 
         return array_map(
-            static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) AccountRow::text($row['member_rank'] ?? null)),
+            static fn (Account $account, array $row): RankedAccount => new RankedAccount($account, (int) DbalValue::text($row['member_rank'] ?? null)),
             $this->hydrateMany($rows, $workspace),
             $rows,
         );
@@ -263,7 +264,7 @@ final readonly class DbalAccountRepository implements AccountRepository
             ['limit' => ParameterType::INTEGER],
         );
 
-        return array_map(AccountRow::text(...), $rows);
+        return array_map(DbalValue::text(...), $rows);
     }
 
     public function idsInOverviewOrder(WorkspaceScope $workspace, array $orderedGroupIds, array $accountIds): array
@@ -286,7 +287,7 @@ final readonly class DbalAccountRepository implements AccountRepository
             ],
         );
 
-        return array_map(AccountRow::text(...), $rows);
+        return array_map(DbalValue::text(...), $rows);
     }
 
     public function countByPrimaryGroup(WorkspaceScope $workspace, bool $includeArchived, bool $includeClosed): array
@@ -298,8 +299,7 @@ final readonly class DbalAccountRepository implements AccountRepository
             .' WHERE workspace_id = :workspace_id AND ('.$where.') GROUP BY primary_group_id',
             $parameters,
         ) as $row) {
-            $group = $row['primary_group_id'] ?? null;
-            $counts[AccountOrdering::key(null === $group ? null : AccountRow::text($group))] = (int) AccountRow::text($row['members'] ?? null);
+            $counts[AccountOrdering::key(DbalValue::nullableText($row['primary_group_id'] ?? null))] = (int) DbalValue::text($row['members'] ?? null);
         }
 
         return $counts;

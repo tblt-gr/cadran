@@ -6,6 +6,7 @@ namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Transactions\Application\DuplicateTransaction;
 use App\Module\Transactions\Application\IdempotencyConflict;
 use App\Module\Transactions\Application\IdempotentExecution;
@@ -51,7 +52,7 @@ final readonly class TransactionLifecycleController
         }
 
         try {
-            $payload = TransactionPayload::of($body, ['version']);
+            $payload = JsonPayload::of($body, ['version']);
             $transaction = $voidTransaction($id, $payload->integer('version'));
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
@@ -87,11 +88,11 @@ final readonly class TransactionLifecycleController
         }
 
         try {
-            $payload = TransactionPayload::of($body, ['version', 'matchedTransactionId']);
+            $payload = JsonPayload::of($body, ['version', 'matchedTransactionId']);
             $transaction = $reconcileTransaction(
                 $id,
                 $payload->integer('version'),
-                $payload->nullableIdentifier('matchedTransactionId'),
+                $payload->nullableUuid('matchedTransactionId'),
             );
         } catch (InvalidTransactionInput|\UnexpectedValueException) {
             return $this->envelope->problem(Response::HTTP_UNPROCESSABLE_ENTITY, 'api.problem.invalid_transaction');
@@ -131,7 +132,7 @@ final readonly class TransactionLifecycleController
                     if ($hasBody && !$this->envelope->hasJsonObjectBody($request)) {
                         throw new InvalidTransactionInput();
                     }
-                    TransactionPayload::of($body, []);
+                    JsonPayload::of($body, []);
                     $transaction = $duplicateTransaction($id);
 
                     return new IdempotentResponse(TransactionRepresentation::one($transaction), Response::HTTP_CREATED, $transaction->id, [$transaction->bookedOn]);

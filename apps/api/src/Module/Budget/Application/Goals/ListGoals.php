@@ -10,6 +10,7 @@ use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 
 final readonly class ListGoals
@@ -18,15 +19,12 @@ final readonly class ListGoals
     {
     }
 
-    public const int MAX_PAGE = 1000;
-    public const int MAX_PAGE_SIZE = 100;
     public const int DEFAULT_PAGE_SIZE = 50;
 
     public function __invoke(?string $periodicity = null, ?string $period = null, bool $current = true, int $page = 1, int $pageSize = self::DEFAULT_PAGE_SIZE): GoalPage
     {
-        if ($page < 1 || $page > self::MAX_PAGE || $pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
-            throw new GoalInputError('invalid_goal_query', 'The page or page size is outside its bounds.');
-        }
+        $request = PageRequest::tryFrom($page, $pageSize, self::DEFAULT_PAGE_SIZE)
+            ?? throw new GoalInputError('invalid_goal_query', 'The page or page size is outside its bounds.');
         $today = CalendarMonth::containing($this->calendar->today());
         $goalPeriodicity = null === $periodicity ? null : (GoalPeriodicity::tryFrom($periodicity) ?? throw new GoalInputError('invalid_goal_query', 'A goal periodicity is MONTHLY or YEARLY.'));
         $month = $today;
@@ -41,7 +39,7 @@ final readonly class ListGoals
         }
         $workspace = $this->caller->resolve();
         $filter = new GoalFilter($today, $goalPeriodicity, $period, $current);
-        $goals = $this->goals->search($workspace, $filter, $pageSize, ($page - 1) * $pageSize);
+        $goals = $this->goals->search($workspace, $filter, $request->pageSize, $request->offset());
         $total = $this->goals->count($workspace, $filter);
         // A future month has no real figure to read: its goals show their definition without a status amount.
         $future = GoalCalendar::isFuture($month, $today);

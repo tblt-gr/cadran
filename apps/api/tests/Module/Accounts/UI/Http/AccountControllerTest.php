@@ -301,6 +301,27 @@ final class AccountControllerTest extends WebTestCase
         self::assertSame(0, $this->ownAccountCount());
     }
 
+    public function testACoercedFlagOrVersionIsRefused(): void
+    {
+        $this->requestCreate($this->payload('Compte', ['includeInNetWorth' => 'true']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownAccountCount());
+
+        $id = self::stringValue($this->createAccount('Compte'), 'id');
+        $this->client->request('POST', '/api/v1/accounts/'.$id.'/archive', server: self::jsonHeaders(), content: '{"version":"1"}');
+        self::assertResponseStatusCodeSame(422);
+    }
+
+    public function testAnOpeningDateOutsideTheBusinessCalendarIsRefused(): void
+    {
+        $this->requestCreate($this->payload('Compte', ['openedOn' => '1850-01-01']));
+        self::assertResponseStatusCodeSame(422);
+        self::assertSame(0, $this->ownAccountCount());
+
+        $this->requestCreate($this->payload('Compte', ['openedOn' => '2026-02-28']));
+        self::assertResponseStatusCodeSame(201);
+    }
+
     public function testMassAssignmentAndUnknownFieldsAreRefused(): void
     {
         $body = $this->payload('Compte');

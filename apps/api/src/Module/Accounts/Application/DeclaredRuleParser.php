@@ -6,7 +6,6 @@ namespace App\Module\Accounts\Application;
 
 use App\Module\Accounts\Domain\DeclaredRuleValue;
 use App\Module\Accounts\Domain\InvalidDeclaredRule;
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\InvalidCatalogEntry;
 use App\Module\Catalog\Domain\RateApplication;
@@ -16,7 +15,9 @@ use App\Module\Catalog\Domain\RuleKind;
 use App\Module\Catalog\Domain\RuleValueType;
 use App\Module\Foundation\Application\AmountInputParser;
 use App\Module\Foundation\Application\InvalidAmountInput;
+use App\Module\Foundation\Domain\BusinessDay;
 use App\Module\Foundation\Domain\DecimalValue;
+use App\Module\Foundation\Domain\InvalidBusinessDay;
 use App\Module\Foundation\Domain\MalformedDecimal;
 use App\Module\Foundation\Domain\PrecisionExceeded;
 
@@ -94,7 +95,7 @@ final class DeclaredRuleParser
     {
         try {
             return BusinessDay::fromIsoDate($value)->date;
-        } catch (InvalidCatalogEntry $failure) {
+        } catch (InvalidBusinessDay $failure) {
             throw new InvalidDeclaredRuleInput(sprintf('The %s must be an ISO 8601 calendar day.', $subject), previous: $failure);
         }
     }

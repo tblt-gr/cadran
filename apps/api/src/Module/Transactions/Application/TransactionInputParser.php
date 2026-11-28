@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Transactions\Application;
 
-use App\Module\Catalog\Domain\BusinessDay;
 use App\Module\Foundation\Application\AmountInputParser;
+use App\Module\Foundation\Domain\BusinessDay;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Transactions\Domain\PaymentMethod;
 use App\Module\Transactions\Domain\TransactionNature;

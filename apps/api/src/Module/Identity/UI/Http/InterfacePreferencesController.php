@@ -6,6 +6,7 @@ namespace App\Module\Identity\UI\Http;
 
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Identity\Application\InterfacePreferencesView;
 use App\Module\Identity\Application\InvalidInterfacePreferencesInput;
@@ -69,18 +70,9 @@ final readonly class InterfacePreferencesController
     /** @param array<mixed> $body */
     private static function input(array $body): SaveInterfacePreferencesInput
     {
-        $submitted = array_keys($body);
-        sort($submitted);
-        $expected = self::FIELDS;
-        sort($expected);
-        if ($submitted !== $expected) {
-            throw new \UnexpectedValueException('An interface preference body carries exactly its declared fields.');
-        }
-        if (!is_bool($body['includeUpcoming']) || !is_int($body['version'])) {
-            throw new \UnexpectedValueException('An interface preference is a boolean and its version an integer.');
-        }
+        $payload = JsonPayload::of($body, self::FIELDS);
 
-        return new SaveInterfacePreferencesInput($body['includeUpcoming'], $body['version']);
+        return new SaveInterfacePreferencesInput($payload->boolean('includeUpcoming'), $payload->integer('version'));
     }
 
     private function json(InterfacePreferencesView $view): JsonResponse

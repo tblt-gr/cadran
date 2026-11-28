@@ -16,6 +16,7 @@ use App\Module\Categories\Application\ReplaceCategory;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use Doctrine\DBAL\Exception\RetryableException;
 use Symfony\Component\HttpFoundation\Request;
@@ -75,7 +76,7 @@ final readonly class CategoryLifecycleController
     #[Route('/api/v1/categories/{id}/move', name: 'api_v1_categories_move', methods: ['POST'])]
     public function move(string $id, Request $request, MoveCategory $moveCategory): Response
     {
-        return $this->operate($id, $request, self::MOVE_FIELDS, static fn (CategoryPayload $payload) => $moveCategory(
+        return $this->operate($id, $request, self::MOVE_FIELDS, static fn (JsonPayload $payload) => $moveCategory(
             $id,
             $payload->nullableString('parentId'),
             $payload->integer('version'),
@@ -85,7 +86,7 @@ final readonly class CategoryLifecycleController
     #[Route('/api/v1/categories/{id}/merge', name: 'api_v1_categories_merge', methods: ['POST'])]
     public function merge(string $id, Request $request, MergeCategory $mergeCategory): Response
     {
-        return $this->operate($id, $request, self::MERGE_FIELDS, static fn (CategoryPayload $payload) => $mergeCategory(
+        return $this->operate($id, $request, self::MERGE_FIELDS, static fn (JsonPayload $payload) => $mergeCategory(
             $id,
             $payload->string('targetId'),
             $payload->integer('version'),
@@ -95,7 +96,7 @@ final readonly class CategoryLifecycleController
     #[Route('/api/v1/categories/{id}/archive', name: 'api_v1_categories_archive', methods: ['POST'])]
     public function archive(string $id, Request $request, ArchiveCategory $archiveCategory): Response
     {
-        return $this->operate($id, $request, self::ARCHIVE_FIELDS, static fn (CategoryPayload $payload) => $archiveCategory(
+        return $this->operate($id, $request, self::ARCHIVE_FIELDS, static fn (JsonPayload $payload) => $archiveCategory(
             $id,
             $payload->integer('version'),
         ));
@@ -104,7 +105,7 @@ final readonly class CategoryLifecycleController
     #[Route('/api/v1/categories/{id}/replacement', name: 'api_v1_categories_replace', methods: ['POST'])]
     public function replace(string $id, Request $request, ReplaceCategory $replaceCategory): Response
     {
-        return $this->operate($id, $request, self::REPLACE_FIELDS, static fn (CategoryPayload $payload) => $replaceCategory(
+        return $this->operate($id, $request, self::REPLACE_FIELDS, static fn (JsonPayload $payload) => $replaceCategory(
             $id,
             $payload->string('targetId'),
             $payload->string('effectiveFrom'),
@@ -113,8 +114,8 @@ final readonly class CategoryLifecycleController
     }
 
     /**
-     * @param list<string>                                                               $fields
-     * @param callable(CategoryPayload): \App\Module\Categories\Application\CategoryView $operation
+     * @param list<string>                                                           $fields
+     * @param callable(JsonPayload): \App\Module\Categories\Application\CategoryView $operation
      */
     private function operate(string $id, Request $request, array $fields, callable $operation): Response
     {
@@ -128,7 +129,7 @@ final readonly class CategoryLifecycleController
         }
 
         try {
-            $category = $operation(CategoryPayload::of($body, $fields));
+            $category = $operation(JsonPayload::of($body, $fields));
         } catch (CategoryOperationRefused $refusal) {
             return $this->envelope->problem(
                 Response::HTTP_UNPROCESSABLE_ENTITY,

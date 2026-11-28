@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Audit\Application;
 
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 
 /**
  * Reads one page of the caller's own audit trail. Authorization happens here,
@@ -14,7 +15,6 @@ use App\Module\Foundation\Application\CallerWorkspace;
 final readonly class ListAuditTrail
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
 
     public function __construct(
         private CallerWorkspace $callerWorkspace,
@@ -48,8 +48,8 @@ final readonly class ListAuditTrail
             return self::DEFAULT_PAGE_SIZE;
         }
 
-        if ($pageSize < 1 || $pageSize > self::MAX_PAGE_SIZE) {
-            throw new InvalidAuditTrailQuery(sprintf('The page size must be between 1 and %d.', self::MAX_PAGE_SIZE));
+        if ($pageSize < 1 || $pageSize > PageRequest::MAX_PAGE_SIZE) {
+            throw new InvalidAuditTrailQuery(sprintf('The page size must be between 1 and %d.', PageRequest::MAX_PAGE_SIZE));
         }
 
         return $pageSize;

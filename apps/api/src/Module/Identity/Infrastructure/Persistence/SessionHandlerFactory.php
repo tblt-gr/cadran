@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Identity\Infrastructure\Persistence;
 
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 
@@ -45,16 +46,11 @@ final readonly class SessionHandlerFactory
 
         return sprintf(
             'postgresql://%s:%s@%s:%d/%s',
-            rawurlencode(self::text($params['user'] ?? null)),
-            rawurlencode(self::text($params['password'] ?? null)),
-            self::text($params['host'] ?? null),
+            rawurlencode(DbalValue::text($params['user'] ?? '')),
+            rawurlencode(DbalValue::text($params['password'] ?? '')),
+            DbalValue::text($params['host'] ?? ''),
             is_numeric($params['port'] ?? null) ? (int) $params['port'] : 5432,
-            rawurlencode(self::text($params['dbname'] ?? null)),
+            rawurlencode(DbalValue::text($params['dbname'] ?? '')),
         );
-    }
-
-    private static function text(mixed $value): string
-    {
-        return is_string($value) ? $value : '';
     }
 }

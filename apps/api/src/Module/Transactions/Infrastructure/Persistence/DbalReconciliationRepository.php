@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\Reconciliation\ReconciliationRepository;
 use App\Module\Transactions\Domain\Reconciliation\TransactionReconciliation;
 use Doctrine\DBAL\ArrayParameterType;
@@ -49,7 +50,7 @@ final readonly class DbalReconciliationRepository implements ReconciliationRepos
         );
         $grouped = [];
         foreach ($rows as $row) {
-            $grouped[TransactionRow::text($row['transaction_id'] ?? null)][] = TransactionRow::text($row['candidate_transaction_id'] ?? null);
+            $grouped[DbalValue::text($row['transaction_id'] ?? null)][] = DbalValue::text($row['candidate_transaction_id'] ?? null);
         }
 
         return $grouped;
@@ -95,7 +96,7 @@ final readonly class DbalReconciliationRepository implements ReconciliationRepos
         );
         $matched = [];
         foreach ($rows as $row) {
-            $matched[TransactionRow::text($row['reviewed_transaction_id'] ?? null)] = TransactionRow::text($row['matched_transaction_id'] ?? null);
+            $matched[DbalValue::text($row['reviewed_transaction_id'] ?? null)] = DbalValue::text($row['matched_transaction_id'] ?? null);
         }
 
         return $matched;
@@ -113,7 +114,7 @@ final readonly class DbalReconciliationRepository implements ReconciliationRepos
             ['ids' => ArrayParameterType::STRING],
         );
 
-        return array_map(TransactionRow::text(...), $rows);
+        return array_map(DbalValue::text(...), $rows);
     }
 
     public function findByReviewedTransactionId(WorkspaceScope $workspace, string $reviewedTransactionId): ?TransactionReconciliation
@@ -125,11 +126,11 @@ final readonly class DbalReconciliationRepository implements ReconciliationRepos
         );
 
         return false === $row ? null : new TransactionReconciliation(
-            TransactionRow::text($row['id'] ?? null),
+            DbalValue::text($row['id'] ?? null),
             $workspace,
-            TransactionRow::text($row['reviewed_transaction_id'] ?? null),
-            TransactionRow::text($row['matched_transaction_id'] ?? null),
-            new \DateTimeImmutable(TransactionRow::text($row['created_at'] ?? null)),
+            DbalValue::text($row['reviewed_transaction_id'] ?? null),
+            DbalValue::text($row['matched_transaction_id'] ?? null),
+            new \DateTimeImmutable(DbalValue::text($row['created_at'] ?? null)),
         );
     }
 }

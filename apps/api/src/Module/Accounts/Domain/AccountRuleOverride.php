@@ -6,6 +6,8 @@ namespace App\Module\Accounts\Domain;
 
 use App\Module\Catalog\Domain\EffectivePeriod;
 use App\Module\Catalog\Domain\RuleKind;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -116,18 +118,18 @@ final readonly class AccountRuleOverride
      */
     private static function assertReason(string $reason): void
     {
-        if ($reason !== trim($reason) || '' === $reason || mb_strlen($reason) > self::MAX_REASON_LENGTH) {
+        if (!BoundedText::isValid($reason, 1, self::MAX_REASON_LENGTH)) {
             throw new InvalidAccountRuleOverride(sprintf('An override reason must contain between 1 and %d characters.', self::MAX_REASON_LENGTH));
         }
 
-        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $reason)) {
+        if (BoundedText::hasControlCharacters($reason)) {
             throw new InvalidAccountRuleOverride('An override reason cannot contain control characters.');
         }
     }
 
     private static function assertIdentifier(string $value, string $subject): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $value)) {
+        if (!Uuid::isValid($value)) {
             throw new InvalidAccountRuleOverride(sprintf('%s must be a canonical UUID.', $subject));
         }
     }

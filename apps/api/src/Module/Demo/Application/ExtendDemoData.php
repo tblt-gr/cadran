@@ -6,6 +6,7 @@ namespace App\Module\Demo\Application;
 
 use App\Module\Accounts\Application\ListAccounts;
 use App\Module\Categories\Application\ListCategories;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Transactions\Application\CreateRefund;
 use App\Module\Transactions\Application\CreateRefundInput;
 use App\Module\Transactions\Application\CreateTransaction;
@@ -132,7 +133,7 @@ final readonly class ExtendDemoData
     private function accounts(): array
     {
         $byLabel = [];
-        foreach ($this->listAccounts->__invoke(false, false, 1, ListAccounts::MAX_PAGE_SIZE)->items as $account) {
+        foreach ($this->listAccounts->__invoke(false, false, 1, PageRequest::MAX_PAGE_SIZE)->items as $account) {
             $byLabel[$account->label] = $account->id;
         }
         $accounts = [];
@@ -147,7 +148,7 @@ final readonly class ExtendDemoData
     private function categories(): array
     {
         $byLabel = [];
-        foreach ($this->listCategories->__invoke(false, 1, ListCategories::MAX_PAGE_SIZE)->items as $category) {
+        foreach ($this->listCategories->__invoke(false, 1, PageRequest::MAX_PAGE_SIZE)->items as $category) {
             $byLabel[$category->label] = $category->id;
         }
         $ids = [];
@@ -170,7 +171,7 @@ final readonly class ExtendDemoData
             from: $first->format('Y-m-d'),
             to: $first->modify('last day of this month')->format('Y-m-d'),
             accountIds: [$current, $savings],
-            pageSize: ListTransactions::MAX_PAGE_SIZE,
+            pageSize: PageRequest::MAX_PAGE_SIZE,
         ));
         if ($page->hasMore) {
             throw new DemoSeedRefused('The open month holds more movements than the demo extension expects.');
@@ -192,7 +193,7 @@ final readonly class ExtendDemoData
             to: $today->format('Y-m-d'),
             accountIds: [$current],
             states: ['PENDING'],
-            pageSize: ListTransactions::MAX_PAGE_SIZE,
+            pageSize: PageRequest::MAX_PAGE_SIZE,
         ));
         foreach ($page->items as $item) {
             if ($item->bookedOn < $oldest) {

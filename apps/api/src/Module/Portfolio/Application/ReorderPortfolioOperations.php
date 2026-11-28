@@ -10,13 +10,12 @@ use App\Module\Audit\Application\RecordAuditEvent;
 use App\Module\Foundation\Application\CallerWorkspaceContext;
 use App\Module\Foundation\Application\TransactionBoundary;
 use App\Module\Foundation\Application\WorkspaceCalendar;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 use Symfony\Component\Clock\ClockInterface;
 
 final readonly class ReorderPortfolioOperations
 {
-    private const string UUID_PATTERN = '/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D';
-
     public function __construct(
         private CallerWorkspaceContext $caller,
         private PortfolioAccountGate $gate,
@@ -40,7 +39,7 @@ final readonly class ReorderPortfolioOperations
             throw new InvalidPositionQuery('An operation order has a valid past date and unique identifiers.');
         }
         foreach ($operationIds as $id) {
-            if (1 !== preg_match(self::UUID_PATTERN, $id)) {
+            if (!Uuid::isValid($id)) {
                 throw new InvalidPositionQuery('An operation order contains canonical identifiers.');
             }
         }

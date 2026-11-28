@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Application;
 
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Portfolio\Domain\OperationFilters;
 use App\Module\Portfolio\Domain\OperationType;
 use App\Module\Portfolio\Domain\PortfolioOperationRepository;
@@ -12,8 +14,6 @@ use App\Module\Portfolio\Domain\PortfolioOperationRepository;
 final readonly class ListPortfolioOperations
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
-    public const int MAX_PAGE = 1000;
     public const int MAX_RANGE_YEARS = 10;
     public const int MAX_TYPES = 13;
 
@@ -30,13 +30,13 @@ final readonly class ListPortfolioOperations
         $workspace = $this->caller->resolve();
         $this->gate->forRead($workspace, $accountId);
         $filters = $this->filters($query);
-        $page = self::bounded($query->page, 1, 1, self::MAX_PAGE);
-        $pageSize = self::bounded($query->pageSize, self::DEFAULT_PAGE_SIZE, 1, self::MAX_PAGE_SIZE);
+        $request = PageRequest::tryFrom(self::integer($query->page), self::integer($query->pageSize), self::DEFAULT_PAGE_SIZE)
+            ?? throw new InvalidOperationQuery('A pagination value is out of bounds.');
 
-        $items = $this->operations->search($workspace, $accountId, $filters, $pageSize, ($page - 1) * $pageSize);
+        $items = $this->operations->search($workspace, $accountId, $filters, $request->pageSize, $request->offset());
 
         return new OperationPage(
-            $this->presenter->present($workspace, $items), $page, $pageSize,
+            $this->presenter->present($workspace, $items), $request->page, $request->pageSize,
             $this->operations->count($workspace, $accountId, $filters),
         );
     }
@@ -55,7 +55,7 @@ final readonly class ListPortfolioOperations
         foreach ($query->types as $type) {
             $types[] = OperationType::tryFrom($type) ?? throw new InvalidOperationQuery('Unknown operation type.');
         }
-        if (null !== $query->instrumentId && 1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $query->instrumentId)) {
+        if (null !== $query->instrumentId && !Uuid::isValid($query->instrumentId)) {
             throw new InvalidOperationQuery('The instrument filter is not an identifier.');
         }
         $includeVoided = match ($query->includeVoided) {
@@ -79,12 +79,12 @@ final readonly class ListPortfolioOperations
         return $date;
     }
 
-    private static function bounded(?string $literal, int $default, int $min, int $max): int
+    private static function integer(?string $literal): ?int
     {
         if (null === $literal || '' === $literal) {
-            return $default;
+            return null;
         }
-        if (1 !== preg_match('/^[0-9]{1,5}$/D', $literal) || (int) $literal < $min || (int) $literal > $max) {
+        if (1 !== preg_match('/^[0-9]{1,5}$/D', $literal)) {
             throw new InvalidOperationQuery('A pagination value is out of bounds.');
         }
 

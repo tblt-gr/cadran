@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Portfolio\Infrastructure\Persistence;
 
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Portfolio\Domain\Takeover\PortfolioTakeover;
 use App\Module\Portfolio\Domain\Takeover\PortfolioTakeoverRepository;
 use Doctrine\DBAL\Connection;
@@ -28,10 +29,10 @@ final readonly class DbalPortfolioTakeoverRepository implements PortfolioTakeove
         }
 
         return new PortfolioTakeover(
-            PortfolioOperationRow::text($row['id']), $workspace, PortfolioOperationRow::text($row['account_id']),
-            new \DateTimeImmutable(PortfolioOperationRow::text($row['taken_over_on']), new \DateTimeZone('UTC')),
-            PortfolioOperationRow::text($row['valuation_id']),
-            new \DateTimeImmutable(PortfolioOperationRow::text($row['created_at'])),
+            DbalValue::text($row['id']), $workspace, DbalValue::text($row['account_id']),
+            new \DateTimeImmutable(DbalValue::text($row['taken_over_on']), new \DateTimeZone('UTC')),
+            DbalValue::text($row['valuation_id']),
+            new \DateTimeImmutable(DbalValue::text($row['created_at'])),
         );
     }
 

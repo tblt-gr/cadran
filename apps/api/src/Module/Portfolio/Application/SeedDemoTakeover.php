@@ -8,6 +8,7 @@ use App\Module\Accounts\Application\CreateAccount;
 use App\Module\Accounts\Application\CreateAccountInput;
 use App\Module\Accounts\Application\ListAccountGroups;
 use App\Module\Foundation\Application\DemoDataContributor;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Portfolio\Application\Takeover\TakeoverInput;
 use App\Module\Portfolio\Application\Takeover\TakeoverLineInput;
 use App\Module\Portfolio\Application\Takeover\TakeOverPortfolioPositions;
@@ -40,7 +41,7 @@ final readonly class SeedDemoTakeover implements DemoDataContributor
         $takenOverOn = $today->modify('first day of this month')->modify('-2 months')->modify('last day of this month');
         $day = $takenOverOn->format('Y-m-d');
         $groupId = null;
-        foreach ($this->listGroups->__invoke(false, 1, ListAccountGroups::MAX_PAGE_SIZE)->items as $group) {
+        foreach ($this->listGroups->__invoke(false, 1, PageRequest::MAX_PAGE_SIZE)->items as $group) {
             if ('Investissements' === $group->label) {
                 $groupId = $group->id;
                 break;
@@ -73,7 +74,7 @@ final readonly class SeedDemoTakeover implements DemoDataContributor
 
     private function instrument(string $name): string
     {
-        foreach ($this->listInstruments->__invoke('Démo', 'all', 1, ListInstruments::MAX_PAGE_SIZE)->items as $item) {
+        foreach ($this->listInstruments->__invoke('Démo', 'all', 1, PageRequest::MAX_PAGE_SIZE)->items as $item) {
             if ($item->name === $name) {
                 return $item->id;
             }

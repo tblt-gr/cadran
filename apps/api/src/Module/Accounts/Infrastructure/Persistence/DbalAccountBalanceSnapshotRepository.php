@@ -10,6 +10,7 @@ use App\Module\Accounts\Domain\AccountBalanceSnapshotRepository;
 use App\Module\Accounts\Domain\AccountBalanceSnapshots;
 use App\Module\Accounts\Domain\BalanceSnapshotSource;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
@@ -133,7 +134,7 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
         $latest = [];
         foreach ($rows as $row) {
             $snapshot = AccountBalanceSnapshotRow::hydrate($row, $workspace);
-            $latest[AccountRow::text($row['on_date'] ?? null)][$snapshot->accountId] = $snapshot;
+            $latest[DbalValue::text($row['on_date'] ?? null)][$snapshot->accountId] = $snapshot;
         }
 
         return $latest;
@@ -176,7 +177,7 @@ final readonly class DbalAccountBalanceSnapshotRepository implements AccountBala
 
     public function countForAccount(WorkspaceScope $workspace, string $accountId): int
     {
-        return (int) AccountRow::text($this->connection->fetchOne(
+        return (int) DbalValue::text($this->connection->fetchOne(
             'SELECT count(*) FROM account_balance_snapshots WHERE workspace_id = :workspace_id AND account_id = :account_id',
             ['workspace_id' => $workspace->id, 'account_id' => $accountId],
         ));

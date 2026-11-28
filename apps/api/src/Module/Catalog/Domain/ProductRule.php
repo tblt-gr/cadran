@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Module\Catalog\Domain;
 
+use App\Module\Foundation\Domain\BoundedText;
+
 /**
  * One dated rule of one product, with the publication it was read from and the
  * trace of who last checked it against that publication.
@@ -38,7 +40,7 @@ final readonly class ProductRule
             throw new InvalidCatalogEntry('A rule verification carries both its date and its verifier.');
         }
 
-        if (null !== $verifiedBy && ($verifiedBy !== trim($verifiedBy) || '' === $verifiedBy || mb_strlen($verifiedBy) > self::MAX_VERIFIER_LENGTH)) {
+        if (null !== $verifiedBy && !BoundedText::isValid($verifiedBy, 1, self::MAX_VERIFIER_LENGTH)) {
             throw new InvalidCatalogEntry(sprintf('A rule verifier contains between 1 and %d characters.', self::MAX_VERIFIER_LENGTH));
         }
     }

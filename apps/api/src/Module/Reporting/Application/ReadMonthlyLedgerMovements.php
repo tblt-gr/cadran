@@ -10,6 +10,8 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Categories\Application\BudgetCategoryScopeTooLarge;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 use App\Module\Reporting\Domain\MonthlyLedgerCalculator;
 use App\Module\Reporting\Domain\MonthlyLedgerSource;
@@ -20,7 +22,6 @@ use App\Module\Transactions\Application\ReadMonthlyTransferPairs;
 final readonly class ReadMonthlyLedgerMovements
 {
     public const int PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
 
     public function __construct(
         private CallerWorkspace $caller,
@@ -95,7 +96,7 @@ final readonly class ReadMonthlyLedgerMovements
         if (null === $requested || '' === $requested) {
             return self::PAGE_SIZE;
         }
-        if (1 !== preg_match('/^[0-9]{1,3}$/', $requested) || (int) $requested < 1 || (int) $requested > self::MAX_PAGE_SIZE) {
+        if (1 !== preg_match('/^[0-9]{1,3}$/', $requested) || (int) $requested < 1 || (int) $requested > PageRequest::MAX_PAGE_SIZE) {
             throw new InvalidMonthlyLedgerQuery('The page size must be between 1 and 100.');
         }
 
@@ -225,6 +226,6 @@ final readonly class ReadMonthlyLedgerMovements
 
     private static function uuid(string $value): bool
     {
-        return 1 === preg_match('/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/D', $value);
+        return Uuid::isValid($value);
     }
 }

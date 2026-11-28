@@ -6,6 +6,7 @@ namespace App\Module\Transactions\Infrastructure\Persistence;
 
 use App\Module\Categories\Domain\AnalyticAxis;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use App\Module\Transactions\Domain\CategorySubtrees;
 use App\Module\Transactions\Domain\TransactionFacet;
 use App\Module\Transactions\Domain\TransactionFacetScope;
@@ -220,13 +221,13 @@ final readonly class DbalTransactionFacetReader
         $byCategory = [];
         $byAxis = [];
         foreach ($tally as $combination) {
-            $matches = (int) TransactionRow::text($combination['matches'] ?? null);
+            $matches = (int) DbalValue::text($combination['matches'] ?? null);
             if ($categories) {
-                $category = TransactionRow::text($combination['category_id'] ?? null);
+                $category = DbalValue::text($combination['category_id'] ?? null);
                 $byCategory[$category] = ($byCategory[$category] ?? 0) + $matches;
             }
             if ($axes) {
-                foreach (TransactionFacetTally::axisList(TransactionRow::text($combination['axes'] ?? null)) as $axis) {
+                foreach (TransactionFacetTally::axisList(DbalValue::text($combination['axes'] ?? null)) as $axis) {
                     $byAxis[$axis] = ($byAxis[$axis] ?? 0) + $matches;
                 }
             }
@@ -289,7 +290,7 @@ final readonly class DbalTransactionFacetReader
     {
         $counts = [];
         foreach ($rows as $row) {
-            $counts[TransactionRow::text($row['facet_value'] ?? null)] = (int) TransactionRow::text($row['matches'] ?? null);
+            $counts[DbalValue::text($row['facet_value'] ?? null)] = (int) DbalValue::text($row['matches'] ?? null);
         }
 
         return $counts;

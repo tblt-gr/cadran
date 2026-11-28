@@ -9,6 +9,7 @@ use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalFilter;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -57,7 +58,7 @@ final readonly class DbalGoalRepository implements GoalRepository
     {
         [$extra, $parameters, $types] = self::criteria($workspace, $filter);
 
-        return (int) GoalRow::text($this->connection->fetchOne('SELECT count(*) FROM budget_goals WHERE workspace_id = :workspace_id'.$extra, $parameters, $types));
+        return (int) DbalValue::text($this->connection->fetchOne('SELECT count(*) FROM budget_goals WHERE workspace_id = :workspace_id'.$extra, $parameters, $types));
     }
 
     public function countCurrent(WorkspaceScope $workspace, CalendarMonth $today): int

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Transactions\UI\Http;
 
 use App\Module\Foundation\UI\Http\Identifier;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\ProblemMapper;
 use App\Module\Transactions\Application\CreateTransfer;
 use App\Module\Transactions\Application\CreateTransferInput;
@@ -44,18 +45,18 @@ final readonly class TransferController
         }
 
         try {
-            $payload = TransferPayload::of($body, self::CREATE_FIELDS);
+            $payload = JsonPayload::of($body, self::CREATE_FIELDS);
             $input = new CreateTransferInput(
                 sourceAccountId: $payload->uuid('sourceAccountId'),
                 targetAccountId: $payload->uuid('targetAccountId'),
                 sourceAmount: $payload->amount('sourceAmount'),
-                targetAmount: $payload->nullableAmount('targetAmount'),
+                targetAmount: null === $payload->raw('targetAmount') ? null : $payload->amount('targetAmount'),
                 state: $payload->string('state'),
                 bookedOn: $payload->string('bookedOn'),
                 valueOn: $payload->nullableString('valueOn'),
                 label: $payload->string('label'),
                 note: $payload->nullableString('note'),
-                fee: $payload->nullableAmount('fee'),
+                fee: null === $payload->raw('fee') ? null : $payload->amount('fee'),
             );
             $result = $this->idempotentExecution->execute(
                 'transfer.create',
@@ -101,7 +102,7 @@ final readonly class TransferController
         }
 
         try {
-            $payload = TransferPayload::of($body, self::UPDATE_FIELDS);
+            $payload = JsonPayload::of($body, self::UPDATE_FIELDS);
             $transfer = $updateTransfer($id, new UpdateTransferInput(
                 sourceAccountId: $payload->uuid('sourceAccountId'),
                 targetAccountId: $payload->uuid('targetAccountId'),
@@ -110,7 +111,7 @@ final readonly class TransferController
                 valueOn: $payload->nullableString('valueOn'),
                 label: $payload->string('label'),
                 note: $payload->nullableString('note'),
-                fee: $payload->nullableAmount('fee'),
+                fee: null === $payload->raw('fee') ? null : $payload->amount('fee'),
                 version: $payload->integer('version'),
             ));
         } catch (\Throwable $exception) {
@@ -132,7 +133,7 @@ final readonly class TransferController
         }
 
         try {
-            $payload = TransferPayload::of($body, ['version']);
+            $payload = JsonPayload::of($body, ['version']);
             $transfer = $voidTransfer($id, $payload->integer('version'));
         } catch (\Throwable $exception) {
             return $this->problems->respond($exception, TransferProblems::rules());

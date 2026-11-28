@@ -12,6 +12,7 @@ use App\Module\Budget\Domain\EmergencyFund\TargetMode;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Foundation\Infrastructure\Persistence\DbalValue;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Symfony\Component\DependencyInjection\Attribute\AsAlias;
@@ -36,25 +37,25 @@ final readonly class DbalEmergencyFundPolicyRepository implements EmergencyFundP
         if ($workspace->id !== $row['workspace_id']) {
             throw new \UnexpectedValueException('An emergency-fund policy row escaped its requested workspace.');
         }
-        $ids = json_decode(GoalRow::text($row['essential_category_ids']), true, flags: JSON_THROW_ON_ERROR);
+        $ids = json_decode(DbalValue::text($row['essential_category_ids']), true, flags: JSON_THROW_ON_ERROR);
         if (!is_array($ids) || !array_is_list($ids)) {
             throw new \UnexpectedValueException('Expected an emergency-fund category list.');
         }
 
         return new EmergencyFundPolicy(
             $workspace,
-            EssentialMode::from(GoalRow::text($row['essential_mode'])),
-            array_map(GoalRow::text(...), $ids),
-            ReferenceMode::from(GoalRow::text($row['reference_mode'])),
-            null === $row['trailing_months'] ? null : (int) GoalRow::text($row['trailing_months']),
-            DecimalValue::fromString(self::withoutTrailingZeros(GoalRow::text($row['target_months']))),
-            (int) GoalRow::text($row['version']),
-            new \DateTimeImmutable(GoalRow::text($row['updated_at'])),
-            GoalRow::text($row['updated_by']),
-            TargetMode::from(GoalRow::text($row['target_mode'])),
-            null === $row['target_amount'] ? null : DecimalValue::fromString(self::withoutTrailingZeros(GoalRow::text($row['target_amount']))),
-            null === $row['target_asset_code'] ? null : AssetCode::fromString(GoalRow::text($row['target_asset_code'])),
-            null === $row['target_ratio'] ? null : DecimalValue::fromString(self::withoutTrailingZeros(GoalRow::text($row['target_ratio']))),
+            EssentialMode::from(DbalValue::text($row['essential_mode'])),
+            array_map(DbalValue::text(...), $ids),
+            ReferenceMode::from(DbalValue::text($row['reference_mode'])),
+            null === $row['trailing_months'] ? null : (int) DbalValue::text($row['trailing_months']),
+            DecimalValue::fromString(self::withoutTrailingZeros(DbalValue::text($row['target_months']))),
+            (int) DbalValue::text($row['version']),
+            new \DateTimeImmutable(DbalValue::text($row['updated_at'])),
+            DbalValue::text($row['updated_by']),
+            TargetMode::from(DbalValue::text($row['target_mode'])),
+            null === $row['target_amount'] ? null : DecimalValue::fromString(self::withoutTrailingZeros(DbalValue::text($row['target_amount']))),
+            null === $row['target_asset_code'] ? null : AssetCode::fromString(DbalValue::text($row['target_asset_code'])),
+            null === $row['target_ratio'] ? null : DecimalValue::fromString(self::withoutTrailingZeros(DbalValue::text($row['target_ratio']))),
         );
     }
 

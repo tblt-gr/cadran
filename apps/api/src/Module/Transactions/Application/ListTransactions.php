@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Module\Transactions\Application;
 
 use App\Module\Foundation\Application\CallerWorkspace;
+use App\Module\Foundation\Application\PageRequest;
 use App\Module\Transactions\Domain\TransactionRepository;
 
 final readonly class ListTransactions
 {
     public const int DEFAULT_PAGE_SIZE = 50;
-    public const int MAX_PAGE_SIZE = 100;
     public const int MAX_TEXT_QUERY_LENGTH = 80;
 
     public function __construct(
@@ -25,7 +25,7 @@ final readonly class ListTransactions
     {
         $workspace = $this->caller->resolve();
         $limit = $query->pageSize ?? self::DEFAULT_PAGE_SIZE;
-        if ($limit < 1 || $limit > self::MAX_PAGE_SIZE) {
+        if ($limit < 1 || $limit > PageRequest::MAX_PAGE_SIZE) {
             throw new InvalidTransactionInput('The transaction page size is outside its bounds.');
         }
 

@@ -452,6 +452,13 @@ final class AccountGroupControllerTest extends WebTestCase
         self::assertSame([$a, $b], $this->childIds($parent));
     }
 
+    public function testACoercedVersionIsRefused(): void
+    {
+        $id = self::stringValue($this->createGroup('Placements'), 'id');
+        $this->client->request('POST', '/api/v1/account-groups/'.$id.'/archive', server: self::jsonHeaders(), content: '{"version":"1"}');
+        self::assertResponseStatusCodeSame(422);
+    }
+
     public function testForeignGroupsAnswerLikeUnknownOnesAndForeignAnchorsAreRefused(): void
     {
         [$parent, $a, $b] = $this->parentWithChildren(['A', 'B']);

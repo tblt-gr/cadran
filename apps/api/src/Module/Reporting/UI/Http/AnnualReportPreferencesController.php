@@ -7,6 +7,7 @@ namespace App\Module\Reporting\UI\Http;
 use App\Module\Foundation\Application\WorkspaceAccessDenied;
 use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
+use App\Module\Foundation\UI\Http\JsonPayload;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
 use App\Module\Reporting\Application\AnnualPreferencesView;
 use App\Module\Reporting\Application\InvalidAnnualPreferencesInput;
@@ -71,52 +72,15 @@ final readonly class AnnualReportPreferencesController
     /** @param array<mixed> $body */
     private static function input(array $body): SaveAnnualPreferencesInput
     {
-        $goalMarks = null;
-        if (array_key_exists(self::OPTIONAL_FIELD, $body)) {
-            if (!is_bool($body[self::OPTIONAL_FIELD])) {
-                throw new \UnexpectedValueException('An annual report goal colouring setting is a boolean.');
-            }
-            $goalMarks = $body[self::OPTIONAL_FIELD];
-            unset($body[self::OPTIONAL_FIELD]);
-        }
-        $submitted = array_keys($body);
-        sort($submitted);
-        $expected = self::FIELDS;
-        sort($expected);
-        if ($submitted !== $expected) {
-            throw new \UnexpectedValueException('An annual report preference body carries exactly its declared fields.');
-        }
-        if (!is_int($body['version'])) {
-            throw new \UnexpectedValueException('An annual report preference version is an integer.');
-        }
-
-        if (!is_string($body['incompleteMonths'])) {
-            throw new \UnexpectedValueException('An annual preference incomplete-month setting is text.');
-        }
+        $payload = JsonPayload::of($body, self::FIELDS, [self::OPTIONAL_FIELD]);
 
         return new SaveAnnualPreferencesInput(
-            self::strings($body['columns']),
-            $body['incompleteMonths'],
-            $body['version'],
-            $goalMarks,
+            // The use case bounds the selection against the column catalogue.
+            $payload->stringList('columns', \PHP_INT_MAX),
+            $payload->string('incompleteMonths'),
+            $payload->integer('version'),
+            array_key_exists(self::OPTIONAL_FIELD, $body) ? $payload->boolean(self::OPTIONAL_FIELD) : null,
         );
-    }
-
-    /** @return list<string> */
-    private static function strings(mixed $value): array
-    {
-        if (!is_array($value) || !array_is_list($value)) {
-            throw new \UnexpectedValueException('An annual report preference selection is a list.');
-        }
-        $items = [];
-        foreach ($value as $item) {
-            if (!is_string($item)) {
-                throw new \UnexpectedValueException('An annual report preference selection holds strings.');
-            }
-            $items[] = $item;
-        }
-
-        return $items;
     }
 
     private function json(AnnualPreferencesView $view): JsonResponse

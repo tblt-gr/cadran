@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Module\Accounts\Domain;
 
 use App\Module\Foundation\Domain\AssetAmount;
+use App\Module\Foundation\Domain\BoundedText;
+use App\Module\Foundation\Domain\Uuid;
 use App\Module\Foundation\Domain\WorkspaceScope;
 
 /**
@@ -198,7 +200,7 @@ final readonly class AccountBalanceSnapshot
 
     private static function assertIdentifier(string $id, string $subject): void
     {
-        if (1 !== preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/D', $id)) {
+        if (!Uuid::isValid($id)) {
             throw new InvalidAccountBalanceSnapshot(sprintf('%s must be a canonical UUID.', $subject));
         }
     }
@@ -216,11 +218,11 @@ final readonly class AccountBalanceSnapshot
             return;
         }
 
-        if ($comment !== trim($comment) || '' === $comment || mb_strlen($comment) > self::MAX_COMMENT_LENGTH) {
+        if (!BoundedText::isValid($comment, 1, self::MAX_COMMENT_LENGTH)) {
             throw new InvalidAccountBalanceSnapshot(sprintf('A snapshot comment must contain between 1 and %d characters.', self::MAX_COMMENT_LENGTH));
         }
 
-        if (1 === preg_match('/[\p{Cc}\p{Cf}]/u', $comment)) {
+        if (BoundedText::hasControlCharacters($comment)) {
             throw new InvalidAccountBalanceSnapshot('A snapshot comment cannot contain control characters.');
         }
     }

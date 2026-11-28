@@ -9,6 +9,7 @@ use App\Module\Foundation\UI\Http\ApiProblem;
 use App\Module\Foundation\UI\Http\BodyLimit;
 use App\Module\Foundation\UI\Http\Identifier;
 use App\Module\Foundation\UI\Http\JsonRequestEnvelope;
+use App\Module\Foundation\UI\Http\QueryParameters;
 use App\Module\Portfolio\Application\CreateInstrument;
 use App\Module\Portfolio\Application\CreateInstrumentInput;
 use App\Module\Portfolio\Application\DeactivateInstrument;
@@ -55,15 +56,15 @@ final readonly class InstrumentController
     {
         $page = $request->query->getString('page');
         $pageSize = $request->query->getString('pageSize');
-        if (!self::unsignedIntegerOrEmpty($page) || !self::unsignedIntegerOrEmpty($pageSize)) {
+        if (!QueryParameters::isUnsignedIntegerOrEmpty($page) || !QueryParameters::isUnsignedIntegerOrEmpty($pageSize)) {
             return $this->problem(Response::HTTP_BAD_REQUEST, 'invalid_instrument_query');
         }
         try {
             $result = $list(
                 $request->query->has('q') ? $request->query->getString('q') : null,
                 $request->query->getString('status'),
-                '' === $page ? null : (int) $page,
-                '' === $pageSize ? null : (int) $pageSize,
+                QueryParameters::integerOrNull($page),
+                QueryParameters::integerOrNull($pageSize),
                 $request->query->has('currencyCode') ? $request->query->getString('currencyCode') : null,
                 $request->query->has('instrumentType') ? $request->query->getString('instrumentType') : null,
             );
@@ -265,10 +266,5 @@ final readonly class InstrumentController
     private static function json(array $data, int $status = Response::HTTP_OK): JsonResponse
     {
         return new JsonResponse($data, $status, ['Cache-Control' => 'no-store']);
-    }
-
-    private static function unsignedIntegerOrEmpty(string $value): bool
-    {
-        return '' === $value || 1 === preg_match('/^[0-9]{1,4}$/D', $value);
     }
 }
