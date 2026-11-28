@@ -19,7 +19,7 @@ final class MetricPolicyTest extends TestCase
         $policy = MetricPolicy::systemV1();
 
         self::assertSame(1, $policy->version);
-        self::assertSame('Tous les comptes', $policy->label);
+        self::assertSame('All accounts', $policy->label);
         self::assertSame([], $policy->cashExcludedAccountKinds);
         foreach (AccountKind::cases() as $kind) {
             self::assertFalse($policy->isExcluded($kind->value));

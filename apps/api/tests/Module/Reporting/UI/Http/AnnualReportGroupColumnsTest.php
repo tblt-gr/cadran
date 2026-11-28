@@ -154,7 +154,7 @@ final class AnnualReportGroupColumnsTest extends WebTestCase
         self::assertIsArray($report);
         self::assertIsArray($report['columns']);
 
-        self::assertSame(['Investissement', 'Bourse', 'Immobilier', 'Patrimoine net'], array_column($report['columns'], 'label'));
+        self::assertSame(['Investissement', 'Bourse', 'Immobilier', 'Net worth'], array_column($report['columns'], 'label'));
         self::assertSame([null, 'Investissement', 'Investissement', null], array_column($report['columns'], 'parentLabel'));
     }
 

@@ -17,7 +17,7 @@ final class MonthlyProjectionFixture
      * @param list<MonthlyRecapCategoryView>      $categoryMetrics
      * @param list<MonthlyRecapCategoryView>|null $categoryRollups
      */
-    public static function view(string $month, string $cashIncome = '2000', int $policyVersion = 1, array $categoryMetrics = [], ?array $categoryRollups = null): MonthlyProjectionView
+    public static function view(string $month, string $cashIncome = '2000', ?int $policyVersion = 1, array $categoryMetrics = [], ?array $categoryRollups = null, ?string $policyLabel = 'All accounts'): MonthlyProjectionView
     {
         $income = new MonthlyMetricView($cashIncome, 'EUR', null);
         $zero = new MonthlyMetricView('0', 'EUR', null);
@@ -32,7 +32,7 @@ final class MonthlyProjectionFixture
                 new NetWorthDeltaView($month.'-01', null, null, null, null, null, null, null, null, 'MISSING', null, 0, 0, [], []),
                 [], [],
             ),
-            new MetricPolicyReference($policyVersion, 'Tous les comptes'),
+            new MetricPolicyReference($policyVersion, $policyLabel),
             categoryRollups: $categoryRollups,
         );
     }

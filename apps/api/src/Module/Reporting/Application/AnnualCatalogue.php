@@ -14,31 +14,31 @@ use App\Module\Reporting\Domain\Aggregation\ColumnKind;
  */
 final readonly class AnnualCatalogue
 {
-    public const string UNKNOWN_LABEL = 'Référence inconnue';
+    public const string UNKNOWN_LABEL = 'Unknown reference';
     public const int DEFAULT_ACCOUNT_COLUMNS = 3;
 
     private const array FIXED = [
-        'cashIncome' => [ColumnKind::FLOW, 'Revenus'],
-        'nonCashBenefits' => [ColumnKind::FLOW, 'Avantages hors trésorerie'],
-        'budgetExpenses' => [ColumnKind::FLOW, 'Dépenses'],
-        'benefitSpending' => [ColumnKind::FLOW, 'Dépenses en avantages'],
-        'uncategorizedExpenses' => [ColumnKind::FLOW, 'Dépenses non catégorisées'],
-        'budgetSurplus' => [ColumnKind::FLOW, 'Excédent'],
-        'cashSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne'],
-        'savingsInflows' => [ColumnKind::FLOW, 'Entrées d’épargne'],
-        'savingsWithdrawals' => [ColumnKind::FLOW, 'Sorties d’épargne'],
-        'netSavingsTransfers' => [ColumnKind::FLOW, 'Épargne nette'],
-        'netSavingsRate' => [ColumnKind::RATE, 'Taux d’épargne nette'],
-        'netWorthDelta' => [ColumnKind::FLOW, 'Variation du patrimoine net'],
-        'endNetWorth' => [ColumnKind::STOCK, 'Patrimoine net'],
+        'cashIncome' => [ColumnKind::FLOW, 'Income'],
+        'nonCashBenefits' => [ColumnKind::FLOW, 'Non-cash benefits'],
+        'budgetExpenses' => [ColumnKind::FLOW, 'Spending'],
+        'benefitSpending' => [ColumnKind::FLOW, 'Benefit spending'],
+        'uncategorizedExpenses' => [ColumnKind::FLOW, 'Uncategorized spending'],
+        'budgetSurplus' => [ColumnKind::FLOW, 'Surplus'],
+        'cashSavingsRate' => [ColumnKind::RATE, 'Savings rate'],
+        'savingsInflows' => [ColumnKind::FLOW, 'Savings inflows'],
+        'savingsWithdrawals' => [ColumnKind::FLOW, 'Savings withdrawals'],
+        'netSavingsTransfers' => [ColumnKind::FLOW, 'Net savings'],
+        'netSavingsRate' => [ColumnKind::RATE, 'Net savings rate'],
+        'netWorthDelta' => [ColumnKind::FLOW, 'Net worth change'],
+        'endNetWorth' => [ColumnKind::STOCK, 'Net worth'],
     ];
 
     private const array AXIS_LABELS = [
-        'DISCRETIONARY' => 'Discrétionnaire',
-        'ESSENTIAL' => 'Essentiel',
-        'FIXED' => 'Fixe',
-        'PERSONAL' => 'Personnel',
-        'PROFESSIONAL' => 'Professionnel',
+        'DISCRETIONARY' => 'Discretionary',
+        'ESSENTIAL' => 'Essential',
+        'FIXED' => 'Fixed',
+        'PERSONAL' => 'Personal',
+        'PROFESSIONAL' => 'Professional',
         'VARIABLE' => 'Variable',
     ];
 
@@ -79,7 +79,7 @@ final readonly class AnnualCatalogue
 
         return match ($type) {
             'axis' => isset(self::AXIS_LABELS[$reference])
-                ? new AnnualColumn($id, 'Dépenses : '.self::AXIS_LABELS[$reference], ColumnKind::FLOW, true)
+                ? new AnnualColumn($id, 'Spending: '.self::AXIS_LABELS[$reference], ColumnKind::FLOW, true)
                 : null,
             'category' => '' === $reference ? null : $known($this->categories[$reference] ?? null),
             'group' => '' === $reference ? null : self::stock($id, $this->groups[$reference] ?? null, parentLabel: $this->groupParents[$reference] ?? null),

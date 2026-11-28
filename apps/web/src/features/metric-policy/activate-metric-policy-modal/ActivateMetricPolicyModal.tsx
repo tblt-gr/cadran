@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
 import { MetricPolicyDefinition } from '@/features/metric-policy/MetricPolicyDefinition';
 import { metricPolicyErrorKind } from '@/features/metric-policy/metricPolicyError';
+import { useMetricPolicyLabel } from '@/features/metric-policy/useMetricPolicyLabel';
 import { useActivateMetricPolicy } from '@/features/metric-policy/useMetricPolicies';
 import styles from './ActivateMetricPolicyModal.module.css';
 
@@ -28,6 +29,7 @@ export function ActivateMetricPolicyModal({
   target,
 }: ActivateMetricPolicyModalProps) {
   const { t } = useTranslation();
+  const labelOf = useMetricPolicyLabel();
   const [reason, setReason] = useState('');
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const activate = useActivateMetricPolicy(close);
@@ -60,7 +62,9 @@ export function ActivateMetricPolicyModal({
             <h3>{t('metricPolicy.activate.before')}</h3>
             {active ? (
               <>
-                <p>{t('metricPolicy.version', { version: active.version, label: active.label })}</p>
+                <p>
+                  {t('metricPolicy.version', { version: active.version, label: labelOf(active) })}
+                </p>
                 <MetricPolicyDefinition policy={active} />
               </>
             ) : (
@@ -69,7 +73,7 @@ export function ActivateMetricPolicyModal({
           </section>
           <section aria-label={t('metricPolicy.activate.after')}>
             <h3>{t('metricPolicy.activate.after')}</h3>
-            <p>{t('metricPolicy.version', { version: target.version, label: target.label })}</p>
+            <p>{t('metricPolicy.version', { version: target.version, label: labelOf(target) })}</p>
             <MetricPolicyDefinition policy={target} />
           </section>
         </div>

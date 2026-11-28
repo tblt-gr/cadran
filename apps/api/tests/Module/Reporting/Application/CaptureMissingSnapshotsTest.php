@@ -115,6 +115,21 @@ final class CaptureMissingSnapshotsTest extends TestCase
         self::assertSame([], $this->snapshots->snapshots);
     }
 
+    public function testAnUnavailableDefinitionIsSkippedAndKeepsWhateverWasStored(): void
+    {
+        $month = new CalendarMonth(2025, 1);
+        $this->closures->add($this->closure('c1', WorkspaceFixture::own(), $month));
+        $this->snapshots->capture(WorkspaceFixture::own(), $month, 'c1', $this->figures('2025-01', false), new \DateTimeImmutable());
+        $this->projector->definitionAvailable = false;
+
+        $result = ($this->use())(WorkspaceFixture::own());
+
+        self::assertSame(0, $result->captured);
+        self::assertSame(1, $result->skipped);
+        self::assertNull($this->snapshots->find(WorkspaceFixture::own(), $month, 'c1')?->accountWeights);
+        self::assertCount(1, $this->snapshots->snapshots);
+    }
+
     public function testAnotherWorkspaceIsUntouched(): void
     {
         $this->closures->add($this->closure('c1', WorkspaceFixture::other(), new CalendarMonth(2025, 1)));

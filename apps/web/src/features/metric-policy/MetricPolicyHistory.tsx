@@ -1,6 +1,7 @@
 import type { MetricPolicy } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/ui/status-badge/StatusBadge';
+import { useMetricPolicyLabel } from '@/features/metric-policy/useMetricPolicyLabel';
 import styles from './MetricPolicyPage.module.css';
 
 interface MetricPolicyHistoryProps {
@@ -15,6 +16,7 @@ export function MetricPolicyHistory({
   versions,
 }: MetricPolicyHistoryProps) {
   const { t, i18n } = useTranslation();
+  const labelOf = useMetricPolicyLabel();
   const dateTime = new Intl.DateTimeFormat(i18n.language, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -47,7 +49,7 @@ export function MetricPolicyHistory({
             {versions.map((policy) => (
               <tr key={policy.version}>
                 <th scope="row">{policy.version}</th>
-                <td>{policy.label}</td>
+                <td>{labelOf(policy)}</td>
                 <td>
                   {policy.cashExcludedAccountKinds.length === 0
                     ? t('metricPolicy.definition.noExclusion')

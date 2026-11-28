@@ -11,6 +11,7 @@ final readonly class AnnualColumnView
         public string $label,
         public string $kind,
         public ?string $assetCode,
+        public bool $known,
         public ?string $institution = null,
         public ?string $parentLabel = null,
     ) {

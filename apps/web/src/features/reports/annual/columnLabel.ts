@@ -5,12 +5,20 @@ import { AXIS_IDS, INDICATOR_COLUMN_IDS } from './annualColumns';
  * The single source of a report column's title, used by the column picker, the table headers, the
  * cards, the explanation titles and the selected-columns list alike. Indicators and analytic axes
  * are named by the interface translations; categories, groups and accounts by the workspace's own
- * label (the backend report column and the picker catalogue carry the same one).
+ * label (the backend report column and the picker catalogue carry the same one). A column whose
+ * reference no longer resolves has no such label and is named as unknown.
  */
-export function useAnnualColumnLabel(): (column: { id: string; label: string }) => string {
+export function useAnnualColumnLabel(): (column: {
+  id: string;
+  label: string;
+  known?: boolean;
+}) => string {
   const { t } = useTranslation();
 
   return (column) => {
+    if (column.known === false) {
+      return t('reports.annual.unknownReference');
+    }
     const [type, reference = ''] = column.id.split(':', 2);
     if (INDICATOR_COLUMN_IDS.some((id) => id === column.id)) {
       return t(`reports.annual.indicators.${column.id as (typeof INDICATOR_COLUMN_IDS)[number]}`);

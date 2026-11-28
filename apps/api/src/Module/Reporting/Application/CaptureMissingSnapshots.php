@@ -15,7 +15,7 @@ use App\Module\Foundation\Domain\WorkspaceScope;
  * values were kept (the criterion of {@see LoadAnnualMonths}). Reads never write, so after a
  * historical import or a snapshot schema change such months are computed live until this runs. A
  * month already up to date is not counted as skipped: skipped means a month reopened between the
- * listing and its capture.
+ * listing and its capture, or one whose policy definition is unavailable, which a later run captures.
  *
  * Each month runs in its own transaction under the shared closure lock, so a reopening waits for at
  * most one month and a month reopened meanwhile is left alone.
@@ -52,7 +52,7 @@ final readonly class CaptureMissingSnapshots
         return new CaptureMissingSnapshotsResult($captured, $skipped);
     }
 
-    /** True when captured, false when the month was reopened meanwhile, null when already up to date. */
+    /** True when captured, false when skipped (reopened meanwhile or definition unavailable), null when already up to date. */
     private function captureOne(WorkspaceScope $workspace, CalendarMonth $month): ?bool
     {
         return $this->boundary->transactional(function () use ($workspace, $month): ?bool {
@@ -65,12 +65,8 @@ final readonly class CaptureMissingSnapshots
             if (null !== $figures && null !== $figures->accountWeights) {
                 return null;
             }
-            if (null !== $figures) {
-                $this->snapshots->deleteForMonth($workspace, $month);
-            }
-            ($this->capture)($workspace, $month, $closure->id);
 
-            return true;
+            return ($this->capture)($workspace, $month, $closure->id, null !== $figures);
         });
     }
 }

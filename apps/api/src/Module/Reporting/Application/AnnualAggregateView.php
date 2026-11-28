@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Application;
 
 use App\Module\Reporting\Domain\Aggregation\Aggregate;
+use App\Module\Reporting\Domain\Aggregation\AggregateReason;
 use App\Module\Reporting\Domain\Aggregation\MonthExtreme;
 
 final readonly class AnnualAggregateView
@@ -34,8 +35,12 @@ final readonly class AnnualAggregateView
     ) {
     }
 
-    public static function of(Aggregate $aggregate, ?string $previousAverage, ?string $previousReason): self
+    /** @param ?string $missingReason replaces the missing-month and empty-population reasons when the months name a precise cause */
+    public static function of(Aggregate $aggregate, ?string $previousAverage, ?string $previousReason, ?string $missingReason = null): self
     {
+        $reason = static fn (?AggregateReason $value): ?string => AggregateReason::MISSING_MONTH_VALUE === $value || AggregateReason::EMPTY_POPULATION === $value
+            ? ($missingReason ?? $value->value)
+            : $value?->value;
         $extreme = static fn (?MonthExtreme $extreme): ?AnnualExtremeView => null === $extreme
             ? null
             : new AnnualExtremeView($extreme->value->toString(), $extreme->month->key());
@@ -43,14 +48,14 @@ final readonly class AnnualAggregateView
         return new self(
             $aggregate->kind->value,
             $aggregate->total?->toString(),
-            $aggregate->totalReason?->value,
+            $reason($aggregate->totalReason),
             $aggregate->average?->toString(),
-            $aggregate->averageReason?->value,
+            $reason($aggregate->averageReason),
             $aggregate->median?->toString(),
-            $aggregate->medianReason?->value,
+            $reason($aggregate->medianReason),
             $extreme($aggregate->minimum),
             $extreme($aggregate->maximum),
-            $aggregate->extremesReason?->value,
+            $reason($aggregate->extremesReason),
             null === $aggregate->periodEnd?->value ? null : new AnnualExtremeView($aggregate->periodEnd->value->toString(), $aggregate->periodEnd->month->key()),
             $previousAverage,
             $previousReason,

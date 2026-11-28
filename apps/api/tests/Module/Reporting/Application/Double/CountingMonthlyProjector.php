@@ -13,6 +13,7 @@ use App\Module\Reporting\Application\ResolvedMetricPolicy;
 final class CountingMonthlyProjector implements MonthlyProjector
 {
     public int $calls = 0;
+    public bool $definitionAvailable = true;
 
     /** @var array<string, ?ResolvedMetricPolicy> the policy handed to each projected month */
     public array $policies = [];
@@ -22,6 +23,6 @@ final class CountingMonthlyProjector implements MonthlyProjector
         ++$this->calls;
         $this->policies[$month->key()] = $policy;
 
-        return MonthlyProjectionFixture::view($month->key());
+        return MonthlyProjectionFixture::view($month->key(), policyLabel: $this->definitionAvailable ? 'All accounts' : null);
     }
 }

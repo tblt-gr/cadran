@@ -1,6 +1,7 @@
 import type { AnnualColumn, AnnualReport } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '@/components/ui/modal/Modal';
+import { useMetricPolicyLabel } from '@/features/metric-policy/useMetricPolicyLabel';
 import { AnnualCellValue } from '@/features/reports/annual/AnnualCellValue';
 import { annualCellHref } from '@/features/reports/annual/annualColumns';
 import { monthLabel } from '@/features/reports/annual/annualRowLabels';
@@ -17,6 +18,7 @@ interface Props {
 /** Exposes the monthly sources of the entire selected period, rather than one annual total. */
 export function DetailedAggregateModal({ annualReports, close, column, label, quality }: Props) {
   const { t, i18n } = useTranslation();
+  const policyLabelOf = useMetricPolicyLabel();
   return (
     <Modal close={close} intent="detail" title={label}>
       <div className={styles.body}>
@@ -36,7 +38,7 @@ export function DetailedAggregateModal({ annualReports, close, column, label, qu
             {annualReports
               .map(
                 (annual) =>
-                  `${annual.year} : ${annual.metricPolicy.label ?? t('reports.multiYear.aggregateMixedPolicy')} (${annual.metricPolicy.versions.map((version) => `v${version}`).join(', ')})`,
+                  `${annual.year} : ${policyLabelOf(annual.metricPolicy) ?? t('reports.multiYear.aggregateMixedPolicy')} (${annual.metricPolicy.versions.map((version) => `v${version}`).join(', ')})`,
               )
               .join(' ; ')}
           </dd>
