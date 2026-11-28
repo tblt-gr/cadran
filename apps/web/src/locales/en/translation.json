@@ -4854,19 +4854,6 @@
     "noData": "No data",
     "notCalculable": "Not calculable",
     "progressLabel": "{{value}} reached",
-    "statuses": {
-      "REACHED": "Reached",
-      "AHEAD": "Ahead",
-      "BEHIND": "Behind",
-      "EXCEEDED": "Ceiling exceeded",
-      "ON_TRACK": "On target",
-      "OVER_PACE": "Above pace",
-      "MET": "Met",
-      "MISSED": "Missed",
-      "WITHIN": "Within limit",
-      "OVER": "Over limit",
-      "NOT_CALCULABLE": "Not calculable"
-    },
     "statusTable": {
       "caption": "Monthly goal progress",
       "month": "Month",

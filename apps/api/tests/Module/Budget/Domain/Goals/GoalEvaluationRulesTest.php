@@ -9,6 +9,7 @@ use App\Module\Budget\Domain\Goals\GoalDirection;
 use App\Module\Budget\Domain\Goals\GoalEvaluationRules;
 use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPace;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalPrecedence;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
@@ -107,10 +108,17 @@ final class GoalEvaluationRulesTest extends TestCase
 
     public function testPace(): void
     {
-        self::assertSame('BEHIND', GoalEvaluationRules::pace(GoalDirection::MINIMUM, '5100.00', '5500.00'));
-        self::assertSame('AHEAD', GoalEvaluationRules::pace(GoalDirection::MINIMUM, '5500.00', '5500.00'));
-        self::assertSame('ON_TRACK', GoalEvaluationRules::pace(GoalDirection::CEILING, '5500.00', '5500.00'));
-        self::assertSame('OVER_PACE', GoalEvaluationRules::pace(GoalDirection::CEILING, '5500.01', '5500.00'));
+        self::assertSame(GoalPace::BEHIND, GoalEvaluationRules::pace(GoalDirection::MINIMUM, '5100.00', '5500.00'));
+        self::assertSame(GoalPace::AHEAD, GoalEvaluationRules::pace(GoalDirection::MINIMUM, '5500.00', '5500.00'));
+        self::assertSame(GoalPace::ON_TRACK, GoalEvaluationRules::pace(GoalDirection::CEILING, '5500.00', '5500.00'));
+        self::assertSame(GoalPace::OVER_PACE, GoalEvaluationRules::pace(GoalDirection::CEILING, '5500.01', '5500.00'));
+    }
+
+    public function testExcessIsNeverNegative(): void
+    {
+        self::assertSame('80.00', GoalEvaluationRules::excess('2080.00', '2000.00'));
+        self::assertSame('0', GoalEvaluationRules::excess('2000.00', '2000.00'));
+        self::assertSame('0', GoalEvaluationRules::excess('1620.00', '2000.00'));
     }
 
     public function testStockDirectionSurvivesRenamingAndStopping(): void
@@ -125,7 +133,7 @@ final class GoalEvaluationRulesTest extends TestCase
         $expected = GoalEvaluationRules::stockExpected('10000', '20000', 3);
         self::assertNotNull($expected);
         self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('12500', $expected));
-        self::assertSame('BEHIND', GoalEvaluationRules::pace(GoalDirection::MINIMUM, '12000', $expected));
+        self::assertSame(GoalPace::BEHIND, GoalEvaluationRules::pace(GoalDirection::MINIMUM, '12000', $expected));
         self::assertSame(0, \App\Module\Foundation\Domain\ExactDecimal::compareForResponse('750', GoalEvaluationRules::stockExpected('1000', '0', 3) ?? throw new \LogicException('Expected a calculable pace.')));
         self::assertNull(GoalEvaluationRules::stockExpected(null, '20000', 3));
         self::assertNull(GoalEvaluationRules::stockExpected('10000', null, 3));

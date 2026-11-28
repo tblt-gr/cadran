@@ -8,15 +8,21 @@ use App\Module\Accounts\Application\ReadAccountReference;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Application\Goals\GoalMetricReader;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
+use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Budget\Application\Goals\GoalPeriodEvaluator;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPace;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalPolicyState;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
+use App\Module\Budget\Domain\Goals\GoalStatusQuality;
 use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
@@ -67,12 +73,14 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertSame('1620.00', $status->achieved);
         self::assertSame('1500.03', $status->expected);
-        self::assertSame('119.97', $status->gap);
+        self::assertSame('-380.00', $status->gap);
+        self::assertSame('119.97', $status->paceGap);
+        self::assertSame(GoalPace::AHEAD, $status->pace);
         self::assertSame('380.00', $status->remaining);
         self::assertSame('0', $status->excess);
-        self::assertSame('AHEAD', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
         self::assertSame('0.810000000000000000000000', $status->progressRatio);
-        self::assertSame('PROVISIONAL', $status->quality);
+        self::assertSame(GoalStatusQuality::PROVISIONAL, $status->quality);
         self::assertTrue($status->provisional);
         self::assertCount(9, $status->months);
     }
@@ -89,7 +97,10 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertSame('750.00', $status->achieved);
         self::assertSame('500.00', $status->expected);
-        self::assertSame('OVER_PACE', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
+        self::assertSame(GoalPace::OVER_PACE, $status->pace);
+        self::assertSame('-250.00', $status->paceGap);
+        self::assertSame('450.00', $status->gap);
     }
 
     public function testAnnualMinimumSeparatesRemainingAndExcessAfterReachingTheTarget(): void
@@ -103,7 +114,7 @@ final class ReadGoalStatusTest extends TestCase
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '2000.00')], $months)(self::GOAL_ID, '2026-08');
 
         self::assertSame('2080.00', $status->achieved);
-        self::assertSame('REACHED', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
         self::assertSame('0', $status->remaining);
         self::assertSame('80.00', $status->excess);
         self::assertSame('1', $status->progressRatioDisplay);
@@ -120,7 +131,7 @@ final class ReadGoalStatusTest extends TestCase
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '2000.00')], $months)(self::GOAL_ID, '2026-08');
 
         self::assertSame('2000.00', $status->achieved);
-        self::assertSame('REACHED', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
         self::assertSame('0', $status->remaining);
         self::assertSame('0', $status->excess);
     }
@@ -159,7 +170,7 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertSame('199999999999999999999999998', $status->achieved);
         self::assertSame('199999999999999999999999998', $status->months[1]->cumulativeValue);
-        self::assertSame('REACHED', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
         self::assertSame($maximum, $status->excess);
         self::assertSame('2.000000000000000000000000', $status->progressRatio);
         self::assertSame('1', $status->progressRatioDisplay);
@@ -176,7 +187,7 @@ final class ReadGoalStatusTest extends TestCase
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-11');
 
         self::assertSame('1250.00', $status->achieved);
-        self::assertSame('EXCEEDED', $status->status);
+        self::assertSame(GoalEvaluationStatus::MISSED, $status->status);
         self::assertSame('50.00', $status->excess);
         self::assertSame('0', $status->remaining);
     }
@@ -196,7 +207,7 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertSame('900.00', $status->achieved);
         self::assertSame('1200.00', $status->expected);
-        self::assertSame('PARTIAL', $status->quality);
+        self::assertSame(GoalStatusQuality::PARTIAL, $status->quality);
         self::assertSame(1, $status->months[5]->goalVersion);
         self::assertSame(2, $status->months[6]->goalVersion);
         self::assertSame(2, $status->goalVersion);
@@ -214,9 +225,9 @@ final class ReadGoalStatusTest extends TestCase
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months)(self::GOAL_ID, '2026-02');
 
         self::assertNull($status->achieved);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MIXED_METRIC_POLICIES', $status->reason);
-        self::assertSame('MIXED', $status->metricPolicy->state);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::MIXED_METRIC_POLICIES, $status->reason);
+        self::assertSame(GoalPolicyState::MIXED, $status->metricPolicy->state);
         self::assertSame([1, 2], $status->metricPolicy->versions);
     }
 
@@ -237,8 +248,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('2500.000000000000000000000000', $status->referenceIncome?->value?->toString());
         self::assertSame('750.000000000000000000000000', $status->target);
         self::assertSame('800.00', $status->actual);
-        self::assertSame('50.000000000000000000000000', $status->gap);
-        self::assertSame('OVER', $status->status);
+        self::assertSame('-50.000000000000000000000000', $status->gap);
+        self::assertSame(GoalEvaluationStatus::MISSED, $status->status);
     }
 
     public function testNegativeRollingSavingsRemainNegativeAndMissTheMinimum(): void
@@ -256,7 +267,7 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertSame('-120.00', $status->actual);
         self::assertSame('-620.000000000000000000000000', $status->gap);
-        self::assertSame('MISSED', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
     }
 
     public function testRollingStatusBlocksWhenReferenceAndActualUseDifferentMetricPolicies(): void
@@ -272,9 +283,9 @@ final class ReadGoalStatusTest extends TestCase
 
         $status = $this->reader($goal, [$version], $months)(self::GOAL_ID, '2026-09');
 
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MIXED_METRIC_POLICIES', $status->reason);
-        self::assertSame('MIXED', $status->metricPolicy->state);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::MIXED_METRIC_POLICIES, $status->reason);
+        self::assertSame(GoalPolicyState::MIXED, $status->metricPolicy->state);
         self::assertSame([1, 2], $status->metricPolicy->versions);
         // Target 2500 x 0.20 = 500 and actual 600 both exist, yet mixed policies make 600 - 500 meaningless.
         self::assertNull($status->gap);
@@ -297,8 +308,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('300.00', $status->actual);
         self::assertNull($status->target);
         self::assertNull($status->gap);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('NO_REFERENCE_INCOME', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::NO_REFERENCE_INCOME, $status->reason);
     }
 
     public function testAnnualGoalBeforeItsYearIsNotStarted(): void
@@ -313,8 +324,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertNull($status->expected);
         self::assertNull($status->gap);
         self::assertNull($status->progressRatio);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('GOAL_NOT_STARTED', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::GOAL_NOT_STARTED, $status->reason);
     }
 
     public function testRollingGoalBeforeItsFirstEffectiveMonthIsNotStarted(): void
@@ -330,8 +341,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertNull($status->target);
         self::assertSame('0', $status->actual);
         self::assertNull($status->gap);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('GOAL_NOT_STARTED', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::GOAL_NOT_STARTED, $status->reason);
     }
 
     public function testRollingMonthWithoutDataIsPartialAndNeverMetOrMissed(): void
@@ -344,9 +355,9 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('500.000000000000000000000000', $status->target);
         self::assertNull($status->actual);
         self::assertNull($status->gap);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MISSING_MONTH_VALUE', $status->reason);
-        self::assertSame('PARTIAL', $status->quality);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::MISSING_MONTH_VALUE, $status->reason);
+        self::assertSame(GoalStatusQuality::PARTIAL, $status->quality);
     }
 
     public function testCompleteMonthWithoutValueInMidYearMakesAchievedNonCalculable(): void
@@ -365,8 +376,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertNull($status->gap);
         self::assertNull($status->remaining);
         self::assertNull($status->progressRatio);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MISSING_MONTH_VALUE', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::MISSING_MONTH_VALUE, $status->reason);
         self::assertSame('300.00', $status->months[2]->cumulativeValue);
         self::assertNull($status->months[3]->value);
         self::assertNull($status->months[3]->cumulativeValue);
@@ -387,9 +398,9 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertSame('250.000000000000000000000000', $status->target);
         self::assertSame('300.00', $status->actual);
-        self::assertSame('50.000000000000000000000000', $status->gap);
-        self::assertSame('OVER', $status->status);
-        self::assertSame('REFERENCE_ARCHIVED', $status->reason);
+        self::assertSame('-50.000000000000000000000000', $status->gap);
+        self::assertSame(GoalEvaluationStatus::MISSED, $status->status);
+        self::assertSame(GoalReason::REFERENCE_ARCHIVED, $status->reason);
     }
 
     public function testCategorySpendingSumsTheOwnBranchExactly(): void
@@ -417,7 +428,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('10.00', $status->months[1]->value);
         self::assertSame('60.005000000000000000000001', $status->achieved);
         self::assertSame('200.00', $status->expected);
-        self::assertSame('ON_TRACK', $status->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
+        self::assertSame(GoalPace::ON_TRACK, $status->pace);
         self::assertNull($status->reason);
     }
 
@@ -444,8 +456,10 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('250.125', $status->months[0]->value);
         self::assertSame('-50.000000000000000000000001', $status->months[1]->value);
         self::assertSame('200.124999999999999999999999', $status->achieved);
-        self::assertSame('0.124999999999999999999999', $status->gap);
-        self::assertSame('AHEAD', $status->status);
+        self::assertSame('0.124999999999999999999999', $status->paceGap);
+        self::assertSame('-999.875000000000000000000001', $status->gap);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $status->status);
+        self::assertSame(GoalPace::AHEAD, $status->pace);
     }
 
     public function testAFigureInAnotherCurrencyThanTheGoalIsNotCalculable(): void
@@ -461,7 +475,7 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertNull($status->months[0]->value);
         self::assertNull($status->achieved);
-        self::assertSame('NOT_CALCULABLE', $status->status);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
     }
 
     public function testAnAccountTransferNetInAnotherCurrencyThanTheGoalIsNotCalculable(): void
@@ -474,7 +488,7 @@ final class ReadGoalStatusTest extends TestCase
         $status = $this->reader($goal, [self::annualVersion(1, '2026-01', '1200.00')], $months, transfers: new FixedTransferPairReader($pairs))(self::GOAL_ID, '2026-01');
 
         self::assertNull($status->months[0]->value);
-        self::assertSame('NOT_CALCULABLE', $status->status);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
     }
 
     public function testAccountContributionsOfAnotherWorkspaceAreNeverRead(): void
@@ -505,7 +519,7 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('400.00', $status->target);
         self::assertSame('400.00', $status->actual);
         self::assertSame('0.00', $status->gap);
-        self::assertSame('WITHIN', $status->status);
+        self::assertSame(GoalEvaluationStatus::MET, $status->status);
         self::assertNull($status->reason);
         self::assertSame(['380.00', '410.50', '400.00'], array_map(static fn ($month): ?string => $month->value, $status->months));
         self::assertSame(['400.00', '400.00', '400.00'], array_map(static fn ($month): ?string => $month->expectedPart, $status->months));
@@ -518,8 +532,8 @@ final class ReadGoalStatusTest extends TestCase
 
         $status = $this->reader($goal, [self::monthlyAmount('2026-01', '400.00')], $months)(self::GOAL_ID, '2026-02');
 
-        self::assertSame('10.505', $status->gap);
-        self::assertSame('OVER', $status->status);
+        self::assertSame('-10.505', $status->gap);
+        self::assertSame(GoalEvaluationStatus::MISSED, $status->status);
     }
 
     public function testAMonthlyIncomeShareTargetsTheMonthCashIncomeExactly(): void
@@ -533,8 +547,8 @@ final class ReadGoalStatusTest extends TestCase
         self::assertSame('INCOME_SHARE', $status->valueType);
         self::assertStringStartsWith('1200', (string) $status->target);
         self::assertSame(0, ExactDecimal::compareForResponse((string) $status->target, '1200'));
-        self::assertSame(0, ExactDecimal::compareForResponse((string) $status->gap, '-50'));
-        self::assertSame('WITHIN', $status->status);
+        self::assertSame(0, ExactDecimal::compareForResponse((string) $status->gap, '50'));
+        self::assertSame(GoalEvaluationStatus::MET, $status->status);
         self::assertSame('0.40', $status->ratio);
     }
 
@@ -547,8 +561,8 @@ final class ReadGoalStatusTest extends TestCase
 
         self::assertNull($status->target);
         self::assertNull($status->gap);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MISSING_CASH_INCOME', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::NO_DATA, $status->reason);
     }
 
     public function testASavingsRateFloorIsMetAtEqualityAndMissedBelowIt(): void
@@ -560,8 +574,8 @@ final class ReadGoalStatusTest extends TestCase
         $missed = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'cashSavingsRate', '0.199999999999999999999999')])(self::GOAL_ID, '2026-03');
 
         self::assertSame('RATE', $met->valueType);
-        self::assertSame('MET', $met->status);
-        self::assertSame('MISSED', $missed->status);
+        self::assertSame(GoalEvaluationStatus::MET, $met->status);
+        self::assertSame(GoalEvaluationStatus::MISSED, $missed->status);
         self::assertSame('-0.000000000000000000000001', $missed->gap);
     }
 
@@ -574,9 +588,9 @@ final class ReadGoalStatusTest extends TestCase
         $negative = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'netSavingsRate', '-0.05')])(self::GOAL_ID, '2026-03');
         $unknown = $this->reader($goal, $versions, [self::month(2026, 3, MonthState::COMPLETE, 'netSavingsRate', null)])(self::GOAL_ID, '2026-03');
 
-        self::assertSame('MET', $zero->status);
-        self::assertSame('MISSED', $negative->status);
-        self::assertSame('NOT_CALCULABLE', $unknown->status);
+        self::assertSame(GoalEvaluationStatus::MET, $zero->status);
+        self::assertSame(GoalEvaluationStatus::MISSED, $negative->status);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $unknown->status);
         self::assertNull($unknown->actual);
     }
 
@@ -587,8 +601,8 @@ final class ReadGoalStatusTest extends TestCase
 
         $status = $this->reader($goal, [self::monthlyAmount('2026-01', '400.00')], $months)(self::GOAL_ID, '2026-02');
 
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('GOAL_ENDED', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::GOAL_ENDED, $status->reason);
         self::assertNull($status->actual);
     }
 
@@ -600,8 +614,8 @@ final class ReadGoalStatusTest extends TestCase
         $status = $this->reader($goal, [self::monthlyShare(GoalValueType::INCOME_SHARE, '2026-01', '0.40')], $months)(self::GOAL_ID, '2026-03');
 
         self::assertSame('YEARLY', $status->periodicity);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('EVALUATION_NOT_AVAILABLE', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::EVALUATION_NOT_AVAILABLE, $status->reason);
         self::assertNull($status->achieved);
     }
 
@@ -613,8 +627,71 @@ final class ReadGoalStatusTest extends TestCase
 
         $status = $this->reader($goal, [self::monthlyAmount('2026-01', $maximum)], $months)(self::GOAL_ID, '2026-03');
 
-        self::assertSame('0.5', $status->gap);
-        self::assertSame('OVER', $status->status);
+        self::assertSame('-0.5', $status->gap);
+        self::assertSame(GoalEvaluationStatus::MISSED, $status->status);
+    }
+
+    public function testAZeroCashIncomeUnderAShareTargetIsNotCalculableNeverAZeroTarget(): void
+    {
+        $month = self::monthWith(2026, 3, MonthState::COMPLETE, ['cashIncome' => '0', 'axis:ESSENTIAL' => '100.00'], []);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'ESSENTIAL');
+
+        $status = $this->reader($goal, [self::monthlyShare(GoalValueType::INCOME_SHARE, '2026-01', '0.40')], [$month])(self::GOAL_ID, '2026-03');
+
+        self::assertNull($status->target);
+        self::assertNull($status->gap);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::ZERO_CASH_INCOME, $status->reason);
+    }
+
+    public function testAMonthWithoutMovementReadsAsAnExactZeroAsTheEvaluationsDo(): void
+    {
+        $month = self::monthWith(2026, 3, MonthState::COMPLETE, ['axis:ESSENTIAL' => null], []);
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'ESSENTIAL');
+
+        $status = $this->reader($goal, [self::monthlyAmount('2026-01', '400.00')], [$month])(self::GOAL_ID, '2026-03');
+
+        self::assertSame('0', $status->actual);
+        self::assertSame(GoalEvaluationStatus::MET, $status->status);
+        self::assertNull($status->reason);
+    }
+
+    public function testAYearlyGoalIsJudgedOnlyOnceTheTwelveMonthsAreComplete(): void
+    {
+        $months = [];
+        for ($index = 1; $index <= 12; ++$index) {
+            $months[] = self::month(2025, $index, MonthState::COMPLETE, 'netSavingsTransfers', '10.00');
+        }
+        $goal = new Goal(self::GOAL_ID, WorkspaceFixture::own(), 'Goal', GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE, null, AssetCode::fromString('EUR'), '2025', null, 1, new \DateTimeImmutable('2025-01-01'), WorkspaceFixture::OWNER_ID);
+        $reader = $this->reader($goal, [self::annualVersion(1, '2025-01', '2000.00')], $months);
+
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $reader(self::GOAL_ID, '2025-11')->status);
+        $december = $reader(self::GOAL_ID, '2025-12');
+        self::assertSame(GoalEvaluationStatus::MISSED, $december->status);
+        self::assertSame('-1880.00', $december->gap);
+        self::assertSame(GoalPace::BEHIND, $december->pace);
+    }
+
+    /** The goal and its figures belong to one workspace: a caller of another one finds nothing. */
+    public function testNothingOfAnotherWorkspaceIsRead(): void
+    {
+        $goal = self::goal(GoalPeriodicity::MONTHLY, GoalMetric::AXIS_SPENDING, GoalScopeType::AXIS, 'ESSENTIAL');
+        $source = new GoalStatusMonthSource([self::month(2026, 3, MonthState::COMPLETE, 'axis:ESSENTIAL', '100.00')]);
+        $caller = $this->createStub(CallerWorkspace::class);
+        $caller->method('resolve')->willReturn(WorkspaceFixture::other());
+        $goals = $this->createStub(GoalRepository::class);
+        $goals->method('find')->willReturnCallback(static fn (WorkspaceScope $workspace): ?Goal => $workspace->equals(WorkspaceFixture::own()) ? $goal : null);
+        $versions = $this->createMock(GoalVersionRepository::class);
+        $versions->expects(self::never())->method('listByGoal');
+        $metrics = new GoalMetricReader($source, new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs(new EmptyTransferPairReader())));
+        $read = new ReadGoalStatus($caller, $goals, $versions, $metrics, new GoalPeriodEvaluator($metrics), self::calendar());
+
+        try {
+            $read(self::GOAL_ID, '2026-03');
+            self::fail('A goal of another workspace does not exist for this caller.');
+        } catch (GoalNotFound) {
+            self::assertSame(0, $source->calls);
+        }
     }
 
     /**
@@ -746,15 +823,19 @@ final class ReadGoalStatusTest extends TestCase
     }
 }
 
-final readonly class GoalStatusMonthSource implements GoalMonthSource
+final class GoalStatusMonthSource implements GoalMonthSource
 {
+    public int $calls = 0;
+
     /** @param list<AnnualMonth> $months */
-    public function __construct(private array $months)
+    public function __construct(private readonly array $months)
     {
     }
 
     public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
     {
+        ++$this->calls;
+
         return array_values(array_filter($this->months, static fn (AnnualMonth $month): bool => $month->month->key() >= $start->key() && $month->month->key() <= $end->key()));
     }
 }

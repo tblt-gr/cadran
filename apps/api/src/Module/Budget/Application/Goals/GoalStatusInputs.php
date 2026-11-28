@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Application\Goals;
 
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Categories\Application\BudgetCategoryFact;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -17,9 +18,9 @@ use App\Module\Reporting\Application\AnnualMonth;
 final readonly class GoalStatusInputs
 {
     /**
-     * @param array<string, AnnualMonth>                                                                    $months           keyed by YYYY-MM
-     * @param list<BudgetCategoryFact>|null                                                                 $categoryFacts    null when no category fact reader is wired
-     * @param array<string, array<string, array{value: ?DecimalValue, reason: ?string, asset: ?AssetCode}>> $accountTransfers by YYYY-MM, then account
+     * @param array<string, AnnualMonth>                                                                        $months           keyed by YYYY-MM
+     * @param list<BudgetCategoryFact>|null                                                                     $categoryFacts    null when no category fact reader is wired
+     * @param array<string, array<string, array{value: ?DecimalValue, reason: ?GoalReason, asset: ?AssetCode}>> $accountTransfers by YYYY-MM, then account
      */
     public function __construct(
         public array $months,

@@ -6,6 +6,7 @@ namespace App\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionResolver;
@@ -26,7 +27,7 @@ final readonly class PresentGoal
         $current = GoalVersionResolver::forMonth($versions, $month) ?? $versions[0] ?? throw new \LogicException('A listed goal carries at least one version.');
         $scope ??= ($this->scope)($goal->workspace, $goal->scopeType, $goal->scopeRef, true);
 
-        return new GoalSummaryView($goal->id, $goal->label, $goal->periodicity->value, $goal->startPeriod, $goal->endPeriod, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), self::version($current), $goal->version, $scope->archived ? ['REFERENCE_ARCHIVED'] : [], $status);
+        return new GoalSummaryView($goal->id, $goal->label, $goal->periodicity->value, $goal->startPeriod, $goal->endPeriod, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), self::version($current), $goal->version, $scope->archived ? [GoalReason::REFERENCE_ARCHIVED->value] : [], $status);
     }
 
     /** @param list<GoalVersion> $versions */
@@ -41,11 +42,11 @@ final readonly class PresentGoal
             $reference = ($this->referenceIncome)($goal->workspace, $month);
             $resolved = [
                 'value' => null === $reference->value ? null : ExactDecimal::multiplyForResponse($reference->value, $current->ratio ?? throw new \LogicException('A rolling definition carries a ratio.')),
-                'reason' => $reference->reason,
+                'reason' => $reference->reason?->value,
             ];
         }
 
-        return new GoalDetailView($goal->id, $goal->label, $goal->periodicity->value, $goal->startPeriod, $goal->endPeriod, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), self::version($current), $goal->version, $scope->archived ? ['REFERENCE_ARCHIVED'] : [], array_map(self::version(...), array_reverse($versions)), $reference, $resolved);
+        return new GoalDetailView($goal->id, $goal->label, $goal->periodicity->value, $goal->startPeriod, $goal->endPeriod, $goal->metric->value, $goal->direction()->value, $scope, $goal->assetCode->toString(), self::version($current), $goal->version, $scope->archived ? [GoalReason::REFERENCE_ARCHIVED->value] : [], array_map(self::version(...), array_reverse($versions)), $reference, $resolved);
     }
 
     private static function version(GoalVersion $version): GoalVersionView

@@ -68,6 +68,6 @@ final readonly class PreviewGoalCorrection
 
     private static function state(GoalStatusView $status): GoalCorrectionPreviewStateView
     {
-        return new GoalCorrectionPreviewStateView($status->goalVersion, $status->expected ?? $status->target, $status->status);
+        return new GoalCorrectionPreviewStateView($status->goalVersion, $status->expected ?? $status->target, $status->status, $status->pace);
     }
 }

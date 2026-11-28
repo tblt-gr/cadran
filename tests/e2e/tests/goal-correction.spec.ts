@@ -85,8 +85,8 @@ for (const width of [1280, 360]) {
           months: [
             {
               month: previous,
-              before: { goalVersion: 1, expected: '3000', status: 'ON_TRACK' },
-              after: { goalVersion: 2, expected: '3100', status: 'ON_TRACK' },
+              before: { goalVersion: 1, expected: '3000', status: 'IN_PROGRESS', pace: null },
+              after: { goalVersion: 2, expected: '3100', status: 'IN_PROGRESS', pace: null },
             },
           ],
         },

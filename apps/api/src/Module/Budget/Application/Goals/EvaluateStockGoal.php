@@ -10,6 +10,7 @@ use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalEvaluationRules;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 
@@ -27,8 +28,8 @@ final readonly class EvaluateStockGoal
         $date = min($last, $today);
         $startDate = $first->modify('-1 day');
         $archived = $context->scope($this->scope, $goal)->archived;
-        $value = $archived ? [null, 'REFERENCE_ARCHIVED', null, 'MISSING'] : $this->value($context, $goal, $date);
-        $start = $archived ? [null, 'REFERENCE_ARCHIVED', null, 'MISSING'] : $this->value($context, $goal, $startDate);
+        $value = $archived ? [null, GoalReason::REFERENCE_ARCHIVED, null, 'MISSING'] : $this->value($context, $goal, $date);
+        $start = $archived ? [null, GoalReason::REFERENCE_ARCHIVED, null, 'MISSING'] : $this->value($context, $goal, $startDate);
         $target = $version->targetAmount?->toString();
         $tolerance = $version->toleranceAmount(null);
         $complete = $today->format('Y-m-d') >= $last->format('Y-m-d');
@@ -45,14 +46,14 @@ final readonly class EvaluateStockGoal
         return new GoalEvaluationView(
             $goal->id, $goal->label, $goal->periodicity->value, $goal->metric->value, $goal->scopeType->value, $goal->scopeRef, $goal->direction()->value,
             $version->valueType->value, null, $amount($target), $amount($value[0]), GoalEvaluationRules::gap($goal->direction(), $value[0], $target),
-            GoalEvaluationRules::status($goal->direction(), $value[0], $target, $complete, $tolerance)->value, $value[1], 'goals.formula.stock',
+            GoalEvaluationRules::status($goal->direction(), $value[0], $target, $complete, $tolerance), $value[1], 'goals.formula.stock',
             ['target' => $target, 'achieved' => $value[0], 'start' => $start[0], 'valuationDate' => $value[2], 'valuationQuality' => $value[3], 'tolerance' => $tolerance],
             $version->versionNo, $overrides, $pace, $amount($tolerance), GoalEvaluationRules::withinTolerance($goal->direction(), $value[0], $target, $tolerance),
             $amount($start[0]), $value[2], $value[3], '/accounts',
         );
     }
 
-    /** @return array{?string, ?string, ?string, string} */
+    /** @return array{?string, ?GoalReason, ?string, string} */
     private function value(EvaluationContext $context, Goal $goal, \DateTimeImmutable $day): array
     {
         $date = $day->format('Y-m-d');
@@ -66,7 +67,7 @@ final readonly class EvaluateStockGoal
             $asset = $valuation->assetCode;
             $quality = $valuation->quality;
             $asOf = $valuation->asOf;
-            $reason = null === $amount ? ($valuation->reason ?? 'NO_DATA') : null;
+            $reason = null === $amount ? (GoalReason::fromReport($valuation->reason) ?? GoalReason::NO_DATA)->forEvaluation() : null;
         } else {
             $valuation = ($this->netWorth)($date);
             $amount = $valuation->total?->amount;
@@ -78,11 +79,11 @@ final readonly class EvaluateStockGoal
                     $asOf = $contribution->valuedOn;
                 }
             }
-            $reason = null === $amount ? ('MIXED_ASSETS' === $valuation->reason ? 'MIXED_ASSETS' : 'NO_DATA') : null;
+            $reason = null === $amount ? (GoalReason::MIXED_ASSETS === GoalReason::fromReport($valuation->reason) ? GoalReason::MIXED_ASSETS : GoalReason::NO_DATA) : null;
         }
         if (null !== $asset && $asset !== $goal->assetCode->toString()) {
             $amount = null;
-            $reason = 'MIXED_ASSETS';
+            $reason = GoalReason::MIXED_ASSETS;
         }
 
         return $context->stocks[$key] = [$amount, $reason, $asOf, $quality];

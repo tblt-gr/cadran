@@ -1,5 +1,5 @@
 import { ModalActions } from '@/components/ui/form-layout/ModalActions';
-import type { GoalCorrectionPreview } from '@cadran/api-client';
+import type { GoalCorrectionPreview, GoalDirection } from '@cadran/api-client';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GoalErrorKind } from '@/features/goals/goalError';
@@ -10,6 +10,7 @@ import { CorrectionImpactTable } from './CorrectionImpactTable';
 export function CorrectionConfirmation({
   assetCode,
   confirmed,
+  direction,
   error,
   onBack,
   onConfirm,
@@ -19,6 +20,7 @@ export function CorrectionConfirmation({
 }: {
   assetCode: string;
   confirmed: boolean;
+  direction: GoalDirection;
   error: GoalErrorKind | null;
   onBack: () => void;
   onConfirm: () => void;
@@ -39,7 +41,7 @@ export function CorrectionConfirmation({
         {t('goals.correctionConfirmationTitle')}
       </h3>
       <p>{t('goals.correctionConfirmationDescription')}</p>
-      <CorrectionImpactTable assetCode={assetCode} preview={preview} />
+      <CorrectionImpactTable assetCode={assetCode} direction={direction} preview={preview} />
       {error ? (
         <p className={styles.alert} role="alert">
           {t(`goals.errors.${error}`)}

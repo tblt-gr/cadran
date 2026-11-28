@@ -50,10 +50,10 @@ final class GoalRepresentation
             'goalId' => $item->goalId, 'label' => $item->label, 'periodicity' => $item->periodicity, 'metric' => $item->metric,
             'scopeType' => $item->scopeType, 'scopeRef' => $item->scopeRef, 'direction' => $item->direction, 'valueType' => $item->valueType,
             'columnKey' => $item->columnKey, 'target' => $figure($item->target), 'achieved' => $figure($item->achieved), 'gap' => $item->gap,
-            'status' => $item->status, 'reason' => $item->reason,
+            'status' => $item->status->value, 'reason' => $item->reason?->value,
             'start' => $figure($item->start), 'valuationDate' => $item->valuationDate, 'valuationQuality' => $item->valuationQuality, 'explanationUrl' => $item->explanationUrl,
             'formula' => ['key' => $item->formulaKey, 'operands' => $item->operands],
-            'versionNo' => $item->versionNo, 'overrides' => $item->overrides, 'pace' => $item->pace,
+            'versionNo' => $item->versionNo, 'overrides' => $item->overrides, 'pace' => null === $item->pace ? null : ['expected' => $item->pace['expected'], 'status' => $item->pace['status']->value],
             'tolerance' => $figure($item->tolerance), 'withinTolerance' => $item->withinTolerance,
         ];
     }
@@ -64,7 +64,7 @@ final class GoalRepresentation
         $result = [...self::summary($goal), 'versions' => array_map(self::version(...), $goal->versions)];
         if (null !== $goal->referenceIncome) {
             $reference = $goal->referenceIncome;
-            $result['referenceIncome'] = ['month' => $reference->month, 'value' => $reference->value?->toString(), 'usableMonths' => $reference->usableMonths, 'windowStart' => $reference->windowStart, 'windowEnd' => $reference->windowEnd, 'reason' => $reference->reason];
+            $result['referenceIncome'] = ['month' => $reference->month, 'value' => $reference->value?->toString(), 'usableMonths' => $reference->usableMonths, 'windowStart' => $reference->windowStart, 'windowEnd' => $reference->windowEnd, 'reason' => $reference->reason?->value];
             $result['resolvedMonthlyTarget'] = $goal->resolvedMonthlyTarget;
         }
 
@@ -84,7 +84,7 @@ final class GoalRepresentation
     /** @return array<string, mixed> */
     private static function previewState(GoalCorrectionPreviewStateView $state): array
     {
-        return ['goalVersion' => $state->goalVersion, 'expected' => $state->expected, 'status' => $state->status];
+        return ['goalVersion' => $state->goalVersion, 'expected' => $state->expected, 'status' => $state->status->value, 'pace' => $state->pace?->value];
     }
 
     /** @return array<string, mixed> */
@@ -123,7 +123,7 @@ final class GoalRepresentation
     /** @return array<string, mixed> */
     public static function status(GoalStatusView $status, bool $includeMonths = true): array
     {
-        $policy = ['state' => $status->metricPolicy->state, 'version' => $status->metricPolicy->version, 'versions' => $status->metricPolicy->versions];
+        $policy = ['state' => $status->metricPolicy->state->value, 'version' => $status->metricPolicy->version, 'versions' => $status->metricPolicy->versions];
         $base = [
             'goalId' => $status->goalId,
             'month' => $status->month,
@@ -135,9 +135,9 @@ final class GoalRepresentation
             'metricPolicy' => $policy,
             'target' => $status->target,
             'gap' => $status->gap,
-            'status' => $status->status,
-            'reason' => $status->reason,
-            'quality' => $status->quality,
+            'status' => $status->status->value,
+            'reason' => $status->reason?->value,
+            'quality' => $status->quality->value,
         ];
         if ('MONTHLY' === $status->periodicity) {
             $reference = $status->referenceIncome;
@@ -148,7 +148,7 @@ final class GoalRepresentation
 
             return $monthly;
         }
-        $annual = [...$base, 'scheduleMode' => $status->scheduleMode, 'achieved' => $status->achieved, 'expected' => $status->expected, 'remaining' => $status->remaining, 'excess' => $status->excess, 'progressRatio' => $status->progressRatio, 'progressRatioDisplay' => $status->progressRatioDisplay];
+        $annual = [...$base, 'scheduleMode' => $status->scheduleMode, 'achieved' => $status->achieved, 'expected' => $status->expected, 'remaining' => $status->remaining, 'excess' => $status->excess, 'progressRatio' => $status->progressRatio, 'progressRatioDisplay' => $status->progressRatioDisplay, 'pace' => null === $status->pace ? null : ['expected' => $status->expected, 'status' => $status->pace->value], 'paceGap' => $status->paceGap];
         if ($includeMonths) {
             $annual['months'] = self::statusMonths($status);
         }

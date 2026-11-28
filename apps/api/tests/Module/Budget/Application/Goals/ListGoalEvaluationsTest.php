@@ -14,8 +14,11 @@ use App\Module\Budget\Application\Goals\GoalMonthSource;
 use App\Module\Budget\Application\Goals\ListGoalEvaluations;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPace;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
@@ -98,7 +101,7 @@ final class ListGoalEvaluationsTest extends TestCase
         $year = $result->years[0]->items[0];
         self::assertSame([self::G4, '6000.00', '-900.00', 'IN_PROGRESS', []], self::row($year));
         self::assertSame('5100.00', $year->achieved?->value);
-        self::assertSame(['expected' => '5500.00', 'status' => 'BEHIND'], $year->pace);
+        self::assertSame(['expected' => '5500.00', 'status' => GoalPace::BEHIND], $year->pace);
         self::assertSame('budgetSurplus', $year->columnKey);
     }
 
@@ -123,14 +126,14 @@ final class ListGoalEvaluationsTest extends TestCase
         self::assertSame('50.00', $axis['2026-07']->operands['tolerance']);
         self::assertSame('1250.00', $axis['2026-07']->achieved?->value);
         // 1100.00 respects the target: nothing is within tolerance, the margin is still shown.
-        self::assertSame('MET', $axis['2026-09']->status);
+        self::assertSame(GoalEvaluationStatus::MET, $axis['2026-09']->status);
         self::assertFalse($axis['2026-09']->withinTolerance);
         self::assertSame('50.00', $axis['2026-09']->tolerance?->value);
         // 1300.00 is past 1250.00.
-        self::assertSame('MISSED', $axis['2026-10']->status);
+        self::assertSame(GoalEvaluationStatus::MISSED, $axis['2026-10']->status);
         self::assertFalse($axis['2026-10']->withinTolerance);
         // 1210.00 in the running month stays in progress, inside the margin.
-        self::assertSame('IN_PROGRESS', $axis['2026-11']->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $axis['2026-11']->status);
         self::assertTrue($axis['2026-11']->withinTolerance);
     }
 
@@ -154,12 +157,12 @@ final class ListGoalEvaluationsTest extends TestCase
         self::assertSame('1.00', $rate['2026-08']->tolerance->percentDisplay);
         self::assertSame('0.01', $rate['2026-08']->operands['tolerance']);
         // 0.04 is far below the bound while the month runs: negative, not within.
-        self::assertSame('IN_PROGRESS', $rate['2026-11']->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $rate['2026-11']->status);
         self::assertFalse($rate['2026-11']->withinTolerance);
 
         $strict = $this->evaluate()('2026-08', '2026-08');
         $item = array_values(array_filter($strict->months[0]->items, static fn (GoalEvaluationView $item): bool => 'SAVINGS_RATE' === $item->metric))[0];
-        self::assertSame('MISSED', $item->status);
+        self::assertSame(GoalEvaluationStatus::MISSED, $item->status);
         self::assertNull($item->tolerance);
         self::assertNull($item->operands['tolerance']);
         self::assertFalse($item->withinTolerance);
@@ -171,7 +174,7 @@ final class ListGoalEvaluationsTest extends TestCase
         $result = $this->evaluate(extraVersions: [$tolerant], withNoDataMonth: '2026-09')('2026-09', '2026-09');
         $item = array_values(array_filter($result->months[0]->items, static fn (GoalEvaluationView $item): bool => 'AXIS_SPENDING' === $item->metric))[0];
 
-        self::assertSame('NOT_CALCULABLE', $item->status);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $item->status);
         self::assertNull($item->withinTolerance);
     }
 
@@ -201,8 +204,8 @@ final class ListGoalEvaluationsTest extends TestCase
         $result = $this->evaluate(withNoDataMonth: '2026-09')('2026-09', '2026-09');
 
         foreach ($result->months[0]->items as $item) {
-            self::assertSame('NOT_CALCULABLE', $item->status);
-            self::assertSame('NO_DATA', $item->reason);
+            self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $item->status);
+            self::assertSame(GoalReason::NO_DATA, $item->reason);
             self::assertNull($item->achieved);
             self::assertNull($item->gap);
         }
@@ -308,7 +311,7 @@ final class ListGoalEvaluationsTest extends TestCase
         // 5100.00 saved over 11 x 4600.00 of income; the mean of the monthly rates would differ.
         self::assertSame($expected, $rate->achieved?->ratio);
         self::assertSame('0.100790513833992094861660', $rate->achieved?->ratio);
-        self::assertSame('IN_PROGRESS', $rate->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $rate->status);
         self::assertSame('cashSavingsRate', $rate->columnKey);
     }
 
@@ -342,9 +345,9 @@ final class ListGoalEvaluationsTest extends TestCase
         $item = $result->months[0]->items[0];
 
         self::assertSame($column, $item->columnKey);
-        self::assertSame($expectedStatus, $item->status);
+        self::assertSame($expectedStatus, $item->status->value);
         self::assertSame(MonthState::NO_DATA === $state ? null : $actual, $item->achieved?->value);
-        self::assertSame(MonthState::NO_DATA === $state ? 'NO_DATA' : null, $item->reason);
+        self::assertSame(MonthState::NO_DATA === $state ? GoalReason::NO_DATA : null, $item->reason);
     }
 
     public function testAnnualTotalsEqualTheMatchingReportAggregates(): void
@@ -364,11 +367,11 @@ final class ListGoalEvaluationsTest extends TestCase
             self::assertSame($column, $result->years[0]->items[0]->columnKey);
             $empty = $this->evaluate(customGoals: [$goal], customMonths: [])('2026-01', '2026-11');
             self::assertNull($empty->years[0]->items[0]->achieved);
-            self::assertSame('NO_DATA', $empty->years[0]->items[0]->reason);
+            self::assertSame(GoalReason::NO_DATA, $empty->years[0]->items[0]->reason);
             $emptyMonths = [new AnnualMonth(new CalendarMonth(2026, 4), MonthState::COMPLETE, false, false, new MonthFigures('2026-04', 1, 'CURRENT', 0, '2026-04-30', [$column => new MonthlyMetricView('0', 'EUR', null)], [], [], [], false))];
             $empty = $this->evaluate(customGoals: [$goal], customMonths: $emptyMonths)('2026-01', '2026-11');
             self::assertNull($empty->years[0]->items[0]->achieved);
-            self::assertSame('NO_DATA', $empty->years[0]->items[0]->reason);
+            self::assertSame(GoalReason::NO_DATA, $empty->years[0]->items[0]->reason);
         }
     }
 
@@ -393,8 +396,8 @@ final class ListGoalEvaluationsTest extends TestCase
         $version = GoalVersion::share(self::G1, WorkspaceFixture::own(), self::G1, 2, '2026-01', GoalValueType::INCOME_SHARE, DecimalValue::fromString('0.80'), new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID, tolerance: DecimalValue::fromString('0.01'));
         $item = $this->evaluate(extraVersions: [$version], customGoals: [$goal], customMonths: $months)('2026-10', '2026-10')->months[0]->items[0];
 
-        self::assertSame($status, $item->status);
-        self::assertSame($reason, $item->reason);
+        self::assertSame($status, $item->status->value);
+        self::assertSame($reason, $item->reason?->value);
         self::assertSame($target, $item->target?->value);
         self::assertSame($tolerance, $item->tolerance?->value);
         self::assertSame($withinTolerance, $item->withinTolerance);
@@ -417,12 +420,12 @@ final class ListGoalEvaluationsTest extends TestCase
         self::assertSame('4050.00', $item->achieved?->value);
         self::assertSame('50.0000', $item->tolerance?->value);
         self::assertTrue($item->withinTolerance);
-        self::assertSame('IN_PROGRESS', $item->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $item->status);
         self::assertSame('budgetExpenses', $item->columnKey);
         $empty = $this->evaluate(extraVersions: [$version], customGoals: [$goal], customMonths: [])('2026-01', '2026-11')->years[0]->items[0];
         self::assertNull($empty->target);
         self::assertNull($empty->achieved);
-        self::assertSame('NO_DATA', $empty->reason);
+        self::assertSame(GoalReason::NO_DATA, $empty->reason);
     }
 
     /** @return array{0: string, 1: ?string, 2: ?string, 3: string, 4: list<string>} */
@@ -431,7 +434,7 @@ final class ListGoalEvaluationsTest extends TestCase
         $target = $item->target;
         $figure = null === $target ? null : ($target->isRate() ? $target->ratio : $target->value);
 
-        return [$item->goalId, $figure, $item->gap, $item->status, $item->overrides];
+        return [$item->goalId, $figure, $item->gap, $item->status->value, $item->overrides];
     }
 
     /**

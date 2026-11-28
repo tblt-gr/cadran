@@ -7,8 +7,11 @@ namespace App\Module\Budget\Application\Goals;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Accounts\Domain\InvalidCalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalRepository;
+use App\Module\Budget\Domain\Goals\GoalStatusQuality;
 use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionRepository;
@@ -70,14 +73,14 @@ final readonly class ReadGoalStatus
      */
     public function future(Goal $goal, array $versions, CalendarMonth $month): GoalStatusView
     {
-        return $this->notCalculable($goal, GoalVersionResolver::forMonth($versions, $month), $month, 'FUTURE_MONTH', 'EMPTY');
+        return $this->notCalculable($goal, GoalVersionResolver::forMonth($versions, $month), $month, GoalReason::FUTURE_MONTH, GoalStatusQuality::EMPTY);
     }
 
     /**
      * A month the goal does not cover, or a definition this read does not evaluate yet, has no
      * figure: the status names the month and the definition then in effect, never a borrowed value.
      */
-    private function notCalculable(Goal $goal, ?GoalVersion $version, CalendarMonth $month, string $reason, string $quality): GoalStatusView
+    private function notCalculable(Goal $goal, ?GoalVersion $version, CalendarMonth $month, GoalReason $reason, GoalStatusQuality $quality): GoalStatusView
     {
         $amount = GoalValueType::AMOUNT === $version?->valueType;
 
@@ -97,7 +100,7 @@ final readonly class ReadGoalStatus
             null,
             null,
             null,
-            'NOT_CALCULABLE',
+            GoalEvaluationStatus::NOT_CALCULABLE,
             null,
             null,
             $reason,
@@ -118,16 +121,16 @@ final readonly class ReadGoalStatus
         $categoryIds = $this->metrics->categoryBranch($goal, $inputs);
         $version = GoalVersionResolver::forMonth($versions, $month);
         if (!$goal->coversPeriod($month->key())) {
-            return $this->notCalculable($goal, $version, $month, $month->key() < $goal->firstMonth() ? 'GOAL_NOT_STARTED' : 'GOAL_ENDED', 'EMPTY');
+            return $this->notCalculable($goal, $version, $month, $month->key() < $goal->firstMonth() ? GoalReason::GOAL_NOT_STARTED : GoalReason::GOAL_ENDED, GoalStatusQuality::EMPTY);
         }
         if ($goal->metric->isStock()) {
-            return $this->notCalculable($goal, $version, $month, 'EVALUATION_NOT_AVAILABLE', 'EMPTY');
+            return $this->notCalculable($goal, $version, $month, GoalReason::EVALUATION_NOT_AVAILABLE, GoalStatusQuality::EMPTY);
         }
         if (GoalPeriodicity::MONTHLY === $goal->periodicity) {
             return $this->evaluator->monthly($goal, $versions, $month, $archived, $categoryIds, $inputs);
         }
         if (GoalValueType::AMOUNT !== $version?->valueType) {
-            return $this->notCalculable($goal, $version, $month, null === $version ? 'GOAL_NOT_STARTED' : 'EVALUATION_NOT_AVAILABLE', 'EMPTY');
+            return $this->notCalculable($goal, $version, $month, null === $version ? GoalReason::GOAL_NOT_STARTED : GoalReason::EVALUATION_NOT_AVAILABLE, GoalStatusQuality::EMPTY);
         }
 
         return $this->evaluator->annual($goal, $versions, $month, $archived, $categoryIds, $inputs);

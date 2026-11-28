@@ -8,12 +8,15 @@ use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalPolicyState;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Categories\Application\ReadBudgetCategoryFacts;
 use App\Module\Categories\Domain\Category;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
+use App\Module\Reporting\Application\AnnualColumnSeries;
 use App\Module\Reporting\Application\AnnualMonth;
 use App\Module\Reporting\Application\MonthFigures;
 use App\Module\Reporting\Application\MonthlyMetricView;
@@ -78,7 +81,7 @@ final readonly class GoalMetricReader
      * @param list<Goal>                 $goals
      * @param array<string, AnnualMonth> $months
      *
-     * @return array<string, array<string, array{value: ?DecimalValue, reason: ?string, asset: ?AssetCode}>>
+     * @return array<string, array<string, array{value: ?DecimalValue, reason: ?GoalReason, asset: ?AssetCode}>>
      */
     private function accountTransfers(WorkspaceScope $workspace, CalendarMonth $first, CalendarMonth $last, array $goals, array $months): array
     {
@@ -106,8 +109,8 @@ final readonly class GoalMetricReader
             foreach ($accountIds as $accountId) {
                 $net = $nets[$accountId] ?? null;
                 $transfers[$key][$accountId] = null === $net
-                    ? ['value' => null, 'reason' => 'TRANSFER_SCOPE_TOO_LARGE', 'asset' => null]
-                    : ['value' => $net->value, 'reason' => $net->reason?->value, 'asset' => $net->asset];
+                    ? ['value' => null, 'reason' => GoalReason::TRANSFER_SCOPE_TOO_LARGE, 'asset' => null]
+                    : ['value' => $net->value, 'reason' => GoalReason::fromReport($net->reason?->value), 'asset' => $net->asset];
             }
         }
 
@@ -115,22 +118,24 @@ final readonly class GoalMetricReader
     }
 
     /**
+     * A month without movement is an exact zero, as the report totals count it.
+     *
      * @param list<string> $categoryIds
      *
-     * @return array{value: ?DecimalValue, reason: ?string}
+     * @return array{value: ?DecimalValue, reason: ?GoalReason}
      */
     public function metric(Goal $goal, AnnualMonth $month, array $categoryIds, GoalStatusInputs $inputs): array
     {
         if (MonthState::NO_DATA === $month->state || MonthState::FUTURE === $month->state) {
-            return ['value' => null, 'reason' => $month->state->value];
+            return ['value' => null, 'reason' => MonthState::FUTURE === $month->state ? GoalReason::FUTURE_MONTH : GoalReason::NO_DATA];
         }
         if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true) && false === $month->figures?->hasTransactions) {
-            return ['value' => null, 'reason' => 'NO_DATA'];
+            return ['value' => null, 'reason' => GoalReason::NO_DATA];
         }
         if (GoalMetric::ACCOUNT_CONTRIBUTIONS === $goal->metric) {
             $net = $inputs->accountTransfers[$month->month->key()][$goal->scopeRef ?? ''] ?? throw new \LogicException('An account goal status reads its preloaded transfer net.');
             if (null !== $net['asset'] && !$net['asset']->equals($goal->assetCode)) {
-                return ['value' => null, 'reason' => 'MIXED_ASSETS'];
+                return ['value' => null, 'reason' => GoalReason::MIXED_ASSETS];
             }
 
             return ['value' => $net['value'], 'reason' => $net['reason']];
@@ -138,10 +143,10 @@ final readonly class GoalMetricReader
         if (GoalMetric::CATEGORY_SPENDING === $goal->metric) {
             $budgetExpenses = $month->figures?->cells['budgetExpenses'] ?? null;
             if (null === $budgetExpenses) {
-                return ['value' => null, 'reason' => 'MISSING_MONTH_VALUE'];
+                return ['value' => null, 'reason' => GoalReason::MISSING_MONTH_VALUE];
             }
             if (null === $budgetExpenses->value) {
-                return ['value' => null, 'reason' => $budgetExpenses->reason ?? 'MISSING_MONTH_VALUE'];
+                return self::withoutValue($budgetExpenses);
             }
             $included = array_flip($month->figures->budgetExpenseCategoryIds);
             $values = [];
@@ -151,17 +156,17 @@ final readonly class GoalMetricReader
                 }
                 $category = $month->figures?->cells[MonthFigures::OWN_CATEGORY_PREFIX.$categoryId] ?? null;
                 if (null === $category) {
-                    return ['value' => null, 'reason' => 'MISSING_MONTH_VALUE'];
+                    return ['value' => null, 'reason' => GoalReason::MISSING_MONTH_VALUE];
                 }
                 if (null === $category->value) {
-                    if ('NO_MOVEMENTS' === $category->reason) {
+                    if (AnnualColumnSeries::NO_MOVEMENTS === $category->reason) {
                         continue;
                     }
 
-                    return ['value' => null, 'reason' => $category->reason ?? 'MISSING_MONTH_VALUE'];
+                    return self::withoutValue($category);
                 }
                 if (!self::inCurrency($category, $goal)) {
-                    return ['value' => null, 'reason' => 'MIXED_ASSETS'];
+                    return ['value' => null, 'reason' => GoalReason::MIXED_ASSETS];
                 }
                 $values[] = DecimalValue::fromString($category->value);
             }
@@ -180,17 +185,25 @@ final readonly class GoalMetricReader
         };
         $metric = $month->figures?->cells[$cell] ?? null;
         if (null === $metric) {
-            return ['value' => null, 'reason' => 'MISSING_MONTH_VALUE'];
+            return ['value' => null, 'reason' => GoalReason::MISSING_MONTH_VALUE];
         }
         if (null === $metric->value) {
-            return ['value' => null, 'reason' => $metric->reason ?? 'MISSING_MONTH_VALUE'];
+            return self::withoutValue($metric);
         }
 
         if (!self::inCurrency($metric, $goal)) {
-            return ['value' => null, 'reason' => 'MIXED_ASSETS'];
+            return ['value' => null, 'reason' => GoalReason::MIXED_ASSETS];
         }
 
-        return ['value' => DecimalValue::fromString($metric->value), 'reason' => $metric->reason];
+        return ['value' => DecimalValue::fromString($metric->value), 'reason' => GoalReason::fromReport($metric->reason)];
+    }
+
+    /** @return array{value: ?DecimalValue, reason: ?GoalReason} */
+    private static function withoutValue(MonthlyMetricView $metric): array
+    {
+        return AnnualColumnSeries::NO_MOVEMENTS === $metric->reason
+            ? ['value' => DecimalValue::zero(), 'reason' => null]
+            : ['value' => null, 'reason' => GoalReason::fromReport($metric->reason) ?? GoalReason::MISSING_MONTH_VALUE];
     }
 
     /** A figure is only summed in the goal's currency when its own asset is that currency. */
@@ -244,6 +257,6 @@ final readonly class GoalMetricReader
         $versions = array_values(array_unique($versions));
         sort($versions);
 
-        return new GoalStatusMetricPolicyView(count($versions) > 1 ? 'MIXED' : ([] === $versions ? 'NONE' : 'SINGLE'), 1 === count($versions) ? $versions[0] : null, $versions);
+        return new GoalStatusMetricPolicyView(count($versions) > 1 ? GoalPolicyState::MIXED : ([] === $versions ? GoalPolicyState::NONE : GoalPolicyState::SINGLE), 1 === count($versions) ? $versions[0] : null, $versions);
     }
 }

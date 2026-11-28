@@ -1250,7 +1250,11 @@ export type GoalVersion = {
 export type GoalCorrectionPreviewState = {
     goalVersion: number | null;
     expected: GoalStatusValue;
-    status: 'REACHED' | 'AHEAD' | 'BEHIND' | 'EXCEEDED' | 'ON_TRACK' | 'OVER_PACE' | 'MET' | 'MISSED' | 'WITHIN' | 'OVER' | 'NOT_CALCULABLE';
+    status: GoalEvaluationStatus;
+    /**
+     * The pace of a yearly amount goal; null for a monthly goal, without a schedule or without an achieved value.
+     */
+    pace: 'AHEAD' | 'BEHIND' | 'ON_TRACK' | 'OVER_PACE' | null;
 };
 
 export type GoalCorrectionPreviewMonth = {
@@ -1466,7 +1470,7 @@ export type GoalStatusMetricPolicy = {
     versions: Array<number>;
 };
 
-export type GoalStatusReason = 'MISSING_MONTH_VALUE' | 'MIXED_METRIC_POLICIES' | 'NO_REFERENCE_INCOME' | 'MISSING_CASH_INCOME' | 'GOAL_NOT_STARTED' | 'GOAL_ENDED' | 'EVALUATION_NOT_AVAILABLE' | 'REFERENCE_ARCHIVED' | 'FUTURE_MONTH' | null;
+export type GoalStatusReason = 'MISSING_MONTH_VALUE' | 'MIXED_METRIC_POLICIES' | 'NO_REFERENCE_INCOME' | 'MISSING_CASH_INCOME' | 'GOAL_NOT_STARTED' | 'GOAL_ENDED' | 'EVALUATION_NOT_AVAILABLE' | 'REFERENCE_ARCHIVED' | 'FUTURE_MONTH' | 'NO_DATA' | 'ZERO_CASH_INCOME' | null;
 
 export type GoalStatusValue = string | null;
 
@@ -1501,12 +1505,23 @@ export type GoalYearlyStatus = {
     target: GoalStatusValue;
     achieved: GoalStatusValue;
     expected: GoalStatusValue;
+    /**
+     * The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
+     */
     gap: GoalStatusValue;
     remaining: GoalStatusValue;
     excess: GoalStatusValue;
-    status: 'REACHED' | 'AHEAD' | 'BEHIND' | 'EXCEEDED' | 'ON_TRACK' | 'OVER_PACE' | 'NOT_CALCULABLE';
+    status: GoalEvaluationStatus;
     progressRatio: GoalStatusValue;
     progressRatioDisplay: GoalStatusValue;
+    /**
+     * Where the achieved value stands against what the schedule expects by the read month, the tolerance never applying; null without a schedule or an achieved value.
+     */
+    pace: GoalEvaluationPace | null;
+    /**
+     * The achieved value against the expected one, signed so that a positive gap is in the goal's favour; null when either is.
+     */
+    paceGap: GoalStatusValue;
     reason: GoalStatusReason;
     quality: 'COMPLETE' | 'PROVISIONAL' | 'PARTIAL' | 'EMPTY';
     /**
@@ -1528,12 +1543,23 @@ export type GoalYearlyStatusSummary = {
     target: GoalStatusValue;
     achieved: GoalStatusValue;
     expected: GoalStatusValue;
+    /**
+     * The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
+     */
     gap: GoalStatusValue;
     remaining: GoalStatusValue;
     excess: GoalStatusValue;
-    status: 'REACHED' | 'AHEAD' | 'BEHIND' | 'EXCEEDED' | 'ON_TRACK' | 'OVER_PACE' | 'NOT_CALCULABLE';
+    status: GoalEvaluationStatus;
     progressRatio: GoalStatusValue;
     progressRatioDisplay: GoalStatusValue;
+    /**
+     * Where the achieved value stands against what the schedule expects by the read month, the tolerance never applying; null without a schedule or an achieved value.
+     */
+    pace: GoalEvaluationPace | null;
+    /**
+     * The achieved value against the expected one, signed so that a positive gap is in the goal's favour; null when either is.
+     */
+    paceGap: GoalStatusValue;
     reason: GoalStatusReason;
     quality: 'COMPLETE' | 'PROVISIONAL' | 'PARTIAL' | 'EMPTY';
 };
@@ -1551,8 +1577,11 @@ export type GoalMonthlyStatus = {
     referenceIncome: GoalStatusReferenceIncome | null;
     target: GoalStatusValue;
     actual: GoalStatusValue;
+    /**
+     * The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
+     */
     gap: GoalStatusValue;
-    status: 'MET' | 'MISSED' | 'WITHIN' | 'OVER' | 'NOT_CALCULABLE';
+    status: GoalEvaluationStatus;
     reason: GoalStatusReason;
     quality: 'COMPLETE' | 'PROVISIONAL' | 'PARTIAL' | 'EMPTY';
     /**
@@ -1574,8 +1603,11 @@ export type GoalMonthlyStatusSummary = {
     referenceIncome: GoalStatusReferenceIncome | null;
     target: GoalStatusValue;
     actual: GoalStatusValue;
+    /**
+     * The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
+     */
     gap: GoalStatusValue;
-    status: 'MET' | 'MISSED' | 'WITHIN' | 'OVER' | 'NOT_CALCULABLE';
+    status: GoalEvaluationStatus;
     reason: GoalStatusReason;
     quality: 'COMPLETE' | 'PROVISIONAL' | 'PARTIAL' | 'EMPTY';
 };

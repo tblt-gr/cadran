@@ -90,14 +90,22 @@ final class GoalEvaluationRules
             : ExactDecimal::subtractForResponse($achieved, $target);
     }
 
-    /** @return 'AHEAD'|'BEHIND'|'ON_TRACK'|'OVER_PACE' */
-    public static function pace(GoalDirection $direction, string $achieved, string $expected): string
+    /** How far a value exceeds a bound, zero when it does not. */
+    public static function excess(string $value, string $bound): string
+    {
+        $difference = ExactDecimal::subtractForResponse($value, $bound);
+
+        return ExactDecimal::compareForResponse($difference, '0') <= 0 ? '0' : $difference;
+    }
+
+    /** The tolerance never applies to the pace. */
+    public static function pace(GoalDirection $direction, string $achieved, string $expected): GoalPace
     {
         $comparison = ExactDecimal::compareForResponse($achieved, $expected);
         if (GoalDirection::MINIMUM === $direction) {
-            return $comparison >= 0 ? 'AHEAD' : 'BEHIND';
+            return $comparison >= 0 ? GoalPace::AHEAD : GoalPace::BEHIND;
         }
 
-        return $comparison <= 0 ? 'ON_TRACK' : 'OVER_PACE';
+        return $comparison <= 0 ? GoalPace::ON_TRACK : GoalPace::OVER_PACE;
     }
 }

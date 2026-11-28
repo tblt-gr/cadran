@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -50,12 +51,12 @@ final readonly class ReadReferenceIncome
                 $policyVersions[] = $item->figures->policyVersion;
                 continue;
             }
-            $excluded[] = ['month' => $item->month->key(), 'reason' => MonthState::COMPLETE === $item->state ? ($income->reason ?? 'MISSING_CASH_INCOME') : $item->state->value];
+            $excluded[] = ['month' => $item->month->key(), 'reason' => MonthState::COMPLETE === $item->state ? ($income->reason ?? GoalReason::MISSING_CASH_INCOME->value) : $item->state->value];
         }
         $policyVersions = array_values(array_unique($policyVersions));
         sort($policyVersions);
         if ([] === $values) {
-            return new ReferenceIncomeView($month->key(), null, 0, $start->key(), $end->key(), 'NO_REFERENCE_INCOME', $excluded, $policyVersions);
+            return new ReferenceIncomeView($month->key(), null, 0, $start->key(), $end->key(), GoalReason::NO_REFERENCE_INCOME, $excluded, $policyVersions);
         }
 
         return new ReferenceIncomeView(

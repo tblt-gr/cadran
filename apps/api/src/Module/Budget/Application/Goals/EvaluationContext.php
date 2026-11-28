@@ -6,6 +6,7 @@ namespace App\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 
 /** What one evaluation read loads once and memoizes: versions, scopes, category branches and reference incomes. */
@@ -14,7 +15,7 @@ final class EvaluationContext
     /** @var array<string, list<GoalVersion>> */
     public array $versions = [];
 
-    /** @var array<string, array{?string, ?string, ?string, string}> */
+    /** @var array<string, array{?string, ?GoalReason, ?string, string}> */
     public array $stocks = [];
 
     /** @var array<string, GoalScopeView> */

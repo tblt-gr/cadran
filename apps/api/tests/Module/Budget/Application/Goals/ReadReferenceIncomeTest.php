@@ -7,6 +7,7 @@ namespace App\Tests\Module\Budget\Application\Goals;
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
 use App\Module\Budget\Application\Goals\ReadReferenceIncome;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
 use App\Module\Foundation\Domain\WorkspaceScope;
@@ -48,7 +49,7 @@ final class ReadReferenceIncomeTest extends TestCase
         );
 
         self::assertNull($result->value);
-        self::assertSame('NO_REFERENCE_INCOME', $result->reason);
+        self::assertSame(GoalReason::NO_REFERENCE_INCOME, $result->reason);
         self::assertSame(0, $result->usableMonths);
     }
 

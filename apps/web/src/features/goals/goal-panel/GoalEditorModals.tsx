@@ -67,6 +67,7 @@ function GoalFormModal({ editor }: { editor: GoalEditor }) {
             <CorrectionConfirmation
               assetCode={editing.assetCode}
               confirmed={editor.correctionConfirmed}
+              direction={editing.direction}
               error={save.isError ? (goalErrorKind(save.error, true) ?? 'network') : null}
               onBack={editor.backToForm}
               onConfirm={() => save.mutate(correction.body)}

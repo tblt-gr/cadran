@@ -11,6 +11,8 @@ use App\Module\Budget\Application\Goals\GoalStatusInputs;
 use App\Module\Budget\Domain\Goals\Goal;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalPolicyState;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
 use App\Module\Categories\Application\BudgetCategoryFact;
 use App\Module\Foundation\Domain\AssetCode;
@@ -77,7 +79,7 @@ final class GoalMetricReaderTest extends TestCase
             $metric = $this->reader([])->metric($goal, new AnnualMonth(new CalendarMonth(2026, 1), $state, false, false, null), [], $inputs);
 
             self::assertNull($metric['value']);
-            self::assertSame($state->value, $metric['reason']);
+            self::assertSame(MonthState::FUTURE === $state ? GoalReason::FUTURE_MONTH : GoalReason::NO_DATA, $metric['reason']);
         }
     }
 
@@ -102,9 +104,9 @@ final class GoalMetricReaderTest extends TestCase
         $empty = $reader->metric($goal, self::month(2026, 1, MonthState::COMPLETE, 'netSavingsTransfers', null), [], $inputs);
 
         self::assertNull($missing['value']);
-        self::assertSame('MISSING_MONTH_VALUE', $missing['reason']);
+        self::assertSame(GoalReason::MISSING_MONTH_VALUE, $missing['reason']);
         self::assertNull($empty['value']);
-        self::assertSame('NO_ACCOUNT', $empty['reason']);
+        self::assertSame(GoalReason::NO_DATA, $empty['reason']);
     }
 
     public function testMetricInAnotherCurrencyIsMixedAssets(): void
@@ -117,7 +119,7 @@ final class GoalMetricReaderTest extends TestCase
         $metric = $this->reader([])->metric($goal, $month, [], new GoalStatusInputs([], null));
 
         self::assertNull($metric['value']);
-        self::assertSame('MIXED_ASSETS', $metric['reason']);
+        self::assertSame(GoalReason::MIXED_ASSETS, $metric['reason']);
     }
 
     public function testTotalIncomeWithoutTransactionsIsNoData(): void
@@ -128,7 +130,7 @@ final class GoalMetricReaderTest extends TestCase
         $metric = $this->reader([])->metric($goal, $month, [], new GoalStatusInputs([], null));
 
         self::assertNull($metric['value']);
-        self::assertSame('NO_DATA', $metric['reason']);
+        self::assertSame(GoalReason::NO_DATA, $metric['reason']);
     }
 
     public function testCategorySpendingSumsTheBranchOwnFiguresAndSkipsMovementlessCategories(): void
@@ -172,9 +174,9 @@ final class GoalMetricReaderTest extends TestCase
         $single = GoalMetricReader::policyFromVersions([2, 2]);
         $mixed = GoalMetricReader::policyFromVersions([3, 1, 3]);
 
-        self::assertSame(['NONE', null, []], [$none->state, $none->version, $none->versions]);
-        self::assertSame(['SINGLE', 2, [2]], [$single->state, $single->version, $single->versions]);
-        self::assertSame(['MIXED', null, [1, 3]], [$mixed->state, $mixed->version, $mixed->versions]);
+        self::assertSame([GoalPolicyState::NONE, null, []], [$none->state, $none->version, $none->versions]);
+        self::assertSame([GoalPolicyState::SINGLE, 2, [2]], [$single->state, $single->version, $single->versions]);
+        self::assertSame([GoalPolicyState::MIXED, null, [1, 3]], [$mixed->state, $mixed->version, $mixed->versions]);
     }
 
     /** @param list<AnnualMonth> $months */

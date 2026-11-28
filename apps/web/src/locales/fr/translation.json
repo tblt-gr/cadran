@@ -4854,19 +4854,6 @@
     "noData": "Aucune donnée",
     "notCalculable": "Non calculable",
     "progressLabel": "{{value}} atteint",
-    "statuses": {
-      "REACHED": "Atteint",
-      "AHEAD": "En avance",
-      "BEHIND": "En retard",
-      "EXCEEDED": "Plafond dépassé",
-      "ON_TRACK": "Dans la cible",
-      "OVER_PACE": "Au-dessus du rythme",
-      "MET": "Atteint",
-      "MISSED": "Non atteint",
-      "WITHIN": "Dans la limite",
-      "OVER": "Au-dessus de la limite",
-      "NOT_CALCULABLE": "Non calculable"
-    },
     "statusTable": {
       "caption": "Progression mensuelle de l’objectif",
       "month": "Mois",
