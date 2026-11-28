@@ -1,15 +1,18 @@
-import type { GoalCorrectionPreview } from '@cadran/api-client';
+import type { GoalCorrectionPreview, GoalDirection } from '@cadran/api-client';
 import { useTranslation } from 'react-i18next';
 import { EmptyValue } from '@/components/ui/empty-value/EmptyValue';
 import { formatAmount } from '@/lib/decimal';
+import { statusText } from '@/features/goals/goal-mark/goalMarks';
 import { formatGoalMonth } from '@/features/goals/goalMonth';
 import styles from './GoalHistory.module.css';
 
 export function CorrectionImpactTable({
   assetCode,
+  direction,
   preview,
 }: {
   assetCode: string;
+  direction: GoalDirection;
   preview: GoalCorrectionPreview;
 }) {
   const { i18n, t } = useTranslation();
@@ -19,6 +22,10 @@ export function CorrectionImpactTable({
     ) : (
       formatAmount(amount, assetCode, i18n.language)
     );
+  const verdict = ({ status, pace }: GoalCorrectionPreview['months'][number]['before']) =>
+    [statusText({ status, direction }, t), pace === null ? null : t(`goals.panel.pace.${pace}`)]
+      .filter((word) => word !== null)
+      .join(' · ');
 
   if (preview.months.length === 0) return <p>{t('goals.history.impactEmpty')}</p>;
 
@@ -39,10 +46,10 @@ export function CorrectionImpactTable({
             <tr key={item.month}>
               <th scope="row">{formatGoalMonth(item.month, i18n.language)}</th>
               <td>
-                {value(item.before.expected)} · {t(`goals.statuses.${item.before.status}`)}
+                {value(item.before.expected)} · {verdict(item.before)}
               </td>
               <td>
-                {value(item.after.expected)} · {t(`goals.statuses.${item.after.status}`)}
+                {value(item.after.expected)} · {verdict(item.after)}
               </td>
               <td>
                 {item.before.goalVersion === null || item.after.goalVersion === null ? (

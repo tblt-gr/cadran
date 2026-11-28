@@ -5,6 +5,7 @@ required:
   - goalVersion
   - expected
   - status
+  - pace
 properties:
   goalVersion:
     type:
@@ -15,16 +16,17 @@ properties:
   expected:
     $ref: ./GoalStatusValue.yaml
   status:
-    type: string
+    $ref: ./GoalEvaluationStatus.yaml
+  pace:
+    description: >-
+      The pace of a yearly amount goal; null for a monthly goal, without a
+      schedule or without an achieved value.
+    type:
+      - string
+      - 'null'
     enum:
-      - REACHED
       - AHEAD
       - BEHIND
-      - EXCEEDED
       - ON_TRACK
       - OVER_PACE
-      - MET
-      - MISSED
-      - WITHIN
-      - OVER
-      - NOT_CALCULABLE
+      - null

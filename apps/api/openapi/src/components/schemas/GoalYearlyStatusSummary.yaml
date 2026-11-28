@@ -19,6 +19,8 @@ required:
   - status
   - progressRatio
   - progressRatioDisplay
+  - pace
+  - paceGap
   - reason
   - quality
 properties:
@@ -62,24 +64,32 @@ properties:
   expected:
     $ref: ./GoalStatusValue.yaml
   gap:
+    description: >-
+      The achieved value against the target, signed so that a positive gap is in
+      the goal's favour; null when the status is not calculable.
     $ref: ./GoalStatusValue.yaml
   remaining:
     $ref: ./GoalStatusValue.yaml
   excess:
     $ref: ./GoalStatusValue.yaml
   status:
-    type: string
-    enum:
-      - REACHED
-      - AHEAD
-      - BEHIND
-      - EXCEEDED
-      - ON_TRACK
-      - OVER_PACE
-      - NOT_CALCULABLE
+    $ref: ./GoalEvaluationStatus.yaml
   progressRatio:
     $ref: ./GoalStatusValue.yaml
   progressRatioDisplay:
+    $ref: ./GoalStatusValue.yaml
+  pace:
+    description: >-
+      Where the achieved value stands against what the schedule expects by the
+      read month, the tolerance never applying; null without a schedule or an
+      achieved value.
+    oneOf:
+      - $ref: ./GoalEvaluationPace.yaml
+      - type: 'null'
+  paceGap:
+    description: >-
+      The achieved value against the expected one, signed so that a positive gap
+      is in the goal's favour; null when either is.
     $ref: ./GoalStatusValue.yaml
   reason:
     $ref: ./GoalStatusReason.yaml

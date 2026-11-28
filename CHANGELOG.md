@@ -9,6 +9,8 @@ All notable changes to Cadran Budget are documented in this file. The format fol
 ### Changed
 
 - Open annual reports and goal previews faster by loading months in one batch.
+- Show one goal status everywhere, including the correction preview, and judge a running minimum
+  only when its period ends.
 - Show a metric policy that cannot be loaded as unavailable instead of version 1, and translate
   the built-in policy name.
 

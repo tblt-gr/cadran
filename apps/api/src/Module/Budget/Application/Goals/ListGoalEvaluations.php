@@ -11,6 +11,7 @@ use App\Module\Budget\Domain\Goals\GoalEvaluationRules;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalPrecedence;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalValueType;
 use App\Module\Budget\Domain\Goals\GoalVersion;
@@ -53,6 +54,7 @@ final readonly class ListGoalEvaluations
         ResolveGoalScope $scope,
         private WorkspaceCalendar $calendar,
         private ?EvaluateStockGoal $stocks = null,
+        private ResolveGoalTarget $targets = new ResolveGoalTarget(),
     ) {
         $this->items = new GoalEvaluationItems($scope);
     }
@@ -131,32 +133,10 @@ final readonly class ListGoalEvaluations
         }
         $item = $context->inputs->months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
         $figure = $this->monthFigure($context, $goal, $item);
-        $asset = $goal->assetCode->toString();
-        $income = $item->figures?->cells['cashIncome'] ?? null;
-        $target = null;
-        $targetReason = null;
-        $incomeValue = null;
-        switch ($version->valueType) {
-            case GoalValueType::AMOUNT:
-                $target = $version->targetAmount?->toString();
-                break;
-            case GoalValueType::RATE:
-                $target = $version->ratio?->toString();
-                break;
-            case GoalValueType::INCOME_SHARE:
-                $incomeValue = $income?->value;
-                [$target, $targetReason] = GoalEvaluationItems::share($version, $incomeValue, $income->reason ?? null);
-                break;
-            case GoalValueType::ROLLING_INCOME_SHARE:
-                $reference = $context->reference($month);
-                $incomeValue = $reference->value?->toString();
-                $target = null !== $reference->value && null !== $version->ratio ? ExactDecimal::multiplyForResponse($reference->value, $version->ratio) : null;
-                $targetReason = null === $target ? 'NO_REFERENCE_INCOME' : null;
-                break;
-        }
+        $target = $this->targets->forMonth($version, $item, $month, $context);
         $complete = MonthState::COMPLETE === $item->state;
 
-        return $this->items->build($context, $goal, $version, $overrides, $target, $targetReason, $figure['value'], $figure['reason'], $incomeValue, $complete, null, $asset);
+        return $this->items->build($context, $goal, $version, $overrides, $target, $figure['value'], $figure['reason'], $complete, null, $goal->assetCode->toString());
     }
 
     /** @param list<string> $overrides */
@@ -180,21 +160,11 @@ final readonly class ListGoalEvaluations
         }
         $complete = 12 === $included && [] === array_filter($months, static fn (AnnualMonth $month): bool => MonthState::COMPLETE !== $month->state);
         $achieved = $this->yearFigure($context, $goal, $months);
-        $target = null;
-        $targetReason = null;
-        $incomeValue = null;
-        switch ($version->valueType) {
-            case GoalValueType::AMOUNT:
-                $target = $version->targetAmount?->toString();
-                break;
-            case GoalValueType::RATE:
-                $target = $version->ratio?->toString();
-                break;
-            default:
-                $income = ReportAggregator::flow(AnnualColumnSeries::values('cashIncome', true, $months), IncompleteMonths::INCLUDE);
-                $incomeValue = $income->total?->toString();
-                [$target, $targetReason] = GoalEvaluationItems::share($version, $incomeValue, null === $income->total ? 'NO_DATA' : null);
+        $yearIncome = null;
+        if (GoalValueType::INCOME_SHARE === $version->valueType || GoalValueType::ROLLING_INCOME_SHARE === $version->valueType) {
+            $yearIncome = ReportAggregator::flow(AnnualColumnSeries::values('cashIncome', true, $months), IncompleteMonths::INCLUDE)->total?->toString();
         }
+        $target = $this->targets->forYear($version, $yearIncome);
         $pace = null;
         $schedule = $version->schedule;
         if (GoalValueType::AMOUNT === $version->valueType && null !== $schedule && null !== $achieved['value']) {
@@ -205,19 +175,18 @@ final readonly class ListGoalEvaluations
             $pace = ['expected' => $expected, 'status' => GoalEvaluationRules::pace($goal->direction(), $achieved['value'], $expected)];
         }
 
-        return $this->items->build($context, $goal, $version, $overrides, $target, $targetReason, $achieved['value'], $achieved['reason'], $incomeValue, $complete, $pace, $goal->assetCode->toString());
+        return $this->items->build($context, $goal, $version, $overrides, $target, $achieved['value'], $achieved['reason'], $complete, $pace, $goal->assetCode->toString());
     }
 
-    /** @return array{value: ?string, reason: ?string} */
+    /** @return array{value: ?string, reason: ?GoalReason} */
     private function monthFigure(EvaluationContext $context, Goal $goal, AnnualMonth $month): array
     {
         $metric = $this->metrics->metric($goal, $month, $context->categoryIds($this->metrics, $goal), $context->inputs);
-        if (null === $metric['value'] && 'NO_MOVEMENTS' === $metric['reason']) {
-            // The reports count a month without movement as an exact zero in their totals.
-            return ['value' => '0', 'reason' => null];
-        }
 
-        return ['value' => $metric['value']?->toString(), 'reason' => null === $metric['value'] ? self::publicReason($metric['reason']) : null];
+        return [
+            'value' => $metric['value']?->toString(),
+            'reason' => null === $metric['value'] ? ($metric['reason'] ?? GoalReason::NO_DATA)->forEvaluation() : null,
+        ];
     }
 
     /**
@@ -225,13 +194,13 @@ final readonly class ListGoalEvaluations
      *
      * @param list<AnnualMonth> $months
      *
-     * @return array{value: ?string, reason: ?string}
+     * @return array{value: ?string, reason: ?GoalReason}
      */
     private function yearFigure(EvaluationContext $context, Goal $goal, array $months): array
     {
         if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true)) {
             if ([] === array_filter($months, static fn (AnnualMonth $month): bool => true === $month->figures?->hasTransactions)) {
-                return ['value' => null, 'reason' => 'NO_DATA'];
+                return ['value' => null, 'reason' => GoalReason::NO_DATA];
             }
             $column = new AnnualColumn(GoalMetric::TOTAL_INCOME === $goal->metric ? 'cashIncome' : 'budgetExpenses', '', ColumnKind::FLOW, true);
             $aggregate = AnnualColumnSeries::aggregate($column, $months, IncompleteMonths::INCLUDE);
@@ -242,7 +211,7 @@ final readonly class ListGoalEvaluations
             $values = [];
             foreach ($months as $month) {
                 $figure = $this->monthFigure($context, $goal, $month);
-                $values[] = new MonthValue($month->month, $month->state, null === $figure['value'] ? null : DecimalValue::fromString($figure['value']), null === $figure['value'] ? null : $goal->assetCode, $figure['reason'], $month->figures?->policyVersion);
+                $values[] = new MonthValue($month->month, $month->state, null === $figure['value'] ? null : DecimalValue::fromString($figure['value']), null === $figure['value'] ? null : $goal->assetCode, $figure['reason']?->value, $month->figures?->policyVersion);
             }
             $aggregate = ReportAggregator::flow($values, IncompleteMonths::INCLUDE);
         }
@@ -251,15 +220,10 @@ final readonly class ListGoalEvaluations
         }
 
         return ['value' => null, 'reason' => match ($aggregate->totalReason) {
-            AggregateReason::MIXED_ASSETS => 'MIXED_ASSETS',
-            AggregateReason::ZERO_DENOMINATOR => 'ZERO_CASH_INCOME',
-            default => 'NO_DATA',
+            AggregateReason::MIXED_ASSETS => GoalReason::MIXED_ASSETS,
+            AggregateReason::ZERO_DENOMINATOR => GoalReason::ZERO_CASH_INCOME,
+            default => GoalReason::NO_DATA,
         }];
-    }
-
-    private static function publicReason(?string $reason): string
-    {
-        return in_array($reason, ['MIXED_ASSETS', 'ZERO_CASH_INCOME'], true) ? $reason : 'NO_DATA';
     }
 
     /** @return list<GoalVersion> */

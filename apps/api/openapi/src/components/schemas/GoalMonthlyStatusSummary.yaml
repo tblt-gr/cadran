@@ -57,15 +57,12 @@ properties:
   actual:
     $ref: ./GoalStatusValue.yaml
   gap:
+    description: >-
+      The achieved value against the target, signed so that a positive gap is in
+      the goal's favour; null when the status is not calculable.
     $ref: ./GoalStatusValue.yaml
   status:
-    type: string
-    enum:
-      - MET
-      - MISSED
-      - WITHIN
-      - OVER
-      - NOT_CALCULABLE
+    $ref: ./GoalEvaluationStatus.yaml
   reason:
     $ref: ./GoalStatusReason.yaml
   quality:

@@ -10,10 +10,13 @@ use App\Module\Budget\Application\Goals\GoalMonthSource;
 use App\Module\Budget\Application\Goals\GoalPeriodEvaluator;
 use App\Module\Budget\Application\Goals\GoalStatusInputs;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
+use App\Module\Budget\Domain\Goals\GoalStatusQuality;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Foundation\Domain\AssetCode;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -56,8 +59,8 @@ final class GoalPeriodEvaluatorTest extends TestCase
         $status = $this->evaluator()->annual($goal, [self::amount('2026-01', '2000.00', true)], new CalendarMonth(2026, 2), false, [], $inputs);
 
         self::assertNull($status->achieved);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MISSING_MONTH_VALUE', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::MISSING_MONTH_VALUE, $status->reason);
         self::assertNull($status->months[1]->cumulativeValue);
     }
 
@@ -80,15 +83,15 @@ final class GoalPeriodEvaluatorTest extends TestCase
 
         $status = $this->evaluator()->annual($goal, [self::amount('2026-01', '200.00', true)], new CalendarMonth(2026, 1), true, [], $inputs);
 
-        self::assertSame('REFERENCE_ARCHIVED', $status->reason);
-        self::assertNotSame('NOT_CALCULABLE', $status->status);
+        self::assertSame(GoalReason::REFERENCE_ARCHIVED, $status->reason);
+        self::assertNotSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
     }
 
     public function testAnnualWithoutVersionIsNotStarted(): void
     {
         $status = $this->evaluator()->annual(self::goal(GoalPeriodicity::YEARLY, '2026'), [], new CalendarMonth(2026, 1), false, [], self::inputs([self::month(1, '1.00')]));
 
-        self::assertSame('GOAL_NOT_STARTED', $status->reason);
+        self::assertSame(GoalReason::GOAL_NOT_STARTED, $status->reason);
         self::assertNull($status->target);
     }
 
@@ -102,7 +105,7 @@ final class GoalPeriodEvaluatorTest extends TestCase
         self::assertSame('120.00', $status->actual);
         self::assertSame('100.00', $status->target);
         self::assertSame('20.00', $status->gap);
-        self::assertSame('MET', $status->status);
+        self::assertSame(GoalEvaluationStatus::MET, $status->status);
         self::assertCount(2, $status->months);
     }
 
@@ -113,9 +116,9 @@ final class GoalPeriodEvaluatorTest extends TestCase
 
         $status = $this->evaluator()->monthly($goal, [self::amount('2026-01', '100.00', false)], new CalendarMonth(2026, 1), false, [], self::inputs([$noData]));
 
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('MISSING_MONTH_VALUE', $status->reason);
-        self::assertSame('PARTIAL', $status->quality);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::MISSING_MONTH_VALUE, $status->reason);
+        self::assertSame(GoalStatusQuality::PARTIAL, $status->quality);
         self::assertNull($status->gap);
     }
 

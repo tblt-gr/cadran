@@ -402,6 +402,8 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('NOT_CALCULABLE', $status['status']);
         self::assertSame('MISSING_MONTH_VALUE', $status['reason']);
         self::assertSame('PARTIAL', $status['quality']);
+        self::assertNull($status['pace']);
+        self::assertNull($status['paceGap']);
         self::assertCount(9, self::items($status['months']));
 
         $this->client->request('GET', '/api/v1/goals?period=2026-09');
@@ -1141,6 +1143,8 @@ final class GoalControllerTest extends WebTestCase
         self::assertSame('2026-06', self::arr($months[5])['month']);
         self::assertSame(3, self::arr(self::arr($months[5])['after'])['goalVersion']);
         self::assertSame('9000.00', self::arr(self::arr($months[5])['after'])['expected']);
+        self::assertSame('NOT_CALCULABLE', self::arr(self::arr($months[5])['after'])['status']);
+        self::assertNull(self::arr(self::arr($months[5])['after'])['pace']);
         self::assertSame('2026-07', self::arr($months[6])['month']);
         self::assertSame(2, self::arr(self::arr($months[6])['after'])['goalVersion']);
         self::assertSame('11000.00', self::arr(self::arr($months[6])['after'])['expected']);

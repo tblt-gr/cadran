@@ -10,12 +10,14 @@ use App\Module\Budget\Application\Goals\BuildGoalSchedule;
 use App\Module\Budget\Application\Goals\GoalCorrectionPreviewMonthView;
 use App\Module\Budget\Application\Goals\GoalMetricReader;
 use App\Module\Budget\Application\Goals\GoalMonthSource;
+use App\Module\Budget\Application\Goals\GoalNotFound;
 use App\Module\Budget\Application\Goals\GoalPeriodEvaluator;
 use App\Module\Budget\Application\Goals\GoalStatusView;
 use App\Module\Budget\Application\Goals\PreviewGoalCorrection;
 use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\UpdateGoalInput;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalMetric;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
 use App\Module\Budget\Domain\Goals\GoalRepository;
@@ -131,7 +133,36 @@ final class PreviewGoalCorrectionTest extends TestCase
         self::assertNotSame(array_column($expected, 1), array_column($expected, 2));
     }
 
-    /** @return array{?int, ?string, string} */
+    /** The goal belongs to one workspace: a correction preview from another one reads nothing of it. */
+    public function testAnotherWorkspaceReadsNeitherTheGoalItsVersionsNorItsFigures(): void
+    {
+        $context = $this->createStub(CallerWorkspaceContext::class);
+        $context->method('resolveContext')->willReturn(new WorkspaceContext(WorkspaceFixture::other(), WorkspaceFixture::OWNER_ID, true));
+        $goal = new Goal(self::GOAL_ID, WorkspaceFixture::own(), 'Goal', GoalPeriodicity::MONTHLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE, null, AssetCode::fromString('EUR'), '2026-01', null, 1, new \DateTimeImmutable('2026-01-01'), WorkspaceFixture::OWNER_ID);
+        $goals = $this->createMock(GoalRepository::class);
+        $goals->expects(self::once())->method('find')->willReturnCallback(static fn (WorkspaceScope $workspace): ?Goal => $workspace->equals(WorkspaceFixture::own()) ? $goal : null);
+        $versions = $this->createMock(GoalVersionRepository::class);
+        $versions->expects(self::never())->method('listByGoal');
+        $source = $this->createMock(GoalMonthSource::class);
+        $source->expects(self::never())->method('between');
+        $metrics = new GoalMetricReader($source, new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs($this->createStub(MonthlyTransferPairReader::class))));
+        $calendar = self::calendar();
+        $caller = $this->createStub(CallerWorkspace::class);
+        $preview = new PreviewGoalCorrection(
+            $context,
+            $goals,
+            $versions,
+            new BuildGoalRevision($calendar, $this->createStub(UuidGenerator::class), new BuildGoalSchedule($this->createStub(AssetCatalog::class))),
+            new ReadGoalStatus($caller, $goals, $versions, $metrics, new GoalPeriodEvaluator($metrics), $calendar),
+            $metrics,
+            $calendar,
+        );
+
+        $this->expectException(GoalNotFound::class);
+        $preview(new UpdateGoalInput(self::GOAL_ID, 1, 'Goal', '1.00', 'EUR', null, false, null, '2026-01', 'Correct the recorded target.'));
+    }
+
+    /** @return array{?int, ?string, GoalEvaluationStatus} */
     private static function state(GoalStatusView $status): array
     {
         return [$status->goalVersion, $status->expected ?? $status->target, $status->status];

@@ -16,9 +16,12 @@ use App\Module\Budget\Application\Goals\ReadGoalStatus;
 use App\Module\Budget\Application\Goals\ReadReferenceIncome;
 use App\Module\Budget\Application\Goals\ResolveGoalScope;
 use App\Module\Budget\Domain\Goals\Goal;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
 use App\Module\Budget\Domain\Goals\GoalFilter;
 use App\Module\Budget\Domain\Goals\GoalMetric;
+use App\Module\Budget\Domain\Goals\GoalPace;
 use App\Module\Budget\Domain\Goals\GoalPeriodicity;
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Budget\Domain\Goals\GoalRepository;
 use App\Module\Budget\Domain\Goals\GoalSchedule;
 use App\Module\Budget\Domain\Goals\GoalScopeType;
@@ -72,7 +75,7 @@ final class ListGoalsTest extends TestCase
     {
         // Every month 2025-09..2026-09: income 2500.00, savings 100.00, category spending 50.00.
         // Savings to September 900.00 vs 900.00 expected (1200 linear): ahead. Spending 450.00 vs 900.00: on track.
-        // Rolling 0.20 x 2500 = 500 target against 100.00 saved in September: gap -400, missed.
+        // Rolling 0.20 x 2500 = 500 target against 100.00 saved in September: gap -400, in progress while September runs.
         $source = new CountingGoalMonthSource(self::months());
         $categories = $this->createMock(CategoryRepository::class);
         $categories->expects(self::once())->method('list')->willReturn([self::category()]);
@@ -84,12 +87,12 @@ final class ListGoalsTest extends TestCase
         self::assertCount(3, $items);
         [$savings, $spending, $rolling] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
         self::assertSame('900.00', $savings->achieved);
-        self::assertSame('AHEAD', $savings->status);
+        self::assertSame(GoalPace::AHEAD, $savings->pace);
         self::assertSame('450.00', $spending->achieved);
-        self::assertSame('ON_TRACK', $spending->status);
+        self::assertSame(GoalPace::ON_TRACK, $spending->pace);
         self::assertSame('500.000000000000000000000000', $rolling->target);
         self::assertSame('-400.000000000000000000000000', $rolling->gap);
-        self::assertSame('MISSED', $rolling->status);
+        self::assertSame(GoalEvaluationStatus::IN_PROGRESS, $rolling->status);
         self::assertSame('2500.000000000000000000000000', $rolling->referenceIncome?->value?->toString());
     }
 
@@ -109,11 +112,11 @@ final class ListGoalsTest extends TestCase
         self::assertSame(['2026-01'], $transfers->months);
         self::assertSame([WorkspaceFixture::OWN_WORKSPACE], array_values(array_unique($transfers->workspaces)));
         [$savings, $accountA, $accountB] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
-        self::assertSame('AHEAD', $savings->status);
+        self::assertSame(GoalPace::AHEAD, $savings->pace);
         self::assertSame('200.124999999999999999999999', $accountA->achieved);
-        self::assertSame('BEHIND', $accountA->status);
+        self::assertSame(GoalPace::BEHIND, $accountA->pace);
         self::assertSame('-200.124999999999999999999999', $accountB->achieved);
-        self::assertSame('BEHIND', $accountB->status);
+        self::assertSame(GoalPace::BEHIND, $accountB->pace);
     }
 
     public function testAnOversizedTransferMonthLeavesOnlyAccountGoalsNotCalculable(): void
@@ -130,10 +133,10 @@ final class ListGoalsTest extends TestCase
 
         self::assertCount(1, $transfers->months);
         [$savings, $accountA, $accountB] = array_map(static fn ($item) => $item->status ?? self::fail('A listed goal carries its status.'), $items);
-        self::assertSame('AHEAD', $savings->status);
+        self::assertSame(GoalPace::AHEAD, $savings->pace);
         foreach ([$accountA, $accountB] as $status) {
-            self::assertSame('NOT_CALCULABLE', $status->status);
-            self::assertSame('MISSING_MONTH_VALUE', $status->reason);
+            self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+            self::assertSame(GoalReason::MISSING_MONTH_VALUE, $status->reason);
             self::assertNull($status->achieved);
             self::assertNull($status->gap);
             self::assertSame('0', $status->months[1]->value);
@@ -151,8 +154,8 @@ final class ListGoalsTest extends TestCase
         self::assertCount(1, $items);
         $status = $items[0]->status ?? self::fail('A listed goal carries its status.');
         self::assertSame('2026-06', $status->month);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('GOAL_NOT_STARTED', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::GOAL_NOT_STARTED, $status->reason);
         self::assertSame('2026-08', $items[0]->currentVersion->effectiveFrom);
     }
 
@@ -170,8 +173,8 @@ final class ListGoalsTest extends TestCase
         self::assertCount(1, $items);
         $status = $items[0]->status ?? self::fail('A listed goal carries its status.');
         self::assertSame('2027-01', $status->month);
-        self::assertSame('NOT_CALCULABLE', $status->status);
-        self::assertSame('FUTURE_MONTH', $status->reason);
+        self::assertSame(GoalEvaluationStatus::NOT_CALCULABLE, $status->status);
+        self::assertSame(GoalReason::FUTURE_MONTH, $status->reason);
         self::assertNull($status->target);
         self::assertNull($status->actual);
         self::assertNull($status->gap);
@@ -206,6 +209,58 @@ final class ListGoalsTest extends TestCase
         self::assertTrue($this->filters[0]->currentOnly);
         self::assertNull($this->filters[0]->periodicity);
         self::assertNull($this->filters[0]->period);
+    }
+
+    /** Two workspaces hold goals and figures: only the caller's are searched, versioned and measured. */
+    public function testNoGoalVersionOrFigureOfAnotherWorkspaceIsRead(): void
+    {
+        $caller = $this->createStub(CallerWorkspace::class);
+        $caller->method('resolve')->willReturn(WorkspaceFixture::own());
+        /** @var \ArrayObject<int, string> $read */
+        $read = new \ArrayObject();
+        $goals = $this->createStub(GoalRepository::class);
+        $goals->method('search')->willReturnCallback(static function (WorkspaceScope $workspace) use ($read): array {
+            $read[] = $workspace->id;
+
+            return $workspace->equals(WorkspaceFixture::own())
+                ? [self::goal(self::SAVINGS_ID, GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE)]
+                : [self::goal(self::SPENDING_ID, GoalPeriodicity::YEARLY, GoalMetric::NET_SAVINGS_TRANSFERS, GoalScopeType::WORKSPACE)];
+        });
+        $goals->method('count')->willReturn(1);
+        $versions = $this->createStub(GoalVersionRepository::class);
+        $versions->method('listByGoal')->willReturnCallback(static function (WorkspaceScope $workspace, string $goalId) use ($read): array {
+            $read[] = $workspace->id;
+            self::assertSame(self::SAVINGS_ID, $goalId);
+
+            return [self::version($goalId)];
+        });
+        $source = new class(self::months(), $read) implements GoalMonthSource {
+            /**
+             * @param list<AnnualMonth>         $months
+             * @param \ArrayObject<int, string> $read
+             */
+            public function __construct(private readonly array $months, private readonly \ArrayObject $read)
+            {
+            }
+
+            public function between(WorkspaceScope $workspace, CalendarMonth $start, CalendarMonth $end, bool $includeUpcoming = false): array
+            {
+                $this->read[] = $workspace->id;
+
+                return $workspace->equals(WorkspaceFixture::own()) ? $this->months : [];
+            }
+        };
+        $categories = $this->createStub(CategoryRepository::class);
+        $scope = new ResolveGoalScope(new ReadCategoryReference($categories), new ReadAccountReference(new InMemoryAccountRepository()));
+        $metrics = new GoalMetricReader($source, new ReadMonthlyAccountTransferNet(new ReadMonthlyTransferPairs(new EmptyTransferPairReader())));
+        $calendar = self::calendar();
+        $status = new ReadGoalStatus($caller, $goals, $versions, $metrics, new GoalPeriodEvaluator($metrics), $calendar, $scope);
+        $list = new ListGoals($caller, $goals, $versions, new PresentGoal($scope, new ReadReferenceIncome($source), $calendar), $status, $metrics, $scope, $calendar);
+
+        $items = $list()->items;
+
+        self::assertSame([self::SAVINGS_ID], array_map(static fn ($item): string => $item->id, $items));
+        self::assertSame([WorkspaceFixture::OWN_WORKSPACE], array_values(array_unique($read->getArrayCopy())));
     }
 
     public function testAMalformedPeriodicityOrPeriodIsRefused(): void

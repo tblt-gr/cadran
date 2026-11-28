@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Application\Goals;
 
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
+use App\Module\Budget\Domain\Goals\GoalPace;
+use App\Module\Budget\Domain\Goals\GoalReason;
+
 /** One goal evaluated for one month or one year. */
 final readonly class GoalEvaluationView
 {
     /**
-     * @param list<string>                             $overrides the goals this one hides for the period
-     * @param array<string, ?string>                   $operands  target, achieved, income, ratio and tolerance of the formula
-     * @param ?array{expected: string, status: string} $pace
+     * @param list<string>                               $overrides the goals this one hides for the period
+     * @param array<string, ?string>                     $operands  target, achieved, income, ratio and tolerance of the formula
+     * @param ?array{expected: string, status: GoalPace} $pace
      */
     public function __construct(
         public string $goalId,
@@ -25,8 +29,8 @@ final readonly class GoalEvaluationView
         public ?GoalEvaluationFigure $target,
         public ?GoalEvaluationFigure $achieved,
         public ?string $gap,
-        public string $status,
-        public ?string $reason,
+        public GoalEvaluationStatus $status,
+        public ?GoalReason $reason,
         public string $formulaKey,
         public array $operands,
         public int $versionNo,

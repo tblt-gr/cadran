@@ -40,7 +40,10 @@ export function marksTone(items: readonly GoalEvaluation[]): Exclude<GoalTone, '
 }
 
 /** The status word of an evaluation, shared with the goals panel badge. */
-export function statusText(evaluation: GoalEvaluation, t: TFunction): string {
+export function statusText(
+  evaluation: Pick<GoalEvaluation, 'status' | 'direction'>,
+  t: TFunction,
+): string {
   if (evaluation.status === 'MISSED') {
     return t(
       evaluation.direction === 'CEILING'

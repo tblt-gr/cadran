@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Module\Budget\Application\Goals;
 
+use App\Module\Budget\Domain\Goals\GoalReason;
 use App\Module\Foundation\Domain\DecimalValue;
 
 final readonly class ReferenceIncomeView
@@ -18,7 +19,7 @@ final readonly class ReferenceIncomeView
         public int $usableMonths,
         public string $windowStart,
         public string $windowEnd,
-        public ?string $reason,
+        public ?GoalReason $reason,
         public array $excluded,
         public array $metricPolicyVersions,
     ) {

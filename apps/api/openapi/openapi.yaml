@@ -11711,6 +11711,7 @@ components:
         - goalVersion
         - expected
         - status
+        - pace
       properties:
         goalVersion:
           type:
@@ -11721,19 +11722,18 @@ components:
         expected:
           $ref: '#/components/schemas/GoalStatusValue'
         status:
-          type: string
+          $ref: '#/components/schemas/GoalEvaluationStatus'
+        pace:
+          description: The pace of a yearly amount goal; null for a monthly goal, without a schedule or without an achieved value.
+          type:
+            - string
+            - 'null'
           enum:
-            - REACHED
             - AHEAD
             - BEHIND
-            - EXCEEDED
             - ON_TRACK
             - OVER_PACE
-            - MET
-            - MISSED
-            - WITHIN
-            - OVER
-            - NOT_CALCULABLE
+            - null
     GoalCorrectionPreviewMonth:
       type: object
       additionalProperties: false
@@ -12380,6 +12380,8 @@ components:
         - EVALUATION_NOT_AVAILABLE
         - REFERENCE_ARCHIVED
         - FUTURE_MONTH
+        - NO_DATA
+        - ZERO_CASH_INCOME
         - null
     GoalStatusValue:
       type:
@@ -12473,6 +12475,8 @@ components:
         - status
         - progressRatio
         - progressRatioDisplay
+        - pace
+        - paceGap
         - reason
         - quality
         - months
@@ -12517,24 +12521,25 @@ components:
         expected:
           $ref: '#/components/schemas/GoalStatusValue'
         gap:
+          description: The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
           $ref: '#/components/schemas/GoalStatusValue'
         remaining:
           $ref: '#/components/schemas/GoalStatusValue'
         excess:
           $ref: '#/components/schemas/GoalStatusValue'
         status:
-          type: string
-          enum:
-            - REACHED
-            - AHEAD
-            - BEHIND
-            - EXCEEDED
-            - ON_TRACK
-            - OVER_PACE
-            - NOT_CALCULABLE
+          $ref: '#/components/schemas/GoalEvaluationStatus'
         progressRatio:
           $ref: '#/components/schemas/GoalStatusValue'
         progressRatioDisplay:
+          $ref: '#/components/schemas/GoalStatusValue'
+        pace:
+          description: Where the achieved value stands against what the schedule expects by the read month, the tolerance never applying; null without a schedule or an achieved value.
+          oneOf:
+            - $ref: '#/components/schemas/GoalEvaluationPace'
+            - type: 'null'
+        paceGap:
+          description: The achieved value against the expected one, signed so that a positive gap is in the goal's favour; null when either is.
           $ref: '#/components/schemas/GoalStatusValue'
         reason:
           $ref: '#/components/schemas/GoalStatusReason'
@@ -12573,6 +12578,8 @@ components:
         - status
         - progressRatio
         - progressRatioDisplay
+        - pace
+        - paceGap
         - reason
         - quality
       properties:
@@ -12616,24 +12623,25 @@ components:
         expected:
           $ref: '#/components/schemas/GoalStatusValue'
         gap:
+          description: The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
           $ref: '#/components/schemas/GoalStatusValue'
         remaining:
           $ref: '#/components/schemas/GoalStatusValue'
         excess:
           $ref: '#/components/schemas/GoalStatusValue'
         status:
-          type: string
-          enum:
-            - REACHED
-            - AHEAD
-            - BEHIND
-            - EXCEEDED
-            - ON_TRACK
-            - OVER_PACE
-            - NOT_CALCULABLE
+          $ref: '#/components/schemas/GoalEvaluationStatus'
         progressRatio:
           $ref: '#/components/schemas/GoalStatusValue'
         progressRatioDisplay:
+          $ref: '#/components/schemas/GoalStatusValue'
+        pace:
+          description: Where the achieved value stands against what the schedule expects by the read month, the tolerance never applying; null without a schedule or an achieved value.
+          oneOf:
+            - $ref: '#/components/schemas/GoalEvaluationPace'
+            - type: 'null'
+        paceGap:
+          description: The achieved value against the expected one, signed so that a positive gap is in the goal's favour; null when either is.
           $ref: '#/components/schemas/GoalStatusValue'
         reason:
           $ref: '#/components/schemas/GoalStatusReason'
@@ -12703,15 +12711,10 @@ components:
         actual:
           $ref: '#/components/schemas/GoalStatusValue'
         gap:
+          description: The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
           $ref: '#/components/schemas/GoalStatusValue'
         status:
-          type: string
-          enum:
-            - MET
-            - MISSED
-            - WITHIN
-            - OVER
-            - NOT_CALCULABLE
+          $ref: '#/components/schemas/GoalEvaluationStatus'
         reason:
           $ref: '#/components/schemas/GoalStatusReason'
         quality:
@@ -12785,15 +12788,10 @@ components:
         actual:
           $ref: '#/components/schemas/GoalStatusValue'
         gap:
+          description: The achieved value against the target, signed so that a positive gap is in the goal's favour; null when the status is not calculable.
           $ref: '#/components/schemas/GoalStatusValue'
         status:
-          type: string
-          enum:
-            - MET
-            - MISSED
-            - WITHIN
-            - OVER
-            - NOT_CALCULABLE
+          $ref: '#/components/schemas/GoalEvaluationStatus'
         reason:
           $ref: '#/components/schemas/GoalStatusReason'
         quality:

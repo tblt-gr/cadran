@@ -6,8 +6,11 @@ namespace App\Module\Budget\Application\Goals;
 
 use App\Module\Accounts\Domain\CalendarMonth;
 use App\Module\Budget\Domain\Goals\Goal;
-use App\Module\Budget\Domain\Goals\GoalDirection;
-use App\Module\Budget\Domain\Goals\GoalValueType;
+use App\Module\Budget\Domain\Goals\GoalEvaluationRules;
+use App\Module\Budget\Domain\Goals\GoalEvaluationStatus;
+use App\Module\Budget\Domain\Goals\GoalPolicyState;
+use App\Module\Budget\Domain\Goals\GoalReason;
+use App\Module\Budget\Domain\Goals\GoalStatusQuality;
 use App\Module\Budget\Domain\Goals\GoalVersion;
 use App\Module\Budget\Domain\Goals\GoalVersionResolver;
 use App\Module\Foundation\Domain\DecimalValue;
@@ -22,7 +25,7 @@ use App\Module\Reporting\Domain\Aggregation\ReportAggregator;
 /** Evaluates a goal over its period: the cumulative annual reading and the month-by-month monthly reading. */
 final readonly class GoalPeriodEvaluator
 {
-    public function __construct(private GoalMetricReader $metrics)
+    public function __construct(private GoalMetricReader $metrics, private ResolveGoalTarget $targets = new ResolveGoalTarget())
     {
     }
 
@@ -47,7 +50,7 @@ final readonly class GoalPeriodEvaluator
             $item = $months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
             $version = GoalVersionResolver::forMonth($versions, $month);
             $metric = $this->metrics->metric($goal, $item, $categoryIds, $inputs);
-            $values[] = new MonthValue($month, $item->state, $metric['value'], $goal->assetCode, $metric['reason'], $item->figures?->policyVersion);
+            $values[] = new MonthValue($month, $item->state, $metric['value'], $goal->assetCode, $metric['reason']?->value, $item->figures?->policyVersion);
 
             $part = $version?->schedule?->parts[$index - 1] ?? null;
             if (null === $part) {
@@ -86,30 +89,30 @@ final readonly class GoalPeriodEvaluator
         $aggregate = ReportAggregator::flow($qualityValues, IncompleteMonths::INCLUDE);
         $policy = GoalMetricReader::policy($values);
         $target = $selectedVersion?->targetAmount?->toString();
-        $achievedResponse = null;
+        $achieved = null;
         if (null !== $aggregate->total) {
-            $achievedResponse = '0';
+            $achieved = '0';
             foreach ($values as $value) {
                 if ((MonthState::COMPLETE === $value->state || MonthState::PROVISIONAL === $value->state) && null !== $value->value) {
-                    $achievedResponse = ExactDecimal::addForResponse($achievedResponse, $value->value->toString());
+                    $achieved = ExactDecimal::addForResponse($achieved, $value->value->toString());
                 }
             }
         }
         $reason = match (true) {
-            null === $selectedVersion => 'GOAL_NOT_STARTED',
-            AggregateReason::MIXED_METRIC_POLICIES === $aggregate->totalReason => 'MIXED_METRIC_POLICIES',
-            null === $achievedResponse || $expectedMissing => 'MISSING_MONTH_VALUE',
-            $archived => 'REFERENCE_ARCHIVED',
+            null === $selectedVersion => GoalReason::GOAL_NOT_STARTED,
+            AggregateReason::MIXED_METRIC_POLICIES === $aggregate->totalReason => GoalReason::MIXED_METRIC_POLICIES,
+            null === $achieved => GoalReason::MISSING_MONTH_VALUE,
+            $archived => GoalReason::REFERENCE_ARCHIVED,
             default => null,
         };
-        $expected = $expectedMissing ? null : $expectedTotal;
-        $gap = null !== $achievedResponse && null !== $expected ? ExactDecimal::subtractForResponse($achievedResponse, $expected) : null;
-        $remaining = null !== $achievedResponse && null !== $target ? self::positiveForResponse(ExactDecimal::subtractForResponse($target, $achievedResponse)) : null;
-        $excess = null !== $achievedResponse && null !== $target ? self::positiveForResponse(ExactDecimal::subtractForResponse($achievedResponse, $target)) : null;
-        $status = self::blocksCalculation($reason) || null === $target || null === $achievedResponse || null === $expected
-            ? 'NOT_CALCULABLE'
-            : self::annualStatus($goal->direction(), $achievedResponse, $expected, $target, $selectedVersion->toleranceAmount(null));
-        $ratio = null !== $achievedResponse && null !== $target ? ExactDecimal::divideForResponse($achievedResponse, $target) : null;
+        $expected = $expectedMissing || null === $selectedVersion?->schedule ? null : $expectedTotal;
+        $complete = 12 === $selected->month
+            && [] === array_filter($values, static fn (MonthValue $value): bool => MonthState::COMPLETE !== $value->state);
+        $calculable = !self::blocksCalculation($reason) && null !== $achieved && null !== $target;
+        $status = $calculable
+            ? GoalEvaluationRules::status($goal->direction(), $achieved, $target, $complete, $selectedVersion->toleranceAmount(null))
+            : GoalEvaluationStatus::NOT_CALCULABLE;
+        $ratio = null !== $achieved && null !== $target ? ExactDecimal::divideForResponse($achieved, $target) : null;
 
         return new GoalStatusView(
             $goal->id,
@@ -122,17 +125,19 @@ final readonly class GoalPeriodEvaluator
             MonthState::PROVISIONAL === ($months[$selected->key()]->state ?? null),
             $policy,
             $target,
-            $achievedResponse,
+            $achieved,
             $expected,
-            $gap,
-            $remaining,
-            $excess,
+            $calculable ? GoalEvaluationRules::gap($goal->direction(), $achieved, $target) : null,
+            null !== $achieved && null !== $target ? GoalEvaluationRules::excess($target, $achieved) : null,
+            null !== $achieved && null !== $target ? GoalEvaluationRules::excess($achieved, $target) : null,
             $status,
             $ratio,
             null === $ratio ? null : self::clamp($ratio),
             $reason,
-            $aggregate->quality->value,
+            GoalStatusQuality::from($aggregate->quality->value),
             $rows,
+            pace: null !== $achieved && null !== $expected ? GoalEvaluationRules::pace($goal->direction(), $achieved, $expected) : null,
+            paceGap: GoalEvaluationRules::gap($goal->direction(), $achieved, $expected),
         );
     }
 
@@ -150,27 +155,29 @@ final readonly class GoalPeriodEvaluator
         $selectedEvaluation = null;
         for ($cursor = CalendarMonth::fromString($first); $cursor->key() <= $selected->key(); $cursor = CalendarMonth::containing($cursor->firstDay()->modify('+1 month'))) {
             $evaluation = $this->evaluateMonth($goal, GoalVersionResolver::forMonth($versions, $cursor), $cursor, $categoryIds, $inputs);
-            $rows[] = new GoalStatusMonthView($cursor->key(), $evaluation['state'], $evaluation['actual'], $evaluation['target'], null, null, $evaluation['version']?->versionNo, $evaluation['policyVersion']);
+            $rows[] = new GoalStatusMonthView($cursor->key(), $evaluation->state->value, $evaluation->actual, $evaluation->target->target, null, null, $evaluation->version?->versionNo, $evaluation->policyVersion);
             $selectedEvaluation = $evaluation;
         }
         $evaluation = $selectedEvaluation ?? throw new \LogicException('A covered month yields at least one evaluation.');
-        $version = $evaluation['version'];
-        $policy = GoalMetricReader::policyFromVersions($evaluation['policyVersions']);
+        $version = $evaluation->version;
+        $policy = GoalMetricReader::policyFromVersions($evaluation->policyVersions);
         $reason = match (true) {
-            null === $version => 'GOAL_NOT_STARTED',
-            null !== $evaluation['reason'] => $evaluation['reason'],
-            'MIXED' === $policy->state => 'MIXED_METRIC_POLICIES',
-            $archived => 'REFERENCE_ARCHIVED',
+            null === $version => GoalReason::GOAL_NOT_STARTED,
+            null !== $evaluation->reason => $evaluation->reason,
+            GoalPolicyState::MIXED === $policy->state => GoalReason::MIXED_METRIC_POLICIES,
+            $archived => GoalReason::REFERENCE_ARCHIVED,
             default => null,
         };
-        $actual = $evaluation['actual'];
-        $target = $evaluation['target'];
+        $actual = $evaluation->actual;
+        $target = $evaluation->target->target;
         $calculable = !self::blocksCalculation($reason) && null !== $actual && null !== $target;
-        $gap = $calculable ? ExactDecimal::subtractForResponse($actual, $target) : null;
+        $status = $calculable
+            ? GoalEvaluationRules::status($goal->direction(), $actual, $target, MonthState::COMPLETE === $evaluation->state, $evaluation->target->tolerance)
+            : GoalEvaluationStatus::NOT_CALCULABLE;
         $quality = match (true) {
-            'MIXED' === $policy->state, MonthState::NO_DATA->value === $evaluation['state'] => 'PARTIAL',
-            MonthState::PROVISIONAL->value === $evaluation['state'] => 'PROVISIONAL',
-            default => 'COMPLETE',
+            GoalPolicyState::MIXED === $policy->state, MonthState::NO_DATA === $evaluation->state => GoalStatusQuality::PARTIAL,
+            MonthState::PROVISIONAL === $evaluation->state => GoalStatusQuality::PROVISIONAL,
+            default => GoalStatusQuality::COMPLETE,
         };
 
         return new GoalStatusView(
@@ -181,96 +188,47 @@ final readonly class GoalPeriodEvaluator
             $version?->valueType->value,
             $version?->versionNo,
             null,
-            MonthState::PROVISIONAL->value === $evaluation['state'],
+            MonthState::PROVISIONAL === $evaluation->state,
             $policy,
             $target,
             null,
             null,
-            $gap,
+            $calculable ? GoalEvaluationRules::gap($goal->direction(), $actual, $target) : null,
             null,
             null,
-            $calculable ? self::rollingStatus($goal->direction(), $actual, $target, $evaluation['tolerance']) : 'NOT_CALCULABLE',
+            $status,
             null,
             null,
             $reason,
             $quality,
             $rows,
             $version?->ratio?->toString(),
-            GoalValueType::ROLLING_INCOME_SHARE === $version?->valueType ? $evaluation['reference'] : null,
+            $evaluation->target->reference,
             $actual,
         );
     }
 
-    /**
-     * The target and the figure of one month of a monthly goal.
-     *
-     * @param list<string> $categoryIds
-     *
-     * @return array{version: ?GoalVersion, state: string, target: ?string, tolerance: ?string, actual: ?string, reason: ?string, policyVersion: ?int, policyVersions: list<int>, reference: ?ReferenceIncomeView}
-     */
-    private function evaluateMonth(Goal $goal, ?GoalVersion $version, CalendarMonth $month, array $categoryIds, GoalStatusInputs $inputs): array
+    /** @param list<string> $categoryIds */
+    private function evaluateMonth(Goal $goal, ?GoalVersion $version, CalendarMonth $month, array $categoryIds, GoalStatusInputs $inputs): GoalMonthEvaluation
     {
         $item = $inputs->months[$month->key()] ?? new AnnualMonth($month, MonthState::NO_DATA, false, false, null);
         $metric = $this->metrics->metric($goal, $item, $categoryIds, $inputs);
-        $policyVersions = null === $item->figures?->policyVersion ? [] : [$item->figures->policyVersion];
-        $result = ['version' => $version, 'state' => $item->state->value, 'target' => null, 'actual' => $metric['value']?->toString(), 'reason' => null, 'policyVersion' => $item->figures?->policyVersion, 'policyVersions' => $policyVersions, 'reference' => null, 'tolerance' => null];
-        if (null === $version) {
-            return $result;
-        }
-        $ratio = $version->ratio;
-        switch ($version->valueType) {
-            case GoalValueType::AMOUNT:
-                $result['target'] = $version->targetAmount?->toString();
-                $result['tolerance'] = $version->toleranceAmount(null);
-                break;
-            case GoalValueType::RATE:
-                $result['target'] = $ratio?->toString();
-                $result['tolerance'] = $version->toleranceAmount(null);
-                break;
-            case GoalValueType::INCOME_SHARE:
-                $income = $item->figures?->cells['cashIncome'] ?? null;
-                $result['target'] = null !== $income?->value && null !== $ratio ? ExactDecimal::multiplyForResponse(DecimalValue::fromString($income->value), $ratio) : null;
-                $result['reason'] = null === $result['target'] ? ($income->reason ?? 'MISSING_CASH_INCOME') : null;
-                $result['tolerance'] = null === $result['target'] ? null : $version->toleranceAmount($income?->value);
-                break;
-            case GoalValueType::ROLLING_INCOME_SHARE:
-                $reference = ReadReferenceIncome::fromMonths($month, array_values($inputs->months));
-                $result['reference'] = $reference;
-                $result['policyVersions'] = [...$policyVersions, ...$reference->metricPolicyVersions];
-                $result['target'] = null !== $reference->value && null !== $ratio ? ExactDecimal::multiplyForResponse($reference->value, $ratio) : null;
-                $result['reason'] = null === $reference->value ? 'NO_REFERENCE_INCOME' : null;
-                $result['tolerance'] = null === $result['target'] ? null : $version->toleranceAmount($reference->value?->toString());
-                break;
-        }
-        if (null === $result['reason'] && (null === $metric['value'] || MonthState::NO_DATA === $item->state)) {
-            $result['reason'] = 'MISSING_MONTH_VALUE';
+        $policyVersion = $item->figures?->policyVersion;
+        $target = null === $version ? new GoalTarget() : $this->targets->forMonth($version, $item, $month, $inputs);
+        $reason = $target->reason;
+        if (null !== $version && null === $reason && (null === $metric['value'] || MonthState::NO_DATA === $item->state)) {
+            $reason = GoalReason::MISSING_MONTH_VALUE;
         }
 
-        return $result;
-    }
-
-    private static function annualStatus(GoalDirection $direction, string $achieved, string $expected, string $target, ?string $tolerance): string
-    {
-        $tolerance ??= '0';
-        if (GoalDirection::MINIMUM === $direction) {
-            return ExactDecimal::compareForResponse($achieved, ExactDecimal::subtractForResponse($target, $tolerance)) >= 0 ? 'REACHED' : (ExactDecimal::compareForResponse($achieved, $expected) >= 0 ? 'AHEAD' : 'BEHIND');
-        }
-
-        return ExactDecimal::compareForResponse($achieved, ExactDecimal::addForResponse($target, $tolerance)) > 0 ? 'EXCEEDED' : (ExactDecimal::compareForResponse($achieved, $expected) <= 0 ? 'ON_TRACK' : 'OVER_PACE');
-    }
-
-    private static function rollingStatus(GoalDirection $direction, string $actual, string $target, ?string $tolerance): string
-    {
-        $tolerance ??= '0';
-
-        return GoalDirection::MINIMUM === $direction
-            ? (ExactDecimal::compareForResponse($actual, ExactDecimal::subtractForResponse($target, $tolerance)) >= 0 ? 'MET' : 'MISSED')
-            : (ExactDecimal::compareForResponse($actual, ExactDecimal::addForResponse($target, $tolerance)) <= 0 ? 'WITHIN' : 'OVER');
-    }
-
-    private static function positiveForResponse(string $value): string
-    {
-        return ExactDecimal::compareForResponse($value, '0') <= 0 ? '0' : $value;
+        return new GoalMonthEvaluation(
+            $version,
+            $item->state,
+            $target,
+            $metric['value']?->toString(),
+            $reason,
+            $policyVersion,
+            [...(null === $policyVersion ? [] : [$policyVersion]), ...($target->reference->metricPolicyVersions ?? [])],
+        );
     }
 
     private static function clamp(string $ratio): string
@@ -285,8 +243,8 @@ final readonly class GoalPeriodEvaluator
         return $ratio;
     }
 
-    private static function blocksCalculation(?string $reason): bool
+    private static function blocksCalculation(?GoalReason $reason): bool
     {
-        return null !== $reason && 'REFERENCE_ARCHIVED' !== $reason;
+        return null !== $reason && GoalReason::REFERENCE_ARCHIVED !== $reason;
     }
 }
