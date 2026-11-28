@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace App\Module\Reporting\Domain;
 
-/** Why one monthly projection figure could not be produced. */
+/**
+ * Why one monthly projection figure could not be produced. MISSING_BENEFIT_SOURCE and MIXED_METRIC_POLICIES
+ * are no longer produced but stay so stored values still decode.
+ */
 enum MonthlyProjectionReason: string
 {
     case MIXED_ASSETS = 'MIXED_ASSETS';

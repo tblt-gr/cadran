@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Module\Foundation\Infrastructure\Logging;
 
 use App\Module\Foundation\Application\InvalidAmountInput;
-use Doctrine\DBAL\Exception\DriverException;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\DependencyInjection\Attribute\Exclude;
@@ -33,29 +32,15 @@ final class SafeErrorListener extends ErrorListener
             return;
         }
 
-        $location = basename($exception->getFile()).':'.$exception->getLine();
-        $sqlState = self::sqlState($exception);
-        $context = ['exception_class' => $exception::class, 'location' => $location];
-        $text = \sprintf('Uncaught PHP Exception %s at %s', $exception::class, $location);
-        if (null !== $sqlState) {
-            $context['sqlstate'] = $sqlState;
-            $text .= \sprintf(' (SQLSTATE %s)', $sqlState);
+        $context = SafeExceptionContext::of($exception);
+        $text = \sprintf('Uncaught PHP Exception %s at %s', $context['exception_class'], $context['location']);
+        if (isset($context['sqlstate'])) {
+            $text .= \sprintf(' (SQLSTATE %s)', $context['sqlstate']);
         }
 
         // InvalidAmountInput is answered 422 by ApiProblemResponseListener: a client error that is no HTTP exception.
         $clientError = $exception instanceof InvalidAmountInput
             || ($exception instanceof HttpExceptionInterface && $exception->getStatusCode() < 500);
         $logger->log($clientError ? LogLevel::INFO : ($logLevel ?? LogLevel::CRITICAL), $text, $context);
-    }
-
-    private static function sqlState(\Throwable $exception): ?string
-    {
-        for ($current = $exception; null !== $current; $current = $current->getPrevious()) {
-            if ($current instanceof DriverException) {
-                return $current->getSQLState();
-            }
-        }
-
-        return null;
     }
 }

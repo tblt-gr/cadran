@@ -66,6 +66,27 @@ api:
     internal_error:
       title: 'Erreur interne du serveur'
       detail: "L'API n'a pas pu traiter la requête."
+    forbidden:
+      title: 'Accès refusé'
+      detail: "Vous n'avez pas le droit d'effectuer cette action."
+    not_acceptable:
+      title: 'Format non disponible'
+      detail: "Cette ressource ne peut répondre qu'en « application/json »."
+    conflict:
+      title: 'Conflit'
+      detail: "La requête entre en conflit avec l'état actuel de la ressource."
+    payload_too_large:
+      title: 'Requête trop volumineuse'
+      detail: 'Le corps de la requête dépasse la taille autorisée.'
+    unprocessable:
+      title: 'Requête non traitable'
+      detail: 'Le contenu de la requête ne peut pas être traité.'
+    too_many_requests:
+      title: 'Trop de requêtes'
+      detail: 'Réessayez dans quelques instants.'
+    client_error:
+      title: 'Requête refusée'
+      detail: "La requête n'a pas pu être acceptée."
     invalid_request:
       title: 'Requête invalide'
       detail: 'Le corps de la requête est absent ou mal formé.'
