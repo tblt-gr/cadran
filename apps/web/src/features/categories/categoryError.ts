@@ -2,7 +2,8 @@ import type { CategoryImpactBlocker, CategoryOperationProblem, Problem } from '@
 
 import { classifyProblem } from '@/lib/apiProblem';
 
-export type CategoryErrorKind = 'conflict' | 'invalid' | 'network' | 'refused' | 'unauthorized';
+export type CategoryErrorKind =
+  'conflict' | 'invalid' | 'network' | 'periodClosed' | 'refused' | 'unauthorized';
 
 const OPERATION_REFUSED = '/problems/category-operation-refused';
 
@@ -30,6 +31,7 @@ export class CategoryRequestError extends Error {
 
 const PROBLEM_KINDS: Record<string, CategoryErrorKind> = {
   [OPERATION_REFUSED]: 'refused',
+  '/problems/period-closed': 'periodClosed',
 };
 
 export function categoryRequestError(result: {

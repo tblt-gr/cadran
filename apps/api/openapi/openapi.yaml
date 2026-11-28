@@ -8402,7 +8402,7 @@ components:
           schema:
             $ref: '#/components/schemas/CategoryOperationProblem'
     CategoryVersionConflict:
-      description: The submitted version is stale or the label conflicts with an active sibling.
+      description: The submitted version is stale, the label conflicts with an active sibling or, for a merge, a move or a dated replacement, a closed period is active (/problems/period-closed).
       content:
         application/problem+json:
           schema:

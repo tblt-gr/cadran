@@ -7260,7 +7260,7 @@ export type MoveCategoryErrors = {
      */
     404: Problem;
     /**
-     * The submitted version is stale or the label conflicts with an active sibling.
+     * The submitted version is stale, the label conflicts with an active sibling or, for a merge, a move or a dated replacement, a closed period is active (/problems/period-closed).
      */
     409: Problem;
     /**
@@ -7325,7 +7325,7 @@ export type MergeCategoryErrors = {
      */
     404: Problem;
     /**
-     * The submitted version is stale or the label conflicts with an active sibling.
+     * The submitted version is stale, the label conflicts with an active sibling or, for a merge, a move or a dated replacement, a closed period is active (/problems/period-closed).
      */
     409: Problem;
     /**
@@ -7390,7 +7390,7 @@ export type ArchiveCategoryErrors = {
      */
     404: Problem;
     /**
-     * The submitted version is stale or the label conflicts with an active sibling.
+     * The submitted version is stale, the label conflicts with an active sibling or, for a merge, a move or a dated replacement, a closed period is active (/problems/period-closed).
      */
     409: Problem;
     /**
@@ -7455,7 +7455,7 @@ export type ReplaceCategoryErrors = {
      */
     404: Problem;
     /**
-     * The submitted version is stale or the label conflicts with an active sibling.
+     * The submitted version is stale, the label conflicts with an active sibling or, for a merge, a move or a dated replacement, a closed period is active (/problems/period-closed).
      */
     409: Problem;
     /**

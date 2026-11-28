@@ -56,6 +56,20 @@ final readonly class AssertPeriodOpen
     }
 
     /**
+     * For a rule that applies from a day onwards without end: a closure of
+     * that day's month or of any later one refuses it.
+     *
+     * @throws PeriodClosed
+     */
+    public function assertNoActiveClosureFrom(WorkspaceScope $workspace, \DateTimeInterface $day): void
+    {
+        $this->closures->lockShared($workspace);
+        if ([] !== $this->closures->activeBetween($workspace, CalendarMonth::containing($day), null)) {
+            throw new PeriodClosed();
+        }
+    }
+
+    /**
      * Refuses only lifecycle edits that change whether an account belongs to
      * an active closed month. The shared lock keeps the decision atomic with
      * the account write and a concurrent close/reopen.

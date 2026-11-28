@@ -2,8 +2,8 @@ import type { Category, CategoryImpact } from '@cadran/api-client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import '@/i18n';
-import { CategoryRequestError } from '@/features/categories/categoryError';
+import { setLanguage, type Language } from '@/i18n';
+import { CategoryRequestError, categoryRequestError } from '@/features/categories/categoryError';
 import { CategoryLifecycleDialog, type CategoryDialogOperation } from './CategoryLifecycleDialog';
 
 const api = vi.hoisted(() => ({
@@ -270,6 +270,40 @@ describe('CategoryLifecycleDialog', () => {
       screen.getByText('L’opération est refusée. Les raisons sont listées ci-dessous.'),
     ).toBeTruthy();
     expect(screen.getByText('Cette catégorie est déjà redirigée vers une autre.')).toBeTruthy();
+  });
+
+  it.each<[Language, string, string]>([
+    [
+      'fr',
+      '/problems/period-closed',
+      'Un mois clos empêche cette modification. Rouvrez le mois concerné, puis réessayez.',
+    ],
+    [
+      'en',
+      '/problems/period-closed',
+      'A closed month prevents this change. Reopen the month concerned, then try again.',
+    ],
+    [
+      'fr',
+      'about:blank',
+      'Ce libellé est déjà utilisé au même niveau ou la catégorie a été modifiée ailleurs. Rechargez puis réessayez.',
+    ],
+  ])('explains a %s 409 of type %s', async (language, type, message) => {
+    await setLanguage(language);
+    api.listCategories.mockImplementation(() =>
+      success({ items: [target], page: 1, pageSize: 50, total: 1 }),
+    );
+    renderDialog(
+      'REPLACE',
+      vi.fn(),
+      categoryRequestError({
+        error: { type, title: 'x', status: 409, detail: 'y' },
+        response: new Response('{}', { status: 409 }),
+      }),
+    );
+
+    expect(screen.getByText(message)).toBeTruthy();
+    await setLanguage('fr');
   });
 
   it('surfaces a failing impact read instead of pretending the operation is safe', async () => {
