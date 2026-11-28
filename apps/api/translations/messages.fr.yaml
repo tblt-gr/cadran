@@ -71,7 +71,7 @@ api:
       detail: "Vous n'avez pas le droit d'effectuer cette action."
     not_acceptable:
       title: 'Format non disponible'
-      detail: 'Cette ressource ne peut répondre qu''en « application/json ».'
+      detail: "Cette ressource ne peut répondre qu'en « application/json »."
     conflict:
       title: 'Conflit'
       detail: "La requête entre en conflit avec l'état actuel de la ressource."
