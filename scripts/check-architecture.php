@@ -9,6 +9,15 @@ const ALLOWED_LAYER_DEPENDENCIES = [
     'UI' => ['Domain', 'Application', 'UI'],
 ];
 
+// What Budget may read from Reporting: its facade, the month it is read from and the aggregation contract.
+const BUDGET_REPORTING_ALLOWLIST = '~^App\\\\Module\\\\Reporting\\\\(?:Application\\\\(?:AnnualMonth|MonthlyProjectionScopeTooLarge|Facade\\\\\w+)|Domain\\\\Aggregation\\\\(?:Aggregate|AggregateQuality|AggregateReason|ExcludedMonth|IncompleteMonths|MonthState|MonthValue|ReportAggregator))$~';
+// The one adapter that loads the months themselves.
+const BUDGET_REPORTING_ADAPTER = '/Module/Budget/Infrastructure/Reporting/ReportingGoalMonthSource.php';
+const BUDGET_REPORTING_ADAPTER_ONLY = [
+    'App\\Module\\Reporting\\Application\\LoadAnnualMonths',
+    'App\\Module\\Reporting\\Application\\ReadFirstDataMonth',
+];
+
 // [forbidden pattern, the only file allowed to hold it, diagnostic]
 const SHARED_KNOWLEDGE = [
     ['~\[(?:0-9a-f(?:A-F)?|a-f0-9)\]\{8\}~', '/Foundation/Domain/Uuid.php', 'check identifiers through Uuid, not a raw UUID pattern'],
@@ -80,6 +89,14 @@ foreach ($iterator as $file) {
         }
 
         $reference = ltrim($token[1], '\\');
+        if (str_contains($path, '/Module/Budget/')
+            && 1 === preg_match('/^App\\\\Module\\\\Reporting(?:\\\\|$)/', $reference)
+            && 1 !== preg_match(BUDGET_REPORTING_ALLOWLIST, $reference)
+            && !(str_ends_with($path, BUDGET_REPORTING_ADAPTER) && in_array($reference, BUDGET_REPORTING_ADAPTER_ONLY, true))
+        ) {
+            $violations[] = sprintf('%s: Budget reads Reporting through its facade, not %s', $path, $reference);
+        }
+
         if (1 !== preg_match('/^App\\\\Module\\\\[^\\\\]+\\\\(Domain|Application|Infrastructure|UI)(?:\\\\|$)/', $reference, $targetMatch)) {
             continue;
         }

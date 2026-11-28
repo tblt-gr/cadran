@@ -16,8 +16,9 @@ final class MonthlyProjectionFixture
     /**
      * @param list<MonthlyRecapCategoryView>      $categoryMetrics
      * @param list<MonthlyRecapCategoryView>|null $categoryRollups
+     * @param array<string, MonthlyMetricView>    $expensesByAxis
      */
-    public static function view(string $month, string $cashIncome = '2000', ?int $policyVersion = 1, array $categoryMetrics = [], ?array $categoryRollups = null, ?string $policyLabel = 'All accounts'): MonthlyProjectionView
+    public static function view(string $month, string $cashIncome = '2000', ?int $policyVersion = 1, array $categoryMetrics = [], ?array $categoryRollups = null, ?string $policyLabel = 'All accounts', array $expensesByAxis = []): MonthlyProjectionView
     {
         $income = new MonthlyMetricView($cashIncome, 'EUR', null);
         $zero = new MonthlyMetricView('0', 'EUR', null);
@@ -26,7 +27,7 @@ final class MonthlyProjectionFixture
         return new MonthlyProjectionView(
             $month, $month.'-01', $month.'-28', $month.'-01', $month.'-28', false, 'COMPLETE', 'CURRENT', 0,
             $income, $zero, $zero, $zero, $zero, $income, $zero, $none, $zero, $zero, $zero, $none,
-            $none, $none, $none, 'NON_CALCULABLE', [], 'RECONCILED', [], $categoryMetrics,
+            $none, $none, $none, 'NON_CALCULABLE', [], 'RECONCILED', $expensesByAxis, $categoryMetrics,
             new NetWorthView(
                 $month.'-28', null, 'MISSING_VALUATION', 'MISSING', null, 0, 0, 0, 0,
                 new NetWorthDeltaView($month.'-01', null, null, null, null, null, null, null, null, 'MISSING', null, 0, 0, [], []),

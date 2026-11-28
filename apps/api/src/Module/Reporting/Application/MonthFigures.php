@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Module\Reporting\Application;
 
 use App\Module\Accounts\Application\NetWorthContributionView;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
 
 /**
  * Every figure of one month an annual column can read, keyed by column id: what the annual report
@@ -19,11 +20,10 @@ final readonly class MonthFigures
     /** Prefix of the cells holding a category's own movements, without its descendants. */
     public const string OWN_CATEGORY_PREFIX = 'ownCategory:';
 
-    /** Column ids read straight from a KPI of the projection. */
-    public const array KPI_IDS = [
-        'cashIncome', 'nonCashBenefits', 'budgetExpenses', 'benefitSpending', 'uncategorizedExpenses',
-        'budgetSurplus', 'cashSavingsRate', 'savingsInflows', 'savingsWithdrawals', 'netSavingsTransfers',
-        'netSavingsRate', 'netWorthDelta', 'endNetWorth',
+    /** Column ids read straight from a KPI of the projection and named by no {@see ReportFigureKey}. */
+    private const array OTHER_KPI_IDS = [
+        'nonCashBenefits', 'benefitSpending', 'uncategorizedExpenses', 'savingsInflows', 'savingsWithdrawals',
+        'netWorthDelta', 'endNetWorth',
     ];
 
     /**
@@ -49,12 +49,19 @@ final readonly class MonthFigures
 
     public static function fromProjection(MonthlyProjectionView $projection): self
     {
-        $cells = [];
-        foreach (self::KPI_IDS as $id) {
+        $cells = [
+            ReportFigureKey::cashIncome()->id => $projection->cashIncome,
+            ReportFigureKey::budgetExpenses()->id => $projection->budgetExpenses,
+            ReportFigureKey::budgetSurplus()->id => $projection->budgetSurplus,
+            ReportFigureKey::netSavingsTransfers()->id => $projection->netSavingsTransfers,
+            ReportFigureKey::cashSavingsRate()->id => $projection->cashSavingsRate,
+            ReportFigureKey::netSavingsRate()->id => $projection->netSavingsRate,
+        ];
+        foreach (self::OTHER_KPI_IDS as $id) {
             $cells[$id] = $projection->{$id};
         }
         foreach ($projection->expensesByAxis as $axis => $metric) {
-            $cells['axis:'.$axis] = $metric;
+            $cells[ReportFigureKey::axisSpending($axis)->id] = $metric;
         }
         // A category column covers the category and its descendants, so a parent never reads empty.
         // The own-movement cell stays apart: the top categories chart lists parents and children side
@@ -63,7 +70,7 @@ final readonly class MonthFigures
             $cells['category:'.$category->id] = $category->metric;
         }
         foreach ($projection->categoryMetrics as $category) {
-            $cells[self::OWN_CATEGORY_PREFIX.$category->id] = $category->metric;
+            $cells[ReportFigureKey::ownCategorySpending($category->id)->id] = $category->metric;
         }
         foreach ($projection->accounts as $account) {
             $end = $account->endValue;

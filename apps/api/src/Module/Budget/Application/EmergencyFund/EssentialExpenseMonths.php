@@ -8,18 +8,16 @@ use App\Module\Budget\Domain\EmergencyFund\EmergencyFundPolicy;
 use App\Module\Budget\Domain\EmergencyFund\EssentialMode;
 use App\Module\Categories\Application\BudgetCategoryFact;
 use App\Module\Categories\Domain\Category;
-use App\Module\Foundation\Domain\AssetCode;
-use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
-use App\Module\Reporting\Application\AnnualColumnSeries;
 use App\Module\Reporting\Application\AnnualMonth;
-use App\Module\Reporting\Application\MonthFigures;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
+use App\Module\Reporting\Application\Facade\ReportFigureSeries;
 use App\Module\Reporting\Domain\Aggregation\MonthValue;
 
 /** Reads the essential expenses of each reference month out of the report figures, as the policy defines them. */
 final class EssentialExpenseMonths
 {
-    private const string ESSENTIAL_AXIS_COLUMN = 'axis:ESSENTIAL';
+    private const string ESSENTIAL_AXIS = 'ESSENTIAL';
 
     /**
      * @param list<AnnualMonth>             $months
@@ -30,7 +28,7 @@ final class EssentialExpenseMonths
     public static function of(EmergencyFundPolicy $policy, array $months, ?array $categories): array
     {
         if (EssentialMode::AXIS === $policy->essentialMode) {
-            return AnnualColumnSeries::values(self::ESSENTIAL_AXIS_COLUMN, true, $months);
+            return ReportFigureSeries::values(ReportFigureKey::axisSpending(self::ESSENTIAL_AXIS), $months);
         }
         $branch = self::branch($policy->essentialCategoryIds, $categories ?? throw new \LogicException('A category perimeter reads the category tree.'));
 
@@ -74,45 +72,41 @@ final class EssentialExpenseMonths
     /** @param list<string> $branch */
     private static function categoryMonth(AnnualMonth $month, array $branch): MonthValue
     {
-        $figures = $month->figures;
-        if (null === $figures) {
+        $version = $month->policyVersion();
+        if (null === $version) {
             return new MonthValue($month->month, $month->state, null, null, $month->state->value);
         }
         // The same budget perimeter the ESSENTIAL axis and category goals read.
-        $included = array_flip($figures->budgetExpenseCategoryIds);
+        $included = array_flip($month->budgetExpenseCategoryIds());
         $values = [];
         $assets = [];
         foreach ($branch as $categoryId) {
             if (!isset($included[$categoryId])) {
                 continue;
             }
-            $cell = $figures->cells[MonthFigures::OWN_CATEGORY_PREFIX.$categoryId] ?? null;
-            if (null === $cell) {
-                return new MonthValue($month->month, $month->state, null, null, 'MISSING_MONTH_VALUE', $figures->policyVersion);
+            $figure = $month->figure(ReportFigureKey::ownCategorySpending($categoryId));
+            if ($figure->noMovements) {
+                continue;
             }
-            if (null === $cell->value) {
-                if (AnnualColumnSeries::NO_MOVEMENTS === $cell->reason) {
-                    continue;
-                }
-
-                return new MonthValue($month->month, $month->state, null, null, $cell->reason ?? 'MISSING_MONTH_VALUE', $figures->policyVersion);
+            if (null === $figure->value) {
+                return new MonthValue($month->month, $month->state, null, null, $figure->reason ?? 'MISSING_MONTH_VALUE', $version);
             }
-            $values[] = DecimalValue::fromString($cell->value);
-            if (null !== $cell->assetCode) {
-                $assets[$cell->assetCode] = true;
+            $values[] = $figure->value;
+            if (null !== $figure->asset) {
+                $assets[$figure->asset->toString()] = $figure->asset;
             }
         }
         if (count($assets) > 1) {
-            return new MonthValue($month->month, $month->state, null, null, 'MIXED_ASSETS', $figures->policyVersion);
+            return new MonthValue($month->month, $month->state, null, null, 'MIXED_ASSETS', $version);
         }
 
         return new MonthValue(
             $month->month,
             $month->state,
             ExactDecimal::sum(...$values),
-            [] === $assets ? null : AssetCode::fromString((string) array_key_first($assets)),
+            array_values($assets)[0] ?? null,
             null,
-            $figures->policyVersion,
+            $version,
         );
     }
 }

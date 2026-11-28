@@ -21,11 +21,10 @@ use App\Module\Foundation\Application\CallerWorkspace;
 use App\Module\Foundation\Application\WorkspaceCalendar;
 use App\Module\Foundation\Domain\DecimalValue;
 use App\Module\Foundation\Domain\ExactDecimal;
-use App\Module\Reporting\Application\AnnualColumn;
-use App\Module\Reporting\Application\AnnualColumnSeries;
 use App\Module\Reporting\Application\AnnualMonth;
+use App\Module\Reporting\Application\Facade\ReportFigureKey;
+use App\Module\Reporting\Application\Facade\ReportFigureSeries;
 use App\Module\Reporting\Domain\Aggregation\AggregateReason;
-use App\Module\Reporting\Domain\Aggregation\ColumnKind;
 use App\Module\Reporting\Domain\Aggregation\IncompleteMonths;
 use App\Module\Reporting\Domain\Aggregation\MonthState;
 use App\Module\Reporting\Domain\Aggregation\MonthValue;
@@ -162,7 +161,7 @@ final readonly class ListGoalEvaluations
         $achieved = $this->yearFigure($context, $goal, $months);
         $yearIncome = null;
         if (GoalValueType::INCOME_SHARE === $version->valueType || GoalValueType::ROLLING_INCOME_SHARE === $version->valueType) {
-            $yearIncome = ReportAggregator::flow(AnnualColumnSeries::values('cashIncome', true, $months), IncompleteMonths::INCLUDE)->total?->toString();
+            $yearIncome = ReportFigureSeries::aggregate(ReportFigureKey::cashIncome(), $months, IncompleteMonths::INCLUDE)->total?->toString();
         }
         $target = $this->targets->forYear($version, $yearIncome);
         $pace = null;
@@ -199,19 +198,19 @@ final readonly class ListGoalEvaluations
     private function yearFigure(EvaluationContext $context, Goal $goal, array $months): array
     {
         if (in_array($goal->metric, [GoalMetric::TOTAL_INCOME, GoalMetric::TOTAL_SPENDING], true)) {
-            if ([] === array_filter($months, static fn (AnnualMonth $month): bool => true === $month->figures?->hasTransactions)) {
+            if ([] === array_filter($months, static fn (AnnualMonth $month): bool => true === $month->hasTransactions())) {
                 return ['value' => null, 'reason' => GoalReason::NO_DATA];
             }
-            $column = new AnnualColumn(GoalMetric::TOTAL_INCOME === $goal->metric ? 'cashIncome' : 'budgetExpenses', '', ColumnKind::FLOW, true);
-            $aggregate = AnnualColumnSeries::aggregate($column, $months, IncompleteMonths::INCLUDE);
+            $key = GoalMetric::TOTAL_INCOME === $goal->metric ? ReportFigureKey::cashIncome() : ReportFigureKey::budgetExpenses();
+            $aggregate = ReportFigureSeries::aggregate($key, $months, IncompleteMonths::INCLUDE);
         } elseif ($goal->metric->isRate()) {
-            $column = new AnnualColumn(GoalMetric::SAVINGS_RATE === $goal->metric ? 'cashSavingsRate' : 'netSavingsRate', '', ColumnKind::RATE, true);
-            $aggregate = AnnualColumnSeries::aggregate($column, $months, IncompleteMonths::INCLUDE);
+            $key = GoalMetric::SAVINGS_RATE === $goal->metric ? ReportFigureKey::cashSavingsRate() : ReportFigureKey::netSavingsRate();
+            $aggregate = ReportFigureSeries::aggregate($key, $months, IncompleteMonths::INCLUDE);
         } else {
             $values = [];
             foreach ($months as $month) {
                 $figure = $this->monthFigure($context, $goal, $month);
-                $values[] = new MonthValue($month->month, $month->state, null === $figure['value'] ? null : DecimalValue::fromString($figure['value']), null === $figure['value'] ? null : $goal->assetCode, $figure['reason']?->value, $month->figures?->policyVersion);
+                $values[] = new MonthValue($month->month, $month->state, null === $figure['value'] ? null : DecimalValue::fromString($figure['value']), null === $figure['value'] ? null : $goal->assetCode, $figure['reason']?->value, $month->policyVersion());
             }
             $aggregate = ReportAggregator::flow($values, IncompleteMonths::INCLUDE);
         }
